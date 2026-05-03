@@ -1,0 +1,95 @@
+---
+description: Multi-agent team review of artifacts/designs from different perspectives
+---
+
+Launch a team of agents to review artifacts/designs from multiple professional perspectives simultaneously.
+
+**Arguments**: $ARGUMENTS
+
+- Format: `<path> [agent-count] [model] [mode]`
+- `path` — file or folder to review (required). If not provided, use **AskUserQuestion** to ask.
+- `agent-count` — number of agents (optional, default: 5). Maps to roles below.
+- `model` — model to use for agents (optional, default: current model).
+- `mode` — agent launch mode (optional, default: `foreground`). Values: `foreground` (actively wait for each agent), `background` (launch all in background).
+
+If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
+
+## Agent Roles
+
+Assign roles in this order based on agent count:
+
+| #   | Code Name                | Perspective                                                            |
+|-----|--------------------------|------------------------------------------------------------------------|
+| 1   | business analyst         | Requirements coverage, user stories, acceptance criteria, edge cases   |
+| 2   | technical architecture   | System design, patterns, scalability, integration points, dependencies |
+| 3   | QA engineer              | Testability, test coverage gaps, failure modes, data validation        |
+| 4   | senior developer         | Implementation feasibility, code quality, naming, existing patterns    |
+| 5   | devil's advocate         | Challenge assumptions, find contradictions, worst-case scenarios       |
+
+If agent count < 5, use the first N roles. If agent count > 5, add roles like "security engineer", "performance engineer", "DX/usability reviewer" as needed.
+
+## Steps
+
+1. **Read the target**
+
+   Read all `.md` files at the given path (recursively if folder). Summarize the content so you can include it in each agent's prompt.
+
+2. **Launch the agent team**
+
+   For each role, launch an Agent (subagent_type: `Explore`) with the following prompt structure:
+
+   ```md
+   You are reviewing the following artifacts/design as a **{role name}**.
+
+   ## Target
+   Path: {path}
+
+   ## Content
+   {summarized content or file listing — keep concise but sufficient}
+
+   ## Your Task
+   1. Read all files at the target path carefully.
+   2. Review from your **{role name}** perspective. Focus on finding **real issues only** — not stylistic preferences or theoretical concerns.
+   3. Categorize findings by severity:
+      - **Blockers** — must be resolved before implementation
+      - **Warnings** — could cause problems, should be addressed
+      - **Suggestions** — would improve quality (only include if clearly valuable)
+   4. For each finding: state which file/section, what the issue is, and a concrete suggestion.
+   5. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
+   6. Present your final findings with your role clearly stated at the top.
+   ```
+
+   **Launch mode:**
+   - `foreground` (default): Launch all agents in a single message (parallel tool calls), then actively wait for all results. This prevents hang issues.
+   - `background`: Launch all agents with `run_in_background: true`.
+
+3. **Consolidate results**
+
+   After all agents finish:
+   - Collect all findings from all agents.
+   - Deduplicate — if multiple agents found the same issue, merge into one entry and note which roles flagged it.
+   - Present a unified report:
+
+   ```md
+   ### Team Review Report: {path}
+
+   **Reviewers:** {list of roles}
+
+   **Blockers** (must fix):
+   - [flagged by: {roles}] issue description
+
+   **Warnings** (should address):
+   - [flagged by: {roles}] issue description
+
+   **Suggestions** (nice to have):
+   - [flagged by: {roles}] issue description
+
+   **Agreement matrix:** Note which findings had consensus (multiple roles) vs. single-role findings.
+   ```
+
+## Guardrails
+
+- **Read-only** — do not modify any files. Only report findings.
+- **Real issues only** — instruct each agent to reverify. Then reverify again during consolidation.
+- **Be specific** — every finding must reference a concrete file/section and include a resolution suggestion.
+- **Verify against real code** — agents should check claims against the actual codebase.

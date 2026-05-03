@@ -1,0 +1,488 @@
+---
+name: add-configuration-option
+description: Add configuration options classes with validation and DI registration. Use when adding configurable settings, environment-specific options, or service configuration in any .NET service. Triggers on requests like "add configuration", "add options", "add setting", "configurable value".
+---
+
+# Add Configuration Option
+
+Add configuration options in your service configuration project with FluentValidation validators.
+
+## Architecture
+
+```mermaid
+Options Class (mutable config model with init/set)
+    ↓ validated by
+Validator (FluentValidation)
+    ↓ registered in
+DI Container (IOptions<T> / IOptionsSnapshot<T> / IOptionsMonitor<T>)
+    ↓ bound from
+appsettings.json
+```
+
+## File Structure
+
+```txt
+src/{ServiceName}.Configuration/
+├── Options/
+│   └── {Feature}/
+│       ├── {Feature}Options.cs           # Options class
+│       └── {Feature}OptionsValidator.cs  # Validator
+```
+
+## Step 1: Options Class
+
+**CRITICAL**:
+
+- Properties MUST have `{ get; set; }` (preferred) or `{ get; init; }` — NOT just `{ get; }`.
+- Prefer `{ get; set; }` to allow customizing options via ASP.NET's `.Configure()` method.
+
+### Validation Flow
+
+1. Model is created and bound from configuration
+2. DataAnnotations attributes (`[Required]`, `[Range]`, etc.) are validated
+3. `Validate()` method is called for complex validation logic
+
+```csharp
+// Copyright (c) Vasily Vasilyev
+
+using System.ComponentModel.DataAnnotations;
+using {ProjectNamespace}.Common.Validation;
+
+namespace {ProjectNamespace}.Configuration.Options.{Feature};
+
+/// <summary>
+/// Configuration options for {feature}.
+/// </summary>
+public sealed record {Feature}Options : IValidatableObject
+{
+    /// <summary>
+    /// Gets or sets the timeout in seconds.
+    /// </summary>
+    [Required]
+    public Int32 TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets the maximum retry count.
+    /// </summary>
+    [Required]
+    [Range(1, 10)]
+    public Int32 MaxRetries { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the service endpoint URL.
+    /// </summary>
+    [Required]
+    public String EndpointUrl { get; set; } = String.Empty;
+
+    /// <summary>
+    /// Gets or sets whether the feature is enabled.
+    /// </summary>
+    public Boolean IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets the computed maximum items per region.
+    /// </summary>
+    /// <remarks>
+    /// Computed properties derive values from other options. Use expression-bodied members
+    /// with no setter — they are NOT bound from configuration.
+    /// </remarks>
+    public Int32 MaxItemsPerRegion => MaxRetries * TimeoutSeconds;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="{Feature}Options"/> class.
+    /// </summary>
+    public {Feature}Options()
+    {
+    }
+
+    /// <summary>
+    /// Validates the current instance of <see cref="{Feature}Options"/>.
+    /// </summary>
+    /// <param name="validationContext">The context information about the object being validated.</param>
+    /// <returns>A collection of <see cref="ValidationResult"/> objects that describe any validation failures.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="validationContext" /> is <see langword="null" />.
+    /// </exception>
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        validationContext.ThrowIfNull();
+
+        var validator = new {Feature}OptionsValidator();
+        var result = validator.Validate(this);
+
+        return result.ToSystemValidationResultCollection();
+    }
+}
+```
+
+### Example Options Class (Replace With Your Domain)
+
+```csharp
+public sealed record {Feature}Options : IValidatableObject
+{
+    public {NestedOptions} NestedOptions { get; set; } = new();
+
+    public {Feature}Options()
+    {
+    }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        validationContext.ThrowIfNull();
+
+        var validator = new {Feature}OptionsValidator();
+        var result = validator.Validate(this);
+
+        return result.ToSystemValidationResultCollection();
+    }
+}
+```
+
+## Step 2: FluentValidation Validator
+
+Use `ValidationErrorBuilder.Default` with `CreateValueRequiredMessage()` for consistent error messages.
+
+### Cascade Mode
+
+Use `.Cascade(CascadeMode.Stop)` to prevent invalid validation calls when earlier rules fail:
+
+```csharp
+// Copyright (c) Vasily Vasilyev
+
+using FluentValidation;
+using {ProjectNamespace}.Common.Validation.Errors;
+
+namespace {ProjectNamespace}.Configuration.Options.{Feature};
+
+/// <summary>
+/// Validator for <see cref="{Feature}Options"/>.
+/// </summary>
+public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Options>
+{
+    public {Feature}OptionsValidator()
+    {
+        ClassLevelCascadeMode = CascadeMode.Stop;
+
+        var errorBuilder = ValidationErrorBuilder.Default;
+
+        // Use Cascade(CascadeMode.Stop) to prevent running further rules if earlier ones fail
+        RuleFor(x => x.TimeoutSeconds).Cascade(CascadeMode.Stop)
+            .GreaterThan(0)
+            .WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.TimeoutSeconds));
+
+        RuleFor(x => x.MaxRetries).Cascade(CascadeMode.Stop)
+            .InclusiveBetween(1, 10)
+            .WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.MaxRetries));
+
+        RuleFor(x => x.EndpointUrl).Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.EndpointUrl));
+
+        // For nested options, use SetValidator
+        RuleFor(x => x.NestedOptions).Cascade(CascadeMode.Stop)
+            .NotNull().WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.NestedOptions))
+            .SetValidator(new NestedOptionsValidator());
+    }
+}
+```
+
+### Example Validator (Replace With Your Domain)
+
+```csharp
+public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Options>
+{
+    public {Feature}OptionsValidator()
+    {
+        ClassLevelCascadeMode = CascadeMode.Stop;
+
+        var errorBuilder = ValidationErrorBuilder.Default;
+
+        RuleFor(x => x.Items).Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.Items))
+            .ForEach(x => x.NotEmpty().WithMessage(errorBuilder.CreateStringRequiredMessage(nameof({Feature}Options.Items))));
+    }
+}
+```
+
+### Why Use Cascade Mode?
+
+**Without Cascade Mode**: If a collection is `null`, `.ForEach()` will throw `NullReferenceException`.
+
+**With Cascade Mode**: If `.NotNull()` fails, `.ForEach()` is skipped, preventing crashes.
+
+## Step 3: DI Registration
+
+Use the extension method in `ExtensionMethodsHostApplicationBuilder.cs`:
+
+```csharp
+// In src/{ServiceName}.WebApi/Services/Builders/ExtensionMethodsHostApplicationBuilder.cs
+internal static class ExtensionMethodsHostApplicationBuilder
+{
+    public static void Configure{ServiceName}OptionsAndEnableValidation(this IHostApplicationBuilder builder)
+    {
+        builder.ThrowIfNull();
+
+        // Add your new options here
+        builder.ConfigureOptionsAndEnableValidation<{Feature}Options>();
+
+        // Existing registrations
+        builder.ConfigureOptionsAndEnableValidation<DeploymentOptions>();
+        builder.ConfigureOptionsAndEnableValidation<AppServicesOptions>();
+        // ...
+    }
+}
+```
+
+**NOTE**: The `ConfigureOptionsAndEnableValidation<T>()` extension handles binding, FluentValidation, and startup validation automatically.
+
+## Step 4: Configuration Sources
+
+### appsettings.json (Project Defaults)
+
+`appsettings.json` provides **default values** for the project:
+
+```json
+{
+  "{Feature}": {
+    "TimeoutSeconds": 30,
+    "MaxRetries": 3,
+    "EndpointUrl": "https://api.example.com",
+    "IsEnabled": true
+  }
+}
+```
+
+**NOTE**: These are **project-wide defaults**. Crucial options for deployment must be overridden via Helm.
+
+### Deployment Configuration (Environment-Specific)
+
+**CRITICAL**: Crucial configuration options MUST be exposed in your deployment system (Helm/Kustomize/Terraform, etc.) for CI/CD.
+
+#### 1. Add to deployment values
+
+```yaml
+tenant:
+  settings:
+    # Add your new settings here
+    {Feature}Options__TimeoutSeconds:
+    {Feature}Options__EndpointUrl:
+    {Feature}Options__IsEnabled:
+```
+
+**NOTE**: Use double underscore `__` for nested configuration (ASP.NET Core convention).
+
+#### 2. Update deployment validation (if applicable)
+
+Add validation checks for required values:
+
+```bash
+if [ -n "$FEATURE_OPTIONS_ENDPOINT_URL" ]; then
+    echo "FEATURE_OPTIONS_ENDPOINT_URL: $FEATURE_OPTIONS_ENDPOINT_URL"
+else
+    echo "FEATURE_OPTIONS_ENDPOINT_URL is missing."
+    exit 1
+fi
+
+if [ -n "$FEATURE_OPTIONS_TIMEOUT_SECONDS" ]; then
+    echo "FEATURE_OPTIONS_TIMEOUT_SECONDS: $FEATURE_OPTIONS_TIMEOUT_SECONDS"
+else
+    echo "FEATURE_OPTIONS_TIMEOUT_SECONDS is missing."
+    exit 1
+fi
+```
+
+**NOTE**: The Platform team will add actual values to the CI/CD pipeline variables.
+
+### Configuration Priority
+
+ASP.NET Core configuration sources (highest to lowest priority):
+
+1. **Environment variables** (set by Helm deployment)
+2. **appsettings.{Environment}.json** (environment-specific)
+3. **appsettings.json** (project defaults)
+
+Helm-provided environment variables **override** appsettings.json values.
+
+## Using Options in Code
+
+**TIP**: Use a computed property (e.g., `Options => _options.Value`) as a shortcut instead of repeatedly accessing `.Value` or `.CurrentValue` throughout your code. This improves readability and reduces repetition.
+
+### Via IOptions\<T\> (singleton, read once at startup)
+
+```csharp
+public sealed class MyService
+{
+    private readonly {Feature}Options _options;
+
+    public MyService(
+        IOptions<{Feature}Options> options)
+    {
+        _options = options.Value;
+    }
+}
+```
+
+### Via IOptionsSnapshot\<T\> (scoped, reloads per request)
+
+```csharp
+public sealed class MyService
+{
+    private readonly IOptionsSnapshot<{Feature}Options> _options;
+
+    private {Feature}Options Options => _options.Value;
+
+    public MyService(
+        IOptionsSnapshot<{Feature}Options> options)
+    {
+        _options = options.ThrowIfNull();
+    }
+
+    public void DoWork()
+    {
+        // Gets current value for this scope/request
+        var timeout = Options.TimeoutSeconds;
+    }
+}
+```
+
+### Via IOptionsMonitor\<T\> (singleton, change notifications)
+
+```csharp
+public sealed class MyService
+{
+    private readonly IOptionsMonitor<{Feature}Options> _options;
+
+    private {Feature}Options Options => _options.CurrentValue;
+
+    public MyService(
+        IOptionsMonitor<{Feature}Options> options)
+    {
+        _options = options.ThrowIfNull();
+    }
+
+    public void DoWork()
+    {
+        // Always gets current value
+        var timeout = Options.TimeoutSeconds;
+    }
+}
+```
+
+## BuildEnvironment Pattern
+
+For compile-time environment-specific configuration, use the `BuildEnvironment` + `BuildEnvironmentInfo` pattern:
+
+### Step 1: BuildEnvironment Static Class
+
+```csharp
+// BuildEnvironment.cs
+public static class BuildEnvironment
+{
+    public const Boolean IsDebugConst =
+#if DEBUG
+        true;
+#else
+        false;
+#endif
+
+    public const Boolean UseFeatureXConst =
+#if USE_FEATURE_X
+        true;
+#else
+        false;
+#endif
+}
+```
+
+### Step 2: BuildEnvironmentInfo Singleton (for DI/testing)
+
+```csharp
+// BuildEnvironmentInfo.cs
+public sealed class BuildEnvironmentInfo : I{ServiceName}BuildEnvironmentInfo
+{
+    public static BuildEnvironmentInfo Instance { get; } = new();
+
+    /// <inheritdoc cref="BuildEnvironment.IsDebugConst"/>
+    public Boolean IsDebugBuild => BuildEnvironment.IsDebugConst;
+
+    /// <inheritdoc cref="BuildEnvironment.UseFeatureXConst"/>
+    public Boolean UseFeatureX => BuildEnvironment.UseFeatureXConst;
+
+    private BuildEnvironmentInfo()
+    {
+    }
+}
+```
+
+### Step 3: Interface for Testing
+
+```csharp
+// I{ServiceName}BuildEnvironmentInfo.cs
+public interface I{ServiceName}BuildEnvironmentInfo
+{
+    Boolean IsDebugBuild { get; }
+    Boolean UseFeatureX { get; }
+}
+```
+
+**IMPORTANT**: Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead:
+
+```csharp
+// ✅ Good - testable
+public sealed class MyService
+{
+    private readonly I{ServiceName}BuildEnvironmentInfo _buildInfo;
+
+    public MyService(
+        I{ServiceName}BuildEnvironmentInfo buildInfo)
+    {
+        _buildInfo = buildInfo.ThrowIfNull();
+    }
+
+    public void DoWork()
+    {
+        if (_buildInfo.UseFeatureX)
+        {
+            // Feature X logic
+        }
+    }
+}
+
+// ❌ Bad - not testable
+public sealed class MyService
+{
+    public void DoWork()
+    {
+#if USE_FEATURE_X
+        // Feature X logic
+#endif
+    }
+}
+```
+
+## Tests
+
+Create configuration options tests following project conventions.
+
+**See the [create-tests](../create-tests/SKILL.md) skill for complete unit and integration testing guidance.**
+
+## Checklist
+
+- [ ] Options class inherits `IValidatableObject` with `Validate()` method
+- [ ] Properties use `{ get; set; }` (preferred) or `{ get; init; }`
+- [ ] Properties have sensible defaults
+- [ ] `[Required]`, `[Range]`, etc. attributes on properties as needed
+- [ ] FluentValidation validator using `ValidationErrorBuilder.Default.CreateValueRequiredMessage()`
+- [ ] `ClassLevelCascadeMode = CascadeMode.Stop` set in validator
+- [ ] Rule chains use `.Cascade(CascadeMode.Stop)` to prevent invalid validation calls
+- [ ] Nested options use `.SetValidator(new NestedOptionsValidator())`
+- [ ] Registration added to `Configure{ServiceName}OptionsAndEnableValidation()`
+- [ ] appsettings.json section added (project defaults)
+- [ ] Crucial settings exposed in `helm/values.yaml`
+- [ ] Validation checks added to `helm/deploy.sh` for required values
+- [ ] XML documentation on class and properties
+
+## Related Skills
+
+- [create-tests](../create-tests/SKILL.md) - Testing configuration options and validation
+- `dev-essentials:create-documentation` - Documenting configuration in project documentation

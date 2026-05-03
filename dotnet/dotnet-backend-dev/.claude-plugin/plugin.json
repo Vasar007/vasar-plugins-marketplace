@@ -1,0 +1,9 @@
+{
+  "name": "dotnet-backend-dev",
+  "version": "1.0.0",
+  "description": ".NET backend development skills (Clean Architecture + DDD + EF Core + OpenAPI/NSwag + Mapperly) plus a backend conventions hub covering controllers, application services, configuration, domain models, EF patterns, logging, mappers, security, and testing.",
+  "author": {
+    "name": "Vasily Vasilyev",
+    "email": "vasar007@gmail.com"
+  }
+}

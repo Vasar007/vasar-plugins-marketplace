@@ -1,0 +1,9 @@
+{
+  "name": "gop-pipeline",
+  "version": "1.0.0",
+  "description": "Git Operations Pipeline — opinionated plan → implement → build → test → validate → commit workflow with five parallel validator subagents (correctness, reuse, security, compliance, performance).",
+  "author": {
+    "name": "Vasily Vasilyev",
+    "email": "vasar007@gmail.com"
+  }
+}

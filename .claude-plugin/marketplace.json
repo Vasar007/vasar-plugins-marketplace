@@ -1,0 +1,27 @@
+{
+  "name": "vasar-claude-marketplace",
+  "owner": {
+    "name": "Vasily Vasilyev",
+    "email": "vasar007@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "dev-essentials",
+      "source": "./essentials/dev-essentials",
+      "version": "1.0.0",
+      "description": "Cross-stack composer agents (PR, Task, Test, Docs), workflow commands (audit, review, implement, save-context, write-tests), and generic skills (feature pipeline, markdown, XML docs, git worktrees, PR review comments, general conventions)."
+    },
+    {
+      "name": "dotnet-backend-dev",
+      "source": "./dotnet/dotnet-backend-dev",
+      "version": "1.0.0",
+      "description": ".NET backend dev skills (Clean Architecture + DDD + EF Core + OpenAPI/NSwag + Mapperly) plus a backend conventions hub (controllers, services, configuration, domain models, EF patterns, logging, mappers, security, testing)."
+    },
+    {
+      "name": "gop-pipeline",
+      "source": "./workflows/gop-pipeline",
+      "version": "1.0.0",
+      "description": "Git Operations Pipeline — opinionated plan → implement → build → test → validate (correctness/reuse/security/compliance/performance, parallel) → commit workflow with specialist subagents."
+    }
+  ]
+}

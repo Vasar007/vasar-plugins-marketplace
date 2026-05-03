@@ -1,0 +1,332 @@
+---
+name: handle-sensitive-data
+description: Guidelines for handling sensitive information in code (credentials, secrets, PII) following security best practices. Use when implementing ToString(), logging, or working with authentication/security data. Triggers on requests like "handle credentials", "secure data", "sensitive information", "password handling".
+---
+
+# Handle Sensitive Data
+
+Guidelines for securely handling sensitive information in code to prevent accidental exposure in logs, debugging output, or ToString() representations.
+
+## What is Sensitive Information?
+
+**Sensitive data includes:**
+
+- **Authentication credentials**: Passwords, secret keys, API tokens, access keys
+- **Private cryptographic material**: Private keys, certificates with private data, signing keys
+- **Personal Identifiable Information (PII)**: When not necessary for the operation
+- **Security-critical identifiers**: Session tokens, OAuth tokens, refresh tokens
+
+**NOT sensitive (usually safe to log):**
+
+- Public identifiers: Resource IDs, tenant IDs, region names
+- Non-secret metadata: Usernames (without passwords), instance IDs, timestamps
+- System state: Status codes, operation types, version numbers
+
+**IMPORTANT**: Always discuss with developers whether specific data is truly sensitive. Context matters - some identifiers that seem sensitive may be safe to log in your domain.
+
+## The Golden Rule
+
+| Operation                                 | Sensitive Data Allowed?  | Reason                                                             |
+|-------------------------------------------|--------------------------|--------------------------------------------------------------------|
+| `ToString()`                              | ❌ NO - Use placeholder  | Output may be logged, displayed in debugger, or exposed externally |
+| `Equals()`                                | ✅ YES - Safe to use     | Internal comparison, never exposed externally                      |
+| `GetHashCode()`                           | ✅ YES - Safe to use     | Internal hashing, never exposed externally                         |
+| Logging (`ILogger`, `ISessionLogRepository`) | ❌ NO - Never log        | Logs are persistent, searchable, and may be shared                 |
+
+## Erasing Sensitive Data in ToString()
+
+### Standard Erased Placeholder
+
+Use the standard placeholder from framework constants:
+
+```csharp
+using MyApp.Framework.Constants;
+
+private static String DefaultErasedPlaceholder => Constants.DefaultErasedPlaceholder;
+```
+
+### Example: Domain Model with Credentials
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+using MyApp.Framework.Assertions;
+using MyApp.Framework.Basic;
+using MyApp.Framework.Constants;
+
+namespace MyApp.Domain.Authentication;
+
+/// <summary>
+/// Represents user credentials for authentication.
+/// </summary>
+public sealed record UserCredentials : IStaticEquatable<UserCredentials>
+{
+    private static StringComparer DefaultStringComparer => StringComparer.Ordinal;
+    private static String DefaultErasedPlaceholder => Constants.DefaultErasedPlaceholder;
+
+    [Required]
+    public String UserName { get; init; }
+
+    [Required]
+    public String Password { get; init; }
+
+    public UserCredentials(String userName, String password)
+    {
+        UserName = userName.ThrowIfNullOrWhiteSpace();
+        Password = password.ThrowIfNullOrWhiteSpace();
+    }
+
+    // ✅ Safe - comparison is internal, never logged
+    public Boolean Equals(UserCredentials? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        return DefaultStringComparer.Equals(UserName, other.UserName)
+            && DefaultStringComparer.Equals(Password, other.Password);
+    }
+
+    // ✅ Safe - hash is internal, never logged
+    public override Int32 GetHashCode()
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(UserName, DefaultStringComparer);
+        hashCode.Add(Password, DefaultStringComparer);
+        return hashCode.ToHashCode();
+    }
+
+    // ✅ CRITICAL - password is ERASED, not exposed
+    public override String ToString()
+    {
+        var sb = new StringBuilder(capacity: 256)
+            .Append(nameof(UserCredentials))
+            .Append(" {")
+            .Append(" HashCode = ").Append(GetHashCode())
+            .Append(", UserName = ").Append(UserName)
+            .Append(", Password = ").Append(DefaultErasedPlaceholder)  // Erased!
+            .Append(" }");
+
+        return sb.ToString();
+    }
+}
+```
+
+**Key points:**
+
+- `Password` is **ERASED** in `ToString()` with placeholder
+- `Password` is **USED** in `Equals()` and `GetHashCode()` (safe, internal)
+- Including `HashCode` in `ToString()` helps debugging without exposing sensitive data
+
+### Example: Primitive Wrapper with Secret
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+using MyApp.Framework.Assertions;
+using MyApp.Framework.Basic.Wrappers;
+using MyApp.Framework.Constants;
+
+namespace MyApp.Domain.Security;
+
+/// <summary>
+/// Represents a strongly-typed API secret token.
+/// </summary>
+public readonly record struct ApiSecretToken : IStringWrapper<ApiSecretToken>
+{
+    private static StringComparer DefaultStringComparer => StringComparer.Ordinal;
+    private static String DefaultErasedPlaceholder => Constants.DefaultErasedPlaceholder;
+
+    public static ApiSecretToken Empty { get; } = new();
+
+    [Required]
+    public String Value { get; init; }
+
+    public Boolean IsEmpty => this == Empty;
+
+    public ApiSecretToken() { Value = String.Empty; }
+    private ApiSecretToken(String value) { Value = value.ThrowIfNullOrWhiteSpace(); }
+
+    public static ApiSecretToken FromValue(String value) => new(value);
+
+    // ✅ Safe - comparison is internal
+    public Boolean Equals(ApiSecretToken other) => 
+        DefaultStringComparer.Equals(Value, other.Value);
+
+    // ✅ Safe - hash is internal
+    public override Int32 GetHashCode() => 
+        DefaultStringComparer.GetHashCode(Value);
+
+    // ✅ CRITICAL - never expose actual token
+    public override String ToString() => DefaultErasedPlaceholder;
+}
+```
+
+## Never Log Sensitive Data
+
+### Session Logs (ISessionLogRepository)
+
+```csharp
+// ❌ NEVER log credentials
+await _sessionLogService.CreateInformationAsync(
+    sessionId,
+    $"User credentials: {username}/{password}",  // NEVER!
+    cancellationToken: cancellationToken
+);
+
+// ❌ NEVER log API tokens
+await _sessionLogService.CreateInformationAsync(
+    sessionId,
+    $"Using API key: {apiKey}",  // NEVER!
+    cancellationToken: cancellationToken
+);
+
+// ✅ Log username WITHOUT password
+await _sessionLogService.CreateInformationAsync(
+    sessionId,
+    StringResources.UserAuthenticatedMessage.SafeFormat(username),
+    cancellationToken: cancellationToken
+);
+
+// ✅ Log non-sensitive identifiers
+await _sessionLogService.CreateInformationAsync(
+    sessionId,
+    StringResources.ApiConnectionEstablishedMessage.SafeFormat(apiEndpoint),
+    cancellationToken: cancellationToken
+);
+```
+
+### Runtime Logs (ILogger)
+
+```csharp
+// ❌ NEVER log credentials
+_logger.LogInformation("Authenticating user {Username} with password {Password}", username, password);
+
+// ❌ NEVER log secret keys
+_logger.LogDebug("API key: {ApiKey}", apiKey);
+
+// ✅ Log authentication attempts WITHOUT credentials
+_logger.LogInformation("Authentication attempt for user {Username}", username);
+
+// ✅ Log connection info WITHOUT secrets
+_logger.LogDebug("Connecting to {ApiEndpoint} with authentication", apiEndpoint);
+```
+
+## When Username Alone is Sensitive
+
+In some contexts, even usernames may be sensitive (e.g., exposing internal account names). Always consider:
+
+1. **Public vs Internal Systems**: Internal usernames may reveal organizational structure
+2. **Compliance Requirements**: GDPR, HIPAA may classify usernames as PII
+3. **Security Policies**: Your organization's data classification
+
+```csharp
+// If username is also sensitive, erase it too
+public override String ToString()
+{
+    var sb = new StringBuilder(capacity: 256)
+        .Append(nameof(UserCredentials))
+        .Append(" {")
+        .Append(" HashCode = ").Append(GetHashCode())
+        .Append(", UserName = ").Append(DefaultErasedPlaceholder)  // Also erased!
+        .Append(", Password = ").Append(DefaultErasedPlaceholder)
+        .Append(" }");
+
+    return sb.ToString();
+}
+```
+
+## Discussion with Developers
+
+**Before implementing**, always discuss:
+
+1. **What data is sensitive in your domain?**
+   - Some GUIDs/IDs may be public identifiers (safe)
+   - Some may be security-critical tokens (sensitive)
+
+2. **What are the compliance requirements?**
+   - GDPR, HIPAA, SOC2, PCI-DSS requirements
+   - Data retention and logging policies
+
+3. **What is the deployment environment?**
+   - Production logs may be shared with support teams
+   - Development logs may be less restricted
+
+4. **What is the debugging impact?**
+   - Erasing too much makes debugging harder
+   - Erasing too little creates security risks
+
+## Common Patterns
+
+### Pattern 1: Credentials Pair (Username + Password)
+
+```csharp
+// Erase password, keep username (if username is not PII)
+.Append(", UserName = ").Append(UserName)
+.Append(", Password = ").Append(DefaultErasedPlaceholder)
+```
+
+### Pattern 2: API Key/Token (Single Secret)
+
+```csharp
+// Erase entire token
+public override String ToString() => DefaultErasedPlaceholder;
+```
+
+### Pattern 3: Certificate with Private Key
+
+```csharp
+// Show thumbprint (public), erase private key
+.Append(", Thumbprint = ").Append(Thumbprint)
+.Append(", PrivateKey = ").Append(DefaultErasedPlaceholder)
+```
+
+### Pattern 4: Connection String
+
+```csharp
+// Show server/database, erase credentials
+.Append(", Server = ").Append(Server)
+.Append(", Database = ").Append(Database)
+.Append(", Credentials = ").Append(DefaultErasedPlaceholder)
+```
+
+## Why Equals() and GetHashCode() Can Use Sensitive Data
+
+**These methods are safe because:**
+
+1. **Internal operations**: Used for collections (Dictionary, HashSet), never exposed externally
+2. **No logging**: Results are never logged or displayed
+3. **Required for correctness**: Two credentials with same username/password MUST be equal
+4. **No security risk**: Hash codes don't reveal the original sensitive data
+
+**Example:**
+
+```csharp
+var creds1 = new UserCredentials("admin", "secret123");
+var creds2 = new UserCredentials("admin", "secret123");
+
+// Must be true - requires comparing passwords
+var areEqual = creds1.Equals(creds2);  // Safe, internal comparison
+
+// Must work in Dictionary - requires hashing password
+var dict = new Dictionary<UserCredentials, String>();
+dict[creds1] = "session-id";  // Safe, internal hashing
+```
+
+## Security Review Checklist
+
+- [ ] Identified all sensitive properties in model/wrapper
+- [ ] Discussed with team whether data is truly sensitive
+- [ ] `ToString()` uses `DefaultErasedPlaceholder` for sensitive fields
+- [ ] `Equals()` compares sensitive data correctly (safe)
+- [ ] `GetHashCode()` includes sensitive data in hash (safe)
+- [ ] Session logs never expose sensitive data
+- [ ] Runtime logs never expose sensitive data
+- [ ] String resources for logging avoid placeholders for sensitive data
+- [ ] Tests verify `ToString()` doesn't leak sensitive data
+- [ ] Documentation warns about sensitive data handling
+
+## References
+
+- [create-domain-model](../create-domain-model/SKILL.md) - Domain model conventions
+- [create-primitive-wrapper](../create-primitive-wrapper/SKILL.md) - Primitive wrapper conventions  
+- [add-session-logging](../add-session-logging/SKILL.md) - Logging best practices
+- [create-tests](../create-tests/SKILL.md) - Testing conventions
