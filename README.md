@@ -122,14 +122,11 @@ vasar-plugins-marketplace/
   "name": "my-plugin",
   "version": "1.0.0",
   "description": "What this plugin covers",
-  "author": { "name": "Vasily Vasilyev" },
-  "skills": "./skills/",
-  "agents": "./agents/",
-  "commands": "./commands/"
+  "author": { "name": "Vasily Vasilyev" }
 }
 ```
 
-`skills`, `agents`, and `commands` may be either a directory string (`"./skills/"`) or an explicit list of paths (`["./agents/foo.md", "./agents/bar.md"]`). Use lists when you want to load only a subset of files in the directory.
+Keep `plugin.json` to metadata only. Claude Code auto-discovers components at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`. Do **not** add `skills`, `agents`, or `commands` fields pointing at directory strings — those values are interpreted as file paths and cause the plugin to fail to load.
 
 ---
 
