@@ -1,4 +1,4 @@
-# vasar-claude-marketplace
+# vasar-plugins-marketplace
 
 Personal [Claude Code](https://docs.claude.com/claude-code) marketplace — composer agents, workflow commands, generic developer skills, a .NET backend toolkit, and a full Git Operations Pipeline (GOP) workflow.
 
@@ -23,7 +23,7 @@ Gives access to all plugins at once.
 **Via command:**
 
 ```text
-/plugins marketplace add https://github.com/Vasar007/vasar-claude-marketplace
+/plugins marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
 ```
 
 **Via `.claude/settings.local.json`:**
@@ -32,13 +32,13 @@ Gives access to all plugins at once.
 {
   "plugins": {
     "marketplaces": [
-      "https://github.com/Vasar007/vasar-claude-marketplace"
+      "https://github.com/Vasar007/vasar-plugins-marketplace"
     ]
   }
 }
 ```
 
-> The repo is private. You'll need a GitHub credential helper (or SSH URL `git@github.com:vasar007/vasar-claude-marketplace.git`) configured locally before Claude Code can clone it.
+> The repo is private. You'll need a GitHub credential helper (or SSH URL `git@github.com:vasar007/vasar-plugins-marketplace.git`) configured locally before Claude Code can clone it.
 
 ---
 
@@ -52,7 +52,7 @@ Gives access to all plugins at once.
     "sources": [
       {
         "name": "my-plugin",
-        "url": "https://github.com/Vasar007/vasar-claude-marketplace",
+        "url": "https://github.com/Vasar007/vasar-plugins-marketplace",
         "path": "<group>/<plugin>"
       }
     ]
@@ -75,7 +75,7 @@ Only needed if you are modifying this marketplace or adding new plugins.
 ### Folder structure
 
 ```text
-vasar-claude-marketplace/
+vasar-plugins-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Lists every plugin in this marketplace
 ├── essentials/
@@ -102,7 +102,7 @@ vasar-claude-marketplace/
 
 ```json
 {
-  "name": "vasar-claude-marketplace",
+  "name": "vasar-plugins-marketplace",
   "owner": { "name": "Vasily Vasilyev", "email": "vasar007@gmail.com" },
   "plugins": [
     {
@@ -122,14 +122,11 @@ vasar-claude-marketplace/
   "name": "my-plugin",
   "version": "1.0.0",
   "description": "What this plugin covers",
-  "author": { "name": "Vasily Vasilyev" },
-  "skills": "./skills/",
-  "agents": "./agents/",
-  "commands": "./commands/"
+  "author": { "name": "Vasily Vasilyev" }
 }
 ```
 
-`skills`, `agents`, and `commands` may be either a directory string (`"./skills/"`) or an explicit list of paths (`["./agents/foo.md", "./agents/bar.md"]`). Use lists when you want to load only a subset of files in the directory.
+Keep `plugin.json` to metadata only. Claude Code auto-discovers components at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`. Do **not** add `skills`, `agents`, or `commands` fields pointing at directory strings — those values are interpreted as file paths and cause the plugin to fail to load.
 
 ---
 
