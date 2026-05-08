@@ -55,7 +55,7 @@ After the marketplace is added, install a single plugin by name:
 /plugin install gop-pipeline@vasar-plugins-marketplace
 ```
 
-Or auto-enable specific plugins for a project by extending the same `.claude/settings.json`:
+Or auto-enable specific plugins for a project by extending the same `.claude/settings.local.json`:
 
 ```json
 {
