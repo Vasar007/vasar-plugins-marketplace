@@ -1,9 +1,12 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "gop-pipeline",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Git Operations Pipeline — opinionated plan → implement → build → test → validate → commit workflow with five parallel validator subagents (correctness, reuse, security, compliance, performance).",
   "author": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"
-  }
+  },
+  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
+  "keywords": ["git-operations-pipeline", "validation", "code-review", "build", "test", "commit", "workflow", "subagents"]
 }
