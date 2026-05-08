@@ -23,48 +23,58 @@ Gives access to all plugins at once.
 **Via command:**
 
 ```text
-/plugins marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
+/plugin marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
 ```
+
+> The repo is private. You'll need a GitHub credential helper (or SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git`) configured locally before Claude Code can clone it.
 
 **Via `.claude/settings.local.json`:**
 
 ```json
 {
-  "plugins": {
-    "marketplaces": [
-      "https://github.com/Vasar007/vasar-plugins-marketplace"
-    ]
+  "extraKnownMarketplaces": {
+    "vasar-plugins-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Vasar007/vasar-plugins-marketplace"
+      }
+    }
   }
 }
 ```
-
-> The repo is private. You'll need a GitHub credential helper (or SSH URL `git@github.com:vasar007/vasar-plugins-marketplace.git`) configured locally before Claude Code can clone it.
 
 ---
 
 ## Installing a single plugin
 
-**Via `.claude/settings.local.json`:**
+After the marketplace is added, install a single plugin by name:
+
+```text
+/plugin install dev-essentials@vasar-plugins-marketplace
+/plugin install dotnet-backend-dev@vasar-plugins-marketplace
+/plugin install gop-pipeline@vasar-plugins-marketplace
+```
+
+Or auto-enable specific plugins for a project by extending the same `.claude/settings.local.json`:
 
 ```json
 {
-  "plugins": {
-    "sources": [
-      {
-        "name": "my-plugin",
-        "url": "https://github.com/Vasar007/vasar-plugins-marketplace",
-        "path": "<group>/<plugin>"
+  "extraKnownMarketplaces": {
+    "vasar-plugins-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Vasar007/vasar-plugins-marketplace"
       }
-    ]
+    }
+  },
+  "enabledPlugins": {
+    "dev-essentials@vasar-plugins-marketplace": true,
+    "dotnet-backend-dev@vasar-plugins-marketplace": true
   }
 }
 ```
 
-Replace `<group>/<plugin>` with one of:
-
-- `essentials/dev-essentials`
-- `dotnet/dotnet-backend-dev`
-- `workflows/gop-pipeline`
+After editing settings or installing, run `/reload-plugins` to pick up changes without restarting.
 
 ---
 
@@ -103,30 +113,44 @@ vasar-plugins-marketplace/
 ```json
 {
   "name": "vasar-plugins-marketplace",
+  "description": "One-line summary shown in /plugin Discover tab",
   "owner": { "name": "Vasily Vasilyev", "email": "vasar007@gmail.com" },
   "plugins": [
     {
       "name": "my-plugin",
       "source": "./<group>/<plugin>",
-      "version": "1.0.0",
-      "description": "One-line summary shown in /plugins UI"
+      "description": "One-line summary shown when picking the plugin"
     }
   ]
 }
 ```
 
+`source` paths must start with `./` and resolve to a directory containing `.claude-plugin/plugin.json`. Do **not** set `version` here — it lives only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)).
+
 ### `plugin.json` schema
 
 ```json
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "my-plugin",
   "version": "1.0.0",
   "description": "What this plugin covers",
-  "author": { "name": "Vasily Vasilyev" }
+  "author": { "name": "Vasily Vasilyev", "email": "vasar007@gmail.com" },
+  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
+  "keywords": ["topic", "another-topic"]
 }
 ```
 
 Keep `plugin.json` to metadata only. Claude Code auto-discovers components at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`. Do **not** add `skills`, `agents`, or `commands` fields pointing at directory strings — those values are interpreted as file paths and cause the plugin to fail to load.
+
+### Validating
+
+Run the bundled CLI validator before pushing changes:
+
+```text
+claude plugin validate .                       # validates marketplace.json
+claude plugin validate ./<group>/<plugin>      # validates a single plugin manifest
+```
 
 ---
 
@@ -139,3 +163,11 @@ Keep `plugin.json` to metadata only. Claude Code auto-discovers components at th
 - Stack-specific assumptions (e.g. .NET, PowerShell) must be declared explicitly inside the skill, not implied across files.
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for what landed when.
+
+---
+
+## References
+
+- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) — `marketplace.json` schema, source types, version resolution
+- [Plugins reference](https://code.claude.com/docs/en/plugins-reference) — `plugin.json` schema, component layout, environment variables
+- [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) — install workflows and `extraKnownMarketplaces` / `enabledPlugins` settings

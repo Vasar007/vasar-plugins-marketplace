@@ -1,9 +1,12 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dev-essentials",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cross-stack composer agents (PR, Task, Test, Docs), workflow commands, and generic skills (feature pipeline, markdown, XML docs, git worktrees, PR review comments, general conventions).",
   "author": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"
-  }
+  },
+  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
+  "keywords": ["composer-agents", "pr-review", "code-review", "workflow", "openspec", "markdown", "xml-docs", "git-worktree"]
 }
