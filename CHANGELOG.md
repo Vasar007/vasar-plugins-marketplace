@@ -29,6 +29,10 @@ _No changes yet._
 
 - `marketplace.json`: per-plugin `version` field on each entry inside `plugins[]`. Plugin versions live only in each `plugin.json` (per the new Versioning Policy).
 
+### Fixed
+
+- `README.md` "Installing a single plugin" section: corrected the settings file name from `.claude/settings.json` to `.claude/settings.local.json` so it matches the file targeted by the marketplace-add snippet above it (avoids users defining `extraKnownMarketplaces` in two different settings files).
+
 ## [1.0.1] - 2026-05-04
 
 ### Changed
