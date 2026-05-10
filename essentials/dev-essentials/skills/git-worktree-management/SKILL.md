@@ -133,9 +133,17 @@ mkdir -p <worktree-path>/Notes
 
 ### Step 7: Find solution file and report
 
+Locate the first `.sln` file under the worktree root using your shell:
+
+**PowerShell:**
 ```powershell
 Get-ChildItem -Path <full-worktree-path> -Filter *.sln -Recurse |
     Select-Object -First 1 -ExpandProperty FullName
+```
+
+**bash (macOS / Linux / Git Bash):**
+```bash
+find <full-worktree-path> -name '*.sln' -type f | head -1
 ```
 
 Report to the user:
