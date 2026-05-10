@@ -69,8 +69,8 @@ this task.
 4. **Attachments**
    - For each attachment URL listed above:
      - Task provider links → fetch via the task provider MCP server tools
-       identified in the Project Context (e.g. ADO work item tools for Azure
-       DevOps projects)
+       identified in the Project Context (e.g. GitHub MCP `issue_read` for
+       GitHub issues, or your provider's equivalent for Jira / Linear / etc.)
      - Other URLs → fetch via WebFetch or the closest equivalent tool
    - Summarize what you found from each attachment
 
