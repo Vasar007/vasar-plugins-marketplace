@@ -44,6 +44,19 @@ Stage names: `requirements`, `spec`, `implementation`, `test-coverage`,
 
 Valid model values: `opus`, `sonnet`, `haiku`
 
+## Pipeline Discipline
+
+These three safeguards apply to every stage. Subagents dispatched by this pipeline MUST honour them.
+
+**Safeguard 1 — Verify Claude Code primitive claims against the system prompt.**
+Before asserting how any Claude Code primitive works (Skill tool dispatch, Agent tool subagent types, settings merge order, MCP tool prefixing, plugin loading, slash-command routing, memory system semantics), check the current system prompt — do not pattern-match from training data. If uncertain, say "I'm not sure; let me check" rather than stating a categorical rule. The system prompt is the session-scoped source of truth and changes between harness versions. See `dev-essentials:engineering-discipline` for the broader verify-before-asserting principle.
+
+**Safeguard 2 — Verify before proposing confident fixes for schema/manifest/config errors.**
+At any stage — implementation, test coverage, or review — whenever a schema error, manifest validation failure, or library API mismatch is encountered or diagnosed, verify against a primary source (official docs, known-working example) BEFORE proposing a fix. Frame unverified theories as theories ("this might be…"), not fixes. Checking a known-working plugin takes 30 seconds and prevents rolling back wrong edits. See `dev-essentials:subagent-orchestration` for briefing-quality expectations.
+
+**Safeguard 3 — Scope and host check before recommending MCP restart.**
+When a task-provider MCP server fails, perform TWO checks before investigating install state or recommending restart: (a) is the failure session-local or global — does it fail in other concurrent Claude sessions? (b) what is hosting Claude Code — some terminals isolate MCP child processes. If the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
+
 ## Plugin Dependencies
 
 Stages 5 (Code Simplifier) and 7 (Code Review) delegate to subagents provided
@@ -160,6 +173,8 @@ methods that satisfy these capabilities:
   and branch metadata if available
 
 If the MCP server cannot satisfy the required capabilities, stop immediately.
+
+> **MCP failure — scope and host first (Safeguard 3):** if the MCP server appears unavailable, check (a) whether it fails in other Claude sessions too, and (b) which terminal/IDE is hosting Claude Code. Session-local failures and sandboxed-terminal isolation are the two most common causes; if the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
 
 ## Shared Placeholder Vocabulary
 
@@ -290,15 +305,32 @@ Before each stage launch, resolve the effective model:
 
    **Otherwise (default — create worktree):**
   - Worktree path: `.claude/worktrees/<branch-name>`
-  - Before creating a worktree, always fetch the base branch from remote:
-     `git fetch origin <base-branch>` (e.g. `git fetch origin main`)
   - If the worktree already exists: skip creation, log "resuming existing
      worktree"
-  - If the branch exists locally or on remote: add a worktree for that branch
-  - If the branch does not exist yet: create the worktree branch from the
-     remote base branch: `git worktree add -b <branch-name> .claude/worktrees/<branch-name> origin/<base-branch>`
-  - If `.claude/settings.local.json` exists in the repo root, copy it to
-     `<worktree-path>/.claude/settings.local.json`
+  - **If the worktree does not exist yet:** before delegating to
+     `dev-essentials:git-worktree-management` **Workflow A**, announce
+     the resolved settings to the user:
+
+     > I will create a worktree with the following settings:
+     >
+     > - **Path:** `<repo-root>/.claude/worktrees/<branch-name>/`
+     > - **Branch:** `<branch-name>` (new / existing local / existing remote)
+     > - **Base:** `<base-branch-from-project-context>`
+     >
+     > Starting the pipeline authorises this worktree creation. Continuing…
+
+     Then delegate to Workflow A **in pipeline mode**: pass the resolved path
+     and branch explicitly and note that the user already approved by starting
+     the pipeline, so Workflow A's Step 3 confirmation prompt is pre-satisfied
+     and must not block. Workflow A handles the full bootstrap sequence:
+     fetches the base branch, runs `git worktree add` (choosing the correct
+     Case A/B/C depending on whether the branch is new, exists locally, or
+     exists on remote only), unsets upstream tracking
+     (`git branch --unset-upstream`), copies `.claude/settings.local.json`
+     into the worktree, and creates `Notes/`.
+     Do NOT replicate these steps inline — invoke Workflow A so the full
+     bootstrap runs every time, including the two steps (`--unset-upstream`
+     and `mkdir -p Notes/`) that are omitted when creation is done ad hoc.
 
    **After resolution (both modes):** every subsequent file operation and
    subagent prompt MUST reference `{WORKTREE_PATH}` as the project root.
@@ -450,6 +482,8 @@ Present to user:
 - Git diff summary (files changed, lines added/removed)
 - Ask: "Approve for finalization? (yes / request changes)"
 
+> **Verify before fixing (Safeguard 2):** when diagnosing review findings — and before re-invoking Implementation to address them — verify each finding against a primary source (official docs, the schema, a known-working example), especially schema/manifest errors and library API claims. Frame uncertain diagnoses as theories ("this might be…"), not confirmed fixes, until verified.
+
 If review has blocking issues AND user approves auto-fix:
 
   1. Re-invoke Implementation subagent with review feedback (up to 1 retry)
@@ -490,6 +524,22 @@ Model: `haiku` (override key: `finalization`)
 Launch subagent with prompt from `stages/finalization.md`.
 On completion: update checkpoint and report the resulting branch or PR status.
 
+If the finalization subagent created a PR, persist its metadata in
+`pipeline-state.json` under the `pr` key before Step 10 runs:
+
+```json
+"pr": {
+  "number": 42,
+  "url": "https://github.com/<owner>/<repo>/pull/42",
+  "owner": "<owner>",
+  "repo": "<repo>"
+}
+```
+
+If no PR was created (branch-only flow or PR command unavailable), leave `pr`
+as `null` in `pipeline-state.json`. Step 10 reads this field to decide whether
+a GitHub PR status lookup is needed.
+
 ### Step 10: Cleanup
 
 After the finalization result is confirmed:
@@ -499,13 +549,55 @@ After the finalization result is confirmed:
    not exist. If the target directory already exists, overwrite its contents.
 2. **If \****`--no-worktree`**\*\*:** skip worktree removal (there is no worktree to
    remove). Announce completion with the branch name and archived logs path.
-3. **Otherwise:** remove the worktree:
-   `git worktree remove .claude/worktrees/<branch-name>`
-  - If the remove fails due to uncommitted changes, report to the user and
-     do NOT force-remove
-4. Announce completion: print the final branch or PR outcome, confirm
-   whether the worktree was deleted (or that `--no-worktree` was used), and
-   note the archived logs path
+3. **Otherwise — worktree removal is GATED. Do NOT remove by default.**
+   The worktree must remain on disk until the PR is merged. PR review feedback,
+   automated review follow-ups, and build/test reproduction all require the
+   branch working tree. Removing it early strands work with no build capability.
+
+   **No-PR branch** — if `pipeline-state.json` has `"pr": null` (branch-only
+   flow or PR creation was skipped), keep the worktree on disk unless the user
+   explicitly asks to remove it (delegate to
+   `dev-essentials:git-worktree-management`'s user-directed override path).
+   Do NOT auto-remove a no-PR worktree.
+
+   **PR branch** — re-fetch the PR status from GitHub using the `pr` fields
+   recorded in `pipeline-state.json` (see `dev-essentials:github-mcp-conventions`
+   Rules 1–2):
+
+   ```
+   mcp__plugin_github_github__pull_request_read(
+       owner=<pr.owner>,
+       repo=<pr.repo>,
+       pullRequestNumber=<pr.number>
+   )
+   ```
+
+   **If the GitHub MCP call fails** (MCP not loaded, network error,
+   authentication timeout): STOP and ask the user — "GitHub PR lookup failed;
+   should I proceed with cleanup based on the cached state, or wait?" Do NOT
+   silently skip the check and proceed to worktree removal.
+
+   Remove the worktree only if **either** condition is met:
+   - The PR `state` is `closed` and `merged` is `true`.
+   - The user explicitly asks to remove the worktree.
+
+   > **Bulk-cleanup requests are out of scope for this skill.** If the user
+   > asks to remove worktrees broadly, delegate immediately to
+   > `dev-essentials:git-worktree-management` **Workflow D** and stop the
+   > pipeline. Do not enumerate or touch any other worktrees.
+
+   If neither condition is met: leave the worktree on disk and skip removal.
+
+   When removal is allowed: run `git worktree remove .claude/worktrees/<branch-name>`,
+   then verify with `git worktree list`. If removal fails with "Permission denied"
+   (file locks), report it to the user — **never force-remove**.
+
+   See `dev-essentials:git-worktree-management` (Lifecycle Rule section)
+   for the canonical keep-until-merged rule.
+
+4. Announce completion: print the final branch or PR outcome, state whether the
+   worktree was removed or intentionally kept (and why), and note the archived
+   logs path.
 
 ---
 
@@ -533,6 +625,7 @@ execution.
     "result": null,
     "attempts": 0
   },
+  "pr": null,
   "failed": null,
   "startedAt": "2026-03-01T11:00:00Z",
   "updatedAt": "2026-03-01T11:30:00Z"
@@ -596,7 +689,12 @@ downstream agents consume malformed input.
 
 - Parse as JSON; if invalid, stop immediately
 - Verify required keys exist: `taskId`, `worktree`, `noWorktree`, `stage`,
-  `completed`, `taskComments`, `buildGate`, `failed`, `startedAt`, `updatedAt`
+  `completed`, `taskComments`, `buildGate`, `pr`, `failed`, `startedAt`, `updatedAt`
+- **Backwards compatibility:** when loading state files written before this skill version (no `pr`
+  key), default to `pr: null`. Stage 9 will populate it on the next PR creation; Stage 10 treats
+  `null` as the no-PR branch. On the next checkpoint write, persist `"pr": null` so subsequent
+  runs see the updated schema. The `pr` key is still required on every WRITE — this fallback
+  applies to READs only.
 - Verify `completed` is an array of known stage names
 - Verify `stage` is a known stage name or null
 
