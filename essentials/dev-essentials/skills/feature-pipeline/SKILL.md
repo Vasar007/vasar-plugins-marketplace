@@ -142,23 +142,10 @@ if Task Provider still missing -> STOP the pipeline (cannot fetch the task)
 ### Project Context Injection
 
 After resolution, the master agent prepends the resolved context to every stage
-prompt before performing task placeholder substitution. Each subagent receives
-the context as readable text at the top of its prompt and can reference
-commands, file paths, and conventions directly from it.
-
-The injection is a simple string concatenation:
-
-```md
-<project-context>
-{resolved context — from file, CLAUDE.md derivations, and user answers}
-</project-context>
-
-{original stage prompt with task placeholders substituted}
-```
-
-This replaces the previous approach of discovering ~15 repo conventions at
-runtime and substituting ~25 placeholders. Project-specific values are now
-readable text in the injected context, not placeholder targets.
+prompt before performing placeholder substitution. See **Context Injection**
+under Shared Placeholder Vocabulary for the full XML wrapper format, including
+the `<task-context>` block that carries per-task data alongside the
+project-context block.
 
 ## Provider Capability Contract
 
