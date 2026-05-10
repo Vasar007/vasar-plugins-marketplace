@@ -21,20 +21,20 @@ uses exactly **two** tests: one positive, one negative. The negative test iterat
 
 ## Canonical example
 
-The following example tests `ProvisioningService` which has five constructor dependencies.
+The following example tests `OrderProcessingService` which has five constructor dependencies.
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
 using FluentAssertions;
 using NUnit.Framework;
-using MyApp.Application.Tenants.Services;
+using MyApp.Application.Orders.Services;
 
-namespace MyApp.Application.Tests.Tenants.Services;
+namespace MyApp.Application.Tests.Orders.Services;
 
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class ProvisioningServiceTests : BaseMockTest
+public sealed class OrderProcessingServiceTests : BaseMockTest
 {
     #region Constructor Tests
 
@@ -57,7 +57,7 @@ public sealed class ProvisioningServiceTests : BaseMockTest
         {
             () => CreateServiceWithAllArguments(logger: null!),
             () => CreateServiceWithAllArguments(repository: null!),
-            () => CreateServiceWithAllArguments(applianceService: null!),
+            () => CreateServiceWithAllArguments(orderService: null!),
             () => CreateServiceWithAllArguments(eventPublisher: null!),
             () => CreateServiceWithAllArguments(optionsMonitor: null!),
         };
@@ -73,39 +73,51 @@ public sealed class ProvisioningServiceTests : BaseMockTest
 
     #region Helper Methods
 
-    private ProvisioningService CreateServiceWithAllArguments(
-        ILogger<ProvisioningService>? logger = null,
-        IItemRepository? repository = null,
-        IApplianceService? applianceService = null,
+    private OrderProcessingService CreateServiceWithAllArguments(
+        ILogger<OrderProcessingService>? logger = null,
+        IOrderRepository? repository = null,
+        IOrderService? orderService = null,
         IEventPublisher? eventPublisher = null,
-        IOptionsMonitor<ProvisioningOptions>? optionsMonitor = null) =>
-        new(
+        IOptionsMonitor<OrderProcessingOptions>? optionsMonitor = null)
+    {
+        return new(
             logger ?? CreateLogger(),
             repository ?? CreateRepository(),
-            applianceService ?? CreateApplianceService(),
+            orderService ?? CreateOrderService(),
             eventPublisher ?? CreateEventPublisher(),
             optionsMonitor ?? CreateOptionsMonitor());
+    }
 
     // static: TestLoggerBuilder.CreateWithoutSetup<T> accepts a fixture parameter that it ignores
     // for no-setup loggers, so null! is intentional and this helper needs no Fixture access.
-    private static ILogger<ProvisioningService> CreateLogger() =>
-        TestLoggerBuilder.CreateWithoutSetup<ProvisioningService>(null!);
+    private static ILogger<OrderProcessingService> CreateLogger()
+    {
+        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(null!);
+    }
 
     // non-static: these helpers need Fixture (from BaseMockTest) to construct their builders.
     // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
-    private IItemRepository CreateRepository() =>
-        TestItemRepositoryBuilder.CreateWithoutSetup(Fixture);
+    private IOrderRepository CreateRepository()
+    {
+        return TestOrderRepositoryBuilder.CreateWithoutSetup(Fixture);
+    }
 
-    private IApplianceService CreateApplianceService() =>
-        new TestApplianceServiceBuilder(Fixture).Build();
+    private IOrderService CreateOrderService()
+    {
+        return new TestOrderServiceBuilder(Fixture).Build();
+    }
 
-    private IEventPublisher CreateEventPublisher() =>
-        new TestEventPublisherBuilder(Fixture).Build();
+    private IEventPublisher CreateEventPublisher()
+    {
+        return new TestEventPublisherBuilder(Fixture).Build();
+    }
 
-    private IOptionsMonitor<ProvisioningOptions> CreateOptionsMonitor() =>
-        new TestOptionsMonitorBuilder<ProvisioningOptions>(Fixture)
-            .WithValue(new ProvisioningOptions())
+    private IOptionsMonitor<OrderProcessingOptions> CreateOptionsMonitor()
+    {
+        return new TestOptionsMonitorBuilder<OrderProcessingOptions>(Fixture)
+            .WithValue(new OrderProcessingOptions())
             .Build();
+    }
 
     #endregion
 }
@@ -130,20 +142,20 @@ The following shape is **explicitly bad code** in this pattern — avoid it:
 [Test]
 [TestCase(true,  false, false, false, false, TestName = "Constructor_WhenLoggerIsNull_Throws")]
 [TestCase(false, true,  false, false, false, TestName = "Constructor_WhenRepositoryIsNull_Throws")]
-[TestCase(false, false, true,  false, false, TestName = "Constructor_WhenApplianceServiceIsNull_Throws")]
+[TestCase(false, false, true,  false, false, TestName = "Constructor_WhenOrderServiceIsNull_Throws")]
 [TestCase(false, false, false, true,  false, TestName = "Constructor_WhenEventPublisherIsNull_Throws")]
 [TestCase(false, false, false, false, true,  TestName = "Constructor_WhenOptionsMonitorIsNull_Throws")]
 public void Constructor_ThrowsArgumentNullException_WhenDependencyIsNull(
     Boolean nullLogger,
     Boolean nullRepository,
-    Boolean nullApplianceService,
+    Boolean nullOrderService,
     Boolean nullEventPublisher,
     Boolean nullOptionsMonitor)
 {
-    var act = () => new ProvisioningService(
+    var act = () => new OrderProcessingService(
         nullLogger ? null! : CreateLogger(),
         nullRepository ? null! : CreateRepository(),
-        nullApplianceService ? null! : CreateApplianceService(),
+        nullOrderService ? null! : CreateOrderService(),
         nullEventPublisher ? null! : CreateEventPublisher(),
         nullOptionsMonitor ? null! : CreateOptionsMonitor());
     act.Should().Throw<ArgumentNullException>();

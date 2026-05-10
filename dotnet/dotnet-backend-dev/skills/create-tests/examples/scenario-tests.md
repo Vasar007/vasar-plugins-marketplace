@@ -57,7 +57,7 @@ constructors or generator classes — NOT via `IFixture`.
 
 ## Worked example
 
-The following scenario tests that provisioning a new resource end-to-end stores it and
+The following scenario tests that placing a new order end-to-end stores it and
 emits an integration event, without mocking any intermediate service.
 
 ### Test fixture
@@ -69,16 +69,16 @@ using FluentAssertions;
 using NUnit.Framework;
 using MyApp.WebApi.Tests.Scenarios.Helpers;
 
-namespace MyApp.WebApi.Tests.Scenarios.Resources;
+namespace MyApp.WebApi.Tests.Scenarios.Orders;
 
 /// <summary>
-/// End-to-end scenario: provisioning flow.
+/// End-to-end scenario: order placement flow.
 /// Only the external secret service is stubbed (leaf dependency).
 /// All other services — including authentication, orchestration, and persistence — run for real.
 /// </summary>
 [TestFixture]
 [NonParallelizable] // Scenario tests share a real database — no parallel runs
-public sealed class ProvisioningScenarioTests : ScenarioBaseTest
+public sealed class OrderProcessingScenarioTests : ScenarioBaseTest
 {
     private StubExternalSecretService _secretService = null!;
 
@@ -90,29 +90,29 @@ public sealed class ProvisioningScenarioTests : ScenarioBaseTest
     }
 
     [Test]
-    public async Task ProvisionResource_WithValidRequest_StoresItemAndEmitsEvent()
+    public async Task PlaceOrder_WithValidRequest_StoresOrderAndEmitsEvent()
     {
         // Arrange.
         var resourceId = new ResourceId(Guid.NewGuid());
         var credential = new Credential(username: "admin", password: "secret");
         _secretService.AddCredential(resourceId, credential);
 
-        var request = new ProvisionRequest(
+        var request = new PlaceOrderRequest(
             resourceId: resourceId,
-            tenantId: new TenantId(Guid.NewGuid()),
-            name: new ResourceName("my-resource"));
+            userId: new UserId(Guid.NewGuid()),
+            name: new OrderName("my-order"));
 
         // Act.
-        var response = await Client.PostAsJsonAsync("/api/v1/resources", request);
+        var response = await Client.PostAsJsonAsync("/api/v1/orders", request);
 
         // Assert.
         response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
-        var created = await GetResourceFromDatabaseAsync(request.Name);
+        var created = await GetOrderFromDatabaseAsync(request.Name);
         created.Should().NotBeNull();
-        created!.Status.Should().Be(ResourceStatus.Provisioning);
+        created!.Status.Should().Be(OrderStatus.Processing);
 
-        var emittedEvent = GetEmittedEvent<ProvisioningStartedEvent>();
+        var emittedEvent = GetEmittedEvent<OrderPlacedEvent>();
         emittedEvent.Should().NotBeNull();
         emittedEvent!.Name.Should().Be(request.Name);
     }
@@ -172,9 +172,9 @@ public sealed class BadStubExternalSecretService : IExternalSecretService
 
 ## Summary
 
-| What to do                                      | How                                                        |
-|-------------------------------------------------|------------------------------------------------------------|
-| Stub a leaf external dependency                 | Write a `Stub{Name}` class with in-memory state            |
-| Provide test data                               | Use real constructors or generator classes — no `IFixture` |
-| Run intermediate services (auth, orchestration) | Leave them as real implementations — do NOT mock them      |
-| Configure the stub                              | Call seeding methods (`AddCredential(...)`) in `[SetUp]`   |
+| What to do                                      | How                                                           |
+|-------------------------------------------------|---------------------------------------------------------------|
+| Stub a leaf external dependency                 | Write a `Stub{Name}` class with in-memory state               |
+| Provide test data                               | Use real constructors or generator classes — no `IFixture`    |
+| Run intermediate services (auth, orchestration) | Leave them as real implementations — do NOT mock them         |
+| Configure the stub                              | Call seeding methods (`AddCredential(...)`) in `[SetUp]`      |
