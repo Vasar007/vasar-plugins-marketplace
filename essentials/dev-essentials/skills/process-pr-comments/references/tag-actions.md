@@ -20,15 +20,15 @@ Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Opt
 
 The reviewer requires a change. The PR will not be approved without it.
 
-- Small: implement edit → stage (no commit, no push) → reply `**[AI]** Fixed: <one-line summary>. Diff staged locally, awaiting your commit.`
+- Small: implement edit → verify build/tests → commit + push (Phase 4 default) → reply `**[AI]** Fixed: <one-line summary>. Committed as <short-sha> and pushed.` Pass `no-commit` to stage only instead.
 - Medium / Large: prepare the diff in chat, explain the approach, wait for the human's explicit go-ahead. Do not edit files.
 - After implementation, do NOT resolve the thread; the reviewer decides.
 
 Example (small):
 
-> Reviewer: `[ToFix] Rename TenantID to TenantId — matches the rest of this file.`
+> Reviewer: `[ToFix] Rename FooID to FooId — matches the rest of this file.`
 >
-> Action: edit the file, stage the change, reply: `**[AI]** Fixed: renamed TenantID → TenantId. Diff staged locally, awaiting your commit.`
+> Action: edit the file, verify build/tests, commit + push, reply: `**[AI]** Fixed: renamed FooID → FooId. Committed as a1b2c3d and pushed.`
 
 ### `[Performance]`
 
