@@ -36,7 +36,7 @@ tests/ (or src/Tests/)
 | `BaseRepositoryWithOneKeyTest`     | Single-key repository CRUD                         | Integration |
 | `BaseRepositoryWithTwoKeysTest`    | Composite-key repository CRUD                      | Integration |
 | `WebApiBaseTest`                   | Controller/API endpoints                           | Integration |
-| `BaseMockTest`                     | Database/product migrations                        | Integration |
+| `BaseMockTest`                     | Database/product migrations (see [migration-tests.md](examples/migration-tests.md)) | Integration |
 
 **CRITICAL — MANDATORY STEP:** Before writing ANY test class, you **MUST read the matching example file** from [examples/](examples/). This is NOT optional — skipping this step leads to incorrect test structure, wrong base class usage, and missing conventions. Read the example FIRST, then write the test.
 
