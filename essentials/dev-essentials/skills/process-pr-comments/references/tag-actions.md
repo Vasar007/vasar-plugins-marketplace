@@ -93,12 +93,12 @@ Decision tree:
 1. Reviewer is just noting it → reply `**[AI]** Noted, out of scope for this PR.` No further action.
 2. Reviewer asks to track separately (phrases: "track it", "open a ticket", "file a work item", "separate PR", "TODO") → delegate to the Task Composer agent.
 
-Work-item flow:
+Issue flow:
 
-1. Invoke Task Composer with a concise brief: the comment text, the file/line, why it is out of scope, desired work-item type (default `Requirement` unless the comment says "bug"), and any priority hint from co-tags.
-2. Task Composer drafts title, description, acceptance criteria. Confirm with the user before creating.
-3. On user approval, call `mcp__azure-devops__wit_create_work_item` with the fields Task Composer produced.
-4. Reply `**[AI]** Tracked as work item #<id>: <title>.`
+1. Invoke Task Composer with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags.
+2. Task Composer drafts title and description. Confirm with the user before creating.
+3. On user approval, call `mcp__plugin_github_github__issue_write` with the fields Task Composer produced. Always pass `owner` and `repo` verbatim — never infer (see `dev-essentials:github-mcp-conventions` Rule 1).
+4. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
 If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No work item.
 
