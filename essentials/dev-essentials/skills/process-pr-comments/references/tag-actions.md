@@ -2,7 +2,7 @@
 
 Authoritative per-tag behavior for `process-pr-comments`. Read this file whenever a classification lands on a tag and the short summary in `SKILL.md` is not enough.
 
-Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[ToFix]`, `[P1][Performance]`). Multiple tags combine — apply the strictest action. An `AI Code Review` / `AIR` header (on its own line or as a comment title) takes precedence over any tag and routes to `air-verification.md`.
+Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[ToFix]`, `[P1][Performance]`). Multiple tags combine — apply the strictest action. An automated review comment (e.g., from `github-actions[bot]`, `copilot[bot]`, `coderabbitai[bot]`, or any configured automated reviewer) takes precedence over any tag and routes to `automated-review-verification.md`.
 
 ## Size thresholds for autonomy
 
@@ -20,15 +20,15 @@ Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Opt
 
 The reviewer requires a change. The PR will not be approved without it.
 
-- Small: implement edit → stage (no commit, no push) → reply `**[AI]** Fixed: <one-line summary>. Diff staged locally, awaiting your commit.`
+- Small: implement edit → verify build/tests → commit + push (Phase 4 default) → reply `**[AI]** Fixed: <one-line summary>. Committed as <short-sha> and pushed.` Pass `no-commit` to stage only instead.
 - Medium / Large: prepare the diff in chat, explain the approach, wait for the human's explicit go-ahead. Do not edit files.
 - After implementation, do NOT resolve the thread; the reviewer decides.
 
 Example (small):
 
-> Reviewer: `[ToFix] Rename TenantID to TenantId — matches the rest of this file.`
+> Reviewer: `[ToFix] Rename FooID to FooId — matches the rest of this file.`
 >
-> Action: edit the file, stage the change, reply: `**[AI]** Fixed: renamed TenantID → TenantId. Diff staged locally, awaiting your commit.`
+> Action: edit the file, verify build/tests, commit + push, reply: `**[AI]** Fixed: renamed FooID → FooId. Committed as a1b2c3d and pushed.`
 
 ### `[Performance]`
 
@@ -93,12 +93,12 @@ Decision tree:
 1. Reviewer is just noting it → reply `**[AI]** Noted, out of scope for this PR.` No further action.
 2. Reviewer asks to track separately (phrases: "track it", "open a ticket", "file a work item", "separate PR", "TODO") → delegate to the Task Composer agent.
 
-Work-item flow:
+Issue flow:
 
-1. Invoke Task Composer with a concise brief: the comment text, the file/line, why it is out of scope, desired work-item type (default `Requirement` unless the comment says "bug"), and any priority hint from co-tags.
-2. Task Composer drafts title, description, acceptance criteria. Confirm with the user before creating.
-3. On user approval, call `mcp__azure-devops__wit_create_work_item` with the fields Task Composer produced.
-4. Reply `**[AI]** Tracked as work item #<id>: <title>.`
+1. Invoke Task Composer with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags.
+2. Task Composer drafts title and description. Confirm with the user before creating.
+3. On user approval, call `mcp__plugin_github_github__issue_write` with the fields Task Composer produced. Always pass `owner` and `repo` verbatim — never infer (see `dev-essentials:github-mcp-conventions` Rule 1).
+4. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
 If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No work item.
 
@@ -120,11 +120,11 @@ The reviewer has flagged a pattern seen multiple times; the `[Repetition]` tag s
 4. On user approval: implement across all occurrences, stage, reply `**[AI]** Fixed pattern across N occurrences: <summary>.`
 5. Without approval: fix only the flagged instance and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
 
-### `AI Code Review` / `AIR` (special case)
+### Automated review comments (special case)
 
-Takes precedence over tags. See [`air-verification.md`](air-verification.md). Summary:
+Takes precedence over tags. See [`automated-review-verification.md`](automated-review-verification.md). Summary:
 
-- Always re-verify independently. Do not trust the AIR's framing.
+- Always re-verify independently. Do not trust the bot's framing.
 - Land on a verdict: `valid` / `valid-but-narrow` / `needs-clarification` / `false-positive` / `not-applicable`.
 - Post `**[AI][Draft]**` reply with verdict, rationale, revised proposal (or rejection), confidence.
 - Never implement until the human approves, even with `verdict=valid` and `confidence=high`.

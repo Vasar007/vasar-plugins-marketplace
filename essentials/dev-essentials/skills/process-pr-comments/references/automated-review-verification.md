@@ -1,24 +1,25 @@
-# AIR Verification
+# Automated Review Verification
 
-Read before replying to any comment carrying the `AI Code Review` / `AIR` header. AIR-generated comments are the most failure-prone class of review feedback — they quote stale snippets, miss enclosing invariants, or flag code that is not reachable in production. Never trust the framing; always verify independently.
+Read before replying to any comment carrying an automated review header (e.g., `AI Code Review`, `copilot:review`, `coderabbitai`, or a similar bot-generated heading). Automated review comments are the most failure-prone class of review feedback — they quote stale snippets, miss enclosing invariants, or flag code that is not reachable in production. Never trust the framing; always verify independently.
 
-## What counts as an AIR comment
+## What counts as an automated review comment
 
 Any comment whose first non-empty line (or title) contains one of:
 
 - `AI Code Review`
 - `AIR` (as a standalone marker or short tag)
+- `copilot:review` or similar GitHub Copilot review header
 - A header/section that introduces the comment as coming from an automated review bot
 
-If uncertain, err on the side of treating it as AIR — the extra verification cost is cheaper than a bad auto-apply.
+If uncertain, err on the side of treating it as an automated review — the extra verification cost is cheaper than a bad auto-apply.
 
 ## Verification checklist
 
-Run every step in order. Do not short-circuit, even for obviously trivial-looking AIR notes.
+Run every step in order. Do not short-circuit, even for obviously trivial-looking notes.
 
 ### 1. Re-read the actual code
 
-Use the thread's `threadContext` file path + line range. Read the file at the PR's latest iteration. The snippet AIR quoted may be:
+Use the thread's file path and line range. Read the file at the PR's latest iteration. The snippet the bot quoted may be:
 
 - Stale (from an earlier iteration).
 - Truncated, hiding guards or early-returns.
@@ -33,7 +34,7 @@ Read:
 - Any adjacent tests (same folder or mirrored test file).
 - Feature-flag / options binding that gates this code path.
 
-Many AIR comments flag local shapes that are correct in context because of an invariant enforced elsewhere.
+Many automated review comments flag local shapes that are correct in context because of an invariant enforced elsewhere.
 
 ### 3. Check production applicability
 
@@ -46,7 +47,7 @@ Ask:
 
 ### 4. Check for false-positive signatures
 
-AIR commonly misfires on:
+Automated review tools commonly misfire on:
 
 - Null checks before a member the compiler already guarantees non-null (e.g., after a `Guard.Against.Null`, primary-constructor parameter with non-null reference type).
 - Async/await patterns already handled by a framework abstraction.
@@ -87,7 +88,7 @@ Each verdict has a canonical draft. Customize the rationale; keep structure.
 ```text
 **[AI][Draft]** Verdict: valid — concern applies here.
 
-Rationale: <one-line why the AIR concern holds, anchored to code>.
+Rationale: <one-line why the concern holds, anchored to code>.
 Proposed fix: <one-line description>. Diff ready to apply on your approval.
 
 Confidence: high | medium | low.
@@ -147,17 +148,17 @@ Confidence: high | medium | low.
 
 ## Hard rules
 
-- Never auto-implement an AIR fix, even with `verdict=valid` and `confidence=high`. A human must approve in chat or in the thread first.
-- Never post the AIR reply without the `**[AI][Draft]**` prefix and the closing draft-pending line.
+- Never auto-implement an automated review fix, even with `verdict=valid` and `confidence=high`. A human must approve in chat or in the thread first.
+- Never post the reply without the `**[AI][Draft]**` prefix and the closing draft-pending line.
 - Never truncate the rationale — the reviewer should see the reasoning that led to the verdict, not just the verdict.
-- If verification uncovers a DIFFERENT issue adjacent to the AIR's concern (genuine bug, missed null case), do NOT silently broaden the reply. Surface the secondary finding in chat to the human and ask whether to mention it in the thread.
+- If verification uncovers a DIFFERENT issue adjacent to the bot's concern (genuine bug, missed null case), do NOT silently broaden the reply. Surface the secondary finding in chat to the human and ask whether to mention it in the thread.
 
 ## Chat output alongside the thread reply
 
-Every AIR verdict also gets logged in the chat for the human:
+Every verdict also gets logged in the chat for the human:
 
 ```text
-T#17 [AIR] Domain/User.cs:88
+T#17 [AutoReview] Domain/User.cs:88
   Verdict: false-positive (confidence: high)
   Rationale: null-check unreachable after Guard.Against.Null on line 84.
   Draft posted: yes.

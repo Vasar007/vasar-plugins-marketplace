@@ -103,20 +103,19 @@ If a PR command is listed in the Project Context:
 3. Determine how to create the PR:
    - **If the PR command is a shell command** (starts with a CLI verb, not an
      MCP tool prefix): run it directly via Bash
-   - **If the PR command is an MCP tool name** (e.g.
-     `mcp__ado__repo_create_pull_request`): use `ToolSearch` to load the MCP
-     tool first, then invoke it with appropriate parameters (target branch,
-     title, description, etc.)
+   - **If the PR command is an MCP tool name** (e.g.,
+     `mcp__plugin_github_github__create_pull_request` or another provider's
+     equivalent): use `ToolSearch` to load the MCP tool first, then invoke it
+     with appropriate parameters (target branch, title, description, etc.)
 4. When a PR is created, include the task URL from the Task Context if available
-5. **Link work item to PR**: If a task URL from the Task Context refers to an
-   Azure DevOps work item (contains a numeric work item ID), link it to the
-   newly created PR:
-   - Use `ToolSearch` to load `mcp__ado__wit_link_work_item_to_pull_request`
-   - Extract the work item ID from the task URL
-   - Extract the PR ID from the PR creation result
-   - Invoke the tool to create the link between the work item and the PR
-   - If linking fails, report the failure but do NOT treat it as a blocking
-     error — the PR is already created
+5. **Link the PR to its tracking issue** (optional, platform-dependent): If the
+   task URL from the Task Context refers to a tracking artifact in the same
+   provider as the PR (e.g., a GitHub issue when the PR is on GitHub), and the
+   provider exposes a linking tool, use `ToolSearch` to load the appropriate
+   linking tool and create the link. If no linking tool exists or the task URL
+   is for a different provider, mention the task URL in the PR body instead and
+   skip the explicit link step. If linking fails, report the failure but do NOT
+   treat it as a blocking error — the PR is already created
 
 If no PR command is available, STOP after push and report the branch status plus
 what remains for the human.

@@ -77,3 +77,4 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
 - **Verify against real code** — do not trust artifact claims about the codebase without checking.
 - **Ask the user** if you find something that could go either way.
 - **Report only real issues** — reverify each finding before including it.
+- **Verify before confident fixes.** When suggesting a resolution for any technical claim found in the artifacts — config, schema, library API, method signature, codebase reference, or DI lifetime — verify against a primary source first: official docs, a known-working real example, or a throwaway test. Pattern-matching a plausible-sounding cause and presenting it as the answer wastes review cycles and erodes trust. Frame unverified suggestions as theories ("this might be …"), not authoritative fixes. See `dev-essentials:engineering-discipline`.

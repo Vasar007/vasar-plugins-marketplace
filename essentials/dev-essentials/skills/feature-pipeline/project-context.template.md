@@ -7,9 +7,9 @@
 
 ## Task Provider
 
-- **Name:** <provider display name, e.g. Azure DevOps, Jira, GitHub Issues>
-- **MCP server prefix:** <tool-name prefix to look up capabilities, e.g. `mcp__azure-devops__` or `mcp__jira__`>
-- **Project / organization:** <project identifier, e.g. `Backup` on your Azure DevOps host>
+- **Name:** <provider display name, e.g. GitHub Issues, Jira, Linear>
+- **MCP server prefix:** <tool-name prefix to look up capabilities, e.g. `mcp__plugin_github_github__` or `mcp__jira__`>
+- **Project / organization:** <project identifier, e.g. `my-org/my-repo` on GitHub>
 
 ## Worktree
 
@@ -29,7 +29,7 @@
 - **Test:** <e.g. `dotnet test ./Sources/Tests/MyService.Tests/MyService.Tests.csproj`>
 - **Lint (optional):** <e.g. `dotnet format --verify-no-changes`>
 - **Push:** <e.g. `git push -u origin HEAD`>
-- **PR creation:** <e.g. `mcp__azure-devops__repo_create_pull_request` / `gh pr create`>
+- **PR creation:** <e.g. `mcp__plugin_github_github__create_pull_request` / `gh pr create`>
 
 ## Guidance Files
 
@@ -50,7 +50,7 @@
 ## Key Conventions
 
 <!-- Short bullets. Anything the pipeline agents must know that is NOT already in CLAUDE.md. -->
-- <e.g. "All PRs must link an ADO work item via `AB#<id>` in the title">
+- <e.g. "All PRs must reference the tracking issue URL in the PR body">
 - <e.g. "Commit messages use the format `#<task-id> - <summary>`">
 - <add more as needed>
 

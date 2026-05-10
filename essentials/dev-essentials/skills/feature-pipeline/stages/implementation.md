@@ -62,8 +62,11 @@ Before writing any code:
 2. Use the full test command from the Project Context to establish a baseline
    (if one is available).
    - If tests are already failing, note which ones
-   - You must not make these worse, and you must not fix pre-existing failures
-     unless spec.md says to
+   - Do not silently absorb pre-existing failures into the implementation
+     diff — surface them to the master agent (per
+     `dev-essentials:engineering-discipline` Rule 1) and ask whether to
+     widen scope or hand back. Never say "pre-existing, not my problem"
+     and move on.
    - If no full test command is available, report that explicitly instead of
      inventing one
 
