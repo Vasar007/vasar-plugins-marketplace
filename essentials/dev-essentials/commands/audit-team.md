@@ -93,3 +93,4 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 - **Real issues only** — instruct each agent to reverify. Then reverify again during consolidation.
 - **Be specific** — every finding must reference a concrete file/section and include a resolution suggestion.
 - **Verify against real code** — agents should check claims against the actual codebase.
+- **Verify before confident fixes.** When any agent (or this command during consolidation) proposes a resolution for any technical claim — config, schema, library API, method signature, codebase reference, or DI lifetime — require verification against a primary source: official docs, a known-working real example, or a throwaway test. Pattern-matching a plausible-sounding cause and presenting it as the answer wastes review cycles and erodes trust. Unverified theories must be framed as theories ("this might be …"), not fixes. See `dev-essentials:engineering-discipline`.
