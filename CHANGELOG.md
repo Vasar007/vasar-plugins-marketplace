@@ -9,6 +9,40 @@ on a per-plugin basis (see each plugin's `plugin.json` for its current version).
 
 _No changes yet._
 
+## dev-essentials [2.0.0] — dotnet-backend-dev [1.1.0] — 2026-05-10
+
+### Added — dev-essentials
+
+- New skills: `engineering-discipline`, `subagent-orchestration`, `git-sync`, `dotnet-build-test`, `review-loop` (with 4 reference files + 2 worked examples), `github-mcp-conventions`.
+- `review-loop`: trigger phrases `/review-loop` and `/review-pr` preserved in frontmatter description; GitHub MCP replaces ADO MCP for `target=pr` mode.
+- `process-pr-comments`: new `references/automated-review-verification.md` (replaces `air-verification.md`); GitHub-native phase flow (pull_request_read, add_reply_to_pull_request_comment); configurable bot-author list.
+- `feature-pipeline`: Pipeline Discipline section (3 safeguards), Safeguard 2 note in Human Approve #2, `pr` field in `pipeline-state.json` schema, gated Step 10 worktree removal via GitHub MCP.
+- Audit commands (`audit-plan`, `audit-openspec`, `audit-team`): verify-before-fix guardrail.
+
+### Added — dotnet-backend-dev
+
+- `create-tests`: Constructor Null-Argument Tests section (foreach-over-List\<Action\> pattern, anti-pattern: boolean stripes), Scenario Tests section (stubs-only, no mocking), Test Scope and Props Files section.
+- `create-tests/examples`: `constructor-null-arg-tests.md`, `scenario-tests.md`.
+
+### Changed — dev-essentials
+
+- `task-composer` agent: three-mode rewrite (draft/response/create), GitHub issue workflow (issue_write + issue_read), two-step create-then-verify, cross-reference to `github-mcp-conventions` Rule 1.
+- `git-worktree-management`: new path scheme `.claude/worktrees/<branch>/`, bootstrap steps, GitHub MCP PR-status discovery (Workflow D), keep-until-PR-merged lifecycle.
+- `process-pr-comments`: ADO MCP → GitHub MCP throughout; commit message drops `#<workItemId>` prefix; thread anchors use `html_url`; `[OutOfScope]` tracking uses `issue_write` not `wit_create_work_item`; `references/thread-state-schema.md` updated to GitHub field names.
+- `feature-pipeline` Step 0: worktree creation delegates to `git-worktree-management` Workflow A instead of inline git commands.
+- Skill cross-references: all `veeam-*` prefixes removed from cross-ref names.
+
+### Removed — dev-essentials
+
+- Commands `review-loop.md` and `review-pr.md` (trigger phrases now live in `review-loop` skill frontmatter description).
+- `process-pr-comments/references/air-verification.md` (replaced by `automated-review-verification.md`).
+
+### Breaking — dev-essentials
+
+- `task-composer` no longer calls `wit_create_work_item`; calls `issue_write` / `issue_read` instead. Existing ADO-backed workflows break.
+- `process-pr-comments` no longer calls any `mcp__azure-devops__*` tool; requires GitHub MCP. Existing ADO-backed workflows break.
+- `/dev-essentials:review-loop` and `/dev-essentials:review-pr` commands deleted; use the `review-loop` skill (`/review-loop` or `/review-pr` trigger phrases in description).
+
 ## [1.0.2] - 2026-05-08
 
 ### Added
