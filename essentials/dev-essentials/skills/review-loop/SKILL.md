@@ -33,7 +33,7 @@ A single reviewer misses things. Different perspectives — architecture, securi
 | `--skip <severities>` | `medium,low,nit` | Comma-separated severity tokens to defer rather than fix. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`. Each token is independent — `--skip medium,low` defers Medium and Low but NOT Nit. Use `--skip none` to fix every severity. |
 | `--reviewer <id>` | `audit-team` | Reviewer subagent(s). Values: `audit-team`, `dual`, `feature-dev:code-reviewer`, `pair <a>+<b>`, `quad <a>,<b>,<c>,<d>`, or any `<plugin>:<agent>`. |
 | `--reviewer-model <model>` | inherit | Model tier override for the reviewer subagent (e.g. `opus`, `sonnet`, `haiku`). Passed via the `model:` field of each reviewer Agent dispatch. |
-| `--reviewer-focus <tokens>` | (brief default) | Comma-separated focus-area tokens that override the default focus list in the reviewer brief (e.g. `security,performance,test-coverage`). Valid tokens are defined in `references/reviewer-briefs.md`. If every token is unrecognized, falls back to the brief's default list with a warning. If only some tokens are unrecognized, uses the recognized tokens and warns about the unrecognized ones. |
+| `--reviewer-focus <tokens>` | (brief default) | Comma-separated focus-area tokens that override the default focus list in the reviewer brief (e.g. `security,performance,test-coverage`). Valid tokens are defined in `references/reviewer-briefs.md` (Phase 3 loads that file unconditionally; the canonical token list lives there). If every token is unrecognized, falls back to the brief's default list with a warning. If only some tokens are unrecognized, uses the recognized tokens and warns about the unrecognized ones. |
 | `--fixer <id>` | `general-purpose` | Verify+fix subagent. Same value space as `--reviewer`. |
 | `--fixer-model <model>` | inherit | Model tier override for the fixer subagent. Passed via the `model:` field of the fixer Agent dispatch. |
 | `--audit-team-args <...>` | none | Free-form pass-through to the `/audit-team` command when `--reviewer audit-team`. Ignored (with a warning) when `--reviewer` is not `audit-team`. |
@@ -125,7 +125,7 @@ Dispatch the reviewer per the rules in `dev-essentials:subagent-orchestration`. 
 
 - **Foreground-parallel** when more than one reviewer is selected (multiple Agent calls in one assistant message, no `run_in_background`).
 - **Foreground** for a single reviewer.
-- **Background-parallel** only when all five prerequisites in `subagent-orchestration` Rule 3 hold simultaneously.
+- **Background-parallel** only when every prerequisite listed in `subagent-orchestration` Rule 3 holds simultaneously.
 
 Pass `--reviewer-model` to each reviewer subagent's Agent dispatch via the `model:` field when the flag is set.
 
