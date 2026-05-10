@@ -28,9 +28,9 @@ _No changes yet._
 
 - `task-composer` agent: three-mode rewrite (draft/response/create), GitHub issue workflow (issue_write + issue_read), two-step create-then-verify, cross-reference to `github-mcp-conventions` Rule 1.
 - `git-worktree-management`: new path scheme `.claude/worktrees/<branch>/`, bootstrap steps, GitHub MCP PR-status discovery (Workflow D), keep-until-PR-merged lifecycle.
-- `process-pr-comments`: ADO MCP → GitHub MCP throughout; commit message drops `#<workItemId>` prefix; thread anchors use `html_url`; `[OutOfScope]` tracking uses `issue_write` not `wit_create_work_item`; `references/thread-state-schema.md` updated to GitHub field names.
+- `process-pr-comments`: rewritten on top of GitHub MCP throughout; commit message drops the legacy work-item-ID prefix; thread anchors use `html_url`; `[OutOfScope]` tracking uses `issue_write` for tracking-issue creation; `references/thread-state-schema.md` updated to GitHub field names.
 - `feature-pipeline` Step 0: worktree creation delegates to `git-worktree-management` Workflow A instead of inline git commands.
-- Skill cross-references: all `veeam-*` prefixes removed from cross-ref names.
+- Skill cross-references: legacy upstream prefixes removed from all cross-ref names.
 
 ### Removed — dev-essentials
 
@@ -39,8 +39,8 @@ _No changes yet._
 
 ### Breaking — dev-essentials
 
-- `task-composer` no longer calls `wit_create_work_item`; calls `issue_write` / `issue_read` instead. Existing ADO-backed workflows break.
-- `process-pr-comments` no longer calls any `mcp__azure-devops__*` tool; requires GitHub MCP. Existing ADO-backed workflows break.
+- `task-composer` is now GitHub-MCP-native: calls `issue_write` / `issue_read` instead of any other PR-provider MCP tool. Existing non-GitHub workflows break.
+- `process-pr-comments` is now GitHub-MCP-only; requires the GitHub MCP server. Existing non-GitHub workflows break.
 - `/dev-essentials:review-loop` and `/dev-essentials:review-pr` commands deleted; use the `review-loop` skill (`/review-loop` or `/review-pr` trigger phrases in description).
 
 ## [1.0.2] - 2026-05-08
