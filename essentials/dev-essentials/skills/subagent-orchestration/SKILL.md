@@ -55,6 +55,7 @@ Prerequisites that MUST hold simultaneously before backgrounding:
 3. **Self-contained prompts.** Background agents cannot ask the parent for clarification mid-run, so the prompt must answer every plausible question up front — full project context, full task context, exact file paths, exact verification commands, exact reporting format.
 4. **No same-message downstream dependency.** The next stage that consumes a backgrounded artifact runs only after all relevant task notifications have arrived.
 5. **Single-message launch.** All siblings in one assistant turn with multiple `Agent` tool calls. Sequential launches across turns waste parallelism.
+6. **Two or more siblings.** Background-parallel only fans out when at least two independent siblings actually run. If `--skip` flags or other conditions reduce the fan-out to a single sibling, run that sibling foreground — there is no parallelism win.
 
 If ANY prerequisite fails, run foreground.
 
