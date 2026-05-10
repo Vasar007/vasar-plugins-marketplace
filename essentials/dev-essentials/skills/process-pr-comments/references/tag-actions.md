@@ -2,7 +2,7 @@
 
 Authoritative per-tag behavior for `process-pr-comments`. Read this file whenever a classification lands on a tag and the short summary in `SKILL.md` is not enough.
 
-Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[ToFix]`, `[P1][Performance]`). Multiple tags combine — apply the strictest action. An `AI Code Review` / `AIR` header (on its own line or as a comment title) takes precedence over any tag and routes to `air-verification.md`.
+Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[ToFix]`, `[P1][Performance]`). Multiple tags combine — apply the strictest action. An automated review comment (e.g., from `github-actions[bot]`, `copilot[bot]`, `coderabbitai[bot]`, or any configured automated reviewer) takes precedence over any tag and routes to `automated-review-verification.md`.
 
 ## Size thresholds for autonomy
 
@@ -120,11 +120,11 @@ The reviewer has flagged a pattern seen multiple times; the `[Repetition]` tag s
 4. On user approval: implement across all occurrences, stage, reply `**[AI]** Fixed pattern across N occurrences: <summary>.`
 5. Without approval: fix only the flagged instance and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
 
-### `AI Code Review` / `AIR` (special case)
+### Automated review comments (special case)
 
-Takes precedence over tags. See [`air-verification.md`](air-verification.md). Summary:
+Takes precedence over tags. See [`automated-review-verification.md`](automated-review-verification.md). Summary:
 
-- Always re-verify independently. Do not trust the AIR's framing.
+- Always re-verify independently. Do not trust the bot's framing.
 - Land on a verdict: `valid` / `valid-but-narrow` / `needs-clarification` / `false-positive` / `not-applicable`.
 - Post `**[AI][Draft]**` reply with verdict, rationale, revised proposal (or rejection), confidence.
 - Never implement until the human approves, even with `verdict=valid` and `confidence=high`.
