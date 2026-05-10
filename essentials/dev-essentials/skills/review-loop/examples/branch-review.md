@@ -206,6 +206,11 @@ scope narrowed to the fix diff only and Round set to 2.
 
 Agent reports: no new findings. Both applied fixes look correct; no regressions visible.
 
+**Phase 6 in Round 2:** the fixer applied edits this cycle (2 files changed in Phase 5), so
+Phase 6 re-runs against those 2 files — build and focused test filter both pass (see outputs
+below). If the fixer had applied zero edits (all findings REJECT), Phase 6 would be skipped
+and the previous cycle's build/test status carried forward into Phase 9.
+
 ---
 
 ## Phase 9 — Final summary

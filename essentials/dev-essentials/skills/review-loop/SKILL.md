@@ -119,6 +119,8 @@ The fallback rule is uniform — it applies to any unknown agent ID, not only `f
 
 ### Phase 3 — Round-N review
 
+Before composing the reviewer brief or validating `--reviewer-focus` tokens, load `references/reviewer-briefs.md` to obtain the per-target brief template AND the canonical `--reviewer-focus` token list. Use the loaded list to validate user-supplied tokens (recognized tokens override the default focus list; unrecognized-only tokens fall back with a warning).
+
 Dispatch the reviewer per the rules in `dev-essentials:subagent-orchestration`. Do not restate those rules here — cross-reference them. Key dispatch decisions:
 
 - **Foreground-parallel** when more than one reviewer is selected (multiple Agent calls in one assistant message, no `run_in_background`).
@@ -256,6 +258,7 @@ Decide whether to run another cycle. The decision is deterministic:
 
 - **Continue** if ALL of the following hold: (a) rounds used < `--rounds`, AND (b) the fixer applied at least one edit in this cycle (new code is on disk).
   - If no edit was applied in this cycle (all findings were REJECT or the cycle was `--dry-run`/`--no-verify-fix`), **stop** — there is no new code to re-review.
+  - When the fixer applied zero edits in the re-review cycle, **skip Phase 6** for the next round — there is no new code to verify; carry forward the previous cycle's build/test status into Phase 9.
   - The re-review scope is ONLY the files changed in the fix commit, not the full original target. This is intentional: re-reviewing the whole target conflates new findings with old deferred ones.
   - The re-review in Round N+1 always uses a single `general-purpose` agent regardless of `--reviewer`. The full reviewer/fixer config applies only to Round 1. The goal is "did the fix resolve the issue and introduce no regressions?" — not a full architectural review.
 - **Stop** otherwise. Classify the stop verdict:
