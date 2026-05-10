@@ -1,343 +1,351 @@
 ---
 name: git-worktree-management
-description: Creates and manages git worktrees for working on tasks. Use when the user requests to create, list, or remove worktrees (e.g., "new worktree for Task 123456", "list my worktrees", "remove all worktrees").
+description: Creates and manages git worktrees at `<repo-root>/.claude/worktrees/<full-branch-ref>/` for working on tasks in isolation. Use when the user requests to create, list, or remove worktrees (e.g., "new worktree for Task 123456", "list my worktrees", "remove all worktrees", "set up worktree for branch feature/tasks/1370383-foo"). Triggers on requests like "create worktree", "new worktree", "list worktrees", "remove worktree", "clean up worktrees".
 ---
 
 # Git Worktree Management Skill
 
 ## Purpose
-Manages git worktrees in a dedicated `Worktrees` directory for working on specific tasks in isolation. This allows multiple branches to be checked out simultaneously in separate working directories.
+
+Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` so multiple branches can be checked out simultaneously in isolation. This path is typically gitignored (`**/.claude/worktrees/`) — verify with `git check-ignore -v .claude/worktrees/placeholder` before relying on it — so worktrees do not pollute `git status` and never require cleanup outside the repo.
 
 ## When to Use
-- User requests to create a worktree for a task
+
+- User requests to create a worktree for a task or branch
 - User requests to list existing worktrees
 - User requests to remove one or more worktrees
 
-## Prerequisites for Creating Worktrees
+---
 
-**CRITICAL: NEVER invent or guess task numbers or descriptions.**
+## Workflow A: Creating a New Worktree
 
-The user MUST explicitly provide:
-- A task number (e.g., 123456)
-- A task description (e.g., "Adding Config Repository for WebApi service")
+### Pre-check: Gather required information
 
-**If the user requests a worktree without providing both values, STOP and ask them to provide:**
-1. The task number
-2. A clear description of the task
+**CRITICAL: NEVER invent or guess branch names, task numbers, or descriptions.**
 
-## Workflows
+You need:
+- The full branch ref (e.g., `feature/tasks/1370383-foo`). May include any prefix segment — do not flatten or drop segments.
+- A short description (for your own confirmation prompt only — the path is derived solely from the branch ref, not from this description).
 
-### Workflow A: Creating a New Worktree
+If the user has not provided both, STOP and ask:
 
-**Pre-check:** Verify the user has provided both task number and description. If not, ask for them before proceeding.
+> To create a worktree I need:
+> 1. The full branch ref (e.g., `feature/tasks/1370383-add-feature`)
+> 2. A short description of the task (used only to confirm your intent)
 
-#### Step 1: Navigate to Repository Root
-Before creating the worktree, change to the repository root:
+### Step 1: Get repository root
 
-```powershell
-cd $(git rev-parse --show-toplevel)
+```bash
+git rev-parse --show-toplevel
 ```
 
-#### Step 2: Determine Base Branch
-Find the default base branch of the repository:
+### Step 2: Determine base branch
 
-```powershell
+```bash
 git symbolic-ref refs/remotes/origin/HEAD
 ```
 
-This typically returns something like `refs/remotes/origin/main` or `refs/remotes/origin/master`. Extract the branch name from this output.
+This returns something like `refs/remotes/origin/main`. Extract the branch name. Confirm with the user if ambiguous.
 
-#### Step 3: Create Worktree Directory Path
-Construct the worktree path:
-- Location: `../Worktrees/` (one level above the repository root)
-- Format: `<task-number>-<concise-description>/`
-- Example: `../Worktrees/123456-add-config-repository/`
+### Step 3: Construct path and ask for confirmation
 
-**Naming Rules:**
-- Start with the task number
-- Follow with a hyphen
-- Use lowercase for the description
-- Use hyphens to separate words
-- Keep it concise but descriptive
-- Remove special characters and spaces
+Path rule: `<repo-root>/.claude/worktrees/<full-branch-ref>/`
 
-#### Step 4: Create Branch Name
-Format: `tasks/<task-number>-<concise-description>`
-- Example: `tasks/123456-add-config-repository`
-- Must match the worktree directory name (without the path)
-- Must start with `tasks/` prefix
+Mirror the branch ref verbatim — slashes intact, no flattening.
 
-#### Step 5: Create the Worktree
-Execute the git worktree creation command:
+Example: branch `feature/tasks/1370383-terminate-reservation` → path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`
 
-```powershell
-git worktree add -b <branch-name> <worktree-path> <base-branch>
+**Pipeline-mode (pre-confirmed) exception:** when Workflow A is invoked by an
+orchestrator skill (e.g. `dev-essentials:feature-pipeline`) that has already
+announced the resolved path and branch to the user **and** explicitly states
+that the user authorised creation by starting the pipeline, treat Step 3 as
+pre-satisfied. Skip the confirmation prompt and proceed directly to Step 4.
+The orchestrator is the confirmation gate in this case.
+
+**Interactive-mode (default) — STOP and present a confirmation prompt before creating:**
+
+> I will create a worktree with the following settings:
+>
+> - **Path:** `<repo-root>/.claude/worktrees/<full-branch-ref>/`
+> - **Branch:** `<branch-ref>` (new) or existing local/remote branch
+> - **Base:** `<base-branch>`
+>
+> Confirm? Or override path/branch?
+
+Wait for explicit confirmation. Do not proceed without it.
+
+### Step 4: Verify `.claude/worktrees/` is gitignored
+
+```bash
+git check-ignore -v .claude/worktrees/placeholder
 ```
 
-Example:
-```powershell
-git worktree add -b tasks/123456-add-config-repository ../Worktrees/123456-add-config-repository main
+If the path is NOT gitignored, tell the user:
+
+> `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
+
+Wait for the user's answer. Do not add it silently.
+
+### Step 5: Create the worktree
+
+Three cases depending on branch state:
+
+**Case A — new branch (most common):**
+
+```bash
+git fetch origin <base-branch>
+git worktree add -b <branch-ref> <path> origin/<base-branch>
 ```
 
-#### Step 6: Confirm Success
-After creation, construct the full worktree path and provide commands to open it:
-- Get the repo root path from Step 1 (e.g., `C:\Projects\<RepoName>`)
-- Remove the repository folder name to get parent directory (e.g., `C:\Projects`)
-- Append `\Worktrees\<worktree-name>` (e.g., `C:\Projects\Worktrees\123456-add-config-repository`)
+**Case B — branch already exists locally:**
 
-#### Step 7: Find Solution File for Rider
-Search for the .sln file in the worktree (typically in the `Sources` subdirectory):
-
-```powershell
-Get-ChildItem -Path <full-worktree-path> -Filter *.sln -Recurse | Select-Object -First 1 -ExpandProperty FullName
+```bash
+git worktree add <path> <branch-ref>
 ```
 
-Inform the user:
-- The worktree location
-- The branch name
-- Commands to open the worktree (wrapped in ```powershell``` code blocks):
-  - In VS Code: `code <full-worktree-path>`
-  - In Rider: `rider <path-to-sln-file>` (if .sln file found)
+(No `-b`. Using `-b` over an existing branch fails.)
 
-### Workflow B: Listing Existing Worktrees
+**Case C — branch exists on remote only:**
 
-When the user asks to see their worktrees (e.g., "which worktrees do I have", "list worktrees"):
-
-#### Step 1: Navigate to Repository Root
-```powershell
-cd $(git rev-parse --show-toplevel)
+```bash
+git fetch origin <branch-ref>
+git worktree add --track -b <branch-ref> <path> origin/<branch-ref>
 ```
 
-#### Step 2: List All Worktrees
-```powershell
-git worktree list
+### Step 6: Post-create bootstrap (mandatory — run every time)
+
+Run all three sub-steps immediately after `git worktree add`, before dispatching any subagent into the worktree:
+
+```bash
+# 1. Unset upstream tracking — prevents "git branch -vv" hiding local commits
+#    behind the base branch and stops accidental push/pull to the wrong target
+git -C <worktree-path> branch --unset-upstream
+
+# 2. Copy gitignored Claude Code config from master worktree so subagents
+#    inherit the same allow-list, hooks, and permissions without re-prompting
+[ -f .claude/settings.local.json ] && cp .claude/settings.local.json <worktree-path>/.claude/settings.local.json
+# Note: inspect .gitignore for other .claude/... patterns (e.g., local CLAUDE.md
+# overrides, .claude/state/, plugin caches) and replicate each one the same way.
+
+# 3. Create a Notes/ directory for plans, drafts, and scratch files
+mkdir -p <worktree-path>/Notes
 ```
 
-#### Step 3: Present Results
-Display the worktrees in a clear format showing:
-- Worktree path
+### Step 7: Find solution file and report
+
+```powershell
+Get-ChildItem -Path <full-worktree-path> -Filter *.sln -Recurse |
+    Select-Object -First 1 -ExpandProperty FullName
+```
+
+Report to the user:
+
+- Worktree path (absolute)
 - Branch name
-- Commit hash
-- Note which one is the main worktree (the repository itself)
+- Base branch
+- Open commands:
 
-### Workflow C: Removing a Single Worktree
-
-When the user asks to remove a specific worktree:
-
-#### Step 1: Verify Worktree Exists
-List worktrees and verify the target exists:
 ```powershell
+# VS Code
+code <full-worktree-path>
+
+# Rider (if .sln found)
+rider <path-to-sln-file>
+```
+
+---
+
+## Workflow B: Listing Existing Worktrees
+
+```bash
 git worktree list
 ```
 
-#### Step 2: Remove the Worktree
-```powershell
+Present the output showing path, branch, and commit hash. Note which entry is the main worktree.
+
+---
+
+## Workflow C: Removing a Single Worktree
+
+### Step 1: Check PR status before removing
+
+**Default rule:** a worktree must remain alive until its PR has been merged. Before removing, verify:
+
+- Ask the user for the PR ID or URL, or check via GitHub MCP if already known (see `dev-essentials:github-mcp-conventions`).
+- Confirm the PR is merged (GitHub: `merged: true` or `state: closed` with `merged_at` set) before proceeding.
+
+**User-directed override:** if the user explicitly asks to remove this specific worktree (e.g., "remove this worktree", "clean up the worktree", "you can drop the worktree now"), proceed even if the PR is still open or has no PR. Inform the user that the worktree will be removed before the PR is merged, then continue to Step 2.
+
+If the PR is still open or in review **and the user has not explicitly requested removal**: inform the user and do NOT remove.
+
+### Step 2: Get confirmation
+
+Show the worktree path and branch. Ask for explicit yes.
+
+### Step 3: Remove
+
+```bash
 git worktree remove <path>
+git worktree list   # verify removal
 ```
 
-#### Step 3: Confirm Removal
-Inform the user the worktree has been removed.
+**Never use `rm -rf`.** If removal fails with "Permission denied", IDE file locks are the cause. Report to the user; do not force-remove.
 
-### Workflow D: Removing All Worktrees
+---
 
-When the user asks to remove all worktrees (e.g., "remove all worktrees", "clean up worktrees"):
+## Workflow D: Removing All Worktrees
 
-**CRITICAL: The main worktree (the repository itself) cannot be removed. Only remove secondary worktrees.**
+**CRITICAL: The main worktree cannot be removed.**
 
-#### Step 1: List All Worktrees
-```powershell
+**Only remove worktrees whose PRs are merged.**
+
+### Step 1: List worktrees
+
+```bash
 git worktree list
 ```
 
-#### Step 2: Identify Secondary Worktrees
-Parse the output to identify which worktrees are NOT the main repository:
-- The main worktree is the repository itself - it is NOT located in the `Worktrees` subdirectory
-- Secondary worktrees are those located in `../Worktrees/` (or the full path containing `\Worktrees\`)
-- Only secondary worktrees can be removed
+### Step 2: Identify secondary worktrees and discover their PRs
 
-#### Step 3: Show List and Request Confirmation
-Display the list of worktrees that will be removed and ask for explicit confirmation:
+For each secondary worktree (path contains `.claude/worktrees/`), derive its branch ref and determine PR merge status using the following procedure:
+
+1. **Derive the branch ref** from the worktree path: strip the repo root and the `.claude/worktrees/`
+   prefix from the absolute path. The remainder is the branch ref (slashes intact).
+   Example: `/repo/.claude/worktrees/feature/tasks/1370383-foo` → `feature/tasks/1370383-foo`.
+
+2. **Determine PR status via the appropriate platform:**
+   - **GitHub:** use `mcp__plugin_github_github__list_pull_requests` or `mcp__plugin_github_github__pull_request_read` with `owner`, `repo`, and the branch ref as `head`. Pass `owner` and `repo` verbatim per `dev-essentials:github-mcp-conventions` Rule 2. A PR is eligible for worktree removal when `merged: true` or (`state: closed` AND `merged_at` is non-null).
+   - **Other platforms:** use the equivalent task-provider MCP server. If no MCP tool is available for the platform, **STOP and ask the user** for the PR status for that specific worktree.
+
+3. **Apply the merged filter.** A worktree is eligible for removal only when its PR is confirmed merged. Any other status (open, draft, closed-without-merge, or no PR found) means the worktree must NOT be removed automatically.
+
+4. **If discovery fails or is ambiguous** (MCP unavailable, multiple PRs returned for the same source branch, zero PRs found but the branch looks active) — **STOP and ask the user** for the PR status or removal confirmation for that specific worktree. Do NOT guess or silently skip.
+
+Worktrees with open or undiscoverable PRs must NOT be removed.
+
+### Step 3: Show list and ask for confirmation
 
 ```
-Found the following worktrees to remove:
-- ../Worktrees/123456-add-config-repository (branch: tasks/123456-add-config-repository)
-- ../Worktrees/789012-fix-bug (branch: tasks/789012-fix-bug)
+Found the following merged-PR worktrees eligible for removal:
+  - .claude/worktrees/feature/tasks/1370383-foo  (branch: feature/tasks/1370383-foo)
+
+The following worktrees have open/active PRs and will be kept:
+  - .claude/worktrees/bugfix/1250312-bar
 
 The main worktree will be preserved.
 
-Do you want to proceed with removing these worktrees? (yes/no)
+Proceed with removing the 1 eligible worktree? (yes/no)
 ```
 
-**STOP and wait for user confirmation. Do NOT proceed without explicit approval.**
+**STOP and wait for explicit confirmation.**
 
-#### Step 4: Remove Each Worktree (Only After Confirmation)
-If the user confirms, remove each secondary worktree:
-```powershell
+### Step 4: Remove each eligible worktree
+
+```bash
 git worktree remove <path-1>
 git worktree remove <path-2>
-# ... etc.
-```
-
-#### Step 5: Prune and Confirm
-Clean up stale references and confirm completion:
-```powershell
+# ...
 git worktree prune
 ```
 
-Inform the user how many worktrees were removed.
+---
 
-## Example Interactions
+## Lifecycle Rule: Keep Until PR Is Merged
 
-### Example 1: Creating Worktree (Missing Information)
+**Do NOT remove a worktree at end of session, end of pipeline, or when asked "are we done?".**
 
-**User Request:**
-"Create a new worktree"
+The worktree is needed for PR review feedback, follow-up fixes, build/test reproduction, and code inspection at the branch HEAD. Removing it early forces awkward `git show <branch>:<path>` workflows that lose build/test capability.
 
-**Agent Response:**
-I need more information to create the worktree. Please provide:
-1. The task number (e.g., 123456)
-2. A description of the task (e.g., "Adding Config Repository for WebApi service")
+Removal is allowed after the PR is confirmed merged (provider-specific — for GitHub: `merged: true` or `state: closed` with `merged_at` set), or when the user explicitly asks to remove a specific worktree (see Workflow C). Always re-fetch PR status before removing to confirm.
 
-### Example 2: Creating Worktree (Complete Information)
+---
 
-**User Request:**
-"Create a new worktree for Task 123456: Adding Config Repository for WebApi service"
+## Recreate-If-Missing Fallback
 
-**Agent Actions:**
-1. Navigate to repo root: `cd $(git rev-parse --show-toplevel)`
-2. Get base branch: `git symbolic-ref refs/remotes/origin/HEAD` → `refs/remotes/origin/main`
-3. Parse task number: `123456`
-4. Create concise name: `add-config-repository`
-5. Construct paths:
-   - Worktree: `../Worktrees/123456-add-config-repository/`
-   - Branch: `tasks/123456-add-config-repository`
-6. Execute: `git worktree add -b tasks/123456-add-config-repository ../Worktrees/123456-add-config-repository main`
-7. Find .sln file: `Get-ChildItem -Path C:\Projects\Worktrees\123456-add-config-repository -Filter *.sln -Recurse | Select-Object -First 1 -ExpandProperty FullName` → `C:\Projects\Worktrees\123456-add-config-repository\<path-to>\<RepoSolution>.sln`
+If the worktree is missing despite the lifecycle rule (manual removal, IDE prune, `git worktree prune`), and the branch has an active PR, recreate before doing any work.
 
-**Agent Response:**
+**Before deleting any stub directory:** verify the path starts with `.claude/worktrees/` so the fallback cannot apply to an arbitrary path. Try the git-native removal first (`git worktree remove --force`), which respects git's safety model for registered-but-missing entries. If a physical directory still exists afterwards (an unregistered orphan stub), list its contents and ask the user for explicit confirmation before deleting — the path may contain `Notes/` files or other unrecoverable artifacts (the entire `.claude/worktrees/` subtree is gitignored). Never silently `rm -rf` a stub directory.
 
-Created new worktree at `../Worktrees/123456-add-config-repository/`
+```bash
+git fetch origin <branch-ref>
+# Confirm the path is under .claude/worktrees/ before any removal step.
+# 1. Try git-native removal first (covers the common case where git still
+#    has the entry registered but the directory was wiped manually).
+git worktree remove --force .claude/worktrees/<branch-ref> 2>/dev/null || true
+# 2. If a physical orphan directory still exists, list its contents and ask
+#    the user to confirm deletion. Only then remove it. Do NOT chain a blind
+#    `rm -rf` here — the rule from Workflow C (Step 3) still applies.
 
-Branch: `tasks/123456-add-config-repository`
-
-Based on: `main`
-
-To open this worktree in VS Code:
-```powershell
-code C:\Projects\Worktrees\123456-add-config-repository
+# 3. Recreate — mirror Workflow A Step 5 branch-state logic:
+#    Case B: branch still exists locally
+git worktree add .claude/worktrees/<branch-ref> <branch-ref>
+#    Case C: branch no longer exists locally (pruned/damaged state) — use this instead:
+# git worktree add --track -b <branch-ref> .claude/worktrees/<branch-ref> origin/<branch-ref>
+# Re-run the bootstrap
+git -C .claude/worktrees/<branch-ref> branch --unset-upstream
+[ -f .claude/settings.local.json ] && cp .claude/settings.local.json .claude/worktrees/<branch-ref>/.claude/settings.local.json
+mkdir -p .claude/worktrees/<branch-ref>/Notes
 ```
 
-To open in Rider:
-```powershell
-rider C:\Projects\Worktrees\123456-add-config-repository\<path-to>\<RepoSolution>.sln
-```
+**Branch-state decision (choose Case B or C above):**
 
-### Example 3: Listing Worktrees
+Check whether the branch exists locally with `git branch --list <branch-ref>`.
 
-**User Request:**
-"Which worktrees do I currently have?"
+- Output non-empty → **Case B**: use `git worktree add <path> <branch-ref>`.
+- Output empty → **Case C**: the local branch is gone; use `git fetch origin <branch-ref>` (already done above) then `git worktree add --track -b <branch-ref> <path> origin/<branch-ref>`.
 
-**Agent Actions:**
-1. Navigate to repo root
-2. Execute: `git worktree list`
-3. Parse output
+Then work in the recreated worktree. Do not operate from master via `git show <branch>:<path>`.
 
-**Agent Response:**
-```
-You have the following worktrees:
-
-1. C:\Projects\<RepoName> (main)
-   Branch: main
-   
-2. C:\Projects\Worktrees\123456-add-config-repository
-   Branch: tasks/123456-add-config-repository
-   
-3. C:\Projects\Worktrees\789012-fix-bug
-   Branch: tasks/789012-fix-bug
-```
-
-### Example 4: Removing All Worktrees
-
-**User Request:**
-"Remove all worktrees"
-
-**Agent Actions:**
-1. List worktrees with `git worktree list`
-2. Identify secondary worktrees (excluding main repo)
-3. Present list for confirmation
-
-**Agent Response:**
-```
-Found the following worktrees to remove:
-
-- C:\Projects\Worktrees\123456-add-config-repository (branch: tasks/123456-add-config-repository)
-- C:\Projects\Worktrees\789012-fix-bug (branch: tasks/789012-fix-bug)
-
-The main worktree (C:\Projects\<RepoName>) will be preserved.
-
-Do you want to proceed with removing these 2 worktrees? (yes/no)
-```
-
-**User:** "yes"
-
-**Agent Actions:**
-1. Execute: `git worktree remove C:\Projects\Worktrees\123456-add-config-repository`
-2. Execute: `git worktree remove C:\Projects\Worktrees\789012-fix-bug`
-3. Execute: `git worktree prune`
-
-**Agent Response:**
-```
-Successfully removed 2 worktrees. All secondary worktrees have been cleaned up.
-```
+---
 
 ## Error Handling
 
-### Worktree Already Exists
-If the worktree path already exists, inform the user and suggest:
-- Using a different description
-- Removing the existing worktree with `git worktree remove <path>`
-- Listing existing worktrees with `git worktree list`
+**Worktree path already exists:** Inform the user. Options: remove the existing one, or list with `git worktree list` to investigate.
 
-### Branch Already Exists
-If the branch name already exists, inform the user and suggest:
-- Using a different branch name
-- Checking out the existing branch
-- Deleting the old branch if no longer needed
+**Branch already exists locally:** Use `git worktree add <path> <branch-name>` (no `-b`). See Case B above.
 
-### Not in a Git Repository
-If the command is run outside a git repository, inform the user they need to be in a git repository to manage worktrees.
+**Not in a git repository:** Inform the user they need to run from inside a git repo.
 
-### Cannot Remove Main Worktree
-If the user tries to remove the main worktree, inform them that the main repository worktree cannot be removed. Only secondary worktrees in the `Worktrees` directory can be removed.
+**Cannot remove main worktree:** The main repo worktree cannot be removed with this skill. Only secondary worktrees under `.claude/worktrees/` can be removed.
 
-### Worktree Has Uncommitted Changes
-If a worktree has uncommitted changes, git will refuse to remove it. Inform the user they need to either:
-- Commit or stash the changes
-- Use `git worktree remove --force <path>` to force removal (warn about data loss)
+**Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
+
+**Permission denied on removal:** IDE has a file lock. Report to the user — never force-remove.
+
+---
 
 ## Reference: Git Worktree Commands
 
-These commands are used internally by the skill:
-
-```powershell
+```bash
 # List all worktrees
 git worktree list
 
-# Add a new worktree
-git worktree add -b <branch-name> <path> <base-branch>
+# Add a new worktree (new branch) — fetch first, then branch from remote-tracking ref
+git fetch origin <base-branch>
+git worktree add -b <branch-ref> <path> origin/<base-branch>
+
+# Add a worktree for an existing local branch (no -b)
+git worktree add <path> <branch-ref>
+
+# Add a worktree for a remote-only branch
+git fetch origin <branch-ref>
+git worktree add --track -b <branch-ref> <path> origin/<branch-ref>
+
+# Unset upstream after creation (always)
+git -C <path> branch --unset-upstream
 
 # Remove a worktree
 git worktree remove <path>
 
-# Force remove a worktree (even with uncommitted changes)
-git worktree remove --force <path>
-
-# Clean up stale worktree references
+# Clean up stale references
 git worktree prune
 
 # Get repository root
 git rev-parse --show-toplevel
 
-# Get default branch
+# Get default remote branch
 git symbolic-ref refs/remotes/origin/HEAD
+
+# Check if a path is gitignored
+git check-ignore -v <path>
 ```
