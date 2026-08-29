@@ -1,6 +1,7 @@
 # OS / editor
 .DS_Store
 Thumbs.db
+desktop.ini
 *.swp
 *~
 .idea/
@@ -8,11 +9,21 @@ Thumbs.db
 *.sublime-*
 
 # Claude Code local state
+CLAUDE.local.md
 .claude/settings.local.json
 .claude/plans/
 .claude/tasks/
 .claude/logs/
+.claude/worktrees/
+.worktrees/
+.mcp.json
+
+# Secrets / local env
+.env
+.env.local
+.env.*.local
 
 # Local-only docs/work
 docs/superpowers/
 docs/private/
+Notes/
