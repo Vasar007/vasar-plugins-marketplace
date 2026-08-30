@@ -18,6 +18,7 @@ context:
 | --- | --- | --- | --- |
 | 1 | Requirements analysis | `{ARTIFACTS_DIR}/{task-id}/requirements.md` | — |
 | 2 | Spec & test plan | `{ARTIFACTS_DIR}/{task-id}/spec.md`, `{ARTIFACTS_DIR}/{task-id}/test-plan.md` | — |
+| 2b | Plan artifact (HTML) | `{ARTIFACTS_DIR}/{task-id}/{task-id}-implementation-plan.html` | — |
 | — | **Human Approve** | — | ✓ |
 | 3 | Implementation | code changes | — |
 | — | **Build Gate** | — | — |
@@ -43,8 +44,9 @@ context:
   behavior; `per-step` commits incrementally as each stage's changes go
   green. See **Commit Cadence** below.
 
-Stage names: `requirements`, `spec`, `implementation`, `test-coverage`,
-`simplifier`, `docs`, `review`, `security-review`, `finalization`
+Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
+`test-coverage`, `simplifier`, `docs`, `review`, `security-review`,
+`finalization`
 
 Valid model values: `opus`, `sonnet`, `haiku`, `fable`. A user-typed
 `--model-override=<stage>:fable` is self-authorizing — the user's explicit
@@ -71,17 +73,21 @@ Stages 5 (Code Simplifier) and 7 (Code Review) delegate to subagents provided
 by external plugins. The pipeline will fail at those stages if the plugins are
 not installed in the consuming environment.
 
-| Stage | Required subagent | Provided by plugin |
+| Stage | Required dependency | Provided by plugin |
 | --- | --- | --- |
-| 5 — Code Simplifier | `code-simplifier:code-simplifier` | `code-simplifier` |
-| 7 — Code Review | `feature-dev:code-reviewer` | `feature-dev` |
+| 5 — Code Simplifier | `code-simplifier:code-simplifier` (subagent) | `code-simplifier` |
+| 7 — Code Review | `feature-dev:code-reviewer` (subagent) | `feature-dev` |
+| 2b — Plan Artifact | `dev-essentials:create-html-artifact` (skill) | `dev-essentials` (same plugin — always present) |
 
-Stages 1, 2, 3, 4, 6, 8, 9 use the built-in `general-purpose` agent and have
-no external dependencies.
+Stages 1, 2, 2b, 3, 4, 6, 8, 9 use the built-in `general-purpose` agent and
+have no external dependencies. Stage 2b's dependency is bundled in this same
+plugin, so it can never be "not installed" — the "will fail if the plugin is
+not installed" caveat below applies only to Stages 5 and 7.
 
-Install both plugins before running the pipeline. If either is missing,
-either install it or override the stage with `--skip=simplifier` /
-`--skip=review` (at the cost of that stage's output).
+Install both external plugins (`code-simplifier`, `feature-dev`) before
+running the pipeline. If either is missing, either install it or override
+the stage with `--skip=simplifier` / `--skip=review` (at the cost of that
+stage's output).
 
 ## Commit Cadence
 
@@ -92,7 +98,8 @@ Human Approve #2 auto-fix rounds, which re-invoke this same stage),
 `{COMMIT_MODE}` and (b) receives the injected `<commit-conventions>` block
 defined below. Both facts are stated here once for all five stages and are
 deliberately NOT restated at the individual stage-launch sections under
-**Orchestration**. No other stage commits.
+**Orchestration**. No other stage commits — Stage 2b (Plan Artifact) is
+explicitly read-only with respect to git (see `stages/plan-artifact.md` Rules).
 
 ### Finalization-commit mode (default)
 
@@ -377,6 +384,7 @@ placeholder:
 | --- | --- | --- |
 | `requirements` | `opus` | Deep codebase exploration and analysis |
 | `spec` | `opus` | Architectural thinking, spec design — critical for quality |
+| `plan-artifact` | `sonnet` | Deterministic HTML rendering — capable and cost-efficient |
 | `implementation` | `opus` | Code writing in large codebases — quality on first pass reduces costly retry loops |
 | `test-coverage` | `sonnet` | Test writing — capable and cost-efficient |
 | `simplifier` | `sonnet` | Mechanical simplification, well-defined task |
@@ -541,12 +549,37 @@ Model: `opus` (override key: `spec`)
 Launch subagent with prompt from `stages/spec.md`.
 On completion: update checkpoint.
 
+### Step 2b: Plan Artifact (HTML)
+
+Model: `sonnet` (override key: `plan-artifact`)
+Agent type: `general-purpose`
+
+Launch subagent with prompt from `stages/plan-artifact.md`.
+
+**Failure mode is non-blocking.** If the subagent fails to produce the
+artifact: retry once. If it still fails, log a warning and proceed to Human
+Approve #1 without the artifact — a broken renderer must never block the
+pipeline from reaching the human gate.
+
+**Failure detection test:** failure = the subagent's final output has no
+`ARTIFACT: <path>` line (see `stages/plan-artifact.md`'s final-line
+contract), or the named file does not exist on disk.
+
+On completion (success, retry-success, or give-up): update checkpoint —
+`plan-artifact` is added to `completed` on all three outcomes, so a resume
+does not re-attempt a known-broken render — and record `planArtifact` (see
+**Checkpoint Protocol** → **Schema** below).
+
 ### Human Approve #1 (after Spec)
 
 Present to user:
 
 - Summary of `{ARTIFACTS_DIR}/{task-id}/spec.md`
 - Summary of `{ARTIFACTS_DIR}/{task-id}/test-plan.md`
+- Path to the HTML implementation-plan artifact
+  (`{ARTIFACTS_DIR}/{task-id}/{task-id}-implementation-plan.html`) for the
+  user to open in a browser — or, if rendering failed or was skipped, a note
+  saying so
 - Ask: "Approve spec and proceed to implementation? (yes / edit feedback)"
 
 > **Anti-bypass clause — this gate stands on its own.** A general
@@ -784,8 +817,9 @@ After the finalization result is confirmed:
    PR) and worktree removal (never auto-eligible with no PR — see step 4).
 
 2. **Archive task logs is GATED — do NOT archive by default right after the
-   PR opens.** The task artifacts (`spec.md`, `review.md`, `pipeline-state.json`,
-   ...) are still live working documents while the PR is under review —
+   PR opens.** The task artifacts (`spec.md`, `review.md`, the HTML
+   implementation-plan artifact, `pipeline-state.json`, ...) are still live
+   working documents while the PR is under review —
    archiving mid-review is premature, and the worktree copy is the one that
    matters during review iterations. This is the same underlying principle
    as the keep-the-worktree-until-merged rule below: don't finalize
@@ -881,6 +915,7 @@ execution.
   "pr": null,
   "models": {},
   "stageStartSha": {},
+  "planArtifact": null,
   "commitMode": "finalization",
   "failed": null,
   "startedAt": "2026-03-01T11:00:00Z",
@@ -906,6 +941,12 @@ commit-capable stage (`"<stage>": "<sha>"`) as that stage launches — the
 Recording** above). It grows incrementally the same way `models` does, and
 it is the sole input to the resume-interruption STOP check in **Rules**
 below.
+
+The `planArtifact` field is `null` until Stage 2b runs. It is then populated
+with `{ "path": "<repo-relative path>", "status": "rendered" | "failed" |
+"skipped" }` — `"rendered"` when the HTML artifact was written successfully
+(after 0 or 1 retries), `"failed"` when both attempts failed, and
+`"skipped"` when the stage itself was skipped (e.g. `--skip=plan-artifact`).
 
 The `commitMode` field is `"finalization"` by default and set to `"per-step"`
 when `--commit-mode=per-step` is resolved in Step 0. It is persisted on every
@@ -1032,6 +1073,8 @@ worktree without conflicts.
 - `stageStartSha` is written immediately before launching any commit-capable
   stage, per **Stage-Start SHA Recording** above; it is the sole input to
   the resume-interruption STOP check earlier in this list
+- If `spec` is re-run, also remove `plan-artifact` from `completed` so the
+  HTML plan artifact re-renders from the updated spec
 
 ---
 
@@ -1045,6 +1088,7 @@ All inter-agent communication happens through files in `{ARTIFACTS_DIR}/{task-id
 | `{ARTIFACTS_DIR}/{task-id}/requirements.md` | Requirements agent | Spec agent |
 | `{ARTIFACTS_DIR}/{task-id}/spec.md` | Spec agent | Implementation agent, Human |
 | `{ARTIFACTS_DIR}/{task-id}/test-plan.md` | Spec agent | Test Coverage agent |
+| `{ARTIFACTS_DIR}/{task-id}/{task-id}-implementation-plan.html` | Plan Artifact agent | Human |
 | `{ARTIFACTS_DIR}/{task-id}/review.md` | Review agent | Human, Finalization agent |
 | `{ARTIFACTS_DIR}/{task-id}/review-feedback.md` | Master agent (re-entry) | Implementation agent |
 | `{ARTIFACTS_DIR}/{task-id}/security-review.md` | Security Review agent | Human |
@@ -1063,16 +1107,17 @@ downstream agents consume malformed input.
 - Parse as JSON; if invalid, stop immediately
 - Verify required keys exist: `taskId`, `worktree`, `noWorktree`, `stage`,
   `completed`, `taskComments`, `buildGate`, `pr`, `models`, `stageStartSha`,
-  `commitMode`, `failed`, `startedAt`, `updatedAt`
+  `planArtifact`, `commitMode`, `failed`, `startedAt`, `updatedAt`
 - **Backwards compatibility:** Any of `pr`, `models`, `stageStartSha`,
-  `commitMode` missing from an old state file defaults to its documented
-  zero-value on READ, and is persisted on the next WRITE:
+  `planArtifact`, `commitMode` missing from an old state file defaults to
+  its documented zero-value on READ, and is persisted on the next WRITE:
 
   | Field | Zero-value default |
   | --- | --- |
   | `pr` | `null` |
   | `models` | `{}` |
   | `stageStartSha` | `{}` |
+  | `planArtifact` | `null` |
   | `commitMode` | `"finalization"` |
 
   Each key is still required on every WRITE — this fallback applies to READs
@@ -1139,6 +1184,7 @@ Detailed subagent prompts live in the `stages/` directory:
 
 - [requirements.md](./stages/requirements.md) — Requirements analysis
 - [spec.md](./stages/spec.md) — Spec & test plan creation
+- [plan-artifact.md](./stages/plan-artifact.md) — HTML implementation-plan artifact
 - [implementation.md](./stages/implementation.md) — Feature implementation
 - [test-coverage.md](./stages/test-coverage.md) — Test coverage check
 - [simplifier.md](./stages/simplifier.md) — Code simplification
