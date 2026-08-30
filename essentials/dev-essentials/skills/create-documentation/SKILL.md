@@ -58,6 +58,67 @@ Key rules:
 - File ends with single newline
 - Use `<https://url>` or `[text](url)` for links (no bare URLs)
 
+## Content Conventions
+
+### Rule 1: Describe current state, not a changelog
+
+**Why**: Docs, specs, and code comments are read by someone who has never
+seen prior revisions. Change narration ("corrected", "previously",
+"WITHDRAWN", "round 2", "OPEN QUESTION -> CLOSED") is noise to that reader
+and rots the moment the revision history is forgotten -- it belongs in the
+commit message or PR, not in the artifact itself.
+
+**How to apply**:
+
+- Every revision of a doc, plan, spec, or code comment must read as the
+  single current state of the thing it describes.
+- Strip meta-commentary about what changed: "corrected", "WITHDRAWN",
+  "previously/formerly", "round N", "misremembered", "OPEN QUESTION ->
+  CLOSED" postmortems. Delete resolved open questions rather than annotating
+  them as resolved.
+- Code comments describe the code **as it is now** -- never "was X, now Y",
+  and never an inline incident/change history; that belongs in the commit
+  message or PR.
+- Keep comments short and non-redundant: don't restate what the code already
+  says; put the high-level "what/why" of a type or method in its XML doc
+  summary, not scattered inline.
+- Factual provenance is fine to keep -- code/PR/commit references and
+  file:line anchors are references, not a changelog entry.
+
+**Anti-patterns**:
+
+- "This section previously said X; it now says Y" left in a spec revision.
+- "CONFIRMED (owner ...)" / "WITHDRAWN" markers left in the final doc text.
+- A code comment reading `// was synchronous before v3, now async`.
+- Annotating a question as "OPEN QUESTION -> CLOSED" instead of stating the
+  answer directly and deleting the question.
+
+### Rule 2: Treat docs as living, update them in the same change
+
+**Why**: A doc that is only updated in a later "docs cleanup" pass drifts
+from the code it describes, and gotchas discovered mid-task get lost if they
+are not captured immediately.
+
+**How to apply**:
+
+- When you change behavior that a doc describes (schedules, cleanup targets,
+  category mappings, stages, regions, naming, architecture, workflow),
+  update that doc in the **same** change -- never as a separate follow-up
+  task.
+- When you hit a new gotcha while working, append it to the relevant doc as
+  you go, not in a later batch cleanup.
+- Treat every maintained doc as a living starting point, not a write-once
+  artifact.
+
+**Anti-patterns**:
+
+- Shipping a behavior change and filing "update docs" as a separate backlog
+  item.
+- Discovering a gotcha, fixing the underlying issue, and not writing it down
+  anywhere.
+- Letting deeper `docs/` files (architecture, dev workflow, SDK patterns)
+  drift from the code because only the top-level doc got touched.
+
 ## Document Templates by Type
 
 ### Configuration Documentation

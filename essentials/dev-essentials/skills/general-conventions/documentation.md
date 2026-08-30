@@ -14,6 +14,39 @@ When creating or editing `.md` files, follow the `write-markdown` skill for full
 - **No bare URLs** — use `<https://url>` or `[text](url)`.
 - **Consistent list markers** — use `-` (not `*`), 2-space indent for nesting.
 
+## Frontmatter Scalar Quoting
+
+A frontmatter value (`description:`, `argument-hint:`, etc.) that starts with a YAML
+flow-indicator character (`[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@`, backtick) or
+contains an unquoted `: ` (colon-space) sequence can break YAML parsing — and the
+failure is silent: the parser drops the entire frontmatter block instead of raising a
+visible error, so the command/skill loads with no `description` or `argument-hint` at
+all. Always wrap such a value in double quotes.
+
+**Before** (breaks — `argument-hint` starts with `[`, a flow-sequence indicator):
+
+```yaml
+---
+argument-hint: [<folder> ...] [exclude=<substring>[,<substring>...]]
+---
+```
+
+**After** (quoted — parses correctly):
+
+```yaml
+---
+argument-hint: "[<folder> ...] [exclude=<substring>[,<substring>...]]"
+---
+```
+
+The same applies to an unquoted colon inside a plain scalar, e.g.
+`description: Safe by default: skips inactive items.` — the second `:` is read as a new
+key, not text. Quote the value, or reword to avoid the mid-sentence colon.
+
+Validate with `claude plugin validate` after touching any frontmatter — it is silent
+when frontmatter parses and loads correctly, so a passing run is the confirmation this
+class of break did not slip through.
+
 ## File Naming
 
 Project documentation naming convention (when a project uses one): `{ProjectName} - {Topic}.md` (title case, spaces in topic).

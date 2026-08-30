@@ -156,3 +156,36 @@ The three-dot form (`origin/<base>...HEAD`) diffs from the merge base, showing o
 2. Run `git diff origin/<base>...HEAD --stat` to see the actual ahead-set.
 3. If anything in the diff looks unrelated to the task, suspect a stale base — confirm with the user before publishing.
 4. Hand the diff (or its summary) to the PR/review subagent. Do not paste raw `git log` output that may include rewritten commits.
+
+## Rule 4 — Stage explicit paths only, never `git add -A` or `git add .`
+
+Always stage files by explicit path:
+
+```bash
+git add <path1> <path2> ...
+```
+
+Never `git add -A` or `git add .`. A blanket add silently sweeps in anything sitting in the working tree — stray local edits, formatter/build byproducts, or files a previous step forgot to roll back — into the same commit as the intended change.
+
+### Never auto-stage shared build-configuration files
+
+Never stage these unless the task's change genuinely modifies them:
+
+- `Directory.Build.props`
+- `Directory.Packages.props`
+- `global.json`
+
+A local build or format pass can regenerate or reformat these shared files as a side effect (whitespace normalization, package-version drift, SDK-pin churn) even though the task never touched them. Because they sit at a solution/repo root, `-A`/`.` picks them up without any visible diff review, and the result is an unrelated shared-build-config change riding along inside an otherwise-scoped PR — easy to ship, hard to spot in review, and risky because these files affect every project in the solution.
+
+### How to apply
+
+1. Before staging, run `git status --short` and review every entry.
+2. Stage only the files that are an intended consequence of the current task: `git add -- <path1> <path2>`.
+3. If `Directory.Build.props`, `Directory.Packages.props`, or `global.json` shows as modified and the task did not intend to change it, roll it back first (`git checkout -- <path>`) rather than staging it.
+4. If one of those files' change IS an intended part of the task, staging it is fine — the rule is about accidental inclusion via a blanket add, not a blanket ban on ever touching these files.
+
+### Anti-patterns
+
+- `git add -A` / `git add .` "to save time" before a commit — stages everything in the working tree regardless of relevance.
+- Staging `Directory.Build.props` / `Directory.Packages.props` / `global.json` because they showed up as modified after a build, without checking whether the task actually changed them.
+- Assuming a clean build means the staged set is correct — a build can dirty shared config files without any build error to flag it.
