@@ -22,7 +22,7 @@ The reviewer requires a change. The PR will not be approved without it.
 
 - Small: implement edit → verify build/tests → commit (eager, no approval needed — Phase 4) → reply immediately, referencing the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` Push is a separate, later, per-cycle step gated by explicit approval (see Phase 4) — unless `auto-push`/`autonomous` is set. Pass `no-commit` to stage only instead.
 - Medium / Large: prepare the diff in chat, explain the approach, wait for the human's explicit go-ahead — or, if `deep-fix=<threadId>` names this thread, route it through `/research-implement-review-report` instead (SKILL.md's `deep-fix` override). Do not edit files.
-- After implementation, the thread is never resolved automatically — GitHub MCP has no resolve tool. Once the commit's push actually lands, the skill reports the thread as ready to resolve (Phase 4); the reviewer resolves it via the GitHub UI.
+- After implementation, the thread stays open until its commit's push actually lands. Once it does, the skill resolves the thread itself via `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`) (Phase 4) — no manual GitHub UI step needed for a fix this skill made.
 
 Example (small):
 
