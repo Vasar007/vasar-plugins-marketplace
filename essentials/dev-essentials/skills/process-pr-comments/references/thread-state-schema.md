@@ -49,6 +49,84 @@ Fields:
 | `cycleNumber`      | yes      | Starts at 1, increments each cycle.                                                                                                                                                                                                                     |
 | `timestamp`        | yes      | ISO 8601 UTC when the action completed.                                                                                                                                                                                                                 |
 
+## Committed-fix detection — re-derived every cycle, not persisted
+
+There is no persisted "pending resolution" entry for a committed-but-unpushed fix.
+SKILL.md Phase 2 step 5 re-derives that fact fresh every cycle, straight from
+GitHub's own thread/reply history and real git ancestry
+(`git merge-base --is-ancestor`), so there is nothing to keep in sync and
+nothing that can survive in a corrupted or half-written state.
+
+This file documents ONLY the reply-text matching conventions Phase 2 step 5 uses to
+recognize an affirmative commit claim. For the actual branch/decision logic — what happens
+for each `assessedState` (`fresh-unhandled` / `cured` / `unconfirmed-commit-claim` /
+`already-assessed`), the newer-reply guard, and the `autonomous`/`dry-run`/`no-reply`
+gating — see **SKILL.md Phase 2 step 5**; it is not re-derived here.
+
+**Affirmative commit claim — what counts.** A tightened match, not a loose prefix match:
+any `**[AI]**` (or legacy plain `[AI]`) reply carrying the phrase "Committed as `<sha>`"
+or "commit `<sha>`" adjacent to the fix summary. An intervening `**[[T#<id>](<url>)]**`
+tag between the `**[AI]**` marker and the body is expected and irrelevant to the match.
+
+- Positive match: `**[AI]** Fixed: renamed TenantID → TenantId. Committed as a1b2c3d;
+  will be included in the next push.`
+- Negative match (do NOT treat as committed — nothing was committed, so there is no SHA
+  to check): `**[AI]** Fixed: <summary>. Diff staged locally, awaiting your commit.` —
+  the `no-commit` reply template.
+
+A commit SHA is extracted from the matched reply text when the phrasing resolves to one
+cleanly (e.g. "Committed as `<sha>`", "commit `<sha>`" — no exact template match required).
+
+**`openFindingsMarker` — a second, independent marker-phrase match, checked on the same reply.**
+A `deep-fix` run that ends `stop-max-rounds` (SKILL.md Phase 4's "Deep-fix dispatch — brief and
+outcomes") still posts an affirmative commit claim — the fix IS committed — but must NOT be
+treated as `cured` by a later cycle's catch-up branch, because open review findings remain. Rather
+than inventing a new `assessedState`, that reply's closing sentence STARTS WITH the marker phrase
+`Open findings remain; leaving this thread open`. Match on that phrase as a PREFIX / substring,
+punctuation-agnostically: no trailing period is required, and whatever follows it — the
+`stop-max-rounds` template's `: <1-2 line list>.`, or a bare `.` — does not affect the match. This
+is the same "no exact template match required" stance the commit-claim match above already takes.
+Run it independently of that commit-claim match, to set the per-thread `openFindingsMarker` flag
+to `true`. A reply with an affirmative commit claim but WITHOUT that phrase has
+`openFindingsMarker: false` (the default) — this is the normal `deep-fix` `stop-clean` case and
+every non-`deep-fix` `**[AI]**` reply.
+
+This mirrors how `processedCommentIds` above relies on GitHub thread/reply state, not file
+persistence, to survive across sessions — the difference is that `processedCommentIds`
+dedups already-handled *comments*, while this re-derivation answers a different question
+("does this thread already have a committed fix that hasn't been reported ready to resolve
+yet") straight from GitHub's thread history plus real git ancestry, every cycle, with no
+entry of its own to define or maintain.
+
+## Ancestry check — shared git mechanic
+
+Two points in this skill need to confirm whether a commit SHA has landed on some target
+ref, and both do it the same way. This section is the canonical description; each call
+site (SKILL.md Phase 2 step 5, and Phase 4's "Report resolve-readiness" step) references
+it instead of restating the commands.
+
+**Shape:**
+
+1. If the target ref is a remote-tracking ref that might be stale, refresh it first:
+   `git fetch origin <branch>` — `<branch>` is the bare branch name, never `refs/heads/...`.
+2. `git merge-base --is-ancestor <sha> <target-ref>` — exit `0` means `<sha>`'s changes are
+   already present on `<target-ref>`; exit `1` means not yet. A SHA that doesn't resolve to a
+   known commit in this checkout at all is a distinct failure mode from "not yet an
+   ancestor" — a caller reporting the outcome must not conflate the two.
+
+**The two call sites** share this shape but differ in `<target-ref>`, in whether a fresh
+`git fetch` is needed, and in what each does with the result:
+
+| Call site | `<target-ref>` | Fetch first? | SHA checked | On success | On failure / inconclusive |
+| --- | --- | --- | --- | --- | --- |
+| SKILL.md Phase 2 step 5 (start of every cycle) | `origin/<headRefName>` | Yes — `git fetch origin <headRefName>` before checking | SHA extracted from the thread's existing affirmative commit-claim reply (`claimedSha`) | `assessedState: cured` — report the thread ready to resolve (no MCP mutation exists — see Phase 4) — UNLESS the thread's `openFindingsMarker` is `true`, in which case report `T#<id> cured (open findings) — left open` instead | `assessedState: unconfirmed-commit-claim` — surface to the human and wait; no `autonomous` bypass |
+| SKILL.md Phase 4 "Report resolve-readiness" (post-push confirmation) | `<pushed-tip>` — the just-pushed commit/branch state THIS cycle's own push produced, NOT the remote-tracking ref | No — the push that just happened is the freshest possible state | The SHA of the commit made this cycle for that thread (or, for a thread carried over from Phase 2 step 5's `unconfirmed-commit-claim` outcome, the `claimedSha` flagged earlier this cycle) | Report the thread ready to resolve | Report the thread as still open; do not guess |
+
+`claimedSha` / `shaResolvesLocally` / `isAncestorOfRemote` are how Phase 2 step 5's result
+travels forward to Phase 4 within the same cycle, so the "Report resolve-readiness" step
+doesn't need to re-derive them from scratch for a carried-over thread — it re-runs the check
+itself against the new target ref rather than trusting the cached values.
+
 ## PR metadata (resolved once, reused every cycle)
 
 Cached from Phase 1 bootstrap:
@@ -100,6 +178,9 @@ Next cycle in <interval> (via /loop).
 | `stalemate — escalation suggested` | >3 back-and-forth replies detected.                      |
 | `skipped — cannot read file`       | File missing or moved.                                   |
 | `error — <short reason>`           | Transient failure; will retry next cycle.                |
+| `deep-fix (<N> rounds, clean)`     | `deep-fix` thread; review loop ended `stop-clean`.        |
+| `deep-fix — open findings`         | `deep-fix` thread; review loop ended `stop-max-rounds`; thread left open (`openFindingsMarker: true`). |
+| `deep-fix — blocked`               | `deep-fix` thread; review loop ended `stop-blocked` (build red); this cycle's push is cancelled. |
 
 ### `<reply status>` values
 
@@ -108,6 +189,8 @@ Next cycle in <interval> (via /loop).
 - `no reply (dry-run)` / `no reply (no-reply)` — per parameter flag.
 - `no reply (awaiting approval)` — action not taken because it requires human approval.
 - `reply failed — <short reason>` — MCP error; will retry next cycle.
+- `ready to resolve (this cycle's push landed it)` — the fix is committed, replied to, AND pushed; the human resolves via the GitHub UI (no MCP resolve tool exists — see SKILL.md Phase 4).
+- `reply posted, pending push` — reply is live, but not yet reported ready to resolve because the commit hasn't been pushed this cycle.
 
 ## Examples
 
@@ -123,6 +206,25 @@ Skipped (already processed this session): 5
 Skipped (no tag match for tags=ToFix,AutoReview): 0
 Next cycle in 15m (via /loop).
 ```
+
+### Carried-over thread, ready to resolve
+
+```text
+Cycle 3 @ 15:42 — PR #4421 (5 threads checked, 2 new comments)
+  T#9  [ToFix]  Retry.cs:17          → fixed (cycle 1), commit 9f3a1c2       | ready to resolve (this cycle's push landed it)
+  T#12 [ToFix]  Auth.cs:42           → fixed (2 LoC), commit a1b2c3d        | reply posted, pending push
+
+1 commit ready, not yet pushed — push when ready.
+```
+
+`T#9`'s fix was committed and replied to back in cycle 1, but that cycle ended before its
+push happened. At the start of cycle 2, Phase 2 step 5 re-read the existing
+`**[AI]** Fixed: ... Committed as 9f3a1c2` reply, found it was not yet an ancestor of
+`origin/<headRefName>`, and flagged it `unconfirmed-commit-claim`. Cycle 2's push happened
+to include `9f3a1c2`, so once that push landed, Phase 4's "Report resolve-readiness" step
+re-ran the ancestry check against `<pushed-tip>` and reported `T#9` ready to resolve — one
+cycle after the commit was made, not in the same cycle. This row (shown at cycle 3) is a
+one-time close-out notice; `T#9` will not appear again once the human resolves the thread.
 
 ### Dry-run cycle
 
