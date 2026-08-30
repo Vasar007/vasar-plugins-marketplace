@@ -32,60 +32,73 @@ operational risk, but the service remains functional.
 
 Quality issue. Examples: a pattern violation that is consistent throughout the codebase but wrong
 (e.g. manual string formatting where a helper exists), a minor coverage gap on a non-critical path,
-a cleanup opportunity that improves readability without changing behaviour. Skip by default.
+a cleanup opportunity that improves readability without changing behaviour. Not auto-deferred by
+label — judged on its merits in Phase 4. A Medium that reintroduces a variant of the bug being
+fixed, or that leaves the fix's own regression uncovered, still gets fixed.
 
 ### Low
 
 Nice-to-have. Examples: a minor refactoring that shortens a method, renaming a variable to better
-reflect its purpose, extracting a repeated literal into a constant. No operational impact. Skip by
-default.
+reflect its purpose, extracting a repeated literal into a constant. No operational impact. Usually
+deferred by Phase 4's merit judgment — but not auto-deferred by label.
 
 ### Nit
 
 Style only. Examples: wrong indentation, a trailing space, a comment that duplicates the code,
-inconsistent capitalisation in a log message. Zero semantic impact. Skip by default.
+inconsistent capitalisation in a log message. Zero semantic impact. Usually deferred by Phase 4's
+merit judgment — but not auto-deferred by label.
 
 ---
 
 ## Default `--skip` value and token rules
 
-**Default:** `--skip medium,low,nit`
+**Default:** `--skip none` — nothing is deferred by severity label. Every finding reaches Phase 4's
+merit-based triage instead (see `SKILL.md` Phase 4).
 
 Each token in `--skip` is independent. `--skip medium,low` defers Medium and Low but Nit is still
 eligible for fixing. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`. Token
-`none` is a special value meaning "skip nothing — fix every severity".
+`none` is a special value meaning "skip nothing by label — triage every severity", and is the
+default.
 
 ---
 
 ## Action mapping
 
-| Severity | Default action | Rationale |
+| Severity | Action | Rationale |
 |----------|---------------|-----------|
 | Blocker  | **Fix now**   | Never merge with one unresolved. |
 | Critical | **Fix now**   | Significant impact; fix is clear. |
 | High     | **Fix now**   | Real operational risk; addressable in a normal fix pass. |
-| Medium   | **Deferred (default)** | Quality issue; does not block shipping. |
-| Low      | **Deferred (default)** | Nice-to-have; no operational impact. |
-| Nit      | **Deferred (default)** | Style only; zero semantic impact. |
+| Medium   | **Triage on merit** — deferred only when `--skip` names it, or when Phase 4's judgment defers it | Quality issue; does not block shipping, but can still be the finding that matters. |
+| Low      | **Triage on merit** — deferred only when `--skip` names it, or when Phase 4's judgment defers it | Nice-to-have; usually no operational impact. |
+| Nit      | **Triage on merit** — deferred only when `--skip` names it, or when Phase 4's judgment defers it | Style only; usually zero semantic impact. |
+
+---
+
+## The `blocking` flag — severity-independent
+
+Severity orders the triage table and the deferred list. It does **not** decide what blocks the
+run's exit verdict. Phase 4 records `blocking: true|false` on every finding from its own merit
+judgment, and `SKILL.md` Phase 8's `stop-clean` reads that flag:
+
+- `blocking: true` — must be resolved before merge. Any Blocker/Critical/High by default, **plus**
+  any Medium/Low/Nit that Phase 4 elevated (it reintroduces a variant of the bug being fixed, it
+  leaves the fix's own regression uncovered, or the reviewer's own Conclusion put it under
+  "Must fix before merge").
+- `blocking: false` — recorded and moved on from. Includes a Blocker/Critical/High that the user
+  and the session explicitly agreed to defer; the deferral is still reported.
+
+An unresolved `blocking: true` finding forces `stop-max-rounds`, at any severity label. A
+Blocker/Critical/High is additionally checked on its label, so an unflagged one can never clear
+`stop-clean` by accident.
 
 ---
 
 ## Triage-presentation format (Phase 4)
 
-Print this block after collecting all reviewer output, before any fix is applied. Wait for user
-acknowledgment unless `--auto-proceed` is set.
-
-```text
-Round <N> findings:
-  Blocker:  <X>  (will fix)
-  Critical: <X>  (will fix)
-  High:     <X>  (will fix)
-  Medium:   <X>  (deferred — --skip medium)
-  Low:      <X>  (deferred — --skip low)
-  Nit:      <X>  (deferred — --skip nit)
-
-Proceeding to verify+fix <F> issues. Deferring <D>.
-```
+Print the `Round <N> findings` block from `SKILL.md` Phase 4 after collecting all reviewer output,
+before any fix is applied — that template is canonical, including its per-severity `(<Y> blocking)`
+sub-counts. Wait for user acknowledgment unless `--auto-proceed` is set.
 
 Rows whose severity is in `--skip` show "(deferred — --skip `<token>`)". Rows whose severity is
 not in `--skip` show "(will fix)". When `--skip none`, every row shows "(will fix)" and no deferred
@@ -97,10 +110,10 @@ annotation appears.
 
 | `--skip` value | Severities fixed now | Severities deferred |
 |----------------|---------------------|---------------------|
-| `none` | Blocker, Critical, High, Medium, Low, Nit | _(none)_ |
+| `none` _(default)_ | Blocker, Critical, High, Medium, Low, Nit | _(none)_ |
 | `nit` | Blocker, Critical, High, Medium, Low | Nit |
 | `low,nit` | Blocker, Critical, High, Medium | Low, Nit |
-| `medium,low,nit` _(default)_ | Blocker, Critical, High | Medium, Low, Nit |
+| `medium,low,nit` | Blocker, Critical, High | Medium, Low, Nit |
 | `critical,high,medium,low,nit` | Blocker only | Critical, High, Medium, Low, Nit |
 | `blocker` | Critical, High, Medium, Low, Nit | Blocker (deferred to a follow-up cycle; use only when shipping known-broken code intentionally) |
 
