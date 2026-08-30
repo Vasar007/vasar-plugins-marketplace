@@ -1,7 +1,7 @@
 ---
 name: feature-pipeline
 description: Use when the user asks to implement a tracked task, run the feature pipeline, develop a feature end-to-end, start the task pipeline for TASK-123, run feature-pipeline, or implement TASK-123. Orchestrates a full implementation-first development pipeline for a task provider in an isolated git worktree.
-argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>]
+argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>]
 disable-model-invocation: true
 ---
 # Feature Pipeline
@@ -38,11 +38,19 @@ context:
 - `--model-override=<stage>:<model>` — Override the model for a specific stage
   (comma-separated for multiple, e.g.
   `--model-override=review:sonnet,spec:sonnet`)
+- `--commit-mode=<per-step|finalization>` — Commit cadence for the run.
+  `finalization` (default) keeps the current single-commit-at-Stage-9
+  behavior; `per-step` commits incrementally as each stage's changes go
+  green. See **Commit Cadence** below.
 
 Stage names: `requirements`, `spec`, `implementation`, `test-coverage`,
 `simplifier`, `docs`, `review`, `security-review`, `finalization`
 
-Valid model values: `opus`, `sonnet`, `haiku`
+Valid model values: `opus`, `sonnet`, `haiku`, `fable`. A user-typed
+`--model-override=<stage>:fable` is self-authorizing — the user's explicit
+choice outranks the matrix. The master agent picking Fable on its **own**
+initiative still requires asking the user first, every time. Both per the
+"Model selection" section of `dev-essentials:subagent-orchestration`.
 
 ## Pipeline Discipline
 
@@ -74,6 +82,95 @@ no external dependencies.
 Install both plugins before running the pipeline. If either is missing,
 either install it or override the stage with `--skip=simplifier` /
 `--skip=review` (at the cost of that stage's output).
+
+## Commit Cadence
+
+Five stages can create a commit: **Implementation** (Stage 3 — including the
+Human Approve #2 auto-fix rounds, which re-invoke this same stage),
+**Test Coverage** (4), **Code Simplifier** (5), **Docs** (6), and
+**Finalization** (9). Every one of them (a) follows the resolved
+`{COMMIT_MODE}` and (b) receives the injected `<commit-conventions>` block
+defined below. Both facts are stated here once for all five stages and are
+deliberately NOT restated at the individual stage-launch sections under
+**Orchestration**. No other stage commits.
+
+### Finalization-commit mode (default)
+
+Current behavior, unchanged: every stage stages its own changes only
+(`git add <explicit paths>`, never `-A`/`.`) and never commits. Stage 9
+(Finalization) creates the single commit for the whole run, then pushes and
+opens the PR.
+
+### Per-step commit mode (`--commit-mode=per-step`)
+
+The master agent MUST state the override explicitly in each stage subagent
+prompt via `{COMMIT_MODE}` — do not assume a subagent infers it.
+
+- **Stage 3 (Implementation)** — one commit per `spec.md` §4 execution-order
+  step, once that step's build and tests are green (explicit
+  `git add <path>`, never `-A`/`.`). Fix-iteration rounds within the same
+  step each get their own commit once green.
+- **Stage 4 (Test Coverage)** — one commit for the added/updated test files.
+- **Stage 5 (Code Simplifier)** — one commit per file simplified, or one
+  total commit if a single simplification spans multiple files.
+- **Stage 6 (Docs)** — one commit for the doc update.
+- **Human Approve #2 fix rounds** — granularity is authoritatively defined in
+  `stages/implementation.md` Phase 4 (one commit per fixed finding); this
+  file does not restate it.
+- **Stage 9 (Finalization)** — pushes and opens the PR; it must NOT need to
+  create a commit. If `git status` shows uncommitted or unstaged source
+  changes at the start of Stage 9, STOP and report — do not commit them
+  there.
+
+Both modes: never push between commits — push only at Stage 9. Never commit
+anything under `{ARTIFACTS_DIR}/`.
+
+### Commit-Conventions Injection Block
+
+This is the single source of the commit-message rules for the whole pipeline.
+The master agent injects it as the `<commit-conventions>` context block into
+each of the five commit-capable stage prompts listed at the top of this
+section. Copy the fenced block below **verbatim** — do not paraphrase,
+summarize, reorder, or trim its bullets. Exactly two things change on the way
+in: the `{CADENCE_LINE}` token is replaced per the table below, and
+`{ARTIFACTS_DIR}` is substituted like any other placeholder.
+
+`{CADENCE_LINE}` — use exactly one, per the resolved `{COMMIT_MODE}`:
+
+| `{COMMIT_MODE}` | Line to substitute for `{CADENCE_LINE}` |
+| --- | --- |
+| `finalization` | Commit cadence for this run: **finalization**. Only the Finalization stage creates a commit — one commit for the whole run. Every earlier stage stages its own changes with an explicit `git add <path>` (never `-A` or `.`) and does NOT commit. |
+| `per-step` | Commit cadence for this run: **per-step**. Each stage commits its own changes as they go green, staging with an explicit `git add <path>` (never `-A` or `.`). The Finalization stage creates no commit — it expects a clean tree. Your stage's commit granularity is defined in your own stage instructions. |
+
+Block body — inject verbatim:
+
+```md
+{CADENCE_LINE}
+
+Commit-message rules — these apply to EVERY commit you create in this run.
+Follow them exactly; do not invent your own format.
+
+- **Subject** — ≤70 chars, describing WHAT changed, not HOW. Match the repo's
+  existing commit-subject convention: infer it by running `git log --oneline`
+  against the base branch named in the Project Context above.
+- **Body** — optional; 1-2 lines on WHY, in production-engineering terms. If
+  the repo's history shows no multi-line commit bodies, omit the body.
+- **No pipeline-internal references** anywhere in the message: no
+  `{ARTIFACTS_DIR}/...` paths, no artifact section anchors (e.g. `spec.md §4`),
+  no review-finding IDs, no pipeline stage names. Per
+  `dev-essentials:engineering-discipline` Rule 3, the message must read
+  as production engineering history that still resolves six months from now.
+- **Trailer** — end the message with the standard Claude `Co-Authored-By`
+  trailer. Do NOT hardcode a model name or version — use the exact trailer
+  string the harness gives you for the model actually making this commit.
+- **NEVER `--no-verify`.** If a hook fails, fix the underlying issue.
+- **NEVER amend.** If anything needs correcting after a commit exists, create
+  a NEW commit.
+- **Do not push from your stage** — pushing happens only in the Finalization
+  stage (if you *are* Finalization, follow your own stage instructions for
+  when to push).
+- **Never commit anything under `{ARTIFACTS_DIR}/`.**
+```
 
 ## Project Context Loading
 
@@ -165,7 +262,7 @@ If the MCP server cannot satisfy the required capabilities, stop immediately.
 
 ## Shared Placeholder Vocabulary
 
-The master agent substitutes only 3 structural placeholders into stage prompts
+The master agent substitutes only 4 structural placeholders into stage prompts
 after context injection:
 
 - `{TASK_ID}` — used in file paths across all stage prompts
@@ -173,14 +270,23 @@ after context injection:
   current working directory when `--no-worktree` is used)
 - `{ARTIFACTS_DIR}` — repo-relative directory for pipeline artifacts (e.g.
   `tasks`, `Notes/Tasks`)
+- `{COMMIT_MODE}` — the resolved commit cadence for this run, literally
+  `per-step` or `finalization` (see **Commit Cadence** above)
 
-All other task-specific data is provided via two injected context files (see
+`{CADENCE_LINE}` also appears in the Commit-Conventions Injection Block; it is
+resolved by table lookup, not substitution, and never reaches a stage prompt.
+
+All other task-specific data is provided via the injected context blocks (see
 **Context Injection** below), not as inline placeholders.
 
 ### Context Injection
 
-Before performing placeholder substitution, the master agent prepends two
-context blocks to every stage prompt:
+Before performing placeholder substitution, the master agent prepends these
+context blocks to every stage prompt. `<project-context>` and `<task-context>`
+go to every stage; `<commit-conventions>` goes only to the five commit-capable
+stages listed at the top of **Commit Cadence** (`implementation`,
+`test-coverage`, `simplifier`, `docs`, `finalization`) and is omitted for all
+others:
 
 ```md
 <project-context>
@@ -191,7 +297,13 @@ context blocks to every stage prompt:
 {contents of {ARTIFACTS_DIR}/<task-id>/task-context.md}
 </task-context>
 
-{original stage prompt with {TASK_ID}, {WORKTREE_PATH}, and {ARTIFACTS_DIR} substituted}
+<commit-conventions>
+{verbatim block from **Commit Cadence** → **Commit-Conventions Injection
+Block**, with its cadence line selected for the resolved {COMMIT_MODE} —
+commit-capable stages only}
+</commit-conventions>
+
+{original stage prompt with {TASK_ID}, {WORKTREE_PATH}, {ARTIFACTS_DIR}, and {COMMIT_MODE} substituted}
 ```
 
 #### Task Context File
@@ -229,6 +341,25 @@ should be populated by scanning the worktree for files mentioning the task ID.
 This file is added to the State-Sharing Protocol table — written by the master
 agent, read by all stage agents.
 
+#### Commit Conventions Block
+
+Unlike the other two blocks, `<commit-conventions>` is **not** backed by a file
+under `{ARTIFACTS_DIR}/` — its content is a fixed section of this SKILL file
+(**Commit Cadence** → **Commit-Conventions Injection Block**), which the master
+agent already has in context. It therefore gets no row in the State-Sharing
+Protocol table.
+
+- Populated: once, after `{COMMIT_MODE}` is resolved in Step 0 (Setup) and
+  before the first stage launch. Its content is identical for every stage that
+  receives it in a given run.
+- Recipients: the five commit-capable stages named at the top of
+  **Commit Cadence**. Stages that cannot commit do not receive it.
+- Copied verbatim; the only permitted transformations are the cadence-line
+  selection and the normal `{ARTIFACTS_DIR}` substitution. A composed prompt
+  whose block differs from the source in any other way is a defect — the whole
+  point of the block is that stage subagents never see SKILL.md, so a
+  paraphrase here silently becomes the rule.
+
 #### Review Feedback File
 
 Review feedback for implementation re-entry is stored as a file, not a
@@ -263,6 +394,28 @@ Before each stage launch, resolve the effective model:
    override value
 3. Pass the resolved model to the `Agent` tool call via the `model` parameter
 
+Once a stage's effective model is resolved, persist it to
+`pipeline-state.json` under a `models` object (`{"<stage>": "<model>"}`) so a
+later resume honours the same choice. On resume, resolve with this
+precedence (highest first):
+
+1. A `--model-override` entry for this stage passed on *this* invocation —
+   it also overwrites the persisted entry for that stage
+2. An entry already recorded for this stage in `models` (from a prior run)
+3. The default from the table above
+
+### Stage-Start SHA Recording
+
+Immediately before launching any of the five commit-capable stages
+(`implementation`, `test-coverage`, `simplifier`, `docs`, `finalization`),
+record `git rev-parse HEAD` into `pipeline-state.json` under a
+`stageStartSha` object (`{"<stage>": "<sha>"}`) — the same incremental-write
+shape as `models` above: it starts as `{}` and gains one entry per stage as
+that stage launches. This captures the branch tip at the moment the stage
+began, so a later resume can tell whether HEAD moved while that stage was
+still incomplete. See **Checkpoint Protocol** → **Rules** for how this is
+used to guard against silently restarting a partially-executed stage.
+
 ## Orchestration
 
 ### Step 0: Setup
@@ -270,7 +423,7 @@ Before each stage launch, resolve the effective model:
 1. Parse `$ARGUMENTS`:
   - Extract task ID (`$ARGUMENTS[0]`)
   - Parse flags: `--dry-run`, `--no-worktree`, `--start-from`, `--skip`,
-     `--model-override`
+     `--model-override`, `--commit-mode`
 2. Resolve the project context using the layered strategy from
    **Project Context Loading** above (explicit file → CLAUDE.md derivation →
    user questions). Validate that all required fields are present.
@@ -331,19 +484,48 @@ Before each stage launch, resolve the effective model:
 10. Write `{ARTIFACTS_DIR}/<task-id>/task-context.md` with all task metadata,
     branch name, and doc candidates (see **Context Injection** in Shared
     Placeholder Vocabulary above)
-11. Prepare context injection: take the resolved project context and
-    `{ARTIFACTS_DIR}/<task-id>/task-context.md`, wrap each in its XML tags
-    (`<project-context>` and `<task-context>`), and prepend both to every
-    stage prompt before placeholder substitution
-12. After `{TASK_ID}`, `{WORKTREE_PATH}`, and `{ARTIFACTS_DIR}` substitution,
-    validate that no placeholder remains as a literal string in the composed
-    prompt. If any is found, stop immediately and report which placeholder was
-    missed and in which stage prompt
-13. Read or initialize `{ARTIFACTS_DIR}/<task-id>/pipeline-state.json` inside
-    the worktree (see **Checkpoint Protocol** below)
-14. If `--dry-run`: announce the plan, provider details, branch name, worktree
-    path, and the two planned task-comment checkpoints, then exit without
-    running any stage
+11. Read or initialize `{ARTIFACTS_DIR}/<task-id>/pipeline-state.json` inside
+    the worktree (see **Checkpoint Protocol** below). On an existing state
+    file (a resume), immediately after loading it, run the
+    resume-interruption STOP check from **Checkpoint Protocol** → **Rules**
+    — this is its firing point, and it runs before sub-step 12 below applies
+    any `{COMMIT_MODE}` overwrite. Under `--dry-run`, report the finding
+    instead of stopping (see that section for the full rule).
+12. Resolve `{COMMIT_MODE}`: if `--commit-mode` was passed on this
+    invocation, use it; otherwise use the value already recorded in
+    `pipeline-state.json`'s `commitMode` field from a prior run; otherwise
+    default to `finalization`. Same precedence and conflict handling as
+    `--model-override` (see **Model Resolution**): a `--commit-mode` passed
+    on a resume — even when a commit-capable stage already ran under the
+    previously-persisted mode — also overwrites the persisted `commitMode`
+    value, and the resume logs the change. **Exception:** if the newly
+    resolved value is `finalization`, the persisted value was `per-step`,
+    and at least one commit-capable stage is already `completed`, do NOT
+    log-and-allow this overwrite — STOP instead, per the
+    `per-step → finalization` STOP rule in **Checkpoint Protocol** →
+    **Rules**. Under `--dry-run`, report the finding instead of stopping
+    (see that section for the full rule). After evaluating this Exception
+    (and finding it does not apply), record the resolved value in
+    `commitMode` so a later resume uses it unless `--commit-mode` is passed
+    again on that invocation.
+13. Prepare context injection: take the resolved project context,
+    `{ARTIFACTS_DIR}/<task-id>/task-context.md`, and — for the five
+    commit-capable stages only — the **Commit-Conventions Injection Block**
+    from **Commit Cadence** with its cadence line selected for the resolved
+    `{COMMIT_MODE}`. Wrap each in its XML tags (`<project-context>`,
+    `<task-context>`, `<commit-conventions>`) and prepend them to each stage
+    prompt before placeholder substitution (see **Context Injection** under
+    **Shared Placeholder Vocabulary**).
+14. After `{TASK_ID}`, `{WORKTREE_PATH}`, `{ARTIFACTS_DIR}`, and
+    `{COMMIT_MODE}` substitution, validate that no placeholder remains as a
+    literal string in the composed prompt. If any is found, stop immediately
+    and report which placeholder was missed and in which stage prompt.
+    `{CADENCE_LINE}` is resolved by table lookup rather than by placeholder
+    substitution, so it must also be gone from the composed prompt — if it
+    survives, the cadence line was never selected.
+15. If `--dry-run`: announce the plan, provider details, branch name,
+    worktree path, the resolved `{COMMIT_MODE}`, and the two planned
+    task-comment checkpoints, then exit without running any stage
 
 ### Step 1: Requirements Analysis
 
@@ -366,6 +548,33 @@ Present to user:
 - Summary of `{ARTIFACTS_DIR}/{task-id}/spec.md`
 - Summary of `{ARTIFACTS_DIR}/{task-id}/test-plan.md`
 - Ask: "Approve spec and proceed to implementation? (yes / edit feedback)"
+
+> **Anti-bypass clause — this gate stands on its own.** A general
+> session-level directive telling the agent to work without stopping for
+> clarifying questions, or to "make the reasonable call and continue," does
+> **NOT** authorize skipping this gate. Those directives resolve ambiguity
+> (what would otherwise be a clarifying question); this gate is a consent
+> checkpoint that exists specifically to capture explicit user approval —
+> skipping it is not "the reasonable call," it is exactly the call the gate
+> exists to prevent.
+>
+> **Counts as explicit gate-skip authorization** (only these, or clear
+> equivalents, waive the gate — and only if typed by the user in this
+> session): "approve all gates", "auto-approve the pipeline", "skip Human
+> Approve #1/#2", "I trust you, run end-to-end".
+>
+> **Does NOT count** — the gate stays armed: "no clarifying questions", "make
+> the reasonable call", a bare "continue"/"ok" carried over from unrelated
+> context, or any synthesized/inferred authorization the agent talks itself
+> into.
+>
+> **Worked cautionary example:** in a past run, a general "work without
+> stopping for clarifying questions" session instruction was misread as
+> authorization to bypass both approval gates; the pipeline ran straight
+> through implementation and pushed a fix to a shared branch without review.
+> That is the failure mode this clause exists to prevent — default to
+> `AskUserQuestion` (or stop and wait) at every gate, never a paraphrase of
+> "the user said to continue."
 
 If user provides feedback: re-run Spec stage with feedback injected.
 If approved: proceed.
@@ -469,6 +678,12 @@ Present to user:
 - Git diff summary (files changed, lines added/removed)
 - Ask: "Approve for finalization? (yes / request changes)"
 
+> **Anti-bypass clause — same anti-bypass clause as Human Approve #1 above
+> applies here.** See that section for the full phrase lists (what counts as
+> explicit gate-skip authorization, what does not) and the worked cautionary
+> example — this gate carries the identical protection, just not restated in
+> full.
+>
 > **Verify before fixing (Safeguard 2):** when diagnosing review findings — and before re-invoking Implementation to address them — verify each finding against a primary source (official docs, the schema, a known-working example), especially schema/manifest errors and library API claims. Frame uncertain diagnoses as theories ("this might be…"), not confirmed fixes, until verified.
 
 If review has blocking issues AND user approves auto-fix:
@@ -531,21 +746,13 @@ a GitHub PR status lookup is needed.
 
 After the finalization result is confirmed:
 
-1. Archive task logs: copy `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` to
-   `~/.claude/task-logs/{TASK_ID}/`. Create `~/.claude/task-logs/` if it does
-   not exist. If the target directory already exists, overwrite its contents.
-2. **If \****`--no-worktree`**\*\*:** skip worktree removal (there is no worktree to
-   remove). Announce completion with the branch name and archived logs path.
-3. **Otherwise — worktree removal is GATED. Do NOT remove by default.**
-   The worktree must remain on disk until the PR is merged. PR review feedback,
-   automated review follow-ups, and build/test reproduction all require the
-   branch working tree. Removing it early strands work with no build capability.
+1. **Determine PR review/merge status** (shared by both the archive step and
+   the worktree-removal step below, so the GitHub PR lookup only happens
+   once).
 
    **No-PR branch** — if `pipeline-state.json` has `"pr": null` (branch-only
-   flow or PR creation was skipped), keep the worktree on disk unless the user
-   explicitly asks to remove it (delegate to
-   `dev-essentials:git-worktree-management`'s user-directed override path).
-   Do NOT auto-remove a no-PR worktree.
+   flow or PR creation was skipped), skip the PR lookup entirely — there is
+   no PR to wait on.
 
    **PR branch** — re-fetch the PR status from GitHub using the `pr` fields
    recorded in `pipeline-state.json` (see `dev-essentials:github-mcp-conventions`
@@ -562,29 +769,88 @@ After the finalization result is confirmed:
    **If the GitHub MCP call fails** (MCP not loaded, network error,
    authentication timeout): STOP and ask the user — "GitHub PR lookup failed;
    should I proceed with cleanup based on the cached state, or wait?" Do NOT
-   silently skip the check and proceed to worktree removal.
+   silently skip the check and proceed to archiving or worktree removal.
 
-   Remove the worktree only if **either** condition is met:
-   - The PR `state` is `closed` and `merged` is `true`.
-   - The user explicitly asks to remove the worktree.
+   **PR-branch eligibility test (shared by step 2 and step 4 below, when a
+   PR exists):** an action (archiving in step 2, worktree removal in step 4)
+   is eligible to run if **either** (a) the PR `state` is `closed` and
+   `merged` is `true`, **or** (b) the user explicitly asks for that specific
+   action now (e.g., "archive the task logs now", "go ahead and archive",
+   "archive it anyway" for step 2; "remove the worktree" for step 4 — or an
+   equivalent explicit instruction). Each step below just says
+   "PR-branch-eligible" and substitutes its own action. This test does not
+   cover the no-PR case — each step states its own no-PR handling separately,
+   because that handling differs between archiving (auto-eligible with no
+   PR) and worktree removal (never auto-eligible with no PR — see step 4).
+
+2. **Archive task logs is GATED — do NOT archive by default right after the
+   PR opens.** The task artifacts (`spec.md`, `review.md`, `pipeline-state.json`,
+   ...) are still live working documents while the PR is under review —
+   archiving mid-review is premature, and the worktree copy is the one that
+   matters during review iterations. This is the same underlying principle
+   as the keep-the-worktree-until-merged rule below: don't finalize
+   artifacts for work that isn't actually done yet.
+
+   Archive `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` to
+   `~/.claude/task-logs/{TASK_ID}/` (create `~/.claude/task-logs/` if it does
+   not exist; if the target directory already exists, overwrite its
+   contents) only if there was no PR to begin with, or the PR-branch
+   eligibility test above is met for archiving.
+
+   Otherwise: leave the artifacts in place under
+   `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` and skip archiving — report
+   that archiving is deferred pending PR review.
+
+3. **If \****`--no-worktree`**\*\*:** skip worktree removal (there is no worktree to
+   remove). Announce completion with the branch name and, per step 2, either
+   the archived logs path or a note that archiving is deferred pending PR
+   review.
+4. **Otherwise — worktree removal is GATED. Do NOT remove by default.**
+   The worktree must remain on disk until the PR is merged. PR review feedback,
+   automated review follow-ups, and build/test reproduction all require the
+   branch working tree. Removing it early strands work with no build capability.
+
+   **No-PR branch** — keep the worktree on disk unless the user explicitly
+   asks to remove it (delegate to `dev-essentials:git-worktree-management`'s
+   user-directed override path). Do NOT auto-remove a no-PR worktree.
+
+   **PR branch** — reuse the PR status determined in step 1 (no second
+   GitHub lookup needed).
+
+   Remove the worktree only if the PR-branch eligibility test from step 1 is
+   met for worktree removal (e.g., "clean up the worktree", "remove the
+   worktree", "you can drop the worktree now" satisfies its user-explicit-ask
+   condition).
+
+   **Worktree removal always runs the step 2 archive first if it hasn't
+   already run**, regardless of which condition (PR-completed or explicit
+   user ask) triggered the removal — removal deletes
+   `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` along with the worktree, so
+   anything worth keeping must land in `~/.claude/task-logs/{TASK_ID}/`
+   first, mirroring `dev-essentials:git-worktree-management` Workflow C's
+   "archive anything worth keeping before removal" precedent.
 
    > **Bulk-cleanup requests are out of scope for this skill.** If the user
    > asks to remove worktrees broadly, delegate immediately to
    > `dev-essentials:git-worktree-management` **Workflow D** and stop the
    > pipeline. Do not enumerate or touch any other worktrees.
 
-   If neither condition is met: leave the worktree on disk and skip removal.
+   If the eligibility test above is not met: leave the worktree on disk and
+   skip removal.
 
    When removal is allowed: run `git worktree remove .claude/worktrees/<branch-name>`,
    then verify with `git worktree list`. If removal fails with "Permission denied"
-   (file locks), report it to the user — **never force-remove**.
+   (file locks), work through `dev-essentials:git-worktree-management` Workflow
+   C's ordered diagnosis (shell CWD parked in the worktree, then Windows long
+   paths, then leaf-first walkup) before reporting to the user. **Never
+   force-remove.**
 
    See `dev-essentials:git-worktree-management` (Lifecycle Rule section)
    for the canonical keep-until-merged rule.
 
-4. Announce completion: print the final branch or PR outcome, state whether the
-   worktree was removed or intentionally kept (and why), and note the archived
-   logs path.
+5. Announce completion: print the final branch or PR outcome, state whether the
+   worktree was removed or intentionally kept (and why), and state whether task
+   logs were archived or left in place pending PR review.
 
 ---
 
@@ -613,11 +879,40 @@ execution.
     "attempts": 0
   },
   "pr": null,
+  "models": {},
+  "stageStartSha": {},
+  "commitMode": "finalization",
   "failed": null,
   "startedAt": "2026-03-01T11:00:00Z",
   "updatedAt": "2026-03-01T11:30:00Z"
 }
 ```
+
+The `pr` field is `null` until Stage 9 completes. When a PR is created, it is
+populated with `{ "number": <int>, "url": "<string>", "owner": "<string>",
+"repo": "<string>" }`. When Stage 9 runs a branch-only flow (no PR created),
+`pr` remains `null`. Stage 10 uses this field to decide whether a GitHub PR
+status re-fetch is needed before the archive and worktree-removal gates.
+
+The `models` field starts as `{}` and gains one entry per stage
+(`"<stage>": "<model>"`) as each stage's effective model is resolved (see
+**Model Resolution** above). It grows incrementally as stages launch, and a
+resumed run reads it back to keep using the same models unless a fresh
+`--model-override` overwrites a specific entry.
+
+The `stageStartSha` field starts as `{}` and gains one entry per
+commit-capable stage (`"<stage>": "<sha>"`) as that stage launches — the
+`git rev-parse HEAD` recorded at that moment (see **Stage-Start SHA
+Recording** above). It grows incrementally the same way `models` does, and
+it is the sole input to the resume-interruption STOP check in **Rules**
+below.
+
+The `commitMode` field is `"finalization"` by default and set to `"per-step"`
+when `--commit-mode=per-step` is resolved in Step 0. It is persisted on every
+checkpoint write so a resumed run honours the original choice unless
+`--commit-mode` is passed again on that invocation, or unless the
+`per-step → finalization` STOP rule (**Checkpoint Protocol** → **Rules**)
+applies (see **Commit Cadence**).
 
 All state files for a task are stored under `{ARTIFACTS_DIR}/{task-id}/`
 (e.g. `{ARTIFACTS_DIR}/task-123/`). This allows multiple tasks to coexist in the same
@@ -629,6 +924,91 @@ worktree without conflicts.
 - Update `taskComments` after every successful provider comment post
 - On startup: if `pipeline-state.json` exists, resume from first non-completed
   stage
+- **On startup, before resuming any commit-capable stage, verify it wasn't
+  left partially executed.** Checkpoints are stage-granular only —
+  `completed` tracks whole-stage names, with no sub-stage/step-level
+  progress. This check is mode-agnostic — it does not key on `{COMMIT_MODE}`
+  at all, so it catches both a `per-step` stage interrupted after making
+  some of its own commits AND a `finalization`-mode Stage 9 interrupted
+  after other stages' commits already landed (HEAD moved either way): for
+  every commit-capable stage (`implementation`, `test-coverage`,
+  `simplifier`, `docs`, `finalization`) that is NOT in `completed`, compare
+  `git rev-parse HEAD` against that stage's recorded `stageStartSha` entry.
+  If they differ, STOP and report — do not silently restart that stage from
+  scratch, which would risk duplicate or conflicting commits for units
+  already committed, or a Stage 9 that wrongly assumes a clean tree.
+  - **Ordering:** this check runs immediately on loading `pipeline-state.json`
+    (Step 0, sub-step 11) and BEFORE `{COMMIT_MODE}` resolution (Step 0,
+    sub-step 12) applies its "log and allow" overwrite. It depends only on
+    `stageStartSha` and `completed`, never on `{COMMIT_MODE}`, so a resume
+    cannot escape it by also passing a new `--commit-mode` value.
+  - **`--dry-run` interaction:** report the finding as part of the announced
+    plan but do NOT stop execution — a dry run never touches the branch, so
+    there is nothing to protect.
+  - **Sanctioned way past this STOP:** there are two real cases, and only
+    one of them is resolved by `--start-from` alone.
+    (a) **Discard the extra commits:** reset HEAD back to the stage's
+    recorded `stageStartSha`, then resume with `--start-from=<stage>` naming
+    the interrupted stage (or a later one) — this is exactly what that
+    flag's checkpoint-resume-point override is for, and HEAD now matches the
+    recorded SHA so the check passes cleanly.
+    (b) **Keep the extra commits:** `--start-from` alone does NOT touch
+    `stageStartSha` or `completed`, so the STOP will fire again on the very
+    next invocation unless the user also manually updates that state first —
+    either add the interrupted stage name to `completed` in
+    `pipeline-state.json`, or bring that stage's `stageStartSha` current to
+    the new HEAD — before resuming with `--start-from=<stage>`.
+    Do not resume past this STOP any other way.
+- **On startup, when `{COMMIT_MODE}` resolution (Step 0, sub-step 12) is
+  about to flip the persisted mode from `per-step` to `finalization`, guard
+  the one gap the `stageStartSha` check above cannot see.** That check
+  compares `git rev-parse HEAD` against a stage's recorded `stageStartSha`,
+  but finalization-mode stages only stage changes and never commit
+  per-stage — HEAD never moves during them — so there is nothing to compare
+  when the incoming mode is `finalization`. Left unguarded, a resume that
+  flips `per-step → finalization` would keep the earlier `per-step` commits
+  already on the branch and let the new finalization run add one more
+  tail-end commit, breaking the "one commit for the whole run" promise
+  **Commit Cadence** makes for finalization mode. If the resolved
+  `{COMMIT_MODE}` is `finalization`, the persisted `commitMode` (before this
+  resume's overwrite) was `per-step`, AND at least one commit-capable stage
+  is already in `completed` (i.e., it may already have committed under the
+  old `per-step` mode), STOP and report before overwriting `commitMode` —
+  do not silently accept the new mode. The reverse transition
+  (`finalization → per-step`) needs no separate guard here in the common
+  case: when no commit-capable stage runs between the resume point and
+  Stage 9, it is already caught by Stage 9's own STOP under **Commit
+  Cadence** on any uncommitted/unstaged change found at the start of
+  Stage 9. (Residual, lower-severity gap: if a commit-capable stage does
+  run in between, its bare `git commit` sweeps up the earlier
+  finalization-mode staged changes, leaving the tree clean by the time
+  Stage 9 runs — Stage 9's check does not catch that case. No separate
+  guard is added for it here.) Every other resume case —
+  `per-step → per-step`, `finalization → finalization`,
+  `finalization → per-step`, or `per-step → finalization` with no prior
+  commit-capable stage completions yet — keeps the existing log-and-allow
+  behavior in sub-step 12 unchanged.
+  - **Ordering:** this check is evaluated after sub-step 12 reads the
+    persisted `commitMode` value but strictly BEFORE sub-step 12 writes the
+    newly resolved value back to `pipeline-state.json`. Nothing is written
+    to `pipeline-state.json` when this STOP fires.
+  - **`--dry-run` interaction:** report the finding as part of the
+    announced plan but do NOT stop execution, same as the `stageStartSha`
+    check above.
+  - **Sanctioned way past this STOP:** there are two real routes.
+    (a) Resume with `--commit-mode=per-step` to keep the original cadence
+    and let the run continue committing per step — this requires no
+    `pipeline-state.json` mutation.
+    (b) Reset the branch to before the `per-step` commits and start a
+    fresh `finalization`-mode run — this must be paired with removing the
+    affected commit-capable stages from `completed` (and their
+    `stageStartSha` entries) in `pipeline-state.json`, or simply deleting
+    `pipeline-state.json` entirely for a genuinely fresh run. Resetting the
+    branch without also clearing this state leaves `completed` and
+    `commitMode` pointing at the discarded commits, so the STOP fires again
+    on the next invocation, and if bypassed anyway, the pipeline would skip
+    re-running the reset stages and produce an empty finalization commit.
+    Do not resume past this STOP any other way.
 - `--start-from=<stage>` overrides the checkpoint resume point
 - `--skip=<stage>` removes a stage from the execution plan entirely
 - Before launching any stage, verify that all input files it requires exist
@@ -646,6 +1026,12 @@ worktree without conflicts.
   missing, post Task Comment #1 before continuing
 - If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, post
   Task Comment #2 before continuing
+- `models` is written on every stage launch, per the precedence order in
+  **Model Resolution** above; a resume that re-passes a conflicting
+  `--model-override` also logs the change
+- `stageStartSha` is written immediately before launching any commit-capable
+  stage, per **Stage-Start SHA Recording** above; it is the sole input to
+  the resume-interruption STOP check earlier in this list
 
 ---
 
@@ -676,12 +1062,22 @@ downstream agents consume malformed input.
 
 - Parse as JSON; if invalid, stop immediately
 - Verify required keys exist: `taskId`, `worktree`, `noWorktree`, `stage`,
-  `completed`, `taskComments`, `buildGate`, `pr`, `failed`, `startedAt`, `updatedAt`
-- **Backwards compatibility:** when loading state files written before this skill version (no `pr`
-  key), default to `pr: null`. Stage 9 will populate it on the next PR creation; Stage 10 treats
-  `null` as the no-PR branch. On the next checkpoint write, persist `"pr": null` so subsequent
-  runs see the updated schema. The `pr` key is still required on every WRITE — this fallback
-  applies to READs only.
+  `completed`, `taskComments`, `buildGate`, `pr`, `models`, `stageStartSha`,
+  `commitMode`, `failed`, `startedAt`, `updatedAt`
+- **Backwards compatibility:** Any of `pr`, `models`, `stageStartSha`,
+  `commitMode` missing from an old state file defaults to its documented
+  zero-value on READ, and is persisted on the next WRITE:
+
+  | Field | Zero-value default |
+  | --- | --- |
+  | `pr` | `null` |
+  | `models` | `{}` |
+  | `stageStartSha` | `{}` |
+  | `commitMode` | `"finalization"` |
+
+  Each key is still required on every WRITE — this fallback applies to READs
+  only. Stage 9 populates `pr` on the next PR creation; Stage 10 treats `null`
+  as the no-PR branch.
 - Verify `completed` is an array of known stage names
 - Verify `stage` is a known stage name or null
 

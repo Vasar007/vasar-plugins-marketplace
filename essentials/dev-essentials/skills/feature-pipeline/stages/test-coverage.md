@@ -126,13 +126,21 @@ For each gap identified in Phase 1 and Phase 2:
 2. If a coverage command is available in the Project Context, run it again to
    confirm the gaps were filled.
 
-3. Stage any new or modified test files:
+3. Stage or commit any new or modified test files, depending on
+   `{COMMIT_MODE}`:
 
-   ```bash
-   git add <specific-test-files>
-   ```
+   - **`finalization` mode (default)**: stage only (do NOT commit):
 
-   Never stage implementation files — you must not have modified any.
+     ```bash
+     git add <specific-test-files>
+     ```
+
+   - **`per-step` mode**: commit them as one commit for the test files
+     (explicit `git add <path>`, never `-A`/`.`). Commit-message formatting
+     is provided via the injected `<commit-conventions>` block above —
+     follow it exactly; do not invent your own format.
+
+   Never stage or commit implementation files — you must not have modified any.
 
 ### Verification Gate (before claiming completion)
 

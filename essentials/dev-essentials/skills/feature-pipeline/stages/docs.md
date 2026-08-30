@@ -111,13 +111,23 @@ code.
 If any doc references a function, API, or workflow that was renamed or had its
 signature changed, update the reference.
 
-### Phase 5: Stage Changes
+### Phase 5: Stage or Commit Changes
 
-```text
-git add <specific-doc-files>
-```
+Depending on `{COMMIT_MODE}`:
 
-Only stage documentation files. Never stage implementation or test files.
+- **`finalization` mode (default)**: stage only (do NOT commit):
+
+  ```text
+  git add <specific-doc-files>
+  ```
+
+- **`per-step` mode**: commit one commit for the doc update (explicit
+  `git add <path>`, never `-A`/`.`). Commit-message formatting is provided
+  via the injected `<commit-conventions>` block above — follow it exactly;
+  do not invent your own format.
+
+Only stage or commit documentation files. Never stage or commit
+implementation or test files.
 
 ## Rules
 
@@ -137,3 +147,5 @@ Your work is done when:
 2. Relevant architecture, testing, and task docs are updated
 3. No stale references to renamed or changed APIs remain in the updated docs
 4. Only documentation files were modified
+5. Changes are staged (not committed) in `finalization` mode, or committed as
+   one commit in `per-step` mode — see `{COMMIT_MODE}`
