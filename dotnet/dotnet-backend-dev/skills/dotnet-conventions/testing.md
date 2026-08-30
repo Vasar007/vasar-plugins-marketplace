@@ -136,7 +136,7 @@ Use `{Service}InMemoryDbOptions` for in-memory EF tests instead of mocking `DbCo
 ## Code Style in Tests
 
 - Use **System type names**: `String`, `Int32`, `Boolean` (not `string`, `int`, `bool`).
-- Use `var` for delegate variables: `var act = () => _sut.DoSomething();`
+- Use `var` for delegate variables: `var act = () => service.DoSomething();`
 - Reuse expected variables — compare `actual.Should().Be(expected)`, not repeated literals.
 - Use `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` for null/empty/whitespace validation.
 - Use `[NonParallelizable]` only when test requires exclusive DB or external resource access.

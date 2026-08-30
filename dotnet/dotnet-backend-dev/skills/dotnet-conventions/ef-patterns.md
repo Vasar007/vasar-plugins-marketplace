@@ -76,3 +76,21 @@ Located in `Infrastructure/External/ApiClients/{Service}/{Feature}/`.
 ## Multiple DB Providers
 
 EF Core runs against Cosmos DB (production), SQLite, or in-memory (tests). Provider selected via configuration/build constants. Migrations must handle all providers or specify `TargetProvider`.
+
+## Cosmos-Specific Gotcha: Multi-Column `ORDER BY` Needs a Composite Index
+
+**Scoped to EF Core's Cosmos DB provider specifically** — not a universal EF Core rule.
+
+`.OrderBy(x).ThenBy(y)` translates to a multi-column `ORDER BY c["x"], c["y"]`. Against
+the real Cosmos DB provider, this fails (or behaves incorrectly) unless the container's
+indexing policy defines a matching composite index; a single-column `OrderBy` is fine
+(the default range index covers it).
+
+This is **invisible when testing against the InMemory or SQLite providers** — they sort
+client-side and never exercise Cosmos's indexing-policy requirement. The failure only
+surfaces against the real Cosmos emulator or a live account.
+
+Practical implication: any repository that supports multi-column ordering needs its
+composite-index requirements documented and tested against the Cosmos emulator
+specifically — a green run on the fast in-memory/SQLite test double is not sufficient
+proof the query works.

@@ -44,11 +44,15 @@ public sealed class StubExternalSecretService : IExternalSecretService
 {
     private readonly Dictionary<ResourceId, Credential> _credentials = new();
 
-    public void AddCredential(ResourceId id, Credential credential) =>
+    public void AddCredential(ResourceId id, Credential credential)
+    {
         _credentials[id] = credential;
+    }
 
-    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct) =>
-        Task.FromResult(_credentials.GetValueOrDefault(id));
+    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct)
+    {
+        return Task.FromResult(_credentials.GetValueOrDefault(id));
+    }
 }
 ```
 

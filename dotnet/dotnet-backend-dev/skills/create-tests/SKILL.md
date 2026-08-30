@@ -40,20 +40,21 @@ tests/ (or src/Tests/)
 
 **CRITICAL — MANDATORY STEP:** Before writing ANY test class, you **MUST read the matching example file** from [examples/](examples/). This is NOT optional — skipping this step leads to incorrect test structure, wrong base class usage, and missing conventions. Read the example FIRST, then write the test.
 
-| What you're testing                    | Read this example first                                                                 |
-|----------------------------------------|-----------------------------------------------------------------------------------------|
-| Domain model with IEquatable           | [domain-model-tests.md](examples/domain-model-tests.md)                                 |
-| Custom exception                       | [exception-tests.md](examples/exception-tests.md)                                       |
-| Primitive wrapper (string/GUID/int ID) | [wrapper-tests.md](examples/wrapper-tests.md)                                           |
-| Repository CRUD                        | [repository-tests.md](examples/repository-tests.md)                                     |
-| Configuration options validation       | [config-options-tests.md](examples/config-options-tests.md)                             |
-| Configuration binding from JSON/env    | [config-binding-tests.md](examples/config-binding-tests.md)                             |
-| DI registration                        | [di-registration-tests.md](examples/di-registration-tests.md)                           |
-| Service with mocked dependencies       | [mock-builders.md](examples/mock-builders.md) + [generators.md](examples/generators.md) |
-| Controller/API endpoint                | [controller-tests.md](examples/controller-tests.md)                                     |
-| Database/product migration             | [migration-tests.md](examples/migration-tests.md)                                       |
-| Constructor null-arg tests             | [constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md)                 |
-| Scenario / end-to-end integration      | [scenario-tests.md](examples/scenario-tests.md)                                         |
+| What you're testing                                          | Read this example first                                                                 |
+|---------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Domain model with IEquatable                                 | [domain-model-tests.md](examples/domain-model-tests.md)                                 |
+| Custom exception                                              | [exception-tests.md](examples/exception-tests.md)                                       |
+| Primitive wrapper (string/GUID/int ID)                        | [wrapper-tests.md](examples/wrapper-tests.md)                                           |
+| Repository CRUD                                               | [repository-tests.md](examples/repository-tests.md)                                     |
+| Configuration options validation                              | [config-options-tests.md](examples/config-options-tests.md)                             |
+| Configuration binding from JSON/env                           | [config-binding-tests.md](examples/config-binding-tests.md)                             |
+| DI registration                                               | [di-registration-tests.md](examples/di-registration-tests.md)                           |
+| Service with mocked dependencies                              | [mock-builders.md](examples/mock-builders.md) + [generators.md](examples/generators.md) |
+| Controller/API endpoint                                       | [controller-tests.md](examples/controller-tests.md)                                     |
+| Database/product migration                                    | [migration-tests.md](examples/migration-tests.md)                                       |
+| Constructor null-arg tests                                    | [constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md)                 |
+| Enforced gates (method null-args, naming, ThrowIfNull, ...)   | [enforced-gates.md](examples/enforced-gates.md)                                         |
+| Scenario / end-to-end integration                             | [scenario-tests.md](examples/scenario-tests.md)                                         |
 
 If no example matches your scenario, **search existing tests** in the repo's test projects (typically under `Sources/Tests/` or `Tests/`) for a similar test class and follow its pattern. Never guess the base class API — always verify first.
 
@@ -63,7 +64,7 @@ If no example matches your scenario, **search existing tests** in the repo's tes
 
 - **Use FluentAssertions** (`Should()`) — prefer over NUnit `Assert.*`. Fall back to `Assert` only when FluentAssertions does not provide an equivalent assertion method.
 - **Use System type names** instead of C# aliases: `String` not `string`, `Int32` not `int`, `Boolean` not `bool`, etc.
-- **Use `var` for delegates** in test cases where you check for `Throw` or `NotThrow` (e.g., `var act = () => _sut.DoSomething();`).
+- **Use `var` for delegates** in test cases where you check for `Throw` or `NotThrow` (e.g., `var act = () => service.DoSomething();`).
 - **Reuse values** — avoid duplication. Compare against the expected variable, not a repeated literal:
 
 ```csharp
@@ -428,7 +429,7 @@ public void Method_ShouldThrow_WhenStringIsInvalid(String? invalidValue)
     // ...
 
     // Act.
-    var act = () => _sut.Method(invalidValue!);
+    var act = () => validator.Method(invalidValue!);
 
     // Assert.
     act.Should().Throw<ArgumentException>();
@@ -457,11 +458,15 @@ public sealed class StubExternalSecretService : IExternalSecretService
 {
     private readonly Dictionary<ResourceId, Credential> _credentials = new();
 
-    public void AddCredential(ResourceId id, Credential credential) =>
+    public void AddCredential(ResourceId id, Credential credential)
+    {
         _credentials[id] = credential;
+    }
 
-    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct) =>
-        Task.FromResult(_credentials.GetValueOrDefault(id));
+    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct)
+    {
+        return Task.FromResult(_credentials.GetValueOrDefault(id));
+    }
 }
 ```
 
@@ -506,6 +511,7 @@ Never stage `Directory.Build.props`, `Directory.Packages.props`, or `global.json
   - `controller-tests.md` - WebApiBaseTest usage
   - `migration-tests.md` - Database/product migration testing with production data
   - `constructor-null-arg-tests.md` - foreach-over-List\<Action\> ctor null-arg pattern
+  - `enforced-gates.md` - Method null-arg coverage, async-wrapping, SUT naming, helper ordering, NSubstitute `Arg.Any<T>()` vs `default`, `ThrowIfNull()`, no expression-bodied methods
   - `scenario-tests.md` - Scenario/integration tests with stubs-only (no mocks)
 
 ## Checklist
