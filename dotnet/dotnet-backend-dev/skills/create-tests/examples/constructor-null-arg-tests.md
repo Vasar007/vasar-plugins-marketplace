@@ -7,17 +7,47 @@ uses exactly **two** tests: one positive, one negative. The negative test iterat
 ## Pattern overview
 
 - **Test 1 (positive):** `Constructor_OnAllArgumentsProvided_CreatesInstance` — calls the SUT
-  factory helper with all valid defaults; asserts `act.Should().NotThrow()`.
+  factory helper with an all-valid `Create{Mock}()` positional argument per dependency; asserts
+  `act.Should().NotThrow()`.
 - **Test 2 (negative):** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` — builds a
-  `List<Action>` where each lambda passes exactly one dependency as `null!`; iterates with
+  `List<Action>` where each lambda calls the SUT factory helper with all-valid positional
+  `Create{Mock}()` arguments EXCEPT exactly one dependency passed as `null!`; iterates with
   `foreach` and asserts `act.Should().Throw<ArgumentNullException>()` per entry.
 - A private helper `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`) lives
   at the file end inside `#region Helper Methods`. Use `private static` when all nested `Create*`
   helpers are static; drop `static` (instance method) when any nested helper needs `Fixture` from
-  `BaseMockTest` — `CreateServiceWithAllArguments` must match its callees' static-ness. Each ctor
-  parameter is nullable with a `?? Create{Mock}()` fallback so the negative test can null out one
-  dep at a time using named arguments.
+  `BaseMockTest` — `CreateServiceWithAllArguments` must match its callees' static-ness. Every ctor
+  parameter is **required and positional — no `= null` default, no `??` fallback of any kind**.
+  This is the ONE helper in the test class that stays required-positional; every other
+  `Create{Mock}` helper takes optional params applied via `.ApplyIf(...)` (see
+  [SKILL.md](../SKILL.md) rule 4).
 - The **boolean-stripes `[TestCase(true,false,...)]` pattern is banned** — see Anti-pattern section.
+
+## Why the helper must be required-positional, not `dep ?? Create{Mock}()`
+
+An earlier, now-removed version of this pattern declared the helper's parameters as nullable
+optionals with an internal fallback:
+
+```csharp
+// ❌ BUGGY — DO NOT COPY. Every negative test built on this shape is a silent no-op.
+private static OrderProcessingService CreateServiceWithAllArguments(
+    ILogger<OrderProcessingService>? logger = null,
+    IOrderRepository? repository = null) =>
+    new(
+        logger ?? CreateLogger(),
+        repository ?? CreateRepository());
+```
+
+`??` returns its right-hand side whenever the left-hand side is `null`. Calling
+`CreateServiceWithAllArguments(logger: null!)` under this shape does **not** pass `null` to the
+constructor — `logger ?? CreateLogger()` evaluates to `CreateLogger()`, a fully valid mock, and
+the constructor never sees `null`. Every `Constructor_ThrowsArgumentNullException_...` test built
+this way passes, but for the wrong reason: the `ArgumentNullException` guard is never exercised at
+all.
+
+**The fix:** make every parameter required and positional. There is no default to fall back to,
+so the only way to satisfy the compiler is to pass either a real, valid mock or `null!` — and
+`null!` now actually reaches the constructor.
 
 ## Canonical example
 
@@ -43,7 +73,9 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
     {
         // Arrange.
         // Act.
-        var act = () => CreateServiceWithAllArguments();
+        var act = () => CreateServiceWithAllArguments(
+            CreateLogger(), CreateRepository(), CreateOrderService(),
+            CreateEventPublisher(), CreateOptionsMonitor());
 
         // Assert.
         act.Should().NotThrow();
@@ -55,11 +87,21 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
         // Arrange.
         var actions = new List<Action>
         {
-            () => CreateServiceWithAllArguments(logger: null!),
-            () => CreateServiceWithAllArguments(repository: null!),
-            () => CreateServiceWithAllArguments(orderService: null!),
-            () => CreateServiceWithAllArguments(eventPublisher: null!),
-            () => CreateServiceWithAllArguments(optionsMonitor: null!),
+            () => CreateServiceWithAllArguments(
+                null!, CreateRepository(), CreateOrderService(),
+                CreateEventPublisher(), CreateOptionsMonitor()),
+            () => CreateServiceWithAllArguments(
+                CreateLogger(), null!, CreateOrderService(),
+                CreateEventPublisher(), CreateOptionsMonitor()),
+            () => CreateServiceWithAllArguments(
+                CreateLogger(), CreateRepository(), null!,
+                CreateEventPublisher(), CreateOptionsMonitor()),
+            () => CreateServiceWithAllArguments(
+                CreateLogger(), CreateRepository(), CreateOrderService(),
+                null!, CreateOptionsMonitor()),
+            () => CreateServiceWithAllArguments(
+                CreateLogger(), CreateRepository(), CreateOrderService(),
+                CreateEventPublisher(), null!),
         };
 
         // Act + Assert.
@@ -74,18 +116,13 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
     #region Helper Methods
 
     private OrderProcessingService CreateServiceWithAllArguments(
-        ILogger<OrderProcessingService>? logger = null,
-        IOrderRepository? repository = null,
-        IOrderService? orderService = null,
-        IEventPublisher? eventPublisher = null,
-        IOptionsMonitor<OrderProcessingOptions>? optionsMonitor = null)
+        ILogger<OrderProcessingService> logger,
+        IOrderRepository repository,
+        IOrderService orderService,
+        IEventPublisher eventPublisher,
+        IOptionsMonitor<OrderProcessingOptions> optionsMonitor)
     {
-        return new(
-            logger ?? CreateLogger(),
-            repository ?? CreateRepository(),
-            orderService ?? CreateOrderService(),
-            eventPublisher ?? CreateEventPublisher(),
-            optionsMonitor ?? CreateOptionsMonitor());
+        return new(logger, repository, orderService, eventPublisher, optionsMonitor);
     }
 
     // static: TestLoggerBuilder.CreateWithoutSetup<T> accepts a fixture parameter that it ignores
@@ -125,13 +162,17 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
 
 ### Key details
 
-- One entry in the `actions` list per constructor parameter — adding a new dependency is one line.
-- Named arguments (`repository: null!`) make the diff grep-friendly: reviewers immediately see
-  which dep is being nulled.
-- The helper uses `?? Create{Mock}()` fallbacks so every call except the one under test gets a valid
-  mock automatically.
+- Every entry in the `actions` list calls the SAME required-positional `Create{Mock}()` helpers,
+  swapping `null!` into exactly one positional slot — adding a new dependency is one line.
+- Because the list is built from lambdas, each `Create{Mock}()` call is deferred until that
+  specific action runs; there is no shared "all valid" instance that a null substitution could
+  hide behind.
 - The `#region Constructor Tests` block sits at the top of the class, before feature-specific
   regions.
+- `CreateServiceWithAllArguments` is the ONE helper in the file that is required-positional. Every
+  other `Create{Mock}` helper here (`CreateRepository`, `CreateOrderService`, …) follows the
+  normal "one helper, optional params, `.ApplyIf(...)`" convention when a test case needs to vary
+  its configuration — see [SKILL.md](../SKILL.md) rule 4.
 
 ## Anti-pattern: boolean stripes
 
