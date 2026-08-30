@@ -73,6 +73,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
    After completing the selected sections (or if stopping), save session context by following the `/save-context` command logic with `--plan "<path>"`.
    - If `--context <path>` was specified, save to that path; otherwise fallback to derived name (e.g., `my-plan.md` -> `Notes/Results/my-plan-research.md`)
    - Include: what was done, decisions made, issues found, what's next.
+   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
 7. **Output results**
 

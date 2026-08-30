@@ -76,6 +76,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
    After completing the selected phases (or if stopping due to a blocker), save session context by following the `/save-context` command logic with `--change "<name>"`.
    - If `--context <path>` was specified, save to that path; otherwise fallback to `Notes/Results/<change-name>-research.md`
    - Include: what was done, decisions made, issues found, what's next.
+   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
 7. **Output results**
 
