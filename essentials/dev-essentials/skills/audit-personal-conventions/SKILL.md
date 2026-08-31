@@ -717,7 +717,7 @@ artifact.
 sha and subject, diff stat, removed section heading(s), pointer(s) added, the Precondition-C coverage
 quotes (one matching line per load-bearing term, always re-derived fresh — never a stale captured
 quote), the Precondition-B "plugin enabled: yes" confirmation, and the planned PR's source/target and
-linked-work-item status — then asking explicitly: "Push this branch and open a PR? (yes / no /
+linked-issue status — then asking explicitly: "Push this branch and open a PR? (yes / no /
 push-only)". `no` = stays local, reported as prepared-but-unpushed. `push-only` = push without opening
 a PR. There is no separate pre-edit confirmation — the edit lands in an isolated worktree, invisible
 until push — so this diff-bearing gate is the one decision point per repo.

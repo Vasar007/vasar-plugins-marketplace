@@ -14,7 +14,7 @@ before a human-approval gate in a plan-then-implement workflow.
 
 1. **Header card** — the task/spec title, the current stage or status
    (e.g. "awaiting approval", "in progress"), and a link back to the
-   task's tracker item (work item, ticket, issue).
+   task's tracker item (issue or ticket).
 2. **Stats grid** — execution-order step count, files touched, AC
    pass/fail counts.
 3. **Summary** — a plain-language description of what's being built,

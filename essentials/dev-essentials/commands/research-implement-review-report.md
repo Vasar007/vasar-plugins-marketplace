@@ -227,7 +227,7 @@ numbered session sequence the user is already keeping):
 - **Key Decisions** — table, with rationale, including every decision Phase 1
   or Phase 3 surfaced for user sign-off.
 - **Issues Found** — anything discovered but out of scope for this run,
-  candidate follow-up work items, and any process problems worth flagging to
+  candidate follow-up issues, and any process problems worth flagging to
   the user.
 - **Key File Paths** — grouped by category (core, tests, config, docs).
 - **What's Next** — remaining work, explicitly including whether the branch

@@ -308,7 +308,7 @@ Show, per repo, before asking:
   rather than from a Precondition-C pass run moments earlier in the same invocation, but the
   requirement to re-derive fresh applies on every run, not only a resumed one.
 - The Precondition-B "plugin enabled: yes" confirmation.
-- The planned PR's source/target branches and linked-work-item status (if any).
+- The planned PR's source/target branches and linked-issue status (if any).
 
 Then ask explicitly:
 
