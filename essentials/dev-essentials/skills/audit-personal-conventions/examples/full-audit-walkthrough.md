@@ -32,11 +32,9 @@ Scope resolved:
 ## Phase 1-2 — Inventory and extraction
 
 39 files read across memory files and indexes, the global CLAUDE.md, 6 project CLAUDE.md files, and 4
-personal global commands. 41 atomic rules extracted. Two landmines from `references/source-inventory.md` triggered
-during this pass: a dated append-block in one memory file (the 2026-03 entry superseded a 2025-11
-entry on the same topic — the later entry was used), and a wrapper command
-(`retry-and-log.md`) whose stated delta against `dev-essentials:retry-policy` required diffing
-against the base skill to resolve correctly.
+personal global commands. 41 atomic rules extracted. One landmine from `references/source-inventory.md`
+triggered during this pass: a dated append-block in one memory file (the 2026-03 entry superseded a
+2025-11 entry on the same topic — the later entry was used).
 
 ---
 

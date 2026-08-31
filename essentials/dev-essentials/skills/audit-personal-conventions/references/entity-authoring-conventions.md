@@ -28,11 +28,20 @@ cleanly. That deletion is
 also the concrete example of a MAJOR-bump-triggering change (see "Version bump" below): removing an
 existing invocation path (`/review-loop`, `/review-pr`) is exactly the MAJOR case.
 
-## Frontmatter — skills take only `name` and `description`
+## Frontmatter — this skill's own template sticks to `name` and `description`
 
-A skill's frontmatter has exactly two fields: `name` and `description`. There is no `tools:`,
-`model:`, or `allowed-tools:` field on a skill — those are agent-only fields, and adding them to a
-skill's frontmatter is a schema error, not a harmless extra.
+Claude Code's skill frontmatter schema supports several optional fields beyond `name` and
+`description` — `allowed-tools`, `model`, `context`, `disable-model-invocation`, `argument-hint`, and
+others (see the current official Claude Code skill-frontmatter documentation for the full list); this
+marketplace's own `dev-essentials:feature-pipeline` skill ships `argument-hint` and
+`disable-model-invocation` today. Do not claim a skill's frontmatter is restricted to two fields, or
+that adding an optional field is a schema error — it is not.
+
+**By convention, the entity this skill authors in Phase 6 sticks to `name` and `description` only**,
+because the rules promoted through this skill are description-triggered procedures, not
+manually-invoked or tool-restricted ones. Add an optional field only when the authored entity
+actually needs that specific behavior (e.g. `disable-model-invocation: true` for a workflow with side
+effects) — not by default.
 
 **`name` must equal the directory name, exactly.** A real mismatch (a skill's frontmatter `name`
 differing from its containing directory name) was found and fixed as a bug during this
@@ -95,9 +104,13 @@ Ship an authored or edited entity as at least two commits:
 2. An **"Apply review findings"** commit, once a review pass has run (Phase 7), whose body cites
    numbered findings `F1`/`F2`/`F3`/... — each finding traced to a `source: <file>:<line>` citation.
 
-This is the same `source:` citation format Phase 2 uses for rule extraction, which is what lets a
-reviewer or a future audit run trace a generalized rule back to the exact file and line it came
-from.
+This is the same `source:` citation format Phase 2 uses for rule extraction — cite it for your own
+review/verification purposes during this session, so the fixer and reviewer can trace a generalized
+rule back to the exact file and line it came from while the run is live. Do not present this as a
+stable, permanent commit-message convention: the cited file commonly lives under the user's own
+personal, non-repo `<claude-root>` config (a memory file, a global CLAUDE.md), which sits outside the
+marketplace repo entirely and is not resolvable by a future reader of just the shipped repo's git
+history.
 
 ## Version bump
 

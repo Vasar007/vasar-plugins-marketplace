@@ -455,8 +455,11 @@ Full conventions in `references/entity-authoring-conventions.md`. Summary:
   no growth path. A skill is model-invoked, needs triggering plus progressive disclosure, and often
   needs multi-file depth. An agent is a persona pinned to a restricted tool allowlist. Pick based on
   which shape the approved rule(s) actually need, not habit.
-- **Skill frontmatter takes only `name` and `description`.** No `tools`/`model`/`allowed-tools` —
-  those are agent-only fields. `name` must equal the directory name exactly.
+- **This skill's own Phase 6 template sticks to `name` and `description`** by convention, not
+  because the schema forbids more — `allowed-tools`, `model`, `context`, `disable-model-invocation`,
+  `argument-hint`, and others are all valid optional skill frontmatter fields; add one only when the
+  authored entity actually needs that specific behavior. `name` must equal the directory name
+  exactly.
 - **Description recipe:** what the entity covers and when to use it, an explicit enumeration of
   coverage, and a "Triggers on requests like..." clause.
 - **Body structure:** H1 title, a provenance preamble, `## Rule N — <imperative>` sections each with
