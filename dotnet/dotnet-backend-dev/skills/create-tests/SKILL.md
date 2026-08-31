@@ -144,7 +144,7 @@ public sealed class {ClassName}Tests : {BaseClass}
 **Exceptions - use `[NonParallelizable]`** when:
 
 - Test modifies shared database state that conflicts with parallel tests
-- Test requires exclusive access to external resource (Cosmos emulator, etc.)
+- Test requires exclusive access to an external resource (a local database emulator, etc.)
 
 ```csharp
 [Test]
@@ -177,7 +177,7 @@ public void TestCase()
 [Test]
 public void TestCase()
 {
-    var repository = CreateMyRepository(item1, item2);
+    var repository = CreateMyRepository(new[] { item1, item2 });
     repository.FindByPrimaryKeyAsync(Arg.Any<MyId>(), Arg.Any<CancellationToken>())
         .Returns(ci => ...); // FORBIDDEN - setup must be inside the builder
     // ...
@@ -189,17 +189,17 @@ public void TestCase()
 {
     var item1 = GenerateItem(name: "A");
     var item2 = GenerateItem(name: "B");
-    var repository = CreateMyRepository(item1, item2);
+    var repository = CreateMyRepository(new[] { item1, item2 });
     // repository is fully configured — no additional .Returns/.ReturnsForAnyArgs here
     // ...
 }
 
-private Item GenerateItem(String? name = null)
+private Item GenerateItem(String name)
 {
-    return _itemGenerator.GenerateItem(name: name ?? "default");
+    return _itemGenerator.GenerateItem(name: name);
 }
 
-private IMyRepository CreateMyRepository(params Item[] items)
+private IMyRepository CreateMyRepository(Item[] items)
 {
     return new TestMyRepositoryBuilder(Fixture)
         .AddItemRange(items) // use bulk Add*Range methods — no foreach/if-else in helpers
@@ -397,7 +397,7 @@ private static MyService CreateServiceWithAllArguments(
 
 `CreateServiceWithAllArguments` is the ONE helper in a test class that stays required-positional (rule 4's exception under [Private Helper Methods](#private-helper-methods-mandatory-indirection)); every other `Create{Mock}` helper in the class instead takes optional nullable params applied via `.ApplyIf(...)`.
 
-**`static` vs instance:** the helper is `private static` when every inner `Create{Mock}` helper is also static. When any inner helper requires `Fixture`, that helper — and therefore `CreateServiceWithAllArguments` — must be `private` (non-static). See the worked example in [examples/constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md) for a mixed case.
+**`static` vs instance:** the helper is `private static` when every inner `Create{Mock}` helper is also static. When any inner helper requires `Fixture`, that helper — and therefore `CreateServiceWithAllArguments` — must be `private` (non-static). See the worked example in [examples/constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md) for the mixed static/instance helper case.
 
 ### Anti-pattern: boolean stripes (FORBIDDEN)
 

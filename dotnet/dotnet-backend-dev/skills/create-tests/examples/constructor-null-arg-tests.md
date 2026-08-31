@@ -43,7 +43,8 @@ private static OrderProcessingService CreateServiceWithAllArguments(
 constructor — `logger ?? CreateLogger()` evaluates to `CreateLogger()`, a fully valid mock, and
 the constructor never sees `null`. Every `Constructor_ThrowsArgumentNullException_...` test built
 this way passes, but for the wrong reason: the `ArgumentNullException` guard is never exercised at
-all.
+all. This was discovered empirically (build-and-run passed; the negative assertions were no-ops)
+and confirmed independently in a second repository with the identical bug and fix.
 
 **The fix:** make every parameter required and positional. There is no default to fall back to,
 so the only way to satisfy the compiler is to pass either a real, valid mock or `null!` — and
@@ -125,13 +126,15 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
         return new(logger, repository, orderService, eventPublisher, optionsMonitor);
     }
 
-    // These helpers need Fixture (from BaseMockTest) to construct their builders.
-    // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
-    private ILogger<OrderProcessingService> CreateLogger()
+    // static: TestLoggerBuilder.CreateWithoutSetup<T> accepts a fixture parameter that it ignores
+    // for no-setup loggers, so this helper needs no Fixture access.
+    private static ILogger<OrderProcessingService> CreateLogger()
     {
-        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(Fixture);
+        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(null!);
     }
 
+    // non-static: these helpers need Fixture (from BaseMockTest) to construct their builders.
+    // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
     private IOrderRepository CreateRepository()
     {
         return TestOrderRepositoryBuilder.CreateWithoutSetup(Fixture);
@@ -212,3 +215,9 @@ public void Constructor_ThrowsArgumentNullException_WhenDependencyIsNull(
 
 **Replace with the `foreach`-over-`List<Action>` pattern shown in the Canonical example above.**
 Adding a new dependency is a single line in the `actions` list; removing one is a single deletion.
+
+## Related gate: the same pattern applies to methods, not just constructors
+
+Public methods with required reference-type parameters get the same treatment — one combined
+`<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument` test per method. See
+[enforced-gates.md](enforced-gates.md) gate 1.

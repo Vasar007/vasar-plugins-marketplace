@@ -304,12 +304,12 @@ Configure external service responses via `ExternalServicesMock`:
 
 ```csharp
 [Test]
-public async Task ProvisionTenant_WhenIdsReturnsError_ReturnsBadGateway()
+public async Task ProvisionTenant_WhenDirectoryServiceReturnsError_ReturnsBadGateway()
 {
     // Arrange.
-    ExternalServicesMock.IdsClient
+    ExternalServicesMock.DirectoryClient
         .GetOrganizationAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-        .ThrowsAsync(new HttpRequestException("IDS unavailable"));
+        .ThrowsAsync(new HttpRequestException("directory service unavailable"));
 
     var request = CreateTestProvisionRequest();
 
@@ -317,7 +317,7 @@ public async Task ProvisionTenant_WhenIdsReturnsError_ReturnsBadGateway()
     var act = () => _tenantsClient.ProvisionTenantAsync(request);
 
     // Assert.
-    await act.CustomShould().ContainBadGatewayError("IDS");
+    await act.CustomShould().ContainBadGatewayError("directory service");
 }
 ```
 

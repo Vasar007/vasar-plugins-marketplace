@@ -30,7 +30,7 @@ integration-test project that exercises real orchestration):
 
 ## Allowed pattern — stubs and raw data only
 
-**Stub only the leaf dependency** that requires an external connection (network call, Key Vault,
+**Stub only the leaf dependency** that requires an external connection (network call,
 external HTTP client, secret store). Let every real service implementation run.
 
 Naming convention: `Stub{DependencyName}` — e.g., `StubExternalSecretService`.
@@ -82,7 +82,7 @@ namespace MyApp.WebApi.Tests.Scenarios.Orders;
 /// </summary>
 [TestFixture]
 [NonParallelizable] // Scenario tests share a real database — no parallel runs
-public sealed class OrderProcessingScenarioTests : ScenarioBaseTest
+public sealed class OrderProcessingScenarioTests : ScenarioBaseTest // project-specific base — analogous to WebApiBaseTest in the Base Classes Overview table; check Tests.Common for the exact class name in your repo
 {
     private StubExternalSecretService _secretService = null!;
 

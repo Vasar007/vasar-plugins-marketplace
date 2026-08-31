@@ -10,31 +10,31 @@ Location: `Tests.Common/Helpers/Generators/{Feature}/`
 Generators/
 ├── Appliances/
 │   └── ApplianceGenerator.cs
-├── Aws/
-│   ├── CloudFormation/
-│   │   └── Templates/
-│   │       └── CloudResourceGenerator.cs
+├── Provisioning/
+│   ├── Compute/
+│   │   └── ComputeInstanceGenerator.cs
+│   ├── Databases/
+│   │   └── DatabaseInstanceGenerator.cs
 │   ├── Deployments/
 │   │   └── DeploymentGenerator.cs
-│   ├── Ec2/
-│   │   └── ComputeInstanceGenerator.cs
-│   ├── Iam/
-│   │   └── IamIdentityGenerator.cs
+│   ├── Identity/
+│   │   └── IdentityGenerator.cs
 │   ├── Network/
 │   │   └── NetworkGenerator.cs
-│   ├── Rds/
-│   │   └── RdsInstanceGenerator.cs
+│   ├── ObjectStorage/
+│   │   └── ObjectStorageInfoGenerator.cs
 │   ├── Regions/
 │   │   └── RegionGenerator.cs
-│   └── S3/
-│       └── S3InfoGenerator.cs
+│   └── Templates/
+│       └── Definitions/
+│           └── CloudResourceGenerator.cs
 ├── Authentication/
-│   ├── Auth0InfoGenerator.cs
+│   ├── ExternalAuthInfoGenerator.cs
 │   └── AuthenticationInfoGenerator.cs
 ├── Sessions/
 │   └── SessionGenerator.cs
 ├── Storage/
-│   └── SmsModelGenerator.cs
+│   └── StorageModelGenerator.cs
 ├── Versioning/
 │   ├── ProductVersionGenerator.cs
 │   └── VersionInfoGenerator.cs
@@ -56,7 +56,7 @@ Generators/
 using MyApp.OnlyForTests.Data.Generators;
 using MyApp.OnlyForTests.Enumerations;
 
-namespace MyApp.Tests.Common.Helpers.Generators.Aws.Regions;
+namespace MyApp.Tests.Common.Helpers.Generators.Provisioning.Regions;
 
 public sealed class RegionGenerator
 {
