@@ -380,18 +380,24 @@ placeholder:
 
 ### Default Model Assignment
 
-| Stage | Default model | Rationale |
-| --- | --- | --- |
-| `requirements` | `opus` | Deep codebase exploration and analysis |
-| `spec` | `opus` | Architectural thinking, spec design — critical for quality |
-| `plan-artifact` | `sonnet` | Deterministic HTML rendering — capable and cost-efficient |
-| `implementation` | `opus` | Code writing in large codebases — quality on first pass reduces costly retry loops |
-| `test-coverage` | `sonnet` | Test writing — capable and cost-efficient |
-| `simplifier` | `sonnet` | Mechanical simplification, well-defined task |
-| `docs` | `haiku` | Documentation writing, deterministic output |
-| `review` | `opus` | Critical review — must not miss issues |
-| `security-review` | `opus` | Security analysis — must reason about multi-hop data flows in distributed services |
-| `finalization` | `haiku` | Deterministic git and PR operations after discovery |
+Per-stage defaults below are this pipeline's own tier choices, built on the
+model matrix and rules in the "Model selection" section of
+`dev-essentials:subagent-orchestration` — see that section for what each
+model is for and for the Haiku-scope and Fable guardrails; it is not restated
+here.
+
+| Stage | Default model |
+| --- | --- |
+| `requirements` | `opus` |
+| `spec` | `opus` |
+| `plan-artifact` | `sonnet` |
+| `implementation` | `sonnet` |
+| `test-coverage` | `sonnet` |
+| `simplifier` | `sonnet` |
+| `docs` | `sonnet` |
+| `review` | `opus` |
+| `security-review` | `opus` |
+| `finalization` | `sonnet` |
 
 ### Model Resolution
 
@@ -635,7 +641,7 @@ On success, record the timestamp and provider comment ID if available in
 
 ### Step 3: Implementation
 
-Model: `opus` (override key: `implementation`)
+Model: `sonnet` (override key: `implementation`)
 
 Launch subagent with prompt from `stages/implementation.md`.
 On completion: update checkpoint.
@@ -683,7 +689,7 @@ On completion: update checkpoint.
 All three stages only read implementation code — launch in parallel:
 
 **Stage 6 — Docs Update:**
-Model: `haiku` (override key: `docs`)
+Model: `sonnet` (override key: `docs`)
 Agent type: `general-purpose`
 Launch subagent with prompt from `stages/docs.md`.
 
@@ -754,7 +760,7 @@ On success, record the timestamp and provider comment ID if available in
 
 ### Step 9: Finalization + PR
 
-Model: `haiku` (override key: `finalization`)
+Model: `sonnet` (override key: `finalization`)
 
 Launch subagent with prompt from `stages/finalization.md`.
 On completion: update checkpoint and report the resulting branch or PR status.
