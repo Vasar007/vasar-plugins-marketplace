@@ -61,6 +61,17 @@ the artifact.
   skill/command can parse it back out programmatically. Any skill or
   command that invokes this one as a sub-step should look for that exact
   `ARTIFACT: <path>` line in the output rather than re-deriving the path.
+  **Contract**: nothing else may follow `<path>` on that line — no trailing
+  summary text, counts, or punctuation appended after the path. A caller
+  that wants to report extra detail (a finding count, a one-line summary)
+  puts it on its own separate line, before or after the `ARTIFACT:` line,
+  never on the same line as the path. `<path>` itself may be either
+  absolute or repo-relative — both conventions are in legitimate use by
+  callers of this skill (e.g. an absolute path from a pipeline stage that
+  already resolved `{WORKTREE_PATH}`, versus a repo-relative path like
+  `Notes/Reviews/pr-<number>-review.html` from a review command run at the
+  repo root); pick whichever fits the calling context, and stay consistent
+  within that caller.
 
 ## Core structure — adapt sections to the content type
 
@@ -149,5 +160,5 @@ requirement; adapt to the content at hand.
 - Check `references/pitfalls.md` for the other recurring mistakes before
   calling this done.
 - End the response with the `ARTIFACT: <path>` line described under
-  "Output conventions" — this is the invocation contract any caller
-  relies on to find the file.
+  "Output conventions" — nothing else on that line — this is the
+  invocation contract any caller relies on to find the file.

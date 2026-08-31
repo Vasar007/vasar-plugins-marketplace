@@ -180,10 +180,13 @@ Multi-PR shape:
 
 # Output
 
-End the response with a one-line summary per PR:
+End the response with the `ARTIFACT: <path>` line — nothing else on that
+line, per `create-html-artifact`'s output contract — followed by a
+separate findings-summary line, per PR:
 
 ```text
-ARTIFACT: Notes/Reviews/pr-<number>-review.html — N findings (X critical · Y major · Z minor · W info)
+ARTIFACT: Notes/Reviews/pr-<number>-review.html
+N findings (X critical · Y major · Z minor · W info)
 ```
 
 If comments were posted, also list each posted comment's `html_url` and its anchor (`<path>:<line>`), and any findings skipped as duplicates of an existing thread (with the existing thread's `html_url`).
