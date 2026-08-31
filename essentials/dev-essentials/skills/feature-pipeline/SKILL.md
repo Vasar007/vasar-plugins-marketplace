@@ -42,7 +42,10 @@ context:
 - `--commit-mode=<per-step|finalization>` — Commit cadence for the run.
   `finalization` (default) keeps the current single-commit-at-Stage-9
   behavior; `per-step` commits incrementally as each stage's changes go
-  green. See **Commit Cadence** below.
+  green. See **Commit Cadence** below. Note: the sibling command
+  `research-implement-review-report.md` has its own `--commit-mode` flag with
+  different values (`<per-phase|single>`) and default — differs
+  intentionally: this pipeline's unit is a numbered stage, not a phase.
 
 Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
 `test-coverage`, `simplifier`, `docs`, `review`, `security-review`,
@@ -62,10 +65,10 @@ These three safeguards apply to every stage. Subagents dispatched by this pipeli
 Before asserting how any Claude Code primitive works (Skill tool dispatch, Agent tool subagent types, settings merge order, MCP tool prefixing, plugin loading, slash-command routing, memory system semantics), check the current system prompt — do not pattern-match from training data. If uncertain, say "I'm not sure; let me check" rather than stating a categorical rule. The system prompt is the session-scoped source of truth and changes between harness versions. See `dev-essentials:engineering-discipline` for the broader verify-before-asserting principle.
 
 **Safeguard 2 — Verify before proposing confident fixes for schema/manifest/config errors.**
-At any stage — implementation, test coverage, or review — whenever a schema error, manifest validation failure, or library API mismatch is encountered or diagnosed, verify against a primary source (official docs, known-working example) BEFORE proposing a fix. Frame unverified theories as theories ("this might be…"), not fixes. Checking a known-working plugin takes 30 seconds and prevents rolling back wrong edits. See `dev-essentials:subagent-orchestration` for briefing-quality expectations.
+At any stage — implementation, test coverage, or review — whenever a schema error, manifest validation failure, or library API mismatch is encountered or diagnosed, verify against a primary source (official docs, known-working example) BEFORE proposing a fix. Frame unverified theories as theories ("this might be…"), not fixes. Checking a known-working plugin (e.g., `feature-dev`) takes 30 seconds and prevents rolling back wrong edits. See `dev-essentials:subagent-orchestration` for briefing-quality expectations.
 
 **Safeguard 3 — Scope and host check before recommending MCP restart.**
-When a task-provider MCP server fails, perform TWO checks before investigating install state or recommending restart: (a) is the failure session-local or global — does it fail in other concurrent Claude sessions? (b) what is hosting Claude Code — some terminals isolate MCP child processes. If the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
+When a task-provider MCP server fails, perform TWO checks before investigating install state or recommending restart: (a) is the failure session-local or global — does it fail in other concurrent Claude sessions? (b) what is hosting Claude Code — Warp or other sandboxed terminals isolate MCP child processes. If the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
 
 ## Plugin Dependencies
 
@@ -245,11 +248,15 @@ if Task Provider still missing -> STOP the pipeline (cannot fetch the task)
 
 ### Project Context Injection
 
-After resolution, the master agent prepends the resolved context to every stage
-prompt before performing placeholder substitution. See **Context Injection**
-under Shared Placeholder Vocabulary for the full XML wrapper format, including
-the `<task-context>` block that carries per-task data alongside the
-project-context block.
+The resolved context is injected as the `<project-context>` block. It is one of
+several blocks prepended to each stage prompt — see **Context Injection** under
+**Shared Placeholder Vocabulary** for the complete, canonical block list,
+ordering, and per-stage applicability. Do not restate the concatenation shape
+here; that section owns it.
+
+This replaces the previous approach of discovering ~15 repo conventions at
+runtime and substituting ~25 placeholders. Project-specific values are now
+readable text in the injected context, not placeholder targets.
 
 ## Provider Capability Contract
 
@@ -265,7 +272,7 @@ methods that satisfy these capabilities:
 
 If the MCP server cannot satisfy the required capabilities, stop immediately.
 
-> **MCP failure — scope and host first (Safeguard 3):** if the MCP server appears unavailable, check (a) whether it fails in other Claude sessions too, and (b) which terminal/IDE is hosting Claude Code. Session-local failures and sandboxed-terminal isolation are the two most common causes; if the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
+> **MCP failure — scope and host first (Safeguard 3):** if the MCP server appears unavailable, check (a) whether it fails in other Claude sessions too, and (b) which terminal/IDE is hosting Claude Code. Session-local failures and Warp/sandboxed-terminal isolation are the two most common causes; if the host may be isolating subprocesses, suggest switching to a plain OS terminal (cmd / pwsh / Windows Terminal) rather than restarting in place.
 
 ## Shared Placeholder Vocabulary
 
@@ -871,19 +878,23 @@ After the finalization result is confirmed:
    "archive anything worth keeping before removal" precedent.
 
    > **Bulk-cleanup requests are out of scope for this skill.** If the user
-   > asks to remove worktrees broadly, delegate immediately to
+   > asks to remove worktrees broadly (e.g., "remove all worktrees", "clean up
+   > all merged worktrees"), **do NOT attempt bulk cleanup here** — this skill
+   > manages exactly one worktree for the current task, and `pipeline-state.json`
+   > carries a `pr` object only for that task. Delegate immediately to
    > `dev-essentials:git-worktree-management` **Workflow D** and stop the
    > pipeline. Do not enumerate or touch any other worktrees.
 
    If the eligibility test above is not met: leave the worktree on disk and
    skip removal.
 
-   When removal is allowed: run `git worktree remove .claude/worktrees/<branch-name>`,
-   then verify with `git worktree list`. If removal fails with "Permission denied"
-   (file locks), work through `dev-essentials:git-worktree-management` Workflow
-   C's ordered diagnosis (shell CWD parked in the worktree, then Windows long
-   paths, then leaf-first walkup) before reporting to the user. **Never
-   force-remove.**
+   When removal is allowed: remove via `{WORKTREE_PATH}` (the absolute path
+   resolved in step 6), not a hardcoded relative path — `git worktree remove
+   {WORKTREE_PATH}`, then verify with `git worktree list`. If removal fails
+   with "Permission denied", do NOT assume an IDE file lock — work through
+   `dev-essentials:git-worktree-management` Workflow C's ordered
+   diagnosis (shell CWD parked in the worktree, then Windows long paths, then
+   leaf-first walkup) before reporting to the user. **Never force-remove.**
 
    See `dev-essentials:git-worktree-management` (Lifecycle Rule section)
    for the canonical keep-until-merged rule.

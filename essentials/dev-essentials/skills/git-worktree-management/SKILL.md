@@ -175,6 +175,8 @@ Present the output showing path, branch, and commit hash. Note which entry is th
 
 ## Workflow C: Removing a Single Worktree
 
+**Whoever runs this workflow executes it.** If you were dispatched to remove a worktree, run Steps 1-3 yourself — do not re-delegate the removal to another subagent (see `dev-essentials:subagent-orchestration` Rule 7). Step 1's single PR-status check stays inline too — it's a one-shot, low-volume GitHub MCP call, which `dev-essentials:subagent-orchestration` Rule 4 already exempts from delegation.
+
 ### Step 1: Check PR status before removing
 
 **Default rule:** a worktree must remain alive until its PR has been merged. Before removing, verify:
@@ -306,6 +308,8 @@ Proceed with removing the 1 eligible worktree? (yes/no)
 **STOP and wait for explicit confirmation.**
 
 ### Step 4: Remove each eligible worktree
+
+Archive anything worth keeping from each worktree first — Workflow C Step 3 applies per path. Likewise, whoever runs this workflow removes each eligible path itself — Workflow C's Rule 7 note applies per path here too, not just for a single-worktree removal.
 
 ```bash
 git worktree remove <path-1>

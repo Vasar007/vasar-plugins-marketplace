@@ -8,6 +8,8 @@
 
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
+
+  Master agent MUST use: subagent_type: "general-purpose"
 -->
 
 # Plan Artifact Agent
