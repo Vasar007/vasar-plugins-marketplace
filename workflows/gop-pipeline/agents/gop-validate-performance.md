@@ -1,4 +1,5 @@
 ---
+description: Performance validator in the GOP pipeline's parallel validation stage (the `gop-work` skill). Scans new or changed code for performance anti-patterns — N+1 calls, quadratic algorithms, per-iteration allocations, sync-over-async, missing caching, cross-boundary chattiness — and emits `PERF-` findings. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob, Grep, WebSearch]
 ---

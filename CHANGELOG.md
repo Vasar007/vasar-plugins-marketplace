@@ -9,6 +9,16 @@ on a per-plugin basis (see each plugin's `plugin.json` for its current version).
 
 _No changes yet._
 
+## gop-pipeline [1.0.2] — 2026-08-31
+
+### Fixed
+
+- The 8 pipeline agents (`gop-build`, `gop-commit`, `gop-test`, and the five
+  `gop-validate-*` validators) now carry a `description` field in their
+  frontmatter, describing what each does and that it runs as a stage of the
+  `gop-work` pipeline. Removes the 8 `claude plugin validate` warnings about
+  agent frontmatter missing a `description`.
+
 ## dev-essentials [2.1.0] — dotnet-backend-dev [1.2.0] — 2026-08-31
 
 Ported and generalized several skills, commands, and rule additions from a

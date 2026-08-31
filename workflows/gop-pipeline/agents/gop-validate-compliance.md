@@ -1,4 +1,5 @@
 ---
+description: Compliance validator in the GOP pipeline's parallel validation stage (the `gop-work` skill). Checks the implementation against its own stated requirements — plan coverage, skill-mandated artifacts, and `CLAUDE.md` / `REVIEW.md` rules — and emits `COMP-` findings. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob, Grep, Skill]
 ---

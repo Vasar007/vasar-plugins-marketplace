@@ -1,4 +1,5 @@
 ---
+description: Correctness validator in the GOP pipeline's parallel validation stage (the `gop-work` skill). Reviews the change for semantic correctness — plan completeness, business-logic integrity across the blast radius, breaking changes for callers and implementors, and logic, concurrency, or resource bugs — and emits `CORR-` findings. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: opus
 tools: [Read, Bash, Glob, Grep, WebSearch, LSP]
 ---
