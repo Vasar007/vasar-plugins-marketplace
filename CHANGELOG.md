@@ -9,7 +9,53 @@ on a per-plugin basis (see each plugin's `plugin.json` for its current version).
 
 _No changes yet._
 
-## dev-essentials [2.0.0] — dotnet-backend-dev [1.1.0] — 2026-05-10
+## dev-essentials [2.1.0] — dotnet-backend-dev [1.2.0] — 2026-08-31
+
+Ported and generalized several skills, commands, and rule additions from a
+separate internal iteration of this toolkit — branding and tooling stripped
+or transformed to fit this marketplace's conventions.
+
+### Added — dev-essentials
+
+- New skills: `audit-personal-conventions` (deep verification of
+  personal/repo-convention drift, with 2 worked examples + 4 reference
+  files), `create-html-artifact` (renders a self-contained HTML report/plan/
+  review file, with 4 reference files), `project-claude-md-preamble` (keeps
+  a project's `CLAUDE.md` preamble self-contained).
+- New commands: `help-review-pr` (end-to-end GitHub PR review producing an
+  HTML artifact, optionally posting findings as review comments),
+  `merge-worktree-projects`, `research-implement-review-report`,
+  `implement-task`, `implement-batch`.
+- `feature-pipeline`: new Stage 2b (`stages/plan-artifact.md`) renders the
+  approved implementation plan as an HTML artifact via `create-html-artifact`
+  for Human Approve #1; anti-bypass gate, archiving gate, and a commit-mode
+  option.
+- `review-loop`: audit-team adapter, a `blocking` finding flag, and an
+  orchestrated mode for large-target reviews (`references/orchestrated-
+  review.md`).
+- `process-pr-comments`: real GitHub thread-resolve wiring plus a resolved/
+  outdated thread filter; `references/thread-state-schema.md`.
+- `engineering-discipline`: Rules 4–7 (try/catch discipline, proof-before-
+  claiming-done, overblown-code guardrail, refactor-scope discipline).
+- `subagent-orchestration`: Rule 3 fix plus new Rules 5–7 and a model-
+  selection matrix.
+- `save-context`: next-session continuation prompt.
+- Additive notes/sections in `create-documentation`, `git-sync`,
+  `git-worktree-management`, `general-conventions` (documentation/
+  PowerShell), and the `task-composer` agent (GitHub sub-issue create flow).
+
+### Added — dotnet-backend-dev
+
+- `create-tests`: `.ApplyIf` mock-builder-param rewrite (single `Create*`
+  helper per dependency takes optional nullable params applied via
+  `.ApplyIf`, replacing the old overload-based pattern) and a new
+  `enforced-gates.md` example.
+- `dotnet-conventions`: additive notes in `ef-patterns.md` and
+  `testing.md`.
+
+### Fixed
+
+- `dotnet-build-test` and `task-composer`: broken YAML frontmatter.
 
 ### Added — dev-essentials
 
@@ -89,7 +135,8 @@ _No changes yet._
 - Repo artifacts: README with install instructions and authoring reference, MIT LICENSE, root `CLAUDE.md` with documentation-first guardrails and repo conventions, this CHANGELOG, and `.gitignore`.
 - Manifest layout: `.claude-plugin/marketplace.json` lists the three plugins; each `plugin.json` declares only metadata (name, version, description, author) and relies on Claude Code's auto-discovery for components at the documented default locations (`skills/`, `commands/`, `agents/`).
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.0...v1.0.1
