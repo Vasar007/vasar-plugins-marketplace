@@ -9,10 +9,10 @@ Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[
 Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Optional]`.
 
 - **Small** — ≤ 20 LoC changed, single file, no public API change (signatures, DTOs, exposed types), no new dependencies, no test refactor. Safe to implement.
-- **Medium / Large** — anything larger, or touching public APIs, DI wiring, EF migrations, string resources, swagger specs. Always draft and wait — or, if the invocation names the thread with `deep-fix=<threadId>`, route it through `/research-implement-review-report` instead (SKILL.md's `deep-fix` override and "Deep-fix dispatch" section).
+- **Medium / Large** — anything larger, or touching public APIs, DI wiring, EF migrations, string resources, swagger specs. Always draft and wait — or, if the invocation names the thread with `deep-fix=<threadId>`, route it through `/research-implement-review-report` instead (SKILL.md § "Dispatch model" Stage 3 and Phase 3's `deep-fix` override).
 - **Architectural** — reserved for changes at **rewrite-from-scratch magnitude**: the reviewer is asking for a fundamentally different mechanism with no precedent in this codebase, and there are several materially different ways to build it with nothing in the existing code to choose between them. Always draft; consider suggesting a design review — or, with `deep-fix` naming the thread, route it through `/research-implement-review-report` (same pointer as the Medium/Large row above). Merely adding, moving, or renaming a type across projects is **not** this level on its own — that is a Medium/Large fix, judged on the row above.
 
-`strict` flag treats every category as "draft and wait". `deep-fix` is a per-thread override the human supplies at invocation, not a category `strict` or the size thresholds pick automatically — see SKILL.md's `deep-fix` override for the full eligibility rule.
+`strict` flag treats every category as "draft and wait". `deep-fix` is a per-thread override the human supplies at invocation, not a category `strict` or the size thresholds pick automatically — see SKILL.md Phase 3's `deep-fix` override for the full eligibility rule.
 
 ## Tags
 
@@ -91,16 +91,16 @@ Never implement in the current PR. The comment either records a concern or asks 
 Decision tree:
 
 1. Reviewer is just noting it → reply `**[AI]** Noted, out of scope for this PR.` No further action.
-2. Reviewer asks to track separately (phrases: "track it", "open a ticket", "file a work item", "separate PR", "TODO") → delegate to the Task Composer agent.
+2. Reviewer asks to track separately (phrases: "track it", "open a ticket", "file an issue", "separate PR", "TODO") → delegate to the Task Composer agent.
 
 Issue flow:
 
-1. Invoke Task Composer with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags.
-2. Task Composer drafts title and description. Confirm with the user before creating.
-3. On user approval, call `mcp__plugin_github_github__issue_write` with the fields Task Composer produced. Always pass `owner` and `repo` verbatim — never infer (see `dev-essentials:github-mcp-conventions` Rule 1).
-4. Reply `**[AI]** Tracked as issue #<id>: <title>.`
+1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags. Task Composer drafts title and description in chat — no file written, no GitHub call yet.
+2. Confirm title and type with the user. This step is never bypassed, `autonomous` or not — see SKILL.md § Autonomy, Bucket B.
+3. On user approval, re-invoke Task Composer with `mode: create` and the confirmed fields plus `owner` and `repo` (required by Task Composer; pass verbatim, never infer — see `dev-essentials:github-mcp-conventions` Rule 1). Task Composer handles the full create → link (when a parent is given) → verify flow and returns the verified ID and URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill.
+4. Use ONLY the verified ID and URL returned by Task Composer. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
-If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No work item.
+If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No issue.
 
 ### `[Note]` and untagged comments
 
@@ -126,7 +126,7 @@ Takes precedence over tags. See [`automated-review-verification.md`](automated-r
 
 - Always re-verify independently. Do not trust the bot's framing.
 - Land on a verdict: `valid` / `valid-but-narrow` / `needs-clarification` / `false-positive` / `not-applicable`.
-- `valid` / `valid-but-narrow` findings are implemented and committed directly, like `[ToFix]`, whenever SKILL.md Phase 3b's obviousness test passes — in-diff, no NEW architecture or public contract, and not a rewrite-from-scratch-magnitude redesign. **The size thresholds above do not apply to this path**: multi-file fixes, schema-threading fixes, contract-tightening fixes, and `confidence: medium`/`low` verdicts are all implemented (with the open question stated in the same reply — "ask AND fix"). See SKILL.md Phase 3b and `automated-review-verification.md`'s "Implemented fix" template. Only Phase 3b step 5's rewrite-from-scratch exception, or a `needs-clarification`/`false-positive`/`not-applicable` verdict, posts an `**[AI][Draft]**` reply and waits for human approval — unless `deep-fix` names the thread, in which case the rewrite-from-scratch exception's fall-through routes to the Deep-fix dispatch instead (SKILL.md Phase 3b step 5's second exit). `needs-clarification` / `false-positive` / `not-applicable` verdicts are never eligible for `deep-fix` either — there is no actionable fix to route in those cases.
+- `valid` / `valid-but-narrow` findings are implemented and committed directly, like `[ToFix]`, whenever SKILL.md Phase 3b's obviousness test passes — in-diff, no NEW architecture or public contract, and not a rewrite-from-scratch-magnitude redesign. **The size thresholds above do not apply to this path**: multi-file fixes, schema-threading fixes, contract-tightening fixes, and `confidence: medium`/`low` verdicts are all implemented (with the open question stated in the same reply — "ask AND fix"). See SKILL.md Phase 3b and `automated-review-verification.md`'s "Implemented fix" template. Only Phase 3b step 5's rewrite-from-scratch exception, or a `needs-clarification`/`false-positive`/`not-applicable` verdict, posts an `**[AI][Draft]**` reply and waits for human approval — unless `deep-fix` names the thread, in which case the rewrite-from-scratch exception's fall-through routes to Stage 3 instead (SKILL.md Phase 3b step 5's second exit). `needs-clarification` / `false-positive` / `not-applicable` verdicts are never eligible for `deep-fix` either — there is no actionable fix to route in those cases.
 
 ## When multiple tags combine
 
@@ -135,7 +135,7 @@ Use the strictest action among them:
 - `[P1][ToFix]` → treat as `[ToFix]` with priority P1 (process first).
 - `[Optional][Suggestion]` → treat as `[Optional]` (weakest action); reply language emphasizes "optional".
 - `[Repetition][ToFix]` → `[Repetition]` workflow; the underlying tag is `[ToFix]`.
-- `[OutOfScope][Suggestion]` → `[OutOfScope]` workflow (never implement in current PR); use suggestion text to inform the follow-up work item brief.
+- `[OutOfScope][Suggestion]` → `[OutOfScope]` workflow (never implement in current PR); use suggestion text to inform the follow-up issue brief.
 - `[Performance][ToFix]` → `[Performance]` workflow (explicit effect note in reply).
 
 ## Fall-back rules
