@@ -57,6 +57,8 @@ or transformed to fit this marketplace's conventions.
 
 - `dotnet-build-test` and `task-composer`: broken YAML frontmatter.
 
+## dev-essentials [2.0.0] — dotnet-backend-dev [1.1.0] — 2026-05-10
+
 ### Added — dev-essentials
 
 - New skills: `engineering-discipline`, `subagent-orchestration`, `git-sync`, `dotnet-build-test`, `review-loop` (with 4 reference files + 2 worked examples), `github-mcp-conventions`.

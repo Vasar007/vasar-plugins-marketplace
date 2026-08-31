@@ -43,9 +43,12 @@ The same applies to an unquoted colon inside a plain scalar, e.g.
 `description: Safe by default: skips inactive items.` — the second `:` is read as a new
 key, not text. Quote the value, or reword to avoid the mid-sentence colon.
 
-Validate with `claude plugin validate` after touching any frontmatter — it is silent
-when frontmatter parses and loads correctly, so a passing run is the confirmation this
-class of break did not slip through.
+Validate with `claude plugin validate` after touching any frontmatter — it does catch a
+genuinely malformed YAML value (a hard parse error). It is not a complete guarantee,
+though: some malformed-but-technically-parseable values, and command/agent frontmatter
+specifically, may not always be caught. Treat a passing run as a useful check, not full
+confirmation — when in doubt, mentally parse the value yourself (or run it through a YAML
+linter) rather than relying on validation alone.
 
 ## File Naming
 
