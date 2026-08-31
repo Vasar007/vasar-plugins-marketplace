@@ -128,7 +128,7 @@ How to apply:
 - Recover overwritten uncommitted edits from git's index/stash before reconstructing them from memory.
 - When a stated constraint is gone, propose removing the workaround, but wait for explicit approval before deleting it — removal is a consent checkpoint, not a unilateral move.
 - Under a refactor-only scope, cross-session/behavioral scenarios are forbidden to touch; test changes are limited to mechanical swaps (e.g. mock-target changes when a call moved to a new collaborator) with identical assertions and counts; production-code semantic changes get rolled back even if a spec elsewhere prescribes them — surface the conflict instead of resolving it silently.
-- Verify every "green" claim on WIP fixes with a real, fresh build/test run — a stale IDE diagnostic or a stale build artifact can mask exactly the regression this rule is trying to prevent (see `dotnet-build-test` for build/test verification conventions).
+- Verify every "green" claim on WIP fixes with a real, fresh build/test run — a stale IDE diagnostic or a stale binary (`dev-essentials:dotnet-build-test` Rule 2's false-green trap) can mask exactly the regression this rule is trying to prevent.
 
 ## How these rules relate
 
