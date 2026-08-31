@@ -227,18 +227,18 @@ private static {Type} TransformProperty2({Source} source)
 ```csharp
 public Appliance ToDomainAppliance(
     ApplianceEntity entity,
-    ComputeInstance ec2Instance,
+    ComputeInstance computeInstance,
     DeployableRegion region)
 {
     // Manual mapping: constructor requires additional parameters not in entity
     // TODO: Evaluate if partial auto-generation is possible with custom property mappings
     entity.ThrowIfNull();
-    ec2Instance.ThrowIfNull();
+    computeInstance.ThrowIfNull();
     region.ThrowIfNull();
 
     return new Appliance(
         id: entity.Id.ToDomainApplianceId(),
-        ec2Instance: ec2Instance,  // External parameter
+        computeInstance: computeInstance,  // External parameter
         region: region,      // External parameter
         defaultUserCredentials: _applianceUserCredentialsMapper.ToDomainUserCredentials(entity.DefaultUserCredentials),
         certificate: ToDomainApplianceCertificate(entity.Certificate),
@@ -430,7 +430,7 @@ public sealed partial class SessionMapper
 ```csharp
 using Riok.Mapperly.Abstractions;
 using MyApp.Domain.Appliances;
-using MyApp.Sdk.Domain.Ec2;
+using MyApp.Sdk.Domain.Compute;
 using MyApp.Sdk.Domain.Regions.Deployment;
 using MyApp.Framework.Assertions;
 using MyApp.Framework.Infrastructure.External.Shared.Converters;
@@ -458,25 +458,25 @@ public sealed partial class ApplianceMapper : IApplianceEntityMapper<Appliance, 
         _applianceVersionMapper = applianceVersionMapper.ThrowIfNull();
     }
 
-    [MapperIgnoreSource(nameof(Appliance.Ec2Instance))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.Ec2InstanceId))]
+    [MapperIgnoreSource(nameof(Appliance.ComputeInstance))]
+    [MapperIgnoreTarget(nameof(ApplianceEntity.ComputeInstanceId))]
     [MapperIgnoreSource(nameof(Appliance.Region))]
     [MapperIgnoreTarget(nameof(ApplianceEntity.RegionId))]
     public partial ApplianceEntity ToEntityAppliance(Appliance appliance);
 
     public Appliance ToDomainAppliance(
         ApplianceEntity entity,
-        ComputeInstance ec2Instance,
+        ComputeInstance computeInstance,
         DeployableRegion region)
     {
         // Manual mapping when automatic generation isn't suitable
         entity.ThrowIfNull();
-        ec2Instance.ThrowIfNull();
+        computeInstance.ThrowIfNull();
         region.ThrowIfNull();
 
         return new Appliance(
             id: entity.Id.ToDomainApplianceId(),
-            ec2Instance: ec2Instance,
+            computeInstance: computeInstance,
             region: region,
             defaultUserCredentials: _applianceUserCredentialsMapper.ToDomainUserCredentials(entity.DefaultUserCredentials),
             certificate: ToDomainApplianceCertificate(entity.Certificate),
@@ -487,8 +487,8 @@ public sealed partial class ApplianceMapper : IApplianceEntityMapper<Appliance, 
 
     [MapperIgnoreSource(nameof(Appliance.Id))]
     [MapperIgnoreTarget(nameof(ApplianceEntity.Id))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.Ec2InstanceId))]
-    [MapperIgnoreSource(nameof(Appliance.Ec2Instance))]
+    [MapperIgnoreTarget(nameof(ApplianceEntity.ComputeInstanceId))]
+    [MapperIgnoreSource(nameof(Appliance.ComputeInstance))]
     [MapperIgnoreTarget(nameof(ApplianceEntity.RegionId))]
     [MapperIgnoreSource(nameof(Appliance.Region))]
     public partial void UpdateEntityAppliance(Appliance appliance, ApplianceEntity entity);

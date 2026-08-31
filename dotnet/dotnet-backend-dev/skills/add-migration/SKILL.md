@@ -62,8 +62,8 @@ public interface IProductMigration : IMigration
 
 **Use for**:
 
-- Upgrading deployed infrastructure (CloudFormation stacks, EC2 instances)
-- Reconfiguring cloud-provider resources (e.g. IAM roles, security groups)
+- Upgrading deployed infrastructure (resource stacks, compute instances)
+- Reconfiguring cloud-provider resources (e.g. access roles, firewall rules)
 - One-time data cleanup or transformation tasks
 - Running operations that depend on external services
 
@@ -145,14 +145,14 @@ using MyApp.Framework.Domain.Versioning;
 using MyApp.Framework.Infrastructure.Migrations.Abstractions;
 using MyApp.Framework.Infrastructure.Migrations.Contexts;
 
-namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.CloudFormation.Templates;
+namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.CloudResource.Templates;
 
 /// <summary>
-/// Migration to transform CloudFormation template storage from legacy separate records to unified embedded entities.
+/// Migration to transform cloud-resource template storage from legacy separate records to unified embedded entities.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This migration transforms the CloudFormation template storage model:
+/// This migration transforms the cloud-resource template storage model:
 /// </para>
 /// <list type="bullet">
 ///   <item>Reads legacy records from <c>CloudResourceOperationResultsLegacy</c> DbSet</item>
@@ -189,7 +189,7 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
     public VersionInfo Version => VersionInfo.ParseVersion("1.1.0.0");
 
     /// <inheritdoc />
-    public String Description => "Combines Generate and Application CloudFormation template records into unified entities with embedded data.";
+    public String Description => "Combines Generate and Application cloud-resource template records into unified entities with embedded data.";
 
     /// <inheritdoc />
     public DatabaseProviderType? TargetProvider => null; // All providers.
@@ -205,7 +205,7 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Found {Count} legacy CloudFormation template records to process.",
+            "Found {Count} legacy cloud-resource template records to process.",
             legacyTemplates.Count
         );
 
@@ -231,7 +231,7 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
 // Copyright (c) Vasily Vasilyev
 
 using Microsoft.Extensions.Logging;
-using {ProjectNamespace}.Application.Services.Aws.Ec2.Instances;
+using {ProjectNamespace}.Application.Services.Compute.Instances;
 using MyApp.Framework.Assertions;
 using MyApp.Framework.Domain.Migrations;
 using MyApp.Framework.Domain.Versioning;

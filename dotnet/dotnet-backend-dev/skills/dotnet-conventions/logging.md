@@ -94,7 +94,7 @@ Orchestration services typically log to both channels at each milestone:
 // ILogger — internal diagnostic
 _logger.LogInformation(
     {Service}LogEvents.ProvisionedResourceDeletionStarted,
-    "Deleting {ResourceDescription} [{DeploymentId}] via IDS for session [{SessionId}].",
+    "Deleting {ResourceDescription} [{DeploymentId}] via the infrastructure deployment service for session [{SessionId}].",
     resourceDescription, deploymentId, session.Id);
 
 // ISessionLogRepository — user-visible progress

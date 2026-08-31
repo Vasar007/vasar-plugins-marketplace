@@ -467,7 +467,7 @@ Always include standard error responses:
 
 ## External Service Clients (swagger.yml)
 
-For external services like SMS, use YAML format:
+For external services (for example, a customer-portal API), use YAML format:
 
 **File**: `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
 
