@@ -61,7 +61,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase/section:
-   - Stage all changed files relevant to the phase (use `git add` with specific file paths).
+   - Stage the files relevant to that phase by explicit path — never `git add -A`/`.`.
    - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
      - If the plan has no phases, use: `Task X - brief description`
      - If no task numbering either, use: `brief description of changes`
@@ -73,6 +73,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
    After completing the selected sections (or if stopping), save session context by following the `/save-context` command logic with `--plan "<path>"`.
    - If `--context <path>` was specified, save to that path; otherwise fallback to derived name (e.g., `my-plan.md` -> `Notes/Results/my-plan-research.md`)
    - Include: what was done, decisions made, issues found, what's next.
+   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
 7. **Output results**
 

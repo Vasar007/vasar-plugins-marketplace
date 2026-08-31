@@ -54,11 +54,19 @@ Exclude:
    - If a lint command is listed in the Project Context, run it after
      simplification
 
-5. **Stage changes** (do NOT commit):
+5. **Stage or commit changes**, depending on `{COMMIT_MODE}`:
 
-   ```bash
-   git add <specific-files-you-simplified>
-   ```
+   - **`finalization` mode (default)**: stage only (do NOT commit):
+
+     ```bash
+     git add <specific-files-you-simplified>
+     ```
+
+   - **`per-step` mode**: commit one commit per file simplified, or one
+     total commit if a single simplification spans multiple files (explicit
+     `git add <path>`, never `-A`/`.`). Commit-message formatting is provided
+     via the injected `<commit-conventions>` block above — follow it exactly;
+     do not invent your own format.
 
 ## Rules
 

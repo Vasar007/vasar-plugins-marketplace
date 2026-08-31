@@ -64,7 +64,7 @@ protected virtual IEnumerable<Func<TValue, TValue>> GetValueMutatorsForEquality(
 
 using MyApp.Domain.Appliances.Deployment.Resources;
 using MyApp.Tests.Common.Helpers.Generators.Appliances;
-using MyApp.Tests.Common.Helpers.Generators.Aws.Deployments;
+using MyApp.Tests.Common.Helpers.Generators.Provisioning.Deployments;
 using MyApp.OnlyForTests.Basic.Equality;
 
 namespace MyApp.Domain.Tests.Appliances.Deployment.Resources;
@@ -87,26 +87,26 @@ public sealed class ApplianceDeploymentResourcesTests : BaseEqualityMemberTests<
     {
         // Arrange.
         var computeAccountDeploymentId = GenerateDeploymentId();
-        var serverVpcDeploymentId = GenerateDeploymentId();
-        var rdsVpcDeploymentId = GenerateDeploymentId();
-        var rdsClusterDeploymentId = GenerateDeploymentId();
+        var serverNetworkDeploymentId = GenerateDeploymentId();
+        var databaseNetworkDeploymentId = GenerateDeploymentId();
+        var databaseClusterDeploymentId = GenerateDeploymentId();
         var applianceId = GenerateApplianceId();
 
         // Act.
         var resources = CreateApplianceDeploymentResources(
             computeAccountDeploymentId: computeAccountDeploymentId,
-            serverVpcDeploymentId: serverVpcDeploymentId,
-            rdsVpcDeploymentId: rdsVpcDeploymentId,
-            rdsClusterDeploymentId: rdsClusterDeploymentId,
+            serverNetworkDeploymentId: serverNetworkDeploymentId,
+            databaseNetworkDeploymentId: databaseNetworkDeploymentId,
+            databaseClusterDeploymentId: databaseClusterDeploymentId,
             applianceId: applianceId
         );
 
         // Assert.
         resources.Should().NotBeNull();
         resources.ComputeAccountDeploymentId.Should().Be(computeAccountDeploymentId);
-        resources.ServerVpcDeploymentId.Should().Be(serverVpcDeploymentId);
-        resources.RdsVpcDeploymentId.Should().Be(rdsVpcDeploymentId);
-        resources.RdsClusterDeploymentId.Should().Be(rdsClusterDeploymentId);
+        resources.ServerNetworkDeploymentId.Should().Be(serverNetworkDeploymentId);
+        resources.DatabaseNetworkDeploymentId.Should().Be(databaseNetworkDeploymentId);
+        resources.DatabaseClusterDeploymentId.Should().Be(databaseClusterDeploymentId);
         resources.ApplianceId.Should().Be(applianceId);
     }
 
@@ -124,8 +124,8 @@ public sealed class ApplianceDeploymentResourcesTests : BaseEqualityMemberTests<
         stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources));
         stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources.ComputeAccountDeploymentId));
         stringRepresentation.Should().Contain(resources.ComputeAccountDeploymentId.ToString());
-        stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources.ServerVpcDeploymentId));
-        stringRepresentation.Should().Contain(resources.ServerVpcDeploymentId.ToString());
+        stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources.ServerNetworkDeploymentId));
+        stringRepresentation.Should().Contain(resources.ServerNetworkDeploymentId.ToString());
     }
 
     // --- BaseEqualityMemberTests overrides ---
@@ -138,9 +138,9 @@ public sealed class ApplianceDeploymentResourcesTests : BaseEqualityMemberTests<
     protected override IEnumerable<Func<ApplianceDeploymentResources, ApplianceDeploymentResources>> GetValueMutatorsForInequality()
     {
         yield return x => x with { ComputeAccountDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { ServerVpcDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { RdsVpcDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { RdsClusterDeploymentId = GenerateDeploymentId() };
+        yield return x => x with { ServerNetworkDeploymentId = GenerateDeploymentId() };
+        yield return x => x with { DatabaseNetworkDeploymentId = GenerateDeploymentId() };
+        yield return x => x with { DatabaseClusterDeploymentId = GenerateDeploymentId() };
         yield return x => x with { ApplianceId = GenerateApplianceId() };
     }
 
@@ -150,16 +150,16 @@ public sealed class ApplianceDeploymentResourcesTests : BaseEqualityMemberTests<
 
     private ApplianceDeploymentResources CreateApplianceDeploymentResources(
         DeploymentId computeAccountDeploymentId,
-        DeploymentId serverVpcDeploymentId,
-        DeploymentId rdsVpcDeploymentId,
-        DeploymentId rdsClusterDeploymentId,
+        DeploymentId serverNetworkDeploymentId,
+        DeploymentId databaseNetworkDeploymentId,
+        DeploymentId databaseClusterDeploymentId,
         ApplianceId applianceId)
     {
         return _applianceGenerator.CreateApplianceDeploymentResources(
             computeAccountDeploymentId: computeAccountDeploymentId,
-            serverVpcDeploymentId: serverVpcDeploymentId,
-            rdsVpcDeploymentId: rdsVpcDeploymentId,
-            rdsClusterDeploymentId: rdsClusterDeploymentId,
+            serverNetworkDeploymentId: serverNetworkDeploymentId,
+            databaseNetworkDeploymentId: databaseNetworkDeploymentId,
+            databaseClusterDeploymentId: databaseClusterDeploymentId,
             applianceId: applianceId
         );
     }
@@ -267,9 +267,20 @@ public sealed class TenantTests : BaseEqualityMemberTests<Tenant>
 
     // --- Private helpers ---
 
-    private TenantId GenerateTenantId() => _tenantGenerator.GenerateTenantId();
-    private TenantName GenerateTenantName() => _tenantGenerator.GenerateTenantName();
-    private Appliance GenerateAppliance() => _applianceGenerator.GenerateAppliance();
+    private TenantId GenerateTenantId()
+    {
+        return _tenantGenerator.GenerateTenantId();
+    }
+
+    private TenantName GenerateTenantName()
+    {
+        return _tenantGenerator.GenerateTenantName();
+    }
+
+    private Appliance GenerateAppliance()
+    {
+        return _applianceGenerator.GenerateAppliance();
+    }
 
     private Tenant CreateTenant(
         TenantId tenantId,

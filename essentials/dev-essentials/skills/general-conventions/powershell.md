@@ -1,5 +1,14 @@
 # PowerShell Script Conventions
 
+## Invocation
+
+Invoke `.ps1` scripts via `pwsh` (PowerShell 7+), never the legacy `powershell.exe`
+(Windows PowerShell 5.1). This is more than a style preference — PS 5.1 and PS 7 have
+real semantic differences: different default module versions, different
+`$PSVersionTable`, and some cmdlets behave differently between the two. A script
+written and tested against `pwsh` is not guaranteed to run correctly under
+`powershell.exe`, and vice versa.
+
 ## Script Structure
 
 Every script must include comment-based help at the top:

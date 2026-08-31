@@ -1,11 +1,11 @@
 ---
 name: engineering-discipline
-description: "Engineering discipline rules that override the natural temptation to defer, dismiss, or unilaterally decide. Covers: (a) owning every red signal (tests, lint, compile) in the session without declaring it pre-existing; (b) never making unilateral critical decisions (DI dependency, public signature, contract weakening, test assertion relaxation) not covered by the current spec/plan; (c) never referencing pipeline-internal artifacts (Notes/Tasks/..., §7d, scenario-coverage-gap.md) from shipped code, docs, or commit messages. Apply continuously during implementation, code review, PR-comment processing, and feature-pipeline runs. Triggers on requests like 'implement this spec', 'apply plan', 'fix tests', 'process PR comments', 'write feature code', 'run feature pipeline', or any session where code is being written, reviewed, or committed."
+description: "Engineering discipline rules that override the natural temptation to defer, dismiss, or unilaterally decide. Covers: (a) owning every red signal (tests, lint, compile) in the session without declaring it pre-existing; (b) never making unilateral critical decisions (DI dependency, public signature, contract weakening, test assertion relaxation) not covered by the current spec/plan; (c) never referencing pipeline-internal artifacts (Notes/Tasks/..., §7d, scenario-coverage-gap.md) from shipped code, docs, or commit messages; (d) never using try/catch to silence a red signal in tests or production code; (e) never claiming 'verified'/'confirmed' without solid proof and never padding a report with fake blockers; (f) surfacing overblown or analyzer-dodging code instead of burying it after a green-build summary; (g) completing the user's in-progress refactor direction and honoring 'refactor only' scope instead of reverting to the easier shape. Apply continuously during implementation, code review, PR-comment processing, and feature-pipeline runs. Triggers on requests like 'implement this spec', 'apply plan', 'fix tests', 'process PR comments', 'write feature code', 'run feature pipeline', or any session where code is being written, reviewed, or committed."
 ---
 
 # Engineering Discipline
 
-This skill captures three discipline rules that surface repeatedly in code reviews and post-mortems. They aren't a checklist run once at the end — they're judgment calls you make continuously while writing or reviewing code.
+This skill captures seven discipline rules that surface repeatedly in code reviews and post-mortems. They aren't a checklist run once at the end — they're judgment calls you make continuously while writing or reviewing code.
 
 ## Rule 1 — Own every red signal in your session
 
@@ -61,8 +61,77 @@ How to apply:
 - Before committing, grep the staged diff for `Notes/Tasks`, `§`, `scenario-coverage-gap`, `Stage <N>`, `pipeline-state.json`, `Resolved Q`. Strip every match unless it lives in `Notes/Tasks/<id>/` itself (gitignored, never shipped).
 - When briefing a subagent that writes shipped artifacts (tests, docs, code), include this rule in the prompt so the subagent doesn't paste pipeline cross-references into the diff.
 
-## How these three rules relate
+## Rule 4 — Never use try/catch to silence a red signal
 
-Rule 1 is about not deferring problems. Rule 2 is about not deferring decisions to your own pattern-matching. Rule 3 is about not leaking the deferral structure (the pipeline's own scaffolding) into the output that ships. They share a common spine: *the work is not done until what ships is consistent with what was promised*.
+Never use `try`/`catch` (including a conditional exception filter) to make a red signal disappear — not in tests, not in production code. This includes narrowing or widening an existing catch filter as a "fix"; the correct fix is removing the catch and making the code run cleanly.
+
+If a test needs a mock to behave a certain way so the system under test can run to completion, extend the mock (add the missing behavior to the shared builder/fixture) and assert the real outcome — don't wrap the call in a try/catch that swallows the failure and returns early. When a throw is genuinely the expected outcome, use the test framework's dedicated assertion for it (e.g. a `Throws`/`ThrowsAsync`-style helper) — never a manual try/catch.
+
+Why this is the rule: a swallowed exception makes a test vacuous — it goes green whether or not the code actually works, and an early return inside a catch hides the very regression the test exists to catch. Restricting the catch to "known" exception types doesn't fix this; it just dresses corner-cutting up as rigor, and any later tweak to the filter can silently flip test outcomes in either direction without anyone noticing. This intersects with Rule 1: a run that reports green while a catch is masking a failure is not an owned signal, it's a hidden one.
+
+How to apply:
+
+- If the SUT can't run to the point a test needs, the only fix is extending the mock/fixture — never catching the failure.
+- Expected-exception scenarios use the framework's assertion helper, never a manual try/catch.
+- Never "tune" (narrow or widen) an existing catch filter as a review fix — delete the catch and make the SUT run cleanly instead.
+- Self-audit before claiming a test file done: grep the file for `try`/`catch` — it should come back empty inside every test method body, unless that test is asserting an exception via the framework's own mechanism.
+- The same ban applies to production code: never add or broaden a try/catch merely to make a failing path stop failing.
+- Generalize: any shortcut that makes a red signal disappear without making the code actually work is this crutch — stop and do it properly, or stop and ask (Rule 2).
+
+## Rule 5 — No "verified"/"confirmed" claims without solid proof; no fake blockers
+
+Never state "verified", "confirmed", or "broken"/"breaks" as fact unless it is backed by solid, representative proof: passing tests with verbatim output (a real `Failed: X, Passed: Y, Total: Z` line), or an actual run of the real system. An isolated repro, static reasoning, or a subagent's tracing narrative is not proof. Label a repro-only or reasoning-only conclusion explicitly as a THEORY, not a verified fact, and defer to the user's own observation of the live system when they report one — it is ground truth, not a repro to re-argue against.
+
+Before asserting a load-bearing mechanism claim — something a decision, fix, or bug report depends on (persistence timing, key semantics, call order, reachability) — read the actual two or three key methods yourself; don't relay a research subagent's summary of a load-bearing point verbatim as established fact. Subagent research is fine for breadth and first-pass location, not for the final claim a decision hinges on.
+
+Symmetrically, never manufacture blockers or open questions to pad a report. Check the authoritative design doc or spec first — many "open questions" are already answered there. Classify every candidate item: if it has a sensible default, state the default, take it, and move on; only surface an item as blocking if work genuinely cannot proceed without the user's answer. If nothing blocks, say so in one line.
+
+Why this is the rule: overclaiming (asserting a fix "verified" or a change "confirmed broken") on evidence that never actually exercised the real system burns trust and can talk the user out of a correct change — the user's own live observation is ground truth, not a repro to re-argue against. Underclaiming — padding a report with pseudo-blockers the design doc already settled — wastes the user's review time and buries the one or two items that actually need a decision. Both failures share the same root: asserting a certainty level the underlying evidence doesn't support, in either direction.
+
+How to apply:
+
+- "Verified"/"confirmed"/"broken"/"breaks" require passing-test verbatim output or a real-system run. Anything less gets labeled THEORY.
+- When the user reports a live-system result that contradicts your repro or reasoning, believe them and apply the change — don't re-argue from the repro.
+- Before stating a load-bearing mechanism claim to the user, read the actual methods involved yourself.
+- Before listing any item as an open question or blocker, check the authoritative spec/design doc for an existing answer.
+- Classify each candidate item as "has a sensible default — take it and move on" vs. "genuinely blocks progress"; only the latter goes in the blockers list.
+- Answer the question actually asked; don't expand a narrow question into a survey of the surrounding subsystem.
+
+## Rule 6 — Surface overblown or analyzer-dodging code, don't bury it
+
+When you (or a subagent you dispatched) produce code that grew more complex or larger than the task actually needed — long branching if/else ladders, many optional parameters with inline-branched setup, intermediate variables that exist only to thread state, deeply nested conditions, repeated lines that could collapse into a builder chain — surface that fact to the user in the same response that reports the change, before they discover it themselves. Lead with it; don't bury it after a "tests green" summary.
+
+The same applies when a static-analyzer or linter warning fires mid-implementation (e.g. a method-too-long or cyclomatic-complexity rule) and you make a decision about how to resolve it. Evaluate whether extraction is reasonable: does it map onto a natural sub-unit the plan already implies, without deviating from the chosen design shape? If yes, extract, but still report the extraction. If extraction would deviate from the approved design, don't extract just to dodge the warning — suppress it explicitly (with an inline suppression directive and a comment pointing to a follow-up) and report the suppression as a decision the user needs to see.
+
+Why this is the rule: both silent cosmetic choices — accepting an overblown refactor, and quietly extracting a method just to avoid a diagnostic — are design decisions in disguise. A user who only sees "tests green" has no way to know the shape of the code that shipped, or that a decision about it was ever made. This is the same class of problem as Rule 2 (unilateral critical decisions) applied to something that looks purely cosmetic but isn't.
+
+How to apply:
+
+- After every implementation or refactor turn, scan the diff for hot-spots before responding: methods with many optional params plus branching setup, if/else chains several levels deep, long conditional builder chains, repeated boilerplate, intermediate variables that only thread state. In a multi-stage orchestration, delegate this scan to a subagent; in a single-shot session, scan inline.
+- If you find one, lead the response with it: what grew overblown, why, and at least one simpler shape — don't append it as a footnote after the green-build report.
+- When an analyzer diagnostic fires, cite its rule ID and explicitly decide extract-vs-suppress against the approved design shape, then report that decision to the user in the same turn — never resolve it silently either way.
+- This applies equally to your own inline edits and to a subagent's edits; you own the final shape of the diff regardless of who drafted it.
+
+## Rule 7 — Complete the user's stated direction, don't revert to the easier shape
+
+When the user hands off an in-progress refactor (uncommitted or WIP) and asks you to fix errors or make it compile, complete the direction they started — never make it compile by reverting their in-progress change to the prior, easier-to-compile shape (e.g. reintroducing a singleton they were deliberately removing). If a subagent's edit overwrote the user's uncommitted work, recover it from git's index/stash (e.g. `git show :<path>`, `git restore --worktree <path>`) rather than reconstructing or discarding it from memory.
+
+When the user states that the constraint behind an existing workaround no longer holds ("we did X because Y, and Y is no longer true"), treat the workaround as obsolete and lean toward removing it rather than patching around it further — but removal is still a decision, same class as Rule 2: clarify intent and get the user's explicit go-ahead before deleting the construct and its tests/helpers. Don't keep silently patching a workaround whose premise is gone, and don't silently rip it out either.
+
+When a task is scoped as "refactor only" / "no behavior change," apply the strictest reading: zero observable behavior change, even in cases where a spec or plan elsewhere calls for a broadening or uniformization that would touch behavior. This includes preserving pre-existing asymmetries or awkward behavior that looks "wrong" — fixing it belongs to a different, explicitly-scoped task. If a spec's language conflicts with the refactor-only boundary, flag the tension to the user rather than silently picking one side.
+
+Why this is the rule: the easy-compiling path and the "cleaner" broadened design are both plausible-looking outputs that quietly undo what the user actually asked for — reverting their refactor direction, deleting a workaround without consent, or changing behavior under a "refactor only" label. Each looks like progress (green build, tidier code, more uniform design) while actually discarding the user's stated intent.
+
+How to apply:
+
+- Before "fixing" a broken WIP build, read the user's diff to infer their target design; if genuinely ambiguous, treat the choice as a critical decision (Rule 2) and ask rather than picking the easy-compiling alternative.
+- Recover overwritten uncommitted edits from git's index/stash before reconstructing them from memory.
+- When a stated constraint is gone, propose removing the workaround, but wait for explicit approval before deleting it — removal is a consent checkpoint, not a unilateral move.
+- Under a refactor-only scope, cross-session/behavioral scenarios are forbidden to touch; test changes are limited to mechanical swaps (e.g. mock-target changes when a call moved to a new collaborator) with identical assertions and counts; production-code semantic changes get rolled back even if a spec elsewhere prescribes them — surface the conflict instead of resolving it silently.
+- Verify every "green" claim on WIP fixes with a real, fresh build/test run — a stale IDE diagnostic or a stale binary (`dev-essentials:dotnet-build-test` Rule 2's false-green trap) can mask exactly the regression this rule is trying to prevent.
+
+## How these rules relate
+
+Rule 1 is about not deferring problems. Rule 2 is about not deferring decisions to your own pattern-matching. Rule 3 is about not leaking the deferral structure (the pipeline's own scaffolding) into the output that ships. Rule 4 is the sharpest form of Rule 1's violation — not just deferring a red signal but actively hiding it. Rule 5 is about not overstating or understating certainty in either direction. Rule 6 is Rule 2 applied to decisions that look cosmetic but aren't. Rule 7 is about not letting the path of least resistance quietly override a direction the user already stated. They share a common spine: *the work is not done until what ships is consistent with what was promised*.
 
 If you find yourself writing "I'll just" or "this is fine because", treat that as the trigger to re-read this skill.

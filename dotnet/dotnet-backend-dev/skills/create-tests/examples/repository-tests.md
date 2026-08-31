@@ -1,6 +1,6 @@
 # Repository Tests - BaseRepositoryWithOneKeyTest / BaseRepositoryWithTwoKeysTest
 
-Use repository base classes for integration tests that verify CRUD operations against a real database (Cosmos DB emulator or in-memory).
+Use repository base classes for integration tests that verify CRUD operations against a real database (a document-database emulator or in-memory).
 
 ## Base Classes
 
@@ -160,19 +160,19 @@ public sealed class TenantRepositoryTests<TTestDbContextFactory>
 ```csharp
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class VpcDeploymentResultRepositoryTests<TTestDbContextFactory>
+public sealed class RegionalDeploymentResultRepositoryTests<TTestDbContextFactory>
     : BaseRepositoryWithTwoKeysTest<
         TTestDbContextFactory,
-        IVpcDeploymentResultRepository,
-        VpcDeploymentResultEntity,
-        VpcDeploymentResult,
+        IRegionalDeploymentResultRepository,
+        RegionalDeploymentResultEntity,
+        RegionalDeploymentResult,
         DeploymentId,    // Primary key
         RegionId>        // Alternate key
     where TTestDbContextFactory : ITestDbContextFactory, new()
 {
     private readonly DeploymentGenerator _generator;
 
-    public VpcDeploymentResultRepositoryTests()
+    public RegionalDeploymentResultRepositoryTests()
     {
         _generator = DeploymentGenerator.Instance;
     }
@@ -184,7 +184,7 @@ public sealed class VpcDeploymentResultRepositoryTests<TTestDbContextFactory>
         return _generator.GenerateRegionId();
     }
 
-    protected override RegionId GetAlternateKeyFromEntity(VpcDeploymentResultEntity entity)
+    protected override RegionId GetAlternateKeyFromEntity(RegionalDeploymentResultEntity entity)
     {
         return RegionId.FromValue(entity.RegionId);
     }

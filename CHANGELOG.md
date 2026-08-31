@@ -9,6 +9,119 @@ on a per-plugin basis (see each plugin's `plugin.json` for its current version).
 
 _No changes yet._
 
+## gop-pipeline [1.0.2] — 2026-08-31
+
+### Fixed
+
+- The 8 pipeline agents (`gop-build`, `gop-commit`, `gop-test`, and the five
+  `gop-validate-*` validators) now carry a `description` field in their
+  frontmatter, describing what each does and that it runs as a stage of the
+  `gop-work` pipeline. Removes the 8 `claude plugin validate` warnings about
+  agent frontmatter missing a `description`.
+
+## dev-essentials [2.1.0] — dotnet-backend-dev [1.2.0] — 2026-08-31
+
+Ported and generalized several skills, commands, and rule additions from a
+separate internal iteration of this toolkit — branding and tooling stripped
+or transformed to fit this marketplace's conventions. Includes a full
+fidelity pass that compared every skill, command, and agent against its
+upstream counterpart and restored content the port had silently dropped, plus
+a marketplace-wide de-branding cleanup.
+
+### Added — dev-essentials
+
+- New skills: `audit-personal-conventions` (deep verification of
+  personal/repo-convention drift, with 2 worked examples + 4 reference
+  files), `create-html-artifact` (renders a self-contained HTML report/plan/
+  review file, with 4 reference files), `project-claude-md-preamble` (keeps
+  a project's `CLAUDE.md` preamble self-contained).
+- New commands: `help-review-pr` (end-to-end GitHub PR review producing an
+  HTML artifact, optionally posting findings as review comments),
+  `merge-worktree-projects`, `research-implement-review-report`,
+  `implement-task`, `implement-batch`.
+- `feature-pipeline`: new Stage 2b (`stages/plan-artifact.md`) renders the
+  approved implementation plan as an HTML artifact via `create-html-artifact`
+  for Human Approve #1; anti-bypass gate, archiving gate, and a commit-mode
+  option.
+- `review-loop`: audit-team adapter, a `blocking` finding flag, and an
+  orchestrated mode for large-target reviews (`references/orchestrated-
+  review.md`).
+- `process-pr-comments`: real GitHub thread-resolve wiring plus a resolved/
+  outdated thread filter; `references/thread-state-schema.md`.
+- `engineering-discipline`: Rules 4–7 (try/catch discipline, proof-before-
+  claiming-done, overblown-code guardrail, refactor-scope discipline).
+- `subagent-orchestration`: Rule 3 fix plus new Rules 5–7 and a model-
+  selection matrix.
+- `save-context`: next-session continuation prompt.
+- Additive notes/sections in `create-documentation`, `git-sync`,
+  `git-worktree-management`, `general-conventions` (documentation/
+  PowerShell), and the `task-composer` agent (GitHub sub-issue create flow).
+
+### Added — dotnet-backend-dev
+
+- `create-tests`: `.ApplyIf` mock-builder-param rewrite (single `Create*`
+  helper per dependency takes optional nullable params applied via
+  `.ApplyIf`, replacing the old overload-based pattern) and a new
+  `enforced-gates.md` example.
+- `dotnet-conventions`: additive notes in `ef-patterns.md` and
+  `testing.md`.
+
+### Changed — dev-essentials
+
+- `review-loop`: restored the shipped default configuration the port had
+  dropped — 2 review cycles (not 3), an Opus reviewer and a Sonnet fixer by
+  default, the reviewer's tier plans each fix before the fixer implements it,
+  one commit per round, and merit-based (not label-based) triage. The
+  `research-implement-review-report` and `implement-batch` commands now
+  describe this accurately instead of implying a manual model override.
+- `audit-team`: dropped the non-functional foreground/background `mode`
+  argument (the `Agent` tool has no such mode) in favour of a
+  `subagent-orchestration` Rule 3 cross-reference.
+- `process-pr-comments`: restored the two-stage dispatch model — a read-only
+  classifier stage followed by a judgment-bearing actor stage, with a
+  hand-back to the orchestrating session for `deep-fix` cycles — and the
+  `references/thread-state-schema.md` Stage 1 report contract.
+
+### Fixed
+
+- Fidelity pass — content the initial port silently dropped, restored from the
+  upstream source:
+  - `dotnet-build-test` Rule 2: the `--no-build` stale-referenced-binary
+    caveat (a solution-level build can leave a test project linking an old DLL
+    and report a false-green run), the verbatim-proof reporting gate, and the
+    "warning-count deltas across incremental builds are meaningless" guidance.
+  - `process-pr-comments`: a carried-over unconfirmed-commit-claim thread is
+    auto-resolved only after the human confirms, not on the ancestry check
+    alone; the `[OutOfScope]` issue-creation flow now routes through Task
+    Composer consistently; the "never defer reviewer-stated work without an
+    `[OutOfScope]` tag" safeguard and its forbidden-phrasing list.
+  - `feature-pipeline`: the Project Context Injection rationale, the
+    `{WORKTREE_PATH}` placeholder in the Stage 10 worktree-removal command
+    (had regressed to a hardcoded relative path), the bulk-cleanup trigger
+    phrases and rationale, and a concrete sandboxed-terminal example.
+  - `git-worktree-management`: the "whoever runs this workflow executes it —
+    do not re-delegate" and "bulk removal archives first, then removes
+    per-path" notes.
+  - `github-mcp-conventions`: a rule to verify a created issue relationship
+    actually landed, and a rule to read large PR diffs from local git rather
+    than a token-heavy MCP call.
+  - `create-tests`: a dropped "the same null-argument gate applies to
+    methods" cross-reference, a mixed static/instance test-helper example,
+    and an intro example that used `params` in violation of the skill's own
+    Rule 6.
+  - Smaller restored passages in `opsx-implement`, `implement`,
+    `help-review-pr`, `save-context`, `subagent-orchestration`, `git-sync`,
+    and `engineering-discipline`.
+- Completed de-branding: residual cloud-vendor identifiers (AWS / Azure /
+  Cosmos names) in `dotnet-backend-dev` example code — `create-tests`,
+  `add-migration`, `create-controller`, `model-mapping`, `update-swagger-spec`,
+  `dotnet-conventions/logging.md` — replaced with neutral business nouns; a
+  `DeploymentOptions` type-name collision in a `create-tests` example fixed;
+  remaining "work item" / Azure DevOps terminology across the marketplace
+  replaced with GitHub or provider-neutral equivalents; `save-context`'s
+  OpenSpec tracking-reference bullet made GitHub Issues / Projects specific.
+- `dotnet-build-test` and `task-composer`: broken YAML frontmatter.
+
 ## dev-essentials [2.0.0] — dotnet-backend-dev [1.1.0] — 2026-05-10
 
 ### Added — dev-essentials
@@ -89,7 +202,8 @@ _No changes yet._
 - Repo artifacts: README with install instructions and authoring reference, MIT LICENSE, root `CLAUDE.md` with documentation-first guardrails and repo conventions, this CHANGELOG, and `.gitignore`.
 - Manifest layout: `.claude-plugin/marketplace.json` lists the three plugins; each `plugin.json` declares only metadata (name, version, description, author) and relies on Claude Code's auto-discovery for components at the documented default locations (`skills/`, `commands/`, `agents/`).
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.0...v1.0.1

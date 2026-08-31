@@ -175,6 +175,8 @@ Present the output showing path, branch, and commit hash. Note which entry is th
 
 ## Workflow C: Removing a Single Worktree
 
+**Whoever runs this workflow executes it.** If you were dispatched to remove a worktree, run Steps 1-3 yourself — do not re-delegate the removal to another subagent (see `dev-essentials:subagent-orchestration` Rule 7). Step 1's single PR-status check stays inline too — it's a one-shot, low-volume GitHub MCP call, which `dev-essentials:subagent-orchestration` Rule 4 already exempts from delegation.
+
 ### Step 1: Check PR status before removing
 
 **Default rule:** a worktree must remain alive until its PR has been merged. Before removing, verify:
@@ -192,12 +194,70 @@ Show the worktree path and branch. Ask for explicit yes.
 
 ### Step 3: Remove
 
+**Before attempting removal, archive anything worth keeping** (e.g. `Notes/`
+drafts, task artifacts) to a location outside the worktree. A removal attempt
+can partially succeed — git deregisters the worktree while the residual
+directory tree is left behind in a partially-deleted state — so don't risk
+losing something you meant to keep by archiving only after a failed attempt.
+
 ```bash
 git worktree remove <path>
 git worktree list   # verify removal
 ```
 
-**Never use `rm -rf`.** If removal fails with "Permission denied", IDE file locks are the cause. Report to the user; do not force-remove.
+**Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on
+removal is usually NOT an IDE file lock — work through this diagnosis in
+order:
+
+1. **Step 1 — shell CWD (primary cause, always try first; fixes most cases).**
+   The Bash tool and the PowerShell tool each hold their OWN separate,
+   persistent CWD. If either shell's CWD is still parked inside the worktree
+   being removed (left over from an earlier `cd <worktree> && ...` or
+   `Set-Location <worktree>`, including ones implied by a build/test run),
+   Windows treats the directory as in use and git/`Remove-Item` surface that
+   as `Permission denied` — with no IDE involved at all. Check and move BOTH
+   shells' CWD out before anything else:
+
+   ```bash
+   cd <repo-root>              # Bash
+   ```
+
+   ```powershell
+   Set-Location <repo-root>    # PowerShell
+   ```
+
+   Then retry `git worktree remove <path>` and, if a residual directory
+   remains, a plain `Remove-Item -Recurse -Force <path>` (or `rm -rf <path>`).
+   For short/moderate branch-ref-derived worktree paths this alone succeeds —
+   no long-path workaround needed.
+
+2. **Step 2 — long path (conditional, only if Step 1 didn't fix it).**
+   `<repo-root>/.claude/worktrees/<full-branch-ref>/` plus a deep source tree
+   routinely exceeds Windows' `MAX_PATH` (260 chars), which surfaces as the
+   same `Permission denied`. You MAY try the PowerShell extended-path literal
+   as a first attempt here:
+
+   ```powershell
+   Remove-Item -LiteralPath '\\?\<absolute-worktree-path>' -Recurse -Force
+   ```
+
+   Treat this as CONDITIONALLY available, not guaranteed: this environment's
+   own sandbox/safety layer has been observed to block the `\\?\` literal
+   outright in some sessions. If it's rejected or blocked, don't fight it —
+   fall through to Step 3 immediately.
+
+3. **Step 3 — leaf-first manual walkup (reliable fallback).** Delete the
+   deepest files/directories first and work back up toward the worktree root
+   (e.g. repeated `rmdir` / `Remove-Item` starting from the deepest leaf
+   paths). This avoids needing any single long-path operation on the full
+   nested path at once, so it works even when Step 2 is unavailable.
+
+Shorter branch-ref slugs reduce how often Step 2/3 are needed at all, since
+the worktree path length is derived directly from the branch ref — keep
+slugs tight at creation time (see Workflow A).
+
+Report to the user which step actually fixed it. Do not force-remove past a
+genuine uncommitted-changes refusal.
 
 ---
 
@@ -248,6 +308,8 @@ Proceed with removing the 1 eligible worktree? (yes/no)
 **STOP and wait for explicit confirmation.**
 
 ### Step 4: Remove each eligible worktree
+
+Archive anything worth keeping from each worktree first — Workflow C Step 3 applies per path. Likewise, whoever runs this workflow removes each eligible path itself — Workflow C's Rule 7 note applies per path here too, not just for a single-worktree removal.
 
 ```bash
 git worktree remove <path-1>
@@ -318,7 +380,7 @@ Then work in the recreated worktree. Do not operate from master via `git show <b
 
 **Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
 
-**Permission denied on removal:** IDE has a file lock. Report to the user — never force-remove.
+**Permission denied on removal:** On Windows this is usually NOT an IDE file lock — see the ordered diagnosis in Workflow C Step 3 (shell CWD parked in the worktree is the dominant, self-inflicted cause; Windows long paths are the secondary cause on deep branch refs; leaf-first walkup is the reliable fallback). Work through that diagnosis rather than reporting an IDE lock and stopping. Never blind force-remove.
 
 ---
 

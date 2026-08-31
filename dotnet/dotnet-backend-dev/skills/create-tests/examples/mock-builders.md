@@ -14,9 +14,9 @@ Location: `Tests.Common/Helpers/Mocks/{Feature}/`
 
 ```text
 Mocks/
-├── Aws/
-│   └── Iam/
-│       └── Accounts/
+├── Provisioning/
+│   └── Accounts/
+│       └── Deployments/
 │           └── Repositories/
 │               └── TestAccountDeploymentResultRepositoryBuilder.cs
 ├── Sessions/
@@ -34,11 +34,11 @@ Mocks/
 // Copyright (c) Vasily Vasilyev
 
 using NSubstitute.Core;
-using MyApp.Application.Aws.Iam.Accounts.Repositories;
+using MyApp.Application.Provisioning.Accounts.Deployments.Repositories;
 using MyApp.Sdk.Domain.Deployments;
-using MyApp.Sdk.Domain.Iam.Accounts;
+using MyApp.Sdk.Domain.Accounts;
 
-namespace MyApp.Tests.Common.Helpers.Mocks.Aws.Iam.Accounts.Repositories;
+namespace MyApp.Tests.Common.Helpers.Mocks.Provisioning.Accounts.Deployments.Repositories;
 
 public sealed class TestAccountDeploymentResultRepositoryBuilder
 {

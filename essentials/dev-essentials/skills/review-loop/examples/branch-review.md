@@ -1,12 +1,12 @@
 # Branch Review — End-to-End Worked Example
 
 Feature branch `feature/<username>/tasks/1234567-add-pagination`, 5 commits ahead of `main`,
-touching 4 .NET files. Two rounds, dual reviewer, default `--skip`.
+touching 4 .NET files. Two rounds, dual reviewer, explicit `--skip=medium,low,nit`.
 
 **Invocation:**
 
 ```text
-/review-loop target=branch --rounds=2 --reviewer=dual --base=main
+/review-loop target=branch --rounds=2 --reviewer=dual --base=main --skip=medium,low,nit
 ```
 
 ---
@@ -101,15 +101,19 @@ Skill prints to chat and waits for acknowledgment:
 
 ```
 Round 1 findings:
-  Blocker:  1  (will fix)
-  Critical: 0  (will fix)
-  High:     2  (will fix)
-  Medium:   1  (deferred — --skip medium)
-  Low:      1  (deferred — --skip low)
-  Nit:      0  (deferred — --skip nit)
+  Blocker:  1  (will fix; 1 blocking)
+  Critical: 0  (will fix; 0 blocking)
+  High:     2  (will fix; 2 blocking)
+  Medium:   1  (deferred — --skip medium; 0 blocking)
+  Low:      1  (deferred — --skip low; 0 blocking)
+  Nit:      0  (deferred — --skip nit; 0 blocking)
 
 Proceeding to verify+fix 3 issues. Deferring 2.
 ```
+
+Findings #1–#3 (Blocker/2×High) are each `blocking: true` by default. #4 (Medium) and #5 (Low) are
+`blocking: false` — deferred via the explicit `--skip medium,low` and neither one's text warrants
+elevation.
 
 User replies: `ok proceed`
 
@@ -117,7 +121,16 @@ User replies: `ok proceed`
 
 ## Phase 5 — Verify-then-fix
 
-The fixer subagent (`general-purpose`) classifies all five findings before touching any file.
+**Step 5a — reviewer plans.** The same Opus reviewer subagent that reported the findings is
+dispatched again to propose a fix plan for each fixable finding, grounded in existing patterns:
+for F1, apply `.Skip().Take()` before `.ToListAsync()`, matching the sibling
+`ExternalResourceRepository.cs` pattern; for F2, add `foreach`-over-`List<Action>` negative tests
+per the constructor-null-arg-tests convention; F3 should first be re-verified against
+`BaseWorker.cs`'s `IServiceScopeFactory` usage before any fix is attempted.
+
+**Step 5b — fixer implements.** The fixer subagent (`general-purpose`) classifies all five findings
+before touching any file, implementing against the reviewer's plan rather than deciding its own
+approach from scratch.
 
 **F1 [APPLY]** — Confirmed: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` then
 `.Skip().Take()` on the in-memory result. Known-working EF pattern (sibling service
@@ -229,13 +242,13 @@ Stop verdict: stop-clean
 ### Round 1 (branch diff main...HEAD — 4 files, 224 insertions)
   Found:    1 Blocker, 0 Critical, 2 High, 1 Medium, 1 Low, 0 Nit
   Fixed:    2 (APPLY=1, PARTIAL=1, REJECT=1)
-  Deferred: 2 (per --skip medium,low)
+  Deferred: 2 (per --skip medium,low / merit triage)
 
 ### Round 2 (re-review of fix diff — 2 files)
   Found: 0 issues
   Status: clean
 
-### Deferred items (by severity)
+### Deferred items (by severity; (blocking) = Phase 4 marked it must-fix-before-merge)
   [Medium] 4: Magic literal PageSize=50 repeated in three places — extract to PaginationDefaults
   [Low]    5: Method GetPage should be GetPageAsync (async naming convention)
 
@@ -252,7 +265,7 @@ Stop verdict: stop-clean
 ```
 Cycle 1 — branch diff main...HEAD (4 files, 224 insertions)
   5 findings: 1 Blocker, 0 Critical, 2 High, 1 Medium, 1 Low, 0 Nit
-  Triage: fix=3, deferred=2 (per --skip medium,low,nit)
+  Triage: fix=3, deferred=2 (per --skip medium,low,nit / merit triage)
   Fix verdicts: APPLY=1, PARTIAL=1, REJECT=1
   Build: pass
   Tests: 24 passed, 0 failed, 0 skipped

@@ -109,6 +109,42 @@ Never substitute `gh pr comment`, `curl`, direct REST calls, or any scripting ap
 - "I'll write a shell script using `curl` and the GitHub REST API since the MCP tool isn't working" — no. Ask the user to fix `/mcp`.
 - "Just a quick `gh pr view` since the MCP is slow" — no exceptions.
 
+## Rule 6 — After a create call echoes a relationship, re-read to confirm it landed
+
+When a create call reports that it also established a relationship — `issue_write` with a `parent_issue_number`, or `sub_issue_write` — do not trust the echoed response as proof the link exists. Re-read the relationship from its authoritative endpoint before reporting it as established.
+
+**Why:** the create call's echoed `parent_issue_number`, and the `issue_read` `method: "get"` response's `parent` / `sub_issues_summary` fields, are best-effort summaries the tool may omit or return stale. A same-call parent attach can silently fail to take effect, leaving the new issue with no parent while the create response still shows the requested number. Reporting a link that did not land is worse than reporting none.
+
+**How to apply:**
+
+- After `issue_write` / `sub_issue_write` (or any create whose response echoes a parent/child link), call `issue_read` with `method: "get_parent"` on the new issue and confirm it returns the expected parent.
+- If `get_parent` returns no parent or a different one, the attach did not land. Establish it explicitly with `sub_issue_write` (`method: "add"`), then re-verify with `get_parent`. Do not report the link until a verification read confirms it.
+- `dev-essentials:task-composer`'s `mode: create` workflow already applies this discipline — treat it as the standard for every relationship-creating GitHub MCP call, not something specific to that agent.
+
+**Anti-patterns:**
+
+- "`issue_write` returned `parent_issue_number: 42`, so the sub-issue link is established" — no. Confirm with `get_parent`.
+- "The `get` response has a `parent` field — that is my confirmation" — no. `parent` / `sub_issues_summary` are best-effort and optional; use `get_parent`.
+
+## Rule 7 — Read a PR's diff from local git, not a token-heavy MCP diff call
+
+For anything beyond a small change, do not pull a PR's diff through `pull_request_read` with `method: "get_diff"` or `method: "get_files"`. Read it from local git instead.
+
+**Why:** a large diff response blows up context, and when it exceeds the tool-output limit the harness spills it to a sidecar file that then costs tokens a second time to read back out. Local git is strictly better — cheaper, and you can scope the read to the paths you actually care about.
+
+**How to apply — use local git instead:**
+
+Read the PR's `base` and `head` branch names from `pull_request_read` `method: "get"` (`base.ref` / `head.ref` — plain branch names, no `refs/heads/` prefix to strip), then:
+
+```bash
+git fetch origin
+git diff --stat origin/<base>...origin/<head>
+git diff origin/<base>...origin/<head> -- <path>   # targeted reads
+git log --oneline origin/<base>..origin/<head>
+```
+
+This is not a new pattern: `dev-essentials:review-loop`'s own `target=pr <id>` resolution already fetches and diffs this way — treat it as the existing precedent for reading a PR's changes, not something to reinvent per call site.
+
 ## Tool reference table
 
 Quick map of the most common GitHub MCP tools and their primary use:

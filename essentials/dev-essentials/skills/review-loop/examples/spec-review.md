@@ -9,11 +9,12 @@ validator instead of a compiler.
 ## Invocation
 
 ```text
-/review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team
+/review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit
 ```
 
 Parameters resolved: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`,
-`--fixer=general-purpose` (default), `--skip=medium,low,nit` (default), `--auto-proceed=off`.
+`--fixer=general-purpose` (default), `--skip=medium,low,nit` (explicit — the default is `none`),
+`--auto-proceed=off` (default).
 
 ---
 
@@ -30,8 +31,12 @@ Reading full file... 412 lines loaded.
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer audit-team` → `dev-essentials` plugin installed; dispatches `/audit-team`
-(multi-perspective coverage). `--fixer general-purpose` (default) → resolves without fallback.
+`--reviewer audit-team` → target is `spec <path>`, a documentation path, so the adapter is
+eligible (no fallback). Argument mapping: `<path>` = the resolved `proposal.md` path;
+`--audit-team-args` is unset, so `[agent-count]` fills with `/audit-team`'s own default (`5`);
+`--reviewer-model` is `opus` (this skill's own default for the flag), so it is forwarded as
+`/audit-team`'s `[model]` positional — the dispatch is `/audit-team proposal.md 5 opus`. `--fixer
+general-purpose` (default) → resolves without fallback.
 
 ---
 
@@ -48,7 +53,11 @@ Reviewer brief (from `references/reviewer-briefs.md` §`spec <path>`, paraphrase
 >
 > **Not in scope:** code quality; checking whether an implementation matches this spec.
 
-`audit-team` returns four findings:
+`audit-team` returns four findings (mapped from its Blockers/Warnings/Suggestions buckets per
+Phase 2's adapter — items 1–2 were `Blockers`, with item 2 re-graded down to Critical because the
+underlying contradiction is a logic defect rather than an implementation-blocking gap, items 3–4
+`Warnings`, with item 4 re-graded down to Medium because it flags a non-normative "should" rather
+than a defect):
 
 | # | Severity | Type | Location | What's wrong |
 |---|---|---|---|---|
@@ -65,15 +74,18 @@ Review made by `claude-opus-4-7`
 
 ```
 Round 1 findings:
-  Blocker:  1  (will fix)
-  Critical: 1  (will fix)
-  High:     1  (will fix)
-  Medium:   1  (deferred — --skip medium)
-  Low:      0  (deferred — --skip low)
-  Nit:      0  (deferred — --skip nit)
+  Blocker:  1  (will fix; 1 blocking)
+  Critical: 1  (will fix; 1 blocking)
+  High:     1  (will fix; 1 blocking)
+  Medium:   1  (deferred — --skip medium; 0 blocking)
+  Low:      0  (deferred — --skip low; 0 blocking)
+  Nit:      0  (deferred — --skip nit; 0 blocking)
 
 Proceeding to verify+fix 3 issues. Deferring 1.
 ```
+
+Findings #1–#3 are the Blocker/Critical/High set — each `blocking: true` by default. #4 (Medium,
+deferred via the explicit `--skip medium`) is `blocking: false`; nothing about its text elevates it.
 
 Waiting for user acknowledgment... user replies "proceed".
 
@@ -167,9 +179,9 @@ Stop verdict: stop-max-rounds
 ### Round 1 (spec: openspec/changes/2026-05-08-add-tenant-quotas/proposal.md)
   Found:    1 Blocker, 1 Critical, 1 High, 1 Medium, 0 Low, 0 Nit
   Fixed:    3 (APPLY=3, PARTIAL=0, REJECT=0)
-  Deferred: 1 (per --skip medium)
+  Deferred: 1 (per --skip medium / merit triage)
 
-### Deferred items (by severity)
+### Deferred items (by severity; (blocking) = Phase 4 marked it must-fix-before-merge)
   [Medium] #4: §2 "Overview" — "should typically" leaves enforcement layer undefined
 ```
 

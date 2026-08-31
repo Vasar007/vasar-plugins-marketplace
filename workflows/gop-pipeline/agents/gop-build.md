@@ -1,4 +1,5 @@
 ---
+description: Build stage of the GOP pipeline (the `gop-work` skill). Verifies the code compiles after implementation — builds affected projects first, falls back to a full solution build when shared infrastructure changed, and self-heals trivial build breaks within a bounded retry budget. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Edit, Bash, Glob, Grep]
 ---

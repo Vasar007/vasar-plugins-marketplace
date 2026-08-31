@@ -67,21 +67,26 @@ the ambiguity instead of guessing.
    git status
    ```
 
-   All implementation, test, and doc changes should be staged. If there are
-   unstaged changes that look intentional, stage them. If there are untracked
-   files that look like artifacts (logs, coverage reports), do NOT stage them.
+   - **`finalization` mode (default)**: all implementation, test, and doc
+     changes should be staged. If there are unstaged changes that look
+     intentional, stage them. If there are untracked files that look like
+     artifacts (logs, coverage reports), do NOT stage them.
+   - **`per-step` mode**: `git status` should be clean apart from untracked
+     artifacts (e.g. under `{ARTIFACTS_DIR}/`) — every source change should
+     already be committed by earlier stages. If it is not clean, STOP and
+     report which files are uncommitted rather than committing them here.
 
-### Step 3: Create Commit
+### Step 3: Create Commit (finalization-commit mode only)
 
-Infer the commit title convention from repository context.
+**In `per-step` mode, skip this step entirely and proceed to Step 4** — every
+commit was already created incrementally by earlier stages.
 
-Rules for the commit message:
+Commit-message formatting is provided via the injected `<commit-conventions>`
+block above — follow it exactly; do not invent your own format.
 
-- Summary should describe WHAT was done, not HOW
-- Body should explain WHY (from `requirements.md` Task Summary)
-- NEVER use `--no-verify`
-- If hooks fail: fix the issue and create a NEW commit (do not amend)
-- If the repo appears not to use multi-line commit bodies, adapt accordingly
+Stage-specific content sourcing: draw the body's WHY from `requirements.md`
+Section 1 (Task Summary), expressed in production-engineering terms only (the
+injected block's no-pipeline-internal-references rule governs the wording).
 
 ### Step 4: Push Branch
 
@@ -131,13 +136,17 @@ Return the final outcome as your final output:
 
 ## Rules
 
-- NEVER force-push or use `--no-verify`
-- NEVER amend commits — create new ones if needed
+- NEVER force-push, and never pass `--no-verify` to `git push`
+- NEVER amend or `--no-verify` a commit — see the injected
+  `<commit-conventions>` block
 - NEVER push directly to the inferred default branch
 - NEVER create a PR against an unsafe or guessed base branch
 - NEVER include `{ARTIFACTS_DIR}/` pipeline artifacts in the commit — these are
   local to the project and should not be pushed unless the repository explicitly
   tracks them as normal source artifacts
+- NEVER reference `{ARTIFACTS_DIR}/...` paths, artifact section numbers, or
+  review-finding IDs in the commit message itself — see the injected
+  `<commit-conventions>` block
 - If ANY step fails (tests, lint, push, PR creation, workflow inference): STOP
   and report the failure. Do not attempt workarounds
 
@@ -145,7 +154,9 @@ Return the final outcome as your final output:
 
 Your work is done when:
 
-1. A clean commit exists with a credible repository-appropriate message format
+1. In `finalization` mode: a clean commit exists with a credible
+   repository-appropriate message format. In `per-step` mode: `git status`
+   was clean at Step 2 and no new commit was created by this stage
 2. The branch is pushed if the repository uses remote branch workflows
 3. A PR is open if the repository clearly uses a PR workflow and the command
    could be inferred safely

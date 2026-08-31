@@ -164,6 +164,8 @@ performance, DI lifetime, contract breaks, test coverage) to the provided diff r
 No implicit coherence check beyond the supplied range. If `<RANGE>` is a subset of a larger
 branch, you are not expected to check commits outside it.
 
+Apply common rules.
+
 ---
 
 ## `file <path>` — Full file review (not a diff)
@@ -308,5 +310,9 @@ and print a warning naming the unrecognized ones.
 
 ### `--audit-team-args <...>`
 
-When `--reviewer audit-team`, append `<...>` verbatim to the `/audit-team` invocation. When
-`--reviewer` is not `audit-team`, this arg is ignored (Phase 2 prints a warning).
+When `--reviewer audit-team`, append `<...>` verbatim to the `/audit-team` invocation, after the
+`<path>` positional Phase 2 supplies. When `--reviewer` is not `audit-team`, this arg is ignored
+(Phase 2 prints a warning). `audit-team` itself is valid only on documentation-path targets — see
+SKILL.md Phase 2 for the full adapter: target restriction, positional/argument mapping (where a
+user-supplied `[agent-count]` or `[model]` always wins), and the 3-bucket → 6-severity output
+mapping.

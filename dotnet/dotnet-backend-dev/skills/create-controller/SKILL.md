@@ -35,7 +35,7 @@ Controller implementations mirror swagger.json structure:
 
 - `/api/v1/workload-tenants` → `Controllers/Workload/Tenants/TenantsControllerImpl.cs`
 - `/api/v1/backend-organizations` → `Controllers/Backend/Organizations/OrganizationsControllerImpl.cs`
-- `/api/v1/aws/regions` → `Controllers/Aws/Regions/AWSRegionsControllerImpl.cs`
+- `/api/v1/deployments/regions` → `Controllers/Deployments/Regions/RegionsControllerImpl.cs`
 
 ## Controller Implementation Structure
 

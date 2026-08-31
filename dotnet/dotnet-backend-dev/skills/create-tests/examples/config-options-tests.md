@@ -81,7 +81,7 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
         VerifyResultOfFailedValidationForSeveral(
             results,
             nameof(DeploymentOptions.Appliance.AppDeployment.InstanceKeyPairName),
-            nameof(DeploymentOptions.Infrastructure.VpcCidrBlock),
+            nameof(DeploymentOptions.Infrastructure.NetworkCidrBlock),
             nameof(DeploymentOptions.Elasticsearch.CloudId),
             nameof(DeploymentOptions.Elasticsearch.ApiKey)
         );
@@ -182,15 +182,15 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
                     InstanceKeyPairName = "my-key-pair",
                     ElasticCloudAgentSecretName = "elastic-agent-secret",
                 },
-                Deployment = new DeploymentOptions
+                SecondaryDeployment = new SecondaryDeploymentOptions
                 {
-                    InstanceKeyPairName = "app-key-pair",
-                    ElasticCloudAgentSecretName = "app-elastic-secret",
+                    InstanceKeyPairName = "secondary-key-pair",
+                    ElasticCloudAgentSecretName = "secondary-elastic-secret",
                 },
             },
             Infrastructure = new InfrastructureDeploymentOptions
             {
-                VpcCidrBlock = "10.0.0.0/16",
+                NetworkCidrBlock = "10.0.0.0/16",
             },
             Elasticsearch = new ElasticsearchOptions
             {

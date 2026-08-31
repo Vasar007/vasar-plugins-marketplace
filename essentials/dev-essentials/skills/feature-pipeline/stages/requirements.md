@@ -42,7 +42,7 @@ this task.
      linked context, and any additional provider metadata available for this task
 
 2. **Linked tasks (recursive, on-demand)**
-   - Check if the task has linked/related work items (parent, child, related,
+   - Check if the task has linked/related items (parent, child, related,
      predecessor, etc.) via the task provider MCP server
    - For each linked task: fetch its title, description, and status
    - Use linked tasks to understand broader context — e.g. a parent epic may

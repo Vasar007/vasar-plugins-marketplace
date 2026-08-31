@@ -7,7 +7,6 @@ Read before replying to any comment carrying an automated review header (e.g., `
 Any comment whose first non-empty line (or title) contains one of:
 
 - `AI Code Review`
-- `AIR` (as a standalone marker or short tag)
 - `copilot:review` or similar GitHub Copilot review header
 - A header/section that introduces the comment as coming from an automated review bot
 
@@ -15,7 +14,7 @@ If uncertain, err on the side of treating it as an automated review — the extr
 
 ## Verification checklist
 
-Run every step in order. Do not short-circuit, even for obviously trivial-looking notes.
+Run every step in order — do not skip straight to a verdict without reading the code and widening the lens first, even for obviously trivial-looking notes. Once a verdict and confidence are assigned, SKILL.md Phase 3b's obviousness test decides whether this note qualifies for the implement-and-reply path instead of the draft-and-ping path below; that test is a gate on WHAT HAPPENS AFTER verification, not a license to skip verification itself. Note the test's bar: a `valid`/`valid-but-narrow` finding is implemented directly unless the right fix would mean **rewriting the target from scratch or a redesign of equivalent magnitude** — size, file count, and less-than-high confidence do not divert a finding to the draft path. When the right fix DOES hit that bar, the exception's fall-through has a second exit: if `deep-fix=<threadId>` names this thread, it routes to Stage 3 (`SKILL.md` § "Dispatch model" and Phase 4's "Stage 3 — `deep-fix` brief and outcomes") instead of the draft-and-ping path below — SKILL.md Phase 3b step 5's second exit. The three non-actionable verdicts (`needs-clarification` / `false-positive` / `not-applicable`) stay ineligible for either path — there is no fix to implement, draft, or route.
 
 ### 1. Re-read the actual code
 
@@ -77,7 +76,7 @@ Use exactly one of:
 | `medium` | Verdict supported by code reading; tests or invariants unclear or partial.                                                       |
 | `low`    | Verdict is a reasonable lean but depends on intent not visible to Claude. Treat the draft as a starting point, not a conclusion. |
 
-Low confidence is a signal, not a failure. It tells the human the draft needs human judgement more than verification.
+Low confidence is a signal, not a failure, and it is **not** a stop. On a `valid`/`valid-but-narrow` finding it does not divert to the draft path — per SKILL.md Phase 3b step 5, the fix is implemented anyway and the uncertainty is stated as an explicit question in the reply and in the chat report ("ask AND fix"). What confidence tells the human is how much of the reply is judgement rather than verified fact.
 
 ## Draft reply templates
 
@@ -146,10 +145,22 @@ Confidence: high | medium | low.
 *Draft pending author confirmation.*
 ```
 
+### Implemented fix — the default path for a valid finding
+
+Used whenever `verdict` is `valid` / `valid-but-narrow` AND SKILL.md Phase 3b's obviousness test passes — the DEFAULT path for a valid finding, not a narrow fast lane. Size and file count are irrelevant to it, and `medium`/`low` confidence uses this same template with the open question appended to the body. This is the same "Implemented fix" template SKILL.md uses for `[ToFix]` — reused verbatim rather than invented here:
+
+```text
+**[AI]** **[[T#<commentId>](<html_url>)]**
+
+Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.
+```
+
+No `[AI][Draft]` prefix and no draft-pending line on this path — the fix is already committed, not proposed.
+
 ## Hard rules
 
-- Never auto-implement an automated review fix, even with `verdict=valid` and `confidence=high`. A human must approve in chat or in the thread first.
-- Never post the reply without the `**[AI][Draft]**` prefix and the closing draft-pending line.
+- **Implementing an automated-review fix directly requires BOTH `verdict` in `valid`/`valid-but-narrow` AND passing SKILL.md Phase 3b's obviousness test.** What that test actually rules out is narrow: a fix reaching outside the current PR's diff, a fix that introduces a genuinely new architecture or public contract, and a fix that would mean rewriting the target from scratch (or an equivalently fundamental redesign with no codebase precedent and no basis for choosing between several ways to build it). It does **not** rule out multi-file fixes, threading a field through a schema, tightening an already-stated rule, closing a gap in existing logic, or a `confidence: medium`/`low` verdict — those are implemented, with any uncertainty about the approach stated as a question in the same reply. Only when the test's rewrite-from-scratch exception applies does a human have to approve in chat or in the thread before any edit — or, if `deep-fix` names this thread, route it through `/research-implement-review-report` instead of waiting on chat/thread approval (SKILL.md Phase 3b step 5's second exit). Verdicts `needs-clarification` / `false-positive` / `not-applicable` are never eligible for either the direct-implement path or `deep-fix` — there is no actionable fix in those cases, `deep-fix` or not.
+- Every **draft** reply (the draft templates above) must carry the `**[AI][Draft]**` prefix and the closing draft-pending line. The "Implemented fix" reply above is a completed action, not a draft, and intentionally does not carry either.
 - Never truncate the rationale — the reviewer should see the reasoning that led to the verdict, not just the verdict.
 - If verification uncovers a DIFFERENT issue adjacent to the bot's concern (genuine bug, missed null case), do NOT silently broaden the reply. Surface the secondary finding in chat to the human and ask whether to mention it in the thread.
 

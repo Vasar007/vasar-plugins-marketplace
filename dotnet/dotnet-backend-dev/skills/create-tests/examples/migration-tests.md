@@ -21,7 +21,7 @@ Migration tests MUST use `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeC
 
 - DbContext comes from DI container (via `IMigrationContext`)
 - Migration engine retrieves services from `IServiceProvider`
-- Must test against InMemory, SQLite, and Cosmos emulator
+- Must test against InMemory, SQLite, and the document-database provider
 
 ```csharp
 [TestFixture]
@@ -53,7 +53,7 @@ private ServiceProvider SetupServiceProvider()
     var services = new ServiceCollection();
     services.AddLogging();
     services.AddHttpClientWithOptions();
-    services.AddSharedAzureServices();
+    services.AddSharedInfrastructureServices();
     services.AddSharedDomainServices();
     services.AddPersistenceServices();
 
@@ -63,7 +63,7 @@ private ServiceProvider SetupServiceProvider()
         options.ProviderType = databaseOptions.ProviderType;
         options.InMemory = databaseOptions.InMemory;
         options.Sqlite = databaseOptions.Sqlite;
-        options.AzureCosmos = databaseOptions.AzureCosmos;
+        options.DocumentDb = databaseOptions.DocumentDb;
     });
 
     services.AddDbContextWithConfiguredOptions<ServiceDbContext>();
@@ -225,7 +225,7 @@ public async Task ExecuteAsync_ShouldMigrateGenerateAndApplicationRecords()
     {
         account.Id.Should().NotBeEmpty();
         account.AccountId.Should().NotBeNullOrWhiteSpace();
-        account.IamRoleName.Should().NotBeNullOrWhiteSpace();
+        account.RoleName.Should().NotBeNullOrWhiteSpace();
     }
 
     // Verify legacy records were removed.
@@ -450,7 +450,7 @@ public async Task ExecuteAsync_ShouldMigrateRealProductionData()
         {
             account.Id.Should().NotBeEmpty();
             account.AccountId.Should().NotBeNullOrWhiteSpace();
-            account.IamRoleName.Should().NotBeNullOrWhiteSpace();
+            account.RoleName.Should().NotBeNullOrWhiteSpace();
         });
     }
 
@@ -479,7 +479,7 @@ private async Task<ProductionMigrationResult> RunMigrationWithProductionDataAsyn
         TestContext.CurrentContext.WorkDirectory,
         "Persistence",
         "Migration",
-        "CloudFormation",
+        "CloudResources",
         "Templates",
         jsonFileName
     );
@@ -604,7 +604,7 @@ private static JsonString SerializeToJsonString<TValue>(TValue? value)
 - [ ] Partial migration (some records succeed, others fail)
 - [ ] Legacy data removal (if applicable)
 - [ ] Production data testing (if available)
-- [ ] All database providers (InMemory, SQLite, Cosmos via TestFixtureSource)
+- [ ] All database providers (InMemory, SQLite, document database via TestFixtureSource)
 
 ## Common Assertions
 

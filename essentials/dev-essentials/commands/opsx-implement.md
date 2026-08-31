@@ -60,11 +60,16 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
    - Use skills from `.claude/` folder for appropriate actions (e.g., `create-domain-model`, `create-tests`, etc.).
    - Mark each task complete in `tasks.md` as you finish it: `- [ ]` → `- [x]`
    - Keep OpenSpec artifacts in sync — if you discover inconsistencies or issues, update the relevant artifacts (specs, design, tasks).
+   - Once this change is approved and its behavior is implemented, the canonical/living spec lives
+     under `openspec/specs/` — update it there, in place. Do not retroactively back-fill completed
+     work into the `openspec/changes/<name>/` folder after the fact: that folder is the transient
+     proposal/staging area for work not yet merged into the living spec, not a permanent record.
+     (A team convention, not something the OpenSpec tooling enforces.)
 
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase:
-   - Stage all changed files relevant to the phase (use `git add` with specific file paths).
+   - Stage the files relevant to that phase by explicit path — never `git add -A`/`.`.
    - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
      - If the plan has no phases, use: `Task X - brief description`
      - If no task numbering either, use: `brief description of changes`
@@ -76,6 +81,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
    After completing the selected phases (or if stopping due to a blocker), save session context by following the `/save-context` command logic with `--change "<name>"`.
    - If `--context <path>` was specified, save to that path; otherwise fallback to `Notes/Results/<change-name>-research.md`
    - Include: what was done, decisions made, issues found, what's next.
+   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
 7. **Output results**
 

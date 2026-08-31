@@ -1,4 +1,5 @@
 ---
+description: Finalization stage of the GOP pipeline (the `gop-work` skill). Stages, commits, and pushes the current working-tree changes, excluding `CLAUDE.md` and plan files, and behaves identically in a regular clone or a git worktree. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob]
 ---

@@ -62,6 +62,8 @@ Before writing any code:
 2. Use the full test command from the Project Context to establish a baseline
    (if one is available).
    - If tests are already failing, note which ones
+   - You must not make these worse, and you must not fix pre-existing failures
+     unless `spec.md` says to
    - Do not silently absorb pre-existing failures into the implementation
      diff — surface them to the master agent (per
      `dev-essentials:engineering-discipline` Rule 1) and ask whether to
@@ -99,6 +101,13 @@ Follow `spec.md` Section 4 (Execution Order) linearly. For each step:
      the relevant test file path
    - Otherwise if a full test command is available, run that
    - Otherwise report the absence of an automated test workflow explicitly
+6. **Commit (per-step mode only)** — if `{COMMIT_MODE}` is `per-step`, once
+   this step's build and tests are green, commit exactly the files this step
+   touched (explicit `git add <path>`, never `-A`/`.`). In `finalization` mode
+   (default), skip this — only stage, per Phase 5 below.
+
+   Commit-message formatting is provided via the injected `<commit-conventions>`
+   block above — follow it exactly; do not invent your own format.
 
 **If a test fails:**
 
@@ -138,6 +147,11 @@ Address each one:
    - Make the minimal fix that resolves the issue
    - If the fix requires a new test, write it
    - Run the affected test scope to verify
+   - **Per-step mode**: one commit per fixed finding — once this fix is
+     green, commit it (explicit `git add <path>`, never `-A`/`.`), following
+     the injected `<commit-conventions>` block. This is the authoritative
+     granularity for Human Approve #2 fix-round commits (mirrors Phase 3's
+     per-spec-step granularity)
 3. Do NOT address items marked as Warnings or Suggestions — only Blocking.
 4. After all blocking issues are resolved, run the full test command from the
    Project Context again.
@@ -159,14 +173,22 @@ After all steps are complete:
    - For each Must criterion, confirm there is a passing test for it
    - If any Must criterion lacks a test, write one
 
-4. Stage all changes (do NOT commit — the Finalization agent handles commits):
+4. Stage or commit changes, depending on `{COMMIT_MODE}`:
 
-   ```bash
-   git add <specific-files-you-changed>
-   ```
+   - **`finalization` mode (default)**: stage all changes (do NOT commit —
+     the Finalization agent handles the single commit):
 
-   Never use `git add -A` or `git add .` — only add files you intentionally
-   modified or created.
+     ```bash
+     git add <specific-files-you-changed>
+     ```
+
+     Never use `git add -A` or `git add .` — only add files you intentionally
+     modified or created.
+
+   - **`per-step` mode**: everything should already be committed
+     incrementally (Phase 3 step 6, Phase 4 step 2). Verify via `git status`
+     that nothing remains uncommitted; if something does, commit it now with
+     the same per-step discipline (explicit `git add <path>`, never `-A`/`.`).
 
 ## Rules
 
@@ -179,7 +201,10 @@ After all steps are complete:
   defined in `spec.md` — they were approved by the human
 - DO NOT add comments, docstrings, or type annotations to code you did not
   change — only touch what the spec requires
-- DO NOT commit changes — only stage them. The Finalization agent commits
+- Commit behavior is mode-conditional: in `finalization` mode (default), DO
+  NOT commit — only stage; the Finalization agent creates the single commit.
+  In `per-step` mode, commit each green step/fix incrementally, following
+  the injected `<commit-conventions>` block
 - USE existing mock utilities and test patterns from the codebase — do not
   invent new patterns unless `test-plan.md` explicitly calls for it
 - RESPECT project-wide constraints from the Key Conventions section of the
@@ -196,5 +221,6 @@ Your work is done when:
    explicitly
 4. The lint command passes, or the absence of such a workflow is reported
    explicitly
-5. All changes are staged (not committed)
+5. All changes are staged (not committed) in `finalization` mode, or
+   committed incrementally per step/fix in `per-step` mode — see `{COMMIT_MODE}`
 6. No spec signatures or architectures were altered

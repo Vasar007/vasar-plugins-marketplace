@@ -6,11 +6,10 @@ Launch a team of agents to review artifacts/designs from multiple professional p
 
 **Arguments**: $ARGUMENTS
 
-- Format: `<path> [agent-count] [model] [mode]`
+- Format: `<path> [agent-count] [model]`
 - `path` — file or folder to review (required). If not provided, use **AskUserQuestion** to ask.
 - `agent-count` — number of agents (optional, default: 5). Maps to roles below.
 - `model` — model to use for agents (optional, default: current model).
-- `mode` — agent launch mode (optional, default: `foreground`). Values: `foreground` (actively wait for each agent), `background` (launch all in background).
 
 If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
 
@@ -59,9 +58,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    6. Present your final findings with your role clearly stated at the top.
    ```
 
-   **Launch mode:**
-   - `foreground` (default): Launch all agents in a single message (parallel tool calls), then actively wait for all results. This prevents hang issues.
-   - `background`: Launch all agents with `run_in_background: true`.
+   **Launch:** launch all agents in a single message so they run concurrently, then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).
 
 3. **Consolidate results**
 

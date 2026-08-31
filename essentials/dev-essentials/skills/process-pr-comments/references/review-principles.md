@@ -15,7 +15,7 @@ The skill replies to reviewers *on behalf of the author*. Every reply is part of
 
 ### 1. Respect the scope of the review
 
-Never edit lines outside the PR's changelist, even when a reviewer's comment hints at a wider fix. If the right fix would touch untouched lines, draft it, surface to the human, and offer to open a follow-up PR or work item.
+Never edit lines outside the PR's changelist, even when a reviewer's comment hints at a wider fix. If the right fix would touch untouched lines, draft it, surface to the human, and offer to open a follow-up PR or issue.
 
 Applies to: every tagged comment. Reject "just while I'm here" expansions.
 
@@ -95,7 +95,7 @@ If the explanation genuinely needs more, put the detail in chat for the human, a
 - **Stacking principles** — citing three principles to justify one small change signals insecurity. Pick the most relevant one.
 - **Apology padding** — "sorry for the confusion, my bad, I should have…". Remove entirely; state the fix or reasoning.
 - **Unsolicited improvements** — making code changes outside the reviewer's comment "while you're at it" bloats the PR and violates scope.
-- **Claiming resolution** — the author (or Claude on their behalf) never says "resolved". The reviewer decides.
+- **Narrating resolution in reply text** — the reply body states what was done (fixed, committed, pushed); it does not also say "resolved" or "this is done now" as prose layered on top. The mechanical resolve action (SKILL.md Phase 4, fired only once the fix's push has actually landed) is what makes a thread resolved — GitHub's own thread state carries that signal, not the reply's wording. For threads the skill deliberately leaves open (see SKILL.md Phase 4 "Never resolve"), avoid implying resolution at all.
 
 ## Quick sanity check before posting a reply
 
@@ -103,7 +103,7 @@ If the explanation genuinely needs more, put the detail in chat for the human, a
 2. Is it phrased as a statement or request, not a command?
 3. If it contains judgement, does it cite a principle or a verifiable anchor?
 4. Is it ≤ 3 short lines (unless the reviewer asked for depth)?
-5. Does it avoid claiming the thread is resolved?
+5. Does it avoid narrating resolution in the reply text itself (letting the mechanical resolve action carry that signal instead)?
 6. Is the `[AI]` / `[AI][Draft]` marker present?
 
 If any answer is "no", rewrite the reply before posting.
