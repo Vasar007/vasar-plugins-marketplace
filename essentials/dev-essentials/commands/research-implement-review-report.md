@@ -61,7 +61,7 @@ a neighbour:**
 | `--base=<branch>` | ask | Target/base branch to branch (or create a worktree) from. If neither this flag nor a base branch named in prose (e.g. "... from release/2.0") is present in $ARGUMENTS, use the **AskUserQuestion** tool to ask which branch to base this off — never assume `main`/`master`/`develop`. See Phase 0. |
 | `--branch-prefix=<prefix>` | derive from context, else ask | Branch-name prefix for Phase 0's task-branch naming (`<branch-prefix>/tasks/<ID>-<short-description>`, etc.). Default: derive it from the invoking session's own established branch-naming convention if stated anywhere accessible (a project's own CLAUDE.md, or the user's global CLAUDE.md); if none is found, ask the user once per run before creating the branch. |
 | `--commit-mode=<per-phase\|single>` | `per-phase` | `per-phase`: one commit after Phase 2 (Implement) completes, then Phase 3's own per-round commits. `single`: run every phase and every review round exactly the same way, but squash the whole run into **one commit at the end** — see "Commit cadence" below. |
-| `--rounds=<N>` | `2` | Review-loop cycles. Forwarded to `dev-essentials:review-loop` as `--rounds`, overriding that skill's own default (`3`). |
+| `--rounds=<N>` | `2` | Review-loop cycles. Forwarded to `dev-essentials:review-loop` as `--rounds`. |
 | `--context=<path>` | auto | Prior research/handoff file to load instead of (or in addition to) fresh research. Same resolution as `dev-essentials:implement`'s `--context`. **Repeatable** — pass it more than once to load several files (e.g. a wrapper's generated context document plus the user's own); every path given is read, none displaces another. |
 | `--skip-research` | off | Skip Phase 1 entirely (e.g., resuming a session where the plan already exists and is current). Phase 2 still loads `--context` if given. |
 
@@ -201,18 +201,13 @@ Invoke `dev-essentials:review-loop` against what Phase 2 produced
 (`target=branch` in the common case; `target=diff <range>` if only part of
 the working tree should be reviewed) — do not reimplement any of its
 mechanics (reviewer dispatch, triage, verify-then-fix, re-review) here; that
-skill already owns them. Pass only what is this command's own — the skill's
-shipped defaults cover everything else:
+skill already owns them — including its own default configuration (2 cycles,
+one Opus reviewer, one Sonnet fixer with Opus planning each fix, a commit per
+cycle, and nothing auto-deferred by severity label), which is exactly what
+this command wants. There is nothing to override; pass only what is this
+command's own:
 
-- `--rounds=<N>` from this command's `--rounds` (default `2`), overriding
-  the skill's own default of `3`.
-- Everything else uses `dev-essentials:review-loop`'s own defaults as
-  shipped: `--reviewer=audit-team` (which falls back to `general-purpose`
-  with a warning on a non-documentation target such as `target=branch` or
-  `target=diff` — expected here, not an error), `--fixer=general-purpose`,
-  `--skip=none` (nothing auto-deferred by severity label — every finding
-  reaches merit-based triage instead), and a commit per cycle. Do not
-  override any of these unless the user asks for a specific reviewer/fixer.
+- `--rounds=<N>` from this command's `--rounds` (default `2`).
 - Findings the user and the orchestrating session agree to genuinely defer
   are still recorded as deferred in Phase 4's report.
 - See "Commit cadence" below for how the loop's own per-round commits

@@ -34,8 +34,8 @@ Reading full file... 412 lines loaded.
 `--reviewer audit-team` → target is `spec <path>`, a documentation path, so the adapter is
 eligible (no fallback). Argument mapping: `<path>` = the resolved `proposal.md` path;
 `--audit-team-args` is unset, so `[agent-count]` fills with `/audit-team`'s own default (`5`);
-`--reviewer-model` is `inherit` (this skill's own default for the flag), so the `[model]`
-positional is omitted entirely — the dispatch is `/audit-team proposal.md 5`. `--fixer
+`--reviewer-model` is `opus` (this skill's own default for the flag), so it is forwarded as
+`/audit-team`'s `[model]` positional — the dispatch is `/audit-team proposal.md 5 opus`. `--fixer
 general-purpose` (default) → resolves without fallback.
 
 ---

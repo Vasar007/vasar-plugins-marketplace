@@ -45,7 +45,7 @@ pass.
 | `--base=<branch>` | ask | Target/base branch this work branches from. If neither this flag nor a base branch named in prose (e.g. "target branch is release/2.0") appears in $ARGUMENTS, use the **AskUserQuestion** tool to ask — never assume `main`/`master`/`develop`. |
 | `--worktree=<branch-ref>` | ask or derive | Branch ref for the worktree all N tasks share. Use the value given here, or one named in prose in $ARGUMENTS, verbatim. Otherwise derive `<prefix>/<parent-type>s/<parent-ID>-<slug>` from the branch-naming convention documented in the repo's or the user's `CLAUDE.md`, and **ask once** if no convention is documented. |
 | `--plan-dir=<path>` | `Notes/Plans/` | Directory (inside the worktree) for the per-task plan files. The repo's own documented plan location wins over this default. |
-| `--rounds=<N>` | `2` | Review-loop cycles, forwarded to `dev-essentials:review-loop` as `--rounds` for every loop this command runs (plan loops, per-task code loops, and the final cross-task loop), overriding that skill's own default (`3`). |
+| `--rounds=<N>` | `2` | Review-loop cycles, forwarded to `dev-essentials:review-loop` as `--rounds` for every loop this command runs (plan loops, per-task code loops, and the final cross-task loop). |
 | `--push` | off | Push the finished stack after the final report. **Off by default and off unless the user asks for it in this invocation** — the default contract is commit locally, report, and wait for the user's review. |
 
 ## Subagent dispatch
@@ -269,16 +269,12 @@ Every review loop this command runs — the Step 2 plan loops, the Step 3 per-ta
 code loops, and the Step 4 final loop — invokes `dev-essentials:review-loop`
 and reimplements none of its mechanics (reviewer dispatch, triage,
 verify-then-fix, re-review). The skill's own shipped defaults are what this
-command wants — `--reviewer=audit-team` (which falls back to
-`general-purpose` with a warning on a `target=diff` code review, since
-`audit-team` only takes a documentation path — expected for Step 3/4's code
-loops, not an error), `--fixer=general-purpose`, `--skip=none` (nothing
-auto-deferred by severity label — every finding reaches merit-based triage
-instead), and a commit per cycle — so there is no override block here beyond
-what is listed:
+command wants — 2 cycles, one Opus reviewer, one Sonnet fixer with Opus
+planning each fix, a commit per cycle, and nothing auto-deferred by severity
+label — so there is no override block here. Only this is this command's own:
 
-- `--rounds=<N>` from this command's `--rounds` (default `2`, overriding the
-  skill's own default of `3`), forwarded to every loop this command runs.
+- `--rounds=<N>` from this command's `--rounds` (default `2`), forwarded to
+  every loop this command runs.
 - **`--auto-proceed`**: pass it for the Step 2 plan-review loops (`target=spec`
   — routine, lower-stakes) so N plan reviews don't each stall on an
   acknowledgment prompt; anything the fixer could not confidently resolve is

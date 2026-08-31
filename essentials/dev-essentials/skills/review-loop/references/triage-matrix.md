@@ -53,7 +53,7 @@ merit judgment — but not auto-deferred by label.
 ## Default `--skip` value and token rules
 
 **Default:** `--skip none` — nothing is deferred by severity label. Every finding reaches Phase 4's
-merit-based triage instead (see `SKILL.md` Phase 4).
+merit-based triage instead (see `SKILL.md`'s "Default configuration" section and Phase 4).
 
 Each token in `--skip` is independent. `--skip medium,low` defers Medium and Low but Nit is still
 eligible for fixing. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`. Token

@@ -6,7 +6,9 @@ default single/parallel reviewer dispatch, which stays the default for everythin
 threshold below. Read this file when Phase 3 decides to use orchestrated mode; otherwise use
 `references/reviewer-briefs.md` as normal.
 
-The shape generalizes to any large `branch` / `pr` / `diff` / `commits` target this skill supports.
+Mined from a validated end-to-end workflow (`help-review-pr` command's Orchestrator Workflow,
+proven on four large PRs). The shape generalizes to any large `branch` / `pr` / `diff` / `commits`
+target this skill supports.
 
 ---
 
@@ -14,7 +16,8 @@ The shape generalizes to any large `branch` / `pr` / `diff` / `commits` target t
 
 Use orchestrated mode when the target is large enough that reading the full diff (or all changed
 files) would crowd out the orchestrating agent's context for the rest of the loop (Phases 4–9),
-or when `--reviewer-focus` narrowing alone doesn't bring the read volume down enough:
+or when `--reviewer-focus` narrowing alone doesn't bring the read volume down enough. Mirrors the
+threshold used by the source command:
 
 - **Diff/target size > ~2,000 lines, or > ~30 files changed** → orchestrated mode is a reasonable
   choice.

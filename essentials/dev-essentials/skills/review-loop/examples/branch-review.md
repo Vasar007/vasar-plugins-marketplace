@@ -121,7 +121,16 @@ User replies: `ok proceed`
 
 ## Phase 5 — Verify-then-fix
 
-The fixer subagent (`general-purpose`) classifies all five findings before touching any file.
+**Step 5a — reviewer plans.** The same Opus reviewer subagent that reported the findings is
+dispatched again to propose a fix plan for each fixable finding, grounded in existing patterns:
+for F1, apply `.Skip().Take()` before `.ToListAsync()`, matching the sibling
+`ExternalResourceRepository.cs` pattern; for F2, add `foreach`-over-`List<Action>` negative tests
+per the constructor-null-arg-tests convention; F3 should first be re-verified against
+`BaseWorker.cs`'s `IServiceScopeFactory` usage before any fix is attempted.
+
+**Step 5b — fixer implements.** The fixer subagent (`general-purpose`) classifies all five findings
+before touching any file, implementing against the reviewer's plan rather than deciding its own
+approach from scratch.
 
 **F1 [APPLY]** — Confirmed: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` then
 `.Skip().Take()` on the in-memory result. Known-working EF pattern (sibling service

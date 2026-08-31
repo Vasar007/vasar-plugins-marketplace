@@ -164,6 +164,8 @@ performance, DI lifetime, contract breaks, test coverage) to the provided diff r
 No implicit coherence check beyond the supplied range. If `<RANGE>` is a subset of a larger
 branch, you are not expected to check commits outside it.
 
+Apply common rules.
+
 ---
 
 ## `file <path>` — Full file review (not a diff)
