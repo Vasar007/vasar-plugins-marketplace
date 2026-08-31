@@ -46,7 +46,7 @@ Capture `headRefName`, `baseRefName`, `state`, `title`, `html_url`, `number`.
 
 Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself — follow `dev-essentials:review-loop`'s own `target=pr <id>` diff-resolution pattern instead of re-deriving it: after Phase 2's metadata, run `git fetch origin <headRefName> <baseRefName>`, then diff using the remote-tracking names: `git diff origin/<baseRefName>...origin/<headRefName>` — never rely on local branch names, which may be absent or stale.
 
-For very large diffs, save to a temp file and read in chunks.
+Run that diff separately for the production path(s) and the test path(s) — append `-- <paths>` to scope each run — so you can read them separately. For very large diffs, save to a temp file and read in chunks.
 
 ## Phase 4 — Evaluate against conventions
 

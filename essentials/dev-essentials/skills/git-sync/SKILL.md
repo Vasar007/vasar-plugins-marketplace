@@ -146,7 +146,7 @@ Exclude files/changes that are already in the base branch. Do not include alread
 
 ### Why this matters
 
-A branch that was rebased after the initial commit may have stranded changes already in master. Without the `origin/<base>...HEAD` filter, the PR description and review will treat already-merged changes as if they belonged to this branch.
+A branch that was rebased after the initial commit may have stranded changes already in master. Without the `origin/<base>...HEAD` filter, the PR description and review will treat already-merged changes as if they belonged to this branch. Concrete example: a rename `MaxSeatsPerTeam` → `MaxSeatsPerOrganization` that already landed in master via another PR was incorrectly attributed to the feature branch because the base filter was missing.
 
 The three-dot form (`origin/<base>...HEAD`) diffs from the merge base, showing only what the branch contributes regardless of whether the branch is behind `origin/<base>`. The two-dot form (`..`) is a plain tree diff that includes base-side changes when the branch is not up to date, reintroducing the misattribution problem this rule exists to prevent.
 

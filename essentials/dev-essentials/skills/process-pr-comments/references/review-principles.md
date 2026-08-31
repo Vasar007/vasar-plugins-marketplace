@@ -15,7 +15,7 @@ The skill replies to reviewers *on behalf of the author*. Every reply is part of
 
 ### 1. Respect the scope of the review
 
-Never edit lines outside the PR's changelist, even when a reviewer's comment hints at a wider fix. If the right fix would touch untouched lines, draft it, surface to the human, and offer to open a follow-up PR or work item.
+Never edit lines outside the PR's changelist, even when a reviewer's comment hints at a wider fix. If the right fix would touch untouched lines, draft it, surface to the human, and offer to open a follow-up PR or issue.
 
 Applies to: every tagged comment. Reject "just while I'm here" expansions.
 

@@ -182,10 +182,10 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
                     InstanceKeyPairName = "my-key-pair",
                     ElasticCloudAgentSecretName = "elastic-agent-secret",
                 },
-                Deployment = new DeploymentOptions
+                SecondaryDeployment = new SecondaryDeploymentOptions
                 {
-                    InstanceKeyPairName = "app-key-pair",
-                    ElasticCloudAgentSecretName = "app-elastic-secret",
+                    InstanceKeyPairName = "secondary-key-pair",
+                    ElasticCloudAgentSecretName = "secondary-elastic-secret",
                 },
             },
             Infrastructure = new InfrastructureDeploymentOptions

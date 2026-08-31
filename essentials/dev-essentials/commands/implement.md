@@ -61,7 +61,7 @@ If neither `--commit` nor `--commit-push` is specified, changes are left uncommi
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase/section:
-   - Stage all changed files relevant to the phase (use `git add` with specific file paths).
+   - Stage the files relevant to that phase by explicit path — never `git add -A`/`.`.
    - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
      - If the plan has no phases, use: `Task X - brief description`
      - If no task numbering either, use: `brief description of changes`

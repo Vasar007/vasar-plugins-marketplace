@@ -65,7 +65,7 @@ What delegates:
 
 **A phase that itself orchestrates is its own dispatch.** Any step whose own execution model is "dispatch N further subagents and coordinate their output" is a separate phase, dispatched by the orchestrating session after the previous phase's report has arrived — never folded into the previous phase's brief to save a round trip. Running `dev-essentials:review-loop` is the canonical case: it is not "more implementation work", it dispatches its own reviewer and its own fixer. Bundling "implement this, then review-loop it" into one brief hands that second layer of fan-out to the implementer (`main → implementer → its own reviewer/fixer`) and deletes the one checkpoint that matters: the orchestrator reading the implementation report, and verifying the commit, before review starts. This cuts with Rule 1's grain rather than against it — more dispatches, each one phase wide.
 
-Any multi-phase workflow the orchestrating session runs should follow the same shape: keep an implementation phase and a review-loop phase as two separate, sequential dispatches, both driven by the orchestrator — never invent a bundled variant where one subagent's brief quietly contains both.
+The pattern to copy already ships in this plugin: `dev-essentials:research-implement-review-report` keeps Phase 2 (Implement) and Phase 3 (Review loop) as two separate phases, both driven by the orchestrating session, for exactly this reason. Follow that shape; do not invent a bundled variant of it.
 
 Self-test before sending any multi-step brief: "does any step in this brief require the agent to dispatch its own subagents?" If yes, cut the brief at that step and make it your own next dispatch.
 
@@ -235,5 +235,5 @@ Subagent reports describe intent, not necessarily reality. When the user is abou
 - Passing `name` to the `Agent` tool for a one-shot delegation, "just in case" a follow-up is needed. It isn't — dispatch a fresh subagent instead.
 - Briefing a write-capable subagent with a relative path or no worktree path at all, and hoping it infers the right one.
 - "My job is the worktree removal / the one-file edit / the single command — I'll dispatch a subagent to do it and report back." — that's a pass-through delegator; do the concrete work yourself (Rule 7).
-- "I'll fold the review loop into the implementer's brief — it saves a round trip." — no; a step that dispatches its own subagents is the orchestrator's own next dispatch, made after the previous phase reports (Rule 1).
+- "I'll fold the review loop into the implementer's brief — it saves a round trip." — no; a step that dispatches its own subagents is the orchestrator's own next dispatch, made after the previous phase reports (Rule 1, and Phase 2 / Phase 3 in `dev-essentials:research-implement-review-report`).
 - "I've dispatched steps 1-5 and will handle step 6 myself" — when steps 6 and 7 are verbatim in that same prompt. Describe the brief you actually sent, not the one you meant to send (Rule 1).
