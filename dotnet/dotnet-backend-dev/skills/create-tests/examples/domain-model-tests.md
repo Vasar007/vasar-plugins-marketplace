@@ -267,9 +267,20 @@ public sealed class TenantTests : BaseEqualityMemberTests<Tenant>
 
     // --- Private helpers ---
 
-    private TenantId GenerateTenantId() => _tenantGenerator.GenerateTenantId();
-    private TenantName GenerateTenantName() => _tenantGenerator.GenerateTenantName();
-    private Appliance GenerateAppliance() => _applianceGenerator.GenerateAppliance();
+    private TenantId GenerateTenantId()
+    {
+        return _tenantGenerator.GenerateTenantId();
+    }
+
+    private TenantName GenerateTenantName()
+    {
+        return _tenantGenerator.GenerateTenantName();
+    }
+
+    private Appliance GenerateAppliance()
+    {
+        return _applianceGenerator.GenerateAppliance();
+    }
 
     private Tenant CreateTenant(
         TenantId tenantId,

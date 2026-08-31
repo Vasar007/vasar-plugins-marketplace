@@ -125,15 +125,13 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
         return new(logger, repository, orderService, eventPublisher, optionsMonitor);
     }
 
-    // static: TestLoggerBuilder.CreateWithoutSetup<T> accepts a fixture parameter that it ignores
-    // for no-setup loggers, so null! is intentional and this helper needs no Fixture access.
-    private static ILogger<OrderProcessingService> CreateLogger()
+    // These helpers need Fixture (from BaseMockTest) to construct their builders.
+    // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
+    private ILogger<OrderProcessingService> CreateLogger()
     {
-        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(null!);
+        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(Fixture);
     }
 
-    // non-static: these helpers need Fixture (from BaseMockTest) to construct their builders.
-    // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
     private IOrderRepository CreateRepository()
     {
         return TestOrderRepositoryBuilder.CreateWithoutSetup(Fixture);
