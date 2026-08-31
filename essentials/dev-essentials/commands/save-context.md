@@ -55,7 +55,7 @@ Collect the following from the current conversation. Skip sections that have no 
 - Change name, branch, date
 - Link to openspec change directory
 - Which artifacts exist and their status (`openspec status --change "<name>"`)
-- Tracking issue / task references (any provider IDs or URLs) if mentioned in conversation
+- GitHub issue and Projects references (`#123`, a project item, or a URL) if mentioned in conversation
 
 **If `--plan <path>`** (plan context), also gather:
 
