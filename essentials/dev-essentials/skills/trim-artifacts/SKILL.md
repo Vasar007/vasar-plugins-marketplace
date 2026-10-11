@@ -89,7 +89,9 @@ Also settle the byte targets (defaults are in [references/cut-rules.md](referenc
 ### 2. Back up the workspace
 
 Before the first edit, copy the whole workspace to a location outside it. For example, run `cp -a WORKSPACE BACKUP` on a POSIX shell.
-Record the backup path in the progress file and the results file.
+Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
+If a second backup exists, list every backup in that sentence.
+Record the path and the size in the progress file and the results file.
 Every later test compares against this backup. Without a backup, the pass is not provable.
 If you run a second pass, first take a second backup.
 Deleting a backup is the last step, and it needs the user's approval.
@@ -122,6 +124,8 @@ Before any deletion, show the user these lists:
 1. The files to delete, with a one-line reason each.
 2. Any files or records that the user approved for deletion before the pass. This shows the user the real scope.
 3. The protected items that the plan withdraws as tombstones, each with its file and its `--allow-changed` regex.
+
+Under the lists, add one line that gives the path of the backup. It reminds the user that the backup exists.
 
 Deletions and tombstones are destructive. The user can lose text that they valued. Wait for explicit approval of each item. If the user rejects an item, the planner removes it from the plan and reruns the dry run.
 For a large workspace, run one pilot batch first. A pilot batch is a small first batch that tests the targets. Show its size table. This is a default. The user can waive it. A wrong target then costs one batch, not all of them.
@@ -165,7 +169,8 @@ If the project has a Markdown linter or another formatter, run it too. Accept no
 
 ### 8. Write the results file
 
-Record what the pass cut and why, the backup path, and the before and after size table.
+Record what the pass cut and why, and the before and after size table. Also record the path and size of the backup.
+Add a line that says the backup stays until the user approves its deletion.
 Keep the file outside the workspace, or mark it as transient. A results file inside the workspace is history, and the next trim pass will cut it.
 
 ### 9. Review independently (read-only reviewer)
@@ -190,7 +195,16 @@ Run a new review on the fix only. When the review has no High or Critical findin
 ### 11. Clean up
 
 Delete the transient files: the plan folder, progress files, edit lists, and scratch copies.
-When the user approves, delete the backup. Do this last.
+
+Then write the final message of the pass. Every pass ends with this message. This includes a pass that stops early, is blocked or fails. The message must:
+
+1. State each backup that still exists, with its path and size.
+2. State each other leftover that still exists, with its path. Examples are a scratch copy, the plan folder and the results file.
+3. Offer to delete the backup, and ask the user.
+
+If the user approves, delete the backup. Do this last.
+If the user declines or gives no answer, leave the backup in place. Repeat its path in the last message.
+A pass is not done until the user knows about every leftover.
 
 ### 12. Keep it trim (ongoing hygiene)
 
@@ -233,12 +247,12 @@ Long runs keep a `_`-prefixed progress file. It holds a `STATUS` line, a list of
 Use the same protections inline. Work in this order:
 
 1. Do step 1 of the full pass. Name the protect-set, the glob, the id regexes and the protected-block regexes. Use the same id-discovery command.
-2. Copy the whole folder to a backup folder outside the workspace, for example with `cp -a FOLDER BACKUP`. The dangling-reference test needs every file that can cite a trimmed file.
+2. Copy the whole folder to a backup folder outside the workspace, for example with `cp -a FOLDER BACKUP`. The dangling-reference test needs every file that can cite a trimmed file. Then tell the user the path and size of the backup.
 3. Classify each file with a profile. List each cut with its anchor and a reason from the cut table. List the fixes for references that a deletion breaks. Prove that each anchor matches once.
 4. Before you delete a file, ask the user. List each planned tombstone too. This is the deletion gate of step 5.
 5. Apply the approved cuts. Remove words, not line breaks.
 6. Run `python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after FOLDER` with the regexes and one `--allow-changed` for each approved tombstone. Use one glob that covers every file that can cite the trimmed files. Do not narrow the glob to the trimmed files. Fix every failure.
-7. Show the user the size table and a short list of what went. Before you delete the backup, ask the user.
+7. Show the user the size table and a short list of what went. Then end the pass with the final message of step 11. It lists each backup with its path and size, and each leftover. It offers to delete the backup. Follow the three cases of step 11.
 
 ## Common failure modes
 
@@ -251,6 +265,7 @@ Use the same protections inline. Work in this order:
 - Trimming without a backup, which leaves no way to prove that nothing was lost.
 - Trimming everything at once, with no deletion gate and no pilot batch.
 - Over-trimming a research file so that a claim loses its source or its uncertainty marker.
+- Leaving a backup or a scratch copy behind that the user does not know about.
 
 ## Reference files
 
