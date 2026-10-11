@@ -10,7 +10,7 @@ Personal [Claude Code](https://docs.claude.com/claude-code) marketplace — comp
 
 | Plugin | Group | Purpose |
 |---|---|---|
-| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs) + generic workflow commands + cross-stack skills (markdown, XML docs, worktrees, PR review, feature pipeline, general conventions) |
+| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs) + generic workflow commands + cross-stack skills (markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, artifact trimming) |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET / Clean Arch / DDD / EF Core / OpenAPI skills + backend conventions hub (controllers, services, configuration, domain models, EF patterns, logging, mappers, security, testing) |
 | [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | Plan → implement → build → test → validate (correctness/reuse/security/compliance/performance, in parallel) → commit pipeline with specialist validator subagents |
 

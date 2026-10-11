@@ -9,6 +9,19 @@ on a per-plugin basis (see each plugin's `plugin.json` for its current version).
 
 _No changes yet._
 
+## dev-essentials [2.2.0] - 2026-10-11
+
+### Added
+
+- New skill `trim-artifacts`. It runs a trim pass on text artifacts such as
+  notes, plans, research, state and handoff files, agent memory, logs and
+  task lists. It removes history, review records, process residue and
+  duplication. It keeps decisions, ids, needed facts with their sources, and
+  uncertainty markers. It ships 4 reference files and
+  `scripts/trim_report.py`, a Python script that uses only the standard
+  library. The script compares the files before and after a trim. It fails
+  when an id or a protected block is lost.
+
 ## gop-pipeline [1.0.2] — 2026-08-31
 
 ### Fixed
@@ -202,7 +215,8 @@ a marketplace-wide de-branding cleanup.
 - Repo artifacts: README with install instructions and authoring reference, MIT LICENSE, root `CLAUDE.md` with documentation-first guardrails and repo conventions, this CHANGELOG, and `.gitignore`.
 - Manifest layout: `.claude-plugin/marketplace.json` lists the three plugins; each `plugin.json` declares only metadata (name, version, description, author) and relies on Claude Code's auto-discovery for components at the documented default locations (`skills/`, `commands/`, `agents/`).
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.1...v1.0.2
