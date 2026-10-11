@@ -14,7 +14,7 @@ No changes yet.
 ### Added
 
 - Added the skill `trim-artifacts`. It runs a trim pass on text artifacts. These include notes, plans, research, state files, handoff files, agent memory, logs, and task lists. It removes history, review records, process residue, and duplication. It keeps decisions, ids, needed facts with their sources, and uncertainty markers.
-- The skill `trim-artifacts` ships 4 reference files and `scripts/trim_report.py`, a Python script that uses only the standard library. The script compares the files before and after a trim. If a trim loses an id or a protected block, the script fails.
+- Added 4 reference files and `scripts/trim_report.py` to the skill `trim-artifacts`. The script is written in Python and uses only the standard library. It compares the files before and after a trim. If a trim loses an id or a protected block, the script fails.
 
 ## gop-pipeline [1.0.2] - 2026-08-31
 
@@ -35,7 +35,7 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the commands `help-review-pr`, `merge-worktree-projects`, `research-implement-review-report`, `implement-task`, and `implement-batch`. The command `help-review-pr` reviews a GitHub PR end-to-end and produces an HTML artifact. It can also post the findings as review comments.
 - `feature-pipeline`: Added a new Stage 2b (`stages/plan-artifact.md`). The stage renders the approved implementation plan as an HTML artifact through `create-html-artifact` for Human Approve #1. Also added an anti-bypass gate, an archiving gate, and a commit-mode option.
 - `review-loop`: Added an audit-team adapter, a `blocking` finding flag, and an orchestrated mode for large-target reviews (`references/orchestrated-review.md`).
-- `process-pr-comments`: Added real wiring for resolving GitHub threads and a filter for resolved and outdated threads. Added `references/thread-state-schema.md`.
+- `process-pr-comments`: Added real wiring for resolving GitHub threads and a filter for resolved and outdated threads. Updated `references/thread-state-schema.md`.
 - `engineering-discipline`: Added Rules 4–7: try/catch discipline, proof-before-claiming-done, an overblown-code guardrail, and refactor-scope discipline.
 - `subagent-orchestration`: Fixed Rule 3. Added new Rules 5–7 and a model-selection matrix.
 - `save-context`: Added a next-session continuation prompt.
@@ -44,7 +44,7 @@ This release ported and generalized several skills, commands, and rule additions
   - `git-sync`
   - `git-worktree-management`
   - `general-conventions` (documentation and PowerShell)
-  - the `task-composer` agent (GitHub sub-issue create flow)
+  - The `task-composer` agent (GitHub sub-issue create flow)
 
 ### Added in dotnet-backend-dev
 
@@ -54,22 +54,22 @@ This release ported and generalized several skills, commands, and rule additions
 ### Changed in dev-essentials
 
 - `review-loop`: Restored the shipped default configuration that the port dropped. The configuration has these parts:
-  - 2 review cycles (not 3).
-  - An Opus reviewer and a Sonnet fixer by default.
-  - The reviewer's tier plans each fix before the fixer implements it.
-  - One commit per round.
-  - Merit-based (not label-based) triage.
+  - 2 review cycles (not 3)
+  - An Opus reviewer and a Sonnet fixer by default
+  - A plan for each fix, made by the reviewer's tier before the fixer implements it
+  - One commit per round
+  - Merit-based (not label-based) triage
 - `research-implement-review-report` and `implement-batch`: Updated the commands to describe the default configuration of `review-loop` accurately. They no longer imply a manual model override.
 - `audit-team`: Replaced the non-functional foreground or background `mode` argument with a cross-reference to Rule 3 of `subagent-orchestration`. The `Agent` tool has no such mode.
 - `process-pr-comments`: Restored the two-stage dispatch model. It has a read-only classifier stage and a judgment-bearing actor stage after it. It also has a hand-back to the orchestrating session for `deep-fix` cycles. Restored the contract for the Stage 1 report in `references/thread-state-schema.md`.
 
-### Fixed
+### Fixed in dev-essentials and dotnet-backend-dev
 
 - Fidelity pass: Restored the content below from the upstream source. The initial port silently dropped it.
-  - `dotnet-build-test` Rule 2: Restored the `--no-build` stale-referenced-binary caveat. A solution-level build can leave a test project linking an old DLL and report a false-green run. Restored the verbatim-proof reporting gate. Restored the guidance "warning-count deltas across incremental builds are meaningless".
-  - `process-pr-comments`: Restored the rule for a carried-over unconfirmed-commit-claim thread. The thread resolves automatically only after the human makes sure that the claim is true. The ancestry check alone does not resolve it. Made the `[OutOfScope]` issue-creation flow route through Task Composer consistently. Restored the safeguard "never defer reviewer-stated work without an `[OutOfScope]` tag" and its list of forbidden phrasing.
+  - Rule 2 of `dotnet-build-test`: Restored the `--no-build` stale-referenced-binary caveat. A solution-level build can leave a test project that links an old DLL and report a false-green run. Restored the verbatim-proof reporting gate. Restored the guidance "warning-count deltas across incremental builds are meaningless".
+  - `process-pr-comments`: Restored the rule for a carried-over unconfirmed-commit-claim thread. The skill resolves the thread automatically only after the human approves the resolve. The ancestry check alone does not resolve it. Made the `[OutOfScope]` issue-creation flow route through Task Composer consistently. Restored the safeguard "never defer reviewer-stated work without an `[OutOfScope]` tag" and its list of forbidden phrasing.
   - `feature-pipeline`: Restored the rationale for Project Context Injection. Restored the `{WORKTREE_PATH}` placeholder in the command that removes the worktree in Stage 10. The command regressed to a hardcoded relative path before this fix. Restored the trigger phrases and the rationale for bulk cleanup. Restored a concrete sandboxed-terminal example.
-  - `git-worktree-management`: Restored the note that whoever runs this workflow executes it and must not re-delegate it. Restored the note that bulk removal archives first and then removes each path.
+  - `git-worktree-management`: Restored the note that whoever runs the worktree removal workflow executes it and must not re-delegate it. Restored the note "bulk removal archives first, then removes per-path".
   - `github-mcp-conventions`: Restored a rule to make sure that a created issue relationship was actually applied. Restored a rule to read large PR diffs from local git, not from an MCP call that uses many tokens.
   - `create-tests`: Restored the dropped cross-reference "the same null-argument gate applies to methods". Restored a mixed static and instance test-helper example. Fixed an intro example that used `params` in violation of Rule 6 of the same skill.
   - Restored smaller passages in `opsx-implement`, `implement`, `help-review-pr`, `save-context`, `subagent-orchestration`, `git-sync`, and `engineering-discipline`.
@@ -105,14 +105,14 @@ This release ported and generalized several skills, commands, and rule additions
 
 ### Removed in dev-essentials
 
-- Removed the commands `review-loop.md` and `review-pr.md`. The trigger phrases now live in the frontmatter description of the `review-loop` skill.
+- Removed the commands `review-loop.md` and `review-pr.md`. The trigger phrases now live in the frontmatter description of the skill `review-loop`.
 - Removed `process-pr-comments/references/air-verification.md`. The file `automated-review-verification.md` replaces it.
 
 ### Breaking changes in dev-essentials
 
 - `task-composer` is now native to GitHub MCP. It calls `issue_write` and `issue_read` instead of any other PR-provider MCP tool. Existing non-GitHub workflows break.
 - `process-pr-comments` now works only with GitHub MCP. It requires the GitHub MCP server. Existing non-GitHub workflows break.
-- Deleted the commands `/dev-essentials:review-loop` and `/dev-essentials:review-pr`. Use the `review-loop` skill instead. Its description has the trigger phrases `/review-loop` and `/review-pr`.
+- Deleted the commands `/dev-essentials:review-loop` and `/dev-essentials:review-pr`. Use the skill `review-loop` instead. Its description has the trigger phrases `/review-loop` and `/review-pr`.
 
 ## [1.0.2] - 2026-05-08
 
@@ -125,7 +125,7 @@ This release ported and generalized several skills, commands, and rule additions
 
 ### Changed
 
-- Bumped all 3 plugins from `1.0.0` to `1.0.1`. The manifest contract changed because of new metadata fields. Consumers must re-fetch at the next `/plugin marketplace update`.
+- Bumped all 3 plugins from `1.0.0` to `1.0.1`. The manifest contract changed because of new metadata fields. We recommend that consumers re-fetch at the next `/plugin marketplace update`.
 - `README.md`: Corrected the slash command from `/plugins marketplace add` to `/plugin marketplace add`. The singular form follows the current Claude Code documentation.
 - `README.md` configuration examples: Replaced the undocumented shapes `plugins.marketplaces[]` and `plugins.sources[]` with the documented `extraKnownMarketplaces` and `enabledPlugins` configuration. The examples use `"source": "git"` with no `.git` suffix on the URL. This matches what Claude Code writes on install.
 - `README.md` schema examples: Added a top-level `description` to the `marketplace.json` example and removed the per-plugin `version` from it. Added `$schema`, `repository`, and `keywords` to the `plugin.json` example.
@@ -136,7 +136,7 @@ This release ported and generalized several skills, commands, and rule additions
 
 ### Fixed
 
-- `README.md`, section "Installing a single plugin": Corrected the name of the configuration file from `.claude/settings.json` to `.claude/settings.local.json`. It now matches the file that the marketplace-add snippet above it targets. This stops users from defining `extraKnownMarketplaces` in two different configuration files.
+- `README.md`, section "Installing a single plugin": Corrected the name of the configuration file from `.claude/settings.json` to `.claude/settings.local.json`. The file name now matches the file that the marketplace-add snippet above this section targets. This stops users from defining `extraKnownMarketplaces` in two different configuration files.
 
 ## [1.0.1] - 2026-05-04
 
@@ -147,7 +147,7 @@ This release ported and generalized several skills, commands, and rule additions
 
 ### Fixed
 
-- `README.md` schema example for `plugin.json`: Removed the directory-string fields `skills`, `agents`, and `commands` (for example `"./skills/"`). Claude Code interprets them as file paths and rejects them on install. The example now mirrors the metadata-only manifests that this repository ships. It also explains that components are discovered automatically from the default locations.
+- `README.md` schema example for `plugin.json`: Removed the directory-string fields `skills`, `agents`, and `commands` (for example `"./skills/"`). Claude Code interprets them as file paths and rejects them on install. The example now mirrors the metadata-only manifests that this repository ships. It also explains that Claude Code discovers components automatically from the default locations.
 
 ## [1.0.0] - 2026-05-04
 
@@ -156,13 +156,13 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the initial marketplace layout with three plugins:
   - `dev-essentials` has four composer agents (PR, Task, Test, Docs), ten workflow commands, and seven cross-stack skills. The skills cover markdown, XML docs, git worktrees, PR review comments, feature pipeline, general conventions, and `create-documentation`.
   - `dotnet-backend-dev` has fifteen .NET, Clean Architecture, DDD, EF Core, OpenAPI, and Mapperly skills. It also has a backend conventions hub with nine topic references. The topics are controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing.
-  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: `plan`, `implement`, `build`, `test`, `validate`, `commit`. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
+  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: plan, implement, build, test, validation, commit. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
 - Added the repository artifacts:
-  - A README with install instructions and an authoring reference.
-  - An MIT LICENSE.
-  - A root `CLAUDE.md` with documentation-first guardrails and repository conventions.
-  - This CHANGELOG.
-  - `.gitignore`.
+  - A README with install instructions and an authoring reference
+  - An MIT LICENSE
+  - A root `CLAUDE.md` with documentation-first guardrails and repository conventions
+  - This CHANGELOG
+  - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...HEAD

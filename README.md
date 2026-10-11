@@ -10,7 +10,7 @@ This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplac
 |---|---|---|
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs) and generic workflow commands. Cross-stack skills for markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, and artifact trimming. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET, Clean Architecture, DDD, EF Core, and OpenAPI skills. A hub of backend conventions for controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing. |
-| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A pipeline with specialist validator subagents. The stages run in this order: `plan`, `implement`, `build`, `test`, `validate`, `commit`. The `validate` stage runs in parallel for correctness, reuse, security, compliance, and performance. |
+| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A pipeline with specialist validator subagents. The stages run in this order: plan, implement, build, test, validation, commit. The validation stage runs in parallel for correctness, reuse, security, compliance, and performance. |
 
 ## Installing the marketplace
 
