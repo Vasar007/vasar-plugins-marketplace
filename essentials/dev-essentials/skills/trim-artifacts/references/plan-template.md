@@ -50,14 +50,14 @@ Rules for anchors:
 | --- | --- | --- | --- |
 | {RELATIVE_PATH} | {ID} | {REGEX} | {ONE LINE} |
 
-The regex matches the string `{RELATIVE_PATH}:{FIRST LINE OF THE BLOCK}`. For one file, write for example `^notes/decisions\.md:## DEC-3\b`. Do not end it with `$`, so that it also matches the tombstone heading.
-
 ## Sizes
 
 | File | Bytes before | Bytes after | Percent | What was cut |
 | --- | ---: | ---: | ---: | --- |
 | **Total** | {SUM} | {SUM} | {PERCENT} | |
 ```
+
+The tombstone regex matches the string `{RELATIVE_PATH}:{FIRST LINE OF THE BLOCK}`. For one file, write for example `^notes/decisions\.md:## DEC-3\b`. Do not end it with `$`, so that it also matches the tombstone heading.
 
 ## Anchor proof
 
@@ -82,10 +82,3 @@ EOF
 ```
 
 If an anchor fails, lengthen the quote. Repeat until it matches once.
-
-## Dry run before hand-off
-
-1. Copy the batch files to `{SCRATCH}/orig/` and `{SCRATCH}/target/`, with their relative paths.
-2. Apply the plan to `target/`.
-3. Run `python3 -I {SKILL_DIR}/scripts/trim_report.py --before {SCRATCH}/orig --after {SCRATCH}/target` with the glob, the id regexes and the protected regexes. Add one `--allow-changed` flag for each tombstone in the plan.
-4. If it fails, fix the plan and repeat. When it passes, hand the plan to the executor.

@@ -1,14 +1,6 @@
 # Cut rules
 
-Read this file before you write a plan. Each cut in a plan names one row of the cut table as its reason.
-
-## Contents
-
-- Cut table
-- Depth rules
-- Row rules
-- Byte targets
-- What does not count as a cut
+Each cut in a plan names one row of the cut table as its reason.
 
 ## Cut table
 
@@ -31,10 +23,14 @@ Shallow plans that only remove headings and blank lines miss most of the cost. P
 These rules shorten wording in the substance tier. Each fact, source and uncertainty marker must stay. Byte-identical text does not shrink.
 
 - Research notes: keep only the findings that a requirement, a direction, a recommendation, a risk or an open question uses. Write one or two lines each, with source URL and date.
-- Plan and design files: write one statement per fact. Keep decisions, specifications, paths, commands and action items for the user.
-- Long design documents: cut narrative, rejected alternatives beyond one row each, and step logs of finished work.
+- Plan and design files: write one statement per fact.
 - Answered questions: shrink the row to one short line that names the answer, for example "Answered, see DEC-7". The id stays.
-- Withdrawn items: shrink to a one-line tombstone. The template is in SKILL.md. The id stays.
+- Withdrawn items: shrink to a one-line tombstone. The id stays. Template:
+
+  ```text
+  {HEADING_MARK} {ID}: Withdrawn. {DATE}: {REASON}. See {POINTER}.
+  ```
+
 - Cited sections: if other files cite a section by number or title, keep its number and title. Otherwise the citations break.
 - Sources: keep only the sources that kept lines cite.
 
