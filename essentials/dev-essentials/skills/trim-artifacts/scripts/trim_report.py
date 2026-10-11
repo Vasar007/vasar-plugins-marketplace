@@ -17,7 +17,7 @@ hold one line that matches the regex. This line is the tombstone.
 Exit codes: 0 = pass, 1 = an integrity check failed, 2 = usage error.
 
 Example:
-  python3 -I trim_report.py --before /backup/notes --after ./notes \\
+  python3 -I trim_report.py --before /path/to/backup --after /path/to/workspace \\
       --id-regex '\\bREQ-\\d+\\b' \\
       --protected-regex '(?m)^## Decision \\d+\\n\\nQuote: .*\\nDecision: .*$' \\
       --allow-changed '^notes/decisions\\.md:## Decision 3\\b' --target-percent 60
