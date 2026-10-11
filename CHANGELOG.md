@@ -149,7 +149,7 @@ This release ported and generalized several skills, commands, and rule additions
 
 ### Fixed
 
-- `README.md` schema example for `plugin.json`: Removed the directory-string fields `skills`, `agents`, and `commands` (for example `"./skills/"`). Claude Code interprets them as file paths and rejects them on install. The example now mirrors the metadata-only manifests that this repository ships. It also explains that Claude Code discovers components automatically from the default locations.
+- `README.md` schema example for `plugin.json`: Removed the directory-string fields `skills`, `agents`, and `commands` (for example `"./skills/"`). The example now mirrors the metadata-only manifests that this repository ships. It also explains that Claude Code discovers components automatically from the default locations.
 
 ## [1.0.0] - 2026-05-04
 
