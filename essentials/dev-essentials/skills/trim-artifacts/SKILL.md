@@ -63,7 +63,7 @@ Other verbatim user text is not in the protect-set. If it duplicates protected t
 
 List the file types in the workspace, for example with `find WORKSPACE -type f | sed -E 's|.*/||; s/.*\.//' | sort | uniq -c`. The script checks `**/*.md` by default. If other types can cite a trimmed file, such as `.txt` or `.log`, use `--glob '**/*'` in one run. A separate run for each type cannot see a `.txt` file that cites a deleted `.md` file. Record the glob in the protect-set.
 
-The glob `**/*` also walks hidden folders such as `.git`. In a git workspace, a deleted file then shows as DANGLING in `.git/index`. The size table also counts git objects. Instead, compare the subfolder that holds every file that can cite a trimmed file, for example `--before BACKUP/docs --after WORKSPACE/docs`.
+The glob `**/*` also walks hidden folders such as `.git`. In a git workspace, a deleted file then shows as DANGLING in `.git/index`. The size table also counts git objects. Instead, compare the subfolder that holds every file that can cite a trimmed file, for example `--before BACKUP/docs --after WORKSPACE/docs`. The glob and the PATH in each `--allow-changed` regex are then relative to that subfolder. The default glob `**/*.md` does not match the git index or objects, so only `**/*` has this problem.
 
 To find id families, list the prefixes of tokens that look like ids:
 
@@ -87,7 +87,7 @@ Also settle the byte targets (defaults are in [references/cut-rules.md](referenc
 ### 2. Back up the workspace
 
 Before the first edit, copy the whole workspace to a location outside it, for example with `cp -a WORKSPACE BACKUP`.
-The script refuses a backup inside the workspace, because that copy can hide a loss.
+The script refuses a `--before` path that equals, contains, or sits inside the `--after` path. It cannot see a stray copy that you do not pass to it. It also cannot see a backup inside the workspace in the subfolder form. Keep every copy outside the workspace, because a copy inside it can hide a loss.
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
