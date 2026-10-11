@@ -135,7 +135,13 @@ A `source` path must start with `./`. It must resolve to a directory that contai
 
 Keep `plugin.json` to metadata only. Claude Code discovers components automatically at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`.
 
-Do not add the fields `skills`, `agents`, or `commands` with directory strings as values. Claude Code interprets those values as file paths, and the plugin then fails to load.
+The plugins in this marketplace do not set the fields `skills`, `agents`, or `commands`. The [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference) gives these rules for the fields:
+
+- `skills` accepts a directory or an array of directories. The listed directories load together with the default `skills/` folder.
+- `commands` accepts a file, a directory, an array of paths, or an object map. It replaces the default `commands/` folder.
+- `agents` accepts only `.md` files, one or an array. It does not accept a directory. It replaces the default `agents/` folder.
+
+Each path is relative to the plugin root and must start with `./`. If you add one of these fields, run the validator (see [Validating](#validating)).
 
 ### Validating
 
