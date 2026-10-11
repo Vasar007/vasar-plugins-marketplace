@@ -165,5 +165,5 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the changes in each release.
 ## References
 
 - [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces): the `marketplace.json` schema, source types, and version resolution.
-- [Plugins reference](https://code.claude.com/docs/en/plugins-reference): the `plugin.json` schema, component layout, and environment variables.
+- [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference): the `plugin.json` schema, component layout, and environment variables.
 - [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins): install workflows and the `extraKnownMarketplaces` and `enabledPlugins` configuration.
