@@ -4,25 +4,27 @@ This file records all notable changes to this marketplace.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for each plugin separately.
 For the current version of a plugin, see the `plugin.json` file of that plugin.
+In each release heading, the linked number is the release tag of the marketplace, for example `v2.1.0`.
+The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
 No changes yet.
 
-## dev-essentials [2.2.0] - 2026-10-11
+## dev-essentials 2.2.0 in release [2.2.0] - 2026-10-11
 
 ### Added
 
 - Added the skill `trim-artifacts`. It runs a trim pass on text artifacts. These include notes, plans, research, state files, handoff files, agent memory, logs, and task lists. It removes history, review records, process residue, and duplication. It keeps decisions, ids, needed facts with their sources, and uncertainty markers.
 - Added 4 reference files and `scripts/trim_report.py` to the skill `trim-artifacts`. The script is written in Python and uses only the standard library. It compares the files before and after a trim. If a trim loses an id or a protected block, the script fails.
 
-## gop-pipeline [1.0.2] - 2026-08-31
+## gop-pipeline 1.0.2 in release [2.1.0] - 2026-08-31
 
 ### Fixed
 
 - Gave the 8 pipeline agents a `description` field in their frontmatter. The agents are `gop-build`, `gop-commit`, `gop-test`, and the five `gop-validate-*` validators. The field says what each agent does and that it runs as a stage of the `gop-work` pipeline. This removes the 8 `claude plugin validate` warnings about agent frontmatter that had no `description`.
 
-## dev-essentials [2.1.0] and dotnet-backend-dev [1.2.0] - 2026-08-31
+## dev-essentials 2.1.0 and dotnet-backend-dev 1.2.0 in release [2.1.0] - 2026-08-31
 
 This release ported and generalized several skills, commands, and rule additions from a separate internal iteration of this toolkit. It stripped or transformed branding and tooling to fit the conventions of this marketplace. The release includes a full fidelity pass. The pass compared every skill, command, and agent against its upstream counterpart. It restored content that the port silently dropped. The release also includes a marketplace-wide de-branding cleanup.
 
@@ -80,7 +82,7 @@ This release ported and generalized several skills, commands, and rule additions
   - Made the OpenSpec tracking-reference bullet of `save-context` specific to GitHub Issues and Projects.
 - `dotnet-build-test` and `task-composer`: Fixed broken YAML frontmatter.
 
-## dev-essentials [2.0.0] and dotnet-backend-dev [1.1.0] - 2026-05-10
+## dev-essentials 2.0.0 and dotnet-backend-dev 1.1.0 in release [2.0.0] - 2026-05-10
 
 ### Added in dev-essentials
 
