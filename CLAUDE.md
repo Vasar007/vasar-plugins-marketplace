@@ -10,7 +10,7 @@ Do not say something is "not possible" or "not supported" without having verifie
 
 ## Versioning Policy
 
-Each plugin sets an explicit `version` field in its `plugin.json` (and **only** there — never in the marketplace entry, since `plugin.json` silently wins per the [official docs](https://code.claude.com/docs/en/plugins-reference#version-management)). This gives deliberate control over release scope: every push does **not** automatically propagate to installed users; only a version bump does.
+Each plugin sets an explicit `version` field in its `plugin.json` (and **only** there — never in the marketplace entry, since `plugin.json` silently wins per the [official docs](https://code.claude.com/docs/en/plugins/loading#how-claude-code-computes-the-version)). This gives deliberate control over release scope: every push does **not** automatically propagate to installed users; only a version bump does.
 
 **Bump rules** ([semver](https://semver.org)):
 

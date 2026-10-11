@@ -1,208 +1,174 @@
 # Changelog
 
-All notable changes to this marketplace are tracked here.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-on a per-plugin basis (see each plugin's `plugin.json` for its current version).
+This file records all notable changes to this marketplace.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for each plugin separately.
+For the current version of a plugin, see the `plugin.json` file of that plugin.
+In each release heading, the linked number is the release tag of the marketplace, for example `v2.1.0`.
+The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-_No changes yet._
+No changes yet.
 
-## gop-pipeline [1.0.2] — 2026-08-31
+## dev-essentials 2.2.0 in release [2.2.0] - 2026-10-11
 
-### Fixed
+### Added
 
-- The 8 pipeline agents (`gop-build`, `gop-commit`, `gop-test`, and the five
-  `gop-validate-*` validators) now carry a `description` field in their
-  frontmatter, describing what each does and that it runs as a stage of the
-  `gop-work` pipeline. Removes the 8 `claude plugin validate` warnings about
-  agent frontmatter missing a `description`.
+- Added the skill `trim-artifacts`. It runs a trim pass on text artifacts. These include notes, plans, research, state files, handoff files, agent memory, logs, and task lists. It removes history, review records, process residue, and duplication. It keeps decisions, ids, needed facts with their sources, and uncertainty markers.
+- Added 4 reference files and `scripts/trim_report.py` to the skill `trim-artifacts`. The script is written in Python and uses only the standard library. It compares the files before and after a trim. If a trim loses an id or a protected block, the script fails.
 
-## dev-essentials [2.1.0] — dotnet-backend-dev [1.2.0] — 2026-08-31
-
-Ported and generalized several skills, commands, and rule additions from a
-separate internal iteration of this toolkit — branding and tooling stripped
-or transformed to fit this marketplace's conventions. Includes a full
-fidelity pass that compared every skill, command, and agent against its
-upstream counterpart and restored content the port had silently dropped, plus
-a marketplace-wide de-branding cleanup.
-
-### Added — dev-essentials
-
-- New skills: `audit-personal-conventions` (deep verification of
-  personal/repo-convention drift, with 2 worked examples + 4 reference
-  files), `create-html-artifact` (renders a self-contained HTML report/plan/
-  review file, with 4 reference files), `project-claude-md-preamble` (keeps
-  a project's `CLAUDE.md` preamble self-contained).
-- New commands: `help-review-pr` (end-to-end GitHub PR review producing an
-  HTML artifact, optionally posting findings as review comments),
-  `merge-worktree-projects`, `research-implement-review-report`,
-  `implement-task`, `implement-batch`.
-- `feature-pipeline`: new Stage 2b (`stages/plan-artifact.md`) renders the
-  approved implementation plan as an HTML artifact via `create-html-artifact`
-  for Human Approve #1; anti-bypass gate, archiving gate, and a commit-mode
-  option.
-- `review-loop`: audit-team adapter, a `blocking` finding flag, and an
-  orchestrated mode for large-target reviews (`references/orchestrated-
-  review.md`).
-- `process-pr-comments`: real GitHub thread-resolve wiring plus a resolved/
-  outdated thread filter; `references/thread-state-schema.md`.
-- `engineering-discipline`: Rules 4–7 (try/catch discipline, proof-before-
-  claiming-done, overblown-code guardrail, refactor-scope discipline).
-- `subagent-orchestration`: Rule 3 fix plus new Rules 5–7 and a model-
-  selection matrix.
-- `save-context`: next-session continuation prompt.
-- Additive notes/sections in `create-documentation`, `git-sync`,
-  `git-worktree-management`, `general-conventions` (documentation/
-  PowerShell), and the `task-composer` agent (GitHub sub-issue create flow).
-
-### Added — dotnet-backend-dev
-
-- `create-tests`: `.ApplyIf` mock-builder-param rewrite (single `Create*`
-  helper per dependency takes optional nullable params applied via
-  `.ApplyIf`, replacing the old overload-based pattern) and a new
-  `enforced-gates.md` example.
-- `dotnet-conventions`: additive notes in `ef-patterns.md` and
-  `testing.md`.
-
-### Changed — dev-essentials
-
-- `review-loop`: restored the shipped default configuration the port had
-  dropped — 2 review cycles (not 3), an Opus reviewer and a Sonnet fixer by
-  default, the reviewer's tier plans each fix before the fixer implements it,
-  one commit per round, and merit-based (not label-based) triage. The
-  `research-implement-review-report` and `implement-batch` commands now
-  describe this accurately instead of implying a manual model override.
-- `audit-team`: dropped the non-functional foreground/background `mode`
-  argument (the `Agent` tool has no such mode) in favour of a
-  `subagent-orchestration` Rule 3 cross-reference.
-- `process-pr-comments`: restored the two-stage dispatch model — a read-only
-  classifier stage followed by a judgment-bearing actor stage, with a
-  hand-back to the orchestrating session for `deep-fix` cycles — and the
-  `references/thread-state-schema.md` Stage 1 report contract.
+## gop-pipeline 1.0.2 in release [2.1.0] - 2026-08-31
 
 ### Fixed
 
-- Fidelity pass — content the initial port silently dropped, restored from the
-  upstream source:
-  - `dotnet-build-test` Rule 2: the `--no-build` stale-referenced-binary
-    caveat (a solution-level build can leave a test project linking an old DLL
-    and report a false-green run), the verbatim-proof reporting gate, and the
-    "warning-count deltas across incremental builds are meaningless" guidance.
-  - `process-pr-comments`: a carried-over unconfirmed-commit-claim thread is
-    auto-resolved only after the human confirms, not on the ancestry check
-    alone; the `[OutOfScope]` issue-creation flow now routes through Task
-    Composer consistently; the "never defer reviewer-stated work without an
-    `[OutOfScope]` tag" safeguard and its forbidden-phrasing list.
-  - `feature-pipeline`: the Project Context Injection rationale, the
-    `{WORKTREE_PATH}` placeholder in the Stage 10 worktree-removal command
-    (had regressed to a hardcoded relative path), the bulk-cleanup trigger
-    phrases and rationale, and a concrete sandboxed-terminal example.
-  - `git-worktree-management`: the "whoever runs this workflow executes it —
-    do not re-delegate" and "bulk removal archives first, then removes
-    per-path" notes.
-  - `github-mcp-conventions`: a rule to verify a created issue relationship
-    actually landed, and a rule to read large PR diffs from local git rather
-    than a token-heavy MCP call.
-  - `create-tests`: a dropped "the same null-argument gate applies to
-    methods" cross-reference, a mixed static/instance test-helper example,
-    and an intro example that used `params` in violation of the skill's own
-    Rule 6.
-  - Smaller restored passages in `opsx-implement`, `implement`,
-    `help-review-pr`, `save-context`, `subagent-orchestration`, `git-sync`,
-    and `engineering-discipline`.
-- Completed de-branding: residual cloud-vendor identifiers (AWS / Azure /
-  Cosmos names) in `dotnet-backend-dev` example code — `create-tests`,
-  `add-migration`, `create-controller`, `model-mapping`, `update-swagger-spec`,
-  `dotnet-conventions/logging.md` — replaced with neutral business nouns; a
-  `DeploymentOptions` type-name collision in a `create-tests` example fixed;
-  remaining "work item" / Azure DevOps terminology across the marketplace
-  replaced with GitHub or provider-neutral equivalents; `save-context`'s
-  OpenSpec tracking-reference bullet made GitHub Issues / Projects specific.
-- `dotnet-build-test` and `task-composer`: broken YAML frontmatter.
+- Gave the 8 pipeline agents a `description` field in their frontmatter. The agents are `gop-build`, `gop-commit`, `gop-test`, and the five `gop-validate-*` validators. The field says what each agent does and that it runs as a stage of the `gop-work` pipeline. This removes the 8 `claude plugin validate` warnings about agent frontmatter that had no `description`.
 
-## dev-essentials [2.0.0] — dotnet-backend-dev [1.1.0] — 2026-05-10
+## dev-essentials 2.1.0 and dotnet-backend-dev 1.2.0 in release [2.1.0] - 2026-08-31
 
-### Added — dev-essentials
+This release ported and generalized several skills, commands, and rule additions from a separate internal iteration of this toolkit. It stripped or transformed branding and tooling to fit the conventions of this marketplace. The release includes a full fidelity pass. The pass compared every skill, command, and agent against its upstream counterpart. It restored content that the port silently dropped. The release also includes a marketplace-wide de-branding cleanup.
 
-- New skills: `engineering-discipline`, `subagent-orchestration`, `git-sync`, `dotnet-build-test`, `review-loop` (with 4 reference files + 2 worked examples), `github-mcp-conventions`.
-- `review-loop`: trigger phrases `/review-loop` and `/review-pr` preserved in frontmatter description; GitHub MCP replaces ADO MCP for `target=pr` mode.
-- `process-pr-comments`: new `references/automated-review-verification.md` (replaces `air-verification.md`); GitHub-native phase flow (pull_request_read, add_reply_to_pull_request_comment); configurable bot-author list.
-- `feature-pipeline`: Pipeline Discipline section (3 safeguards), Safeguard 2 note in Human Approve #2, `pr` field in `pipeline-state.json` schema, gated Step 10 worktree removal via GitHub MCP.
-- Audit commands (`audit-plan`, `audit-openspec`, `audit-team`): verify-before-fix guardrail.
+### Added in dev-essentials
 
-### Added — dotnet-backend-dev
+- Added these skills:
+  - `audit-personal-conventions`: Performs a deep verification of personal/repo-convention drift. It has 2 worked examples and 4 reference files.
+  - `create-html-artifact`: Renders a self-contained HTML report, plan, or review file. It has 4 reference files.
+  - `project-claude-md-preamble`: Keeps the `CLAUDE.md` preamble of a project self-contained.
+- Added the commands `help-review-pr`, `merge-worktree-projects`, `research-implement-review-report`, `implement-task`, and `implement-batch`. The command `help-review-pr` reviews a GitHub PR end-to-end and produces an HTML artifact. It can also post the findings as review comments.
+- `feature-pipeline`: Added a new Stage 2b (`stages/plan-artifact.md`). The stage renders the approved implementation plan as an HTML artifact through `create-html-artifact` for Human Approve #1. Also added an anti-bypass gate, an archiving gate, and a commit-mode option.
+- `review-loop`: Added an audit-team adapter, a `blocking` finding flag, and an orchestrated mode for large-target reviews (`references/orchestrated-review.md`).
+- `process-pr-comments`: Added real wiring for resolving GitHub threads and a filter for resolved and outdated threads. Updated `references/thread-state-schema.md`.
+- `engineering-discipline`: Added Rules 4–7: try/catch discipline, proof-before-claiming-done, an overblown-code guardrail, and refactor-scope discipline.
+- `subagent-orchestration`: Fixed Rule 3. Added new Rules 5–7 and a model-selection matrix.
+- `save-context`: Added a next-session continuation prompt.
+- Added notes and sections to these skills and agents:
+  - `create-documentation`
+  - `git-sync`
+  - `git-worktree-management`
+  - `general-conventions` (documentation and PowerShell)
+  - The `task-composer` agent (GitHub sub-issue create flow)
 
-- `create-tests`: Constructor Null-Argument Tests section (foreach-over-List\<Action\> pattern, anti-pattern: boolean stripes), Scenario Tests section (stubs-only, no mocking), Test Scope and Props Files section.
-- `create-tests/examples`: `constructor-null-arg-tests.md`, `scenario-tests.md`.
+### Added in dotnet-backend-dev
 
-### Changed — dev-essentials
+- `create-tests`: Rewrote the mock-builder parameters to use `.ApplyIf`. A single `Create*` helper for each dependency takes optional nullable parameters. The helper applies them with `.ApplyIf`. This replaces the old overload-based pattern. Also added a new `enforced-gates.md` example.
+- `dotnet-conventions`: Added notes to `ef-patterns.md` and `testing.md`.
 
-- `task-composer` agent: three-mode rewrite (draft/response/create), GitHub issue workflow (issue_write + issue_read), two-step create-then-verify, cross-reference to `github-mcp-conventions` Rule 1.
-- `git-worktree-management`: new path scheme `.claude/worktrees/<branch>/`, bootstrap steps, GitHub MCP PR-status discovery (Workflow D), keep-until-PR-merged lifecycle.
-- `process-pr-comments`: rewritten on top of GitHub MCP throughout; commit message drops the legacy work-item-ID prefix; thread anchors use `html_url`; `[OutOfScope]` tracking uses `issue_write` for tracking-issue creation; `references/thread-state-schema.md` updated to GitHub field names.
-- `feature-pipeline` Step 0: worktree creation delegates to `git-worktree-management` Workflow A instead of inline git commands.
-- Skill cross-references: legacy upstream prefixes removed from all cross-ref names.
+### Changed in dev-essentials
 
-### Removed — dev-essentials
+- `review-loop`: Restored the shipped default configuration that the port dropped. The configuration has these parts:
+  - 2 review cycles (not 3)
+  - An Opus reviewer and a Sonnet fixer by default
+  - A plan for each fix, made by the reviewer's tier before the fixer implements it
+  - One commit per round
+  - Merit-based (not label-based) triage
+- `research-implement-review-report` and `implement-batch`: Updated the commands to describe the default configuration of `review-loop` accurately. They no longer imply a manual model override.
+- `audit-team`: Replaced the non-functional foreground or background `mode` argument with a cross-reference to Rule 3 of `subagent-orchestration`. The `Agent` tool has no such mode.
+- `process-pr-comments`: Restored the two-stage dispatch model. It has a read-only classifier stage and a judgment-bearing actor stage after it. It also has a hand-back to the orchestrating session for `deep-fix` cycles. Restored the contract for the Stage 1 report in `references/thread-state-schema.md`.
 
-- Commands `review-loop.md` and `review-pr.md` (trigger phrases now live in `review-loop` skill frontmatter description).
-- `process-pr-comments/references/air-verification.md` (replaced by `automated-review-verification.md`).
+### Fixed in dev-essentials and dotnet-backend-dev
 
-### Breaking — dev-essentials
+- Fidelity pass: Restored the content below from the upstream source. The initial port silently dropped it.
+  - Rule 2 of `dotnet-build-test`: Restored the `--no-build` stale-referenced-binary caveat. A solution-level build can leave a test project that links an old DLL and report a false-green run. Restored the verbatim-proof reporting gate. Restored the guidance "warning-count deltas across incremental builds are meaningless".
+  - `process-pr-comments`: Restored the rule for a carried-over unconfirmed-commit-claim thread. The skill resolves the thread automatically only after the human approves the resolve. The ancestry check alone does not resolve it. Made the `[OutOfScope]` issue-creation flow route through Task Composer consistently. Restored the safeguard "never defer reviewer-stated work without an `[OutOfScope]` tag" and its list of forbidden phrasing.
+  - `feature-pipeline`: Restored the rationale for Project Context Injection. Restored the `{WORKTREE_PATH}` placeholder in the command that removes the worktree in Stage 10. The command regressed to a hardcoded relative path before this fix. Restored the trigger phrases and the rationale for bulk cleanup. Restored a concrete sandboxed-terminal example.
+  - `git-worktree-management`: Restored the note that whoever runs the worktree removal workflow executes it and must not re-delegate it. Restored the note "bulk removal archives first, then removes per-path".
+  - `github-mcp-conventions`: Restored a rule to make sure that a created issue relationship was actually applied. Restored a rule to read large PR diffs from local git, not from an MCP call that uses many tokens.
+  - `create-tests`: Restored the dropped cross-reference "the same null-argument gate applies to methods". Restored a mixed static and instance test-helper example. Fixed an intro example that used `params` in violation of Rule 6 of the same skill.
+  - Restored smaller passages in `opsx-implement`, `implement`, `help-review-pr`, `save-context`, `subagent-orchestration`, `git-sync`, and `engineering-discipline`.
+- Completed the de-branding:
+  - Replaced residual cloud-vendor identifiers (AWS, Azure, and Cosmos names) in the example code of `dotnet-backend-dev` with neutral business nouns. This covers `create-tests`, `add-migration`, `create-controller`, `model-mapping`, `update-swagger-spec`, and `dotnet-conventions/logging.md`.
+  - Fixed a `DeploymentOptions` type-name collision in a `create-tests` example.
+  - Replaced the remaining "work item" and Azure DevOps terminology across the marketplace with GitHub or provider-neutral equivalents.
+  - Made the OpenSpec tracking-reference bullet of `save-context` specific to GitHub Issues and Projects.
+- `dotnet-build-test` and `task-composer`: Fixed broken YAML frontmatter.
 
-- `task-composer` is now GitHub-MCP-native: calls `issue_write` / `issue_read` instead of any other PR-provider MCP tool. Existing non-GitHub workflows break.
-- `process-pr-comments` is now GitHub-MCP-only; requires the GitHub MCP server. Existing non-GitHub workflows break.
-- `/dev-essentials:review-loop` and `/dev-essentials:review-pr` commands deleted; use the `review-loop` skill (`/review-loop` or `/review-pr` trigger phrases in description).
+## dev-essentials 2.0.0 and dotnet-backend-dev 1.1.0 in release [2.0.0] - 2026-05-10
+
+### Added in dev-essentials
+
+- Added the skills `engineering-discipline`, `subagent-orchestration`, `git-sync`, `dotnet-build-test`, `review-loop`, and `github-mcp-conventions`. The skill `review-loop` came with 4 reference files and 2 worked examples.
+- `review-loop`: Kept the trigger phrases `/review-loop` and `/review-pr` in the frontmatter description. GitHub MCP replaced ADO MCP for `target=pr` mode.
+- `process-pr-comments`: Added `references/automated-review-verification.md`, which replaces `air-verification.md`. Added a GitHub-native phase flow (`pull_request_read`, `add_reply_to_pull_request_comment`) and a configurable bot-author list.
+- `feature-pipeline`: Added a Pipeline Discipline section (3 safeguards). Added a note on Safeguard 2 in Human Approve #2, and a `pr` field in the schema of `pipeline-state.json`. Added gated worktree removal in Step 10 through GitHub MCP.
+- Audit commands (`audit-plan`, `audit-openspec`, `audit-team`): Added a guardrail that requires verification before a fix.
+
+### Added in dotnet-backend-dev
+
+- `create-tests`: Added the section Constructor Null-Argument Tests (foreach-over-List\<Action\> pattern, anti-pattern: boolean stripes). Added the section Scenario Tests (stubs only, no mocking). Added the section Test Scope and Props Files.
+- `create-tests/examples`: Added `constructor-null-arg-tests.md` and `scenario-tests.md`.
+
+### Changed in dev-essentials
+
+- `task-composer` agent: Rewrote the agent with three modes (draft, response, and create). Added a GitHub issue workflow (`issue_write` and `issue_read`). The workflow has two steps: create the issue, then make sure that it was created. Added a cross-reference to Rule 1 of `github-mcp-conventions`.
+- `git-worktree-management`: Added a new path scheme `.claude/worktrees/<branch>/`, bootstrap steps, PR-status discovery through GitHub MCP (Workflow D), and a keep-until-PR-merged lifecycle.
+- `process-pr-comments`: Rewrote the skill on top of GitHub MCP throughout. Removed the legacy work-item-ID prefix from the commit message. Changed the thread anchors to use `html_url`. Changed the `[OutOfScope]` tracking to use `issue_write` for tracking-issue creation. Updated `references/thread-state-schema.md` to GitHub field names.
+- `feature-pipeline` Step 0: Changed worktree creation to delegate to Workflow A of `git-worktree-management`. It no longer uses inline git commands.
+- Skill cross-references: Removed legacy upstream prefixes from all cross-reference names.
+
+### Removed in dev-essentials
+
+- Removed the commands `review-loop.md` and `review-pr.md`. The trigger phrases now live in the frontmatter description of the skill `review-loop`.
+- Removed `process-pr-comments/references/air-verification.md`. The file `automated-review-verification.md` replaces it.
+
+### Breaking changes in dev-essentials
+
+- `task-composer` is now native to GitHub MCP. It calls `issue_write` and `issue_read` instead of any other PR-provider MCP tool. Existing non-GitHub workflows break.
+- `process-pr-comments` now works only with GitHub MCP. It requires the GitHub MCP server. Existing non-GitHub workflows break.
+- Deleted the commands `/dev-essentials:review-loop` and `/dev-essentials:review-pr`. Use the skill `review-loop` instead. Its description has the trigger phrases `/review-loop` and `/review-pr`.
 
 ## [1.0.2] - 2026-05-08
 
 ### Added
 
-- `marketplace.json`: top-level `description` so the Discover tab shows a one-line summary.
-- All 3 `plugin.json` manifests: `$schema` (JSON Schema reference for editor validation), `repository` (links back to this GitHub repo), and per-plugin `keywords` for the Discover tab.
-- `CLAUDE.md`: new **Versioning Policy** section — semver bump rules per plugin, single-source-of-truth rule for `version`, and update-propagation flow.
-- `README.md`: a **Validating** section pointing at `claude plugin validate`, and a **References** section linking the three official Claude Code plugin docs pages.
+- `marketplace.json`: Added a top-level `description` so that the Discover tab shows a one-line summary.
+- All 3 `plugin.json` manifests: Added `$schema`, a JSON Schema reference for editor validation. Added `repository`, a link back to this GitHub repository. Added per-plugin `keywords` for the Discover tab.
+- `CLAUDE.md`: Added a Versioning Policy section. It has semver bump rules for each plugin, a single-source-of-truth rule for `version`, and an update-propagation flow.
+- `README.md`: Added a Validating section that points at `claude plugin validate`. Added a References section that links the three official documentation pages for Claude Code plugins.
 
 ### Changed
 
-- All 3 plugins bumped from `1.0.0` → `1.0.1`. The manifest contract changed (new metadata fields), so consumers should re-fetch on next `/plugin marketplace update`.
-- `README.md` slash command corrected: `/plugins marketplace add` → `/plugin marketplace add` (singular, per current Claude Code docs).
-- `README.md` settings examples: replaced the undocumented `plugins.marketplaces[]` / `plugins.sources[]` shapes with the documented `extraKnownMarketplaces` + `enabledPlugins` settings, using `"source": "git"` (no `.git` URL suffix, matching what Claude Code writes on install).
-- `README.md` schema examples: `marketplace.json` example now includes top-level `description` and drops per-plugin `version`; `plugin.json` example now includes `$schema`, `repository`, and `keywords`.
+- Bumped all 3 plugins from `1.0.0` to `1.0.1`. The manifest contract changed because of new metadata fields. We recommend that consumers re-fetch at the next `/plugin marketplace update`.
+- `README.md`: Corrected the slash command from `/plugins marketplace add` to `/plugin marketplace add`. The singular form follows the current Claude Code documentation.
+- `README.md` configuration examples: Replaced the undocumented shapes `plugins.marketplaces[]` and `plugins.sources[]` with the documented `extraKnownMarketplaces` and `enabledPlugins` configuration. The examples use `"source": "git"` with no `.git` suffix on the URL. This matches what Claude Code writes on install.
+- `README.md` schema examples: Added a top-level `description` to the `marketplace.json` example and removed the per-plugin `version` from it. Added `$schema`, `repository`, and `keywords` to the `plugin.json` example.
 
 ### Removed
 
-- `marketplace.json`: per-plugin `version` field on each entry inside `plugins[]`. Plugin versions live only in each `plugin.json` (per the new Versioning Policy).
+- `marketplace.json`: Removed the per-plugin `version` field from each entry inside `plugins[]`. Plugin versions live only in each `plugin.json`. This follows the new Versioning Policy.
 
 ### Fixed
 
-- `README.md` "Installing a single plugin" section: corrected the settings file name from `.claude/settings.json` to `.claude/settings.local.json` so it matches the file targeted by the marketplace-add snippet above it (avoids users defining `extraKnownMarketplaces` in two different settings files).
+- `README.md`, section "Installing a single plugin": Corrected the name of the configuration file from `.claude/settings.json` to `.claude/settings.local.json`. The file name now matches the file that the marketplace-add snippet above this section targets. This stops users from defining `extraKnownMarketplaces` in two different configuration files.
 
 ## [1.0.1] - 2026-05-04
 
 ### Changed
 
-- Renamed marketplace from `vasar-claude-marketplace` to `vasar-plugins-marketplace`. The new name matches Claude Code's data model — `marketplace.json` lists plugins, so "plugins" is the more accurate categorical descriptor.
-- All repository URL references in `README.md` and `CHANGELOG.md` updated to the new GitHub URL. The GitHub repository was renamed in the Web UI; Git auto-redirects the old URL.
+- Renamed the marketplace from `vasar-claude-marketplace` to `vasar-plugins-marketplace`. The new name matches the data model of Claude Code. The file `marketplace.json` lists plugins, so "plugins" is the more accurate name for the category.
+- Updated all repository URL references in `README.md` and `CHANGELOG.md` to the new GitHub URL. The GitHub repository was renamed in the Web UI. Git redirects the old URL automatically.
 
 ### Fixed
 
-- `README.md` `plugin.json` schema example: removed `skills` / `agents` / `commands` directory-string fields (e.g. `"./skills/"`), which Claude Code interprets as file paths and rejects on install. The example now mirrors the metadata-only manifests this repo ships and explains that components are auto-discovered from the default locations.
+- `README.md` schema example for `plugin.json`: Removed the directory-string fields `skills`, `agents`, and `commands` (for example `"./skills/"`). The example now mirrors the metadata-only manifests that this repository ships. It also explains that Claude Code discovers components automatically from the default locations.
 
 ## [1.0.0] - 2026-05-04
 
 ### Added
 
-- Initial marketplace layout with three plugins:
-  - **`dev-essentials`** — four composer agents (PR, Task, Test, Docs), ten workflow commands, and seven cross-stack skills (markdown, XML docs, git worktrees, PR review comments, feature pipeline, general conventions, create-documentation).
-  - **`dotnet-backend-dev`** — fifteen .NET / Clean Architecture / DDD / EF Core / OpenAPI / Mapperly skills plus a backend conventions hub with nine topic references (controllers, services, configuration, domain models, EF patterns, logging, mappers, security, testing).
-  - **`gop-pipeline`** — Git Operations Pipeline workflow (plan → implement → build → test → validate → commit) with five parallel validator subagents (correctness, reuse, security, compliance, performance) plus build, test, and commit agents.
-- Repo artifacts: README with install instructions and authoring reference, MIT LICENSE, root `CLAUDE.md` with documentation-first guardrails and repo conventions, this CHANGELOG, and `.gitignore`.
-- Manifest layout: `.claude-plugin/marketplace.json` lists the three plugins; each `plugin.json` declares only metadata (name, version, description, author) and relies on Claude Code's auto-discovery for components at the documented default locations (`skills/`, `commands/`, `agents/`).
+- Added the initial marketplace layout with three plugins:
+  - `dev-essentials` has four composer agents (PR, Task, Test, Docs), ten workflow commands, and seven cross-stack skills. The skills cover markdown, XML docs, git worktrees, PR review comments, feature pipeline, general conventions, and `create-documentation`.
+  - `dotnet-backend-dev` has fifteen .NET, Clean Architecture, DDD, EF Core, OpenAPI, and Mapperly skills. It also has a backend conventions hub with nine topic references. The topics are controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing.
+  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: plan, implement, build, test, validate, commit. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
+- Added the repository artifacts:
+  - A README with install instructions and an authoring reference
+  - An MIT LICENSE
+  - A root `CLAUDE.md` with documentation-first guardrails and repository conventions
+  - This CHANGELOG
+  - `.gitignore`
+- Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.2...v2.0.0
 [1.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.1...v1.0.2

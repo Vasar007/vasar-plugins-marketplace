@@ -1,34 +1,30 @@
 # vasar-plugins-marketplace
 
-Personal [Claude Code](https://docs.claude.com/claude-code) marketplace — composer agents, workflow commands, generic developer skills, a .NET backend toolkit, and a full Git Operations Pipeline (GOP) workflow.
+This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplace. It holds composer agents, workflow commands, and generic developer skills. It also holds a .NET backend toolkit and a full Git Operations Pipeline (GOP) workflow.
 
-> **Private repo.** Generic / stack-neutral artifacts. No employer or product branding.
-
----
+> This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
 
 ## Plugins
 
 | Plugin | Group | Purpose |
 |---|---|---|
-| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs) + generic workflow commands + cross-stack skills (markdown, XML docs, worktrees, PR review, feature pipeline, general conventions) |
-| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET / Clean Arch / DDD / EF Core / OpenAPI skills + backend conventions hub (controllers, services, configuration, domain models, EF patterns, logging, mappers, security, testing) |
-| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | Plan → implement → build → test → validate (correctness/reuse/security/compliance/performance, in parallel) → commit pipeline with specialist validator subagents |
-
----
+| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs) and generic workflow commands. Cross-stack skills for markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, personal-convention auditing, and artifact trimming. |
+| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET, Clean Architecture, DDD, EF Core, and OpenAPI skills. A hub of backend conventions for controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing. |
+| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A pipeline with specialist validator subagents. The stages run in this order: plan, implement, build, test, validate, commit. The validate stage runs in parallel for correctness, reuse, security, compliance, and performance. |
 
 ## Installing the marketplace
 
-Gives access to all plugins at once.
+Add the marketplace to get access to all plugins at once. You can add it with a command or in a configuration file.
 
-**Via command:**
+To add the marketplace with a command, run:
 
 ```text
 /plugin marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
 ```
 
-> The repo is private. You'll need a GitHub credential helper (or SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git`) configured locally before Claude Code can clone it.
+> The repository is private. Before Claude Code can clone it, configure a GitHub credential helper locally. You can use the SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git` instead.
 
-**Via `.claude/settings.local.json`:**
+To add the marketplace in `.claude/settings.local.json`, use this configuration:
 
 ```json
 {
@@ -43,11 +39,9 @@ Gives access to all plugins at once.
 }
 ```
 
----
-
 ## Installing a single plugin
 
-After the marketplace is added, install a single plugin by name:
+After you add the marketplace, install a single plugin by name:
 
 ```text
 /plugin install dev-essentials@vasar-plugins-marketplace
@@ -55,7 +49,7 @@ After the marketplace is added, install a single plugin by name:
 /plugin install gop-pipeline@vasar-plugins-marketplace
 ```
 
-Or auto-enable specific plugins for a project by extending the same `.claude/settings.local.json`:
+To enable specific plugins for a project automatically, extend the same `.claude/settings.local.json` file:
 
 ```json
 {
@@ -74,13 +68,11 @@ Or auto-enable specific plugins for a project by extending the same `.claude/set
 }
 ```
 
-After editing settings or installing, run `/reload-plugins` to pick up changes without restarting.
-
----
+After you edit the configuration or install a plugin, run `/reload-plugins`. This loads the changes without a restart.
 
 ## Authoring reference
 
-Only needed if you are modifying this marketplace or adding new plugins.
+Only readers who modify this marketplace or add new plugins need this section.
 
 ### Folder structure
 
@@ -125,7 +117,7 @@ vasar-plugins-marketplace/
 }
 ```
 
-`source` paths must start with `./` and resolve to a directory containing `.claude-plugin/plugin.json`. Do **not** set `version` here — it lives only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)).
+A `source` path must start with `./`. It must resolve to a directory that contains `.claude-plugin/plugin.json`. Do not set `version` here. The version lives only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)).
 
 ### `plugin.json` schema
 
@@ -141,33 +133,37 @@ vasar-plugins-marketplace/
 }
 ```
 
-Keep `plugin.json` to metadata only. Claude Code auto-discovers components at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`. Do **not** add `skills`, `agents`, or `commands` fields pointing at directory strings — those values are interpreted as file paths and cause the plugin to fail to load.
+Keep `plugin.json` to metadata only. Claude Code discovers components automatically at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`.
+
+The plugins in this marketplace do not set the fields `skills`, `agents`, or `commands`. The [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference) gives these rules for the fields:
+
+- `skills` accepts a directory or an array of directories. The listed directories load together with the default `skills/` folder.
+- `commands` accepts a file, a directory, an array of paths, or an object map. It replaces the default `commands/` folder.
+- `agents` accepts only `.md` files, one or an array. It does not accept a directory. It replaces the default `agents/` folder.
+
+Each path is relative to the plugin root and must start with `./`. If you add one of these fields, run the validator (see [Validating](#validating)).
 
 ### Validating
 
-Run the bundled CLI validator before pushing changes:
+Before you push changes, run the bundled CLI validator:
 
 ```text
 claude plugin validate .                       # validates marketplace.json
 claude plugin validate ./<group>/<plugin>      # validates a single plugin manifest
 ```
 
----
-
 ## Conventions
 
-- Names: `lowercase-kebab-case`. No organization or product prefixes.
-- Skill files: `SKILL.md` at the root of each `skills/<name>/` directory; supporting files (templates, reference docs, stage scripts) sit alongside it.
-- Agent files: one `.md` per agent under `agents/`.
-- Command files: one `.md` per command under `commands/`. Filename = slash-command name.
-- Stack-specific assumptions (e.g. .NET, PowerShell) must be declared explicitly inside the skill, not implied across files.
+- Names use `lowercase-kebab-case` and carry no organization or product prefix.
+- Each skill has a `SKILL.md` file at the root of its `skills/<name>/` directory. Supporting files (templates, reference docs, stage scripts) sit alongside it.
+- Each agent has one `.md` file under `agents/`.
+- Each command has one `.md` file under `commands/`. The file name equals the slash-command name.
+- A skill must declare stack-specific assumptions (for example .NET or PowerShell) explicitly inside the skill. Do not imply them across files.
 
-See [`CHANGELOG.md`](./CHANGELOG.md) for what landed when.
-
----
+See [`CHANGELOG.md`](./CHANGELOG.md) for the changes in each release.
 
 ## References
 
-- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) — `marketplace.json` schema, source types, version resolution
-- [Plugins reference](https://code.claude.com/docs/en/plugins-reference) — `plugin.json` schema, component layout, environment variables
-- [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) — install workflows and `extraKnownMarketplaces` / `enabledPlugins` settings
+- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces): the `marketplace.json` schema, source types, and version resolution.
+- [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference): the `plugin.json` schema, component layout, and environment variables.
+- [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins): install workflows and the `extraKnownMarketplaces` and `enabledPlugins` configuration.
