@@ -61,7 +61,9 @@ Parts 1 and 2 form the byte-identical tier. Parts 3 and 4 form the substance tie
 
 Other verbatim user text is not in the protect-set. If it duplicates protected text, you can delete it. Never paraphrase it. Keep it verbatim, or remove it.
 
-List the file types in the workspace, for example with `find WORKSPACE -type f | sed -E 's|.*/||; s/.*\.//' | sort | uniq -c`. The script checks `**/*.md` by default. For other types, such as `.txt` or `.log`, use `--glob '**/*'`, or run the script once for each type. Record the glob in the protect-set.
+List the file types in the workspace, for example with `find WORKSPACE -type f | sed -E 's|.*/||; s/.*\.//' | sort | uniq -c`. The script checks `**/*.md` by default. If other types can cite a trimmed file, such as `.txt` or `.log`, use `--glob '**/*'` in one run. A separate run for each type cannot see a `.txt` file that cites a deleted `.md` file. Record the glob in the protect-set.
+
+The glob `**/*` also walks hidden folders such as `.git`. In a git workspace, a deleted file then shows as DANGLING in `.git/index`. The size table also counts git objects. Instead, compare the subfolder that holds every file that can cite a trimmed file, for example `--before BACKUP/docs --after WORKSPACE/docs`.
 
 To find id families, list the prefixes of tokens that look like ids:
 
@@ -78,13 +80,14 @@ Then write one multiline regex for each protected block type. It must cover only
 (?m)^## Decision \d+\n\nQuote: .*\nDecision: .*$
 ```
 
-Make sure that each regex matches at least once in the backup.
+Make sure that each regex matches at least once in the workspace.
 
 Also settle the byte targets (defaults are in [references/cut-rules.md](references/cut-rules.md)), the backup location, and who approves deletions.
 
 ### 2. Back up the workspace
 
 Before the first edit, copy the whole workspace to a location outside it, for example with `cp -a WORKSPACE BACKUP`.
+The script refuses a backup inside the workspace, because that copy can hide a loss.
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
@@ -106,7 +109,7 @@ The planner reads every file of its batch and writes one plan per batch. Use [re
 - Cross-file fixes for every reference that a deletion or a move breaks, and corrected counts.
 - Each tombstone with its file and a regex for `PATH:FIRST_LINE` (see step 7).
 
-The planner proves each anchor with a script. Then it copies the batch to a scratch folder twice, as an `orig` copy and a `target` copy. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
+The planner proves each anchor with a script. Then it makes two copies of the batch in a scratch folder, an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
 Keep plans and scratch copies outside the workspace, so that the pass does not measure or trim them.
 
 Measure bytes, not lines. Agents pay for bytes. Joining lines is not a cut: it drops the line count and keeps the cost. Remove words instead. If a file stays above its target, the plan says why.
@@ -145,7 +148,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after 
   --allow-changed '^notes/decisions\.md:## Decision 3\b' --target-percent 60
 ```
 
-- Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error, such as a bad flag, an unreadable path or an absolute `--glob`.
+- Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error. Examples are a bad flag, an unreadable path, an absolute `--glob` and a backup inside the workspace.
 - A regex that matches nothing in the backup is a failure.
 - The script converts CRLF to LF in both trees before it matches or compares.
 - A glob is one relative pattern from the root of the tree. `*.md` matches only top-level files. `notes/*.md` matches only files in `notes/`. `**/*.md` matches files at any depth.

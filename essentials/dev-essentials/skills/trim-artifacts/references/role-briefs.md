@@ -51,7 +51,8 @@ Targets in bytes: {TARGETS}
 3. Measure bytes, not lines. Joining lines is not a cut. Remove words.
 4. If a file stays above its target, write why in the plan.
 5. Prove every anchor and end quote with the anchor proof script. Each must match once.
-6. Copy the batch to {SCRATCH}/orig and {SCRATCH}/target. Apply the plan to target.
+6. Copy the batch, with its relative paths, to {SCRATCH}/orig and {SCRATCH}/target.
+   Apply the plan to target.
 7. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {SCRATCH}/orig
    --after {SCRATCH}/target {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
 8. If it fails, fix the plan and repeat until it passes.
@@ -118,12 +119,14 @@ Write the review to {REVIEW_PATH}. Report the counts per severity in at most 15 
 ```text
 You fix the accepted findings of a trim review.
 Review: {REVIEW_PATH}. Accepted findings: {FINDINGS}. Backup: {BACKUP}.
+Workspace: {WORKSPACE}.
 
 1. For each finding, decide APPLY, PARTIAL or REJECT, with one line of reason.
 2. Restore lost facts verbatim from the backup. Do not rephrase byte-identical text.
 3. Fix only what the findings name. Do not start new cuts.
-4. Rerun trim_report.py with {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}, and
-   {LINT_COMMAND}. Fix every failure that the script reports.
+4. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {BACKUP}
+   --after {WORKSPACE} {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
+5. Run {LINT_COMMAND} on the changed files. Fix every failure that the script or the linter reports.
 
 Report in at most 20 lines: each finding with its decision, and the script result.
 ```

@@ -14,6 +14,10 @@ The script tests the allow regex against the text PATH:FIRST_LINE. PATH is the
 relative path with forward slashes. After the trim, the same file must still
 hold one line that matches the regex. This line is the tombstone.
 
+The script resolves both roots, including symbolic links. It refuses a before
+tree and an after tree that are equal or that contain each other. A backup
+inside the workspace can hide a loss.
+
 Exit codes: 0 = pass, 1 = an integrity check failed, 2 = usage error.
 
 Example:
@@ -60,6 +64,10 @@ def parse_args():
     for name in ("before", "after"):
         if not Path(getattr(args, name)).is_dir():
             usage_error(f"--{name} is not a directory: {getattr(args, name)}")
+    before, after = Path(args.before).resolve(), Path(args.after).resolve()
+    if before == after or before in after.parents or after in before.parents:
+        usage_error("the before tree and the after tree must not contain each other. "
+                    "Keep the backup outside the workspace.")
     try:
         args.id_res = [re.compile(r) for r in args.id_regex]
         args.protected_res = [re.compile(r, re.MULTILINE) for r in args.protected_regex]
