@@ -179,10 +179,10 @@ the file records the meta-plan approval, do not ask for it again.
 The scratch folder of the old session can be gone. If a snapshot or the digest is missing,
 run step 1 again in full: dispatch the setup helper and the collector in the same message,
 with the commit SHAs from the progress file. If the report already lists notes-file bugs with
-`N-NN` IDs, tell the collector to keep them. Then run the structure checks for step 1. On a
-resume, C13 can also print the progress file of the agent that `## NEXT` names. That hit is not
-a defect. The scratch folder can have a new path. Write the path that is now in use into
-`_bug-hunt-session-progress.md` before you fill the next brief. If an agent progress file exists
+`N-NN` IDs, tell the collector to keep them. Then run the structure checks for step 1. In
+these step-1 checks, C13 can also print the progress file of the hunter, verifier, or auditor
+that `## NEXT` names. That hit is not a defect. The scratch folder can have a new path. Write the path that is now
+in use into `_bug-hunt-session-progress.md` before you fill the next brief. If an agent progress file exists
 for the step in `## NEXT`, dispatch that role again with the same brief. Add the resume note
 from [references/agent-briefs.md](references/agent-briefs.md).
 

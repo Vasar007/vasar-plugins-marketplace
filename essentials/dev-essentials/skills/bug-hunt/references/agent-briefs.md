@@ -179,7 +179,7 @@ requests.
 Notes files: {KNOWN_NOTES}. GitHub repository: {GITHUB}. Bug label: {BUG_LABEL}.
 Digest file to write: {DIGEST}. Format: section "Known-issues digest" in
 {SKILL_DIR}/references/report-format.md.
-Report file (it can be missing): {REPORT_PATH}.
+Report file (it can be missing): {REPORT_PATH}. Read it only. Do not change it.
 
 1. Read each notes file. List each bug that it describes, with a short title and the
    location if the file gives one. Give each notes-file bug an ID: N-01, N-02, and so on,
