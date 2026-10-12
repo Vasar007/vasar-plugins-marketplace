@@ -1,6 +1,6 @@
 ---
 name: bug-report-auditor
-description: Final pass over a verified bug hunt report. Makes sure that the whole report is valid, consistent, and complete after the verification edits, with fields matching the Summary, working cross-references and links, correct counts, and plain English. Fixes consistency problems in place. Dispatched by the bug-hunt skill with a brief, not user-triggered.
+description: Final pass over a verified bug hunt report. Makes sure that the whole report is valid, consistent, and complete after the verification edits. Fields match the Summary, cross-references and links work, counts are correct, and the text is plain English. Fixes consistency problems in place. Dispatched by the bug-hunt skill with a brief, not user-triggered.
 tools: [Read, Grep, Glob, Bash, Write, Edit, Skill]
 model: opus
 effort: xhigh

@@ -134,8 +134,8 @@ Field rules:
 - Category: one of Crash, Wrong result, Data loss, Security, Concurrency, Resource leak, Error handling, Performance, Compatibility, Build or packaging, Install or upgrade, or Other with a name.
 - Location: `path:line`, relative to the snapshot root. More than one location is allowed, separated by commas.
 - Also on base: Yes, No, Not checked (with the reason), or Not applicable (the analyzed commit is the base).
-- Verdict: "Pending verification" when the hunter writes the entry. The verifier sets the final value.
-- Artifacts: only if the folder exists. Leave out the line if there is no artifact.
+- Verdict: the hunter writes "Pending verification". The verifier sets the final value.
+- Artifacts: write this line only for an artifact folder that exists. If there is no artifact, leave out the line.
 - Failure scenario: if the agent cannot show the failure, write "Not shown:" and the reason.
 
 ## Verdicts
@@ -248,7 +248,7 @@ If a source is not available, the section says so and why.
 
 ## Plain-English fallback rules
 
-Use these rules only when the skill `simple-english:simple-english` is not installed. They
+If the skill `simple-english:simple-english` is not installed, use these rules. They
 are a short form of that skill.
 
 1. Keep sentences short: at most 20 words for a step and 25 words for an explanation.
@@ -260,4 +260,4 @@ are a short form of that skill.
 7. Define a technical term at its first use, in fewer than ten words.
 8. State facts. Delete filler words such as "simply", "robust", "crucial", and "in order to".
 9. Do not change code, identifiers, paths, commands, or quoted error text.
-10. Use bold text only in tables, if at all. Use no emoji.
+10. Use bold text only in tables, or not at all. Use no emoji.

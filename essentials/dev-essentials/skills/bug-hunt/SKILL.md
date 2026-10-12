@@ -6,9 +6,9 @@ description: >-
   Verifier agents try to refute each finding, and an auditor agent makes sure that the whole
   report is consistent. Agents read the code only from git archive snapshots. Known bugs from
   notes files and GitHub issues are skipped. Progress files make the run resumable after a
-  crash. The skill never creates GitHub issues. Use it for "bug hunt", "hunt for bugs", "find
-  new bugs in this project", "find potential bugs in every area", "audit the codebase for
-  bugs" or "write a verified bug report". Do not use it to review one diff or one pull
+  crash. The skill never creates GitHub issues. Use it for "bug hunt", "hunt for bugs" or "find
+  new bugs in this project". Use it also for "find potential bugs in every area", "audit the
+  codebase for bugs" or "write a verified bug report". Do not use it to review one diff or one pull
   request. Use review-loop or code-review for that.
 argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>]"
 ---
@@ -43,9 +43,9 @@ The user gives the inputs as arguments or answers the step-0 questions.
 
 | Input | Argument | Default |
 | --- | --- | --- |
-| Repository path | first argument | The current working directory, if it is a git repository |
+| Repository path | first argument | If the current working directory is a git repository, that directory |
 | Project name | `--name` | The folder name of the repository |
-| GitHub repository | `--github` | `owner/repo` from the `origin` remote, if it points to github.com. Else none. |
+| GitHub repository | `--github` | If the `origin` remote points to github.com, `owner/repo` from that remote. Else none. |
 | Analyzed commit | `--ref` | `HEAD` of the repository. The orchestrator resolves it to a commit SHA. |
 | Base branch | `--base` | The default branch of `origin`. If git cannot tell, ask. |
 | Report folder | `--report-dir` | None. Ask. |
@@ -170,18 +170,18 @@ every placeholder before you dispatch. The agent sees only its brief.
 ### Resume check
 
 Do this before step 0. If the report folder is known and it holds
-`_bug-hunt-session-progress.md`, read that file and continue from its `## NEXT` section. Do
-not ask for the meta-plan approval again if the file records it.
+`_bug-hunt-session-progress.md`, read that file and continue from its `## NEXT` section. If
+the file records the meta-plan approval, do not ask for it again.
 
 The scratch folder of the old session can be gone. If a snapshot is missing, run the setup
 helper again with the commit SHAs from the progress file. If an agent progress file exists
-for the step in `## NEXT`, dispatch that role again with the same brief and the resume note
+for the step in `## NEXT`, dispatch that role again with the same brief. Add the resume note
 from [references/agent-briefs.md](references/agent-briefs.md).
 
 ### Step 0. Meta-plan and questions
 
 1. Resolve the inputs from the arguments. For the defaults, use only light read-only calls: `git -C "<repo>" rev-parse --verify "<ref>^{commit}"`, `git -C "<repo>" rev-parse --abbrev-ref origin/HEAD`, and `git -C "<repo>" remote get-url origin`. Make sure that the report folder exists, and list the files in it that start with `bug-hunt`.
-2. Pick the scratch folder. Use the session scratchpad directory if the environment gives one, with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
+2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat. It has these parts:
@@ -195,7 +195,7 @@ from [references/agent-briefs.md](references/agent-briefs.md).
    8. Cleanup: the list of what step 6 deletes and what it keeps.
    9. Questions: a numbered list, or "No questions".
 6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the base branch is unknown, Fable is not available, or there is no known-issue source.
-7. Wait for the user's explicit OK. If the user changes a value, apply the change. Show the meta-plan again only if the change raises a new question.
+7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
 8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the scratch folder, the approved models and effort levels, the areas, and the approval itself.
 
 ### Step 1. Isolation
@@ -264,13 +264,13 @@ in English. Use these three sections, in this order:
 
 1. Blocked on me: the decisions that only the user can make. List each Unconfirmed finding by ID and point to its "To decide:" line. If there are none, write "Nothing".
 2. Changed: the report path and the artifacts folder with the number of subfolders. Say that the run made no change in the project, no commits, and no GitHub issues.
-3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not verify. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and any leftover file.
+3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not confirm. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and any leftover file.
 
 ## Failure handling
 
-- If an agent stops on a usage limit or crashes, dispatch a new agent of the same role with the same brief and the resume note. The new agent reads the progress file and continues.
+- If an agent stops on a usage limit or crashes, dispatch a new agent of the same role. Give it the same brief and the resume note. The new agent reads the progress file and continues.
 - If a structure check fails, dispatch one repair agent of the same role. Give it the same brief and the repair note with the list of defects. If the check fails again, stop the run. Keep all files, and report the defects under "Blocked on me".
-- If the collector cannot reach GitHub, ask the user to reconnect the GitHub MCP server with `/mcp`, or to continue with the notes files only. Do not fall back to another GitHub client.
+- If the collector cannot reach GitHub, ask the user what to do. The user can reconnect the GitHub MCP server with `/mcp` or continue with the notes files only. Do not fall back to another GitHub client.
 - If an agent reports a blocker, such as a missing snapshot, fix the cause with the right helper. Then dispatch the agent again.
 
 ## Common failure modes

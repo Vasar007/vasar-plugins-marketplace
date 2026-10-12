@@ -1,8 +1,7 @@
 # Structure checks
 
 The orchestrator runs these checks between steps. They test the form of the report, not the
-truth of the findings. Each command prints nothing when the check passes, unless the text
-says otherwise. The commands need a POSIX shell with `grep`, `awk`, `sed`, `sort`, and `find`.
+truth of the findings. When the check passes, each command prints nothing. The text names any exception. The commands need a POSIX shell with `grep`, `awk`, `sed`, `sort`, and `find`.
 
 Set these variables first:
 
@@ -76,7 +75,7 @@ C8. Each Unconfirmed finding has a "To decide:" line (prints two equal numbers):
 grep -c '^- Verdict: Unconfirmed' "$R"; grep -c '^To decide: ' "$R"
 ```
 
-C9. Every area section has its two subsections (prints three equal numbers when all areas are searched):
+C9. Every area section has its two subsections. When all areas are searched, the three numbers are equal:
 
 ```bash
 grep -c '^## Area [0-9][0-9]*: ' "$R"

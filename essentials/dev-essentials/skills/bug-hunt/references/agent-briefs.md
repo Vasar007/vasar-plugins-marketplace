@@ -4,8 +4,8 @@ Fill every placeholder and paste the brief into the `prompt` of the dispatch. Ea
 self-contained, because the agent sees only its brief and its agent file.
 
 In the briefs, `<read-only block>` and `<crash-safety block>` stand for the shared blocks
-below. Paste each block in full. Leave out `{RESUME_NOTE}` and `{REPAIR_NOTE}` when they are
-empty.
+below. Paste each block in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it
+out.
 
 ## Placeholders
 

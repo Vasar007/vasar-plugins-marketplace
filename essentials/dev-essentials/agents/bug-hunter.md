@@ -37,7 +37,7 @@ first free ID, and the read-only rules for this run.
 8. Run experiments only in your work folder. If a repro file matters, copy it to `bug-hunt-artifacts/BH-NN/` in the report folder and write a `repro.md` there.
 9. Write each finding in your area section. Start at the first free ID from your brief and use no gaps. Set "Verdict: Pending verification".
 10. Write "Notes for other areas" with leads for areas that are not searched yet. If a lead belongs to an area that was already searched, follow it yourself. If it is a bug, write it as a finding in your section, and say in Problem which area the code belongs to.
-11. Replace "Pending search." in your section. Leave both subsections, with "None." if they are empty.
+11. Replace "Pending search." in your section. Leave both subsections. Write "None." in a subsection that is empty.
 12. Delete your temporary files in the work folder. Then delete your progress file.
 
 ## Reply
