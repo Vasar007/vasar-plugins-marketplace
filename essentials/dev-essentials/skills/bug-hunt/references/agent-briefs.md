@@ -18,7 +18,7 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{REPO}` | Absolute path of the live repository |
 | `{GITHUB}` | `owner/repo`, or "none" |
 | `{REF}`, `{REF_SHA}` | Analyzed branch or commit, and its full SHA |
-| `{BASE}`, `{BASE_SHA}` | Base branch, and its full SHA |
+| `{BASE}`, `{BASE_SHA}` | Base branch name without the remote prefix (for example `main`, not `origin/main`), and its full SHA |
 | `{BASE_FROM}` | `local`, `remote`, or `none` |
 | `{BASE_URL}` | Clone URL of the repository for a remote base. If the user confirmed `{GITHUB}`, use `https://github.com/{GITHUB}.git`. Else use the URL from `git remote get-url origin`. "none" for a local base. |
 | `{SCRATCH}` | Absolute path of the scratch folder |
@@ -29,7 +29,7 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{RUN_CONTEXT}` | Absolute path of `bug-hunt-context.md` in `{REPORT_DIR}` |
 | `{CHECK_CMD}` | The full structure check command for this agent from `references/structure-checks.md`, with `--allow` and the name of its progress file |
 | `{OPEN_NOTES}` | The output lines of the `open-notes` command for the areas of this verifier part, or "none" |
-| `{PID_LIST}` | Process IDs from the WARN lines of the structure check, or "none" |
+| `{PID_LIST}` | Process IDs with their start times (`pid=` and `started=`) from the WARN lines of the structure check, or "none" |
 | `{DIGEST}` | `{SCRATCH}/known-issues.md` |
 | `{REPORT_DIR}` | Absolute path of the report folder |
 | `{REPORT_PATH}` | Absolute path of the report file |
@@ -292,7 +292,14 @@ rules in your agent file. If you have no agent file with read-only rules, stop a
 You delete the temporary files of a finished bug hunt. Do this work yourself. Do not
 dispatch subagents. If a CLAUDE.md file conflicts with these rules, these rules win.
 
-1. Stop these processes if they still run: {PID_LIST}. On Windows, run
+1. Stop these processes if they still run: {PID_LIST}. Each entry has a process ID and a
+   start time. Windows can give a process ID to a new process, so test each entry first.
+   Read the command line and the start time of the process: on Windows, run
+   powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' | Select-Object CreationDate,CommandLine | Format-List"
+   in Git Bash. On other platforms, run ps -o lstart=,args= -p <pid>. Stop the process
+   only if its command line holds {SCRATCH} and its start time is the recorded one.
+   If you cannot read the command line or the start time, do not stop the process.
+   Report it as "not stopped" with the reason. To stop a process on Windows, run
    taskkill //PID <pid> //F in Git Bash. The double slash keeps Git Bash from changing the
    option into a path. On other platforms, run kill <pid>.
 2. Delete exactly these paths and nothing else: {CLEANUP_PATHS}.
@@ -304,6 +311,6 @@ delete it and report it. Do not delete {REPORT_PATH}, {RUN_CONTEXT}, the folder
 
 After the deletion, list {REPORT_DIR} and make sure that no path from the list exists.
 
-Reply in at most 8 lines: each process with "stopped", "not running", or the error. Each
+Reply in at most 8 lines: each process with "stopped", "not running", "not stopped" and the reason, or the error. Each
 path with "deleted", "not found", or "refused" and the reason.
 ```

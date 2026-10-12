@@ -26,7 +26,7 @@ The orchestrator writes this skeleton in step 2. It fills every `{...}` value.
 
 ## Scope
 
-- Project: {PROJECT}. GitHub repository: {GITHUB or "none"}.
+- Project: {PROJECT}. GitHub repository: {GITHUB}.
 - Analyzed code: {REF} at commit {REF_SHA}.
 - Base branch for "Also on base": {BASE} at commit {BASE_SHA}, from {BASE_SOURCE}.
 - Date: {DATE}.
@@ -85,7 +85,7 @@ This file holds the stable facts of the bug hunt. The orchestrator keeps it up t
 
 ## Project
 
-- Project: {PROJECT}. GitHub repository: {GITHUB or "none"}.
+- Project: {PROJECT}. GitHub repository: {GITHUB}.
 - Analyzed code: {REF} at commit {REF_SHA}.
 - Base: {BASE} at commit {BASE_SHA}, from {BASE_SOURCE}. Or "none".
 - Report file: {REPORT_FILE}.

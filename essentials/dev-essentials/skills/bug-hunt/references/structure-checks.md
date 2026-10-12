@@ -61,4 +61,4 @@ Each hunter, verifier, and auditor runs its `report` command before its reply, w
 
 ## Leftover processes
 
-A WARN line names each process whose command line holds the scratch path. Write its process ID into the session progress file. The cleanup helper stops these processes before it deletes the scratch folder, because a running process can lock files in it.
+A WARN line names each process whose command line holds the scratch path, with `pid=` and `started=`. The scan skips the check itself and the processes that started it. Write the process ID and the start time into the session progress file. The cleanup helper stops these processes before it deletes the scratch folder, because a running process can lock files in it. Before the helper stops a process, it reads the command line and the start time again. If either one differs from the record, it does not stop the process.

@@ -36,12 +36,13 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
 3. Write a self-contained prompt:
 
    ```text
-   Resume the bug hunt. Read <report folder>/_bug-hunt-session-progress.md first and
-   continue from its NEXT section. This scheduled prompt is the OK of the user for these
-   steps: <steps>. Stop at <the next pause point, or "the end of the run">.
+   Resume the bug hunt. If <report folder>/_bug-hunt-session-progress.md does not exist,
+   do nothing. Else read it first. If its NEXT section says "Waiting for agent", do nothing
+   and end the turn. Else continue from its NEXT section. This scheduled prompt is the OK of
+   the user for these steps: <steps>. Stop at <the next pause point, or "the end of the run">.
    ```
 
-4. Write the job ID, the time, and the steps into the session progress file.
+4. Write the job ID, the time, and the steps into the session progress file. Step 6 of the run deletes each of these jobs with `CronDelete`.
 
 A start time works the same way. After the OK to the meta-plan, write the session progress file, schedule the job for step 1, and end the turn.
 
@@ -50,6 +51,6 @@ The main session can reach its own usage limit while it waits for an agent. If t
 Limits from the docs:
 
 - A job fires only while Claude Code runs and is idle. If the user closes the session, the job does not fire until `claude --resume` restores it.
-- A job fires between turns. If the session is busy, the job waits until the turn ends.
+- A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because `## NEXT` says "Waiting for agent".
 - Times are in the local time zone.
 - The environment variable `CLAUDE_CODE_DISABLE_CRON=1` turns the tools off. If the cron tools are not available, tell the user, and wait for the user at each pause point.

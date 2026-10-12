@@ -37,7 +37,7 @@ CONFIDENCE = "High|Medium|Low"
 VERDICT = re.compile(
     r"^(Pending verification|Confirmed|Unconfirmed \(needs owner review\)|Rejected"
     r"|Duplicate of (#\d+|N-\d+|BH-\d+))$")
-LABEL = re.compile(r"^(?:- )?([A-Z][a-z]+(?: (?:[a-z]+|I))*): ")
+LABEL = re.compile(r"^(?:- )?([A-Z][a-z]+(?: (?:[a-z]+|I))*):(?: |$)")
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 COUNTS = re.compile(
     r"^Findings: (\d+)\.(?: Confirmed: (\d+)\. Unconfirmed \(needs owner review\): (\d+)\."
@@ -53,14 +53,14 @@ def defect(text):
 
 
 def read(path):
-    data = Path(path).read_bytes().decode("utf-8", errors="replace")
+    data = Path(path).read_bytes().decode("utf-8-sig", errors="replace")
     return data.replace("\r\n", "\n")
 
 
-def path_forms(scratch):
-    """The scratch path as agents can write it: both slash styles and both drive styles."""
+def drive_forms(path):
+    """A path in both slash styles and both drive styles."""
     forms = set()
-    base = str(scratch).rstrip("/\\")
+    base = str(path).rstrip("/\\")
     for p in (base, base.replace("\\", "/")):
         forms.add(p)
         forms.add(p.replace("/", "\\"))
@@ -72,7 +72,20 @@ def path_forms(scratch):
             rest = m.group(2)
             forms.add(m.group(1).upper() + ":/" + rest)
             forms.add(m.group(1).upper() + ":\\" + rest.replace("/", "\\"))
-    return {f.lower() for f in forms if len(f) > 3}
+    return {f.lower() for f in forms}
+
+
+def path_forms(scratch):
+    """The scratch path as agents can write it. Includes the Git Bash /tmp mount form."""
+    forms = drive_forms(scratch)
+    temp = os.environ.get("TEMP") or os.environ.get("TMP")
+    if temp and len(temp) > 3:
+        for t in {f.replace("\\", "/") for f in drive_forms(temp)}:
+            for f in list(forms):
+                norm = f.replace("\\", "/")
+                if norm.startswith(t + "/"):
+                    forms.add("/tmp" + norm[len(t):])
+    return {f for f in forms if len(f) > 3}
 
 
 def progress_files(report_dir, allow):
@@ -89,31 +102,66 @@ def leftovers(scratch):
             if d.is_dir() and any(d.iterdir()):
                 print(f"WARN: files left in work folder {d.name}")
     forms = path_forms(scratch)
-    try:
-        if os.name == "nt":
-            cmd = ["powershell.exe", "-NoProfile", "-Command",
-                   "Get-CimInstance Win32_Process | ForEach-Object "
-                   "{ \"$($_.ProcessId)`t$($_.CommandLine)\" }"]
-        else:
-            cmd = ["ps", "-eo", "pid=,args="]
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
-    except (OSError, subprocess.SubprocessError):
+    records = list_processes()
+    if records is None:
         print("WARN: could not list processes")
         return
-    for line in out.splitlines():
-        low = line.lower()
-        if "check_report.py" in low:
+    parent = {pid: ppid for pid, ppid, _, _ in records}
+    own = set()
+    pid = os.getpid()
+    while pid in parent and pid not in own:
+        own.add(pid)
+        pid = parent[pid]
+    own.add(os.getpid())
+    for pid, _, started, cmdline in records:
+        low = cmdline.lower()
+        if pid in own or "check_report.py" in low:
             continue
         if any(f in low for f in forms):
-            print("WARN: process uses the scratch folder: " + line.strip()[:200])
+            print(f"WARN: process uses the scratch folder: pid={pid} started={started} "
+                  f"command={cmdline.strip()[:200]}")
+
+
+def list_processes():
+    """Return (pid, parent pid, start time, command line) for each process, or None.
+
+    Each record is one line: newlines inside a command line become spaces.
+    """
+    try:
+        if os.name == "nt":
+            script = (
+                "Get-CimInstance Win32_Process | ForEach-Object { "
+                "$s = if ($_.CreationDate) { $_.CreationDate.ToString('s') } else { '' }; "
+                "$c = [string]$_.CommandLine -replace '[\\r\\n]+', ' '; "
+                "\"$($_.ProcessId)`t$($_.ParentProcessId)`t$s`t$c\" }")
+            cmd = ["powershell.exe", "-NoProfile", "-Command", script]
+        else:
+            cmd = ["ps", "-eo", "pid=,ppid=,lstart=,args="]
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    records = []
+    for line in out.splitlines():
+        if os.name == "nt":
+            parts = line.split("\t", 3)
+            ok = len(parts) == 4 and parts[0].strip().isdigit() and parts[1].strip().isdigit()
+            if ok:
+                records.append((int(parts[0]), int(parts[1]), parts[2].strip(), parts[3]))
+        else:
+            parts = line.split(None, 7)
+            if len(parts) == 8 and parts[0].isdigit() and parts[1].isdigit():
+                records.append((int(parts[0]), int(parts[1]), " ".join(parts[2:7]), parts[7]))
+    return records
 
 
 def sections(text):
     """Split the report into H2 sections. Lines in fenced code blocks are not headings."""
-    result, name, body, fence = [], None, [], False
+    result, name, body, fence, marker = [], None, [], False, ""
     for n, line in enumerate(text.split("\n"), 1):
-        if line.startswith("```"):
-            fence = not fence
+        if not fence and (line.startswith("```") or line.startswith("~~~")):
+            fence, marker = True, line[:3]
+        elif fence and line.startswith(marker):
+            fence = False
         if not fence and line.startswith("## "):
             if name is not None:
                 result.append((name, body))
@@ -273,7 +321,7 @@ def check_report(a):
         if [int(x) for x, _ in rows] != ids:
             defect("Summary table rows do not match the IDs in ID order")
         for x, title in rows:
-            if int(x) in titles and title.strip() != titles[int(x)]:
+            if int(x) in titles and title.strip().replace("\\|", "|") != titles[int(x)]:
                 defect(f"BH-{x}: Summary title differs from the heading")
     if a.stage == "final":
         if not re.search(r"^### For the owner's review$", summary, re.M):

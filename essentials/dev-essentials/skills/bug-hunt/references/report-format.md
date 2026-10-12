@@ -75,7 +75,7 @@ Fix idea: <one short direction, not a patch>
 
 Field rules:
 
-- Labels: write each label exactly as in the example, at the start of the line, followed by a colon. Put tags after the colon. Write "Failure scenario: with an empty file, ...", not "Failure scenario, empty file: ...". The structure check finds a field only by its exact label.
+- Labels: write each label exactly as in the example, at the start of the line, followed by a colon. The text can start on the same line or in the next paragraph. Put tags after the colon. Write "Failure scenario: with an empty file, ...", not "Failure scenario, empty file: ...". The structure check finds a field only by its exact label.
 - ID: `BH-` and a number with at least two digits (`BH-01`, `BH-12`, `BH-105`). Numbers continue across areas. Never reuse or renumber an ID.
 - Severity: one of the values below. Rate each finding on its own. Assume that the other findings are fixed. If another finding hides its effect today, say so in the Verification paragraph, and do not lower the severity for that reason.
   - Critical: data loss, a security hole, or a crash in a main path, with no workaround. Examples: a save cuts a file and reports no error. Any user can read the data of another user.
@@ -89,7 +89,7 @@ Field rules:
 - Also on base: `Yes, <location in the base snapshot>`, `No (new in the analyzed commit)`, `Not compared (<reason>)`, or `Not applicable (the analyzed commit is the base)`. If the run has no base (`--base=none`), leave out this field.
 - Verdict: the hunter writes "Pending verification". The verifier sets the final value.
 - Artifacts: write this line only for an artifact folder that exists. If there is no artifact, leave out the line.
-- Failure scenario: if the agent cannot show the failure, write "Not shown:" and the reason.
+- Failure scenario: if the agent cannot show the failure, write `Failure scenario: Not shown: <reason>`.
 
 ## Verdicts
 

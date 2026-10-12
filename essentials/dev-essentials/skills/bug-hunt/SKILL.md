@@ -50,8 +50,8 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Project name | `--name` | The folder name of the repository |
 | GitHub repository | `--github` | None. Ask. Propose `owner/repo` from the `origin` remote, and say that the remote can hold an old name. |
 | Analyzed commit | `--ref` | `HEAD` of the repository. The orchestrator resolves it to a commit SHA. |
-| Base branch | `--base` | The default branch of `origin`. If git cannot tell, ask. `none` turns off the base comparison. |
-| Base source | `--base-from` | `local`: the local branch. `remote`: a fresh clone of the branch from the remote into the scratch folder. |
+| Base branch | `--base` | The default branch of `origin`, as a branch name without the remote prefix (`main`, not `origin/main`). If git cannot tell, ask. `none` turns off the base comparison. |
+| Base source | `--base-from` | Default: `local`. `local`: the local branch. `remote`: a fresh clone of the branch from the remote into the scratch folder. |
 | Report folder | `--report-dir` | None. Ask. |
 | Report file | `--report-file` | `bug-hunt-report.md`. If that file exists, propose `bug-hunt-report-<YYYY-MM-DD>.md`. |
 | Notes files with known bugs | `--known`, repeatable | None |
@@ -60,7 +60,7 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Role of the user | `--role` | "Not stated" |
 | Number of areas | `--areas` | 5 |
 | Split threshold for pass 1 | `--split-threshold` | 40 findings |
-| Experiments | `--experiments` | `yes`: agents can build, restore, test, and run code on snapshot copies in their work folders. `no`: agents only read code. |
+| Experiments | `--experiments` | Default: ask at step 0, and propose `yes`. `yes`: agents can build, restore, test, and run code on snapshot copies in their work folders. `no`: agents only read code. |
 | Services for experiments | step-0 answer | None. Examples: a database server, a container runtime. |
 | Pause points | `--stop-after` | None. See [references/pauses.md](references/pauses.md). |
 | Resume and start times | `--resume-at`, `--start-at` | None |
@@ -133,7 +133,9 @@ is left behind means that work is not finished.
 
 The orchestrator keeps `_bug-hunt-session-progress.md` in the same way. It updates the file at
 each step boundary and after each agent reply. It records the agent ID of each dispatch, and
-each pause with its resume job. Edit progress files and the report with the Edit tool. A
+each pause with its resume job. After each dispatch, it writes this into `## NEXT`: "Waiting
+for agent <ID> (<role>). Do not dispatch this role again. Wait for its reply, or for the
+user to say that it stopped." Edit progress files and the report with the Edit tool. A
 script that rewrites a Markdown file can damage it. Two examples are a backslash escape, and
 a split on a heading name that the text also quotes.
 
@@ -194,11 +196,12 @@ then, before you show the meta-plan again.
 1. If the report folder holds `_bug-hunt-session-progress.md`, read it and continue from its `## NEXT`. If it records the meta-plan approval, do not ask for it again. If `## NEXT` records a pause, do not continue. Wait for the user, or for the scheduled resume prompt that names this file.
 2. If a snapshot or the digest is missing, run step 1 again in full with the commit SHAs from the progress file. If the report already lists `N-NN` IDs, tell the collector to keep them. Then run the step-1 structure check.
 3. Write the scratch folder path that is now in use into the progress file before you fill the next brief.
-4. If an agent progress file exists for the step in `## NEXT`, fill the brief for that role again from the recorded values, add the resume note from [references/agent-briefs.md](references/agent-briefs.md), and dispatch it.
+4. If `## NEXT` says "Waiting for agent <ID>", an agent of that role can still run. Do nothing and end the turn. This is the case for a scheduled resume prompt that fires while the agent runs. If the user says that the agent stopped, or the agent reply reports a crash or a usage limit, go to point 5.
+5. If an agent progress file exists for the step in `## NEXT`, fill the brief for that role again from the recorded values, add the resume note from [references/agent-briefs.md](references/agent-briefs.md), and dispatch it.
 
 ### Step 0. Meta-plan and questions
 
-1. Resolve the inputs from the arguments. For the defaults, use only light read-only calls: `git -C "<repo>" rev-parse --verify "<ref>^{commit}"`, `git -C "<repo>" rev-parse --abbrev-ref origin/HEAD`, `git -C "<repo>" remote get-url origin`, and `git -C "<repo>" log -1 --format=%cs "<base>"` for the date of the local base. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
+1. Resolve the inputs from the arguments. The command `rev-parse --abbrev-ref origin/HEAD` prints `origin/<branch>`. Remove the `origin/` prefix, because `{BASE}` is the branch name alone. For the defaults, use only light read-only calls: `git -C "<repo>" rev-parse --verify "<ref>^{commit}"`, `git -C "<repo>" rev-parse --abbrev-ref origin/HEAD`, `git -C "<repo>" remote get-url origin`, and `git -C "<repo>" log -1 --format=%cs "<base>"` for the date of the local base. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
@@ -276,8 +279,12 @@ Then run the structure check for step 5.
 
 ### Step 6. Cleanup
 
-Dispatch the cleanup helper with the process IDs from the WARN lines of the structure check,
-and with the exact list of paths to delete:
+First, delete the scheduled jobs of the run: run `CronList`, and run `CronDelete` for each job
+ID that the session progress file records. A job that fires after the run would act on a
+progress file that no longer exists.
+
+Dispatch the cleanup helper with the process IDs and start times from the WARN lines of the
+structure check, and with the exact list of paths to delete:
 
 - The scratch folder, with the snapshots, the digest, the tools folder, and every work folder.
 - Every `_bug-hunt-progress-*.md` file in the report folder.
