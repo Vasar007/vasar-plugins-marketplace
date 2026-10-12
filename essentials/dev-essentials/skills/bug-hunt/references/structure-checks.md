@@ -1,139 +1,64 @@
 # Structure checks
 
-The orchestrator runs these checks between steps. They test the form of the report, not the
-truth of the findings. When the check passes, each command prints nothing. The text names any
-exception. The commands need a POSIX shell with `grep`, `awk`, `sed`, `sort`, and `find`. On
-Windows, run them with the Bash tool (Git Bash).
+The orchestrator runs these checks between steps. They test the form of the report and the files around it, not the truth of the findings. The script [../scripts/check_report.py](../scripts/check_report.py) runs them. It needs Python 3 and only its standard library. Run it with `python3 -I`, in the Bash tool on Windows.
 
-Set these variables first:
+Set these values first. `{SKILL_DIR}` is the folder of this skill.
 
 ```bash
+C="{SKILL_DIR}/scripts/check_report.py"
 R="<absolute path of the report file>"
 D="<absolute path of the report folder>"
 S="<absolute path of the scratch folder>"
 ```
 
-## Commands
+Each output line starts with one word:
 
-C1. Number of findings (prints a number):
+- `DEFECT:` a structure error. The check fails, and the exit code is 1.
+- `WARN:` a fact to record, for example files left in a work folder, or a process that still uses the scratch folder. The check does not fail.
+- `INFO:` the counts: findings, next free ID, verdicts, pending entries, artifact folders, and open notes. Compare them with the reply of the agent.
 
-```bash
-grep -c '^### BH-[0-9][0-9]*: ' "$R"
-```
+## Command for each step
 
-C2. Next free ID (prints for example `BH-08`):
+| After | Command |
+| --- | --- |
+| Step 1 | `python3 -I "$C" setup --report-dir "$D" --scratch "$S" --base yes` |
+| Step 2 | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done 0 --stage search` |
+| Hunter of area K | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done K --stage search` |
+| Verifier part with last ID N | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done <number of areas> --stage verify --verified-to N` |
+| Last verifier part | The same command with `--stage summary` |
+| Step 5 | The same command with `--stage final` |
+| Step 6 | `python3 -I "$C" cleanup --report-dir "$D" --scratch "$S"` |
 
-```bash
-grep -o '^### BH-[0-9][0-9]*' "$R" | sed 's/.*BH-//' | sort -n | tail -1 \
-  | awk '{ printf "BH-%02d\n", $1 + 1 } END { if (NR == 0) print "BH-01" }'
-```
+If the command prints no `DEFECT` line and the `INFO` counts match the reply, the step passes.
 
-C3. IDs are unique and have no gaps:
+- If no base snapshot exists, use `--base no` at step 1. Two cases give no base snapshot: the analyzed commit is the base, or the base is `none`.
+- If the base is `none`, add `--base no` to the `report` commands. Then no entry has the field "Also on base".
+- During a resume, the progress file of the agent that `## NEXT` names can exist. Add `--allow <file name>` for it.
+- If there are no findings, skip the verifier commands. The auditor writes the Summary.
 
-```bash
-grep -o '^### BH-[0-9][0-9]*' "$R" | sed 's/.*BH-//' | sort -n \
-  | awk '{ if ($1 + 0 != NR) { print "Gap or duplicate near BH-" $1; exit } }'
-```
+Two more commands:
 
-C4. Every finding has the required fields. Add `|Verification` to `req` after step 4:
+- Next free ID: `python3 -I "$C" next-id --report "$R"`. It prints for example `BH-08`.
+- Open notes: `python3 -I "$C" open-notes --report "$R"`. It prints each note under "Notes for other areas" that names an area with the same or a lower number and has no `Result:`. The hunter of that area had already finished before the note was written.
 
-```bash
-awk -v req="Severity|Confidence|Category|Location|Also on base|Verdict|Problem|Failure scenario|Evidence|Fix idea" '
-function check(   n, i, r) {
-  n = split(req, r, "|")
-  for (i = 1; i <= n; i++) if (index(seen, "|" r[i] "|") == 0) print id ": missing " r[i]
-}
-/^##/ { if (id != "") check(); id = ""; seen = "|" }
-/^### BH-[0-9]+: / { id = $2; sub(/:$/, "", id) }
-id != "" && match($0, /^(- )?[A-Z][a-z]+( [a-z]+)*: /) {
-  label = substr($0, 1, RLENGTH - 2); sub(/^- /, "", label); seen = seen label "|"
-}
-END { if (id != "") check() }' "$R"
-```
+## What the `report` command tests
 
-C5. Every verdict has a legal value:
+- The title line, and the H2 sections in this order: Scope, Summary, Known issues, one section for each area, and the appendix.
+- The areas up to `--areas-done` are filled and have both subsections. The later areas still say "Pending search.". The Known issues section is filled after the first search.
+- The IDs are unique, have at least two digits, and have no gaps.
+- Each entry has the required fields with their exact labels, and legal Severity, Confidence, and Verdict values. A changed value has the form `Medium (was High)`.
+- Up to `--verified-to`, or for all entries at the stages `summary` and `final`: no pending verdict and a `Verification:` paragraph.
+- Rejected entries are in the appendix, and only they are. Each Unconfirmed entry has the lines "Not covered:", "Where I looked:", and "To decide:".
+- At the stages `summary` and `final`: the Summary count line matches the entries, and the table has one row for each ID, in ID order, with the title of the heading.
+- At the stage `final`: the subsection "For the owner's review" exists, no placeholder is left, and no open note is left.
+- No control character in the report. Every artifact link resolves. Every artifact folder has a `repro.md` and belongs to an entry. No `bin` or `obj` folder, no binary file, no file over 1 MB, and no scratch folder path in the artifacts.
+- No progress file is left in the report folder except `_bug-hunt-session-progress.md` and the `--allow` names.
+- WARN lines for files left in work folders and for processes whose command line holds the scratch path.
 
-```bash
-grep '^- Verdict: ' "$R" | grep -vE '^- Verdict: (Pending verification|Confirmed|Unconfirmed \(needs owner review\)|Rejected|Duplicate of (#[0-9]+|N-[0-9]+|BH-[0-9]+))$'
-```
+## Agents run the check too
 
-C6. No finding is still pending (after step 4, prints 0):
+Each hunter, verifier, and auditor runs its `report` command before its reply, with `--allow` for its own progress file. The brief gives the full command in `{CHECK_CMD}`.
 
-```bash
-grep -c '^- Verdict: Pending verification' "$R"
-```
+## Leftover processes
 
-C7. Rejected entries are in the appendix, and only they are:
-
-```bash
-awk '/^## Appendix: rejected findings/ { a = 1 }
-/^- Verdict: Rejected/ && !a { print "Rejected entry outside the appendix, line " NR }
-/^- Verdict: / && a && !/Rejected/ { print "Other verdict in the appendix, line " NR }' "$R"
-```
-
-C8. Each Unconfirmed finding has a "To decide:" line (prints two equal numbers):
-
-```bash
-grep -c '^- Verdict: Unconfirmed' "$R"; grep -c '^To decide: ' "$R"
-```
-
-C9. Every area section has its two subsections. When all areas are searched, the three numbers are equal:
-
-```bash
-grep -c '^## Area [0-9][0-9]*: ' "$R"
-grep -c '^### New details for known issues' "$R"
-grep -c '^### Notes for other areas' "$R"
-```
-
-C10. No placeholder is left (after step 5):
-
-```bash
-grep -nE '^Pending (search|verification|the first search)\.$|\{[A-Z0-9_]+\}' "$R"
-```
-
-A hit inside quoted code in an entry, such as `${HOME}`, is not a defect.
-
-C11. The Summary has a count line:
-
-```bash
-sed -n '/^## Summary/,/^## /p' "$R" | grep -c '^Findings: [0-9]'
-```
-
-C12. Every artifact link resolves, and every artifact folder has a `repro.md`:
-
-```bash
-grep -o 'bug-hunt-artifacts/BH-[0-9][0-9]*/[^]) (]*' "$R" | sort -u \
-  | while read -r p; do [ -e "$D/$p" ] || echo "Missing $p"; done
-for d in "$D"/bug-hunt-artifacts/BH-*/; do
-  [ -d "$d" ] || continue; [ -f "$d/repro.md" ] || echo "No repro.md in $d"
-done
-```
-
-C13. No progress file of a finished agent is left (prints the session progress file only, until step 6):
-
-```bash
-ls "$D"/_bug-hunt-* 2>/dev/null
-```
-
-## Which checks run after which step
-
-| After | Checks | Pass when |
-| --- | --- | --- |
-| Step 1 | `$S/snapshot-ref` and `$S/known-issues.md` exist and are not empty. `$S/snapshot-base` exists, unless the analyzed commit is the base. C13. | All exist. C13 prints only `_bug-hunt-session-progress.md`. In these checks, it can also print the progress file of the hunter, verifier, or auditor that `## NEXT` names. |
-| Step 2 | `$R` exists. C9 shows one area heading for each area. | All match |
-| Each hunter | C1, C3, C4, C5, C12, C13. The section of the area no longer says "Pending search.". After the first hunter, the Known issues section no longer says "Pending the first search.". | The other checks print nothing. C13 prints only `_bug-hunt-session-progress.md`. The counts match the reply. |
-| Each verifier part | C4 with Verification, C5, C7, C8, C12, C13. C6 for the range of the part. After the last part, also C11. | The other checks print nothing. C6 prints 0. C8 prints two equal numbers. C13 prints only `_bug-hunt-session-progress.md`. The counts match the reply. |
-| Step 5 | All checks C1 to C13. | The other checks print nothing. C6 prints 0. C8 prints two equal numbers. C9 prints three equal numbers. C11 prints 1. C13 prints only `_bug-hunt-session-progress.md`. |
-| Step 6 | `$S` does not exist. C13 prints only `_bug-hunt-session-progress.md`. | All match |
-
-To run C6 for one part, count the pending verdicts by finding ID, not by the position of two
-headings. A rejected entry in the appendix then does not break the range. Set `lo` and `hi` to
-the first and last ID number of the part:
-
-```bash
-awk -v lo=1 -v hi=20 '
-/^## / { id = 0 }
-/^### BH-[0-9]+: / { id = $2; sub(/^BH-/, "", id); sub(/:$/, "", id); id += 0 }
-/^- Verdict: Pending verification/ && id >= lo && id <= hi { n++ }
-END { print n + 0 }' "$R"
-```
+A WARN line names each process whose command line holds the scratch path. Write its process ID into the session progress file. The cleanup helper stops these processes before it deletes the scratch folder, because a running process can lock files in it.
