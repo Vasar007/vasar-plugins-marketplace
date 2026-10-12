@@ -11,6 +11,14 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-12
+
+### Added
+
+- Added the skill `bug-hunt`. It runs a read-only bug hunt over a whole repository and saves one verified bug report. It exports the analyzed commit and the base branch with `git archive`, splits the code into areas, and skips known bugs from notes files and GitHub issues. It never creates GitHub issues.
+- Added 3 reference files to the skill `bug-hunt`: `report-format.md`, `agent-briefs.md`, and `structure-checks.md`.
+- Added the agents `bug-hunter`, `bug-verifier`, and `bug-report-auditor`. One hunter searches each area in turn. Verifiers try to refute each finding and set a verdict. The auditor makes sure that the whole report is consistent.
+
 ## dev-essentials 2.2.0 in release [2.2.0] - 2026-10-11
 
 ### Added
@@ -167,7 +175,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v1.0.2...v2.0.0
