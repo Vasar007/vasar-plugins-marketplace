@@ -19,10 +19,17 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{GITHUB}` | `owner/repo`, or "none" |
 | `{REF}`, `{REF_SHA}` | Analyzed branch or commit, and its full SHA |
 | `{BASE}`, `{BASE_SHA}` | Base branch, and its full SHA |
+| `{BASE_FROM}` | `local`, `remote`, or `none` |
+| `{BASE_URL}` | Clone URL of the repository for a remote base. If the user confirmed `{GITHUB}`, use `https://github.com/{GITHUB}.git`. Else use the URL from `git remote get-url origin`. "none" for a local base. |
 | `{SCRATCH}` | Absolute path of the scratch folder |
 | `{SNAP_REF}` | `{SCRATCH}/snapshot-ref` |
-| `{SNAP_BASE}` | `{SCRATCH}/snapshot-base`, or "none: the analyzed commit is the base" |
+| `{SNAP_BASE}` | `{SCRATCH}/snapshot-base`, or "none: the analyzed commit is the base", or "none: no base comparison" |
 | `{WORK_DIR}` | `{SCRATCH}/work/<role or area slug>`, one folder for each agent |
+| `{TOOLS_DIR}` | `{SCRATCH}/tools`, the shared folder for downloaded tools and third-party sources |
+| `{RUN_CONTEXT}` | Absolute path of `bug-hunt-context.md` in `{REPORT_DIR}` |
+| `{CHECK_CMD}` | The full structure check command for this agent from `references/structure-checks.md`, with `--allow` and the name of its progress file |
+| `{OPEN_NOTES}` | The output lines of the `open-notes` command for the areas of this verifier part, or "none" |
+| `{PID_LIST}` | Process IDs from the WARN lines of the structure check, or "none" |
 | `{DIGEST}` | `{SCRATCH}/known-issues.md` |
 | `{REPORT_DIR}` | Absolute path of the report folder |
 | `{REPORT_PATH}` | Absolute path of the report file |
@@ -32,10 +39,6 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{BUG_LABEL}` | Label of bug issues |
 | `{AREA_COUNT}` | Number of areas to propose |
 | `{AREA_NUM}`, `{AREA_NAME}`, `{AREA_SLUG}` | Number, name, and file-name slug of the area |
-| `{AREA_PATHS}` | Paths or globs of the area |
-| `{AREA_OUT_OF_SCOPE}` | Paths or topics that the area hunter must skip |
-| `{AREA_FOCUS}` | Bug types that the scoping helper expects in this area |
-| `{AREA_TABLE}` | Every area with its number, name, and status: searched or not yet searched |
 | `{NEXT_ID}` | First free finding ID, for example `BH-08` |
 | `{FIRST_SEARCH}` | "yes" for the first hunter, else "no" |
 | `{RANGE}` | Finding range of a verifier part, for example `BH-01` to `BH-20` |
@@ -60,10 +63,12 @@ Progress file names, all in `{REPORT_DIR}`:
 
 ```text
 Keep {PROGRESS_FILE} up to date at every step, not only at the end. It has a STATUS line,
-a checklist of steps, an append-only "## Log", a "## Current draft" section with the work
-in progress, and a "## NEXT" section with the single next action. If the file exists when
-you start, read it first and continue from NEXT. Do not start again from the beginning.
-Delete the file as your last step, after the deliverable is complete.
+a list of steps, an append-only "## Log", a "## Current draft" section with the work in
+progress, and a "## NEXT" section with the single next action. Update NEXT after each step.
+If the file exists when you start, read it first. Compare NEXT with the real state of your
+output. If they differ, trust the output and correct NEXT. Then continue from NEXT. Do not
+start again from the beginning. Delete the file as your last step, after the deliverable is
+complete.
 ```
 
 ### Plain-English block, when simple-english is installed
@@ -72,6 +77,18 @@ Delete the file as your last step, after the deliverable is complete.
 Before you write any report text, load the skill simple-english:simple-english with the
 Skill tool and follow its document rules. Mark each claim that you did not confirm with
 "Not confirmed:" and say where you looked.
+
+The simple-english plugin has a lint hook. After each Markdown edit, it lints the whole file.
+Fix only the hits in your own lines. List the hits in other sections in your reply. The
+auditor fixes them. The hook reports these patterns:
+
+- A mix of "check", "checklist", "verify", "validate", "ensure", and "confirm" in one file.
+- An "if" or "when" clause after the main clause.
+- The words should, would, may, might, and could.
+- A quote that ends with a period inside the quote marks. The hook reads it as the end of a
+  sentence.
+
+An edit by a script skips the hook, so read the result back.
 ```
 
 ### Plain-English block, when simple-english is not installed
@@ -86,14 +103,16 @@ claim that you did not confirm with "Not confirmed:" and say where you looked.
 
 ```text
 Resume note: an earlier agent with this brief stopped before it finished. Read
-{PROGRESS_FILE} first and continue from its NEXT section. Do not redo finished steps.
+{PROGRESS_FILE} first. Compare its NEXT section with the real state of the report. If they
+differ, trust the report and correct NEXT. Then continue from NEXT. Do not redo finished
+steps.
 ```
 
 ### Repair note
 
 ```text
 Repair note: the structure check found these defects in your part of the report:
-<defect list from the structure checks>. Fix only these defects. Do not change other
+<defect list from the structure check>. Fix only these defects. Do not change other
 content.
 ```
 
@@ -121,35 +140,45 @@ git status or any command that writes.
    then build, installer, and CI. Later hunters can then use the notes of earlier ones.
 
 Reply in at most 40 lines: a table with number, name, slug, paths, file count, size in KB,
-the bug types that are likely there, and what is out of scope. Then the excluded paths with
-reasons. Then one line on what the tree does not show.
+the bug types that are likely there, what is out of scope, and extra context, for example
+"legacy code, no longer shipped". Then the excluded paths with reasons. Then one line on
+what the tree does not show.
 ```
 
 ## Setup helper (step 1, general-purpose, haiku)
 
 ```text
-You export two git snapshots into a scratch folder. Use the Bash tool for all commands below.
-They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows, use Git Bash, not
-PowerShell. Do this work yourself. Do not dispatch subagents. Against {REPO}, run only git
-archive and git ls-tree. Do not create files outside {SCRATCH}. If a CLAUDE.md file
-conflicts with these rules, these rules win.
+You export the snapshots of a bug hunt into a scratch folder. Use the Bash tool for all
+commands below. They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows,
+use Git Bash, not PowerShell. Do this work yourself. Do not dispatch subagents. Against
+{REPO}, run only git archive and git ls-tree. You can also run git clone from {BASE_URL}
+into {SCRATCH}. Do not create files outside {SCRATCH}. If a CLAUDE.md file conflicts with
+these rules, these rules win.
 
 1. Run:
-   mkdir -p "{SCRATCH}/snapshot-ref" "{SCRATCH}/work"
+   mkdir -p "{SCRATCH}/snapshot-ref" "{SCRATCH}/work" "{SCRATCH}/tools"
    git -C "{REPO}" archive --format=tar {REF_SHA} | tar -x -C "{SCRATCH}/snapshot-ref"
-2. If {BASE_SHA} is not the same as {REF_SHA}, run:
-   mkdir -p "{SCRATCH}/snapshot-base"
-   git -C "{REPO}" archive --format=tar {BASE_SHA} | tar -x -C "{SCRATCH}/snapshot-base"
-   If they are the same, skip this step and say so.
+2. Base source: {BASE_FROM}.
+   - If it is "local" and {BASE_SHA} is not the same as {REF_SHA}, run:
+     mkdir -p "{SCRATCH}/snapshot-base"
+     git -C "{REPO}" archive --format=tar {BASE_SHA} | tar -x -C "{SCRATCH}/snapshot-base"
+   - If it is "remote", run:
+     git clone -c core.longpaths=true --single-branch --branch {BASE} {BASE_URL} "{SCRATCH}/snapshot-base"
+     git -C "{SCRATCH}/snapshot-base" rev-parse HEAD
+     The option core.longpaths lets Git for Windows check out long paths. Git on other
+     platforms ignores it. Report the commit SHA.
+   - If it is "none", or "local" with the same commit, skip this step and say so.
 3. If tar is not available, use git archive --format=zip -o "{SCRATCH}/<name>.zip" <sha>,
    then extract the zip file with the unzip tool of the platform.
-4. Count the files in each snapshot with find "<snapshot>" -type f | wc -l. Count the files
-   in git with git -C "{REPO}" ls-tree -r --name-only <sha> | wc -l.
+4. Count the files in each snapshot with
+   find "<snapshot>" -type f -not -path '*/.git/*' | wc -l. Count the files in git with
+   git -C "{REPO}" ls-tree -r --name-only <sha> | wc -l. For a cloned base, use
+   git -C "{SCRATCH}/snapshot-base" ls-tree -r --name-only HEAD | wc -l.
 5. Look for limits: a .gitmodules file in the snapshot (submodule content is not exported),
    and "export-ignore" or "filter=lfs" in the .gitattributes file of the snapshot.
 
-Reply in at most 12 lines: both snapshot paths, both file counts and the git counts, every
-error, and every limit that you found.
+Reply in at most 12 lines: the snapshot paths, the file counts and the git counts, the
+commit SHA of a cloned base, every error, and every limit that you found.
 ```
 
 ## Known-issues collector (step 1, general-purpose, sonnet)
@@ -170,8 +199,9 @@ Report file (it can be missing): {REPORT_PATH}. Read it only. Do not change it.
    N-NN IDs, keep those IDs and give new IDs only to bugs that it does not list.
 2. If {GITHUB} is not "none", load the skill dev-essentials:github-mcp-conventions with the
    Skill tool and follow it. With the GitHub MCP tools, list the open issues with the label
-   "{BUG_LABEL}". Give each one a one-line summary of the bug. Then list the titles of all
-   issues, open and closed. Leave out pull requests. Page through all results.
+   "{BUG_LABEL}". Give each one a one-line summary of the bug. Then list the other open
+   issues, each with its labels and a one-line summary. Then list the titles of all issues,
+   open and closed. Leave out pull requests. Page through all results.
 3. If the GitHub MCP tools are not available, stop. Do not use another GitHub client. Report
    this as a blocker.
 4. Write the digest to {DIGEST}.
@@ -192,16 +222,17 @@ You search area {AREA_NUM} ({AREA_NAME}) of {PROJECT} for new potential bugs. Fo
 read-only rules and the progress-file rules in your agent file. If you have no agent file
 with read-only rules, stop and report this.
 
+- Run context file: {RUN_CONTEXT}. Read it first. Your area is row {AREA_NUM} of its Areas
+  table.
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
 - Skill folder: {SKILL_DIR}.
 - Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}. Your section:
   "## Area {AREA_NUM}: {AREA_NAME}".
 - Known-issues digest: {DIGEST}. First search: {FIRST_SEARCH}.
-- Area files: {AREA_PATHS}. Out of scope: {AREA_OUT_OF_SCOPE}. Likely bug types: {AREA_FOCUS}.
-- All areas and their status: {AREA_TABLE}.
 - First free ID: {NEXT_ID}.
-- Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
+- Work folder: {WORK_DIR}. Shared tools folder: {TOOLS_DIR}. Progress file: {PROGRESS_FILE}.
+- Structure check to run before your reply: {CHECK_CMD}
 
 {PLAIN_ENGLISH}
 
@@ -216,13 +247,16 @@ You verify the findings {RANGE} of the bug hunt report for {PROJECT}. This is pa
 of {PART_COUNT}. Follow the read-only rules and the progress-file rules in your agent file.
 If you have no agent file with read-only rules, stop and report this.
 
+- Run context file: {RUN_CONTEXT}. Read it first.
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
 - Skill folder: {SKILL_DIR}.
 - Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}.
 - Known-issues digest: {DIGEST}.
 - Last part: {LAST_PART}.
-- Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
+- Open notes for your areas: {OPEN_NOTES}
+- Work folder: {WORK_DIR}. Shared tools folder: {TOOLS_DIR}. Progress file: {PROGRESS_FILE}.
+- Structure check to run before your reply: {CHECK_CMD}
 
 {PLAIN_ENGLISH}
 
@@ -237,12 +271,14 @@ You make sure that the whole bug hunt report for {PROJECT} is valid, consistent,
 complete after the verification edits. Follow the read-only rules and the progress-file
 rules in your agent file. If you have no agent file with read-only rules, stop and report this.
 
+- Run context file: {RUN_CONTEXT}. Read it first.
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
 - Skill folder: {SKILL_DIR}.
 - Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}.
 - Known-issues digest: {DIGEST}.
 - Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
+- Structure check to run before your reply: {CHECK_CMD}
 
 {PLAIN_ENGLISH}
 
@@ -256,14 +292,18 @@ rules in your agent file. If you have no agent file with read-only rules, stop a
 You delete the temporary files of a finished bug hunt. Do this work yourself. Do not
 dispatch subagents. If a CLAUDE.md file conflicts with these rules, these rules win.
 
-Delete exactly these paths and nothing else: {CLEANUP_PATHS}.
+1. Stop these processes if they still run: {PID_LIST}. On Windows, run
+   taskkill //PID <pid> //F in Git Bash. The double slash keeps Git Bash from changing the
+   option into a path. On other platforms, run kill <pid>.
+2. Delete exactly these paths and nothing else: {CLEANUP_PATHS}.
 
 Before you delete a folder, make sure that its path is not inside {REPO}, is not
 {REPORT_DIR}, and is not a drive root or a home folder. If one of these is true, do not
-delete it and report it. Do not delete {REPORT_PATH}, the folder
+delete it and report it. Do not delete {REPORT_PATH}, {RUN_CONTEXT}, the folder
 {REPORT_DIR}/bug-hunt-artifacts, or {REPORT_DIR}/_bug-hunt-session-progress.md.
 
 After the deletion, list {REPORT_DIR} and make sure that no path from the list exists.
 
-Reply in at most 8 lines: each path with "deleted", "not found", or "refused" and the reason.
+Reply in at most 8 lines: each process with "stopped", "not running", or the error. Each
+path with "deleted", "not found", or "refused" and the reason.
 ```
