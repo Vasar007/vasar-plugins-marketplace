@@ -61,6 +61,8 @@ Read-only rules. Another session can work in the project at the same time.
 - Read code only from the snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
 - Do not edit, build, test, or run anything in {REPO}. Do not create files there.
+  If {REPORT_DIR} is inside {REPO}, it is the only exception. The point after the git
+  commands says what you can create there.
 - Against {REPO}, run only these git commands: rev-parse, ls-tree, log, show, diff between
   two revisions, and blame. Always use git -C "{REPO}". Do not run git status, fetch, pull,
   checkout, switch, stash, reset, commit, or any other command that writes. git status can
@@ -146,9 +148,8 @@ reasons. Then one line on what the tree does not show.
 ```text
 You export two git snapshots into a scratch folder. Use the Bash tool for all commands below.
 They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows, use Git Bash, not
-PowerShell. Do this work yourself. Do not dispatch
-subagents. Against {REPO}, run only git archive and git ls-tree. Do not create files outside
-{SCRATCH}.
+PowerShell. Do this work yourself. Do not dispatch subagents. Against {REPO}, run only git
+archive and git ls-tree. Do not create files outside {SCRATCH}.
 
 1. Run:
    mkdir -p "{SCRATCH}/snapshot-ref" "{SCRATCH}/work"
@@ -178,10 +179,12 @@ requests.
 Notes files: {KNOWN_NOTES}. GitHub repository: {GITHUB}. Bug label: {BUG_LABEL}.
 Digest file to write: {DIGEST}. Format: section "Known-issues digest" in
 {SKILL_DIR}/references/report-format.md.
+Report file (it can be missing): {REPORT_PATH}.
 
 1. Read each notes file. List each bug that it describes, with a short title and the
    location if the file gives one. Give each notes-file bug an ID: N-01, N-02, and so on,
-   in order across all notes files.
+   in order across all notes files. If the report file already lists notes-file bugs with
+   N-NN IDs, keep those IDs and give new IDs only to bugs that it does not list.
 2. If {GITHUB} is not "none", load the skill dev-essentials:github-mcp-conventions with the
    Skill tool and follow it. With the GitHub MCP tools, list the open issues with the label
    "{BUG_LABEL}". Give each one a one-line summary of the bug. Then list the titles of all

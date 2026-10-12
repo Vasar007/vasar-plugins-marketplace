@@ -119,7 +119,7 @@ ls "$D"/_bug-hunt-* 2>/dev/null
 
 | After | Checks | Pass when |
 | --- | --- | --- |
-| Step 1 | `$S/snapshot-ref` and `$S/known-issues.md` exist and are not empty. `$S/snapshot-base` exists, unless the analyzed commit is the base. C13. | All exist. C13 prints only `_bug-hunt-session-progress.md`. |
+| Step 1 | `$S/snapshot-ref` and `$S/known-issues.md` exist and are not empty. `$S/snapshot-base` exists, unless the analyzed commit is the base. C13. | All exist. C13 prints only `_bug-hunt-session-progress.md`. On a resume, it can also print the progress file of the agent that `## NEXT` names. |
 | Step 2 | `$R` exists. C9 shows one area heading for each area. | All match |
 | Each hunter | C1, C3, C4, C5, C12, C13. The section of the area no longer says "Pending search.". After the first hunter, the Known issues section no longer says "Pending the first search.". | The other checks print nothing. C13 prints only `_bug-hunt-session-progress.md`. The counts match the reply. |
 | Each verifier part | C4 with Verification, C5, C7, C8, C12, C13. C6 for the range of the part. After the last part, also C11. | The other checks print nothing. C6 prints 0. C8 prints two equal numbers. C13 prints only `_bug-hunt-session-progress.md`. The counts match the reply. |

@@ -73,7 +73,9 @@ digest. One line for each known issue:
 - N-01: <short title>. Source: notes file `known-bugs.md`.
 ```
 
-The section lists only the known bugs: the notes-file bugs and the open issues with the bug label. The list of all issue titles in the digest is only for duplicate checks. Do not copy it into the report. Each notes-file bug keeps the ID `N-NN` that the digest gives it.
+The section lists only the known bugs: the notes-file bugs and the open issues with the bug
+label. The list of all issue titles in the digest is only for duplicate checks. Do not copy it
+into the report. Each notes-file bug keeps the ID `N-NN` that the digest gives it.
 
 If no known issue exists, write "None found in the given sources."
 
@@ -235,7 +237,7 @@ Sources: <notes files>, <owner/repo> issues.
 
 ## From notes files
 
-- N-01 (`<notes file>`): <short title>. <location, if the file gives one>. Number the notes-file bugs in order, `N-01`, `N-02`, and so on, across all notes files.
+- N-01 (`<notes file>`): <short title>. <location, if the file gives one>.
 
 ## Open issues with the label "<label>"
 
@@ -246,6 +248,8 @@ Sources: <notes files>, <owner/repo> issues.
 - #12 (open): <title>
 - #5 (closed): <title>
 ```
+
+Number the notes-file bugs in order, `N-01`, `N-02`, and so on, across all notes files.
 
 If a source is not available, the section says so and why.
 

@@ -37,7 +37,7 @@ of each point below, and fix what is wrong:
 4. The Summary counts match the entries, and they add up to the number of findings.
 5. The Summary table has one row for each finding, in ID order. The ID, title, area, severity, confidence, verdict, and "Also on base" match the entry.
 6. IDs are unique, and no ID is missing.
-7. Every reference to `BH-NN` or `#NN` points to an entry or a known issue that exists. Every "Duplicate of" and every "New details for" names an existing entry or known issue. A known issue is `#NN` or `N-NN`.
+7. Every reference to `BH-NN`, `#NN`, or `N-NN` points to an entry or a known issue that exists. Every "Duplicate of" and every "New details for" names an existing entry or known issue. A known issue is `#NN` or `N-NN`.
 8. Every artifact link points to a file that exists, and every artifact folder has a `repro.md`.
 9. Every location names a file that exists in the snapshot of the analyzed commit, and the line is within that file.
 10. The Scope section matches the run: commits, areas, models, limits, and known-issue sources.
