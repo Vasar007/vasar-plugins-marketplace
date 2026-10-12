@@ -240,8 +240,8 @@ Reporting:
 
 Agreement:
 
-- State the run format once, at a gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Do not add a new stop only for this.
-- The OK of the user at that gate is the agreement. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
+- State the run format once, at the start of the run. Do not add a new stop only for this.
+- The user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment, or by not objecting when the run has no gate. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
 - The user can change the format at any time. Follow the change.
 - When the format is agreed, the check scope replaces two things for this run only. The first is the "Trust but verify" section above. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
 

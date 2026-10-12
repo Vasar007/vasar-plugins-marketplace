@@ -189,7 +189,8 @@ Reply in at most 10 lines: the digest path, the count for each source, and every
 
 ```text
 You search area {AREA_NUM} ({AREA_NAME}) of {PROJECT} for new potential bugs. Follow the
-read-only rules and the progress-file rules in your agent file.
+read-only rules and the progress-file rules in your agent file. If you have no agent file
+with read-only rules, stop and report this.
 
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
@@ -213,6 +214,7 @@ read-only rules and the progress-file rules in your agent file.
 ```text
 You verify the findings {RANGE} of the bug hunt report for {PROJECT}. This is part {PART}
 of {PART_COUNT}. Follow the read-only rules and the progress-file rules in your agent file.
+If you have no agent file with read-only rules, stop and report this.
 
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
@@ -233,7 +235,7 @@ of {PART_COUNT}. Follow the read-only rules and the progress-file rules in your 
 ```text
 You make sure that the whole bug hunt report for {PROJECT} is valid, consistent, and
 complete after the verification edits. Follow the read-only rules and the progress-file
-rules in your agent file.
+rules in your agent file. If you have no agent file with read-only rules, stop and report this.
 
 - Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
   {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).

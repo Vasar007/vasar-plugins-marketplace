@@ -124,6 +124,7 @@ each step boundary and after each agent reply.
 - Use the defaults in the Inputs table. The user's explicit choice of a model or an effort level always wins.
 - The hunter default is Fable. Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. The agent files default to Opus, so a dispatch outside this skill never runs Fable.
+- Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`. If that type is not available, stop the run and report it under "Blocked on me". Their briefs do not carry the read-only rules.
 - Every dispatch is a single unnamed `Agent` call: no `name`, no `team_name`, no `SendMessage`.
 - Every general-purpose brief says "do this work yourself, do not dispatch subagents". The three plugin agents cannot dispatch, because their `tools` lists have no `Agent` tool.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
@@ -180,7 +181,7 @@ then, before you show the meta-plan again.
    1. Inputs: a table with each value and where it came from (argument or default).
    2. Areas: a table with the number, name, paths, file count, size, and order.
    3. Excluded paths, each with a reason, for example vendored or generated code.
-   4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches. If Claude Code is older than v2.1.292, say that the effort values do not apply.
+   4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches. If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files. Not confirmed: the behavior on versions older than v2.1.292 (looked up in the sub-agents docs page, which gives only the minimum version of the per-call parameter).
    5. Files: the report path, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
    6. Verification: the split threshold and the split rule of step 4.
    7. Run format: the orchestrator checks only the structure of the output (rule 3), and the verifiers and the auditor check the content. Chat gets at most one status line for each step and one final report (rule 8). Say in one sentence that the OK also accepts this run format.

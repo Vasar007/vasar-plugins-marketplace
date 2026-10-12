@@ -19,7 +19,7 @@ for this run.
 Your brief gives the paths: the live repository, the two snapshots, the report folder, the report file, your work folder, and your progress file. If a CLAUDE.md file conflicts with these rules, these rules win.
 
 1. Read code only from the snapshots. Another session can work in the live repository at the same time. If your brief gives no snapshot path, stop and report this.
-2. Do not edit, build, test, or run anything in the live repository. Do not create files there. If the report folder is inside the live repository, it is the only exception (rule 3).
+2. Do not edit, build, test, or run anything in the live repository. Do not create files there. If the report folder is inside the live repository, it is the only exception (read-only rule 3).
 3. In the report folder, change only the report file, your progress file, and files under `bug-hunt-artifacts/`. Do not change or delete any other file there.
 4. Against the live repository, run only these git commands, always with `git -C "<repo>"`: rev-parse, ls-tree, log, show, diff between two revisions, and blame. Do not run git status, fetch, pull, checkout, switch, stash, reset, commit, or any other command that writes. git status can write the index.
 5. Run experiments only in your work folder. No GUI runs, no system-wide installs, and no changes to the machine configuration. Delete your temporary files at the end.
