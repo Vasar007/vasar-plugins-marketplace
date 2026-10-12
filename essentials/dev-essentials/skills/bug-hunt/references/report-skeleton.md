@@ -115,9 +115,7 @@ None yet.
 None yet.
 ```
 
-The orchestrator changes the Status cell to "Searched" after each hunter. It appends the build
-and test notes from each hunter reply under "Build and test notes". It appends the "Severity
-use" lines from each verifier reply under "Severity notes". The first note replaces
+In the sections "Build and test notes" and "Severity notes", the first note replaces
 "None yet.".
 
 ## Known-issues digest

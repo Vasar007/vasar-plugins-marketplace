@@ -33,7 +33,7 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
 
 1. Run `CronList` first. If a job for this run already exists, do not create another one. Two jobs give two resumes. After a restart, `claude --resume` restores the one-shot jobs whose time did not pass.
 2. If the time follows a usage-limit reset, choose a minute 1 to 3 minutes after the reset, for example 07:01 for a reset at 07:00. A one-shot job at minute 00 or 30 can fire up to 90 seconds early.
-3. Write a self-contained prompt:
+3. Write a self-contained prompt. Fill `<report folder>` and `<skill folder>` with absolute paths:
 
    ```text
    Resume the bug hunt. If <report folder>/_bug-hunt-session-progress.md does not exist,
@@ -41,9 +41,10 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
    session dispatched that agent, and the progress file of that agent changed in the last 30
    minutes (or the dispatch time in the note is less than 30 minutes ago, if the agent has
    no progress file yet), write one line to chat that names the agent and end the turn. Else
-   follow the resume check in the bug-hunt skill: the agent stopped, so restore it. Then
-   continue from its NEXT section. This scheduled prompt is the OK of
-   the user for these steps: <steps>. Stop at <the next pause point, or "the end of the run">.
+   follow "Resume check" in <skill folder>/references/resume-and-failures.md: the agent
+   stopped, so go to point 5 of that check. Then continue from its NEXT section. This
+   scheduled prompt is the OK of the user for these steps: <steps>. Stop at <the next pause
+   point, or "the end of the run">.
    ```
 
 4. Write the job ID, the time, and the steps into the session progress file. Step 6 of the run deletes each of these jobs with `CronDelete`.

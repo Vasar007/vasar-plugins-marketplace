@@ -197,4 +197,16 @@ Each folder has a `repro.md`:
 
 In report text, use `confirm` and `make sure that`. Do not use `check`, `verify`,
 `validate`, or `ensure`. The verdicts and the marker "Not confirmed:" already use `confirm`.
-The lint hook of the simple-english plugin reports a file that mixes these words.
+
+If the simple-english plugin is installed, its lint hook lints the whole file after each
+Markdown edit. A hunter or a verifier fixes only the hits in its own lines, and lists the
+hits in other sections in its reply. The auditor fixes all hits. The hook reports these
+patterns:
+
+- A mix of "check", "checklist", "verify", "validate", "ensure", and "confirm" in one file.
+- An "if" or "when" clause after the main clause.
+- The words should, would, may, might, and could.
+- A quote that ends with a period inside the quote marks. The hook reads it as the end of a
+  sentence.
+
+An edit by a script skips the hook, so read the result back.

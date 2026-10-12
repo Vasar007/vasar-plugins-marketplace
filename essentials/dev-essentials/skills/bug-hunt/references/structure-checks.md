@@ -24,7 +24,7 @@ Each output line starts with one word:
 | Step 1 | `python3 -I "$C" setup --report-dir "$D" --scratch "$S" --base yes` |
 | Step 2 | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done 0 --stage search` |
 | Hunter of area K | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done K --stage search` |
-| Verifier part with last ID N | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done <number of areas> --stage verify --verified-to N` |
+| Verifier part that ends at `BH-N` | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done <number of areas> --stage verify --verified-to N`, with the number only (`--verified-to 20` for `BH-20`) |
 | Last verifier part | The same command with `--stage summary` |
 | Step 5 | The same command with `--stage final` |
 | Step 6 | `python3 -I "$C" cleanup --report-dir "$D" --scratch "$S"` |
@@ -55,10 +55,6 @@ Two more commands:
 - No progress file is left in the report folder except `_bug-hunt-session-progress.md` and the `--allow` names.
 - WARN lines for files left in work folders and for processes whose command line holds the scratch path.
 
-## Agents run the check too
-
-Each hunter, verifier, and auditor runs its `report` command before its reply, with `--allow` for its own progress file. The brief gives the full command in `{CHECK_CMD}`.
-
 ## Leftover processes
 
-A WARN line names each process whose command line holds the scratch path, with `pid=` and `started=`. The scan skips the check itself and the processes that started it. Write the process ID and the start time into the session progress file. The cleanup helper stops these processes before it deletes the scratch folder, because a running process can lock files in it. Before the helper stops a process, it reads the command line and the start time again. If either one differs from the record, it does not stop the process.
+A WARN line names each process whose command line holds the scratch path, with `pid=` and `started=`. The scan skips the check itself and the processes that started it. Write the process ID and the start time into the session progress file. Step 6 passes them to the cleanup helper, which tests each process again before it stops it.

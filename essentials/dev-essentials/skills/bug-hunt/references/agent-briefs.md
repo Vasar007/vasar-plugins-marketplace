@@ -77,18 +77,6 @@ complete.
 Before you write any report text, load the skill simple-english:simple-english with the
 Skill tool and follow its document rules. Mark each claim that you did not confirm with
 "Not confirmed:" and say where you looked.
-
-The simple-english plugin has a lint hook. After each Markdown edit, it lints the whole file.
-Fix only the hits in your own lines. List the hits in other sections in your reply. The
-auditor fixes them. The hook reports these patterns:
-
-- A mix of "check", "checklist", "verify", "validate", "ensure", and "confirm" in one file.
-- An "if" or "when" clause after the main clause.
-- The words should, would, may, might, and could.
-- A quote that ends with a period inside the quote marks. The hook reads it as the end of a
-  sentence.
-
-An edit by a script skips the hook, so read the result back.
 ```
 
 ### Plain-English block, when simple-english is not installed

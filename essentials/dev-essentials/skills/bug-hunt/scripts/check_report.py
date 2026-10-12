@@ -19,8 +19,9 @@ Commands:
   cleanup    --report-dir D --scratch S
 
 STAGE is search (after a hunter), verify (after a verifier part, with
---verified-to set to the last ID of the part), summary (after the last
-verifier part), or final (after the auditor).
+--verified-to set to the number of the last ID of the part, for example 20
+for BH-20), summary (after the last verifier part), or final (after the
+auditor).
 """
 import argparse
 import os
