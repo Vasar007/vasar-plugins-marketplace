@@ -221,7 +221,7 @@ Round <N> findings:
 Proceeding to verify+fix <F> issues. Deferring <D>.
 ```
 
-Apply `--skip` exactly: each severity token in `--skip` is its own independent gate — `--skip medium,low` defers Medium and Low but Nit remains eligible for fixing. When `--skip none` (the default), every severity row shows "(will fix)" and no "(deferred)" rows appear. Print the triage and **wait for the user to acknowledge** before starting Phase 5, unless `--auto-proceed` is set — in that case proceed immediately. The acknowledgment is also the agreement to the run format (see "Run format"). If the run format applies and `--auto-proceed` is set, write the triage into the cycle report and print only its status line.
+Apply `--skip` exactly: each severity token in `--skip` is its own independent gate — `--skip medium,low` defers Medium and Low but Nit remains eligible for fixing. When `--skip none` (the default), every severity row shows "(will fix)" and no "(deferred)" rows appear. Print the triage and **wait for the user to acknowledge** before starting Phase 5, unless `--auto-proceed` is set — in that case proceed immediately. The acknowledgment also gives the final agreement to the run format (see "Run format"). If the run format applies and `--auto-proceed` is set, write the triage into the cycle report and print only its status line.
 
 **Judge every finding on its merits, not on its label.** `--skip none` is the default precisely so nothing is auto-deferred unread — but it is not licence to mechanically fix everything either. For each finding, read what the reviewer actually concluded — its own **Must fix before merge** / **Acceptable risks** / **Needs discussion** call from the report's Conclusion section — instead of triaging off the severity label alone:
 

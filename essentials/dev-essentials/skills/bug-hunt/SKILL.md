@@ -188,7 +188,7 @@ then, before you show the meta-plan again.
    8. Plain English: whether `simple-english` is installed, or the fallback is used.
    9. Cleanup: the list of what step 6 deletes and what it keeps.
    10. Questions: a numbered list, or "No questions".
-6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file and no resume applies (a new run would write into the files of the old run), the base branch is unknown, Fable is not available, or there is no known-issue source.
+6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file and no resume applies (a new run would write into the files of the old run), the base branch is unknown, Fable is not available, a plugin agent type for the hunter, verifier, or auditor is not available, or there is no known-issue source.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
 8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the scratch folder, the approved models and effort levels, the areas, and the approval itself.
 

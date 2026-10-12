@@ -22,7 +22,7 @@ No changes yet.
 
 ### Changed
 
-- `review-loop`: States the run format after Phase 2. The Phase 4 acknowledgment is the agreement to it. With `--auto-proceed`, it applies without a stop. While it applies, chat gets one status line for each cycle, and the cycle reports go to files. If the user defines an end-of-run format, the final report uses it.
+- `review-loop`: States the run format after Phase 2. It applies from that statement unless the user objects. The Phase 4 acknowledgment gives the final agreement. With `--auto-proceed`, it applies without a stop. While it applies, chat gets one status line for each cycle, and the cycle reports go to files. If the user defines an end-of-run format, the final report uses it. When a calling workflow runs review-loop, the Phase 9 summary goes to that workflow.
 
 ## dev-essentials 2.2.0 in release [2.2.0] - 2026-10-11
 
