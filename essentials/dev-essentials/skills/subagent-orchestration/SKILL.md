@@ -5,7 +5,7 @@ description: How the main agent dispatches work in long, multi-step, or complex 
 
 # Subagent Orchestration
 
-Multi-stage tasks (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) succeed or fail on how the main agent decides what to delegate, what to inline, and how to brief. This skill consolidates seven rules the user has corrected the main agent on enough times that they belong here, not just in personal memory. It also owns the model-selection matrix those dispatches use — shipped here rather than assumed from a personal global `CLAUDE.md`, so the skill stands alone in any session, for anyone who installs it.
+Multi-stage tasks (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) succeed or fail on how the main agent decides what to delegate, what to inline, and how to brief. This skill consolidates seven rules the user has corrected the main agent on enough times that they belong here, not just in personal memory. It also owns the model-selection matrix those dispatches use — shipped here rather than assumed from a personal global `CLAUDE.md`, so the skill stands alone in any session, for anyone who installs it. It also defines the run-format agreement that a long orchestrated run states at the start (see "Run format agreement").
 
 ## Model selection
 
@@ -221,6 +221,30 @@ Subagent reports describe intent, not necessarily reality. When the user is abou
 - Run the actual build/test if the subagent claimed green (especially after a rebase — see `dev-essentials:dotnet-build-test`).
 - Never propagate "pre-existing failures" claims without ownership (see `dev-essentials:engineering-discipline` Rule 1).
 
+## Run format agreement
+
+A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and the gate where the user agrees. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
+
+Check scope:
+
+- The orchestrator checks the cheap, structural facts itself. For example, it makes sure that the files exist and that the counts in an agent reply match the files. It also reads the validator or build output and the file list and trailer of each commit.
+- The verifier, reviewer, or fixer agents of the run check the content: whether a finding, a cited line, or a claimed behavior is true. The orchestrator does not redo that work. It does not re-read cited code or re-run repros that such an agent covers.
+- If a structural check fails, or a reply does not match the counts, dispatch a repair or a re-check. Do not fix the content yourself.
+
+Reporting:
+
+- Do not write detailed interim results in chat. They scroll out of view. Long results go to files.
+- Write at most one short status line for each phase, for example "Step 3: area 2 of 5 done."
+- When a question blocks the run, ask it in chat at once.
+- End with one final report. If the instructions of the user define an end-of-run report format, use it. Else use the default of the skill.
+
+Agreement:
+
+- State the run format once, at a gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Do not add a new stop only for this.
+- The OK of the user at that gate is the agreement. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
+- The user can change the format at any time. Follow the change.
+- When the format is agreed, the check scope replaces two things for this run only. The first is the "Trust but verify" section above. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
+
 ## Anti-patterns
 
 - "I'll just fetch the threads in main to see what we're dealing with." — STOP. The subagent can fetch.
@@ -237,3 +261,4 @@ Subagent reports describe intent, not necessarily reality. When the user is abou
 - "My job is the worktree removal / the one-file edit / the single command — I'll dispatch a subagent to do it and report back." — that's a pass-through delegator; do the concrete work yourself (Rule 7).
 - "I'll fold the review loop into the implementer's brief — it saves a round trip." — no; a step that dispatches its own subagents is the orchestrator's own next dispatch, made after the previous phase reports (Rule 1, and Phase 2 / Phase 3 in `dev-essentials:research-implement-review-report`).
 - "I've dispatched steps 1-5 and will handle step 6 myself" — when steps 6 and 7 are verbatim in that same prompt. Describe the brief you actually sent, not the one you meant to send (Rule 1).
+- "My instructions say to check every claim. So I re-read each finding that the verifier already checked." No. An agreed run format replaces that rule for the run. Follow its check scope (see "Run format agreement").

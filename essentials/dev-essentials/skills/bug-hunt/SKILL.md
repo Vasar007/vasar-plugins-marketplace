@@ -146,10 +146,18 @@ updates the file at each step boundary and after each agent reply.
 - Every brief says "do this work yourself, do not dispatch subagents". The three agent files do not have the `Agent` tool.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 
-### 8. No interim results in chat
+### 8. Run format
 
-Between steps, the orchestrator writes nothing to chat except a question that blocks the
-run. All results go into the report. The run ends with one final report (step 7).
+The run format has two parts: the check scope in rule 3 and the reporting rules below. The
+step-0 meta-plan states it, and the OK of the user to the meta-plan accepts it. After the OK,
+rule 3 replaces two things for this run only. The first is the "Trust but verify" section of
+`dev-essentials:subagent-orchestration`. The second is any rule in the instructions of the
+user that asks the orchestrator to re-check every subagent claim. The section "Run format
+agreement" of that skill has the shared rule.
+
+- Between steps, write at most one short status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
+- In chat, ask only questions that block the run.
+- End the run with one final report (step 7).
 
 ## Agents and dispatches
 
@@ -199,9 +207,10 @@ from [references/agent-briefs.md](references/agent-briefs.md).
    4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches.
    5. Files: the report path, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
    6. Verification: the split threshold and the split rule of step 4.
-   7. Plain English: whether `simple-english` is installed, or the fallback is used.
-   8. Cleanup: the list of what step 6 deletes and what it keeps.
-   9. Questions: a numbered list, or "No questions".
+   7. Run format: the orchestrator checks only the structure of the output (rule 3), and the verifiers and the auditor check the content. Chat gets at most one status line for each step and one final report (rule 8). Say in one sentence that the OK also accepts this run format.
+   8. Plain English: whether `simple-english` is installed, or the fallback is used.
+   9. Cleanup: the list of what step 6 deletes and what it keeps.
+   10. Questions: a numbered list, or "No questions".
 6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file and no resume applies (a new run would write into the files of the old run), the base branch is unknown, Fable is not available, or there is no known-issue source.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
 8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the scratch folder, the approved models and effort levels, the areas, and the approval itself.
@@ -268,7 +277,8 @@ step 6. As the last action before the final report, delete `_bug-hunt-session-pr
 ### Step 7. Final report
 
 Write one report in chat, in the language of the user's request. The report file itself stays
-in English. Use these three sections, in this order:
+in English. If the instructions of the user define an end-of-run report format, use it, and put
+the content below into its matching sections. Else use these three sections, in this order:
 
 1. Blocked on me: the decisions that only the user can make. List each Unconfirmed finding by ID and point to its "To decide:" line. If there are none, write "Nothing".
 2. Changed: the report path and the artifacts folder with the number of subfolders. Say that the run made no change in the project, no commits, and no GitHub issues.

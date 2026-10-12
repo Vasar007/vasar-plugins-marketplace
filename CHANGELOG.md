@@ -15,9 +15,14 @@ No changes yet.
 
 ### Added
 
-- Added the skill `bug-hunt`. It runs a read-only bug hunt over a whole repository and saves one verified bug report. It exports the analyzed commit and the base branch with `git archive`, splits the code into areas, and skips known bugs from notes files and GitHub issues. It never creates GitHub issues.
+- Added the skill `bug-hunt`. It runs a read-only bug hunt over a whole repository and saves one verified bug report. It exports the analyzed commit and the base branch with `git archive`, splits the code into areas, and skips known bugs from notes files and GitHub issues. It never creates GitHub issues. Its step-0 meta-plan states the run format: the orchestrator checks only the structure of the report, and chat gets one final report.
 - Added 3 reference files to the skill `bug-hunt`: `report-format.md`, `agent-briefs.md`, and `structure-checks.md`.
 - Added the agents `bug-hunter`, `bug-verifier`, and `bug-report-auditor`. One hunter searches each area in turn. Verifiers try to refute each finding and set a verdict. The auditor makes sure that the whole report is consistent.
+- Added the section "Run format agreement" to the skill `subagent-orchestration`. At the start of a long run, an orchestrating skill states what the orchestrator checks itself and what only the verifier or reviewer agents check. Chat gets at most one short status line for each phase and one final report. When the user agrees, this check scope replaces the generic "re-check every subagent claim" rules for that run only.
+
+### Changed
+
+- `review-loop`: States the run format after Phase 2. The Phase 4 acknowledgment is the agreement to it. With `--auto-proceed`, it applies without a stop. While it applies, chat gets one status line for each cycle, and the cycle reports go to files. If the user defines an end-of-run format, the final report uses it.
 
 ## dev-essentials 2.2.0 in release [2.2.0] - 2026-10-11
 
