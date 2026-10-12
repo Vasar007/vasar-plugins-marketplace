@@ -1,15 +1,12 @@
 ---
 name: bug-hunt
 description: >-
-  Read-only bug hunt over a whole repository. It finds new potential bugs in every area of a
-  project and saves one verified bug report. One hunter agent searches each area in turn.
-  Verifier agents try to refute each finding, and an auditor agent makes sure that the whole
-  report is consistent. Agents read the code only from git archive snapshots. Known bugs from
-  notes files and GitHub issues are skipped. Progress files make the run resumable after a
-  crash. The skill never creates GitHub issues. Use it for "bug hunt", "hunt for bugs" or "find
-  new bugs in this project". Use it also for "find potential bugs in every area", "audit the
-  codebase for bugs" or "write a verified bug report". Do not use it to review one diff or one pull
-  request. Use review-loop or code-review for that.
+  Read-only bug hunt over a whole repository. It finds new potential bugs area by area, has
+  other agents try to refute each one, and saves one verified bug report. It skips bugs that
+  notes files or GitHub issues already describe, and it never creates issues. Use it for "bug
+  hunt", "hunt for bugs", "find new bugs in this project", "find potential bugs in every area",
+  "audit the codebase for bugs", or "write a verified bug report". Do not use it to review one
+  diff or one pull request. Use review-loop or code-review for that.
 argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>]"
 ---
 
@@ -65,9 +62,8 @@ The context file is for orientation only. Do not read other files in its folder.
 
 ## Rules for the whole run
 
-These rules apply to the orchestrator and to every agent. They ship with this skill, so the
-skill does not depend on any personal `CLAUDE.md`. If a `CLAUDE.md` file conflicts with rule 1
-or rule 2, rules 1 and 2 win.
+These rules apply to the orchestrator. The agent files and the briefs carry them to the
+agents. If a `CLAUDE.md` file conflicts with rule 1 or rule 2, rules 1 and 2 win.
 
 ### 1. The project is read-only
 
@@ -89,15 +85,9 @@ known-issues collector uses it.
 
 ### 3. The orchestrator checks structure, the verifiers check content
 
-The orchestrator does not need to check every finding. Between steps, it runs the structure
-checks in [references/structure-checks.md](references/structure-checks.md) and nothing more.
-
-The orchestrator can:
-
-- Make sure that files and folders exist.
-- Count sections, IDs, required fields, and verdicts.
-- Make sure that no progress file of a finished agent is left.
-- Compare the claims in an agent reply with these counts.
+The orchestrator does not need to check every finding. Between steps, it runs only the structure
+checks in [references/structure-checks.md](references/structure-checks.md) and compares each
+agent reply with their counts.
 
 The orchestrator must not:
 
@@ -116,34 +106,26 @@ All report text follows the skill `simple-english:simple-english`. At step 0, th
 orchestrator looks for this skill in the list of available skills.
 
 - If it is installed, every brief tells the agent to load it with the Skill tool.
-- If it is not installed, every brief points to the fallback rules in [references/report-format.md](references/report-format.md). The final report says that the fallback was used.
+- If it is not installed, every brief points to the fallback rules in [references/plain-english-fallback.md](references/plain-english-fallback.md). The final report says that the fallback was used.
 
 ### 6. Crash-recovery progress files
 
-Every agent that can run long keeps a progress file in the report folder. The file has:
+Every agent that can run long keeps a progress file in the report folder: a `STATUS` line, a
+checklist of steps, an append-only `## Log`, a `## Current draft` with the work in progress,
+and a `## NEXT` with the single next action. The agent updates it at every step, resumes from
+`## NEXT` after a crash, and deletes it when the deliverable is complete. A progress file that
+is left behind means that work is not finished.
 
-- A `STATUS` line.
-- A checklist of steps.
-- An append-only `## Log` section.
-- A `## Current draft` section with the work in progress.
-- A `## NEXT` section with the single next action.
-
-The agent updates the file at every step, not only at the end. On resume, the agent reads
-the file first and continues from `## NEXT`. When the deliverable is complete, the agent
-deletes the file. A progress file that is left behind means that work is not finished.
-
-The orchestrator keeps its own file, `_bug-hunt-session-progress.md`, in the same way. It
-updates the file at each step boundary and after each agent reply.
+The orchestrator keeps `_bug-hunt-session-progress.md` in the same way. It updates the file at
+each step boundary and after each agent reply.
 
 ### 7. Models, effort, and dispatch
 
 - Use the defaults in the Inputs table. The user's explicit choice of a model or an effort level always wins.
 - The hunter default is Fable. Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. The agent files default to Opus, so a dispatch outside this skill never runs Fable.
-- If the active model does not support an effort level, Claude Code uses the next lower level.
-- The `effort` parameter of the `Agent` tool needs Claude Code v2.1.292 or later. Not confirmed: which effort applies on an older version. The docs at <https://code.claude.com/docs/en/sub-agents> state only the version requirement and do not describe the older behavior.
 - Every dispatch is a single unnamed `Agent` call: no `name`, no `team_name`, no `SendMessage`.
-- Every brief says "do this work yourself, do not dispatch subagents". The three agent files do not have the `Agent` tool.
+- Every general-purpose brief says "do this work yourself, do not dispatch subagents". The three plugin agents cannot dispatch, because their `tools` lists have no `Agent` tool.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 
 ### 8. Run format
@@ -174,25 +156,19 @@ agreement" of that skill has the shared rule.
 The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder.
 
 The brief for each role is in [references/agent-briefs.md](references/agent-briefs.md). Fill
-every placeholder before you dispatch. The agent sees only its brief.
+every placeholder before you dispatch. A general-purpose helper sees only its brief. A plugin agent sees its agent file and its brief.
 
 ## Pipeline
 
 ### Resume check
 
-Do this before step 0. If the report folder is known and it holds
-`_bug-hunt-session-progress.md`, read that file and continue from its `## NEXT` section. If
-the file records the meta-plan approval, do not ask for it again.
+Do this before step 0. If the report folder becomes known only from a step-0 answer, do it
+then, before you show the meta-plan again.
 
-The scratch folder of the old session can be gone. If a snapshot or the digest is missing,
-run step 1 again in full: dispatch the setup helper and the collector in the same message,
-with the commit SHAs from the progress file. If the report already lists notes-file bugs with
-`N-NN` IDs, tell the collector to keep them. Then run the structure checks for step 1. In
-these step-1 checks, C13 can also print the progress file of the hunter, verifier, or auditor
-that `## NEXT` names. That hit is not a defect. The scratch folder can have a new path. Write the path that is now
-in use into `_bug-hunt-session-progress.md` before you fill the next brief. If an agent progress file exists
-for the step in `## NEXT`, dispatch that role again with the same brief. Add the resume note
-from [references/agent-briefs.md](references/agent-briefs.md).
+1. If the report folder holds `_bug-hunt-session-progress.md`, read it and continue from its `## NEXT`. If it records the meta-plan approval, do not ask for it again.
+2. If a snapshot or the digest is missing, run step 1 again in full with the commit SHAs from the progress file. If the report already lists `N-NN` IDs, tell the collector to keep them. Then run the step-1 structure checks.
+3. Write the scratch folder path that is now in use into the progress file before you fill the next brief.
+4. If an agent progress file exists for the step in `## NEXT`, fill the brief for that role again from the recorded values, add the resume note from [references/agent-briefs.md](references/agent-briefs.md), and dispatch it.
 
 ### Step 0. Meta-plan and questions
 
@@ -204,7 +180,7 @@ from [references/agent-briefs.md](references/agent-briefs.md).
    1. Inputs: a table with each value and where it came from (argument or default).
    2. Areas: a table with the number, name, paths, file count, size, and order.
    3. Excluded paths, each with a reason, for example vendored or generated code.
-   4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches.
+   4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches. If Claude Code is older than v2.1.292, say that the effort values do not apply.
    5. Files: the report path, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
    6. Verification: the split threshold and the split rule of step 4.
    7. Run format: the orchestrator checks only the structure of the output (rule 3), and the verifiers and the auditor check the content. Chat gets at most one status line for each step and one final report (rule 8). Say in one sentence that the OK also accepts this run format.
@@ -229,7 +205,7 @@ as submodules or Git LFS files that the snapshots do not hold. They go into the 
 ### Step 2. Report skeleton
 
 Write the report file from the skeleton in
-[references/report-format.md](references/report-format.md). Fill the Scope section from the
+[references/report-skeleton.md](references/report-skeleton.md). Fill the Scope section from the
 meta-plan and the setup reply. Write one section for each area, in the approved order. Leave
 the placeholders in the other sections. The agents replace them.
 
@@ -290,20 +266,3 @@ the content below into its matching sections. Else use these three sections, in 
 - If a structure check fails, dispatch one repair agent of the same role. Give it the same brief and the repair note with the list of defects. If the check fails again, stop the run. Keep all files, and report the defects under "Blocked on me".
 - If the collector cannot reach GitHub, ask the user what to do. The user can reconnect the GitHub MCP server with `/mcp` or continue with the notes files only. Do not fall back to another GitHub client.
 - If an agent reports a blocker, such as a missing snapshot, fix the cause with the right helper. Then dispatch the agent again.
-
-## Common failure modes
-
-- The orchestrator reads the code or re-checks findings itself. This duplicates the verifiers and fills the main context.
-- A hunter reads the live repository instead of the snapshot, so the line numbers do not match the analyzed commit.
-- Hunters run in parallel. The numbering breaks, and the notes for other areas get lost.
-- An agent runs `git status` in the live repository.
-- A progress file, a snapshot, or a work folder stays after the run.
-- Interim results go to chat instead of the report.
-- An agent creates or comments on a GitHub issue.
-- A finding without a failure scenario passes as Confirmed.
-
-## Reference files
-
-- [references/report-format.md](references/report-format.md): the report skeleton, the finding format, the verdict rules, the Summary format, the artifacts layout, the digest format, and the plain-English fallback rules.
-- [references/agent-briefs.md](references/agent-briefs.md): the placeholders, the shared blocks, and the briefs for every role.
-- [references/structure-checks.md](references/structure-checks.md): the commands that the orchestrator runs between steps.

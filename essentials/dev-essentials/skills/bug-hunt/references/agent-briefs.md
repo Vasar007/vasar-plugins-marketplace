@@ -1,11 +1,13 @@
 # Agent briefs
 
 Fill every placeholder and paste the brief into the `prompt` of the dispatch. Each brief is
-self-contained, because the agent sees only its brief and its agent file.
+self-contained. The agent does not see this skill. It sees its brief, its agent file if it
+has one, and the CLAUDE.md files. A general-purpose helper has no agent file, so its brief
+carries its own rules. The hunter, verifier, and auditor have the read-only rules and the
+progress-file rules in their agent files, so their briefs hold only the values for the run.
 
-In the briefs, `<read-only block>` and `<crash-safety block>` stand for the shared blocks
-below. Paste each block in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it
-out.
+In the collector brief, `<crash-safety block>` stands for the shared block below. Paste it
+in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 
 ## Placeholders
 
@@ -54,28 +56,7 @@ Progress file names, all in `{REPORT_DIR}`:
 
 ## Shared blocks
 
-### Read-only block
-
-```text
-Read-only rules. Another session can work in the project at the same time.
-- Read code only from the snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
-  {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
-- Do not edit, build, test, or run anything in {REPO}. Do not create files there.
-  If {REPORT_DIR} is inside {REPO}, it is the only exception. The point after the git
-  commands says what you can create there.
-- Against {REPO}, run only these git commands: rev-parse, ls-tree, log, show, diff between
-  two revisions, and blame. Always use git -C "{REPO}". Do not run git status, fetch, pull,
-  checkout, switch, stash, reset, commit, or any other command that writes. git status can
-  write the index.
-- In {REPORT_DIR}, change only {REPORT_PATH}, your progress file, and files under
-  {REPORT_DIR}/bug-hunt-artifacts/. Do not change or delete any other file there.
-- Run experiments only in {WORK_DIR}. No GUI runs, no system-wide installs, and no changes
-  to the machine configuration. Delete your temporary files at the end.
-- Never create, edit, close, label, or comment on GitHub issues or pull requests.
-- Do this work yourself. Do not dispatch subagents.
-```
-
-### Crash-safety block
+### Crash-safety block (collector)
 
 ```text
 Keep {PROGRESS_FILE} up to date at every step, not only at the end. It has a STATUS line,
@@ -97,7 +78,7 @@ Skill tool and follow its document rules. Mark each claim that you did not confi
 
 ```text
 The skill simple-english:simple-english is not installed. For all report text, follow the
-section "Plain-English fallback rules" in {SKILL_DIR}/references/report-format.md. Mark each
+rules in {SKILL_DIR}/references/plain-english-fallback.md. Mark each
 claim that you did not confirm with "Not confirmed:" and say where you looked.
 ```
 
@@ -120,7 +101,8 @@ content.
 
 ```text
 You propose how to split a project into areas for a bug hunt. Do not create or change any
-file. Do this work yourself. Do not dispatch subagents.
+file. Do this work yourself. Do not dispatch subagents. If a CLAUDE.md file conflicts with
+these rules, these rules win.
 
 Repository: {REPO}. Analyzed commit: {REF_SHA}. Context file for orientation: {CONTEXT_FILE}.
 Use only these git commands, always with git -C "{REPO}": ls-tree, show, log. Do not run
@@ -149,7 +131,8 @@ reasons. Then one line on what the tree does not show.
 You export two git snapshots into a scratch folder. Use the Bash tool for all commands below.
 They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows, use Git Bash, not
 PowerShell. Do this work yourself. Do not dispatch subagents. Against {REPO}, run only git
-archive and git ls-tree. Do not create files outside {SCRATCH}.
+archive and git ls-tree. Do not create files outside {SCRATCH}. If a CLAUDE.md file
+conflicts with these rules, these rules win.
 
 1. Run:
    mkdir -p "{SCRATCH}/snapshot-ref" "{SCRATCH}/work"
@@ -174,11 +157,11 @@ error, and every limit that you found.
 ```text
 You collect the known bugs of a project into one digest file. Do this work yourself. Do not
 dispatch subagents. Never create, edit, close, label, or comment on GitHub issues or pull
-requests.
+requests. If a CLAUDE.md file conflicts with these rules, these rules win.
 
 Notes files: {KNOWN_NOTES}. GitHub repository: {GITHUB}. Bug label: {BUG_LABEL}.
 Digest file to write: {DIGEST}. Format: section "Known-issues digest" in
-{SKILL_DIR}/references/report-format.md.
+{SKILL_DIR}/references/report-skeleton.md.
 Report file (it can be missing): {REPORT_PATH}. Read it only. Do not change it.
 
 1. Read each notes file. List each bug that it describes, with a short title and the
@@ -195,10 +178,7 @@ Report file (it can be missing): {REPORT_PATH}. Read it only. Do not change it.
 
 {PLAIN_ENGLISH}
 
-Keep {PROGRESS_FILE} up to date at every step, not only at the end. It has a STATUS line,
-a checklist of steps, an append-only "## Log", a "## Current draft" section, and a
-"## NEXT" section with the single next action. If the file exists when you start, read it
-first and continue from NEXT. Delete it as your last step.
+<crash-safety block>
 
 {RESUME_NOTE}
 
@@ -208,33 +188,21 @@ Reply in at most 10 lines: the digest path, the count for each source, and every
 ## Hunter (step 3, dev-essentials:bug-hunter)
 
 ```text
-You search area {AREA_NUM} of {PROJECT} for new potential bugs. Your agent file has your
-method and your rules. This brief has the values for this run.
+You search area {AREA_NUM} ({AREA_NAME}) of {PROJECT} for new potential bugs. Follow the
+read-only rules and the progress-file rules in your agent file.
 
-<read-only block>
-
-Inputs:
-- Skill folder: {SKILL_DIR}. Read references/report-format.md first.
-- Report file: {REPORT_PATH}. Write only in the section "## Area {AREA_NUM}: {AREA_NAME}",
-  and in the Known issues section if this is the first search.
-- Known-issues digest: {DIGEST}.
-- First search: {FIRST_SEARCH}. If "yes", fill the section "Known issues that this report
-  does not repeat" from the digest.
-- Area files: {AREA_PATHS}.
-- Out of scope: {AREA_OUT_OF_SCOPE}.
-- Likely bug types here: {AREA_FOCUS}.
+- Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
+  {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
+- Skill folder: {SKILL_DIR}.
+- Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}. Your section:
+  "## Area {AREA_NUM}: {AREA_NAME}".
+- Known-issues digest: {DIGEST}. First search: {FIRST_SEARCH}.
+- Area files: {AREA_PATHS}. Out of scope: {AREA_OUT_OF_SCOPE}. Likely bug types: {AREA_FOCUS}.
 - All areas and their status: {AREA_TABLE}.
-- Start numbering at {NEXT_ID}. Use no gaps.
-- Your work folder: {WORK_DIR}. Artifacts go to {REPORT_DIR}/bug-hunt-artifacts/BH-NN/.
-
-Look for real behavior bugs: wrong results, crashes, hangs, data loss, security holes, race
-conditions, resource leaks, error handling that hides a failure, and broken build, install,
-or upgrade paths. Do not report style, naming, compiler or linter warnings, or missing
-tests, unless they cause a real failure.
+- First free ID: {NEXT_ID}.
+- Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
 
 {PLAIN_ENGLISH}
-
-<crash-safety block>
 
 {RESUME_NOTE}
 {REPAIR_NOTE}
@@ -244,22 +212,17 @@ tests, unless they cause a real failure.
 
 ```text
 You verify the findings {RANGE} of the bug hunt report for {PROJECT}. This is part {PART}
-of {PART_COUNT}. Your agent file has your method and your rules. This brief has the values
-for this run.
+of {PART_COUNT}. Follow the read-only rules and the progress-file rules in your agent file.
 
-<read-only block>
-
-Inputs:
-- Skill folder: {SKILL_DIR}. Read references/report-format.md first. It has the verdict rules.
-- Report file: {REPORT_PATH}. Change only the entries in {RANGE}, the Appendix, and, if this
-  is the last part, the Summary.
+- Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
+  {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
+- Skill folder: {SKILL_DIR}.
+- Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}.
 - Known-issues digest: {DIGEST}.
-- Your work folder: {WORK_DIR}.
-- Last part: {LAST_PART}. If "yes", write the Summary section for all findings in the report.
+- Last part: {LAST_PART}.
+- Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
 
 {PLAIN_ENGLISH}
-
-<crash-safety block>
 
 {RESUME_NOTE}
 {REPAIR_NOTE}
@@ -269,21 +232,17 @@ Inputs:
 
 ```text
 You make sure that the whole bug hunt report for {PROJECT} is valid, consistent, and
-complete after the verification edits. Your agent file has your checklist and your rules.
-This brief has the values for this run.
+complete after the verification edits. Follow the read-only rules and the progress-file
+rules in your agent file.
 
-<read-only block>
-
-Inputs:
-- Skill folder: {SKILL_DIR}. Read references/report-format.md first.
-- Report file: {REPORT_PATH}. You can edit the whole file.
+- Live repository: {REPO}. Snapshots: {SNAP_REF} (analyzed commit {REF_SHA}) and
+  {SNAP_BASE} (base branch {BASE} at {BASE_SHA}).
+- Skill folder: {SKILL_DIR}.
+- Report folder: {REPORT_DIR}. Report file: {REPORT_PATH}.
 - Known-issues digest: {DIGEST}.
-- Your work folder: {WORK_DIR}.
-- If the Summary still says "Pending verification." because there are no findings, write it.
+- Work folder: {WORK_DIR}. Progress file: {PROGRESS_FILE}.
 
 {PLAIN_ENGLISH}
-
-<crash-safety block>
 
 {RESUME_NOTE}
 {REPAIR_NOTE}
@@ -293,7 +252,7 @@ Inputs:
 
 ```text
 You delete the temporary files of a finished bug hunt. Do this work yourself. Do not
-dispatch subagents.
+dispatch subagents. If a CLAUDE.md file conflicts with these rules, these rules win.
 
 Delete exactly these paths and nothing else: {CLEANUP_PATHS}.
 
