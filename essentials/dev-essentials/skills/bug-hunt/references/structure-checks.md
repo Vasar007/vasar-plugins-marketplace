@@ -1,7 +1,9 @@
 # Structure checks
 
 The orchestrator runs these checks between steps. They test the form of the report, not the
-truth of the findings. When the check passes, each command prints nothing. The text names any exception. The commands need a POSIX shell with `grep`, `awk`, `sed`, `sort`, and `find`.
+truth of the findings. When the check passes, each command prints nothing. The text names any
+exception. The commands need a POSIX shell with `grep`, `awk`, `sed`, `sort`, and `find`. On
+Windows, run them with the Bash tool (Git Bash).
 
 Set these variables first:
 
@@ -52,7 +54,7 @@ END { if (id != "") check() }' "$R"
 C5. Every verdict has a legal value:
 
 ```bash
-grep '^- Verdict: ' "$R" | grep -vE '^- Verdict: (Pending verification|Confirmed|Unconfirmed \(needs owner review\)|Rejected|Duplicate of (#[0-9]+|BH-[0-9]+))$'
+grep '^- Verdict: ' "$R" | grep -vE '^- Verdict: (Pending verification|Confirmed|Unconfirmed \(needs owner review\)|Rejected|Duplicate of (#[0-9]+|N-[0-9]+|BH-[0-9]+))$'
 ```
 
 C6. No finding is still pending (after step 4, prints 0):
@@ -86,7 +88,7 @@ grep -c '^### Notes for other areas' "$R"
 C10. No placeholder is left (after step 5):
 
 ```bash
-grep -nE '^Pending (search|verification|the first search)\.$|\{[A-Z_]+\}' "$R"
+grep -nE '^Pending (search|verification|the first search)\.$|\{[A-Z0-9_]+\}' "$R"
 ```
 
 A hit inside quoted code in an entry, such as `${HOME}`, is not a defect.
@@ -124,5 +126,14 @@ ls "$D"/_bug-hunt-* 2>/dev/null
 | Step 5 | All checks C1 to C13. | The other checks print nothing. C6 prints 0. C8 prints two equal numbers. C9 prints three equal numbers. C11 prints 1. C13 prints only `_bug-hunt-session-progress.md`. |
 | Step 6 | `$S` does not exist. C13 prints only `_bug-hunt-session-progress.md`. | All match |
 
-To run C6 for one part, filter the entries of its range, for example with
-`sed -n '/^### BH-01: /,/^### BH-21: /p' "$R" | grep -c '^- Verdict: Pending verification'`.
+To run C6 for one part, count the pending verdicts by finding ID, not by the position of two
+headings. A rejected entry in the appendix then does not break the range. Set `lo` and `hi` to
+the first and last ID number of the part:
+
+```bash
+awk -v lo=1 -v hi=20 '
+/^## / { id = 0 }
+/^### BH-[0-9]+: / { id = $2; sub(/^BH-/, "", id); sub(/:$/, "", id); id += 0 }
+/^- Verdict: Pending verification/ && id >= lo && id <= hi { n++ }
+END { print n + 0 }' "$R"
+```

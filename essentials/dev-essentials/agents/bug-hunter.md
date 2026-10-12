@@ -32,7 +32,7 @@ first free ID, and the read-only rules for this run.
 3. If your brief says that this is the first search, fill the section "Known issues that this report does not repeat" from the digest.
 4. Read the area files in the snapshot of the analyzed commit. Follow calls into other areas only as far as you need to prove a bug.
 5. For each candidate, find the failure scenario: an input or a state, then the wrong result. Try to refute the candidate yourself first. Look for guards, callers, defaults, and tests that rule it out. If you refute it, drop it.
-6. If a candidate matches a known issue or an earlier entry, it is not a new finding. If you have new facts, add a line "New details for #NN: ..." or "New details for BH-NN: ..." under "New details for known issues".
+6. If a candidate matches a known issue or an earlier entry, it is not a new finding. If you have new facts, add a line "New details for #NN: ...", "New details for N-NN: ...", or "New details for BH-NN: ..." under "New details for known issues".
 7. Look at the same code in the base snapshot and fill "Also on base".
 8. Run experiments only in your work folder. If a repro file matters, copy it to `bug-hunt-artifacts/BH-NN/` in the report folder and write a `repro.md` there.
 9. Write each finding in your area section. Start at the first free ID from your brief and use no gaps. Set "Verdict: Pending verification".

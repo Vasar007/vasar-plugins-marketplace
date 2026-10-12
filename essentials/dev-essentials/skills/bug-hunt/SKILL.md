@@ -74,11 +74,12 @@ or rule 2, rules 1 and 2 win.
 Another session can work in the project at the same time. For this reason, agents read code
 only from the snapshots.
 
-- Do not edit, build, test, or run anything in the project folder. Do not create files there.
+- Do not edit, build, test, or run anything in the project folder. Do not create files there. The only exception is the report folder, as the report-folder point below says.
 - Against the live repository, run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, `show`, `diff` between two revisions, `blame`, and `archive` with output into the scratch folder. Always use `git -C "<repo>"`.
 - Do not run `git status`, `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. `git status` can write the index.
-- In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`. Do not change or delete any file that existed before the run.
+- In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. This also holds when the report folder is inside the project. It is then the one exception to the first point.
 - Run experiments only in a work folder inside the scratch folder. No GUI runs, no system-wide installs, and no changes to the machine configuration.
+- The commands in this skill need a POSIX shell. On Windows, run them with the Bash tool (Git Bash), not with PowerShell.
 
 ### 2. No GitHub writes
 
@@ -140,7 +141,7 @@ updates the file at each step boundary and after each agent reply.
 - The hunter default is Fable. Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. The agent files default to Opus, so a dispatch outside this skill never runs Fable.
 - If the active model does not support an effort level, Claude Code uses the next lower level.
-- The `effort` parameter of the `Agent` tool needs Claude Code v2.1.292 or later. On an older version, the `effort` field of the agent file applies.
+- The `effort` parameter of the `Agent` tool needs Claude Code v2.1.292 or later. Not confirmed: which effort applies on an older version. The docs at <https://code.claude.com/docs/en/sub-agents> state only the version requirement and do not describe the older behavior.
 - Every dispatch is a single unnamed `Agent` call: no `name`, no `team_name`, no `SendMessage`.
 - Every brief says "do this work yourself, do not dispatch subagents". The three agent files do not have the `Agent` tool.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
@@ -162,6 +163,8 @@ run. All results go into the report. The run ends with one final report (step 7)
 | 5 | Auditor | `dev-essentials:bug-report-auditor` | auditor model | auditor effort | 1 |
 | 6 | Cleanup helper | `general-purpose` | `haiku` | session default | 1 |
 
+The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder.
+
 The brief for each role is in [references/agent-briefs.md](references/agent-briefs.md). Fill
 every placeholder before you dispatch. The agent sees only its brief.
 
@@ -173,14 +176,17 @@ Do this before step 0. If the report folder is known and it holds
 `_bug-hunt-session-progress.md`, read that file and continue from its `## NEXT` section. If
 the file records the meta-plan approval, do not ask for it again.
 
-The scratch folder of the old session can be gone. If a snapshot is missing, run the setup
-helper again with the commit SHAs from the progress file. If an agent progress file exists
+The scratch folder of the old session can be gone. If a snapshot or the digest is missing,
+run step 1 again in full: dispatch the setup helper and the collector in the same message,
+with the commit SHAs from the progress file. Then run the structure checks for step 1. The
+scratch folder can have a new path. Write the path that is now in use into
+`_bug-hunt-session-progress.md` before you fill the next brief. If an agent progress file exists
 for the step in `## NEXT`, dispatch that role again with the same brief. Add the resume note
 from [references/agent-briefs.md](references/agent-briefs.md).
 
 ### Step 0. Meta-plan and questions
 
-1. Resolve the inputs from the arguments. For the defaults, use only light read-only calls: `git -C "<repo>" rev-parse --verify "<ref>^{commit}"`, `git -C "<repo>" rev-parse --abbrev-ref origin/HEAD`, and `git -C "<repo>" remote get-url origin`. Make sure that the report folder exists, and list the files in it that start with `bug-hunt`.
+1. Resolve the inputs from the arguments. For the defaults, use only light read-only calls: `git -C "<repo>" rev-parse --verify "<ref>^{commit}"`, `git -C "<repo>" rev-parse --abbrev-ref origin/HEAD`, and `git -C "<repo>" remote get-url origin`. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
@@ -189,12 +195,12 @@ from [references/agent-briefs.md](references/agent-briefs.md).
    2. Areas: a table with the number, name, paths, file count, size, and order.
    3. Excluded paths, each with a reason, for example vendored or generated code.
    4. Agents: a table with the model and effort of each role. Say in one sentence that the OK approves the Fable dispatches.
-   5. Files: the report path, the artifacts folder, the progress file names, and the scratch folder.
+   5. Files: the report path, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
    6. Verification: the split threshold and the split rule of step 4.
    7. Plain English: whether `simple-english` is installed, or the fallback is used.
    8. Cleanup: the list of what step 6 deletes and what it keeps.
    9. Questions: a numbered list, or "No questions".
-6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the base branch is unknown, Fable is not available, or there is no known-issue source.
+6. Ask only questions that block the run. Examples: the report folder is missing, the report file exists, the report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file and no resume applies (a new run would write into the files of the old run), the base branch is unknown, Fable is not available, or there is no known-issue source.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
 8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the scratch folder, the approved models and effort levels, the areas, and the approval itself.
 
@@ -238,7 +244,7 @@ earlier hunters, and the numbering continues across areas.
 5. After each part, run the structure checks for step 4.
 
 Each verifier tries to refute each finding in its range and sets one verdict: Confirmed,
-Unconfirmed (needs owner review), Rejected, or Duplicate of #NN or BH-NN. The verdict rules
+Unconfirmed (needs owner review), Rejected, or Duplicate of #NN, N-NN, or BH-NN. The verdict rules
 are in [references/report-format.md](references/report-format.md).
 
 ### Step 5. Verification pass 2

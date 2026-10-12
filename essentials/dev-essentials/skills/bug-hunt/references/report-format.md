@@ -70,8 +70,10 @@ digest. One line for each known issue:
 
 ```markdown
 - #12: <title>. Source: open issue with the label "bug".
-- Notes file `known-bugs.md`: <short title>.
+- N-01: <short title>. Source: notes file `known-bugs.md`.
 ```
+
+The section lists only the known bugs: the notes-file bugs and the open issues with the bug label. The list of all issue titles in the digest is only for duplicate checks. Do not copy it into the report. Each notes-file bug keeps the ID `N-NN` that the digest gives it.
 
 If no known issue exists, write "None found in the given sources."
 
@@ -87,6 +89,7 @@ Files: <paths>. Out of scope: <paths or topics>.
 ### New details for known issues
 
 - New details for #12: <new facts, with locations>.
+- New details for N-01: <new facts, with locations>.
 
 ### BH-07: <title>
 
@@ -147,7 +150,7 @@ The verifier sets exactly one verdict for each finding:
 | `Confirmed` | The evidence holds, and the failure scenario is shown or proved from the code. | It stays in its area section. |
 | `Unconfirmed (needs owner review)` | The verifier did not refute it and did not prove it. | It stays in its area section. The Verification paragraph has the three lines below. |
 | `Rejected` | The finding is wrong, or it is not a real behavior bug. | It moves, whole and with its ID, to "Appendix: rejected findings". No stub stays in the area section. |
-| `Duplicate of #NN` or `Duplicate of BH-NN` | A known issue or an earlier entry describes the same bug. | It stays in its area section. The Verification paragraph names the original. |
+| `Duplicate of #NN`, `Duplicate of N-NN`, or `Duplicate of BH-NN` | A GitHub issue (`#NN`), a notes-file bug (`N-NN`), or an earlier entry (`BH-NN`) describes the same bug. | It stays in its area section. The Verification paragraph names the original. |
 
 If the verifier changes the severity, it shows the old value next to the new one:
 `- Severity: Medium (was High)`.
@@ -232,7 +235,7 @@ Sources: <notes files>, <owner/repo> issues.
 
 ## From notes files
 
-- `<notes file>`: <short title>. <location, if the file gives one>.
+- N-01 (`<notes file>`): <short title>. <location, if the file gives one>. Number the notes-file bugs in order, `N-01`, `N-02`, and so on, across all notes files.
 
 ## Open issues with the label "<label>"
 

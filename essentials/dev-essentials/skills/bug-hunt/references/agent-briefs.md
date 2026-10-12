@@ -144,7 +144,9 @@ reasons. Then one line on what the tree does not show.
 ## Setup helper (step 1, general-purpose, haiku)
 
 ```text
-You export two git snapshots into a scratch folder. Do this work yourself. Do not dispatch
+You export two git snapshots into a scratch folder. Use the Bash tool for all commands below.
+They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows, use Git Bash, not
+PowerShell. Do this work yourself. Do not dispatch
 subagents. Against {REPO}, run only git archive and git ls-tree. Do not create files outside
 {SCRATCH}.
 
@@ -178,7 +180,8 @@ Digest file to write: {DIGEST}. Format: section "Known-issues digest" in
 {SKILL_DIR}/references/report-format.md.
 
 1. Read each notes file. List each bug that it describes, with a short title and the
-   location if the file gives one.
+   location if the file gives one. Give each notes-file bug an ID: N-01, N-02, and so on,
+   in order across all notes files.
 2. If {GITHUB} is not "none", load the skill dev-essentials:github-mcp-conventions with the
    Skill tool and follow it. With the GitHub MCP tools, list the open issues with the label
    "{BUG_LABEL}". Give each one a one-line summary of the bug. Then list the titles of all
