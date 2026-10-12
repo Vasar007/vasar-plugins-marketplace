@@ -294,10 +294,15 @@ dispatch subagents. If a CLAUDE.md file conflicts with these rules, these rules 
 
 1. Stop these processes if they still run: {PID_LIST}. Each entry has a process ID and a
    start time. Windows can give a process ID to a new process, so test each entry first.
-   Read the command line and the start time of the process: on Windows, run
-   powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' | Select-Object CreationDate,CommandLine | Format-List"
-   in Git Bash. On other platforms, run ps -o lstart=,args= -p <pid>. Stop the process
-   only if its command line holds {SCRATCH} and its start time is the recorded one.
+   Read the command line and the start time of the process: on Windows, run this in Git Bash
+   (the single quotes keep Git Bash from changing $_):
+   powershell.exe -NoProfile -Command 'Get-CimInstance Win32_Process -Filter "ProcessId=<pid>" | ForEach-Object { $_.CreationDate.ToString("s"); $_.CommandLine -replace "[\r\n]+", " " }'
+   It prints the start time on line 1 and the command line on line 2. On other platforms,
+   run ps -o lstart=,args= -p <pid>. Stop the process only if both tests pass. Test 1: the
+   start time is the same text as the recorded one (on other platforms, compare with each
+   run of spaces collapsed to one space). Test 2: the command line holds the path {SCRATCH}.
+   For test 2, ignore case, treat \ and / as the same, treat C:/ and /c/ as the same drive,
+   and treat a path under /tmp/ as the same as the same path under the user temp folder.
    If you cannot read the command line or the start time, do not stop the process.
    Report it as "not stopped" with the reason. To stop a process on Windows, run
    taskkill //PID <pid> //F in Git Bash. The double slash keeps Git Bash from changing the

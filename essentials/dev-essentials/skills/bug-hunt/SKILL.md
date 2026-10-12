@@ -134,8 +134,9 @@ is left behind means that work is not finished.
 The orchestrator keeps `_bug-hunt-session-progress.md` in the same way. It updates the file at
 each step boundary and after each agent reply. It records the agent ID of each dispatch, and
 each pause with its resume job. After each dispatch, it writes this into `## NEXT`: "Waiting
-for agent <ID> (<role>). Do not dispatch this role again. Wait for its reply, or for the
-user to say that it stopped." Edit progress files and the report with the Edit tool. A
+for agent <ID> (<role>), dispatched <time>. If the agent runs, do not dispatch this role
+again." If two agents run at the same time, the note names each one. The resume check in
+this file tells a running agent from a stopped one. Edit progress files and the report with the Edit tool. A
 script that rewrites a Markdown file can damage it. Two examples are a backslash escape, and
 a split on a heading name that the text also quotes.
 
@@ -196,7 +197,7 @@ then, before you show the meta-plan again.
 1. If the report folder holds `_bug-hunt-session-progress.md`, read it and continue from its `## NEXT`. If it records the meta-plan approval, do not ask for it again. If `## NEXT` records a pause, do not continue. Wait for the user, or for the scheduled resume prompt that names this file.
 2. If a snapshot or the digest is missing, run step 1 again in full with the commit SHAs from the progress file. If the report already lists `N-NN` IDs, tell the collector to keep them. Then run the step-1 structure check.
 3. Write the scratch folder path that is now in use into the progress file before you fill the next brief.
-4. If `## NEXT` says "Waiting for agent <ID>", an agent of that role can still run. Do nothing and end the turn. This is the case for a scheduled resume prompt that fires while the agent runs. If the user says that the agent stopped, or the agent reply reports a crash or a usage limit, go to point 5.
+4. If `## NEXT` says "Waiting for agent <ID>", find out if that agent still runs. The agent runs if this session dispatched it and its progress file is less than 30 minutes old. If it has no progress file yet, the dispatch time in the note must be less than 30 minutes ago. If the agent runs, write one line to chat: "Waiting for agent <ID> (<role>). If it stopped, say so." Then end the turn. A scheduled resume prompt that fires while the agent runs ends here. In all other cases, the agent stopped, for example after a crash or a restart. The user can also say that it stopped, or the agent reply can report a crash or a usage limit. Then restore the agent with `SendMessage` as "Failure handling" says. If that fails, go to point 5.
 5. If an agent progress file exists for the step in `## NEXT`, fill the brief for that role again from the recorded values, add the resume note from [references/agent-briefs.md](references/agent-briefs.md), and dispatch it.
 
 ### Step 0. Meta-plan and questions

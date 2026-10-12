@@ -280,6 +280,9 @@ def check_report(a):
         for lab in need:
             if lab not in labels:
                 defect(f"{bid}: missing field '{lab}'")
+        for lab in ("Severity", "Confidence", "Verdict"):
+            if lab in labels and not labels[lab]:
+                defect(f"{bid}: {lab} value is empty")
         sev, conf = labels.get("Severity", ""), labels.get("Confidence", "")
         if sev and not re.match(rf"^({SEVERITY})( \(was ({SEVERITY})\))?$", sev):
             defect(f"{bid}: Severity value '{sev}' is not legal")

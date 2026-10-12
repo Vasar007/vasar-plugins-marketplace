@@ -37,8 +37,12 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
 
    ```text
    Resume the bug hunt. If <report folder>/_bug-hunt-session-progress.md does not exist,
-   do nothing. Else read it first. If its NEXT section says "Waiting for agent", do nothing
-   and end the turn. Else continue from its NEXT section. This scheduled prompt is the OK of
+   do nothing. Else read it first. If its NEXT section says "Waiting for agent", and this
+   session dispatched that agent, and the progress file of that agent changed in the last 30
+   minutes (or the dispatch time in the note is less than 30 minutes ago, if the agent has
+   no progress file yet), write one line to chat that names the agent and end the turn. Else
+   follow the resume check in the bug-hunt skill: the agent stopped, so restore it. Then
+   continue from its NEXT section. This scheduled prompt is the OK of
    the user for these steps: <steps>. Stop at <the next pause point, or "the end of the run">.
    ```
 
@@ -51,6 +55,6 @@ The main session can reach its own usage limit while it waits for an agent. If t
 Limits from the docs:
 
 - A job fires only while Claude Code runs and is idle. If the user closes the session, the job does not fire until `claude --resume` restores it.
-- A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because `## NEXT` says "Waiting for agent".
+- A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because the progress file of the agent is recent. After a crash, the progress file stops changing, so the job restores the agent after 30 minutes.
 - Times are in the local time zone.
 - The environment variable `CLAUDE_CODE_DISABLE_CRON=1` turns the tools off. If the cron tools are not available, tell the user, and wait for the user at each pause point.
