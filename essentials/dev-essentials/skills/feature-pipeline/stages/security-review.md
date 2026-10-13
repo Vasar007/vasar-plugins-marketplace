@@ -106,9 +106,9 @@ Use the file search and read tools in `{WORKTREE_PATH}` to:
 **Project-specific security baseline** (apply each item that the Project Context makes relevant):
 
 - If the Guidance Files list a banned-API list (for example `BannedSymbols.txt`), read it. If a banned API has known vulnerabilities (for example `BinaryFormatter` deserialization), a use of it is relevant to security.
-- If the project supports more than one database, make sure that all SQL queries use parameters, never user input joined into the string.
-- The project can read the Windows registry or environment variables from user input. Then make sure that the input is validated before it goes into a registry path.
-- If the project has an RBAC model, make sure that new endpoints and operations use the existing authorization framework.
+- If the project supports more than one database, find out whether all SQL queries use parameters. A query that joins user input into the string is a finding.
+- If user input goes into a Windows registry path or an environment variable read, find out whether the input is validated first.
+- If the project has an RBAC model, find out whether new endpoints and operations use the existing authorization framework.
 
 ### Phase 2: Comparative Analysis
 

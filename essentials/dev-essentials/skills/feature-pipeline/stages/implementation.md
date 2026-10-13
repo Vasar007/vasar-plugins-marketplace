@@ -44,7 +44,7 @@ You do NOT make architectural decisions. `spec.md` already made them, and the hu
 
 Before you write any code:
 
-1. Make sure that the spec references are still valid. Spot-check 2–3 files that `spec.md` names: they exist and match the expected structure. If a file changed after the spec was written, note the difference, but continue. The human approved the spec.
+1. Find out whether the spec references are still valid. Spot-check 2–3 files that `spec.md` names: they exist and match the expected structure. If a file changed after the spec was written, note the difference, but continue. The human approved the spec.
 
 2. If the Project Context has a full test command, run it to get a baseline.
    - If tests already fail, note which ones.
@@ -117,8 +117,8 @@ Address each item:
    - If the fix needs a new test, write it.
    - Run the affected test scope.
    - **`per-step` mode**: one commit for each fixed finding. When the fix is green, commit it with an explicit `git add <path>`, never `-A` or `.`, and follow the injected `<commit-conventions>` block. This is the authoritative granularity for the commits of the Human Approve #2 fix rounds. It matches the granularity of Phase 3 (one commit for each spec step).
-3. Do NOT address items marked as Warnings or Suggestions. Address only the Blocking items.
-4. After you resolve all blocking items, run the full test command from the Project Context again.
+3. Do NOT address items marked as Warnings or Suggestions. Address only the Blocking items, or the build errors after the Build Gate.
+4. After you resolve all blocking items or build errors, run the full test command from the Project Context again.
 
 ### Phase 5: Final Verification
 

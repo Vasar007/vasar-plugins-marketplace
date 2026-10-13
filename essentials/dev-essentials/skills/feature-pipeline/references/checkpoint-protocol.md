@@ -61,7 +61,7 @@ All state files of a task are in `{ARTIFACTS_DIR}/{task-id}/`, for example `{ART
 Do these checks on each write, and on each load at a resume:
 
 - Parse the file as JSON. If it is not valid JSON, stop at once.
-- Make sure that each top-level key of the schema above exists (15 keys).
+- Find out whether each top-level key of the schema above exists (15 keys). For a missing key of the backward-compatibility table below, use its zero value. For any other missing key, stop and report it.
 - Backward compatibility: an old state file can lack `pr`, `models`, `stageStartSha`, `planArtifact`, or `commitMode`. On a read, each missing key takes the zero value in the table below. The next write stores it.
 
   | Field | Zero value |
@@ -73,8 +73,8 @@ Do these checks on each write, and on each load at a resume:
   | `commitMode` | `"finalization"` |
 
   Each key is still required on each write. The zero values apply to reads only. Stage 9 fills `pr` at the next PR creation. Step 10 treats `null` as the case without a PR.
-- Make sure that `completed` is an array of known stage names.
-- Make sure that `stage` is a known stage name or `null`.
+- Find out whether `completed` is an array of known stage names. If it is not, stop and report it.
+- Find out whether `stage` is a known stage name or `null`. If it is not, stop and report it.
 
 ## Interruption check (resume)
 

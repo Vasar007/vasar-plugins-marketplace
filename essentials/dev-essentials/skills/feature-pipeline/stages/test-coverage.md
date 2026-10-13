@@ -36,7 +36,7 @@ Make sure that each test case of `test-plan.md` exists and passes.
    - If the test exists, note it as ✓ covered.
    - If the test is missing, note it as ✗ gap. You write it in Phase 3.
    - If the test exists but is skipped (`[Ignore]`), note it as ✗ gap.
-3. Read Section 3 (Tests for Existing Code, regression) of `test-plan.md`. Make sure that the listed regression test updates exist.
+3. Read Section 3 (Tests for Existing Code, regression) of `test-plan.md`. Find out whether the listed regression test updates exist. A missing update is a gap.
 
 4. If the Project Context lists a full test command, run it to see the current state. Note which tests pass and which fail. Sort each failure into one group:
    - **Test bug**: a wrong mock setup, a wrong assertion, or a missing import. You fix it.
