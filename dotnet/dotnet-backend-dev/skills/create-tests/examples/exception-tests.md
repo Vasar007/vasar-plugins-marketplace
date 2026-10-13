@@ -286,6 +286,6 @@ public void Constructor_SetsEntityId()
 
 3. **Use StringResources**: exception messages must use localized resources
 
-4. **Test custom properties**: test each property that your exception adds to the message and the inner exception
+4. **Test custom properties**: test each property that your exception has in addition to the message and the inner exception
 
 5. **Do not repeat base tests**: the base class covers the standard exception patterns
