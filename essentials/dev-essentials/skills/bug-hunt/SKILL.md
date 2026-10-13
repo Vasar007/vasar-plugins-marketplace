@@ -109,7 +109,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 - Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
-- Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. If the user asks to restore a stopped agent, use `SendMessage` as [references/resume-and-failures.md](references/resume-and-failures.md) says. Do not use it in any other case.
+- Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. To restore a stopped agent, use `SendMessage` first, then a new agent, as [references/resume-and-failures.md](references/resume-and-failures.md) says.
 - Every general-purpose brief says "do this work yourself, do not dispatch subagents". The three plugin agents have no `Agent` tool.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 

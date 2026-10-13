@@ -57,6 +57,6 @@ The main session can reach its own usage limit while it waits for an agent. If t
 Limits from the docs:
 
 - A job fires only while Claude Code runs and is idle. If the user closes the session, the job does not fire until `claude --resume` restores it.
-- A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because the progress file of the agent is recent. After a crash, the progress file stops changing, so after 30 minutes the job dispatches a new agent of the same role.
+- A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because the progress file of the agent is recent. After a crash, the progress file stops changing, so after 30 minutes the job restores the agent as point 5 of the resume check says.
 - Times are in the local time zone.
 - The environment variable `CLAUDE_CODE_DISABLE_CRON=1` turns the tools off. If the cron tools are not available, tell the user, and wait for the user at each pause point.
