@@ -46,7 +46,7 @@ context:
   `research-implement-review-report.md` has its own `--commit-mode` flag with
   different values (`<per-phase|single>`) and default — differs
   intentionally: this pipeline's unit is a numbered stage, not a phase.
-- `--interactive` — stop at Human Approve #1 and before the automatic fix round of Human
+- `--interactive` — stop at Human Approve #1, and ask before each fix round of Human
   Approve #2, as before. See **Autonomy**.
 
 Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
@@ -112,7 +112,7 @@ stage's output).
 ## Commit Cadence
 
 Five stages can create a commit: **Implementation** (Stage 3 — including the
-Human Approve #2 automatic fix round, which re-invokes this same stage),
+Human Approve #2 fix rounds, which re-invokes this same stage),
 **Test Coverage** (4), **Code Simplifier** (5), **Docs** (6), and
 **Finalization** (9). Every one of them (a) follows the resolved
 `{COMMIT_MODE}` and (b) receives the injected `<commit-conventions>` block
@@ -740,7 +740,7 @@ Wait for all three to complete, then update checkpoint.
 
 ### Human Approve #2 (after Review)
 
-This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. Start another fix round only after the user says yes.
+This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
 
 Present to user:
 
@@ -757,12 +757,18 @@ Present to user:
 >
 > **Verify before fixing (Safeguard 2):** when diagnosing review findings — and before re-invoking Implementation to address them — verify each finding against a primary source (official docs, the schema, a known-working example), especially schema/manifest errors and library API claims. Frame uncertain diagnoses as theories ("this might be…"), not confirmed fixes, until verified.
 
-If the review has blocking issues, and either (the run has no `--interactive` and no automatic fix round ran yet) or the user approves a fix round:
+If the review has blocking issues, run a fix round in one of these cases:
+
+- The run has no `--interactive`, and `autoFixRound` in `pipeline-state.json` is not `true`.
+- The user asks for a fix round (request changes).
+
+Fix round steps:
 
   1. Re-invoke Implementation subagent with review feedback (up to 1 retry)
   2. Remove these stages from `completed` in `pipeline-state.json`:
      `test-coverage`, `simplifier`, `docs`, `review`, `security-review`,
-     `finalization`
+     `finalization`. In the same write, set `"autoFixRound": true` in
+     `pipeline-state.json`. A missing key means `false`.
   3. Re-run Step 4 (Test Coverage)
   4. Re-run Step 5 (Code Simplifier)
   5. Re-run Steps 6 + 7 + 8 in parallel

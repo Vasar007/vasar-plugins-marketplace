@@ -568,7 +568,7 @@ Governed by `--cleanup-mode`:
 - A **partially-promoted** file → never stubbed. Annotate only the promoted section; the rest of the
   file stays as-is.
 
-Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. `annotate` and `none` need no question.
+Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 
 Extend — never invent from scratch — the project's own `MEMORY.md` index under a
 `## Cross-project rules — migrated to marketplace skills` heading. One bullet per promoted item:

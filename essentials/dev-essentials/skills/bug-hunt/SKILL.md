@@ -121,9 +121,9 @@ the report with the Edit tool, not with a script that rewrites the file.
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
 meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the OK, rule 3
-replaces two things for this run only: tiers 1 and 2 of the "Trust but verify" section of
-`dev-essentials:subagent-orchestration` (tier 3 still applies), and any user instruction to test every subagent
-claim. The section "Run format agreement" of that skill has the shared rule.
+replaces tiers 1 and 2 of the "Trust but verify" section of
+`dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
+claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
 
 - Between steps, write at most one status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
 - In chat, ask only questions that block the run.

@@ -158,7 +158,7 @@ Safety rules:
 - Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
 - Do not delete a file from an older session or a branch without the user's yes.
-- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it.
+- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost.
 
 ### 6. Confirm to user
 

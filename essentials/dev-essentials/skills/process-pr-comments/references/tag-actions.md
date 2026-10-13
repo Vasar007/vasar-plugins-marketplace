@@ -53,7 +53,7 @@ Priority ordering:
 A concrete improvement. PR approval is not blocked.
 
 - Trivial + small: implement like `[ToFix]`. Reply `**[AI]** Applied suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
-- Non-trivial: if the comment or the existing code settles the direction, implement it and state the direction and a one-line reason in the reply (SKILL.md § Autonomy, Bucket A1). If nothing settles the direction, draft the trade-off and wait (Bucket A2). With `interactive`, draft the trade-off in chat and post a `**[AI][Draft]**` reply summarizing pros/cons. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
+- Non-trivial: if the comment or the existing code settles the direction, implement it and state the direction and a one-line reason in the reply (SKILL.md § Autonomy, Bucket A1). If nothing settles the direction, draft the trade-off in chat. Then post a `**[AI][Draft]**` reply that summarizes pros/cons (Bucket A2). Do the same with `interactive`. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
 
 ### `[Optional]`
 
