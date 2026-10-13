@@ -7,7 +7,7 @@ description: >-
   hunt", "hunt for bugs", "find new bugs in this project", "find potential bugs in every area",
   "audit the codebase for bugs", or "write a verified bug report". Do not use it to review one
   diff or one pull request. Use review-loop or code-review for that.
-argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>]"
+argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--interactive]"
 ---
 
 # Bug hunt
@@ -28,6 +28,19 @@ agent output (rule 3), and all text follows plain English (rule 5).
 - Area: a part of the code, grouped by concern. One hunter searches one area.
 - Finding: one potential bug, written as a `BH-NN` entry in the report.
 - Known issue: a bug that a notes file (`N-NN`) or a GitHub issue (`#NN`) already describes.
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 - Known-issues digest: the scratch file where the collector lists every known issue.
 - Structure check: a test of the report form that `scripts/check_report.py` runs. It does not judge whether a finding is true.
 - Progress file: a `_`-prefixed file where an agent records its steps, so that a new agent can resume after a crash.
@@ -97,7 +110,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
+- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them. Without that OK, do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
@@ -106,7 +119,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 8. Run format
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
-meta-plan states it, and the user's OK to the meta-plan accepts it. After the OK, rule 3
+meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the OK, rule 3
 replaces two things for this run only: the "Trust but verify" section of
 `dev-essentials:subagent-orchestration`, and any user instruction to test every subagent
 claim. The section "Run format agreement" of that skill has the shared rule.
@@ -157,8 +170,8 @@ Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) fi
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
-7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
+8. After the OK, or after step 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 

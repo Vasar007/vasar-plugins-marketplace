@@ -6,7 +6,7 @@ touching 4 .NET files. Two rounds, dual reviewer, explicit `--skip=medium,low,ni
 **Invocation:**
 
 ```text
-/review-loop target=branch --rounds=2 --reviewer=dual --base=main --skip=medium,low,nit
+/review-loop target=branch --rounds=2 --reviewer=dual --base=main --skip=medium,low,nit --interactive
 ```
 
 ---
@@ -97,7 +97,7 @@ Deduplicated findings — 5 total:
 
 ## Phase 4 — Triage
 
-Skill prints to chat and waits for acknowledgment:
+Skill prints to chat and waits for acknowledgment (`--interactive` is set):
 
 ```
 Round 1 findings:

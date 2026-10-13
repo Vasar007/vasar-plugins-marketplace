@@ -1,7 +1,7 @@
 ---
 name: feature-pipeline
 description: Use when the user asks to implement a tracked task, run the feature pipeline, develop a feature end-to-end, start the task pipeline for TASK-123, run feature-pipeline, or implement TASK-123. Orchestrates a full implementation-first development pipeline for a task provider in an isolated git worktree.
-argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>]
+argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive]
 disable-model-invocation: true
 ---
 # Feature Pipeline
@@ -19,13 +19,13 @@ context:
 | 1 | Requirements analysis | `{ARTIFACTS_DIR}/{task-id}/requirements.md` | — |
 | 2 | Spec & test plan | `{ARTIFACTS_DIR}/{task-id}/spec.md`, `{ARTIFACTS_DIR}/{task-id}/test-plan.md` | — |
 | 2b | Plan artifact (HTML) | `{ARTIFACTS_DIR}/{task-id}/{task-id}-implementation-plan.html` | — |
-| — | **Human Approve** | — | ✓ |
+| — | **Human Approve** | — | ✓ with `--interactive` |
 | 3 | Implementation | code changes | — |
 | — | **Build Gate** | — | — |
 | 4 | Test coverage | test files | — |
 | 5 | Code simplifier | code changes | — |
 | 6+7+8 | Docs + Code Review + Security Review (parallel) | docs, `{ARTIFACTS_DIR}/{task-id}/review.md`, `{ARTIFACTS_DIR}/{task-id}/security-review.md` | — |
-| — | **Human Approve** | — | ✓ |
+| — | **Human Approve** | — | ✓ (posts, push, PR) |
 | 9 | Finalization + PR | branch ready, PR if supported | — |
 
 ## Arguments
@@ -46,6 +46,8 @@ context:
   `research-implement-review-report.md` has its own `--commit-mode` flag with
   different values (`<per-phase|single>`) and default — differs
   intentionally: this pipeline's unit is a numbered stage, not a phase.
+- `--interactive` — stop at Human Approve #1 and before the auto-fix of Human
+  Approve #2, as before. See **Autonomy**.
 
 Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
 `test-coverage`, `simplifier`, `docs`, `review`, `security-review`,
@@ -53,9 +55,23 @@ Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
 
 Valid model values: `opus`, `sonnet`, `haiku`, `fable`. A user-typed
 `--model-override=<stage>:fable` is self-authorizing — the user's explicit
-choice outranks the matrix. The master agent picking Fable on its **own**
-initiative still requires asking the user first, every time. Both per the
+choice outranks the matrix. If the master agent picks Fable on its **own**
+initiative: with `--interactive`, ask the user first, every time. Without it,
+keep the default model of the stage (see **Autonomy**). Both per the
 "Model selection" section of `dev-essentials:subagent-orchestration`.
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Pipeline Discipline
 
@@ -585,6 +601,8 @@ does not re-attempt a known-broken render — and record `planArtifact` (see
 
 ### Human Approve #1 (after Spec)
 
+Without `--interactive`, report the paths of `spec.md`, `test-plan.md`, and the HTML artifact in one status line, and proceed. If `spec.md` lists open decisions without a resolution, ask them first. With `--interactive`:
+
 Present to user:
 
 - Summary of `{ARTIFACTS_DIR}/{task-id}/spec.md`
@@ -595,7 +613,7 @@ Present to user:
   saying so
 - Ask: "Approve spec and proceed to implementation? (yes / edit feedback)"
 
-> **Anti-bypass clause — this gate stands on its own.** A general
+> **Anti-bypass clause (with `--interactive`): this gate stands on its own.** A general
 > session-level directive telling the agent to work without stopping for
 > clarifying questions, or to "make the reasonable call and continue," does
 > **NOT** authorize skipping this gate. Those directives resolve ambiguity
@@ -622,10 +640,14 @@ Present to user:
 > `AskUserQuestion` (or stop and wait) at every gate, never a paraphrase of
 > "the user said to continue."
 
+Without `--interactive`, the default approval of **Autonomy** applies. The failure in the example cannot happen again, because the push, the PR, and the task comments still wait for Human Approve #2.
+
 If user provides feedback: re-run Spec stage with feedback injected.
 If approved: proceed.
 
 ### Task Comment #1 (before Implementation)
+
+Without `--interactive`, do not post this comment now. Write it to `{ARTIFACTS_DIR}/{task-id}/task-comment-1.md`. Post it at Human Approve #2, after the yes of the user and before Task Comment #2. Then write "implementation started" in the past tense. With `--interactive`, post it now, because the approval at Human Approve #1 covers it.
 
 Before launching Step 3, post an English comment to the task through the
 configured task-provider MCP server.
@@ -717,12 +739,14 @@ Wait for all three to complete, then update checkpoint.
 
 ### Human Approve #2 (after Review)
 
+This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run the auto-fix rounds below before you show this gate.
+
 Present to user:
 
 - `{ARTIFACTS_DIR}/{task-id}/review.md` contents
 - `{ARTIFACTS_DIR}/{task-id}/security-review.md` contents
 - Git diff summary (files changed, lines added/removed)
-- Ask: "Approve for finalization? (yes / request changes)"
+- Ask: "Approve finalization (task comments, push, PR)? (yes / request changes)"
 
 > **Anti-bypass clause — same anti-bypass clause as Human Approve #1 above
 > applies here.** See that section for the full phrase lists (what counts as
@@ -732,7 +756,7 @@ Present to user:
 >
 > **Verify before fixing (Safeguard 2):** when diagnosing review findings — and before re-invoking Implementation to address them — verify each finding against a primary source (official docs, the schema, a known-working example), especially schema/manifest errors and library API claims. Frame uncertain diagnoses as theories ("this might be…"), not confirmed fixes, until verified.
 
-If review has blocking issues AND user approves auto-fix:
+If review has blocking issues AND (the run has no `--interactive`, OR the user approves auto-fix):
 
   1. Re-invoke Implementation subagent with review feedback (up to 1 retry)
   2. Remove these stages from `completed` in `pipeline-state.json`:
@@ -1081,7 +1105,8 @@ worktree without conflicts.
   second task comment was posted, clear only the pre-finalization comment
   checkpoint so it is regenerated from fresh results
 - If Step 3 or any later stage will run and `taskComments.analysisPostedAt` is
-  missing, post Task Comment #1 before continuing
+  missing, post Task Comment #1 before continuing (without `--interactive`,
+  Human Approve #2 posts it instead)
 - If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, post
   Task Comment #2 before continuing
 - `models` is written on every stage launch, per the precedence order in

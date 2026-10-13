@@ -1,6 +1,6 @@
 ---
 name: audit-personal-conventions
-description: "Audit accumulated personal Claude Code convention — memory files, the global CLAUDE.md, each repo's own CLAUDE.md (including @-imports and scope overrides), and personal commands/agents/skills — and decide what deserves to become a reusable marketplace entity. Classifies each rule as project-local, personal taste, promotable (universal or scoped), a fix for an already-shipped skill, or stale, using cross-source corroboration and an on-disk-manifest already-promoted check. Presents the full triage and waits for explicit approval before authoring, review-looping, bumping the affected plugin version once, and (on request) updating CLAUDE.md files and memory indexes to point at the promotion. Triggers on requests like 'audit my memory', 'what in my memory should become a skill', 'promote my memory to skills', 'review my CLAUDE.md rules for promotion', 'which of my rules belong in the marketplace', 'clean up my project memory', or any session evaluating personal memory, CLAUDE.md, or personal commands for extraction into a shared plugin."
+description: "Audit accumulated personal Claude Code convention — memory files, the global CLAUDE.md, each repo's own CLAUDE.md (including @-imports and scope overrides), and personal commands/agents/skills — and decide what deserves to become a reusable marketplace entity. Classifies each rule as project-local, personal taste, promotable (universal or scoped), a fix for an already-shipped skill, or stale, using cross-source corroboration and an on-disk-manifest already-promoted check. Presents the full triage, then by default approves the recommended items itself (with --interactive, waits for explicit approval) before authoring, review-looping, bumping the affected plugin version once, and (on request) updating CLAUDE.md files and memory indexes to point at the promotion. Triggers on requests like 'audit my memory', 'what in my memory should become a skill', 'promote my memory to skills', 'review my CLAUDE.md rules for promotion', 'which of my rules belong in the marketplace', 'clean up my project memory', or any session evaluating personal memory, CLAUDE.md, or personal commands for extraction into a shared plugin."
 ---
 
 # Audit Personal Conventions
@@ -68,10 +68,22 @@ config root or repo root.
 | `--resume=<path>` | none | Resume a previously deferred Phase 9c cross-repo cleanup from its TODO file, without re-running the audit — enables the 9c-only re-entry mode (Phase 9c.1). Marketplace-root resolution on resume follows Phase 0's resume order. |
 | `--dry-run` | off (bare) | Run Phases 0-4 only, stop after presenting the triage. No approval gate, no authoring, no cleanup. |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
+| `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
 
-**There is deliberately no flag that skips the Phase 5 approval gate or the Phase 9 per-repo push
-gate.** This is intentional — the structural-impossibility principle: don't rely on a flag
-defaulting to safe, make the unsafe path not exist.
+**There is deliberately no flag that skips the Phase 9 per-repo push gate.** This is intentional. It is the structural-impossibility principle: do not rely on a flag defaulting to safe, make the unsafe path not exist. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Phases (the workflow)
 
@@ -427,6 +439,8 @@ Anything not named is treated as DEFERRED, never approved.
 
 ### Phase 5 — Approval gate (hard gate)
 
+Without `--interactive`, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. With `--interactive`, wait for the reply of the user, as below.
+
 Single global `#N` numbering across every table in Phase 4. Three verbs — `approve`, `defer`,
 `reject` — plus two shorthands (`approve all promotes`, `approve none`). **Anything not named is
 deferred, always** — there is no implicit approval.
@@ -436,11 +450,11 @@ identically on the next run. A deferred item is expected to come back on a futur
 wasn't decided this time.
 
 If approving a subset of a cluster whose other members were deferred or rejected, re-scope the
-destination entity to the approved subset and re-confirm the reduced shape before authoring — a
+destination entity to the approved subset and re-confirm the reduced shape before authoring (without `--interactive`, state the reduced shape in the report) — a
 4-rule skill minus 3 deferred rules may no longer justify being its own entity.
 
 **Approving an E item is its own risk class.** E means editing an already-shipped entity that other
-sessions actively rely on. Confirm each E item individually — never through `approve all promotes`,
+sessions actively rely on. With `--interactive`, confirm each E item individually — never through `approve all promotes`,
 which is scoped to new-entity promotions only.
 
 ### Phase 6 — Author approved entities
@@ -479,7 +493,7 @@ Invoke the review-loop skill available in the TARGET marketplace with `<marketpl
 own working directory — `target=diff` resolves the range in the loop's own CWD, which would be the
 wrong repo whenever the target marketplace differs from the one this skill was invoked from. If the
 target marketplace is this one, that is
-`dev-essentials:review-loop target=diff <pre-authoring-sha>..HEAD --rounds=<N>` — a two-dot
+`dev-essentials:review-loop target=diff <pre-authoring-sha>..HEAD --rounds=<N>` (plus `--interactive` for a run that has it) — a two-dot
 commit range against the SHA captured at the start of Phase 6, not a three-dot branch-base diff
 (`<base>...HEAD`), which would also pull in commits the branch already carried from before Phase 6
 and let the loop raise findings and apply edits against content that was never part of this run's
@@ -552,6 +566,8 @@ Governed by `--cleanup-mode`:
   in the same run that used `stub`/`annotate` still get their own index bullets normally.
 - A **partially-promoted** file → never stubbed. Annotate only the promoted section; the rest of the
   file stays as-is.
+
+Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. `annotate` and `none` need no question.
 
 Extend — never invent from scratch — the project's own `MEMORY.md` index under a
 `## Cross-project rules — migrated to marketplace skills` heading. One bullet per promoted item:
@@ -856,7 +872,7 @@ elsewhere in the session.**
 
 ## Guardrails
 
-- No flag skips Phase 5 or a Phase 9 push gate (the structural-impossibility principle — see Arguments).
+- No flag skips a Phase 9 push gate (the structural-impossibility principle — see Arguments). Phase 5 follows "Autonomy".
 - No hardcoded marketplace or host name anywhere in this skill's own text, prompts, or examples,
   except to name the source marketplace of an external, optional tool referenced in prose — that
   identifies a dependency's provenance, not the promotion target, and not this skill's own shipping

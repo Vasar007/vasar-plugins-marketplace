@@ -9,12 +9,12 @@ validator instead of a compiler.
 ## Invocation
 
 ```text
-/review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit
+/review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --interactive
 ```
 
 Parameters resolved: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`,
 `--fixer=general-purpose` (default), `--skip=medium,low,nit` (explicit — the default is `none`),
-`--auto-proceed=off` (default).
+`--interactive` (set, so that this example shows the triage stop).
 
 ---
 

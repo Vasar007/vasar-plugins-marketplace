@@ -20,7 +20,7 @@ Every dispatch carries a `model`, and picking it is part of the orchestration de
 
 **The user's explicit choice outranks this matrix.** When the user names a model for a task, use it — regardless of what the matrix, or any skill's own defaults, would otherwise pick. When the user has changed the session's own model, leave it changed; never "correct" it back toward a default.
 
-**Fable is never dispatched silently.** When the matrix makes Fable eligible on the agent's own initiative — as opposed to the user naming it — ask the user before dispatching it, every time.
+**Fable is never dispatched silently.** The matrix can make Fable eligible on the agent's own initiative, as opposed to the user naming it. In that case, ask the user before dispatching it, every time. Exception: a workflow that runs without stops at its decision gates (its default autonomy) does not ask. It uses Opus, and names the Fable-eligible step in its final report. A Fable default that the workflow itself documents is not the agent's own initiative.
 
 ### How a model gets applied
 
@@ -236,7 +236,7 @@ Do not accept "the failure was there before" as a reason to ignore a red build o
 
 ## Run format agreement
 
-A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and the gate where the user agrees. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
+A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate with `--interactive`, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
 
 Check scope: the skill names its concrete checks for tiers 1 and 2 of "Trust but verify".
 
@@ -250,7 +250,7 @@ Reporting:
 Agreement:
 
 - State the run format once, at the start of the run. Do not add a new stop only for this.
-- The user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment, or by not objecting when the run has no gate. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
+- With `--interactive`, the user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Else the user agrees by not objecting. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
 - The user can change the format at any time. Follow the change.
 - When the format is agreed, the check scope replaces two things for this run only. The first is the "Trust but verify" section above. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
 

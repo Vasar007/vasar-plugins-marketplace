@@ -9,20 +9,37 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-### Added
+No changes yet.
+
+## dev-essentials 2.4.0 and gop-pipeline 1.1.0 in release [2.4.0] - 2026-10-13
+
+### Added in dev-essentials
 
 - `save-context`: Added Step 5, a light cleanup of the context and handoff files of the session. It runs by default, and `--no-cleanup` turns it off. It deletes finished context files that git does not track. It trims files that open work still needs, updates facts that are no longer true, and fixes links to deleted files. It asks before it deletes a file from an older session or a branch. If another command runs the steps of `save-context`, the cleanup does not run.
 
-### Changed
+### Changed in dev-essentials
 
+- Workflows with decision gates now run without a stop at those gates by default. The default approval covers the whole task up to the merge. The new flag `--interactive` brings back every gate. Each workflow carries the same "Autonomy" section. Deletion of data, posts to outside systems, push, and pull request creation still wait for the user. The merge always stays with the user. If the work cannot continue without an answer, or a critical decision has no ground in the plan, the workflow still asks.
+- The change covers 13 workflows. Commands: `research-implement-review-report`, `implement-task`, `implement-batch`, `implement`, `opsx-implement`, and `save-context`. Skills: `review-loop`, `feature-pipeline`, `process-pr-comments`, `audit-personal-conventions`, `bug-hunt`, `trim-artifacts`, and `git-worktree-management`.
+- `review-loop`: `--auto-proceed` has no effect now. Without `--interactive`, the run does not wait at the Phase 4 triage.
+- `process-pr-comments`: By default, implements larger fixes whose approach the comment or the code settles. The new parameter `interactive` brings back draft-and-wait. `autonomous` still covers question and discussion replies, design-level fixes, and push.
+- `feature-pipeline`: Human Approve #1 stops only with `--interactive`. Task Comment #1 waits for Human Approve #2, which stops in every mode.
+- `audit-personal-conventions`: Phase 5 approves the recommended C, D, and E items by default and defers the rest. Phase 9a asks once before it writes stubs.
+- `engineering-discipline` Rule 2: If an auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user.
+- `subagent-orchestration`: A workflow that runs with its default autonomy uses Opus instead of a question about Fable. The run-format agreement can come from no objection.
 - `subagent-orchestration`: Rule 5 now allows `SendMessage` to your own subagent by its agent ID. Use it to resume the subagent after a stop, or to correct it on the same task. The rule still forbids `name`, `team_name`, shared task lists, and messages between subagents. Rule 3 and the anti-patterns now say the same.
 - `subagent-orchestration`: Replaced the section "Trust but verify" with three tiers. The orchestrator checks cheap facts, an agent checks the content, and the orchestrator spot-checks only before a high-risk action. The "Check scope" part of "Run format agreement" now points to these tiers.
 - `process-pr-comments` and `audit-personal-conventions`: Replaced the claim that a subagent cannot get a follow-up message. The Claude Code docs show that `SendMessage` can resume a subagent.
 - `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7. `research-implement-review-report` and `implement-task` use the new step number.
 
-### Removed
+### Removed in dev-essentials
 
 - `save-context`: Removed the tip to use `--context <path>` with `/implement` or `/opsx-implement`.
+
+### Changed in gop-pipeline
+
+- `gop-work`: Without `--interactive`, Explore and Plan agents write the plan, and the run approves it. The run accepts validation proposals with a confidence of 90% or more. The push now waits for a go-ahead of the user. With `--interactive`, Plan Mode and the old routing come back, and the plan approval covers the push.
+- `gop-commit`: New input `push` (`yes` or `no`).
 
 ## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-13
 
@@ -193,7 +210,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.0.0...v2.1.0

@@ -1,6 +1,6 @@
 ---
 description: Save session context, findings, and progress to a research file for future sessions, then clean up finished context files
-argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--no-continuation-prompt]"
+argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--no-continuation-prompt] [--interactive]"
 ---
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
@@ -24,6 +24,20 @@ Save the current session's context, research findings, decisions, and progress t
 | `--compact`                | When updating an existing file, aggressively compact old content    |
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
 | `--no-continuation-prompt` | Skip Step 7's next-session continuation prompt (emitted by default) |
+| `--interactive` | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Steps
 
@@ -37,7 +51,7 @@ Save the current session's context, research findings, decisions, and progress t
   - Otherwise, treat as a generic session
 - If a name (not a path) is given as argument, write to `Notes/Results/<name>-research.md`
 - If a path is given, write to that path
-- If nothing is given and nothing can be inferred, use **AskUserQuestion** to ask:
+- If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in the confirmation step. With `--interactive`, use **AskUserQuestion** to ask:
   > "What should I call this research file? (e.g., `investigate-bug-123`, `refactor-auth`)"
 
 ### 2. Gather context

@@ -1,6 +1,6 @@
 ---
-description: Research → plan (with a user sign-off gate) → implement → review-loop → report cycle for one task, worked end-to-end in a single session — no OpenSpec change required (unlike opsx-implement/feature-pipeline) and doesn't stop short of review (unlike implement)
-argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research]
+description: Research → plan (auto-approved by default, a user sign-off gate with --interactive) → implement → review-loop → report cycle for one task, worked end-to-end in a single session — no OpenSpec change required (unlike opsx-implement/feature-pipeline) and doesn't stop short of review (unlike implement)
+argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive]
 ---
 <!-- markdownlint-disable MD013 -->
 
@@ -18,7 +18,7 @@ a neighbour:**
   already exists and is trusted.
 - `dev-essentials:research-implement-review-report` (this command) — the
   lighter-weight, non-OpenSpec cycle for **one** task: research/plan with a
-  sign-off gate, implement, review-loop, report. Run it directly when there
+  plan gate (a stop only with `--interactive`), implement, review-loop, report. Run it directly when there
   is no extra context to sweep first and no mandatory cleanup pass wanted —
   or let another command wrap it (see `implement-task` below), supplying an
   already-created worktree/branch, in which case Phase 0 below reduces to a
@@ -58,12 +58,26 @@ a neighbour:**
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--base=<branch>` | ask | Target/base branch to branch (or create a worktree) from. If neither this flag nor a base branch named in prose (e.g. "... from release/2.0") is present in $ARGUMENTS, use the **AskUserQuestion** tool to ask which branch to base this off — never assume `main`/`master`/`develop`. See Phase 0. |
+| `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`/`master`/`develop`. See Phase 0. |
 | `--branch-prefix=<prefix>` | derive from context, else ask | Branch-name prefix for Phase 0's task-branch naming (`<branch-prefix>/tasks/<ID>-<short-description>`, etc.). Default: derive it from the invoking session's own established branch-naming convention if stated anywhere accessible (a project's own CLAUDE.md, or the user's global CLAUDE.md); if none is found, ask the user once per run before creating the branch. |
 | `--commit-mode=<per-phase\|single>` | `per-phase` | `per-phase`: one commit after Phase 2 (Implement) completes, then Phase 3's own per-round commits. `single`: run every phase and every review round exactly the same way, but squash the whole run into **one commit at the end** — see "Commit cadence" below. |
 | `--rounds=<N>` | `2` | Review-loop cycles. Forwarded to `dev-essentials:review-loop` as `--rounds`. |
 | `--context=<path>` | auto | Prior research/handoff file to load instead of (or in addition to) fresh research. Same resolution as `dev-essentials:implement`'s `--context`. **Repeatable** — pass it more than once to load several files (e.g. a wrapper's generated context document plus the user's own); every path given is read, none displaces another. |
 | `--skip-research` | off | Skip Phase 1 entirely (e.g., resuming a session where the plan already exists and is current). Phase 2 still loads `--context` if given. |
+| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Subagent dispatch
 
@@ -77,10 +91,9 @@ Two additions specific to this command, not covered by that skill:
   (Phase 3) use Opus; implementing and fixing (Phase 2, Phase 3's fixer) use
   Sonnet — per the model matrix in the "Model selection" section of
   `dev-essentials:subagent-orchestration`.
-- **Fable is exceptional-only and never dispatched silently on the agent's own
-  initiative.** Even on a large or critical-path review where the model
-  matrix marks Fable as eligible without the user having named it, ask first,
-  every time — no exceptions.
+- **Fable is exceptional-only**. Never dispatch it silently on the agent's own
+  initiative. With `--interactive`, ask first, every time, also where the model
+  matrix marks Fable as eligible. Without it, follow "Autonomy".
 
 ## Progress tracking for the user
 
@@ -113,8 +126,10 @@ subagent coordination.
 
 1. Resolve the **base branch** — the branch this work branches off. Use it if
    named via `--base=<branch>` or in prose in $ARGUMENTS (e.g. "... from
-   release/2.0"). Otherwise, use the **AskUserQuestion** tool to ask which
-   branch to base off — never default to `main`/`master`/`develop` silently.
+   release/2.0"). If neither names a base and `git ls-remote --heads origin`
+   lists exactly one branch, use that branch, and say so. Else use the
+   **AskUserQuestion** tool to ask which branch to base off. If the remote has
+   more than one branch, never default to `main`/`master`/`develop` silently.
 2. Resolve the **task branch name**. If $ARGUMENTS already names one
    explicitly (as in the worktree example under "Arguments" above), use it
    verbatim. Otherwise resolve `--branch-prefix=<prefix>` first (see the
@@ -132,10 +147,13 @@ subagent coordination.
    `<ID>` is the issue number parsed from $ARGUMENTS (e.g. `Issue 123456`
    or `#123456` → `123456`); the research pattern has no `<ID>` segment.
    `<short-description>` is a short kebab-case slug of the task description.
-   If the issue's type or label can't be determined and it isn't a research
-   task, ask the user rather than guessing which pattern applies.
+   If the type or label of the issue is unknown and it is not a research task:
+   without `--interactive`, use the `tasks` pattern, and say so in the final
+   report. With `--interactive`, ask the user rather than guessing which
+   pattern applies.
 3. If $ARGUMENTS asks for a worktree (e.g. "Create a worktree ... from ..."),
-   create it per `dev-essentials:git-worktree-management` using the base
+   create it per `dev-essentials:git-worktree-management` (for a run with
+   `--interactive`, pass the flag on) using the base
    branch from step 1 and the branch name from step 2. Otherwise, create/check
    out the branch normally per `dev-essentials:git-sync` conventions.
 4. Run every subsequent phase inside that branch/worktree.
@@ -158,16 +176,18 @@ Skipped entirely when `--skip-research` is set.
    existing test coverage, one on a permission/contract question).
 3. Dispatch an **Opus** planning subagent (can be the same dispatch as step 2
    or a follow-up) to turn the research into a concrete implementation plan:
-   ordered tasks/phases, the exact files each touches, and the decisions that
-   need the user's sign-off before implementation starts (ambiguous
-   behavior changes, public-contract changes, anything the current spec/plan
-   doesn't already cover — per `dev-essentials:engineering-discipline`
-   Rule 2, no unilateral critical decisions).
-4. Save the plan to `Notes/Plans/<slug>-plan.md` (or the repo's own
-   documented convention if `CLAUDE.md` specifies one) and **present it to
-   the user for confirmation before Phase 2 starts** — this sign-off gate is
-   the point of Phase 1. If the user flags open questions, resolve them here
-   — do not carry ambiguity into Implement.
+   ordered tasks/phases, the exact files each touches, and the open decisions.
+   An open decision is a critical decision that the task, the code, and the
+   documentation do not settle. Examples: an ambiguous behavior change, a
+   public-contract change, or anything that the current spec or plan does not
+   cover (per `dev-essentials:engineering-discipline` Rule 2).
+4. Save the plan to `Notes/Plans/<slug>-plan.md` (or the documented convention
+   of the repo in `CLAUDE.md`). Without `--interactive`, report the plan path in
+   one status line and start Phase 2. If the plan lists open decisions, first
+   ask them all in one message. When they have answers, start Phase 2. With
+   `--interactive`, **present the plan to the user for confirmation before
+   Phase 2 starts**. If the user flags open questions, resolve them here. Do
+   not carry ambiguity into Implement.
 
 ### Phase 2 — Implement
 
@@ -208,6 +228,7 @@ this command wants. There is nothing to override; pass only what is this
 command's own:
 
 - `--rounds=<N>` from this command's `--rounds` (default `2`).
+- `--interactive`, for a run that has it.
 - Findings the user and the orchestrating session agree to genuinely defer
   are still recorded as deferred in Phase 4's report.
 - See "Commit cadence" below for how the loop's own per-round commits
@@ -216,7 +237,7 @@ command's own:
 ### Phase 4 — Report
 
 Write the handoff document the same way `dev-essentials:save-context` does —
-in fact, follow that command's logic directly (`--plan=<path from Phase 1>`),
+in fact, follow that command's logic directly (`--plan=<path from Phase 1>`, plus `--interactive` for a run that has it),
 producing `Notes/Results/<slug>-report.md` (or the repo's own documented
 convention, if one exists; or `-handoff-N.md` if this is a continuation of a
 numbered session sequence the user is already keeping):
@@ -225,7 +246,7 @@ numbered session sequence the user is already keeping):
 - **What Was Done** — per phase: research findings, the plan, each
   implemented task, each review round's outcome.
 - **Key Decisions** — table, with rationale, including every decision Phase 1
-  or Phase 3 surfaced for user sign-off.
+  or Phase 3 surfaced for user sign-off, and every gate that this run approved without a stop.
 - **Issues Found** — anything discovered but out of scope for this run,
   candidate follow-up issues, and any process problems worth flagging to
   the user.
@@ -284,5 +305,7 @@ worktree's absolute path and branch name whenever this run used one.
   `dev-essentials:engineering-discipline`).
 - **No unilateral critical decisions** — public-contract changes, new DI
   dependencies, test-assertion relaxations — that the plan from Phase 1
-  didn't already authorize. Surface them for the user instead.
+  didn't already authorize. Surface them for the user instead. If an
+  auto-approved plan grounds a decision in the task, the code, or the
+  documentation, the plan authorizes it. Else the decision stays a question.
 - **Never push without the user's explicit go-ahead each time.**

@@ -1,6 +1,6 @@
 ---
 description: Work one task end-to-end via research-implement-review-report — after first sweeping the additional context the user brings (PR/issue links to fetch, or plain free-text notes), and after the review loop adding a mandatory /simplify pass landed as its own separate commit on top. Never pushes.
-argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push]
+argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--interactive]
 ---
 <!-- markdownlint-disable MD013 -->
 
@@ -25,7 +25,7 @@ Phase 1 below), and adds the two things RIRR deliberately does not own:
    report**, landed as its **own separate commit on top** of whatever the
    wrapped command produced.
 
-Everything else — branch/worktree setup, research, the sign-off gate, the
+Everything else — branch/worktree setup, research, the plan gate, the
 implementation, the review loop, the commit mode, the handoff report — is the
 wrapped command's job and is **not** reimplemented here.
 
@@ -60,7 +60,7 @@ wanted.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--base=<branch>` | ask | Target/base branch this work branches from. If neither this flag nor a base branch named in prose (e.g. "target branch is release/2.0") appears in $ARGUMENTS, use the **AskUserQuestion** tool to ask — never assume `main`/`master`/`develop`. |
+| `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`/`master`/`develop`. See Phase 0. |
 | `--worktree=<branch-ref>` | ask or derive | Branch ref for the worktree this run happens in. Use the value given here, or one named in prose in $ARGUMENTS, verbatim. Otherwise derive it using the branch-name table in `dev-essentials:research-implement-review-report`'s Phase 0 (that table is the single source of truth — it is not restated here), taking the `<prefix>` from the branch-naming convention documented in the repo's or the user's `CLAUDE.md`, and **ask once** if no convention is documented. |
 | `--refs=<url\|id\|text>` | none | Additional context for this run. Repeatable, and additive with anything named in prose. Each value is either **a URL or ID** — a PR, issue, document, wiki page, or any other fetchable reference, fetched via whichever MCP/web-fetch tool matches its host before research starts — or **plain free text**, an instruction or note with nothing to fetch (e.g. "avoid the retry-wrapper pattern used in the old client"), used verbatim. Which one a value is comes from how it reads, not from a tag the user has to supply. Read-only either way — see Phase 2. |
 | `--commit-mode=<per-phase\|single>` | `single` | Forwarded verbatim to `dev-essentials:research-implement-review-report`'s own `--commit-mode`. This wrapper defaults to `single` (the wrapped command's own default is `per-phase`) because the intended end state is one clean task commit plus one simplify commit. Either mode works; see Phase 4 for how the simplify commit sits on top of each. |
@@ -68,12 +68,26 @@ wanted.
 | `--notes-dir=<path>` | `Notes/` | Root (inside the worktree) for this run's artifacts, with subfolders as needed: `Notes/Research/` for Phase 2's context document, `Notes/Plans/` for the plan, `Notes/Results/` for the report. The repo's `CLAUDE.md` convention wins over this default. |
 | `--no-simplify` | off | Skip Phase 4. **Off by default on purpose — the simplify pass is a standard part of this command, not an add-on.** Pass this only for a run where the user has said they don't want it. |
 | `--push` | off | Push after the final report. **Off by default and off unless the user asks for it in this invocation** — the default contract is commit locally, report, and wait for the user's review. |
+| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
 
 Any option not listed above that the wrapped command accepts (`--context`,
 `--skip-research`, `--branch-prefix`) is passed straight through, with one
 exception: Phase 2 owns `--context` when it produces a context document
 (see Phase 3), so a user-supplied `--context` is **added to**, never replaced
 by, Phase 2's document.
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Subagent dispatch
 
@@ -118,9 +132,9 @@ Additions specific to this command:
   research/implement/review, and this command does not override them. All per
   the model matrix in the "Model selection" section of
   `dev-essentials:subagent-orchestration`.
-- **Fable is exceptional-only and never dispatched silently on the agent's own
-  initiative** — when the matrix makes it eligible without the user having
-  named it, ask first, every time.
+- **Fable is exceptional-only**. Never dispatch it silently on the agent's own
+  initiative. With `--interactive`, ask first, every time, also where the model
+  matrix marks Fable as eligible. Without it, follow "Autonomy".
 - **Every concrete, bounded dispatch is briefed to do the work itself, not to
   re-delegate** — read this one fetchable reference, run this one simplify
   pass — per
@@ -162,7 +176,8 @@ channel between subagents (that stays banned per
 
 ### Phase 1 — Worktree setup
 
-Create the worktree per `dev-essentials:git-worktree-management`,
+Create the worktree per `dev-essentials:git-worktree-management`
+(for a run with `--interactive`, pass the flag on),
 branching from the Phase 0 base branch, and run its post-create bootstrap.
 Record its **absolute path** — every write-capable dispatch from here on
 carries it explicitly, per `dev-essentials:subagent-orchestration`
@@ -259,7 +274,7 @@ in one line and move on; no context document is written.
 ### Phase 3 — Run the wrapped workflow, through its review loop
 
 Invoke `dev-essentials:research-implement-review-report` and let it own its
-Phase 0-3 exactly as written — research, the plan and its user sign-off gate,
+Phase 0-3 exactly as written — research, the plan and its plan gate,
 implementation, build/test, the review loop, and the commit cadence for the
 resolved `--commit-mode`. **Do not reimplement, re-order, or second-guess any
 of it**, including its review-loop configuration, which is that command's own
@@ -275,6 +290,7 @@ Pass it, explicitly:
   verification step only** — the worktree and branch already exist; confirm and
   proceed, do not create or re-derive.
 - `--commit-mode=<resolved>` and `--rounds=<N>`.
+- `--interactive`, for a run that has it.
 - The resolved `<--notes-dir>` as this run's **artifact root**, stated
   explicitly: the wrapped command's own `Notes/Plans/` and `Notes/Results/`
   defaults become `<--notes-dir>/Plans/` and `<--notes-dir>/Results/`. The
@@ -392,6 +408,7 @@ everywhere below. Require these additions to what it reports:
   exactly one commit — or zero when the pass found nothing.
 - The worktree's absolute path and the branch name, so the user can review it
   directly.
+- Each gate that this run or the wrapped command approved without a stop.
 - `save-context`'s next-session continuation prompt (its Step 7), carrying
   that same worktree path and branch name so a fresh session restores into the
   right copy.
@@ -404,7 +421,7 @@ report has been delivered.
 
 - **This is a wrapper. Do not reimplement what it wraps.**
   `dev-essentials:research-implement-review-report` owns research, the plan
-  sign-off gate, implementation, the review loop and its configuration, the
+  gate, implementation, the review loop and its configuration, the
   commit cadence, and the report. `/simplify` owns the cleanup pass.
   `dev-essentials:git-worktree-management` owns worktree mechanics. This
   command owns only the sequencing, the context sweep, and the simplify

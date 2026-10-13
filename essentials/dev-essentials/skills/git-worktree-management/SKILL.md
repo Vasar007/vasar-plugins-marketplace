@@ -9,6 +9,8 @@ description: Creates and manages git worktrees at `<repo-root>/.claude/worktrees
 
 Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` so multiple branches can be checked out simultaneously in isolation. This path is typically gitignored (`**/.claude/worktrees/`) — verify with `git check-ignore -v .claude/worktrees/placeholder` before relying on it — so worktrees do not pollute `git status` and never require cleanup outside the repo.
 
+To get the confirmation prompts of Workflow A, write `--interactive` in the request.
+
 ## When to Use
 
 - User requests to create a worktree for a task or branch
@@ -16,6 +18,19 @@ Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` 
 - User requests to remove one or more worktrees
 
 ---
+
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
 
 ## Workflow A: Creating a New Worktree
 
@@ -25,9 +40,9 @@ Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` 
 
 You need:
 - The full branch ref (e.g., `feature/tasks/1370383-foo`). May include any prefix segment — do not flatten or drop segments.
-- A short description (for your own confirmation prompt only — the path is derived solely from the branch ref, not from this description).
+- A short description. You need it only with `--interactive`, for your confirmation prompt. The path comes only from the branch ref.
 
-If the user has not provided both, STOP and ask:
+If the user has not provided the branch ref, STOP and ask. With `--interactive`, also ask for the description:
 
 > To create a worktree I need:
 > 1. The full branch ref (e.g., `feature/tasks/1370383-add-feature`)
@@ -55,14 +70,11 @@ Mirror the branch ref verbatim — slashes intact, no flattening.
 
 Example: branch `feature/tasks/1370383-terminate-reservation` → path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`
 
-**Pipeline-mode (pre-confirmed) exception:** when Workflow A is invoked by an
-orchestrator skill (e.g. `dev-essentials:feature-pipeline`) that has already
-announced the resolved path and branch to the user **and** explicitly states
-that the user authorised creation by starting the pipeline, treat Step 3 as
-pre-satisfied. Skip the confirmation prompt and proceed directly to Step 4.
-The orchestrator is the confirmation gate in this case.
+**Without `--interactive` (default):** announce the settings below in one status line, then continue to Step 4.
 
-**Interactive-mode (default) — STOP and present a confirmation prompt before creating:**
+**Pipeline mode (both modes)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the confirmation gate in this case.
+
+**With `--interactive`, STOP and present a confirmation prompt before creating:**
 
 > I will create a worktree with the following settings:
 >
@@ -80,7 +92,7 @@ Wait for explicit confirmation. Do not proceed without it.
 git check-ignore -v .claude/worktrees/placeholder
 ```
 
-If the path is NOT gitignored, tell the user:
+If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git rev-parse --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 

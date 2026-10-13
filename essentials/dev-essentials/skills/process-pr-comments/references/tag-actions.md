@@ -9,10 +9,10 @@ Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[
 Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Optional]`.
 
 - **Small** — ≤ 20 LoC changed, single file, no public API change (signatures, DTOs, exposed types), no new dependencies, no test refactor. Safe to implement.
-- **Medium / Large** — anything larger, or touching public APIs, DI wiring, EF migrations, string resources, swagger specs. Always draft and wait — or, if the invocation names the thread with `deep-fix=<threadId>`, route it through `/research-implement-review-report` instead (SKILL.md § "Dispatch model" Stage 3 and Phase 3's `deep-fix` override).
+- **Medium / Large** — anything larger, or touching public APIs, DI wiring, EF migrations, string resources, swagger specs. If the comment or the existing code settles the approach, implement (SKILL.md § Autonomy, Bucket A1). Else draft and wait. With `interactive`, always draft and wait — or, if the invocation names the thread with `deep-fix=<threadId>`, route it through `/research-implement-review-report` instead (SKILL.md § "Dispatch model" Stage 3 and Phase 3's `deep-fix` override).
 - **Architectural** — reserved for changes at **rewrite-from-scratch magnitude**: the reviewer is asking for a fundamentally different mechanism with no precedent in this codebase, and there are several materially different ways to build it with nothing in the existing code to choose between them. Always draft; consider suggesting a design review — or, with `deep-fix` naming the thread, route it through `/research-implement-review-report` (same pointer as the Medium/Large row above). Merely adding, moving, or renaming a type across projects is **not** this level on its own — that is a Medium/Large fix, judged on the row above.
 
-`strict` flag treats every category as "draft and wait". `deep-fix` is a per-thread override the human supplies at invocation, not a category `strict` or the size thresholds pick automatically — see SKILL.md Phase 3's `deep-fix` override for the full eligibility rule.
+`strict` flag treats every category as "draft and wait". `interactive` brings back draft-and-wait for Medium/Large. `deep-fix` is a per-thread override the human supplies at invocation, not a category `strict` or the size thresholds pick automatically — see SKILL.md Phase 3's `deep-fix` override for the full eligibility rule.
 
 ## Tags
 
@@ -21,7 +21,7 @@ Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Opt
 The reviewer requires a change. The PR will not be approved without it.
 
 - Small: implement edit → verify build/tests → commit (eager, no approval needed — Phase 4) → reply immediately, referencing the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` Push is a separate, later, per-cycle step gated by explicit approval (see Phase 4) — unless `auto-push`/`autonomous` is set. Pass `no-commit` to stage only instead.
-- Medium / Large: prepare the diff in chat, explain the approach, wait for the human's explicit go-ahead — or, if `deep-fix=<threadId>` names this thread, route it through `/research-implement-review-report` instead (SKILL.md's `deep-fix` override). Do not edit files.
+- Medium / Large: if the comment or the existing code settles the approach, implement (SKILL.md § Autonomy, Bucket A1). Else prepare the diff in chat, explain the approach, and wait for the human's explicit go-ahead. With `interactive`, always draft and wait — or, if `deep-fix=<threadId>` names this thread, route it through `/research-implement-review-report` instead (SKILL.md's `deep-fix` override). In the draft path, do not edit files.
 - After implementation, the thread stays open until its commit's push actually lands. Once it does, the skill resolves the thread itself via `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`) (Phase 4) — no manual GitHub UI step needed for a fix this skill made.
 
 Example (small):
@@ -53,7 +53,7 @@ Priority ordering:
 A concrete improvement. PR approval is not blocked.
 
 - Trivial + small: implement like `[ToFix]`. Reply `**[AI]** Applied suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
-- Non-trivial: draft the trade-off in chat and post a `**[AI][Draft]**` reply summarizing pros/cons. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
+- Non-trivial: pick a direction, implement it, and state the direction and a one-line reason in the reply (SKILL.md § Autonomy, Bucket A1). With `interactive`, draft the trade-off in chat and post a `**[AI][Draft]**` reply summarizing pros/cons. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
 
 ### `[Optional]`
 
@@ -116,7 +116,7 @@ The reviewer has flagged a pattern seen multiple times; the `[Repetition]` tag s
 
 1. Resolve the underlying tag (usually `[ToFix]` or `[Suggestion]`).
 2. Find all occurrences of the pattern in the PR's diff (NOT outside it — respect scope).
-3. Present the pattern and the occurrence list in chat: "Found N occurrences. Apply the pattern fix across all?"
+3. Without `interactive`, apply the pattern fix across all occurrences. With `interactive`, present the pattern and the occurrence list in chat, and ask: "Found N occurrences. Apply the pattern fix across all?"
 4. On user approval: implement across all occurrences, commit (eager, Phase 4), reply `**[AI]** Fixed pattern across N occurrences: <summary>. Committed as <short-sha>; will be included in the next push.`
 5. Without approval: fix only the flagged instance and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
 

@@ -46,11 +46,26 @@ The script needs Python 3 and only its standard library. The example commands us
 
 If the user did not say which, pick by size. More than about 10 files or 100 KB means a full pass.
 
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+
+To turn on `--interactive`, the user writes `--interactive` in the request.
+
 ## The algorithm (full pass)
 
 ### 1. Settle scope and the protect-set
 
-Ask the user for the protect-set, or infer it. Before you plan, get the user's approval. The protect-set has four parts:
+Ask the user for the protect-set, or infer it. Without `--interactive`, infer it, write it into the plan, and report it in one status line. Then plan. With `--interactive`, get the approval of the user before you plan. The protect-set has four parts:
 
 1. Declared decisions are text that the user declared as their decision. Keep it byte-identical. You can cut agent-written framing around it. If the user declared a requirement word for word, it is byte-identical too.
 2. Identifiers are ids that other files and people cite. Detect id families by pattern, then show the list to the user. Never renumber or reuse an id.
@@ -125,6 +140,7 @@ Before any deletion, show the user these lists:
 Under the lists, add one line that reminds the user of the path of the backup.
 
 Deletions and tombstones are destructive. Wait for explicit approval of each item. If the user rejects an item, the planner removes it from the plan and reruns the dry run.
+This gate stays without `--interactive` too, because deletions and tombstones destroy data.
 For a large workspace, first run one pilot batch, a small batch that tests the targets. Show its size table.
 
 ### 6. Apply the plan exactly (executor)

@@ -98,7 +98,7 @@ Blocker/Critical/High is additionally checked on its label, so an unflagged one 
 
 Print the `Round <N> findings` block from `SKILL.md` Phase 4 after collecting all reviewer output,
 before any fix is applied — that template is canonical, including its per-severity `(<Y> blocking)`
-sub-counts. Wait for user acknowledgment unless `--auto-proceed` is set.
+sub-counts. Wait for user acknowledgment only with `--interactive`.
 
 Rows whose severity is in `--skip` show "(deferred — --skip `<token>`)". Rows whose severity is
 not in `--skip` show "(will fix)". When `--skip none`, every row shows "(will fix)" and no deferred
