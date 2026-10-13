@@ -1,11 +1,6 @@
 # Full Audit Walkthrough — End-to-End Worked Example
 
-A sanitized, fictional end-to-end run covering scan, triage, partial approval, authoring, review,
-one version bump, and all four Phase 9 cleanup sub-phases (one default-on, one skipped, one with a
-mixed outcome across two repos resumed in a later invocation, one report-only). Rule content, repo
-names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are all fictional; the target
-marketplace's name, remote host, and plugin root appear only as placeholders
-(`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
+A sanitized, fictional run from end to end. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all four Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
 
 **Invocation:**
 
@@ -31,10 +26,7 @@ Scope resolved:
 
 ## Phase 1-2 — Inventory and extraction
 
-39 files read across memory files and indexes, the global CLAUDE.md, 6 project CLAUDE.md files, and 4
-personal global commands. 41 atomic rules extracted. One landmine from `references/source-inventory.md`
-triggered during this pass: a dated append-block in one memory file (the 2026-03 entry superseded a
-2025-11 entry on the same topic — the later entry was used).
+39 files read across memory files and indexes, the global CLAUDE.md, 6 project CLAUDE.md files, and 4 personal global commands. 41 atomic rules extracted. One landmine from `references/source-inventory.md` came up in this pass: a dated append-block in one memory file. The 2026-03 entry superseded a 2025-11 entry on the same topic, so the run used the later entry.
 
 ---
 
@@ -49,6 +41,10 @@ triggered during this pass: a dated append-block in one memory file (the 2026-03
 ```markdown
 # Personal-convention audit — 2026-08-20
 
+## 0. Disposition legend
+
+(The six rows of the legend in the template, unchanged.)
+
 ## 1. Scan summary
 
 | Source | Discovered | Read | Skipped (reason) |
@@ -61,6 +57,8 @@ triggered during this pass: a dated append-block in one memory file (the 2026-03
 
 Projects: 9 resolved (2 worktree siblings collapsed), 0 skipped.
 Rules extracted: 41. Clusters after corroboration: 13.
+
+Wrappers diffed: none (no personal command of this run is a wrapper).
 
 ## 2. Proposed changes, clustered by destination
 
@@ -151,16 +149,9 @@ defer: 4,10,13
 reject: 2
 ```
 
-Note: #2 was rejected (the max-attempts default is folded into #1's own description instead of
-standing alone), #4 and #10 were deferred pending the "needs your call" question in section 7, #13
-was deferred explicitly (held back this run — a dedicated `redact-auth-tokens` skill needs its own
-authoring pass, not a rushed fold-in alongside the retry-backoff skill), and
-everything else not named (#5, #6, #9, #12) is deferred by default (in practice: permanently left
-alone, since A/B items are re-surfaced each run only if new corroboration appears).
+Note: #2 was rejected, because the max-attempts default goes into the description of #1 and does not stand alone. #4 and #10 were deferred until the "needs your call" question of section 7 gets an answer. #13 was deferred explicitly. A dedicated `redact-auth-tokens` skill needs its own authoring pass, not a rushed fold-in next to the retry-backoff skill. Every other item that the reply does not name (#5, #6, #9, #12) is deferred by default. In practice, A and B items stay alone for good, because a later run shows them again only after new corroboration appears.
 
-Because #2 was rejected out of the retry-policy cluster, the new skill's shape narrows to #1 + #3
-— re-confirmed with the user as "a 2-rule skill covering backoff-with-jitter and retry logging"
-before authoring proceeds.
+Item #2 was rejected out of the retry-policy cluster, so the shape of the new skill narrows to #1 + #3. This run has `--interactive`, so before authoring, the run showed the smaller shape and got a new yes: "a 2-rule skill covering backoff-with-jitter and retry logging".
 
 ---
 
@@ -172,10 +163,7 @@ Phase 7.
 
 Two entities authored:
 
-- **New skill** `dev-essentials:retry-backoff-policy` — `## Rule 1 — Apply exponential backoff
-  with jitter` and `## Rule 2 — Log every retry attempt`, each with Why/How-to-apply/Anti-patterns,
-  citing `source: RepoAlpha/CLAUDE.md:22` and `source: <claude-root>/projects/<project>/memory/http-clients.md:14`
-  respectively.
+- **New skill** `dev-essentials:retry-backoff-policy`, with `## Rule 1 — Apply exponential backoff with jitter` and `## Rule 2 — Log every retry attempt`. Each rule has Why, How to apply, and Anti-patterns. Rule 1 cites `source: RepoAlpha/CLAUDE.md:22`, and Rule 2 cites `source: <claude-root>/projects/<project>/memory/http-clients.md:14`.
 - **Edit** to `dev-essentials:example-markdown-fences`'s fence-style example.
 
 Commit sequence:
@@ -191,11 +179,7 @@ The "Apply review findings" commit (see Phase 7) follows once review completes.
 
 ## Phase 7 — Review loop
 
-`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2`, run against the two
-authored/edited files — a two-dot range against Phase 6's `<pre-authoring-sha>`, not a branch-base
-`main...HEAD` diff. This session's own configured defaults (Opus reviewer, Sonnet fixer) applied,
-since they were present this session. Round 1: 1 Medium finding (a missing anti-pattern example in
-Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
+`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2 --interactive`, run on the two authored or edited files. The range is a two-dot range from the `<pre-authoring-sha>` of Phase 6, not a branch-base `main...HEAD` diff. The call adds `--interactive`, because this run has it (Phase 7). The configured defaults of this session (Opus reviewer, Sonnet fixer) applied, because this session had them. Round 1: 1 Medium finding (a missing anti-pattern example in Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
 
 Commit:
 
@@ -211,8 +195,7 @@ source: <claude-root>/projects/<project>/memory/http-clients.md:14
 
 ## Phase 8 — Finalize (version bump)
 
-One bump: `dev-essentials` plugin `1.4.0` -> `1.5.0` (MINOR — pure addition: one new skill, one
-additive fix to an existing skill's example, no invocation path removed or renamed).
+One bump: `dev-essentials` plugin `1.4.0` -> `1.5.0` (MINOR, a pure addition: one new skill, one additive fix to the example of an existing skill, and no invocation path removed or renamed).
 
 Post-bump tip captured, the same way Phase 6 captured `<pre-authoring-sha>`:
 `git -C <marketplace-root> rev-parse HEAD` -> `a3f9c2e`. Recorded as
@@ -229,8 +212,7 @@ Migrated to `dev-essentials:retry-backoff-policy` on 2026-08-20 (v1.5.0). See th
 entity for current content; this file is intentionally left as a pointer only.
 ```
 
-`<claude-root>/projects/<project>/memory/markdown-fences-stopgap.md` (E-fix-shipped, #7, fully promoted —
-its content is now folded into the shipped skill's correction) -> stubbed:
+`<claude-root>/projects/<project>/memory/markdown-fences-stopgap.md` (E-fix-shipped, #7, fully promoted, because the correction of the shipped skill now holds its content) -> stubbed:
 
 ```markdown
 Migrated to `dev-essentials:example-markdown-fences` on 2026-08-20 (v1.5.0). See the marketplace
@@ -261,17 +243,13 @@ Global CLAUDE.md — 1 rule(s) could be replaced with a pointer; re-run with
 `--update-global-claude-md` to apply
 ```
 
-Candidate #1 was sourced in part from the global CLAUDE.md, so the line prints 1 — still
-report-only, since `--update-global-claude-md` wasn't passed this run.
+Candidate #1 came in part from the global CLAUDE.md, so the line prints 1. It stays report-only, because this run did not pass `--update-global-claude-md`.
 
 ---
 
 ## Phase 9c — Deferred by default (no `--cross-repo` in the main run)
 
-`--cross-repo` was not passed for the main audit run above, so 9c stays report-only for now — but
-since #1/#3's cluster is sourced in part from `RepoAlpha/CLAUDE.md` and #3 is additionally
-corroborated by `RepoBeta/CLAUDE.md`, both tracked project CLAUDE.md files, the 9c.7 deferred-TODO
-artifact is still written so this can be resumed later, per the 9c-only re-entry mode. Following Phase 10's propose-then-confirm pattern:
+`--cross-repo` was not passed for the main audit run above, so 9c stays report-only for now. But the cluster of #1 and #3 comes in part from `RepoAlpha/CLAUDE.md`, and `RepoBeta/CLAUDE.md` also corroborates #3. Both are tracked project CLAUDE.md files. So the run still writes the 9c.7 deferred-TODO artifact, and a later run can resume it in the 9c-only re-entry mode. The run follows the propose-then-ask pattern of Phase 10:
 
 ```text
 Write the Phase 9c deferred-TODO artifact to `./.claude-audit-todo-20260820.md`? (yes/no)
@@ -303,21 +281,13 @@ blocked by "`--cross-repo` was off this run". The `RepoAlpha` entry, per the 9c.
   attempts) -> `dev-essentials:retry-backoff-policy`"
 ```
 
-`Marketplace root`, `Marketplace remote`, and `Promoted commit` are the immutable reference this run
-resolved for its own Phase 8 bump. `Promoted commit` is always read from here on resume. `Marketplace
-root` is the default hint Phase 0 resolves from on a later `--resume` invocation — used as-is unless
-that invocation supplies an explicit, remote-verified `--marketplace=` override (see SKILL.md
-Phase 0) — and both fields persist regardless of what `<target-marketplace-name>`'s `plugin.json`
-version has climbed to by then.
+`Marketplace root`, `Marketplace remote`, and `Promoted commit` are the immutable reference that this run resolved for its own Phase 8 bump. A resume always reads `Promoted commit` from here. `Marketplace root` is the default hint from which Phase 0 resolves on a later `--resume` invocation. Phase 0 uses it as it is, unless that invocation gives an explicit `--marketplace=` override with a matching remote (see SKILL.md Phase 0). Both fields stay, whatever version the `plugin.json` of `<target-marketplace-name>` reaches by then.
 
 ---
 
 ## Phase 9d — Personal entities (report-only, no promoted personal entities this run)
 
-Neither of 9d's two eligibility routes fired this run: no personal command/agent/skill file was
-superseded by anything promoted in this run, and none was classified F-stale-because-already-shipped
-by Phase 3 either. So Phase 9d's report-only default has nothing to list this time — the section
-still prints "Personal entities — 0 file(s) superseded this run" per the skill's contract.
+Neither of the two eligibility routes of 9d fired in this run. No promotion of this run superseded a personal command, agent, or skill file. Phase 3 also classified no file F-stale because of an already-shipped entity. So the report-only default of Phase 9d has nothing to list this time.
 
 ---
 
@@ -400,28 +370,9 @@ session, days later:
 audit-personal-conventions --resume=./.claude-audit-todo-20260820.md --cross-repo=RepoAlpha,RepoBeta
 ```
 
-This run promotes nothing new, which by itself would fire the ignore-if-nothing-promoted rule and
-silently no-op `--cross-repo`. It doesn't here: `--resume=<path>` activates the 9c-only re-entry
-mode, so Phase 9c operates on the promotion set recorded in the TODO artifact from the main run
-above. It re-enters at 9c.2, then re-runs 9c.3's sequencing confirmation once for the resumed set,
-before proceeding to 9c.4. Phase 5's approval gate is not re-run; the resumed approvals (#1, #3)
-were already recorded in the TODO artifact.
+This run promotes nothing new. Without the resume, that fires the ignore-if-nothing-promoted rule and makes `--cross-repo` a silent no-op. Here the rule does not fire: `--resume=<path>` turns on the 9c-only re-entry mode. So Phase 9c works on the promotion set that the TODO artifact of the main run above recorded. It re-enters at 9c.2, then runs the 9c.3 sequencing question again, once for the resumed set, before it goes on to 9c.4. The Phase 5 approval gate does not run again. The TODO artifact already holds the resumed approvals (#1, #3).
 
-**9c.2 preconditions re-checked** — Phase 0 selects the persisted root (step 3:
-this invocation supplied no `--marketplace=` override, and the persisted `Marketplace
-root` (`<repos-dir>/<target-marketplace-name>`) exists on disk — see SKILL.md Phase
-0). Precondition A then validates that root against the persisted `Marketplace remote`
-(`https://<git-host>/<target-marketplace-name>`) via `git -C <repos-dir>/<target-marketplace-name>
-config --get remote.origin.url` — it matches, so the root is trusted — and reads
-`Promoted commit` (`a3f9c2e`) directly from the `RepoAlpha` TODO entry above (this
-resumed run happens in a separate session, possibly from a different location, so only
-the persisted commit is a reliable reference), then runs `git merge-base --is-ancestor
-a3f9c2e origin/main` and `git -C <repos-dir>/<target-marketplace-name> cat-file -e
-origin/main:<plugin-root>/skills/retry-backoff-policy/SKILL.md` against that resolved
-root and the persisted commit. Precondition A now passes (the `<target-marketplace-name>` PR
-carrying v1.5.0 is merged to `main`; the entity files exist at that ref), independent of the
-plugin's *current* version — an unrelated later bump would otherwise defer this resumed run
-forever. User confirms the 9c.3 sequencing gate:
+**9c.2 preconditions checked again**. Phase 0 selects the persisted root (step 3). This invocation gave no `--marketplace=` override, and the persisted `Marketplace root` (`<repos-dir>/<target-marketplace-name>`) exists on disk (see SKILL.md Phase 0). Precondition A then compares that root with the persisted `Marketplace remote` (`https://<git-host>/<target-marketplace-name>`) through `git -C <repos-dir>/<target-marketplace-name> config --get remote.origin.url`. The remotes match, so the run trusts the root. Precondition A reads `Promoted commit` (`a3f9c2e`) directly from the `RepoAlpha` TODO entry above. This resumed run happens in a separate session, maybe from a different location, so only the persisted commit is a reliable reference. Then Precondition A runs `git merge-base --is-ancestor a3f9c2e origin/main` and `git -C <repos-dir>/<target-marketplace-name> cat-file -e origin/main:<plugin-root>/skills/retry-backoff-policy/SKILL.md` against that resolved root and the persisted commit. Precondition A now passes: the `<target-marketplace-name>` PR with v1.5.0 is merged to `main`, and the entity files exist at that ref. The result does not depend on the *current* version of the plugin. Otherwise, an unrelated later bump defers this resumed run forever. The user answers yes at the 9c.3 sequencing gate:
 
 ```text
 Has the <target-marketplace-name> PR for this run been merged to its default branch, and are you
@@ -429,13 +380,11 @@ ready for other repos to reference it? (yes / not yet)
 > yes
 ```
 
-**RepoAlpha** — all three preconditions pass:
+**RepoAlpha**: all three preconditions pass.
 
-- A: confirmed above.
-- B: `RepoAlpha/.claude/settings.json` lists `<target-marketplace-name>` and `dev-essentials` as
-  enabled.
-- C: the published skill's `SKILL.md` contains the load-bearing term "exponential backoff" —
-  quoted for the push gate.
+- A: passed, as shown above.
+- B: `RepoAlpha/.claude/settings.json` lists `<target-marketplace-name>` and `dev-essentials` as enabled.
+- C: the `SKILL.md` of the published skill contains the term "exponential backoff" of `Load-bearing terms`. The run quotes the matching line for the push gate.
 
 Worktree created at `RepoAlpha/.claude/worktrees/devuser/chores/claude-md-promotion-20260820/`
 (`devuser` is this run's `--branch-prefix`). Surgical edit removes the old retry-policy section from
@@ -447,18 +396,13 @@ Worktree created at `RepoAlpha/.claude/worktrees/devuser/chores/claude-md-promot
 - **HTTP retry policy** (exponential backoff with jitter, max 5 attempts) -> `dev-essentials:retry-backoff-policy`
 ```
 
-Commit, push gate shown (repo/remote, branch, commit sha, diff stat, removed heading, pointer added,
-Precondition-C quote, Precondition-B confirmation, planned PR source/target) — user replies `yes`.
-Branch pushed; PR opened via GitHub MCP (RepoAlpha's remote matches the GitHub pattern and GitHub
-MCP tooling is available in this session) per `dev-essentials:github-mcp-conventions`.
+The run commits and shows the push gate with these facts: the repo and remote, the branch, the commit SHA, and the diff stat. It also shows the removed heading, the added pointer, the Precondition C quote, and the Precondition B result. Last, it shows the source and target branches of the planned PR. The user replies `yes`. The run pushes the branch and opens the PR through GitHub MCP, per `dev-essentials:github-mcp-conventions`. The remote of RepoAlpha matches the GitHub pattern, and GitHub MCP tooling is available in this session.
 
-**RepoBeta** — fails Precondition B:
+**RepoBeta**: fails Precondition B.
 
 - A: passes (same marketplace PR).
-- B: `RepoBeta/.claude/settings.json` does not list `<target-marketplace-name>` at all — the plugin
-  is not registered in that repo.
-- Skipped. Recorded in a new deferred TODO: enabling `<target-marketplace-name>`/`dev-essentials` in
-  RepoBeta is a separate prerequisite PR, out of scope for this docs-only cleanup.
+- B: `RepoBeta/.claude/settings.json` does not list `<target-marketplace-name>` at all. The plugin is not registered in that repo.
+- Skipped. Recorded in a new deferred TODO: the user must turn on `<target-marketplace-name>`/`dev-essentials` in RepoBeta in a separate prerequisite PR. That PR is out of scope for this docs-only cleanup.
 
 ## Follow-up report (Phase 10) for the resumed run
 
