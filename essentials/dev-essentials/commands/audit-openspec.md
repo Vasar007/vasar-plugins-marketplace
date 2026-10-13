@@ -43,9 +43,11 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
 3. **Cross-reference with codebase**
 
    For every file, class, interface, method, configuration option, repository, or service mentioned in the artifacts:
-   - Make sure that it exists in the codebase.
-   - Make sure that its signature or contract matches what the artifacts assume.
+   - Find out whether it exists in the codebase.
+   - Find out whether its signature or contract matches what the artifacts assume.
    - Look for recent changes that can make an assumption wrong.
+
+   Record each mismatch as a finding.
 
 4. **Reverify findings**
 
@@ -59,7 +61,7 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
    - Missing information, contradictions, impossible requirements
 
    **Warnings**: they can cause problems during implementation.
-   - Ambiguities, assumptions to test against the code, missing edge cases
+   - Ambiguities, assumptions that need a test, missing edge cases
 
    **Suggestions**: they improve the quality.
    - Better naming, more test cases, documentation gaps

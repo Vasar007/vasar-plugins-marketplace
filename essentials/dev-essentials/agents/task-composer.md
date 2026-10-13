@@ -22,7 +22,7 @@ Every invocation operates in one of three modes:
 | **`response`** | none | the markdown text itself, in chat |
 | **`create`** | creates and verifies a real GitHub issue | real issue number + URL from API response |
 
-`draft` and `response` never call a GitHub MCP tool, for a read or for a write. In `draft` mode, the user creates the issue. If the user wants text only, use `response` mode. Examples: the user wants to paste the text into a GitHub issue form or another tool, or wants to review it first.
+`draft` and `response` never call a GitHub MCP tool, for a read or for a write. In `draft` mode, the user creates the issue. If the user explicitly asks for text only, use `response` mode. Examples: the user wants to paste the text into a GitHub issue form or another tool.
 
 **Trigger phrases:**
 
@@ -75,7 +75,7 @@ An edit request without an explicit `mode: create` changes the local Markdown fi
 
 **Pre-flight checks.** Both must pass. If one fails, STOP.
 
-- The user explicitly asked for `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
+- The user explicitly asked for or approved `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
 - The user gave the explicit GitHub **`owner/repo`** pair. Never infer it from context, from the git remote, or from the session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, STOP and ask. Do not guess.
 
 **Step 1: Create the issue. If the user asked for a parent, attach it in the same call.**
@@ -95,7 +95,7 @@ If the call returns an error, report it honestly. Do not go on to Step 2.
 
 Call `mcp__plugin_github_github__issue_read` with `method: "get"`. Pass the `owner`, the `repo`, and the `issue_number` from Step 1.
 
-Make sure that the response matches:
+Find out whether the response matches:
 
 - Title matches what was submitted
 - Body matches (spot-check first 200 characters)
