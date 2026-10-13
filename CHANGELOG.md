@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
-## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-12
+## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-13
 
 ### Added
 
