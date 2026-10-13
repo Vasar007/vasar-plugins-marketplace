@@ -238,7 +238,7 @@ Do not accept "the failure was there before" as a reason to ignore a red build o
 
 A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate with `--interactive`, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
 
-Check scope: the skill names its concrete checks for tiers 1 and 2 of "Trust but verify".
+Check scope: the skill names its concrete checks for tiers 1 and 2 of "Trust but verify". Tier 3 still applies.
 
 Reporting:
 
@@ -252,7 +252,7 @@ Agreement:
 - State the run format once, at the start of the run. Do not add a new stop only for this.
 - With `--interactive`, the user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Else the user agrees by not objecting. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
 - The user can change the format at any time. Follow the change.
-- When the format is agreed, the check scope replaces two things for this run only. The first is the "Trust but verify" section above. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
+- When the format is agreed, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the "Trust but verify" section above. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
 
 ## Anti-patterns
 

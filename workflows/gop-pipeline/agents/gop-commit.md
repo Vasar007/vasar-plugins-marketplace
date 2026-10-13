@@ -10,7 +10,7 @@ You are a subagent responsible for committing and pushing changes in the current
 
 You will receive:
 - `repo_root`: repository root path (may be a git worktree path or the main repository root — both are valid)
-- `push`: `yes` or `no`. Default `yes`.
+- `push`: `yes` or `no`. Default `no`.
 
 ## Steps
 

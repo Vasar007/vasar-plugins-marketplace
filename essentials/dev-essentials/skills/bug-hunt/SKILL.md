@@ -28,6 +28,12 @@ agent output (rule 3), and all text follows plain English (rule 5).
 - Area: a part of the code, grouped by concern. One hunter searches one area.
 - Finding: one potential bug, written as a `BH-NN` entry in the report.
 - Known issue: a bug that a notes file (`N-NN`) or a GitHub issue (`#NN`) already describes.
+- Known-issues digest: the scratch file where the collector lists every known issue.
+- Structure check: a test of the report form that `scripts/check_report.py` runs. It does not judge whether a finding is true.
+- Progress file: a `_`-prefixed file where an agent records its steps, so that a new agent can resume after a crash.
+- Run context file: `bug-hunt-context.md` in the report folder, with the stable facts of the run. Agents read it first. The run keeps it for later rounds.
+- Final summary file: `bug-hunt-final-summary.md` in the report folder, the final chat report saved as is.
+- Pause point: a step boundary where the run stops until the user or a scheduled prompt resumes it.
 
 ## Autonomy
 
@@ -36,17 +42,12 @@ By default, this workflow does not stop at its decision gates. A decision gate i
 - At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
 - In the final report, list each gate that this run approved without a stop.
 - These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
 - If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
 - If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
 - With `--interactive`, every gate stops and waits for the user, as the gate text says.
 - When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
-- Known-issues digest: the scratch file where the collector lists every known issue.
-- Structure check: a test of the report form that `scripts/check_report.py` runs. It does not judge whether a finding is true.
-- Progress file: a `_`-prefixed file where an agent records its steps, so that a new agent can resume after a crash.
-- Run context file: `bug-hunt-context.md` in the report folder, with the stable facts of the run. Agents read it first. The run keeps it for later rounds.
-- Final summary file: `bug-hunt-final-summary.md` in the report folder, the final chat report saved as is.
-- Pause point: a step boundary where the run stops until the user or a scheduled prompt resumes it.
 
 ## Rules for the whole run
 
@@ -110,7 +111,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them. Without that OK, do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
+- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
@@ -120,8 +121,8 @@ the report with the Edit tool, not with a script that rewrites the file.
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
 meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the OK, rule 3
-replaces two things for this run only: the "Trust but verify" section of
-`dev-essentials:subagent-orchestration`, and any user instruction to test every subagent
+replaces two things for this run only: tiers 1 and 2 of the "Trust but verify" section of
+`dev-essentials:subagent-orchestration` (tier 3 still applies), and any user instruction to test every subagent
 claim. The section "Run format agreement" of that skill has the shared rule.
 
 - Between steps, write at most one status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
@@ -164,7 +165,7 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
 
-1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Do not take the GitHub repository from the remote without the user's OK. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
+1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.

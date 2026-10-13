@@ -22,8 +22,8 @@ No changes yet.
 - Workflows with decision gates now run without a stop at those gates by default. The default approval covers the whole task up to the merge. The new flag `--interactive` brings back every gate. Each workflow carries the same "Autonomy" section. Deletion of data, posts to outside systems, push, and pull request creation still wait for the user. The merge always stays with the user. If the work cannot continue without an answer, or a critical decision has no ground in the plan, the workflow still asks.
 - The change covers 13 workflows. Commands: `research-implement-review-report`, `implement-task`, `implement-batch`, `implement`, `opsx-implement`, and `save-context`. Skills: `review-loop`, `feature-pipeline`, `process-pr-comments`, `audit-personal-conventions`, `bug-hunt`, `trim-artifacts`, and `git-worktree-management`.
 - `review-loop`: `--auto-proceed` has no effect now. Without `--interactive`, the run does not wait at the Phase 4 triage.
-- `process-pr-comments`: By default, implements larger fixes whose approach the comment or the code settles. The new parameter `interactive` brings back draft-and-wait. `autonomous` still covers question and discussion replies, design-level fixes, and push.
-- `feature-pipeline`: Human Approve #1 stops only with `--interactive`. Task Comment #1 waits for Human Approve #2, which stops in every mode.
+- `process-pr-comments`: By default, implements larger fixes and non-trivial suggestions whose approach or direction the comment or the code settles. The new parameter `interactive` brings back draft-and-wait. `autonomous` still covers question and discussion replies, design-level fixes, and push.
+- `feature-pipeline`: Human Approve #1 stops only with `--interactive`. Task Comment #1 waits for Human Approve #2, which stops in every mode. Without `--interactive`, one automatic fix round runs before Human Approve #2 shows open blocking issues.
 - `audit-personal-conventions`: Phase 5 approves the recommended C, D, and E items by default and defers the rest. Phase 9a asks once before it writes stubs.
 - `engineering-discipline` Rule 2: If an auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user.
 - `subagent-orchestration`: A workflow that runs with its default autonomy uses Opus instead of a question about Fable. The run-format agreement can come from no objection.
@@ -38,8 +38,8 @@ No changes yet.
 
 ### Changed in gop-pipeline
 
-- `gop-work`: Without `--interactive`, Explore and Plan agents write the plan, and the run approves it. The run accepts validation proposals with a confidence of 90% or more. The push now waits for a go-ahead of the user. With `--interactive`, Plan Mode and the old routing come back, and the plan approval covers the push.
-- `gop-commit`: New input `push` (`yes` or `no`).
+- `gop-work`: Without `--interactive`, Explore and Plan agents write the plan, and the run approves it. The run accepts validation proposals with a confidence of 90% or more. The push now waits for the approval of the user. With `--interactive`, Plan Mode and the old routing come back, and the plan approval covers the push.
+- `gop-commit`: New input `push` (`yes` or `no`, default `no`).
 
 ## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-13
 

@@ -3,7 +3,7 @@ name: gop-work
 description: >
   Full GOP workflow — plan, implement, finalize. Use ONLY when the user explicitly
   states they want to work in GOP mode. Activates at the START of a task to drive
-  the complete workflow: planning → implementation → commit → push (by default after a go-ahead).
+  the complete workflow: planning → implementation → commit → push (by default after approval).
 ---
 
 # GOP Work
@@ -17,6 +17,7 @@ By default, this workflow does not stop at its decision gates. A decision gate i
 - At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
 - In the final report, list each gate that this run approved without a stop.
 - These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
 - If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
 - If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
@@ -53,7 +54,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
    1. **Building** — builds affected projects, falls back to full solution
    2. **Testing** — runs relevant unit tests (skipped if no test projects found)
    3. **Validation** — reviews changes for completeness and quality
-   4. **Commit & Push**: commits all changes. Without `--interactive`, it pushes after the go-ahead of the user. With `--interactive`, the plan approval covers the push.
+   4. **Commit & Push**: commits all changes. Without `--interactive`, it pushes after the user approves it. With `--interactive`, the plan approval covers the push.
    ```
 5. Call **`ExitPlanMode`** to exit Plan Mode and return to normal operation. This signals readiness to proceed and prompts the user for plan approval.
 6. Capture the plan file path for use in subsequent phases. If the user requests changes instead of approving, re-enter Plan Mode to revise.
@@ -165,7 +166,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root` and `push`. Without `--interactive`, set `push: no`. Then ask the user for a go-ahead to push. After a yes, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push.
+20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root` and `push`. Without `--interactive`, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push.
     - `repo_root`: the detected repository root
     - `push`: `yes` or `no`
 21. Report the final result to the user: commit hash, push status, and any warnings from validation.

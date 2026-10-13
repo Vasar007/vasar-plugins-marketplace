@@ -33,6 +33,7 @@ By default, this workflow does not stop at its decision gates. A decision gate i
 - At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
 - In the final report, list each gate that this run approved without a stop.
 - These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
 - If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
 - If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
@@ -145,7 +146,7 @@ This is a light pass, not a full trim. To trim one file in depth, use `dev-essen
 
 1. List the files in the notes folder that holds the saved file (for example `Notes/`), with their dates. Find the links to them in the saved file and in the other notes files. If the project has agent memory files, find the links there too.
 2. Put each file into one group:
-   - Delete: finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
+   - Delete (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
    - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
    - Keep: the saved file, the files of work that still runs, and raw history exports such as session transcripts.
    - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Delete it only after the user says yes.
@@ -157,6 +158,7 @@ Safety rules:
 - Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
 - Do not delete a file from an older session or a branch without the user's yes.
+- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it.
 
 ### 6. Confirm to user
 

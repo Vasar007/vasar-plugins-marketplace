@@ -46,7 +46,7 @@ context:
   `research-implement-review-report.md` has its own `--commit-mode` flag with
   different values (`<per-phase|single>`) and default — differs
   intentionally: this pipeline's unit is a numbered stage, not a phase.
-- `--interactive` — stop at Human Approve #1 and before the auto-fix of Human
+- `--interactive` — stop at Human Approve #1 and before the automatic fix round of Human
   Approve #2, as before. See **Autonomy**.
 
 Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
@@ -67,6 +67,7 @@ By default, this workflow does not stop at its decision gates. A decision gate i
 - At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
 - In the final report, list each gate that this run approved without a stop.
 - These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
 - If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
 - If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
@@ -111,7 +112,7 @@ stage's output).
 ## Commit Cadence
 
 Five stages can create a commit: **Implementation** (Stage 3 — including the
-Human Approve #2 auto-fix rounds, which re-invoke this same stage),
+Human Approve #2 automatic fix round, which re-invokes this same stage),
 **Test Coverage** (4), **Code Simplifier** (5), **Docs** (6), and
 **Finalization** (9). Every one of them (a) follows the resolved
 `{COMMIT_MODE}` and (b) receives the injected `<commit-conventions>` block
@@ -739,7 +740,7 @@ Wait for all three to complete, then update checkpoint.
 
 ### Human Approve #2 (after Review)
 
-This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run the auto-fix rounds below before you show this gate.
+This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. Start another fix round only after the user says yes.
 
 Present to user:
 
@@ -756,7 +757,7 @@ Present to user:
 >
 > **Verify before fixing (Safeguard 2):** when diagnosing review findings — and before re-invoking Implementation to address them — verify each finding against a primary source (official docs, the schema, a known-working example), especially schema/manifest errors and library API claims. Frame uncertain diagnoses as theories ("this might be…"), not confirmed fixes, until verified.
 
-If review has blocking issues AND (the run has no `--interactive`, OR the user approves auto-fix):
+If the review has blocking issues, and either (the run has no `--interactive` and no automatic fix round ran yet) or the user approves a fix round:
 
   1. Re-invoke Implementation subagent with review feedback (up to 1 retry)
   2. Remove these stages from `completed` in `pipeline-state.json`:
@@ -765,7 +766,7 @@ If review has blocking issues AND (the run has no `--interactive`, OR the user a
   3. Re-run Step 4 (Test Coverage)
   4. Re-run Step 5 (Code Simplifier)
   5. Re-run Steps 6 + 7 + 8 in parallel
-  6. Return to Human Approve #2 with fresh review artifacts
+  6. Return to Human Approve #2 with fresh review artifacts. Show the gate, even if blocking issues remain.
 If approved: proceed.
 
 ### Task Comment #2 (before Finalization)

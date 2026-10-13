@@ -73,6 +73,7 @@ By default, this workflow does not stop at its decision gates. A decision gate i
 - At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
 - In the final report, list each gate that this run approved without a stop.
 - These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
 - If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
 - If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
@@ -91,7 +92,7 @@ Two additions specific to this command, not covered by that skill:
   (Phase 3) use Opus; implementing and fixing (Phase 2, Phase 3's fixer) use
   Sonnet — per the model matrix in the "Model selection" section of
   `dev-essentials:subagent-orchestration`.
-- **Fable is exceptional-only**. Never dispatch it silently on the agent's own
+- Fable is exceptional-only. Never dispatch it silently on the agent's own
   initiative. With `--interactive`, ask first, every time, also where the model
   matrix marks Fable as eligible. Without it, follow "Autonomy".
 
