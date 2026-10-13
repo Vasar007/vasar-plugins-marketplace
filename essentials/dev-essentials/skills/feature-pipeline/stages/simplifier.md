@@ -1,78 +1,64 @@
 # Stage 5: Code Simplifier
 
 <!--
-  Master agent variable substitution:
-  {TASK_ID}       — e.g. "TASK-123"
-  {WORKTREE_PATH} — absolute path to the project root (worktree or cwd)
+  Note for the master agent: replace the four placeholders that "Stage Launch"
+  in SKILL.md names.
 
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  Master agent MUST use:
+  The master agent MUST use:
     subagent_type: "code-simplifier:code-simplifier"
-  The plugin provides the simplification logic. This prompt adds
-  pipeline-specific scoping and verification.
+  The plugin has the simplification logic. This prompt adds the scope and
+  the test rules of the pipeline.
 -->
 
 # Pipeline Context for Code Simplifier
 
-You are being invoked as part of a feature development pipeline.
-Your built-in simplification logic applies — this prompt adds scope
-and verification constraints specific to this pipeline run.
+A feature development pipeline runs you. Your built-in simplification logic applies. This prompt adds the scope and the test rules of this pipeline run.
 
 ## Scope
 
-Only simplify files changed by this task. Use the base branch from the Project
-Context section above to determine the changed files relative to it.
+Simplify only the files that this task changed. Use the base branch from the Project Context section above to find the files that changed relative to it.
 
-From the results, focus ONLY on implementation files.
-Exclude:
+From that list, focus ONLY on implementation files. Exclude:
 
 - Test files
 - Documentation files
 - Configuration files
-- Files in `{ARTIFACTS_DIR}/` directory
+- Files in the `{ARTIFACTS_DIR}/` folder
 
 ## Verification Protocol
 
-1. **Before any changes**
-   - If a full test command is listed in the Project Context, run it and
-     establish a baseline
-   - If tests fail before you start, note them — you must not make these worse
+1. **Before any change**
+   - If the Project Context lists a full test command, run it to get a baseline.
+   - If tests fail before you start, note them. You must not make these failures worse.
 
-2. **After each file is simplified**
-   - Prefer the file-scoped test command from the Project Context for the
-     affected test file
-   - Otherwise use the full test command if available
+2. **After you simplify each file**
+   - Use the file-scoped test command from the Project Context for the affected test file first.
+   - Else use the full test command, where one is available.
 
 3. **After all simplifications**
-   - If a full test command is available, run it again
-   - The test results must be identical to the baseline. If any test broke,
-     revert the change that caused it
+   - If a full test command is available, run it again.
+   - The test results must match the baseline. If a test broke, revert the change that broke it.
 
-4. **Lint check**
-   - If a lint command is listed in the Project Context, run it after
-     simplification
+4. **Lint**
+   - If the Project Context lists a lint command, run it after the simplification.
 
-5. **Stage or commit changes**, depending on `{COMMIT_MODE}`:
+5. **Stage or commit the changes.** `{COMMIT_MODE}` decides:
 
-   - **`finalization` mode (default)**: stage only (do NOT commit):
+   - **`finalization` mode (default)**: stage only. Do NOT commit.
 
      ```bash
      git add <specific-files-you-simplified>
      ```
 
-   - **`per-step` mode**: commit one commit per file simplified, or one
-     total commit if a single simplification spans multiple files (explicit
-     `git add <path>`, never `-A`/`.`). Commit-message formatting is provided
-     via the injected `<commit-conventions>` block above — follow it exactly;
-     do not invent your own format.
+   - **`per-step` mode**: make one commit for each simplified file. If one simplification spans more than one file, make one commit for it. Use an explicit `git add <path>`, never `-A` or `.`. The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format.
 
 ## Rules
 
-- NEVER modify test files — only implementation code
-- NEVER change function signatures, exported types, or public API contracts
-- NEVER change behavior — simplification is structure-only
-- NEVER touch files outside the changed-file scope
-- If a simplification would require changing a test to pass, it is a behavioral
-  change — do not make it
+- NEVER modify test files. Modify only implementation code.
+- NEVER change function signatures, exported types, or public API contracts.
+- NEVER change behavior. A simplification changes the structure only.
+- NEVER touch files outside the scope of the changed files.
+- If a simplification needs a test change to pass, it changes behavior. Do not make it.
