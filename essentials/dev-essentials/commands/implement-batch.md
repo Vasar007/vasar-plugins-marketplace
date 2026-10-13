@@ -63,7 +63,7 @@ These rules apply in all modes:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
 
 - **Delegate almost everything.** The orchestrating session only resolves the arguments, dispatches, does the git bookkeeping (commits, squashes, SHA records), and talks to the user. It does not read source files, write code, or review diffs. Each brief asks for a short structured report (verdicts, `file:line` anchors, commands and results), never pasted diffs or file dumps.
 - **Models**: Opus plans and reviews, and Sonnet implements and fixes. Haiku can do a mechanical extraction, such as the list of sub-issues. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
@@ -141,7 +141,7 @@ For task `i`:
 ### Step 4 — Final cross-task review
 
 1. Record `FINAL_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
-2. Run `dev-essentials:review-loop` once over the **combined** work, with `target=diff <BATCH_BASE_SHA>..HEAD` and the same configuration as every other loop. This pass finds what single-task reviews cannot: inconsistency across tasks, duplicated abstractions, contradictory assumptions, and coverage gaps at the seams.
+2. Run `dev-essentials:review-loop` once over the **combined** work, with `target=diff <BATCH_BASE_SHA>..HEAD`. This pass finds what single-task reviews cannot: inconsistency across tasks, duplicated abstractions, contradictory assumptions, and coverage gaps at the seams.
 3. Commit once for each review cycle, as the loop does by default.
 4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`:
 

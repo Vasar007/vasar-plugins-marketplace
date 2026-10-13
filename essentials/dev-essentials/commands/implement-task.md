@@ -69,7 +69,7 @@ These rules apply in all modes:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
 
 - The orchestrating session only resolves the arguments, asks the Phase 0 questions, creates the worktree, dispatches, and reads the reports. It also writes the Phase 2 context document, does the git bookkeeping (SHA records and the Phase 4 commit), and talks to the user.
 - It never reads source code, fetches a PR or an issue, edits product code, or reviews a diff. A subagent does this work, also a small read (Rule 1). Pass the context of the user verbatim (Rule 2).
