@@ -20,7 +20,7 @@ The project uses two types of logging:
 
 Use `ISessionLogRepository` for:
 
-- Long-running operation milestones (provisioning, upgrading, deprovisioning)
+- Long-running operation milestones (onboarding, data import, account closure)
 - Steps that users care about seeing
 - Success/failure states visible in portal
 
@@ -38,25 +38,25 @@ Use `ILogger` for:
 Add entries to your string resources file (see create-string-resource skill):
 
 ```txt
-TenantProvisioningStartedMessage = [TBD] Workload tenant provisioning started.
-TenantProvisioningContextMessage = [TBD] Provisioning context: tenant [{0}] ({1}), region [{2}], template result [{3}].
-TenantProvisioningCompletedMessage = [TBD] Workload tenant provisioning completed successfully.
-TenantProvisioningFailedMessage = [TBD] Workload tenant provisioning failed: {0}
+StoreOnboardingStartedMessage = [TBD] Store onboarding started.
+StoreOnboardingContextMessage = [TBD] Onboarding context: store [{0}] ({1}), warehouse [{2}], plan result [{3}].
+StoreOnboardingCompletedMessage = [TBD] Store onboarding completed successfully.
+StoreOnboardingFailedMessage = [TBD] Store onboarding failed: {0}
 ```
 
-**CRITICAL**: Use `[{0}]` (square brackets) for placeholders to improve readability per analyst feedback.
+**CRITICAL**: Use `[{0}]` (square brackets) for placeholders.
 
 ### Step 2: Inject ISessionLogRepository
 
 ```csharp
-public sealed class ProvisioningOrchestrator
+public sealed class StoreOnboardingOrchestrator
 {
     private readonly ISessionLogRepository _sessionLogService;
-    private readonly ILogger<ProvisioningOrchestrator> _logger;
+    private readonly ILogger<StoreOnboardingOrchestrator> _logger;
 
-    public ProvisioningOrchestrator(
+    public StoreOnboardingOrchestrator(
         ISessionLogRepository sessionLogService,
-        ILogger<ProvisioningOrchestrator> logger)
+        ILogger<StoreOnboardingOrchestrator> logger)
     {
         _sessionLogService = sessionLogService.ThrowIfNull();
         _logger = logger.ThrowIfNull();
@@ -71,58 +71,58 @@ Use `SafeFormat` extension method for string formatting:
 ```csharp
 using {ProjectNamespace}.Common.Strings;
 
-public async Task ProvisionTenantAsync(
+public async Task OnboardStoreAsync(
     SessionId sessionId,
-    TenantProvisionRequest request,
+    StoreOnboardingRequest request,
     CancellationToken cancellationToken)
 {
     // Runtime log (developers) - use structured logging, NO string interpolation
     _logger.LogInformation(
-        "Starting provisioning for tenant {TenantId} ({TenantName})",
-        request.TenantId,
-        request.TenantName
+        "Starting onboarding for store {StoreId} ({StoreName})",
+        request.StoreId,
+        request.StoreName
     );
 
     // Session log (portal users) - use SafeFormat
     await _sessionLogService.CreateInformationAsync(
         sessionId,
-        StringResources.TenantProvisioningStartedMessage,
+        StringResources.StoreOnboardingStartedMessage,
         cancellationToken: cancellationToken
     );
 
     await _sessionLogService.CreateInformationAsync(
         sessionId,
-        StringResources.TenantProvisioningContextMessage.SafeFormat(
-            request.TenantId,
-            request.TenantName,
-            request.RegionId,
-            request.TemplateId
+        StringResources.StoreOnboardingContextMessage.SafeFormat(
+            request.StoreId,
+            request.StoreName,
+            request.WarehouseId,
+            request.PlanId
         ),
         cancellationToken: cancellationToken
     );
 
     try
     {
-        // Step 1: Allocate appliance
-        var appliance = await AllocateApplianceAsync(request, cancellationToken);
+        // Step 1: Create account
+        var account = await CreateAccountAsync(request, cancellationToken);
 
         await _sessionLogService.CreateInformationAsync(
             sessionId,
-            StringResources.TenantApplianceAllocatedMessage.SafeFormat(
-                appliance.InstanceId,
-                request.TenantId,
-                request.TenantName
+            StringResources.StoreAccountCreatedMessage.SafeFormat(
+                account.AccountId,
+                request.StoreId,
+                request.StoreName
             ),
             cancellationToken: cancellationToken
         );
 
-        // Step 2: Configure tenant
-        await ConfigureTenantAsync(appliance, request, cancellationToken);
+        // Step 2: Configure store
+        await ConfigureStoreAsync(account, request, cancellationToken);
 
         // Success
         await _sessionLogService.CreateInformationAsync(
             sessionId,
-            StringResources.TenantProvisioningCompletedMessage,
+            StringResources.StoreOnboardingCompletedMessage,
             cancellationToken: cancellationToken
         );
     }
@@ -131,15 +131,15 @@ public async Task ProvisionTenantAsync(
         // Runtime log (developers - full details)
         _logger.LogError(
             ex,
-            "Tenant provisioning failed for {TenantId} ({TenantName})",
-            request.TenantId,
-            request.TenantName
+            "Store onboarding failed for {StoreId} ({StoreName})",
+            request.StoreId,
+            request.StoreName
         );
 
         // Session log (portal users - sanitized message)
         await _sessionLogService.CreateInformationAsync(
             sessionId,
-            StringResources.TenantProvisioningFailedMessage.SafeFormat(ex.Message),
+            StringResources.StoreOnboardingFailedMessage.SafeFormat(ex.Message),
             cancellationToken: cancellationToken
         );
 
@@ -155,17 +155,17 @@ public async Task ProvisionTenantAsync(
 ```csharp
 // ✅ Good - structured logging with placeholders
 _logger.LogInformation(
-    "Starting provisioning for tenant {TenantId} ({TenantName})",
-    tenantId,
-    tenantName
+    "Starting onboarding for store {StoreId} ({StoreName})",
+    storeId,
+    storeName
 );
 
 // ❌ Bad - string interpolation loses structure, hurts log aggregation
-_logger.LogInformation($"Starting provisioning for tenant {tenantId} ({tenantName})");
+_logger.LogInformation($"Starting onboarding for store {storeId} ({storeName})");
 
 // ❌ Bad - String.Format also loses structure
 _logger.LogInformation(
-    String.Format("Starting provisioning for tenant {0} ({1})", tenantId, tenantName)
+    String.Format("Starting onboarding for store {0} ({1})", storeId, storeName)
 );
 ```
 
@@ -177,17 +177,17 @@ using MyApp.Framework.Basic.Strings;
 // ✅ Good - SafeFormat extension method
 await _sessionLogService.CreateInformationAsync(
     sessionId,
-    StringResources.TenantProvisioningContextMessage.SafeFormat(
-        tenantId,
-        tenantName,
-        regionId,
-        templateId
+    StringResources.StoreOnboardingContextMessage.SafeFormat(
+        storeId,
+        storeName,
+        warehouseId,
+        planId
     ),
     cancellationToken: cancellationToken
 );
 
 // ❌ Bad - String.Format (use SafeFormat instead)
-String.Format(StringResources.TenantProvisioningContextMessage, tenantId, tenantName)
+String.Format(StringResources.StoreOnboardingContextMessage, storeId, storeName)
 ```
 
 ### Code Formatting — Closing Parenthesis on New Line
@@ -196,11 +196,11 @@ String.Format(StringResources.TenantProvisioningContextMessage, tenantId, tenant
 // ✅ Good - ); on new line, aligned with statement start
 await _sessionLogService.CreateInformationAsync(
     sessionId,
-    StringResources.TenantProvisioningContextMessage.SafeFormat(
-        tenantId,
-        tenantName,
-        regionId,
-        templateId
+    StringResources.StoreOnboardingContextMessage.SafeFormat(
+        storeId,
+        storeName,
+        warehouseId,
+        planId
     ),
     cancellationToken: cancellationToken
 );
@@ -208,11 +208,11 @@ await _sessionLogService.CreateInformationAsync(
 // ❌ Bad - ); on same line as last argument
 await _sessionLogService.CreateInformationAsync(
     sessionId,
-    StringResources.TenantProvisioningContextMessage.SafeFormat(
-        tenantId,
-        tenantName,
-        regionId,
-        templateId),
+    StringResources.StoreOnboardingContextMessage.SafeFormat(
+        storeId,
+        storeName,
+        warehouseId,
+        planId),
     cancellationToken: cancellationToken);
 ```
 
@@ -224,10 +224,10 @@ Log at meaningful user-visible milestones:
 
 ✅ Good milestones:
 
-- "Workload tenant provisioning started"
-- "Appliance allocated"
+- "Store onboarding started"
+- "Account created"
 - "Configuration completed"
-- "Tenant ready"
+- "Store ready"
 
 ❌ Too granular:
 
@@ -241,23 +241,23 @@ When logging entities with both ID and name, use format: `"ID (name)"`:
 
 ```csharp
 // For entities with ID and name
-var message = StringResources.TenantCreatedMessage.SafeFormat(
-    tenant.TenantId,
-    tenant.TenantName
+var message = StringResources.StoreCreatedMessage.SafeFormat(
+    store.StoreId,
+    store.StoreName
 );
-// Results in: "Tenant [abc-123] (My Tenant) created"
+// Results in: "Store [abc-123] (Corner Books) created"
 ```
 
 ### 3. Error Messages
 
-Session log errors should be user-friendly (no stack traces):
+Session log errors must be user-friendly (no stack traces):
 
 ```csharp
 // ✅ Good - user-friendly
-StringResources.TenantProvisioningFailedMessage.SafeFormat("Unable to allocate resources")
+StringResources.StoreOnboardingFailedMessage.SafeFormat("Unable to create the account")
 
 // ❌ Bad - technical details
-$"NullReferenceException at line 42 in ProvisioningService.cs"
+$"NullReferenceException at line 42 in OnboardingService.cs"
 ```
 
 ### 4. Sensitive Information
@@ -273,7 +273,7 @@ When logging parallel operations, include identifiers:
 ```csharp
 await _sessionLogService.CreateInformationAsync(
     sessionId,
-    StringResources.ApplianceDeployingMessage.SafeFormat(applianceId),
+    StringResources.OrderShippingMessage.SafeFormat(orderId),
     cancellationToken: cancellationToken
 );
 ```
@@ -299,5 +299,5 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 - [ ] Milestones logged at user-meaningful points
 - [ ] Both `ILogger` (runtime) and `ISessionLogRepository` (portal) used appropriately
 - [ ] Error messages are user-friendly (no technical details)
-- [ ] Entity format: `"ID (name)"` when both available
+- [ ] An entity with an ID and a name uses the format `"ID (name)"`
 - [ ] Code formatting: `);` on new line, aligned with statement start
