@@ -47,7 +47,7 @@ Haiku is not only for one-step lookups. Prefer Haiku over Sonnet for a short seq
 
 For multi-step, long-running, or complex work, the main agent is the orchestrator, not the implementer. Each logical work unit goes to a subagent. Research is NOT exempt. If the parent task is multi-stage, even a "quick" `Grep` or two `Read` calls for the plan belong in a subagent.
 
-Self-test before any tool call inside a multi-stage session: ask "Could a subagent do this with a 5-line brief?".
+Self-test before any tool call inside a multi-stage session: ask "Can a subagent do this with a 5-line brief?".
 
 - If yes, delegate.
 - If no, do it inline. This applies to a step that really needs the parent context: a reply to the user, a memory update, or the dispatch of another subagent.
@@ -138,7 +138,7 @@ Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an int
 
 Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
-The correct dispatch shape has these fields. Add `effort` or `isolation` only where the user or a skill asks for it.
+The correct dispatch shape has these fields. Add `effort` only where the user or a skill asks for it.
 
 ```text
 Agent(
