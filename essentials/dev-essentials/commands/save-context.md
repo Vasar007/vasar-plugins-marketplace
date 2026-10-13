@@ -1,6 +1,6 @@
 ---
-description: Save session context, findings, and progress to a research file for future sessions
-argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-continuation-prompt]"
+description: Save session context, findings, and progress to a research file for future sessions, then clean up finished context files
+argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--no-continuation-prompt]"
 ---
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
@@ -22,7 +22,8 @@ Save the current session's context, research findings, decisions, and progress t
 | `--change <name>`          | Pull context from an OpenSpec change (reads its artifacts)          |
 | `--plan <path>`            | Pull context from a plan/task file                                  |
 | `--compact`                | When updating an existing file, aggressively compact old content    |
-| `--no-continuation-prompt` | Skip Step 6's next-session continuation prompt (emitted by default) |
+| `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
+| `--no-continuation-prompt` | Skip Step 7's next-session continuation prompt (emitted by default) |
 
 ## Steps
 
@@ -122,19 +123,41 @@ Date: <today>
 
 Ensure the file follows markdown conventions (H1 title, blank lines around headings, no bare URLs).
 
-### 5. Confirm to user
+### 5. Light cleanup of context files
+
+Unless `--no-cleanup` was passed, clean up the context and handoff files of this session. Skip this step in two cases. The first case: Step 4 wrote no file (the near-empty guardrail). The second case: another command follows these steps as one of its own steps, because that command still uses its plan and progress files. A calling command can ask for the cleanup in words.
+
+This is a light pass, not a full trim. To trim one file in depth, use `dev-essentials:trim-artifacts`.
+
+1. List the files in the notes folder that holds the saved file (for example `Notes/`), with their dates. Find the links to them in the saved file and in the other notes files. If the project has agent memory files, find the links there too.
+2. Put each file into one group:
+   - Delete: finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
+   - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
+   - Keep: the saved file, the files of work that still runs, and raw history exports such as session transcripts.
+   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Delete it only after the user says yes.
+3. In the saved file and in the trimmed files, update facts that are no longer true. Examples: an old commit SHA, an old version, or a "this session" frame from an earlier date.
+4. Fix each link to a deleted file. Remove the link, or point it to the file that now holds the fact.
+
+Safety rules:
+
+- Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
+- If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
+- Do not delete a file from an older session or a branch without the user's yes.
+
+### 6. Confirm to user
 
 Show:
 
 - Where the file was saved
 - Brief summary of what was captured
-- Tip: "Use `--context <path>` with `/implement` or `/opsx-implement` to load this in a future session."
+- What Step 5 did: the deleted files, the trimmed files, and the fixed links. If Step 5 did not run, say why in one line.
+- The Step 5 candidates that wait for the user's yes, each with its reason, as one question
 
-Then continue to Step 6 to emit the next-session continuation prompt.
+Then continue to Step 7 to emit the next-session continuation prompt.
 
-### 6. Emit the next-session continuation prompt
+### 7. Emit the next-session continuation prompt
 
-Unless `--no-continuation-prompt` was passed, or the near-empty-conversation guardrail below applies (too little to save, so no file was written), emit a short, paste-ready prompt for a fresh session in a fenced `text` code block. It is the **last thing in the response** — after Step 5's confirmation, and after the calling command's own final summary when save-context is being followed as a step of a larger command.
+Unless `--no-continuation-prompt` was passed, or the near-empty-conversation guardrail below applies (too little to save, so no file was written), emit a short, paste-ready prompt for a fresh session in a fenced `text` code block. It is the **last thing in the response** — after Step 6's confirmation, and after the calling command's own final summary when save-context is being followed as a step of a larger command.
 
 Template (the third line is a *location* line whose form depends on what was actually in play — see rule **(a)**; omit it entirely when this session ran in the repo root on the default branch):
 
@@ -160,6 +183,7 @@ Rules that make this reliable:
 - Do NOT include raw code dumps — summarize findings, reference file paths
 - Keep it concise — this is a handoff document, not a transcript
 - Preserve existing content when updating — never lose prior session data
+- Step 5 removes only content that is finished or no longer true, and only under its safety rules
 - If the conversation has very little to save, say so instead of writing a near-empty file
-- The Step 6 continuation prompt must not restate, summarize, or duplicate any of the file's content — path + "wait" + prohibitions only
-- The Step 6 continuation prompt must not invent next steps, propose a plan, or name a command to run — that is the file's / the user's call
+- The Step 7 continuation prompt must not restate, summarize, or duplicate any of the file's content — path + "wait" + prohibitions only
+- The Step 7 continuation prompt must not invent next steps, propose a plan, or name a command to run — that is the file's / the user's call

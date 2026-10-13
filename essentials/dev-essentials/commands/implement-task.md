@@ -392,7 +392,7 @@ everywhere below. Require these additions to what it reports:
   exactly one commit — or zero when the pass found nothing.
 - The worktree's absolute path and the branch name, so the user can review it
   directly.
-- `save-context`'s next-session continuation prompt (its Step 6), carrying
+- `save-context`'s next-session continuation prompt (its Step 7), carrying
   that same worktree path and branch name so a fresh session restores into the
   right copy.
 

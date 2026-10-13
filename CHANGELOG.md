@@ -9,7 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- `save-context`: Added Step 5, a light cleanup of the context and handoff files of the session. It runs by default, and `--no-cleanup` turns it off. It deletes finished context files that git does not track. It trims files that open work still needs, updates facts that are no longer true, and fixes links to deleted files. It asks before it deletes a file from an older session or a branch. If another command runs the steps of `save-context`, the cleanup does not run.
+
+### Changed
+
+- `subagent-orchestration`: Rule 5 now allows `SendMessage` to your own subagent by its agent ID. Use it to resume the subagent after a stop, or to correct it on the same task. The rule still forbids `name`, `team_name`, shared task lists, and messages between subagents. Rule 3 and the anti-patterns now say the same.
+- `subagent-orchestration`: Replaced the section "Trust but verify" with three tiers. The orchestrator checks cheap facts, an agent checks the content, and the orchestrator spot-checks only before a high-risk action. The "Check scope" part of "Run format agreement" now points to these tiers.
+- `process-pr-comments` and `audit-personal-conventions`: Replaced the claim that a subagent cannot get a follow-up message. The Claude Code docs show that `SendMessage` can resume a subagent.
+- `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7. `research-implement-review-report` and `implement-task` use the new step number.
+
+### Removed
+
+- `save-context`: Removed the tip to use `--context <path>` with `/implement` or `/opsx-implement`.
 
 ## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-13
 

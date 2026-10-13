@@ -173,8 +173,8 @@ looked like ordinary house style rather than something worth a shared entity.
 A single CLAUDE.md section titled "Working with the assistant" contained three adjacent bullet
 points: (1) a model-selection cost/capability matrix (which model tier for which kind of task), (2)
 a preference for terse, single-line commit-message subjects over multi-paragraph bodies even though
-the repo's own history mixes both styles, and (3) a rule that an unnamed subagent dispatch must
-include a fully self-contained brief, because there is no way to ask it follow-up questions.
+the repo's own history mixes both styles, and (3) a rule that a subagent dispatch must include a
+fully self-contained brief, because the subagent does not see the parent conversation.
 
 Point (1) read as ordinary **B-taste** the first time this section was audited — a preference about
 cost vs. capability trade-offs with no external authority behind the specific tiers chosen. A later
@@ -184,9 +184,9 @@ audit of the same section, run after that exact matrix had since been promoted i
 a correctly-reflected shipped entity, so it is pruned rather than re-promoted or left as B. Point (2)
 is genuine **B-taste** — nothing about "single-line vs. multi-paragraph" commit subjects is dictated
 by a linter, style guide, or existing entity, so it stays personal. Point (3) is
-**C-universal** — it cites the external, verifiable fact that unnamed subagents cannot receive
-follow-up messages, which is a platform behavior, not a preference. Classifying the whole section
-as one disposition would have wrongly re-promoted the now-stale matrix, wrongly promoted the
+**C-universal** — it cites the external, verifiable fact that a subagent starts in its own
+context window without the parent conversation, which is a platform behavior, not a preference.
+Classifying the whole section as one disposition would have wrongly re-promoted the now-stale matrix, wrongly promoted the
 commit-style preference, or wrongly suppressed the self-contained-brief rule.
 
 ### Case 3 — `type: reference` that was pure A-local trivia

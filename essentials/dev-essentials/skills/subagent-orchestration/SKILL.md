@@ -1,6 +1,6 @@
 ---
 name: subagent-orchestration
-description: How the main agent dispatches work in long, multi-step, or complex tasks. Use when running multi-stage workflows (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) and when deciding whether to dispatch a subagent versus inline. Encodes seven interlocking rules — orchestrate aggressively (delegate even small research), pass user-supplied context verbatim (don't pre-research to enrich prompts), dispatch independent work concurrently via multiple Agent calls in one message (there is no separate foreground/background choice for the Agent tool), delegate high-volume external-system MCP work to subagents by default, never register subagents as named teammates (pure unnamed one-shot dispatches only), brief every write-capable dispatch with the explicit absolute worktree path, and never dispatch a pass-through delegator — an agent handed a concrete, bounded task does that work itself instead of re-delegating it. Also ships the model-selection matrix these dispatches use (Sonnet default, Haiku mechanical-only, Opus planning/review, Fable exceptional-only), so model choice does not depend on any global or repo CLAUDE.md. Triggers on requests like "orchestrate this", "dispatch a subagent", "run the pipeline", "process PR comments", "review the branch", "audit the change", "handle this multi-stage task", or any session where the agent is about to inline work in the middle of a multi-stage workflow.
+description: How the main agent dispatches work in long, multi-step, or complex tasks. Use when running multi-stage workflows (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) and when deciding whether to dispatch a subagent versus inline. Encodes seven interlocking rules — orchestrate aggressively (delegate even small research), pass user-supplied context verbatim (don't pre-research to enrich prompts), dispatch independent work concurrently via multiple Agent calls in one message (there is no separate foreground/background choice for the Agent tool), delegate high-volume external-system MCP work to subagents by default, never register subagents as named teammates (unnamed dispatches only, and SendMessage only to resume or correct the same task), brief every write-capable dispatch with the explicit absolute worktree path, and never dispatch a pass-through delegator — an agent handed a concrete, bounded task does that work itself instead of re-delegating it. Also ships the model-selection matrix these dispatches use (Sonnet default, Haiku mechanical-only, Opus planning/review, Fable exceptional-only), so model choice does not depend on any global or repo CLAUDE.md. Triggers on requests like "orchestrate this", "dispatch a subagent", "run the pipeline", "process PR comments", "review the branch", "audit the change", "handle this multi-stage task", or any session where the agent is about to inline work in the middle of a multi-stage workflow.
 ---
 
 # Subagent Orchestration
@@ -105,7 +105,7 @@ This is specific to `Agent`. `Bash` and `PowerShell` still have a real `run_in_b
 Cases that don't change:
 
 - **Bash/PowerShell:** never set `run_in_background: true` on Bash for "convenience" — that flag genuinely exists there and is a real choice. Long-running Bash/PowerShell commands stay foreground; if a command runs absurdly long, that's a signal of a real problem, not a reason to background it.
-- **SendMessage to an idle teammate:** never. SendMessage to an agent without an active task auto-resumes them in the background. Always dispatch a fresh, unnamed `Agent` call instead (see Rule 5 — named/addressable teammates are themselves out of scope for one-shot delegation).
+- **`SendMessage` is not a dispatch.** Use it only to resume or correct a subagent that you dispatched for the same task (see Rule 5). For new work, make a fresh, unnamed `Agent` call.
 
 ## Rule 4 — Delegate high-volume external-system MCP work to subagents by default
 
@@ -130,11 +130,11 @@ What this rule does NOT change:
 
 Worked example: main dispatched a verify-only subagent (correct). User then said "post replies (DO IT by yourself) and push (1 command, do it by yourself)" — the explicit-ask exception applied. Main ALSO inlined a full thread-list fetch (full response, 5 threads) to get timestamp values for reply anchors — that was the mistake, polluting main context with data the subagent could have surfaced. Corrected pattern: verify-only subagent fetches threads AND returns timestamp values in its structured report; main receives only the small summary and either posts directly (explicit ask) or dispatches another subagent to post.
 
-## Rule 5 — No `name`/`team_name`/SendMessage coordination for one-shot delegation
+## Rule 5 — No named teammates or team coordination, and `SendMessage` only for the same task
 
-Never pass the `Agent` tool's `name` parameter for a one-shot delegation. `name` registers the subagent as an addressable, long-lived teammate: it can be resumed later via `SendMessage`, and it emits extra `teammate-message`/`idle_notification` event traffic into the session. That is the wrong shape for "do this, report back, done." Use pure, unnamed subagents — the dispatch returns the agent's final message directly, and that's the end of the interaction.
+Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an interactive session, a named subagent starts as a teammate, not as a plain subagent. Claude Code does not ask first. A teammate is a separate, long-lived session in a team, with its own mailbox and idle notices. That is the wrong shape for "do this, report back, done." You do not need a name to reach the subagent later: every dispatch returns an agent ID, and `SendMessage` accepts that ID.
 
-Never use `team_name`. Never coordinate multiple subagents via `SendMessage`, and never use `TaskCreate`/`TaskUpdate`/`TaskList` (or `TodoWrite`) as a SHARED task list between subagents with `owner`/`blockedBy` ownership semantics — that is team coordination, not delegation, and it's out of scope regardless of how convenient it looks for a multi-agent fan-out. (Using those same tools SOLO in the orchestrating session to track your own progress on a task, for the user's visibility, is fine — that is not what this rule forbids.)
+Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
 The correct dispatch shape has exactly these fields:
 
@@ -148,7 +148,18 @@ Agent(
 # no name, no team_name
 ```
 
-Everything the subagent needs goes in `prompt`, because there is no way to talk to it again afterward — so the brief must be fully self-contained (see "Brief quality matters more than brief count" below). If a subagent finishes without delivering a usable result, do NOT try to resume it — verify the work directly, or dispatch a fresh subagent.
+Everything the subagent needs goes in `prompt`. The subagent starts in its own context window and does not see your conversation. So the brief must be fully self-contained (see "Brief quality matters more than brief count" below).
+
+Use `SendMessage` to your own subagent only for the same task, in two cases:
+
+- Resume: the subagent stopped before it delivered, for example on a usage limit, a crash, its `maxTurns` limit, or a `TaskStop`. Send a short resume note to its agent ID. It continues with its full history.
+- Correct: the subagent still runs, or its report is incomplete for the same task. Send the correction to its agent ID.
+
+Limits:
+
+- Record the agent ID of each dispatch that you can need to resume. The built-in `Explore` and `Plan` agents return no agent ID, so you cannot resume them.
+- If the user stopped the agent in `/tasks`, Claude Code refuses the message. If `SendMessage` fails or finds no agent, dispatch a fresh subagent with the same brief and a note on what is already done.
+- For new or unrelated work, make a fresh, unnamed `Agent` call. Do not give it to an old subagent.
 
 ## Rule 6 — Worktree-path discipline for write-capable dispatches
 
@@ -215,21 +226,19 @@ A 10-line brief that prevents one wrong dispatch is worth more than three 3-line
 
 ## Trust but verify
 
-Subagent reports describe intent, not necessarily reality. When the user is about to act on a recommendation:
+Check a subagent report in three tiers:
 
-- Re-read critical files yourself.
-- Run the actual build/test if the subagent claimed green (especially after a rebase — see `dev-essentials:dotnet-build-test`).
-- Never propagate "pre-existing failures" claims without ownership (see `dev-essentials:engineering-discipline` Rule 1).
+1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, dispatch a repair or a re-check.
+2. Content, by an agent: a verifier or reviewer agent checks whether a finding, a cited line, or a claimed behavior is true. If the workflow has no such agent and the next step depends on the content, dispatch one. Do not redo its work. Every re-read stays in the main context for the rest of the run.
+3. Spot-check, by the orchestrator, only before a high-risk action: a push, a deletion, a post to an outside system, or a recommendation that the user acts on. Re-read only the lines that the action depends on. If a subagent claimed a green build or green tests after a rebase, run them again (for .NET, see `dev-essentials:dotnet-build-test`).
+
+Do not accept "the failure was there before" as a reason to ignore a red build or test (see `dev-essentials:engineering-discipline` Rule 1).
 
 ## Run format agreement
 
 A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and the gate where the user agrees. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
 
-Check scope:
-
-- The orchestrator checks the cheap, structural facts itself. For example, it makes sure that the files exist and that the counts in an agent reply match the files. It also reads the validator or build output and the file list and trailer of each commit.
-- The verifier, reviewer, or fixer agents of the run check the content: whether a finding, a cited line, or a claimed behavior is true. The orchestrator does not redo that work. It does not re-read cited code or re-run repros that such an agent covers.
-- If a structural check fails, or a reply does not match the counts, dispatch a repair or a re-check. Do not fix the content yourself.
+Check scope: the skill names its concrete checks for tiers 1 and 2 of "Trust but verify".
 
 Reporting:
 
@@ -255,8 +264,8 @@ Agreement:
 - Splitting one independent task across multiple redundant `Agent` dispatches when a single dispatch would do.
 - Polling agent state with sleep loops. The runtime's task-notification mechanism is the correct signal.
 - Using `run_in_background: true` on Bash for "convenience". Always foreground.
-- SendMessage to an idle teammate to dispatch ad-hoc work. Use a fresh, unnamed `Agent` call instead.
-- Passing `name` to the `Agent` tool for a one-shot delegation, "just in case" a follow-up is needed. It isn't — dispatch a fresh subagent instead.
+- Using `SendMessage` to give an earlier subagent new, unrelated work. Make a fresh, unnamed `Agent` call. `SendMessage` is only to resume or correct the same task (Rule 5).
+- Passing `name` to the `Agent` tool "just in case" a follow-up is needed. The agent ID that the dispatch returns is enough for `SendMessage`. With agent teams on, a name turns the subagent into a teammate (Rule 5).
 - Briefing a write-capable subagent with a relative path or no worktree path at all, and hoping it infers the right one.
 - "My job is the worktree removal / the one-file edit / the single command — I'll dispatch a subagent to do it and report back." — that's a pass-through delegator; do the concrete work yourself (Rule 7).
 - "I'll fold the review loop into the implementer's brief — it saves a round trip." — no; a step that dispatches its own subagents is the orchestrator's own next dispatch, made after the previous phase reports (Rule 1, and Phase 2 / Phase 3 in `dev-essentials:research-implement-review-report`).

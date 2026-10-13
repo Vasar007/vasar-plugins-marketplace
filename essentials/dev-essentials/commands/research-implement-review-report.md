@@ -237,7 +237,7 @@ numbered session sequence the user is already keeping):
 Confirm to the user where the report was saved and give the same one-line
 summary `save-context` gives, plus the final review-loop verdict
 (`stop-clean` / `stop-max-rounds` / `stop-blocked`). This includes
-`save-context`'s next-session continuation prompt (its Step 6) — carrying the
+`save-context`'s next-session continuation prompt (its Step 7) — carrying the
 worktree's absolute path and branch name whenever this run used one.
 
 ## Commit cadence
