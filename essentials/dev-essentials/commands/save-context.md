@@ -25,7 +25,7 @@ Save the current session's context, research findings, decisions, and progress t
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
 | `--no-continuation-prompt` | Skip Step 7's next-session continuation prompt (emitted by default) |
 | `--interactive` | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | Do not stop at any gate, also before deletion. Questions that block the work still stop. See "Autonomy". |
+| `--autonomous` | Do not stop at any gate. This includes the gate before deletion. The run still stops for a question that blocks the work. See "Autonomy". |
 
 ## Autonomy
 
@@ -33,7 +33,7 @@ This workflow has three modes. The user picks one with a flag.
 
 - Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
 - `--interactive`: every gate stops and waits for the user, as the gate text says.
-- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
 
 These rules apply in all modes:
 
@@ -42,7 +42,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: commits that no other branch or remote holds (such as `git branch -D` on an unmerged branch), and uncommitted changes (such as a worktree removal that has uncommitted changes). Do not do such an action. List it in the final report. A context file that a cleanup step of this workflow classifies for deletion is not covered by this rule.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -160,7 +160,7 @@ This is a light pass, not a full trim. To trim one file in depth, use `dev-essen
    - Delete (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
    - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
    - Keep: the saved file, the files of work that still runs, and raw history exports such as session transcripts.
-   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Delete it only after the user says yes. With `--autonomous`, delete it without the question, and list it in Step 6.
+   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Delete it only after the user says yes. With `--autonomous`, delete a file from an older session without the question, and list it in Step 6. A branch follows the safety rules below.
 3. In the saved file and in the trimmed files, update facts that are no longer true. Examples: an old commit SHA, an old version, or a "this session" frame from an earlier date.
 4. Fix each link to a deleted file. Remove the link, or point it to the file that now holds the fact.
 
@@ -168,7 +168,7 @@ Safety rules:
 
 - Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
-- Do not delete a file from an older session or a branch without the user's yes or `--autonomous`.
+- Do not delete a file from an older session or a branch without the user's yes or `--autonomous`. A branch that `git branch -d` refuses stays, and the run lists it for the user in every mode.
 - For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. With `--autonomous`, never use it. List the branch for the user.
 
 ### 6. Confirm to user

@@ -68,7 +68,7 @@ This workflow has three modes. The user picks one with a flag.
 
 - Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
 - `--interactive`: every gate stops and waits for the user, as the gate text says.
-- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
 
 These rules apply in all modes:
 
@@ -77,7 +77,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: commits that no other branch or remote holds (such as `git branch -D` on an unmerged branch), and uncommitted changes (such as a worktree removal that has uncommitted changes). Do not do such an action. List it in the final report. A context file that a cleanup step of this workflow classifies for deletion is not covered by this rule.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -637,7 +637,7 @@ Present to user:
 >
 > **Counts as explicit gate-skip authorization** (only these, or clear
 > equivalents, waive the gate — and only if typed by the user in this
-> session), or the flag `--autonomous` on this invocation: "approve all gates", "auto-approve the pipeline", "skip Human
+> session): "approve all gates", "auto-approve the pipeline", "skip Human
 > Approve #1/#2", "I trust you, run end-to-end".
 >
 > **Does NOT count** — the gate stays armed: "no clarifying questions", "make
@@ -752,7 +752,7 @@ Wait for all three to complete, then update checkpoint.
 
 ### Human Approve #2 (after Review)
 
-This gate stops without `--autonomous`, because it approves the posts to the task provider, the push, and the PR of Stage 9. With `--autonomous`, write the gate content to the final report, and continue to Task Comment #2. One exception: if blocking issues remain after the automatic fix round, stop and show this gate in every mode. The run cannot fix them itself. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
+This gate stops without `--autonomous`, because it approves the posts to the task provider, the push, and the PR of Stage 9. With `--autonomous`, write the gate content to the final report, and continue to Task Comment #2. If Task Comment #1 is not posted yet, post it first. One exception: if blocking issues remain after the automatic fix round, stop and show this gate in every mode. The run cannot fix them itself. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
 
 Present to user:
 
@@ -1126,7 +1126,7 @@ worktree without conflicts.
   second task comment was posted, clear only the pre-finalization comment
   checkpoint so it is regenerated from fresh results
 - If Step 3 or any later stage will run and `taskComments.analysisPostedAt` is
-  missing, post Task Comment #1 before continuing (without `--interactive`,
+  missing, post Task Comment #1 before continuing (in the default mode,
   Human Approve #2 posts it instead)
 - If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, post
   Task Comment #2 before continuing
