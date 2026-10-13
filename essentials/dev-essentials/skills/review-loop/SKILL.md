@@ -77,6 +77,19 @@ Single-cycle runs default to printing the full cycle report to chat. Multi-cycle
 - `--save-reports`: forces write-to-file even for single-cycle runs.
 - `--print-reports`: forces print-to-chat even for multi-cycle runs.
 - Phase 9 (final summary) follows the same destination rule: write-to-file when multi-cycle or `--save-reports`; print-to-chat otherwise. File path: `Notes/Reviews/<target-slug>-summary.md`.
+- When the run format applies (see "Run format" below), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
+
+## Run format
+
+The run format says what the orchestrator checks itself and how the run reports in chat. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer. This section follows the section "Run format agreement" in `dev-essentials:subagent-orchestration`.
+
+After Phase 2, state the run format in a few lines. If there is a Phase 1 scope hint, add it. Do not wait for an answer. The run format applies from this statement unless the user objects. If the calling workflow already stated the same run format in this session, do not state it again.
+
+- Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
+- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment and any finding that needs the decision of the user. If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. When a calling workflow runs this skill, give the Phase 9 summary to that workflow and print only the status line.
+- Agreement: the run format applies from the statement after Phase 2 unless the user objects. The acknowledgment of the Phase 4 triage confirms it. The agreement is implicit in three cases: `--auto-proceed` is set, the user asked for full autonomy, or the request gives the same rules. Then the run does not stop for it. The user can change the format at any time.
+
+When the run format applies, the check scope replaces two things for this run only. The first is the "Trust but verify" section of `dev-essentials:subagent-orchestration`. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The Phase 4 triage judgment, Phase 6, and the Role 4 reads of large-target mode still run.
 
 ## Severity and type taxonomy
 
@@ -135,6 +148,8 @@ Validate `--reviewer` and `--fixer` against the installed plugin set before disp
 - When `--reviewer` is not `audit-team`, `--audit-team-args` is ignored. Print a warning: "`--audit-team-args` is set but `--reviewer` is `<value>`, not `audit-team` — ignoring `--audit-team-args`." One exception: if `--audit-team-args` is set and `--reviewer` was **not** given at all, read it as an implicit `--reviewer audit-team` rather than silently discarding the args against the default reviewer.
 
 The fallback rule is uniform — it applies to any unknown agent ID, not only `feature-dev:code-reviewer`. The user is always told which ID was unresolvable and what was substituted.
+
+When Phase 2 is done, state the run format (see "Run format"). Do not wait for an answer.
 
 ### Phase 3 — Round-N review
 
@@ -206,7 +221,7 @@ Round <N> findings:
 Proceeding to verify+fix <F> issues. Deferring <D>.
 ```
 
-Apply `--skip` exactly: each severity token in `--skip` is its own independent gate — `--skip medium,low` defers Medium and Low but Nit remains eligible for fixing. When `--skip none` (the default), every severity row shows "(will fix)" and no "(deferred)" rows appear. Print the triage and **wait for the user to acknowledge** before starting Phase 5, unless `--auto-proceed` is set — in that case proceed immediately.
+Apply `--skip` exactly: each severity token in `--skip` is its own independent gate — `--skip medium,low` defers Medium and Low but Nit remains eligible for fixing. When `--skip none` (the default), every severity row shows "(will fix)" and no "(deferred)" rows appear. Print the triage and **wait for the user to acknowledge** before starting Phase 5, unless `--auto-proceed` is set — in that case proceed immediately. The acknowledgment also gives the final agreement to the run format (see "Run format"). If the run format applies and `--auto-proceed` is set, write the triage into the cycle report and print only its status line.
 
 **Judge every finding on its merits, not on its label.** `--skip none` is the default precisely so nothing is auto-deferred unread — but it is not licence to mechanically fix everything either. For each finding, read what the reviewer actually concluded — its own **Must fix before merge** / **Acceptable risks** / **Needs discussion** call from the report's Conclusion section — instead of triaging off the severity label alone:
 
@@ -302,7 +317,7 @@ Decide whether to run another cycle. The decision is deterministic:
 
 ### Phase 9 — Final summary
 
-Aggregate across all cycles. Follow the report destination rules (see "Report destination rules" section above): write to `Notes/Reviews/<target-slug>-summary.md` when multi-cycle or `--save-reports`; print to chat otherwise.
+Aggregate across all cycles. Follow the report destination rules (see "Report destination rules" section above): write to `Notes/Reviews/<target-slug>-summary.md` when multi-cycle or `--save-reports`; print to chat otherwise. When the run format applies, the final chat report follows the "Run format" section.
 
 Format:
 
@@ -344,7 +359,7 @@ Any `(blocking)` row, and any deferred Blocker/Critical/High row, means the run 
 
 ### Brief format (printed to chat after every cycle)
 
-Print unconditionally at the end of every cycle. Multi-cycle runs accumulate these into the final summary table in Phase 9.
+Print at the end of every cycle. When the run format applies (see "Run format"), write it into the cycle report and print only one status line. Multi-cycle runs accumulate these into the final summary table in Phase 9.
 
 ```text
 Cycle <N> — <target-summary>
