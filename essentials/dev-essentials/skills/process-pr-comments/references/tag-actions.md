@@ -1,145 +1,156 @@
 # Tag Action Matrix
 
-Authoritative per-tag behavior for `process-pr-comments`. Read this file whenever a classification lands on a tag and the short summary in `SKILL.md` is not enough.
+Stage 2 reads this file before it acts on a tagged comment. It has the action, the reply, and the examples for each tag.
 
-Tag parsing: leading bracketed tokens at the very start of the comment (e.g., `[ToFix]`, `[P1][Performance]`). Multiple tags combine — apply the strictest action. An automated review comment (e.g., from `github-actions[bot]`, `copilot[bot]`, `coderabbitai[bot]`, or any configured automated reviewer) takes precedence over any tag and routes to `automated-review-verification.md`.
+Contents: tag parsing, the size thresholds, one section for each tag, automated review comments, combined tags, and the fall-back rules.
+
+The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs, `SKILL.md` wins: `interactive` and `autonomous` change these gates as Bucket A1 and Bucket A2 say. Where this file says to ask the human or to wait, Stage 2 records the open item and goes on with the other threads. The orchestrating session asks the human (see "Who talks to the user" in `SKILL.md`).
+
+The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text.
+
+Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Apply the strictest action (see "When multiple tags combine"). A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
 
 ## Size thresholds for autonomy
 
-Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Optional]`.
+These thresholds apply to `[ToFix]`, `[Performance]`, `[PX]`, and a trivial `[Suggestion]` or `[Optional]`.
 
-- **Small** — ≤ 20 LoC changed, single file, no public API change (signatures, DTOs, exposed types), no new dependencies, no test refactor. Safe to implement.
-- **Medium / Large** — anything larger, or touching public APIs, DI wiring, EF migrations, string resources, swagger specs. If the comment or the existing code settles the approach, implement (SKILL.md § Autonomy, Bucket A1). Else draft and wait. With `interactive`, always draft and wait. If the invocation names the thread with `deep-fix=<threadId>`, route it through `/research-implement-review-report` instead. This applies in both modes (SKILL.md § "Dispatch model" Stage 3 and Phase 3's `deep-fix` override).
-- **Architectural** — reserved for changes at **rewrite-from-scratch magnitude**: the reviewer is asking for a fundamentally different mechanism with no precedent in this codebase, and there are several materially different ways to build it with nothing in the existing code to choose between them. Always draft; consider suggesting a design review — or, with `deep-fix` naming the thread, route it through `/research-implement-review-report` (same pointer as the Medium/Large row above). Merely adding, moving, or renaming a type across projects is **not** this level on its own — that is a Medium/Large fix, judged on the row above.
+- **Small**: at most 20 changed lines of code, one file, and no public API change (signatures, DTOs, exposed types). It adds no dependency and no test refactor. It is safe to implement.
+- **Medium / Large**: anything larger, or a change that touches public APIs, DI wiring, EF migrations, string resources, or swagger specs. If the comment or the existing code settles the approach, implement it (Bucket A1). Else draft and wait, unless `autonomous` is set (Bucket A2). With `interactive`, always draft and wait. If `deep-fix` names the thread, send it through `/research-implement-review-report` instead, in every mode (see `deep-fix.md` § "`deep-fix` override").
+- **Architectural**: only for a change at **rewrite-from-scratch size**. The bar is the exception of `automated-review-verification.md` § "Obviousness test (Phase 3b step 5)". The reviewer asks for a basically different mechanism with no precedent in this codebase. Several materially different ways to build it exist, and nothing in the existing code chooses between them. Draft and wait, unless `autonomous` is set (Bucket A2). You can suggest a design review. If `deep-fix` names the thread, send it through `/research-implement-review-report`, as in the Medium / Large row. To add, move, or rename a type across projects is **not** this level on its own. That is a Medium / Large fix, and the row above applies.
 
-`strict` flag treats every category as "draft and wait". `interactive` brings back draft-and-wait for Medium/Large. `deep-fix` is a per-thread override the human supplies at invocation, not a category `strict` or the size thresholds pick automatically — see SKILL.md Phase 3's `deep-fix` override for the full eligibility rule.
+`strict` treats every category as "draft and wait". `interactive` brings back "draft and wait" for Medium / Large. `deep-fix` is an override for one thread, which the human gives at invocation. `strict` and the size thresholds never pick it on their own. For the full rule, see `deep-fix.md` § "`deep-fix` override".
 
 ## Tags
 
 ### `[ToFix]`
 
-The reviewer requires a change. The PR will not be approved without it.
+The reviewer requires a change. The PR does not get approval without it.
 
-- Small: implement edit → verify build/tests → commit (eager, no approval needed — Phase 4) → reply immediately, referencing the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` Push is a separate, later, per-cycle step gated by explicit approval (see Phase 4) — unless `autonomous` is set. Pass `no-commit` to stage only instead.
-- Medium / Large: if the comment or the existing code settles the approach, implement (SKILL.md § Autonomy, Bucket A1). Else prepare the diff in chat, explain the approach, and wait for the human's explicit go-ahead. With `interactive`, always draft and wait. If `deep-fix=<threadId>` names this thread, route it through `/research-implement-review-report` instead. This applies in both modes (SKILL.md's `deep-fix` override). In the draft path, do not edit files.
-- After implementation, the thread stays open until its commit's push actually lands. Once it does, the skill resolves the thread itself via `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`) (Phase 4) — no manual GitHub UI step needed for a fix this skill made.
+- Small: implement the edit. Then run Phase 4 steps 1 to 4 (`commit-push-resolve.md`). Build and test, then commit at once, with no approval first. Reply at once with the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` The push is a separate step later in the cycle. It needs the explicit go-ahead of the user, unless `autonomous` is set (Phase 4). To stage only, pass `no-commit`.
+- Medium / Large: if the comment or the existing code settles the approach, implement it (Bucket A1). Else prepare the diff in chat, explain the approach, and wait for the explicit go-ahead of the human. With `autonomous`, implement it instead, and name the approach in the reply (Bucket A2). With `interactive`, always draft and wait. If `deep-fix` names this thread, send it through `/research-implement-review-report` instead, in every mode (see `deep-fix.md`). On the draft path, do not edit files.
+- After the fix, the thread stays open until the push of its commit lands. Then the skill resolves the thread itself (`commit-push-resolve.md` § "Resolve threads and report"). A fix of this skill needs no manual step in the GitHub UI.
 
 Example (small):
 
 > Reviewer: `[ToFix] Rename FooID to FooId — matches the rest of this file.`
 >
-> Action: edit the file, verify build/tests, commit, reply: `**[AI]** Fixed: renamed FooID → FooId. Committed as a1b2c3d; will be included in the next push.`
+> Action: edit the file, build and test, commit, and reply: `**[AI]** Fixed: renamed FooID → FooId. Committed as a1b2c3d; will be included in the next push.`
 
 ### `[Performance]`
 
-Identical workflow to `[ToFix]` with two additions:
+The workflow is the same as for `[ToFix]`, with two additions:
 
-1. In the reply, note any observable effect ("inner loop tightened, removes N allocations per request").
-2. If tests or benchmarks exist near the change, run them locally and include the result in the chat log. If none exist, surface that: "No benchmark covers this path — consider adding one if this is hot code."
+1. In the reply, name each effect that you can observe, for example `inner loop tightened, removes N allocations per request`.
+2. If tests or benchmarks exist near the change, run them locally, and put the result in the chat log. If none exist, say so: `No benchmark covers this path — consider adding one if this is hot code.`
 
-Never mark a `[Performance]` thread as done silently; always state what you changed and what you did not measure.
+Never mark a `[Performance]` thread as done silently. Always state what you changed and what you did not measure.
 
 ### `[PX]` (`[P1]`, `[P2]`, `[P3]`, …)
 
-Priority marker, not an action class. The underlying action comes from the co-tag (e.g. `[P1][ToFix]`). If `[PX]` appears alone, treat as `[ToFix]` at the stated priority.
+A priority marker, not an action class. The action comes from the other tag, for example `[P1][ToFix]`. A `[PX]` tag alone counts as `[ToFix]` at the stated priority.
 
-Priority ordering:
+Priority order:
 
-- `P1` / `P2`: process first each cycle; never defer.
-- `P3` and higher: safe to defer behind lower-priority work but do not ignore.
+- `P1` and `P2`: process them first in each cycle. Never defer them.
+- `P3` and lower priorities (`P4` and up): process them after the `P1` and `P2` threads. Never skip them.
 
 ### `[Suggestion]`
 
-A concrete improvement. PR approval is not blocked.
+A concrete improvement. It does not block the approval of the PR.
 
-- Trivial + small: implement like `[ToFix]`. Reply `**[AI]** Applied suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
-- Non-trivial: if the comment or the existing code settles the direction, implement it and state the direction and a one-line reason in the reply (SKILL.md § Autonomy, Bucket A1). If nothing settles the direction, draft the trade-off in chat. Then post a `**[AI][Draft]**` reply that summarizes pros/cons (Bucket A2). Do the same with `interactive`. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
+- Trivial and small: implement it like `[ToFix]`. Reply `**[AI]** Applied suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
+- Non-trivial, and the comment or the existing code settles the direction: implement it. State the direction and a one-line reason in the reply (Bucket A1).
+- Non-trivial, and nothing settles the direction: draft the trade-off in chat. Then post a `**[AI][Draft]**` reply that sums up the pros and the cons (Bucket A2). With `autonomous`, implement it instead, and name the direction and the reason in the reply. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
+- With `interactive`, draft in both non-trivial cases.
 
 ### `[Optional]`
 
-Very close to `[Suggestion]` but weaker: "do this if easy, otherwise skip."
+Close to `[Suggestion]`, but weaker. The reviewer means: if it is easy, do it. Else skip it.
 
-- Trivial + small: implement and reply with explicit "optional accepted" language: `**[AI]** Applied optional suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
-- Otherwise: reply `**[AI][Draft]** Optional — keeping current shape; happy to change if preferred. Reason: <one-line>.` No code edit.
+- Trivial and small: implement it. Reply with explicit "optional accepted" words: `**[AI]** Applied optional suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
+- Non-trivial, and the comment or the existing code settles the direction: implement it (Bucket A1). Use the same reply, and add the direction and a one-line reason.
+- Non-trivial, and nothing settles the direction: reply `**[AI][Draft]** Optional — keeping current shape; happy to change if preferred. Reason: <one-line>.` Make no code edit. With `autonomous`, implement it instead, and name the direction and the reason in the reply (Bucket A2).
+- With `interactive`, use the draft reply in both non-trivial cases.
 
-Never block on `[Optional]`. Never push back hard — the mtlynch rule "don't withhold approval for trivia" applies here symmetrically.
+Never block on `[Optional]`. Never push back hard. Principle 5 of `review-principles.md` applies here in both directions.
 
 ### `[Question]`
 
-The reviewer wants an explanation. Authorship risk is real — a wrong public answer over the author's identity can mislead reviewers. Never post a `[Question]` reply without an explicit human go-ahead.
+The reviewer wants an explanation. A wrong public answer under the identity of the author can mislead reviewers. So without `autonomous`, never post a `[Question]` reply without an explicit go-ahead of a human. With `autonomous`, post the answer directly, in the same draft format (Bucket A2).
 
-- Read the relevant code before answering. Do not synthesize from the comment alone.
-- Draft format: claim + reasoning + citation (file and line range, existing test, or linked documentation).
+- Read the related code before you answer. Do not build the answer from the comment alone.
+- Draft format: a claim, the reasoning, and a citation (file and line range, an existing test, or linked documentation).
 - Show the draft to the human in chat first. Ask: `Post this [Question] reply to T#<thread-id>? (yes / edit / skip)`.
-- Only after `yes` → post `**[AI][Draft]** <answer in 1–3 short sentences>. See <file:line> / <test> / <doc link>.\n\n*Draft pending author confirmation.*`
-- On `edit` → incorporate the human's revision and ask again.
-- On `skip` → record the decision in `processedCommentIds` with `action: "drafted"` and `replyPosted: false`; do not post.
-- If the answer is "I don't know", say so; surface the uncertainty in chat and ask the human rather than posting speculation.
+- Only after `yes`, post `**[AI][Draft]** <answer in 1–3 short sentences>. See <file:line> / <test> / <doc link>.\n\n*Draft pending author confirmation.*`
+- On `edit`, use the revision of the human, and ask again.
+- On `skip`, add the comment to `processedCommentIds` with `action: "skipped"` and `replyPosted: false`. Do not post.
+- If you do not know the answer, say so. Show the uncertainty in chat, and ask the human. Never post a guess.
 
 ### `[ToDiscuss]`
 
 The reviewer wants a conversation, not a fix. Never edit code.
 
-- Summarize the positions in chat: the reviewer's concern, your reading of the trade-off, a proposed direction.
-- Do NOT post a thread reply automatically. Surface to the human with: "This thread is tagged `[ToDiscuss]` — want me to draft a reply or wait for you to respond?"
-- If the user asks, post a measured reply that frames options and tags uncertainty.
+- Sum up the positions in chat: the concern of the reviewer, your reading of the trade-off, and a proposed direction.
+- Without `autonomous`, do NOT post a thread reply on your own. Ask the human: `This thread is tagged [ToDiscuss] — want me to draft a reply or wait for you to respond?`
+- If the user asks for a reply, or with `autonomous` (Bucket A2), post a measured reply that frames the options and marks the uncertainty.
 
 ### `[OutOfScope]`
 
-Never implement in the current PR. The comment either records a concern or asks for follow-up tracking.
+Never implement it in the current PR. The comment records a concern, or asks for tracking in a follow-up.
 
 Decision tree:
 
-1. Reviewer is just noting it → reply `**[AI]** Noted, out of scope for this PR.` No further action.
-2. Reviewer asks to track separately (phrases: "track it", "open a ticket", "file an issue", "separate PR", "TODO") → delegate to the Task Composer agent.
+1. The reviewer only notes it: reply `**[AI]** Noted, out of scope for this PR.` Do nothing more.
+2. The reviewer asks for separate tracking, with words like `track it`, `open a ticket`, `file an issue`, `separate PR`, or `TODO`: hand it to the Task Composer agent.
 
 Issue flow:
 
-1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags. Task Composer drafts title and description in chat — no file written, no GitHub call yet.
-2. Confirm title and type with the user. With `autonomous`, skip this step: take the fields from the draft, and name them in the cycle log (SKILL.md § Autonomy, Bucket A2).
-3. On user approval, or with `autonomous`, re-invoke Task Composer with `mode: create` and the confirmed fields plus `owner` and `repo` (required by Task Composer; pass verbatim, never infer — see `dev-essentials:github-mcp-conventions` Rule 1). Task Composer handles the full create → link (when a parent is given) → verify flow and returns the verified ID and URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which confirms `mode: create`.
-4. Use ONLY the verified ID and URL returned by Task Composer. Reply `**[AI]** Tracked as issue #<id>: <title>.`
+1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a short brief: the comment text, the file and the line, the reason that it is out of scope, and each priority hint from other tags. Task Composer drafts the title and the description in chat. It writes no file and makes no GitHub call yet.
+2. Ask the user to approve the title and the type. With `autonomous`, skip this step: take the fields from the draft, and name them in the cycle log (Bucket A2).
+3. After the approval of the user, or with `autonomous`, invoke Task Composer again with `mode: create`, the approved fields, `owner`, and `repo`. Task Composer requires `owner` and `repo`. Pass them word for word, and never infer them (`dev-essentials:github-mcp-conventions` Rule 1). Task Composer creates the issue. If the brief gives a parent, Task Composer links the issue to it. Then it reads the issue back, and returns its ID and its URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which approves `mode: create`.
+4. Use ONLY the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
-If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No issue.
+If the user declines, or wants to defer: reply `**[AI]** Noted — will not track separately yet.` Create no issue.
 
 ### `[Note]` and untagged comments
 
-Informational. No code edit. No thread reply.
+Information only. No code edit and no thread reply.
 
-- Summarize in chat so the human sees the note.
-- Skip the dedup set ONLY if the `tags` param excludes Note; otherwise add to `processedCommentIds` so it is not re-surfaced next cycle.
-- If the note appears to contain hidden action ("btw, should we refactor X?"), surface the ambiguity and ask the human whether to re-classify as `[Suggestion]` or `[Question]`.
+- Sum up the note in chat, so that the human sees it.
+- If the `tags` parameter excludes `Note`, do not add the comment to `processedCommentIds`. Else add it with `action: "noted"`, so that the next cycle does not show it again.
+- A note can hide an action, for example `btw, should we refactor X?`. Then show the ambiguity, and ask the human whether to classify the note again as `[Suggestion]` or `[Question]`.
 
 ### `[Repetition]`
 
-The reviewer has flagged a pattern seen multiple times; the `[Repetition]` tag signals "fix the whole pattern, not just this instance."
+The reviewer marks a pattern that occurs several times. The tag means: fix the whole pattern, not only this instance.
 
-1. Resolve the underlying tag (usually `[ToFix]` or `[Suggestion]`).
-2. Find all occurrences of the pattern in the PR's diff (NOT outside it — respect scope).
-3. Without `interactive`, apply the pattern fix across all occurrences. With `interactive`, present the pattern and the occurrence list in chat, and ask: "Found N occurrences. Apply the pattern fix across all?"
-4. On user approval: implement across all occurrences, commit (eager, Phase 4), reply `**[AI]** Fixed pattern across N occurrences: <summary>. Committed as <short-sha>; will be included in the next push.`
-5. Without approval: fix only the flagged instance and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
+1. Find the underlying tag, usually `[ToFix]` or `[Suggestion]`.
+2. Find every occurrence of the pattern in the diff of the PR, and NOT outside it. Keep to the scope of the PR.
+3. Without `interactive`, apply the pattern fix at every occurrence (Bucket A1), and go to step 4. With `interactive`, show the pattern and the list of occurrences in chat, and ask: `Found N occurrences. Apply the pattern fix across all?`
+4. After the fix at every occurrence, commit at once (Phase 4), and reply `**[AI]** Fixed pattern across N occurrences: <summary>. Committed as <short-sha>; will be included in the next push.`
+5. With `interactive` and no approval: fix only the flagged instance, and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
 
 ### Automated review comments (special case)
 
-Takes precedence over tags. See [`automated-review-verification.md`](automated-review-verification.md). Summary:
+They take precedence over tags. Follow [`automated-review-verification.md`](automated-review-verification.md). In short:
 
-- Always re-verify independently. Do not trust the bot's framing.
-- Land on a verdict: `valid` / `valid-but-narrow` / `needs-clarification` / `false-positive` / `not-applicable`.
-- `valid` / `valid-but-narrow` findings are implemented and committed directly, like `[ToFix]`, whenever SKILL.md Phase 3b's obviousness test passes — in-diff, no NEW architecture or public contract, and not a rewrite-from-scratch-magnitude redesign. **The size thresholds above do not apply to this path**: multi-file fixes, schema-threading fixes, contract-tightening fixes, and `confidence: medium`/`low` verdicts are all implemented (with the open question stated in the same reply — "ask AND fix"). See SKILL.md Phase 3b and `automated-review-verification.md`'s "Implemented fix" template. Only Phase 3b step 5's rewrite-from-scratch exception, or a `needs-clarification`/`false-positive`/`not-applicable` verdict, posts an `**[AI][Draft]**` reply and waits for human approval — unless `deep-fix` names the thread, in which case the rewrite-from-scratch exception's fall-through routes to Stage 3 instead (SKILL.md Phase 3b step 5's second exit). `needs-clarification` / `false-positive` / `not-applicable` verdicts are never eligible for `deep-fix` either — there is no actionable fix to route in those cases.
+- Always test the finding on your own. Do not trust the framing of the bot.
+- Set one verdict: `valid`, `valid-but-narrow`, `needs-clarification`, `false-positive`, or `not-applicable`.
+- For `valid` and `valid-but-narrow`, the obviousness test of that file decides the path: a direct implementation, a draft, or Stage 3 for `deep-fix` (§ "Obviousness test (Phase 3b step 5)"). **The size thresholds of this file do not apply to this path.**
+- `needs-clarification`, `false-positive`, and `not-applicable` never get a code change, and never go to `deep-fix`.
 
 ## When multiple tags combine
 
-Use the strictest action among them:
+Use the strictest action of the tags:
 
-- `[P1][ToFix]` → treat as `[ToFix]` with priority P1 (process first).
-- `[Optional][Suggestion]` → treat as `[Optional]` (weakest action); reply language emphasizes "optional".
-- `[Repetition][ToFix]` → `[Repetition]` workflow; the underlying tag is `[ToFix]`.
-- `[OutOfScope][Suggestion]` → `[OutOfScope]` workflow (never implement in current PR); use suggestion text to inform the follow-up issue brief.
-- `[Performance][ToFix]` → `[Performance]` workflow (explicit effect note in reply).
+- `[P1][ToFix]`: treat it as `[ToFix]` with priority P1 (process it first).
+- `[Optional][Suggestion]`: treat it as `[Optional]` (the weakest action). The reply says clearly that the change is optional.
+- `[Repetition][ToFix]`: the `[Repetition]` workflow, with `[ToFix]` as the underlying tag.
+- `[OutOfScope][Suggestion]`: the `[OutOfScope]` workflow (never implement it in the current PR). Use the text of the suggestion in the brief for the follow-up issue.
+- `[Performance][ToFix]`: the `[Performance]` workflow, with the explicit note on the effect in the reply.
 
 ## Fall-back rules
 
-- Cannot parse any tag → `[Note]`.
-- Cannot determine size category → treat as Medium (draft, do not implement).
-- Cannot read the file referenced by `threadContext` (e.g., renamed, moved) → do NOT guess. Surface to the human in chat and leave the comment unprocessed for the next cycle.
+- No tag parses: `[Note]`.
+- The size category is not clear: treat the change as Medium / Large, and follow that row of "Size thresholds for autonomy".
+- The file of the thread (`filePath`) cannot be read, for example because it was renamed or moved: do NOT guess. Show the thread to the human in chat, and leave the comment unprocessed for the next cycle.

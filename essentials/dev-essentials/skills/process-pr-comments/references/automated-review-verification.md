@@ -1,6 +1,8 @@
 # Automated Review Verification
 
-Read before replying to any comment carrying an automated review header (e.g., `AI Code Review`, `copilot:review`, `coderabbitai`, or a similar bot-generated heading). Automated review comments are the most failure-prone class of review feedback — they quote stale snippets, miss enclosing invariants, or flag code that is not reachable in production. Never trust the framing; always verify independently.
+Read this file before you reply to a comment with an automated-review header. Examples: `AI Code Review`, `copilot:review`, `coderabbitai`, or a similar heading from a bot. Automated review comments fail more often than other review feedback. They quote old snippets, miss the invariants of the enclosing code, or flag code that production never reaches. Never trust the framing. Always test the finding on your own.
+
+Contents: what counts as an automated review comment, the steps before a verdict, and the verdicts and confidence levels. Then the obviousness test, the reply templates, the hard rules, and the chat output.
 
 ## What counts as an automated review comment
 
@@ -10,15 +12,15 @@ Any comment whose first non-empty line (or title) contains one of:
 - `copilot:review` or similar GitHub Copilot review header
 - A header/section that introduces the comment as coming from an automated review bot
 
-If uncertain, err on the side of treating it as an automated review — the extra verification cost is cheaper than a bad auto-apply.
+If you are not sure, treat the comment as an automated review. The extra work costs less than a bad automatic fix.
 
 ## Verification checklist
 
-Run every step in order — do not skip straight to a verdict without reading the code and widening the lens first, even for obviously trivial-looking notes. Once a verdict and confidence are assigned, SKILL.md Phase 3b's obviousness test decides whether this note qualifies for the implement-and-reply path instead of the draft-and-ping path below; that test is a gate on WHAT HAPPENS AFTER verification, not a license to skip verification itself. Note the test's bar: a `valid`/`valid-but-narrow` finding is implemented directly unless the right fix would mean **rewriting the target from scratch or a redesign of equivalent magnitude** — size, file count, and less-than-high confidence do not divert a finding to the draft path. When the right fix DOES hit that bar, the exception's fall-through has a second exit: if `deep-fix=<threadId>` names this thread, it routes to Stage 3 (`SKILL.md` § "Dispatch model" and Phase 4's "Stage 3 — `deep-fix` brief and outcomes") instead of the draft-and-ping path below — SKILL.md Phase 3b step 5's second exit. The three non-actionable verdicts (`needs-clarification` / `false-positive` / `not-applicable`) stay ineligible for either path — there is no fix to implement, draft, or route.
+Run every step in order. Do not jump to a verdict before you read the code and widen the lens, also for a note that looks trivial. After you set the verdict and the confidence, § "Obviousness test (Phase 3b step 5)" decides what comes next: a direct implementation, a draft, or Stage 3 for `deep-fix`. The test decides what happens after these steps. It never allows you to skip them.
 
 ### 1. Re-read the actual code
 
-Use the thread's file path and line range. Read the file at the PR's latest iteration. The snippet the bot quoted may be:
+Use the file path and the line range of the thread. Read the file at the latest iteration of the PR. The snippet that the bot quoted can be:
 
 - Stale (from an earlier iteration).
 - Truncated, hiding guards or early-returns.
@@ -29,7 +31,7 @@ Use the thread's file path and line range. Read the file at the PR's latest iter
 Read:
 
 - The enclosing method and class.
-- Direct callers (grep for the method name; check DI composition if it is injected).
+- The direct callers. Search for the method name. If the class is injected, also read the DI composition.
 - Any adjacent tests (same folder or mirrored test file).
 - Feature-flag / options binding that gates this code path.
 
@@ -42,45 +44,65 @@ Ask:
 - Is this code reachable under production configuration?
 - Is it gated by a feature flag that is off in prod?
 - Is it test-only (test project, `#if DEBUG`, `TestHost` wiring)?
-- Would the proposed change alter observable prod behavior or only test/debug paths?
+- Does the proposed change alter the behavior that production shows, or only test and debug paths?
 
 ### 4. Check for false-positive signatures
 
 Automated review tools commonly misfire on:
 
-- Null checks before a member the compiler already guarantees non-null (e.g., after a `Guard.Against.Null`, primary-constructor parameter with non-null reference type).
+- Null checks before a member that the compiler already guarantees as non-null. Examples: a member after `Guard.Against.Null`, or a primary-constructor parameter with a non-null reference type.
 - Async/await patterns already handled by a framework abstraction.
-- Configuration access on options objects already validated by FluentValidation.
+- Configuration access on options objects that FluentValidation rules already guard.
 - "Possible exception" on paths already wrapped by a global exception handler or middleware.
-- "Magic number" / "hardcoded string" comments on values that have a clear semantic meaning and a named constant would not improve readability.
+- "Magic number" or "hardcoded string" comments on a value with a clear meaning, where a named constant does not help the reader.
 
-If the flagged pattern matches one of these, the default verdict is `false-positive` unless re-verification proves otherwise.
+If the flagged pattern matches one of these, the default verdict is `false-positive`, unless a new look at the code shows otherwise.
 
 ### 5. Assign a verdict
 
 Use exactly one of:
 
-| Verdict               | Meaning                                                                                                                 |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `valid`               | Concern is real and the proposed fix is the right direction.                                                            |
-| `valid-but-narrow`    | Concern is real, but the proposed fix misses a larger or better refactor. Draft the wider fix.                          |
-| `needs-clarification` | Code could go either way depending on author intent not visible in the PR. Ask a clarifying question rather than apply. |
-| `false-positive`      | The flagged code is correct. Cite the invariant, test, or config that makes it safe.                                    |
-| `not-applicable`      | Pattern does not apply here (test-only, feature-flagged off, wrong framework abstraction assumed, etc.).                |
+| Verdict | Meaning |
+| --- | --- |
+| `valid` | The concern is real, and the proposed fix goes in the right direction. |
+| `valid-but-narrow` | The concern is real, but the proposed fix misses a larger or better refactor. Plan the wider fix. The obviousness test decides whether you implement it or draft it. |
+| `needs-clarification` | The code can be right or wrong. That depends on an intent of the author that the PR does not show. Ask a clarifying question. Do not apply a fix. |
+| `false-positive` | The flagged code is correct. Cite the invariant, test, or configuration that makes it safe. |
+| `not-applicable` | The pattern does not apply here, for example test-only code, a feature flag that is off, or a wrong framework abstraction. |
 
 ### 6. Assign confidence
 
-| Level    | When to use                                                                                                                      |
-|----------|----------------------------------------------------------------------------------------------------------------------------------|
-| `high`   | Verdict verified by code + tests + invariant. A human reading the same evidence would reach the same conclusion.                 |
-| `medium` | Verdict supported by code reading; tests or invariants unclear or partial.                                                       |
-| `low`    | Verdict is a reasonable lean but depends on intent not visible to Claude. Treat the draft as a starting point, not a conclusion. |
+| Level | When to use |
+| --- | --- |
+| `high` | The code, the tests, and an invariant all support the verdict. A human who reads the same evidence reaches the same conclusion. |
+| `medium` | Code reading supports the verdict. The tests or the invariants are unclear or partial. |
+| `low` | The verdict is a reasonable lean, but it depends on an intent that Claude cannot see. Treat the draft as a starting point, not a conclusion. |
 
-Low confidence is a signal, not a failure, and it is **not** a stop. On a `valid`/`valid-but-narrow` finding it does not divert to the draft path — per SKILL.md Phase 3b step 5, the fix is implemented anyway and the uncertainty is stated as an explicit question in the reply and in the chat report ("ask AND fix"). What confidence tells the human is how much of the reply is judgement rather than verified fact.
+Confidence is not a gate. A `low` confidence is a signal, not a failure (see § "Obviousness test (Phase 3b step 5)"). Confidence tells the human how much of the reply is judgement and how much is tested fact.
+
+## Obviousness test (Phase 3b step 5)
+
+The test applies only to the verdicts `valid` and `valid-but-narrow`. `needs-clarification`, `false-positive`, and `not-applicable` NEVER take this path, whatever their size. For them, go to `SKILL.md` Phase 3b step 6.
+
+For `valid` and `valid-but-narrow`, the size of the fix does **not** matter. Ask one question: **does the right fix rewrite the target file or section from scratch, or redesign it at the same size**? If the answer is no, the change is a fix. A fix that meets all three conditions below gets a direct implementation:
+
+- **It is a fix, not a redesign from the ground up**. Line count, file count, and "it touches more than one place" do **not** disqualify it. These are all fixes: a fix across several files, and a field threaded through a schema and its consumers. A stricter form of a rule that the code or the doc already states is a fix too. A missing case added to existing logic is a fix too. So is the end of a contradiction between two parts of the current change.
+- **It stays inside the files and areas that the PR diff already touches**. It does not expand into new files or areas outside the scope. This is PR-scope discipline (Bucket B in `SKILL.md`).
+- **It adds no NEW architecture and no NEW public contract**. Some changes fix an existing contract. Examples: documented behavior made to match reality, a stated rule made stricter, and a gap in existing logic closed. A mismatch between stated and actual behavior, corrected, is one too. These are not a change of architecture or contract. Only a mechanism or a contract that does not exist today fails this condition.
+
+A fix that fails the second or the third condition goes to Phase 3b step 6, like the exception below.
+
+**The exception: the only reason of size to decline a direct implementation**. Go to step 6 for a fix that rewrites the target file or section from scratch. A redesign that is just as basic counts too. Both parts must hold. (a) The reviewer asks for a different mechanism that has **no precedent anywhere in this codebase**. AND (b) there are **several materially different ways to build it**, and nothing in the existing code chooses between them. Two examples still need a draft. The first is "replace the whole polling design with an event-driven one" in a codebase with no event infrastructure. The second is "split this into three separate commands", where the split boundary is truly open. Nothing in the list of the first condition reaches this bar.
+
+**Second exit: `deep-fix`**. If `deep-fix` names this thread, the exception goes to Stage 3 instead of step 6 (see `deep-fix.md`). `/research-implement-review-report` exists for a finding at rewrite-from-scratch size: it researches the precedent, shows the design choice for sign-off, implements, and reviews. The verdicts `needs-clarification`, `false-positive`, and `not-applicable` stay ineligible for `deep-fix`.
+
+**Confidence is not a gate. It changes what you SAY, not what you DO**. With `confidence: high`, implement and reply. With `medium` or `low`, or with doubt about the RIGHT approach (not about whether to fix), **still implement your best fix**. Also state the doubt as an explicit question in the chat report and in the thread reply: `Implemented <X>. Open question: <the specific choice you made and the alternative>. Say the word and I'll switch.` **Ask AND fix**. Confidence never stops the fix. Only a failed condition or the exception stops it. Do not mix this up with the `needs-clarification` verdict. That verdict is about whether a defect exists at all, and the skill never implements it.
+
+If the conditions hold, treat the finding like `[ToFix]`: implement, commit (Phase 4), and post a non-draft `**[AI]**` reply with the "Implemented fix" template below. This path has no draft stage.
 
 ## Draft reply templates
 
-Each verdict has a canonical draft. Customize the rationale; keep structure.
+Each verdict has one draft template. Change the rationale, and keep the structure. Post each template in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the rest of the template.
 
 ### `valid`
 
@@ -147,7 +169,7 @@ Confidence: high | medium | low.
 
 ### Implemented fix — the default path for a valid finding
 
-Used whenever `verdict` is `valid` / `valid-but-narrow` AND SKILL.md Phase 3b's obviousness test passes — the DEFAULT path for a valid finding, not a narrow fast lane. Size and file count are irrelevant to it, and `medium`/`low` confidence uses this same template with the open question appended to the body. This is the same "Implemented fix" template SKILL.md uses for `[ToFix]` — reused verbatim rather than invented here:
+Use this template for a `valid` or `valid-but-narrow` finding that passes the obviousness test. It is the default path for a valid finding, not a narrow fast lane. Size and file count do not matter. With `medium` or `low` confidence, use the same template, and add the open question to the body. It is the "Implemented fix" template of `commit-push-resolve.md` § "Reply templates", word for word:
 
 ```text
 **[AI]** **[[T#<commentId>](<html_url>)]**
@@ -155,14 +177,14 @@ Used whenever `verdict` is `valid` / `valid-but-narrow` AND SKILL.md Phase 3b's 
 Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.
 ```
 
-No `[AI][Draft]` prefix and no draft-pending line on this path — the fix is already committed, not proposed.
+This path has no `**[AI][Draft]**` prefix and no draft-pending line. The fix is already committed, not proposed.
 
 ## Hard rules
 
-- **Implementing an automated-review fix directly requires BOTH `verdict` in `valid`/`valid-but-narrow` AND passing SKILL.md Phase 3b's obviousness test.** What that test actually rules out is narrow: a fix reaching outside the current PR's diff, a fix that introduces a genuinely new architecture or public contract, and a fix that would mean rewriting the target from scratch (or an equivalently fundamental redesign with no codebase precedent and no basis for choosing between several ways to build it). It does **not** rule out multi-file fixes, threading a field through a schema, tightening an already-stated rule, closing a gap in existing logic, or a `confidence: medium`/`low` verdict — those are implemented, with any uncertainty about the approach stated as a question in the same reply. Only when the test's rewrite-from-scratch exception applies does a human have to approve in chat or in the thread before any edit — or, if `deep-fix` names this thread, route it through `/research-implement-review-report` instead of waiting on chat/thread approval (SKILL.md Phase 3b step 5's second exit). Verdicts `needs-clarification` / `false-positive` / `not-applicable` are never eligible for either the direct-implement path or `deep-fix` — there is no actionable fix in those cases, `deep-fix` or not.
+- **A direct implementation of an automated-review fix needs BOTH a `valid` or `valid-but-narrow` verdict AND a passed obviousness test**. The test is in § "Obviousness test (Phase 3b step 5)". A fix that fails the test needs the approval of a human, in chat or in the thread, before any edit. Two exceptions apply to the rewrite-from-scratch exception of the test. With `autonomous`, it goes ahead without that approval (Bucket A2 in `SKILL.md`). If `deep-fix` names this thread, it goes to Stage 3 instead (`deep-fix.md`). `needs-clarification`, `false-positive`, and `not-applicable` never get a direct implementation or `deep-fix`, because they have no fix to make.
 - Every **draft** reply (the draft templates above) must carry the `**[AI][Draft]**` prefix and the closing draft-pending line. The "Implemented fix" reply above is a completed action, not a draft, and intentionally does not carry either.
-- Never truncate the rationale — the reviewer should see the reasoning that led to the verdict, not just the verdict.
-- If verification uncovers a DIFFERENT issue adjacent to the bot's concern (genuine bug, missed null case), do NOT silently broaden the reply. Surface the secondary finding in chat to the human and ask whether to mention it in the thread.
+- Never shorten the rationale. The reviewer must see the reasoning that led to the verdict, not only the verdict.
+- The steps above can find a DIFFERENT issue next to the concern of the bot, for example a real bug or a missed null case. Do NOT broaden the reply silently. Show the second finding to the human in chat, and ask whether to mention it in the thread.
 
 ## Chat output alongside the thread reply
 
