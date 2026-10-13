@@ -1,6 +1,6 @@
 # Report templates
 
-Phase 4 and Phase 10 of `SKILL.md` read this file. Copy each template, replace the bracketed placeholders, and fill every table. Do not change the section structure.
+Phase 4 and Phase 10 of `SKILL.md` read this file. Copy each template, replace the bracketed placeholders, and fill every table. Do not change the section structure of the Phase 4 template. The Phase 10 report also holds the items that "Autonomy" in `SKILL.md` asks for.
 
 ## Phase 4 triage template
 
