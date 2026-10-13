@@ -97,7 +97,7 @@ These rules hold for the whole run.
 - **Respect `--rounds`**. Do not loop past the maximum. Report the unresolved findings under "Deferred items" in the final summary.
 - **Build and test after every fix pass (Phase 6)**. No flag skips Phase 6 after a fix pass. This session owns every red signal after a fix round: investigate and fix it, or escalate to the user.
 - **Watch the finding density**. A healthy density is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings for each 1,000 lines. The lines are the lines of diff or of file content. A high count to look thorough does not help the user. If the Phase 4 count is far from this baseline, challenge the result of the reviewer. Ask for a stricter second review before the triage. An example is 15 or more Mediums for a target of about 1,000 lines. Do not accept an inflated count as it is.
-- **Fall back to `general-purpose` for an unknown or failed agent ID**. Phase 2 has the rules. They hold for `--reviewer` and `--fixer`.
+- **Fall back to `general-purpose` for an unknown or failed agent ID**. Phase 2 has the rules. They hold for `--reviewer` and `--fixer`. If `general-purpose` is also not available, **STOP and ask the user to install at least one reviewer plugin**.
 - **Take the round number from the cycle counter of this skill**. The counter starts at 1. Never take the round number from the conversation history.
 
 ## Report destination rules
@@ -234,7 +234,7 @@ The rules that the fixer MUST follow:
 - **Never touch unrelated files**. Edit only the files that the triage names, plus a directly related supporting file that the fix structurally needs (see section 6 of `references/verify-fix-discipline.md`). Examples: the matching `*Tests.cs` for a finding about missing test coverage, or the registration file for a finding about a missing configuration option. The strict no-drift default still applies: do not start unrelated refactors.
 - **Do not over-fix**. Fix the named issue. Do not refactor the code around it, and do not fix nearby issues that are not on the triage list.
 - **Be honest about uncertainty**. Mark an ambiguous finding as PARTIAL or REJECT, with reasons. Do not skip it in silence, and do not apply it blindly.
-- After each fix, make sure that the edit matches the intent of the reviewer. If the intent is unclear, do not guess. Mark the finding PARTIAL or REJECT, and put the open question in the reason.
+- After each fix, make sure that the edit matches the intent of the reviewer. If the intent is unclear, do not guess. Keep only the part of the edit that a primary source proves, and mark the finding PARTIAL. If no part is proven, undo the edit and mark the finding REJECT. In both cases, put the open question in the reason.
 - Report the verdict of every finding, REJECT included. Discard nothing in silence.
 
 Follow `dev-essentials:engineering-discipline` Rule 2: make no critical decision alone that the triage does not allow. Examples: a change of a public signature, a new DI dependency, or a weaker test assertion.

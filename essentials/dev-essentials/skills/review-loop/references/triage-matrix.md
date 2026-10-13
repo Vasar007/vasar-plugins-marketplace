@@ -1,6 +1,6 @@
 # Triage Matrix — Severity → Action Mapping
 
-Phase 4 of `SKILL.md` uses this file. All severity and type tokens in this file are the tokens of the parameter table in `SKILL.md`, word for word. Do not invent new tokens.
+Phase 4 of `SKILL.md` uses this file. All severity and type tokens in this file are the tokens of the section "Severity and type taxonomy" of `SKILL.md`, word for word. Do not invent new tokens.
 
 ---
 
