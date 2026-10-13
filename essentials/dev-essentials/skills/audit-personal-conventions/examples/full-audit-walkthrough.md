@@ -10,7 +10,7 @@ marketplace's name, remote host, and plugin root appear only as placeholders
 **Invocation:**
 
 ```text
-audit-personal-conventions --scope=all --projects=auto --marketplace=. --target-plugin=dev-essentials --rounds=2
+audit-personal-conventions --scope=all --projects=auto --marketplace=. --target-plugin=dev-essentials --rounds=2 --interactive
 ```
 
 ---

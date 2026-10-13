@@ -3,16 +3,49 @@ name: gop-work
 description: >
   Full GOP workflow — plan, implement, finalize. Use ONLY when the user explicitly
   states they want to work in GOP mode. Activates at the START of a task to drive
-  the complete workflow: planning → implementation → commit & push.
+  the complete workflow: planning → implementation → commit → push (by default after approval, with --autonomous without a question).
 ---
 
 # GOP Work
 
 Full end-to-end workflow that plans, implements, builds, tests, validates, and finalizes a task.
 
+## Autonomy
+
+This workflow has three modes. The user picks one with a flag.
+
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+
+To turn on `--interactive` or `--autonomous`, the user writes the flag in the request.
+
 ## Execution flow
 
 ### Phase 0: Planning
+
+Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agents in read-only mode. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 3 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 2 to 6 below.
 
 1. Detect the repository root:
    ```
@@ -32,7 +65,7 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
    1. **Building** — builds affected projects, falls back to full solution
    2. **Testing** — runs relevant unit tests (skipped if no test projects found)
    3. **Validation** — reviews changes for completeness and quality
-   4. **Commit & Push** — commits all changes and pushes to remote
+   4. **Commit & Push**: commits all changes. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
    ```
 5. Call **`ExitPlanMode`** to exit Plan Mode and return to normal operation. This signals readiness to proceed and prompts the user for plan approval.
 6. Capture the plan file path for use in subsequent phases. If the user requests changes instead of approving, re-enter Plan Mode to revise.
@@ -105,6 +138,8 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 
 19. **Route based on aggregated status and confidence (Human-in-the-Loop):**
 
+    Without `--interactive`, decide yourself. For `APPROVED_WITH_WARNINGS`, accept every proposal with a confidence of 90% or more. For `BLOCKED`, accept every CRITICAL proposal, and every other proposal with a confidence of 90% or more. List the proposals that you did not accept in the final report. If you accepted a proposal, return to Phase 1 with the accepted proposals, and re-run Phases 2-4. Else proceed to Phase 5. A proposal that needs a critical decision outside the plan is a question for the user. With `--autonomous`, decide it as "Autonomy" says. With `--interactive`, route as below.
+
     **IF `validation_status` is APPROVED:**
     - Proceed directly to Phase 5. No user interaction needed.
 
@@ -142,15 +177,16 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, injecting:
+20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root` and `push`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
     - `repo_root`: the detected repository root
+    - `push`: `yes` or `no`
 21. Report the final result to the user: commit hash, push status, and any warnings from validation.
 
 ## Stages
 
 | Order | Agent | Model | Phase | Purpose |
 |-------|-------|-------|-------|---------|
-| 0 | *(built-in Plan Mode)* | inherited | Planning | Create implementation plan |
+| 0 | *(built-in Plan Mode with `--interactive`, else Explore and Plan agents)* | inherited | Planning | Create implementation plan |
 | 1 | `stages/01_implement.md` (inline) | inherited | Implementation | Execute the plan |
 | 2 | `gop-pipeline:gop-build` | sonnet | Building | Build affected projects |
 | 3 | `gop-pipeline:gop-test` | sonnet | Testing | Run relevant tests (conditional) |
@@ -164,14 +200,14 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 ## Rules
 
 - Always start with the planning phase — never skip to implementation.
-- Never proceed to implementation without user approval of the plan.
-- If the plan needs revision after partial implementation, pause and re-align with the user.
+- Without `--interactive`, the plan is auto-approved (see "Autonomy"). With `--interactive`, never proceed to implementation without user approval of the plan.
+- If the plan needs revision after partial implementation: without `--interactive`, revise the plan file, report the change, and ask only for a critical decision (with `--autonomous`, decide it as "Autonomy" says). With `--interactive`, pause and re-align with the user.
 - Implementation (Phase 1) runs in the main session because it may invoke skills that spawn subagents — Claude Code does not support nested subagents.
 - Phases 2-5 run as typed subagents (`gop-pipeline:gop-build`, `gop-pipeline:gop-test`, the five `gop-pipeline:gop-validate-*` specialists, `gop-pipeline:gop-commit`) with per-phase model selection and least-privilege tool scoping — pass data via prompt injection, not shared state.
 - Phase 4 **must** dispatch the five validator subagents in a single assistant message containing five parallel `Task` tool calls. Serial dispatch is wrong — it erases the latency benefit of the split and causes cross-talk in the aggregator when findings arrive out of order. The aggregator only runs once all five reports are back.
 - Subagents read files (plan, code) directly from the filesystem — pass paths, not content.
 - If any phase fails (test, build), stop the pipeline and report to the user.
-- Only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline; other failures are hard stops. The aggregated status is the worst-of the five specialists' statuses after dedup.
+- With `--interactive`, only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline. Without it, step 19 decides. Other failures are hard stops. The aggregated status is the worst-of the five specialists' statuses after dedup.
 - When re-running Phase 1 with validator proposals, the full pipeline (Phases 1–4) re-runs, including all five validators in parallel. Do not skip build, test, or any validator after a proposal-driven re-implementation.
 - Limit proposal re-run cycles to 2 iterations. If validation still finds CRITICAL issues after 2 re-runs, stop the pipeline and escalate to the user with the full history of aggregated findings.
-- Plan Mode (Phase 0) uses the built-in `EnterPlanMode`/`ExitPlanMode` tools — do not launch a Plan subagent manually.
+- With `--interactive`, Plan Mode (Phase 0) uses the built-in `EnterPlanMode`/`ExitPlanMode` tools. In that case, do not launch a Plan subagent manually. Without it, Phase 0 uses Explore and Plan agents.

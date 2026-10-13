@@ -7,7 +7,7 @@ description: >-
   hunt", "hunt for bugs", "find new bugs in this project", "find potential bugs in every area",
   "audit the codebase for bugs", or "write a verified bug report". Do not use it to review one
   diff or one pull request. Use review-loop or code-review for that.
-argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>]"
+argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--interactive] [--autonomous]"
 ---
 
 # Bug hunt
@@ -34,6 +34,30 @@ agent output (rule 3), and all text follows plain English (rule 5).
 - Run context file: `bug-hunt-context.md` in the report folder, with the stable facts of the run. Agents read it first. The run keeps it for later rounds.
 - Final summary file: `bug-hunt-final-summary.md` in the report folder, the final chat report saved as is.
 - Pause point: a step boundary where the run stops until the user or a scheduled prompt resumes it.
+
+## Autonomy
+
+This workflow has three modes. The user picks one with a flag.
+
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Rules for the whole run
 
@@ -97,7 +121,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
+- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
@@ -106,10 +130,10 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 8. Run format
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
-meta-plan states it, and the user's OK to the meta-plan accepts it. After the OK, rule 3
-replaces two things for this run only: the "Trust but verify" section of
-`dev-essentials:subagent-orchestration`, and any user instruction to test every subagent
-claim. The section "Run format agreement" of that skill has the shared rule.
+meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the OK, rule 3
+replaces tiers 1 and 2 of the "Trust but verify" section of
+`dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
+claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
 
 - Between steps, write at most one status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
 - In chat, ask only questions that block the run.
@@ -151,14 +175,14 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
 
-1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Do not take the GitHub repository from the remote without the user's OK. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
+1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
-7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
+8. After the OK, or after step 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 

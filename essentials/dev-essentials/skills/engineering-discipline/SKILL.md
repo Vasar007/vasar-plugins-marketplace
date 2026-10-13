@@ -38,6 +38,7 @@ Why this is the rule: AI-picked defaults are bad in most cases. The canonical wo
 How to apply:
 
 - When you reach for an A-vs-B decision that nothing in front of you names, that's the trigger. Stop, write the question, ask.
+- A workflow that approves its own plan by default does not change this rule. If the auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user. One exception: the user runs the workflow with `--autonomous`. Then choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each such decision in the final report for the user to review.
 - Reframing a test to pass is the most common form of this rule's violation — it looks like progress. It almost never is.
 - "Implicit by convention" is not a citation. If the decision is convention-driven, point at the convention file or skill that documents it; if you can't, treat it as undocumented and ask.
 

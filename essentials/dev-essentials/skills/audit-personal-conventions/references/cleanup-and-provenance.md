@@ -23,6 +23,8 @@ preconditions, a once-per-run sequencing gate, and a per-repo push gate, on top 
 less reversible than stubbing a memory file, so its opt-in path adds three gates before removing
 anything (see 9d below).
 
+With `--autonomous`, each confirmation and gate in this file passes without a question. The precondition tests still run. See SKILL.md Phase 9.
+
 ---
 
 ## 9a — Standardized heading and bullet template

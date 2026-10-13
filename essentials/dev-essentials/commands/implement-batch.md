@@ -1,6 +1,6 @@
 ---
 description: Implement N related tasks in one branch/worktree — per task, plan → review-loop the plan → implement → commit → review-loop the code → squash to one commit — then one final cross-task review-loop squashed to a single commit. Never pushes.
-argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--push]
+argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--push] [--interactive] [--autonomous]
 ---
 <!-- markdownlint-disable MD013 -->
 
@@ -42,11 +42,37 @@ pass.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--base=<branch>` | ask | Target/base branch this work branches from. If neither this flag nor a base branch named in prose (e.g. "target branch is release/2.0") appears in $ARGUMENTS, use the **AskUserQuestion** tool to ask — never assume `main`/`master`/`develop`. |
+| `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`/`master`/`develop`. See Step 0. |
 | `--worktree=<branch-ref>` | ask or derive | Branch ref for the worktree all N tasks share. Use the value given here, or one named in prose in $ARGUMENTS, verbatim. Otherwise derive `<prefix>/<parent-type>s/<parent-ID>-<slug>` from the branch-naming convention documented in the repo's or the user's `CLAUDE.md`, and **ask once** if no convention is documented. |
 | `--plan-dir=<path>` | `Notes/Plans/` | Directory (inside the worktree) for the per-task plan files. The repo's own documented plan location wins over this default. |
 | `--rounds=<N>` | `2` | Review-loop cycles, forwarded to `dev-essentials:review-loop` as `--rounds` for every loop this command runs (plan loops, per-task code loops, and the final cross-task loop). |
 | `--push` | off | Push the finished stack after the final report. **Off by default and off unless the user asks for it in this invocation** — the default contract is commit locally, report, and wait for the user's review. |
+| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+
+## Autonomy
+
+This workflow has three modes. The user picks one with a flag.
+
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on. Exception: do not pass `--interactive` to the Step 2 plan-review loops (see "Review-loop configuration").
 
 ## Subagent dispatch
 
@@ -87,9 +113,9 @@ Additions specific to this command:
     one branch, so implement and review them **strictly one task at a time**.
     The same holds for the Step 2 plan-review loops (they commit) and the Step 4
     final loop.
-- **Fable is exceptional-only and never dispatched silently on the agent's own
-  initiative** — when the matrix makes it eligible without the user having
-  named it, ask first, every time.
+- Fable is exceptional-only. Never dispatch it silently on the agent's own
+  initiative. With `--interactive`, ask first, every time, also where the model
+  matrix marks Fable as eligible. Without it, follow "Autonomy".
 - **Every concrete, bounded dispatch is briefed to do the work itself, not to
   re-delegate** — planning one task's plan file, implementing one task, fixing
   one review finding — per `dev-essentials:subagent-orchestration`
@@ -114,9 +140,11 @@ channel between subagents (that stays banned per
    - A parent issue reference → dispatch a subagent to enumerate its
      sub-issues from the tracker (per
      `dev-essentials:subagent-orchestration` Rule 4 and, for GitHub,
-     `dev-essentials:github-mcp-conventions`), then **present the enumerated
-     list to the user for confirmation** before starting — a derived list is
-     exactly where a silent miscount does the most damage. An explicitly
+     `dev-essentials:github-mcp-conventions`). Then state the enumerated list
+     and its count in one status line, and repeat it in the final report.
+     Without `--interactive`, start working. With `--interactive`, **present
+     the enumerated list to the user for confirmation** before you start. A
+     derived list is where a silent miscount does the most damage. An explicitly
      supplied list needs no confirmation round-trip.
 2. Resolve `--base` per the Options table.
 3. Resolve the worktree branch ref per the Options table.
@@ -129,7 +157,8 @@ channel between subagents (that stays banned per
 
 ### Step 1 — Worktree setup
 
-Create the worktree per `dev-essentials:git-worktree-management`, branching
+Create the worktree per `dev-essentials:git-worktree-management` (if the run
+has `--interactive` or `--autonomous`, pass it on), branching
 from the Step 0 base branch, and run its post-create bootstrap. Record its
 **absolute path** — every write-capable dispatch from here on carries it
 explicitly, per `dev-essentials:subagent-orchestration` Rule 6, and every
@@ -143,19 +172,21 @@ Dispatch **Opus** planning subagents, foreground-parallel (one per task), each
 writing `<--plan-dir>/<task-slug>-plan.md` inside the worktree. Each plan
 carries: the task's scope, the files it will touch, the existing patterns it
 must follow (with `file:line` anchors), its verification commands, and any
-decision that needs the user's sign-off (per
-`dev-essentials:engineering-discipline` Rule 2 — no unilateral critical
-decisions).
+open decision (a critical decision that the task, the code, and the
+documentation do not settle), per
+`dev-essentials:engineering-discipline` Rule 2.
 
 Then, for each plan, run `dev-essentials:review-loop` with
 `target=spec <plan path>` and fix the plan per the loop's own verdicts. Use
 the review-loop configuration in "Review-loop configuration" below.
 
-Surface every open question from all N plans to the user **in one batch** before
-Step 3 begins. Do not carry ambiguity into implementation. Any finding a
-plan-review loop's fixer could not confidently resolve joins this same batch
-rather than being decided silently — that is what keeps `--auto-proceed` (see
-"Review-loop configuration" below) from swallowing an uncertain finding.
+Collect the open decisions from all N plans. Also collect every finding that a
+plan-review fixer did not resolve with confidence. If the list is empty, start
+Step 3 without a stop. Else, without `--autonomous`, ask the user all of them in
+one batch before Step 3. With `--autonomous`, decide each one as "Autonomy"
+says, write the decision into its plan, and start Step 3.
+Do not carry ambiguity into implementation. The plan-review loops run without the routine
+triage stop. An uncertain finding still goes to this batch (see the `--autonomous` option below).
 
 **Step 2 makes exactly one commit, and it lands before Step 3 begins.** The
 parallel planner fan-out commits nothing. Then run the N plan-review loops one
@@ -212,7 +243,9 @@ For task `i`:
 
    **Squash-base safety stop:** if anything that is not this task's own work
    landed between `TASK_BASE_SHA[i]` and `HEAD`, **STOP and ask the user**
-   before soft-resetting — never squash across someone else's commit. For task
+   before soft-resetting — never squash across someone else's commit. With
+   `--autonomous`, do not stop: skip this squash, keep the commits as they are,
+   and report the unexpected commit. For task
    1, Step 2's single plans commit falling inside this range is expected and is
    NOT an unexpected commit that should trigger this stop. If the review loop
    produced no commits at all, the task already has exactly one commit and the
@@ -258,8 +291,10 @@ For task `i`:
   carries Step 2's cross-task plan-review fixes, not just task 1's own
   implementation.
 - Report for the batch: the final review pass's verdict, the build/test state
-  at `HEAD`, every decision that needed sign-off and how it was resolved, and
-  every finding deferred by agreement.
+  at `HEAD`, every decision that needed sign-off and how it was resolved, every gate that
+  this run approved without a stop, and every finding deferred by agreement.
+  With `--autonomous`, also list every decision that the run made for the user
+  under "Decisions for your review".
 - Report the worktree's absolute path and the branch name, so the user can
   review it directly.
 
@@ -275,12 +310,14 @@ label — so there is no override block here. Only this is this command's own:
 
 - `--rounds=<N>` from this command's `--rounds` (default `2`), forwarded to
   every loop this command runs.
-- **`--auto-proceed`**: pass it for the Step 2 plan-review loops (`target=spec`
-  — routine, lower-stakes) so N plan reviews don't each stall on an
-  acknowledgment prompt; anything the fixer could not confidently resolve is
-  still surfaced through Step 2's batch of open questions. Do NOT pass it for
-  the Step 3 per-task or Step 4 final cross-task loops (`target=diff` — actual
-  code changes) — the user should see those triages before the fixer proceeds.
+- **`--interactive`**: without it, every loop runs without the Phase 4 triage
+  stop. With it, pass `--interactive` to the Step 3 per-task loops and to the
+  Step 4 final loop. Then the user sees those triages before the fixer proceeds.
+  Do not pass it to the Step 2 plan-review loops. A finding that a plan-review
+  fixer did not resolve with confidence still goes to the Step 2 batch.
+- **`--autonomous`**: pass it to every loop, the Step 2 plan-review loops too.
+  Without it, a plan-review loop asks the user about a finding that is not
+  clear-cut (`review-loop` Phase 4).
 - Commit after each review cycle in every loop — that cadence is what makes the
   per-task and final squashes well-defined.
 - Findings deferred by agreement are recorded as deferred in Step 5's report.
@@ -301,7 +338,8 @@ label — so there is no override block here. Only this is this command's own:
   in a subagent's edits.
 - **Squash only within the recorded boundaries** (`TASK_BASE_SHA[i]` for a task,
   `FINAL_BASE_SHA` for the final pass). Anything unexpected on `HEAD` is a
-  STOP-and-ask, not a judgment call.
+  STOP-and-ask, not a judgment call. With `--autonomous`, skip the squash
+  instead (Step 3.6).
 - **Implementation is sequential.** Never dispatch two subagents into the same
   worktree at once when either edits a shared file or runs a mutating git
   command. Step 2's planners are the one documented concurrent case — distinct
@@ -312,8 +350,10 @@ label — so there is no override block here. Only this is this command's own:
   `dev-essentials:engineering-discipline`).
 - **No unilateral critical decisions** — public-contract changes, new DI
   dependencies, test-assertion relaxations — beyond what the task's Step 2 plan
-  authorized. Surface them to the user instead.
+  authorized. Surface them to the user instead. With `--autonomous`, follow
+  "Autonomy".
 - **Do not improvise.** An unclear plan item, an ambiguous review finding, or a
-  task that turns out bigger than its plan is an ask, not a guess.
+  task that turns out bigger than its plan is an ask, not a guess. With
+  `--autonomous`, decide as "Autonomy" says.
 - The per-task plan files are the source of truth for implementation — keep
   them updated as tasks complete.

@@ -1,6 +1,6 @@
 ---
 name: audit-personal-conventions
-description: "Audit accumulated personal Claude Code convention — memory files, the global CLAUDE.md, each repo's own CLAUDE.md (including @-imports and scope overrides), and personal commands/agents/skills — and decide what deserves to become a reusable marketplace entity. Classifies each rule as project-local, personal taste, promotable (universal or scoped), a fix for an already-shipped skill, or stale, using cross-source corroboration and an on-disk-manifest already-promoted check. Presents the full triage and waits for explicit approval before authoring, review-looping, bumping the affected plugin version once, and (on request) updating CLAUDE.md files and memory indexes to point at the promotion. Triggers on requests like 'audit my memory', 'what in my memory should become a skill', 'promote my memory to skills', 'review my CLAUDE.md rules for promotion', 'which of my rules belong in the marketplace', 'clean up my project memory', or any session evaluating personal memory, CLAUDE.md, or personal commands for extraction into a shared plugin."
+description: "Audit accumulated personal Claude Code convention — memory files, the global CLAUDE.md, each repo's own CLAUDE.md (including @-imports and scope overrides), and personal commands/agents/skills — and decide what deserves to become a reusable marketplace entity. Classifies each rule as project-local, personal taste, promotable (universal or scoped), a fix for an already-shipped skill, or stale, using cross-source corroboration and an on-disk-manifest already-promoted check. Presents the full triage, then by default approves the recommended items itself (with --interactive, waits for explicit approval) before authoring, review-looping, bumping the affected plugin version once, and (on request) updating CLAUDE.md files and memory indexes to point at the promotion. Triggers on requests like 'audit my memory', 'what in my memory should become a skill', 'promote my memory to skills', 'review my CLAUDE.md rules for promotion', 'which of my rules belong in the marketplace', 'clean up my project memory', or any session evaluating personal memory, CLAUDE.md, or personal commands for extraction into a shared plugin."
 ---
 
 # Audit Personal Conventions
@@ -68,10 +68,34 @@ config root or repo root.
 | `--resume=<path>` | none | Resume a previously deferred Phase 9c cross-repo cleanup from its TODO file, without re-running the audit — enables the 9c-only re-entry mode (Phase 9c.1). Marketplace-root resolution on resume follows Phase 0's resume order. |
 | `--dry-run` | off (bare) | Run Phases 0-4 only, stop after presenting the triage. No approval gate, no authoring, no cleanup. |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
+| `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
 
-**There is deliberately no flag that skips the Phase 5 approval gate or the Phase 9 per-repo push
-gate.** This is intentional — the structural-impossibility principle: don't rely on a flag
-defaulting to safe, make the unsafe path not exist.
+**Only `--autonomous` skips the Phase 9 gates. This includes the per-repo push gate.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
+
+## Autonomy
+
+This workflow has three modes. The user picks one with a flag.
+
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Phases (the workflow)
 
@@ -427,6 +451,8 @@ Anything not named is treated as DEFERRED, never approved.
 
 ### Phase 5 — Approval gate (hard gate)
 
+Without `--interactive`, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. With `--interactive`, wait for the reply of the user, as below.
+
 Single global `#N` numbering across every table in Phase 4. Three verbs — `approve`, `defer`,
 `reject` — plus two shorthands (`approve all promotes`, `approve none`). **Anything not named is
 deferred, always** — there is no implicit approval.
@@ -436,11 +462,11 @@ identically on the next run. A deferred item is expected to come back on a futur
 wasn't decided this time.
 
 If approving a subset of a cluster whose other members were deferred or rejected, re-scope the
-destination entity to the approved subset and re-confirm the reduced shape before authoring — a
+destination entity to the approved subset and re-confirm the reduced shape before authoring (without `--interactive`, state the reduced shape in the report) — a
 4-rule skill minus 3 deferred rules may no longer justify being its own entity.
 
 **Approving an E item is its own risk class.** E means editing an already-shipped entity that other
-sessions actively rely on. Confirm each E item individually — never through `approve all promotes`,
+sessions actively rely on. With `--interactive`, confirm each E item individually — never through `approve all promotes`,
 which is scoped to new-entity promotions only.
 
 ### Phase 6 — Author approved entities
@@ -479,7 +505,7 @@ Invoke the review-loop skill available in the TARGET marketplace with `<marketpl
 own working directory — `target=diff` resolves the range in the loop's own CWD, which would be the
 wrong repo whenever the target marketplace differs from the one this skill was invoked from. If the
 target marketplace is this one, that is
-`dev-essentials:review-loop target=diff <pre-authoring-sha>..HEAD --rounds=<N>` — a two-dot
+`dev-essentials:review-loop target=diff <pre-authoring-sha>..HEAD --rounds=<N>` (plus `--interactive` or `--autonomous` for a run that has it) — a two-dot
 commit range against the SHA captured at the start of Phase 6, not a three-dot branch-base diff
 (`<base>...HEAD`), which would also pull in commits the branch already carried from before Phase 6
 and let the loop raise findings and apply edits against content that was never part of this run's
@@ -542,6 +568,8 @@ confirmation before anything is written or deleted. **Nothing in any OTHER repos
 without `--cross-repo`.** See `references/cleanup-and-provenance.md`'s default-on-vs-opt-in matrix
 for the full risk-gradient rationale.
 
+With `--autonomous`, no gate of Phase 9 stops. This covers the 9a stub question, the 9b per-file question, and the 9c.3 sequencing gate. It also covers the 9c.8 push gate (push and open the PR) and the 9d confirmations. At the 9c.6 question about unrelated dirt, take its default: skip. At the 9c.7 path question, take the proposed path. The tests before each gate still run: Preconditions A, B, and C, and the hard stops of 9c.6. A failed test still skips or defers its repo or file. The final report lists each gate that passed and each push, PR, and deletion.
+
 #### 9a — Personal memory files (default-on)
 
 Governed by `--cleanup-mode`:
@@ -552,6 +580,8 @@ Governed by `--cleanup-mode`:
   in the same run that used `stub`/`annotate` still get their own index bullets normally.
 - A **partially-promoted** file → never stubbed. Annotate only the promoted section; the rest of the
   file stays as-is.
+
+Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. With `--autonomous`, list them in the report, and write without the question. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 
 Extend — never invent from scratch — the project's own `MEMORY.md` index under a
 `## Cross-project rules — migrated to marketplace skills` heading. One bullet per promoted item:
@@ -569,7 +599,7 @@ With the flag: for each promoted rule sourced from the global CLAUDE.md, show th
 (removed prose → pointer) and ask, per file (there is only one global CLAUDE.md today, but the rule
 is stated generally in case a future version of this skill treats other global files the same way):
 "Replace this section of your global CLAUDE.md with a pointer to `<plugin>:<entity>`? (yes/no)".
-Never batch-apply without per-file confirmation — this file loads into every session.
+Never batch-apply without per-file confirmation — this file loads into every session. With `--autonomous`, apply each replacement without the question, and list each one in the report.
 
 #### 9c — Cross-repo project CLAUDE.md files (opt-in via `--cross-repo=`)
 
@@ -583,7 +613,7 @@ ignored → treat as a private local file, using the same direct-edit-plus-per-f
 as 9b, with no branch or PR involved.
 
 **9c.1 — Flag.** `--cross-repo=off|all|<repo>[,<repo>...]`, default `off`; bare `--cross-repo` means
-`all`. Opts into a capability, not a gate bypass — every repo still needs its own push-gate `yes`
+`all`. Opts into a capability, not a gate bypass — every repo still needs its own push-gate `yes` (or `--autonomous`)
 (9c.8). **9c-only re-entry mode:** `--resume=<path>` (alone or combined with `--cross-repo=`) makes
 Phase 9c operate on the promotion set recorded in the TODO file (9c.7) even though this run promoted
 nothing new — the ignore-if-nothing-promoted rule below doesn't apply, and Phase 9c re-enters at 9c.2.
@@ -856,7 +886,7 @@ elsewhere in the session.**
 
 ## Guardrails
 
-- No flag skips Phase 5 or a Phase 9 push gate (the structural-impossibility principle — see Arguments).
+- Only `--autonomous` skips a Phase 9 gate (see Arguments). Phase 5 follows "Autonomy".
 - No hardcoded marketplace or host name anywhere in this skill's own text, prompts, or examples,
   except to name the source marketplace of an external, optional tool referenced in prose — that
   identifies a dependency's provenance, not the promotion target, and not this skill's own shipping
@@ -868,10 +898,11 @@ elsewhere in the session.**
 - An **E** disposition is never a new entity. It is always a fix to an existing shipped entity,
   followed by pruning the source.
 - Never auto-edit a project-repo CLAUDE.md without `--cross-repo`.
-- Never push without an explicit per-repo yes, even with `--cross-repo` set.
+- Never push without an explicit per-repo yes, even with `--cross-repo` set. `--autonomous` counts as that yes.
 - Never delete a personal entity file without `--delete-personal-entities`, its automated
   publish-and-local-load verification check, the once-per-run marketplace-publish gate, and its own
-  individual per-file confirmation.
+  individual per-file confirmation. `--autonomous` counts as the publish gate and the per-file yes.
+  The automated check still runs.
 - Never touch a file outside an approved item's own provenance list.
 - A wrapper personal entity is never assigned a disposition without a completed full-text diff
   against its wrapped entity.

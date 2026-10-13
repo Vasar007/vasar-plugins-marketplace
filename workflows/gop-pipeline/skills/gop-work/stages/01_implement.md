@@ -41,7 +41,7 @@ After completing implementation, record the following for use in subsequent phas
 
 ## Rules
 
-- Follow the plan as closely as possible. The plan was approved by the user.
+- Follow the plan as closely as possible. The plan was approved, by the user or by the default approval of the run.
 - If the plan is flawed or incomplete, implement what you can and clearly note deviations.
 - Do NOT run builds or tests — that is handled by later stages.
 - Do NOT commit or push — that is handled by the finalization stage.
