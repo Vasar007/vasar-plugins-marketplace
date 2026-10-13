@@ -3,16 +3,37 @@ name: gop-work
 description: >
   Full GOP workflow — plan, implement, finalize. Use ONLY when the user explicitly
   states they want to work in GOP mode. Activates at the START of a task to drive
-  the complete workflow: planning → implementation → commit & push.
+  the complete workflow: planning → implementation → commit → push (by default after a go-ahead).
 ---
 
 # GOP Work
 
 Full end-to-end workflow that plans, implements, builds, tests, validates, and finalizes a task.
 
+## Autonomy
+
+By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+
+- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run approved without a stop.
+- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
+- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
+- With `--interactive`, every gate stops and waits for the user, as the gate text says.
+- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+
+To turn on `--interactive`, the user writes `--interactive` in the request.
+
 ## Execution flow
 
 ### Phase 0: Planning
+
+Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agents in read-only mode. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 3 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--interactive`: run steps 2 to 6 below.
 
 1. Detect the repository root:
    ```
@@ -32,7 +53,7 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
    1. **Building** — builds affected projects, falls back to full solution
    2. **Testing** — runs relevant unit tests (skipped if no test projects found)
    3. **Validation** — reviews changes for completeness and quality
-   4. **Commit & Push** — commits all changes and pushes to remote
+   4. **Commit & Push**: commits all changes. Without `--interactive`, it pushes after the go-ahead of the user. With `--interactive`, the plan approval covers the push.
    ```
 5. Call **`ExitPlanMode`** to exit Plan Mode and return to normal operation. This signals readiness to proceed and prompts the user for plan approval.
 6. Capture the plan file path for use in subsequent phases. If the user requests changes instead of approving, re-enter Plan Mode to revise.
@@ -105,6 +126,8 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 
 19. **Route based on aggregated status and confidence (Human-in-the-Loop):**
 
+    Without `--interactive`, decide yourself. For `APPROVED_WITH_WARNINGS`, accept every proposal with a confidence of 90% or more. For `BLOCKED`, accept every CRITICAL proposal, and every other proposal with a confidence of 90% or more. List the proposals that you did not accept in the final report. If you accepted a proposal, return to Phase 1 with the accepted proposals, and re-run Phases 2-4. Else proceed to Phase 5. A proposal that needs a critical decision outside the plan is a question for the user. With `--interactive`, route as below.
+
     **IF `validation_status` is APPROVED:**
     - Proceed directly to Phase 5. No user interaction needed.
 
@@ -142,15 +165,16 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, injecting:
+20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root` and `push`. Without `--interactive`, set `push: no`. Then ask the user for a go-ahead to push. After a yes, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push.
     - `repo_root`: the detected repository root
+    - `push`: `yes` or `no`
 21. Report the final result to the user: commit hash, push status, and any warnings from validation.
 
 ## Stages
 
 | Order | Agent | Model | Phase | Purpose |
 |-------|-------|-------|-------|---------|
-| 0 | *(built-in Plan Mode)* | inherited | Planning | Create implementation plan |
+| 0 | *(built-in Plan Mode with `--interactive`, else Explore and Plan agents)* | inherited | Planning | Create implementation plan |
 | 1 | `stages/01_implement.md` (inline) | inherited | Implementation | Execute the plan |
 | 2 | `gop-pipeline:gop-build` | sonnet | Building | Build affected projects |
 | 3 | `gop-pipeline:gop-test` | sonnet | Testing | Run relevant tests (conditional) |
@@ -164,14 +188,14 @@ Full end-to-end workflow that plans, implements, builds, tests, validates, and f
 ## Rules
 
 - Always start with the planning phase — never skip to implementation.
-- Never proceed to implementation without user approval of the plan.
-- If the plan needs revision after partial implementation, pause and re-align with the user.
+- Without `--interactive`, the plan is auto-approved (see "Autonomy"). With `--interactive`, never proceed to implementation without user approval of the plan.
+- If the plan needs revision after partial implementation: without `--interactive`, revise the plan file, report the change, and ask only for a critical decision. With `--interactive`, pause and re-align with the user.
 - Implementation (Phase 1) runs in the main session because it may invoke skills that spawn subagents — Claude Code does not support nested subagents.
 - Phases 2-5 run as typed subagents (`gop-pipeline:gop-build`, `gop-pipeline:gop-test`, the five `gop-pipeline:gop-validate-*` specialists, `gop-pipeline:gop-commit`) with per-phase model selection and least-privilege tool scoping — pass data via prompt injection, not shared state.
 - Phase 4 **must** dispatch the five validator subagents in a single assistant message containing five parallel `Task` tool calls. Serial dispatch is wrong — it erases the latency benefit of the split and causes cross-talk in the aggregator when findings arrive out of order. The aggregator only runs once all five reports are back.
 - Subagents read files (plan, code) directly from the filesystem — pass paths, not content.
 - If any phase fails (test, build), stop the pipeline and report to the user.
-- Only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline; other failures are hard stops. The aggregated status is the worst-of the five specialists' statuses after dedup.
+- With `--interactive`, only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline. Without it, step 19 decides. Other failures are hard stops. The aggregated status is the worst-of the five specialists' statuses after dedup.
 - When re-running Phase 1 with validator proposals, the full pipeline (Phases 1–4) re-runs, including all five validators in parallel. Do not skip build, test, or any validator after a proposal-driven re-implementation.
 - Limit proposal re-run cycles to 2 iterations. If validation still finds CRITICAL issues after 2 re-runs, stop the pipeline and escalate to the user with the full history of aggregated findings.
-- Plan Mode (Phase 0) uses the built-in `EnterPlanMode`/`ExitPlanMode` tools — do not launch a Plan subagent manually.
+- With `--interactive`, Plan Mode (Phase 0) uses the built-in `EnterPlanMode`/`ExitPlanMode` tools. In that case, do not launch a Plan subagent manually. Without it, Phase 0 uses Explore and Plan agents.

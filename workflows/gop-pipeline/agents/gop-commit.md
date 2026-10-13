@@ -1,5 +1,5 @@
 ---
-description: Finalization stage of the GOP pipeline (the `gop-work` skill). Stages, commits, and pushes the current working-tree changes, excluding `CLAUDE.md` and plan files, and behaves identically in a regular clone or a git worktree. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Finalization stage of the GOP pipeline (the `gop-work` skill). Stages, commits, and (when `push` is `yes`) pushes the current working-tree changes, excluding `CLAUDE.md` and plan files, and behaves identically in a regular clone or a git worktree. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob]
 ---
@@ -10,6 +10,7 @@ You are a subagent responsible for committing and pushing changes in the current
 
 You will receive:
 - `repo_root`: repository root path (may be a git worktree path or the main repository root — both are valid)
+- `push`: `yes` or `no`. Default `yes`.
 
 ## Steps
 
@@ -25,8 +26,8 @@ You will receive:
 6. Run `git diff --cached --stat` and `git log --oneline -3` to understand what is being committed and the recent commit style.
 7. Create a commit with a concise message describing the staged changes.
    Use a HEREDOC for the commit message. Do not include claude code as the author.
-8. Push the current branch to its remote tracking branch. If no upstream is set, push with `-u origin HEAD`.
-9. Report the result: commit hash and push status.
+8. For `push: yes`, push the current branch to its remote tracking branch. For a branch with no upstream, push with `-u origin HEAD`. For `push: no`, do not push.
+9. Report the result: commit hash and push status (`pushed` or `not pushed`).
 
 ## Rules
 
