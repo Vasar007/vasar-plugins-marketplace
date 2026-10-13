@@ -1,56 +1,44 @@
 ---
-description: Write, refactor, or enhance tests for specified classes
+description: Write, refactor, or extend tests for specified classes
 ---
 
-Write, refactor, or enhance tests for one or more classes.
+Write, refactor, or extend tests for one or more classes.
 
 **Arguments**: $ARGUMENTS
 
-- Accepts one or more class names or file paths, separated by spaces or commas
-- Can be business logic classes (will create/update their test files) or existing test classes (will refactor/enhance them)
+- Accepts one or more class names or file paths, separated by spaces or commas.
+- A business logic class gets new or updated tests in its test file. An existing test class gets a refactor or new tests.
 - Examples:
-  - `ProvisioningPlanService` — write tests for this service
-  - `SecurePasswordGenerator, AccountAvailabilityService` — write tests for both classes
-  - `ProvisioningPlanTests` — refactor this existing test class
-  - `<repo-source-folder>/MyProject/Path/To/MyClass.cs` — write tests for file at path
-  - (no arguments) — prompt for which classes to test
+  - `OrderPricingService`: write tests for this service.
+  - `InvoiceNumberGenerator, CustomerLookupService`: write tests for both classes.
+  - `ShoppingCartTests`: refactor this existing test class.
+  - `<repo-source-folder>/MyProject/Path/To/MyClass.cs`: write tests for the class in this file.
+  - No arguments: ask which classes to test.
 
 ## Steps
 
 1. **Parse arguments**
 
-   Extract class names or file paths from the arguments. If no arguments provided, use the **AskUserQuestion tool** to ask which classes need tests.
+   Extract class names or file paths from the arguments. If no arguments are provided, use the **AskUserQuestion tool** to ask which classes need tests.
 
 2. **For each target class**
 
-   a. **Find the source file** — search the repo's source folder (typically `Sources/`, `src/`, or a top-level project folder) for the class definition
+   a. **Find the source file**: search the source folder of the repo for the class definition. Typical folders are `Sources/`, `src/`, or a top-level project folder.
 
-   b. **Read the source class** — understand dependencies, methods, behavior, interfaces implemented
+   b. **Read the source class**: understand its dependencies, methods, behavior, and the interfaces that it implements.
 
-   c. **Determine test type** and invoke the `create-tests` skill to read the matching example. Mapping:
-      - Domain model with `IEquatable` → `domain-model-tests.md`
-      - Custom exception → `exception-tests.md`
-      - Primitive wrapper → `wrapper-tests.md`
-      - Repository → `repository-tests.md`
-      - Configuration options → `config-options-tests.md`
-      - Configuration binding → `config-binding-tests.md`
-      - DI registration → `di-registration-tests.md`
-      - Service/business logic → `mock-builders.md` + `generators.md`
-      - Controller → `controller-tests.md`
-      - Migration → `migration-tests.md`
+   c. **Load the `create-tests` skill** with the Skill tool. Determine the test type, and read the example files that the example table of the skill names for that type. Also read `examples/enforced-gates.md` of the skill, because its gates apply to every test class.
 
-   d. **Also read the main `create-tests` SKILL.md** — via the Skill tool so Claude loads it properly
+   d. **Look for existing tests**: search the test projects of the repo for an existing test class. Typical folders are `Sources/Tests/`, `Tests/`, or `tests/`.
 
-   e. **Check for existing tests** — search the repo's test projects (typically under `Sources/Tests/`, `Tests/`, or `tests/`) for an existing test class
+   e. **Look for existing builders and generators**: search `*.Tests.Common/Helpers/Mocks/` and `*.Tests.Common/Helpers/Generators/` in the test-common project of the repo.
 
-   f. **Check for existing builders/generators** — search `*.Tests.Common/Helpers/Mocks/` and `*.Tests.Common/Helpers/Generators/` within the repo's test-common project
+   f. **Write or refactor tests**:
+      - If the test file exists, refactor it to match the conventions, and add the missing tests.
+      - If the test file does not exist, create a new test file that follows the example pattern.
+      - Create the missing Test Mock Builders and Generators first.
 
-   g. **Write or refactor tests**:
-      - If test file exists → refactor to match conventions, add missing tests
-      - If test file doesn't exist → create new test file following the example pattern
-      - Create any missing Test Mock Builders or Generators first
-
-   h. **Run tests** — `dotnet test --filter "FullyQualifiedName~{TestClassName}"` to verify (add the specific test project path if the repo requires it)
+   g. **Run tests**: `dotnet test --filter "FullyQualifiedName~{TestClassName}"`. If the repo requires it, add the path of the test project. If a test fails, fix it before you report.
 
 3. **Report results**
 
@@ -62,9 +50,6 @@ Write, refactor, or enhance tests for one or more classes.
 
 ## Guardrails
 
-- **MUST invoke `create-tests` and read the matching example** before writing any test code
-- **Follow ALL conventions** from the `create-tests` skill — no shortcuts
-- **Do NOT improvise** test patterns — if unsure, read examples or search existing tests
-- **Create missing infrastructure first** — builders, generators before test classes
-- **Run tests after writing** — fix any failures before reporting done
-- Use the `create-tests` skill for guidance on all test patterns
+- **MUST load `create-tests` and read the matching example** before writing any test code.
+- **Follow ALL conventions** of the `create-tests` skill. Take no shortcuts.
+- **Do NOT improvise** test patterns. If you are unsure, read the examples or search the existing tests.

@@ -14,11 +14,11 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
 
 1. **Read all documents**
 
-   Read every `.md` file at the given path. If a folder, read all Markdown files recursively.
+   Read every `.md` file at the given path. If the path is a folder, also read the `.md` files in its subfolders.
 
 2. **Deep analysis**
 
-   For each document, verify:
+   For each document, answer these questions:
 
    **Completeness:**
    - Are all referenced types, interfaces, methods defined or clearly pointed to?
@@ -30,11 +30,10 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
    **Consistency:**
    - Do documents agree with each other?
    - Do naming conventions match the existing codebase?
-   - Are referenced files/classes/methods real? (verify against actual code)
    - Are task dependencies correctly ordered?
 
    **Clarity:**
-   - Could an AI agent implement each task without asking questions?
+   - Can an AI agent implement each task without asking questions?
    - Are there ambiguous phrases like "as appropriate", "if needed", "similar to X"?
    - Are inputs/outputs for each operation clearly defined?
    - Are modification instructions specific? ("add method X to class Y" not "update the service")
@@ -42,41 +41,36 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
    **Codebase alignment:**
    - Do documents reference correct existing patterns, base classes, interfaces?
    - Are dependency injection patterns correct?
-   - Do referenced configuration options, repositories, services actually exist?
-   - Do method signatures match what the codebase actually has?
 
 3. **Cross-reference with codebase**
 
-   For every file, class, interface, or method mentioned in the plan:
-   - Verify it exists in the codebase.
-   - Verify signatures/contracts match what the plan assumes.
-   - Check for recent changes that might invalidate assumptions.
+   For every file, class, interface, method, configuration option, repository, or service mentioned in the plan:
+   - Make sure that it exists in the codebase.
+   - Make sure that its signature or contract matches what the plan assumes.
+   - Look for recent changes that can make an assumption wrong.
 
 4. **Reverify findings**
 
-   Go through the full list of findings again. Confirm each is a **real issue**, not a false positive. Remove anything that turns out to be fine on closer inspection.
+   Go through the full list of findings again. Find out whether each finding is a **real issue** or a false positive. Remove each finding that turns out to be fine.
 
 5. **Report**
 
    Present findings organized by severity:
 
-   **Blockers** — Cannot implement without resolving:
+   **Blockers**: the work cannot start until they are resolved.
    - Missing information, contradictions, impossible requirements
 
-   **Warnings** — Could cause problems during implementation:
-   - Ambiguities, assumptions that should be validated, missing edge cases
+   **Warnings**: they can cause problems during implementation.
+   - Ambiguities, assumptions to test against the code, missing edge cases
 
-   **Suggestions** — Would improve quality:
-   - Better naming, additional test cases, documentation gaps
+   **Suggestions**: they improve the quality.
+   - Better naming, more test cases, documentation gaps
 
    For each finding, include: which document/section, what the issue is, and a concrete suggestion for resolution.
 
 ## Guardrails
 
-- **Read-only** — do not modify any documents or code. Only report findings.
-- **Be thorough** — check every corner, every reference, every assumption.
-- **Be specific** — "the plan mentions IFooService but it doesn't exist" not "some interfaces might be missing".
-- **Verify against real code** — do not trust plan claims about the codebase without checking.
-- **Ask the user** if you find something that could go either way.
-- **Report only real issues** — reverify each finding before including it.
-- **Verify before confident fixes.** When suggesting a resolution for any technical claim found in the plan — config, schema, library API, method signature, codebase reference, or DI lifetime — verify against a primary source first: official docs, a known-working real example, or a throwaway test. Pattern-matching a plausible-sounding cause and presenting it as the answer wastes review cycles and erodes trust. Frame unverified suggestions as theories ("this might be …"), not authoritative fixes. See `dev-essentials:engineering-discipline`.
+- **Read-only**: do not change any artifact, document, or code. Only report findings.
+- **Be specific**: name the file, the section, and the exact gap. Example: "The design names `IFooService`, but the code has no such interface."
+- **Ask the user**: if a finding can go either way, ask the user.
+- **Verify before confident fixes**: a suggested fix for a technical claim (configuration, schema, library API, method signature, codebase reference, or DI lifetime) must rest on a primary source: official docs, a known-working real example, or a throwaway test. If you did not test it, label it as a theory, not as a fix. See `dev-essentials:engineering-discipline` Rule 5.
