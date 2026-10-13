@@ -13,15 +13,10 @@ argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--ba
 # Bug hunt
 
 This skill finds new potential bugs in a whole project and saves one verified bug report.
-Agents search the code area by area. Other agents then try to refute each finding.
-The project stays read-only for the whole run.
+The main session is the orchestrator. It plans the run and dispatches the agents.
 
-The main session is the orchestrator. It plans the run, dispatches the agents, and checks the
-structure of their output. It does not check the content of the findings. The verifier agents
-and the auditor agent do that.
-
-Earlier runs forgot two rules most often: the
-orchestrator checks only structure (rule 3), and all text follows plain English (rule 5).
+Earlier runs forgot two rules most often: the orchestrator checks only the structure of the
+agent output (rule 3), and all text follows plain English (rule 5).
 
 ## Terms
 
@@ -54,19 +49,17 @@ only from the snapshots.
 - Against the live repository, always use `git -C "<repo>"`. Run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, and `show`. Also `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
 - Do not run a plain `git status`, because it can write the index. Do not run `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. Never fetch into the live repository. For a newer base, the setup helper clones it into the scratch folder.
 - In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. If the report folder is inside the project, this point holds.
-- If the experiments input is `yes`, run experiments only in a work folder inside the scratch folder. Else, run none. No GUI runs, no system-wide installs, and no changes to the machine configuration.
 - The commands in this skill need a POSIX shell and Python 3. On Windows, run them with the Bash tool (Git Bash), not with PowerShell. If `python3` is not available, stop the run at step 0 and report this under "Blocked on me".
 
 ### 2. No GitHub writes
 
 Never create, edit, close, label, or comment on GitHub issues or pull requests. The user
-reviews the report first. The known-issues collector reads issues with the GitHub MCP tools.
-The hunters and verifiers can run the read-only `gh` commands in their agent files.
+reviews the report first.
 
 ### 3. The orchestrator checks structure, the verifiers check content
 
-The orchestrator does not need to check every finding. Between steps, it runs only the structure
-check in [references/structure-checks.md](references/structure-checks.md) and compares each
+Between steps, the orchestrator runs only the structure check in
+[references/structure-checks.md](references/structure-checks.md) and compares each
 agent reply with its counts.
 
 The orchestrator must not:
@@ -82,8 +75,7 @@ agent looked. A guess must never read as a fact.
 
 ### 5. Plain English
 
-All report text follows the skill `simple-english:simple-english`. At step 0, the
-orchestrator looks for this skill in the list of available skills.
+All report text follows the skill `simple-english:simple-english`.
 
 - If it is installed, every brief tells the agent to load it with the Skill tool.
 - If it is not installed, every brief points to the fallback rules in [references/plain-english-fallback.md](references/plain-english-fallback.md). The final report says that the fallback was used.
@@ -92,11 +84,10 @@ orchestrator looks for this skill in the list of available skills.
 
 Every agent that can run long keeps a progress file in the report folder. It has a `STATUS` line, a
 checklist of steps, an append-only `## Log`. It has a `## Current draft` with the work in progress,
-and a `## NEXT` with the single next action. The agent updates it at every step. It resumes from
-`## NEXT` after a crash. When the deliverable is complete, it deletes the file. A progress file that
-is left behind means that work is not finished.
+and a `## NEXT` with the single next action. A progress file that is left behind means that
+work is not finished.
 
-The orchestrator keeps `_bug-hunt-session-progress.md` in the same way. It updates the file at
+The orchestrator keeps `_bug-hunt-session-progress.md` with the same sections. It updates the file at
 each step boundary and after each agent reply. It records the agent ID of each dispatch, and
 each pause with its resume job. After each dispatch, it writes this into `## NEXT`: "Waiting
 for agent <ID> (<role>), dispatched <time>. If the agent runs, do not dispatch this role
@@ -109,8 +100,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 - Fable is never dispatched silently. The user's OK to the step-0 meta-plan approves the Fable dispatches and the effort levels in it. Without that OK, do not dispatch Fable.
 - Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
-- Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. To restore a stopped collector, hunter, verifier, or auditor, use `SendMessage` first, then a new agent, as [references/resume-and-failures.md](references/resume-and-failures.md) says.
-- Every general-purpose brief says "do this work yourself, do not dispatch subagents". The three plugin agents have no `Agent` tool.
+- Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 
 ### 8. Run format
@@ -141,7 +131,7 @@ claim. The section "Run format agreement" of that skill has the shared rule.
 The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder.
 
 The brief for each role is in [references/agent-briefs.md](references/agent-briefs.md). Fill
-every placeholder before you dispatch. A general-purpose helper sees only its brief. A plugin agent sees its agent file and its brief.
+every placeholder before you dispatch.
 
 ## Pipeline
 
@@ -159,9 +149,7 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 ### Step 0. Meta-plan and questions
 
-Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first. It has
-the inputs with their defaults, the git calls for the defaults, the parts of the meta-plan,
-and the questions that block the run.
+Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
 
 1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Do not take the GitHub repository from the remote without the user's OK. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
@@ -170,7 +158,7 @@ and the questions that block the run.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the base source, the scratch folder, and the approved models and effort levels. Record the output of `git -C "<repo>" --no-optional-locks status --porcelain`, the areas, the experiments and services, the pause points and times, and the approval itself.  If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+8. After the OK, write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 

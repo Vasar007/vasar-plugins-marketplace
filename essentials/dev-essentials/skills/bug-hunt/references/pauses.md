@@ -38,14 +38,10 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
    ```text
    Resume the bug hunt. If <report folder>/_bug-hunt-session-progress.md does not exist,
    do nothing. Else read it first and follow "Resume check" in
-   {SKILL_DIR}/references/resume-and-failures.md, with these two cases for its NEXT
-   section. Case 1, NEXT records a pause: continue from NEXT. Case 2, NEXT says "Waiting
-   for agent": if this session dispatched that agent, and the progress file of that agent
-   changed in the last 30 minutes (or the dispatch time in the note is less than 30 minutes
-   ago, if the agent has no progress file yet), write one line to chat that names the agent
-   and end the turn. Else the agent stopped: go to point 5 of the resume procedure. This
-   scheduled prompt is the OK of the user for these steps: <steps>. Stop at <the next pause
-   point, or "the end of the run">.
+   {SKILL_DIR}/references/resume-and-failures.md. If NEXT records a pause, this prompt is
+   the scheduled resume prompt that point 1 of the check waits for, so continue from NEXT.
+   This scheduled prompt is the OK of the user for these steps: <steps>. Stop at <the next
+   pause point, or "the end of the run">.
    ```
 
 4. Write the job ID, the time, and the steps into the session progress file. Step 6 of the run deletes each of these jobs with `CronDelete`.

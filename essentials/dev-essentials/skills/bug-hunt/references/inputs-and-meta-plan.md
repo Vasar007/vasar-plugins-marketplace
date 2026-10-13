@@ -72,3 +72,13 @@ Ask a question in these cases:
 - The base branch is unknown, or the GitHub repository is not approved.
 - Fable is not available, or a plugin agent type for the hunter, verifier, or auditor is not available.
 - There is no known-issue source.
+
+## Session progress file
+
+After the user's OK, write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
+
+- The inputs, the commit SHAs, the base source, and the scratch folder.
+- The approved models and effort levels.
+- The output of `git -C "<repo>" --no-optional-locks status --porcelain`. Step 6 compares it with a new output.
+- The areas, the experiments and services, and the pause points and times.
+- The approval itself.
