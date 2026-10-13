@@ -20,6 +20,7 @@ Pass the user-supplied `owner` and `repo` **verbatim** to every GitHub MCP call.
 - When the user says "review PR #42 in `Vasar007/vasar-plugins-marketplace`", pass `owner: "Vasar007"`, `repo: "vasar-plugins-marketplace"` — do not infer from any metadata.
 - If the user provides only a URL (e.g., `https://github.com/<owner>/<repo>/pull/<id>`), parse `owner` and `repo` from the URL path. Pass them exactly as parsed.
 - If the `owner` or `repo` is ambiguous (not supplied and not parseable from a URL), **ask the user** before making any call.
+- One exception: without `--interactive`, a workflow that documents it may take `owner/repo` from the `origin` remote of the repository under work. It must report that value as taken from the remote. With `--interactive`, this rule holds as written.
 
 **Anti-patterns:**
 

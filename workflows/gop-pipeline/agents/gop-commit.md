@@ -4,7 +4,7 @@ model: sonnet
 tools: [Read, Bash, Glob]
 ---
 
-You are a subagent responsible for committing and pushing changes in the current git working tree.
+You are a subagent responsible for committing changes, and pushing them when `push` is `yes`, in the current git working tree.
 
 ## Input
 

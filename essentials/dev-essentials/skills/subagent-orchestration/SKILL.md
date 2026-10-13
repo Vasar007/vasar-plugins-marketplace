@@ -132,7 +132,7 @@ Worked example: main dispatched a verify-only subagent (correct). User then said
 
 ## Rule 5 — No named teammates or team coordination, and `SendMessage` only for the same task
 
-Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an interactive session, a named subagent starts as a teammate, not as a plain subagent. Claude Code does not ask first. A teammate is a separate, long-lived session in a team, with its own mailbox and idle notices. That is the wrong shape for "do this, report back, done." You do not need a name to reach the subagent later: every dispatch returns an agent ID, and `SendMessage` accepts that ID.
+Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an interactive session, a named subagent starts as a teammate, not as a plain subagent. Claude Code does not ask first. A teammate is a separate, long-lived session in a team, with its own mailbox and idle notices. That is the wrong shape for "do this, report back, done." You do not need a name to reach the subagent later: a dispatch returns an agent ID (see the limits below for two exceptions), and `SendMessage` accepts that ID.
 
 Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
