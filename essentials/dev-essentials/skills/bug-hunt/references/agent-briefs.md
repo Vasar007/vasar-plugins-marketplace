@@ -151,7 +151,7 @@ these rules, these rules win.
      mkdir -p "{SCRATCH}/snapshot-base"
      git -C "{REPO}" archive --format=tar {BASE_SHA} | tar -x -C "{SCRATCH}/snapshot-base"
    - If it is "remote", run:
-     git clone -c core.longpaths=true --single-branch --branch {BASE} {BASE_URL} "{SCRATCH}/snapshot-base"
+     git clone -c core.longpaths=true --depth 1 --single-branch --branch {BASE} {BASE_URL} "{SCRATCH}/snapshot-base"
      git -C "{SCRATCH}/snapshot-base" rev-parse HEAD
      The option core.longpaths lets Git for Windows check out long paths. Git on other
      platforms ignores it. Report the commit SHA.

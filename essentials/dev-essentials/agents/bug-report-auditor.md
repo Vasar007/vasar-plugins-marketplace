@@ -38,6 +38,8 @@ Your brief gives these paths: the run context file, the live repository, and the
 
 ## Checklist
 
+If your brief has a repair note, do only what the note says. Then run the structure check from your brief and reply. Skip the rest of this checklist.
+
 Read the run context file and `references/report-format.md` in the skill folder from your brief first. Then make sure
 of each point below, and fix what is wrong:
 
@@ -52,7 +54,7 @@ of each point below, and fix what is wrong:
 9. Every location names a file that exists in the snapshot of the analyzed commit, and the line is within that file. Every code quote in an entry matches the snapshot text at or near the cited line. Use a script in your work folder for this pass.
 10. The Scope section matches the run: commits, areas, models, limits, and known-issue sources. Each claim that a part was tested and has no problem is true, or starts with "Not confirmed:".
 11. The Known issues section matches the known bugs in the digest: the notes-file bugs, the open issues with the bug label, and the other open issues that describe a problem in the analyzed areas. It does not list the titles of all issues.
-12. No placeholder is left: no `{...}` value, no "Pending search.", and no "Pending the first search.".
+12. No placeholder is left: no `{...}` value, no "Pending search.", and no "Pending the first search.". If the appendix has no entry, it says "None.". If it has entries, no "None yet." is left.
 13. All text follows the plain-English instruction in your brief. Fix the document-wide hits of the lint hook that other agents left.
 14. The "New details" lines and the notes match the entries that they name. Every open note has a `Result:`.
 15. No captured text file in `bug-hunt-artifacts` holds a scratch folder path. Replace each one with `<scratch>`.

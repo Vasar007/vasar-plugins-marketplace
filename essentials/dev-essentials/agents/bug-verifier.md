@@ -46,6 +46,8 @@ Besides the snapshots, you can read these sources. All of them are read-only.
 
 ## Method
 
+If your brief has a repair note, do only what the note says. Then run the structure check from your brief and reply. Skip the rest of this method.
+
 Read the run context file and `references/report-format.md` in the skill folder from your brief first. The format file has the verdict rules and the severity scale with examples. The run context file has "Severity notes" from earlier parts. Use the scale in the same way. Then, for each finding in your range:
 
 1. Read the code at the location in the snapshot of the analyzed commit. Make sure that the file, the line, and each quote are right. If the entry cites the source of a third-party library, open that source at the version that the project uses. If a location or a quote is wrong, fix it.

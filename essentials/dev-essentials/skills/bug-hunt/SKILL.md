@@ -170,7 +170,7 @@ and the questions that block the run.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the base source, the scratch folder, the approved models and effort levels, the areas, the experiments and services, the pause points and times, and the approval itself. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the base source, the scratch folder, the approved models and effort levels, the output of `git -C "<repo>" --no-optional-locks status --porcelain`, the areas, the experiments and services, the pause points and times, and the approval itself. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 
@@ -229,8 +229,7 @@ structure check, and with the exact list of paths to delete:
 - Every `_bug-hunt-progress-*.md` file in the report folder.
 
 Keep the report file, the run context file, and the `bug-hunt-artifacts` folder. Then run the
-structure check for step 6. To see whether the project is unchanged, run only
-`git -C "<repo>" --no-optional-locks status --porcelain`. As the last action before the final
+structure check for step 6. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Another session can cause them. As the last action before the final
 report, delete `_bug-hunt-session-progress.md`.
 
 ### Step 7. Final report

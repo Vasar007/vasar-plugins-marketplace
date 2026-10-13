@@ -47,6 +47,8 @@ Besides the snapshots, you can read these sources. All of them are read-only.
 
 ## Method
 
+If your brief has a repair note, do only what the note says. Then run the structure check from your brief and reply. Skip the rest of this method.
+
 1. Read the run context file from your brief. Then read `references/report-format.md` in the skill folder from your brief. It defines the entry format and the artifact rules.
 2. Read the known-issues digest. Then read the whole report as it is now: the known issues, the earlier area sections, and every "Notes for other areas" list. Take the notes for your area. Before you build or test, read "Build and test notes" in the run context file.
 3. If your brief says that this is the first search, fill the section "Known issues that this report does not repeat" from the digest.

@@ -47,8 +47,9 @@ Files: <paths>. Out of scope: <paths or topics>.
 If the hunter has nothing for a subsection, it writes "None." under the heading. The two
 subsections "New details for known issues" and "Notes for other areas" must always exist.
 
-A note that names an area that was already searched is an open note. A verifier follows it
-and then adds ` Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.` at the
+A hunter follows a lead for an area that was already searched itself (hunter rule, Method
+step 10). A note for such an area that is still open after the last hunter is an open note.
+A verifier follows it and then adds ` Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.` at the
 end of the note line.
 
 ## Finding entry
@@ -99,7 +100,7 @@ The verifier sets exactly one verdict for each finding:
 | --- | --- | --- |
 | `Confirmed` | The evidence holds, and the failure scenario is shown or proved from the code. | It stays in its area section. |
 | `Unconfirmed (needs owner review)` | The verifier did not refute it and did not prove it. | It stays in its area section. The Verification paragraph has the three lines below. |
-| `Rejected` | The finding is wrong, or it is not a real behavior bug. | It moves, whole and with its ID, to "Appendix: rejected findings". No stub stays in the area section. |
+| `Rejected` | The finding is wrong, or it is not a real behavior bug. | It moves, whole and with its ID, to "Appendix: rejected findings". The first entry that moves there replaces "None yet.". No stub stays in the area section. |
 | `Duplicate of #NN`, `Duplicate of N-NN`, or `Duplicate of BH-NN` | A GitHub issue (`#NN`), a notes-file bug (`N-NN`), or an earlier entry (`BH-NN`) describes the same bug. | It stays in its area section. The Verification paragraph names the original. |
 
 If the verifier changes the severity or the confidence, it shows the old value next to the
