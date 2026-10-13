@@ -1,21 +1,15 @@
 ---
 name: git-worktree-management
-description: Creates and manages git worktrees at `<repo-root>/.claude/worktrees/<full-branch-ref>/` for working on tasks in isolation. Use when the user requests to create, list, or remove worktrees (e.g., "new worktree for Task 123456", "list my worktrees", "remove all worktrees", "set up worktree for branch feature/tasks/1370383-foo"). Triggers on requests like "create worktree", "new worktree", "list worktrees", "remove worktree", "clean up worktrees".
+description: Creates, lists, and removes git worktrees at `<repo-root>/.claude/worktrees/<full-branch-ref>/`, one isolated folder for each task. Use it for requests to create, list, or remove worktrees. Example requests are "new worktree for Task 123456", "list my worktrees", "remove all worktrees", and "set up worktree for branch feature/tasks/1370383-foo". Triggers on requests like "create worktree", "new worktree", "list worktrees", "remove worktree", "clean up worktrees".
 ---
 
 # Git Worktree Management Skill
 
 ## Purpose
 
-Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` so multiple branches can be checked out simultaneously in isolation. This path is typically gitignored (`**/.claude/worktrees/`) — verify with `git check-ignore -v .claude/worktrees/placeholder` before relying on it — so worktrees do not pollute `git status` and never require cleanup outside the repo.
+Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/`. Each branch gets its own folder, so you can work on several branches at the same time. Repos usually gitignore this path (`**/.claude/worktrees/`), and Workflow A Step 4 makes sure of it. So worktrees stay out of `git status` and need no cleanup outside the repo.
 
-To get the confirmation prompts of Workflow A, write `--interactive` in the request. To also remove the confirmation prompts of Workflows C and D, write `--autonomous` in the request.
-
-## When to Use
-
-- User requests to create a worktree for a task or branch
-- User requests to list existing worktrees
-- User requests to remove one or more worktrees
+To get the approval prompts of Workflow A, write `--interactive` in the request. To also remove the approval prompts of Workflows C and D, write `--autonomous` in the request.
 
 ---
 
@@ -50,14 +44,15 @@ These rules apply in all modes:
 **CRITICAL: NEVER invent or guess branch names, task numbers, or descriptions.**
 
 You need:
-- The full branch ref (e.g., `feature/tasks/1370383-foo`). May include any prefix segment — do not flatten or drop segments.
-- A short description. You need it only with `--interactive`, for your confirmation prompt. The path comes only from the branch ref.
 
-If the user has not provided the branch ref, STOP and ask. With `--interactive`, also ask for the description:
+- The full branch ref (for example `feature/tasks/1370383-foo`). It can include any prefix segment. Do not flatten it, and do not drop a segment.
+- A short description. You need it only with `--interactive`, for your approval prompt. The path comes only from the branch ref.
+
+If the user did not give the branch ref, STOP and ask. With `--interactive`, also ask for the description:
 
 > To create a worktree I need:
-> 1. The full branch ref (e.g., `feature/tasks/1370383-add-feature`)
-> 2. A short description of the task (used only to confirm your intent)
+> 1. The full branch ref (for example `feature/tasks/1370383-add-feature`)
+> 2. A short description of the task (only for the approval prompt)
 
 ### Step 1: Get repository root
 
@@ -71,21 +66,21 @@ git rev-parse --show-toplevel
 git symbolic-ref refs/remotes/origin/HEAD
 ```
 
-This returns something like `refs/remotes/origin/main`. Extract the branch name. Confirm with the user if ambiguous.
+The output looks like `refs/remotes/origin/main`. Take the branch name from it. If the base branch is ambiguous, ask the user.
 
 ### Step 3: Construct path and ask for confirmation
 
 Path rule: `<repo-root>/.claude/worktrees/<full-branch-ref>/`
 
-Mirror the branch ref verbatim — slashes intact, no flattening.
+Copy the branch ref as it is, with its slashes. Do not flatten it.
 
-Example: branch `feature/tasks/1370383-terminate-reservation` → path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`
+Example: the branch `feature/tasks/1370383-terminate-reservation` gives the path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`.
 
 **Without `--interactive` (default):** announce the settings below in one status line, then continue to Step 4.
 
-**Pipeline mode (in every mode)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the confirmation gate in this case.
+**Pipeline mode (in every mode)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the approval gate in this case.
 
-**With `--interactive`, STOP and present a confirmation prompt before creating:**
+**With `--interactive`, STOP and show an approval prompt before you create the worktree:**
 
 > I will create a worktree with the following settings:
 >
@@ -93,9 +88,9 @@ Example: branch `feature/tasks/1370383-terminate-reservation` → path `.claude/
 > - **Branch:** `<branch-ref>` (new) or existing local/remote branch
 > - **Base:** `<base-branch>`
 >
-> Confirm? Or override path/branch?
+> Do you approve? Or do you want a different path or branch?
 
-Wait for explicit confirmation. Do not proceed without it.
+Wait for an explicit yes. Do not continue without it.
 
 ### Step 4: Verify `.claude/worktrees/` is gitignored
 
@@ -111,24 +106,24 @@ Wait for the user's answer. Do not add it silently.
 
 ### Step 5: Create the worktree
 
-Three cases depending on branch state:
+Three cases, by the state of the branch:
 
-**Case A — new branch (most common):**
+**Case A, new branch (most common):**
 
 ```bash
 git fetch origin <base-branch>
 git worktree add -b <branch-ref> <path> origin/<base-branch>
 ```
 
-**Case B — branch already exists locally:**
+**Case B, the branch already exists locally:**
 
 ```bash
 git worktree add <path> <branch-ref>
 ```
 
-(No `-b`. Using `-b` over an existing branch fails.)
+Do not pass `-b` here. With `-b`, the command fails for an existing branch.
 
-**Case C — branch exists on remote only:**
+**Case C, the branch exists on the remote only:**
 
 ```bash
 git fetch origin <branch-ref>
@@ -198,18 +193,18 @@ Present the output showing path, branch, and commit hash. Note which entry is th
 
 ## Workflow C: Removing a Single Worktree
 
-**Whoever runs this workflow executes it.** If you were dispatched to remove a worktree, run Steps 1-3 yourself — do not re-delegate the removal to another subagent (see `dev-essentials:subagent-orchestration` Rule 7). Step 1's single PR-status check stays inline too — it's a one-shot, low-volume GitHub MCP call, which `dev-essentials:subagent-orchestration` Rule 4 already exempts from delegation.
+**Whoever runs this workflow executes it**. If you were dispatched to remove a worktree, run Steps 1 to 3 yourself. Do not dispatch another subagent for the removal (see `dev-essentials:subagent-orchestration` Rule 7). Also read the PR status of Step 1 yourself. `dev-essentials:subagent-orchestration` Rule 4 allows one small GitHub MCP call without a subagent.
 
 ### Step 1: Check PR status before removing
 
-**Default rule:** a worktree must remain alive until its PR has been merged. Before removing, verify:
+**Default rule:** a worktree must stay until its PR is merged. Before the removal, find out the PR status:
 
-- Ask the user for the PR ID or URL, or check via GitHub MCP if already known (see `dev-essentials:github-mcp-conventions`).
-- Confirm the PR is merged (GitHub: `merged: true` or `state: closed` with `merged_at` set) before proceeding.
+- If you know the PR, read its status through GitHub MCP (see `dev-essentials:github-mcp-conventions`). Else, ask the user for the PR ID or URL.
+- Find out whether the PR is merged (GitHub: `merged: true`, or `state: closed` with `merged_at` set).
 
-**User-directed override:** if the user explicitly asks to remove this specific worktree (e.g., "remove this worktree", "clean up the worktree", "you can drop the worktree now"), proceed even if the PR is still open or has no PR. Inform the user that the worktree will be removed before the PR is merged, then continue to Step 2.
+**User-directed override**. If the user explicitly asks to remove this specific worktree, continue, also if the PR is still open or no PR exists. Examples of such a request: "remove this worktree", "clean up the worktree", and "you can drop the worktree now". Tell the user that the worktree goes away before the PR is merged. Then continue to Step 2.
 
-If the PR is still open or in review **and the user has not explicitly requested removal**: inform the user and do NOT remove.
+If the PR is still open or in review **and the user did not explicitly ask for the removal**, do NOT remove the worktree. Tell the user.
 
 ### Step 2: Get confirmation
 
@@ -217,29 +212,16 @@ Show the worktree path and branch. Ask for explicit yes. With `--autonomous`, sh
 
 ### Step 3: Remove
 
-**Before attempting removal, archive anything worth keeping** (e.g. `Notes/`
-drafts, task artifacts) to a location outside the worktree. A removal attempt
-can partially succeed — git deregisters the worktree while the residual
-directory tree is left behind in a partially-deleted state — so don't risk
-losing something you meant to keep by archiving only after a failed attempt.
+**Before the first removal attempt, archive anything worth keeping** (for example `Notes/` drafts and task artifacts) to a location outside the worktree. A removal can fail halfway: git unregisters the worktree but leaves part of the folder on disk. So do not wait for a failed attempt before you archive.
 
 ```bash
 git worktree remove <path>
 git worktree list   # verify removal
 ```
 
-**Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on
-removal is usually NOT an IDE file lock — work through this diagnosis in
-order:
+**Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on removal is usually NOT an IDE file lock. Work through this diagnosis in order:
 
-1. **Step 1 — shell CWD (primary cause, always try first; fixes most cases).**
-   The Bash tool and the PowerShell tool each hold their OWN separate,
-   persistent CWD. If either shell's CWD is still parked inside the worktree
-   being removed (left over from an earlier `cd <worktree> && ...` or
-   `Set-Location <worktree>`, including ones implied by a build/test run),
-   Windows treats the directory as in use and git/`Remove-Item` surface that
-   as `Permission denied` — with no IDE involved at all. Check and move BOTH
-   shells' CWD out before anything else:
+1. **Step 1: shell CWD (the main cause, always first)**. The Bash tool and the PowerShell tool each keep their OWN current folder (CWD) between calls. An earlier `cd <worktree>` or `Set-Location <worktree>` can leave it inside the worktree, also through a build or test run. Windows then treats the folder as in use. Git or `Remove-Item` reports this as `Permission denied`, with no IDE involved. Move the CWD of BOTH shells out first:
 
    ```bash
    cd <repo-root>              # Bash
@@ -249,46 +231,29 @@ order:
    Set-Location <repo-root>    # PowerShell
    ```
 
-   Then retry `git worktree remove <path>` and, if a residual directory
-   remains, a plain `Remove-Item -Recurse -Force <path>` (or `rm -rf <path>`).
-   For short/moderate branch-ref-derived worktree paths this alone succeeds —
-   no long-path workaround needed.
+   Then run `git worktree remove <path>` again. If a folder remains, run a plain `Remove-Item -Recurse -Force <path>` (or `rm -rf <path>`). For a worktree path of short or medium length, this step alone is enough.
 
-2. **Step 2 — long path (conditional, only if Step 1 didn't fix it).**
-   `<repo-root>/.claude/worktrees/<full-branch-ref>/` plus a deep source tree
-   routinely exceeds Windows' `MAX_PATH` (260 chars), which surfaces as the
-   same `Permission denied`. You MAY try the PowerShell extended-path literal
-   as a first attempt here:
+2. **Step 2: long path (use it only after Step 1 failed)**. The worktree path plus a deep source tree often exceeds the Windows `MAX_PATH` limit of 260 characters. This also shows as `Permission denied`. You can try the PowerShell extended-path literal first:
 
    ```powershell
    Remove-Item -LiteralPath '\\?\<absolute-worktree-path>' -Recurse -Force
    ```
 
-   Treat this as CONDITIONALLY available, not guaranteed: this environment's
-   own sandbox/safety layer has been observed to block the `\\?\` literal
-   outright in some sessions. If it's rejected or blocked, don't fight it —
-   fall through to Step 3 immediately.
+   The sandbox of the session can block the `\\?\` literal. If it is blocked or rejected, go to Step 3 at once.
 
-3. **Step 3 — leaf-first manual walkup (reliable fallback).** Delete the
-   deepest files/directories first and work back up toward the worktree root
-   (e.g. repeated `rmdir` / `Remove-Item` starting from the deepest leaf
-   paths). This avoids needing any single long-path operation on the full
-   nested path at once, so it works even when Step 2 is unavailable.
+3. **Step 3: leaf-first manual walkup (the reliable fallback)**. Delete the deepest files and folders first, and work up to the worktree root, for example with repeated `rmdir` or `Remove-Item` calls. No single call then needs the full long path. So this step also works without Step 2.
 
-Shorter branch-ref slugs reduce how often Step 2/3 are needed at all, since
-the worktree path length is derived directly from the branch ref — keep
-slugs tight at creation time (see Workflow A).
+The worktree path comes from the branch ref. So keep branch-ref slugs short at creation time (see Workflow A), and Steps 2 and 3 are necessary less often.
 
-Report to the user which step actually fixed it. Do not force-remove past a
-genuine uncommitted-changes refusal.
+Tell the user which step fixed the error. Do not force a removal past a real refusal for uncommitted changes.
 
 ---
 
 ## Workflow D: Removing All Worktrees
 
-**CRITICAL: The main worktree cannot be removed.**
+**CRITICAL: Never remove the main worktree**.
 
-**Only remove worktrees whose PRs are merged.**
+**Remove only the worktrees whose PRs are merged**.
 
 ### Step 1: List worktrees
 
@@ -305,12 +270,12 @@ For each secondary worktree (path contains `.claude/worktrees/`), derive its bra
    Example: `/repo/.claude/worktrees/feature/tasks/1370383-foo` → `feature/tasks/1370383-foo`.
 
 2. **Determine PR status via the appropriate platform:**
-   - **GitHub:** use `mcp__plugin_github_github__list_pull_requests` or `mcp__plugin_github_github__pull_request_read` with `owner`, `repo`, and the branch ref as `head`. Pass `owner` and `repo` verbatim per `dev-essentials:github-mcp-conventions` Rule 2. A PR is eligible for worktree removal when `merged: true` or (`state: closed` AND `merged_at` is non-null).
+   - **GitHub:** use `mcp__plugin_github_github__list_pull_requests` or `mcp__plugin_github_github__pull_request_read` with `owner`, `repo`, and the branch ref as `head`. Get `owner` and `repo` as `dev-essentials:github-mcp-conventions` Rule 1 says, and pass them on every call (Rule 2). If the PR has `merged: true`, or if it has `state: closed` and a non-null `merged_at`, the worktree is eligible for removal.
    - **Other platforms:** use the equivalent task-provider MCP server. If no MCP tool is available for the platform, **STOP and ask the user** for the PR status for that specific worktree.
 
-3. **Apply the merged filter.** A worktree is eligible for removal only when its PR is confirmed merged. Any other status (open, draft, closed-without-merge, or no PR found) means the worktree must NOT be removed automatically.
+3. **Apply the merged filter**. If the PR status that you read does not say that the PR is merged, the worktree is not eligible for removal. Any other status (open, draft, closed without a merge, or no PR found) means that you must NOT remove the worktree automatically.
 
-4. **If discovery fails or is ambiguous** (MCP unavailable, multiple PRs returned for the same source branch, zero PRs found but the branch looks active) — **STOP and ask the user** for the PR status or removal confirmation for that specific worktree. Do NOT guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
+4. **If discovery fails or is ambiguous**, **STOP and ask the user** about that specific worktree: its PR status, or whether to remove it. Examples: MCP is not available, several PRs come back for the same source branch, or no PR comes back but the branch looks active. Do NOT guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
 
 Worktrees with open or undiscoverable PRs must NOT be removed.
 
@@ -328,11 +293,11 @@ The main worktree will be preserved.
 Proceed with removing the 1 eligible worktree? (yes/no)
 ```
 
-Without `--autonomous`, **STOP and wait for explicit confirmation.** With `--autonomous`, show the list and continue.
+Without `--autonomous`, **STOP and wait for an explicit yes.** With `--autonomous`, show the list and continue.
 
 ### Step 4: Remove each eligible worktree
 
-Archive anything worth keeping from each worktree first — Workflow C Step 3 applies per path. Likewise, whoever runs this workflow removes each eligible path itself — Workflow C's Rule 7 note applies per path here too, not just for a single-worktree removal.
+For each path, first archive anything worth keeping, as Workflow C Step 3 says. Whoever runs this workflow also removes each eligible path itself. The Rule 7 note of Workflow C applies to each path here too, not only to the removal of a single worktree.
 
 ```bash
 git worktree remove <path-1>
@@ -345,49 +310,30 @@ git worktree prune
 
 ## Lifecycle Rule: Keep Until PR Is Merged
 
-**Do NOT remove a worktree at end of session, end of pipeline, or when asked "are we done?".**
+**Do NOT remove a worktree at the end of a session, at the end of a pipeline, or after the question "are we done?"**.
 
-The worktree is needed for PR review feedback, follow-up fixes, build/test reproduction, and code inspection at the branch HEAD. Removing it early forces awkward `git show <branch>:<path>` workflows that lose build/test capability.
+PR review feedback, follow-up fixes, and build and test runs at the branch HEAD all need the worktree.
 
-Removal is allowed after the PR is confirmed merged (provider-specific — for GitHub: `merged: true` or `state: closed` with `merged_at` set), or when the user explicitly asks to remove a specific worktree (see Workflow C). Always re-fetch PR status before removing to confirm.
+You can remove a worktree in two cases. First, the PR is merged, by the rule of the provider (GitHub: `merged: true`, or `state: closed` with `merged_at` set). Second, the user explicitly asks to remove a specific worktree (see Workflow C). Before each removal, read the PR status again.
 
 ---
 
 ## Recreate-If-Missing Fallback
 
-If the worktree is missing despite the lifecycle rule (manual removal, IDE prune, `git worktree prune`), and the branch has an active PR, recreate before doing any work.
+The worktree can be missing despite the lifecycle rule, for example after a manual removal, an IDE prune, or `git worktree prune`. If the branch has an active PR, recreate the worktree before you do any work.
 
-**Before deleting any stub directory:** verify the path starts with `.claude/worktrees/` so the fallback cannot apply to an arbitrary path. Try the git-native removal first (`git worktree remove --force`), which respects git's safety model for registered-but-missing entries. If a physical directory still exists afterwards (an unregistered orphan stub), list its contents and ask the user for explicit confirmation before deleting — the path may contain `Notes/` files or other unrecoverable artifacts (the entire `.claude/worktrees/` subtree is gitignored). Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
+**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Try the git-native removal first (`git worktree remove --force`). It follows the safety model of git for an entry that git registered but that is missing on disk. If a physical directory still exists after that (an unregistered orphan stub), list its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
 
 ```bash
 git fetch origin <branch-ref>
-# Confirm the path is under .claude/worktrees/ before any removal step.
-# 1. Try git-native removal first (covers the common case where git still
-#    has the entry registered but the directory was wiped manually).
+# Only for a path under .claude/worktrees/ (see the rule above).
 git worktree remove --force .claude/worktrees/<branch-ref> 2>/dev/null || true
-# 2. If a physical orphan directory still exists, list its contents and ask
-#    the user to confirm deletion. Only then remove it. Do NOT chain a blind
-#    `rm -rf` here — the rule from Workflow C (Step 3) still applies.
-
-# 3. Recreate — mirror Workflow A Step 5 branch-state logic:
-#    Case B: branch still exists locally
-git worktree add .claude/worktrees/<branch-ref> <branch-ref>
-#    Case C: branch no longer exists locally (pruned/damaged state) — use this instead:
-# git worktree add --track -b <branch-ref> .claude/worktrees/<branch-ref> origin/<branch-ref>
-# Re-run the bootstrap
-git -C .claude/worktrees/<branch-ref> branch --unset-upstream
-[ -f .claude/settings.local.json ] && cp .claude/settings.local.json .claude/worktrees/<branch-ref>/.claude/settings.local.json
-mkdir -p .claude/worktrees/<branch-ref>/Notes
+# If a directory remains: list it and ask the user. Never chain a blind `rm -rf`.
 ```
 
-**Branch-state decision (choose Case B or C above):**
+Then recreate the worktree at `.claude/worktrees/<branch-ref>` with Workflow A Step 5. If `git branch --list <branch-ref>` prints a line, use Case B. If it prints nothing, the local branch is gone, so use Case C. After that, run all of Workflow A Step 6 (the post-create bootstrap).
 
-Check whether the branch exists locally with `git branch --list <branch-ref>`.
-
-- Output non-empty → **Case B**: use `git worktree add <path> <branch-ref>`.
-- Output empty → **Case C**: the local branch is gone; use `git fetch origin <branch-ref>` (already done above) then `git worktree add --track -b <branch-ref> <path> origin/<branch-ref>`.
-
-Then work in the recreated worktree. Do not operate from master via `git show <branch>:<path>`.
+Then work in the recreated worktree. Do not work from the main worktree through `git show <branch>:<path>`.
 
 ---
 
@@ -395,50 +341,8 @@ Then work in the recreated worktree. Do not operate from master via `git show <b
 
 **Worktree path already exists:** Inform the user. Options: remove the existing one, or list with `git worktree list` to investigate.
 
-**Branch already exists locally:** Use `git worktree add <path> <branch-name>` (no `-b`). See Case B above.
-
-**Not in a git repository:** Inform the user they need to run from inside a git repo.
-
 **Cannot remove main worktree:** The main repo worktree cannot be removed with this skill. Only secondary worktrees under `.claude/worktrees/` can be removed.
 
 **Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
 
-**Permission denied on removal:** On Windows this is usually NOT an IDE file lock — see the ordered diagnosis in Workflow C Step 3 (shell CWD parked in the worktree is the dominant, self-inflicted cause; Windows long paths are the secondary cause on deep branch refs; leaf-first walkup is the reliable fallback). Work through that diagnosis rather than reporting an IDE lock and stopping. Never blind force-remove.
-
----
-
-## Reference: Git Worktree Commands
-
-```bash
-# List all worktrees
-git worktree list
-
-# Add a new worktree (new branch) — fetch first, then branch from remote-tracking ref
-git fetch origin <base-branch>
-git worktree add -b <branch-ref> <path> origin/<base-branch>
-
-# Add a worktree for an existing local branch (no -b)
-git worktree add <path> <branch-ref>
-
-# Add a worktree for a remote-only branch
-git fetch origin <branch-ref>
-git worktree add --track -b <branch-ref> <path> origin/<branch-ref>
-
-# Unset upstream after creation (always)
-git -C <path> branch --unset-upstream
-
-# Remove a worktree
-git worktree remove <path>
-
-# Clean up stale references
-git worktree prune
-
-# Get repository root
-git rev-parse --show-toplevel
-
-# Get default remote branch
-git symbolic-ref refs/remotes/origin/HEAD
-
-# Check if a path is gitignored
-git check-ignore -v <path>
-```
+**Permission denied on removal:** On Windows, this is usually NOT an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.
