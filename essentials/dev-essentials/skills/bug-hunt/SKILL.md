@@ -20,7 +20,7 @@ The main session is the orchestrator. It plans the run, dispatches the agents, a
 structure of their output. It does not check the content of the findings. The verifier agents
 and the auditor agent do that.
 
-Earlier runs forgot two rules most often. Keep both in view for the whole run: the
+Earlier runs forgot two rules most often: the
 orchestrator checks only structure (rule 3), and all text follows plain English (rule 5).
 
 ## Terms
@@ -51,9 +51,9 @@ Another session can work in the project at the same time. For this reason, agent
 only from the snapshots.
 
 - Do not edit, build, test, or run anything in the project folder. Do not create files there. The report folder is the only exception (see the report-folder point).
-- Against the live repository, run only these git commands, always with `git -C "<repo>"`: `rev-parse`, `remote get-url`, `ls-tree`, `log`, `show`, `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
+- Against the live repository, always use `git -C "<repo>"`. Run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, and `show`. Also `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
 - Do not run a plain `git status`, because it can write the index. Do not run `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. Never fetch into the live repository. For a newer base, the setup helper clones it into the scratch folder.
-- In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. If the report folder is inside the project, this point still holds.
+- In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. If the report folder is inside the project, this point holds.
 - If the experiments input is `yes`, run experiments only in a work folder inside the scratch folder. Else, run none. No GUI runs, no system-wide installs, and no changes to the machine configuration.
 - The commands in this skill need a POSIX shell and Python 3. On Windows, run them with the Bash tool (Git Bash), not with PowerShell. If `python3` is not available, stop the run at step 0 and report this under "Blocked on me".
 
@@ -90,10 +90,10 @@ orchestrator looks for this skill in the list of available skills.
 
 ### 6. Crash-recovery progress files
 
-Every agent that can run long keeps a progress file in the report folder: a `STATUS` line, a
-checklist of steps, an append-only `## Log`, a `## Current draft` with the work in progress,
-and a `## NEXT` with the single next action. The agent updates it at every step, resumes from
-`## NEXT` after a crash, and deletes it when the deliverable is complete. A progress file that
+Every agent that can run long keeps a progress file in the report folder. It has a `STATUS` line, a
+checklist of steps, an append-only `## Log`. It has a `## Current draft` with the work in progress,
+and a `## NEXT` with the single next action. The agent updates it at every step. It resumes from
+`## NEXT` after a crash. When the deliverable is complete, it deletes the file. A progress file that
 is left behind means that work is not finished.
 
 The orchestrator keeps `_bug-hunt-session-progress.md` in the same way. It updates the file at
@@ -118,10 +118,10 @@ the report with the Edit tool, not with a script that rewrites the file.
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
 meta-plan states it, and the user's OK to the meta-plan accepts it. After the OK, rule 3
 replaces two things for this run only: the "Trust but verify" section of
-`dev-essentials:subagent-orchestration`, and any user instruction to re-check every subagent
+`dev-essentials:subagent-orchestration`, and any user instruction to test every subagent
 claim. The section "Run format agreement" of that skill has the shared rule.
 
-- Between steps, write at most one short status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
+- Between steps, write at most one status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
 - In chat, ask only questions that block the run.
 - End the run with one final report (step 7).
 - If the session has a task tool (`TaskCreate` or `TodoWrite`), keep one task for each step, area, and verifier part. A restart of Claude Code clears the list. Then create it again from the session progress file.
@@ -170,7 +170,7 @@ and the questions that block the run.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
 7. Wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the base source, the scratch folder, the approved models and effort levels, the output of `git -C "<repo>" --no-optional-locks status --porcelain`, the areas, the experiments and services, the pause points and times, and the approval itself. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+8. After the OK, write `_bug-hunt-session-progress.md` in the report folder. Record the inputs, the commit SHAs, the base source, the scratch folder, and the approved models and effort levels. Record the output of `git -C "<repo>" --no-optional-locks status --porcelain`, the areas, the experiments and services, the pause points and times, and the approval itself.  If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 
@@ -208,7 +208,7 @@ verifier part that holds the area that the note names.
 
 1. Count the findings. Call the number N.
 2. If N is 0, skip this step. The auditor writes the Summary in step 5.
-3. If N is at most the split threshold, use one part. Else, use `ceil(N / threshold)` parts. Each part covers whole areas. Choose the area borders that make the parts closest to equal size. Split inside an area only if that area alone has more findings than the threshold.
+3. If N is at most the split threshold, use one part. Else, use `ceil(N / threshold)` parts. Each part covers whole areas. Choose the area borders that make the parts closest to equal size. Split inside an area only for an area whose findings alone exceed the threshold.
 4. Dispatch one verifier for each part, one after the other, on the same report file. Set `{LAST_PART}` to "yes" only for the last part. That part also writes the Summary.
 5. After each part, run the structure check for step 4. Append the "Severity use" lines of the reply under "Severity notes" in the run context file. Later parts read them.
 
@@ -222,8 +222,8 @@ at the end of the Summary. Then run the structure check for step 5.
 First, delete the scheduled jobs of the run: run `CronList`, and run `CronDelete` for each job
 ID that the session progress file records.
 
-Dispatch the cleanup helper with the process IDs and start times from the WARN lines of the
-structure check, and with the exact list of paths to delete:
+Dispatch the cleanup helper. Give it the process IDs and start times from the WARN lines of the
+structure check. Give it the exact list of paths to delete:
 
 - The scratch folder, with the snapshots, the digest, the tools folder, and every work folder.
 - Every `_bug-hunt-progress-*.md` file in the report folder.

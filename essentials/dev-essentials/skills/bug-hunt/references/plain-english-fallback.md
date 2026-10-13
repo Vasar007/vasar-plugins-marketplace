@@ -1,6 +1,6 @@
 # Plain-English fallback rules
 
-Use these rules for all report text if the skill `simple-english:simple-english` is not installed. They are a short form of that skill.
+If the skill `simple-english:simple-english` is not installed, use these rules for all report text. They are a short form of that skill.
 
 1. Keep sentences short: at most 20 words for a step and 25 words for an explanation.
 2. Use active voice and simple tenses. Name the actor.

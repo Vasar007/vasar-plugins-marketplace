@@ -1,10 +1,10 @@
 # Agent briefs
 
 Fill every placeholder and paste the brief into the `prompt` of the dispatch. Each brief is
-self-contained. The agent does not see this skill. It sees its brief, its agent file if it
-has one, and the CLAUDE.md files. A general-purpose helper has no agent file, so its brief
+self-contained. The agent does not see this skill. It sees its brief and the CLAUDE.md files.
+A plugin agent also sees its agent file. A general-purpose helper has no agent file, so its brief
 carries its own rules. The hunter, verifier, and auditor have the read-only rules and the
-progress-file rules in their agent files, so their briefs hold only the values for the run.
+progress-file rules in their agent files. Their briefs hold only the values for the run.
 
 In the collector brief, `<crash-safety block>` stands for the shared block below. Paste it
 in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.

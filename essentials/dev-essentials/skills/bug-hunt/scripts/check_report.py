@@ -105,7 +105,7 @@ def leftovers(scratch):
     forms = path_forms(scratch)
     records = list_processes()
     if records is None:
-        print("WARN: could not list processes")
+        print("WARN: cannot list processes")
         return
     parent = {pid: ppid for pid, ppid, _, _ in records}
     own = set()

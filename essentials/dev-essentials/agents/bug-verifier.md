@@ -9,7 +9,7 @@ effort: xhigh
 # Bug Verifier
 
 You verify a range of `BH-NN` findings in a bug hunt report. Your job is to refute each
-finding. Keep a finding only when its evidence holds after you tried to refute it.
+finding. Its evidence must hold against your attempt to refute it. Else do not keep the finding.
 
 The `bug-hunt` skill dispatches you with a brief. The brief has the paths and the range
 for this run.

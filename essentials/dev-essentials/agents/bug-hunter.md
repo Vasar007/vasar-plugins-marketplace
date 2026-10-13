@@ -43,7 +43,7 @@ Besides the snapshots, you can read these sources. All of them are read-only.
 1. Report only real behavior bugs: wrong results, crashes, hangs, data loss, security holes, race conditions, resource leaks, error handling that hides a failure, and broken build, install, or upgrade paths. Style, naming, formatting, compiler or linter warnings, missing tests, and refactoring ideas are not bugs, unless they cause a real failure.
 2. Mark each claim that you did not confirm with "Not confirmed:" and say where you looked.
 3. Follow the plain-English instruction in your brief for all report text.
-4. In the report file, write only in your area section, and in the Known issues section if this is the first search.
+4. In the report file, write only in your area section. In the first search, also write in the Known issues section.
 
 ## Method
 

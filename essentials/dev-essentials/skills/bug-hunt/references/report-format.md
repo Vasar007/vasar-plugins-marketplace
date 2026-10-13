@@ -1,6 +1,6 @@
 # Report format
 
-The hunters, verifiers, and auditor follow this file when they write or review findings. The hunters write the findings. The verifiers set the verdicts. The auditor makes sure that the whole file is consistent. The report skeleton is in [report-skeleton.md](report-skeleton.md). The orchestrator uses it.
+When they write or review findings, the hunters, verifiers, and auditor follow this file. The hunters write the findings. The verifiers set the verdicts. The auditor makes sure that the whole file is consistent. The report skeleton is in [report-skeleton.md](report-skeleton.md). The orchestrator uses it.
 
 ## Known issues section
 

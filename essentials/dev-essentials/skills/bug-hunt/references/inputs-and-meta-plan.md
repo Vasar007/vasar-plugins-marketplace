@@ -60,7 +60,7 @@ For the defaults, use only these light read-only calls:
 10. Run format: the orchestrator checks only the structure of the output (rule 3), and the verifiers and the auditor check the content. Chat gets at most one status line for each step and one final report (rule 8). Say in one sentence that the OK also accepts this run format.
 11. Plain English: whether `simple-english` is installed, or the fallback is used.
 12. Cleanup: the list of what step 6 deletes and what it keeps.
-13. Questions: a numbered list. Always ask the user to confirm the analyzed commit, the base and its source, and the GitHub repository name. Also ask for the bug label and the other known-bug sources, the experiments and services, and the pause points. Then add each question that blocks the run.
+13. Questions: a numbered list. Always ask the user to approve the analyzed commit, the base and its source, and the GitHub repository name. Also ask for the bug label and the other known-bug sources, the experiments and services, and the pause points. Then add each question that blocks the run.
 
 ## Questions that block the run
 
@@ -69,6 +69,6 @@ Ask a question in these cases:
 - The report folder is missing, or the report file exists.
 - The report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file, and no resume applies. A new run then writes into the files of the old run.
 - The run context file or the final summary file exists, and no resume applies. Offer to reuse the context file, or to use the dated names `bug-hunt-context-<YYYY-MM-DD>.md` and `bug-hunt-final-summary-<YYYY-MM-DD>.md`.
-- The base branch is unknown, or the GitHub repository is not confirmed.
+- The base branch is unknown, or the GitHub repository is not approved.
 - Fable is not available, or a plugin agent type for the hunter, verifier, or auditor is not available.
 - There is no known-issue source.
