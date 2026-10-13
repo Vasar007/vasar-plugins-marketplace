@@ -1,78 +1,33 @@
 # Recipes — mapping common artifact types onto the 8 generic sections
 
-`SKILL.md`'s core structure defines 8 generic sections. This file works out,
-for two recurring artifact types, which domain content lands in which
-section — so a caller doesn't have to re-derive the mapping from scratch
-each time. Both recipes below are patterns, not templates to copy verbatim:
-adapt field names to whatever the calling task actually has on hand.
+The core structure in `SKILL.md` defines 8 generic sections. This file maps the domain content of two recurring artifact types onto those sections. A caller then does not have to work out the mapping each time. Both recipes are patterns, not templates to copy word for word. Adapt the field names to the data that the calling task has.
 
 ## Recipe 1 — Implementation-plan artifact
 
-For rendering an approved implementation plan (spec, execution-order steps,
-and acceptance criteria) as a reviewable HTML artifact, typically produced
-before a human-approval gate in a plan-then-implement workflow.
+Use this recipe to render an approved implementation plan as an HTML artifact for review. The plan has a spec, the steps in execution order, and acceptance criteria (AC). A plan-then-implement workflow usually makes this artifact before a human-approval gate.
 
-1. **Header card** — the task/spec title, the current stage or status
-   (e.g. "awaiting approval", "in progress"), and a link back to the
-   task's tracker item (issue or ticket).
-2. **Stats grid** — execution-order step count, files touched, AC
-   pass/fail counts.
-3. **Summary** — a plain-language description of what's being built,
-   pulled from the spec's overview section.
-4. **Legend** — AC/step status color coding, if the plan uses status
-   badges anywhere below (e.g. planned / in-progress / done).
-5. **Main table(s)** — the AC grid plus the execution-order step list, one
-   row per AC / step, each deep-linking (`<a href="#anchor-id">`) down to
-   its detail section.
-6. **Collapsible detail groups** — one `<details>` per file or per
-   execution-order step, grouping the finer-grained content so the page
-   stays scannable collapsed.
-7. **Annotated content** — the mermaid data-flow (or architecture)
-   diagram, any mockups of the resulting UI, and the important code
-   snippets worth reviewing before approval.
-8. **Recommendation** — open questions or risks worth flagging before the
-   human approves the plan.
+1. **Header card**: the title of the task or the spec, and the current stage or status, for example "awaiting approval" or "in progress". Add a link back to the tracker item of the task (an issue or a ticket).
+2. **Stats grid**: the count of steps in the execution order, the count of changed files, and the counts of AC that pass and fail.
+3. **Summary**: a plain-language description of what the task builds, from the overview section of the spec.
+4. **Legend**: the color code for AC and step statuses, for example planned, in progress, and done. If no section below uses status badges, leave the legend out.
+5. **Main table(s)**: the AC grid and the list of execution-order steps, with one row for each AC or step. Each row has a deep link (`<a href="#anchor-id">`) down to its detail section.
+6. **Collapsible detail groups**: one `<details>` block for each file or each execution-order step. The blocks group the detailed content, so that the page stays easy to scan with the blocks closed.
+7. **Annotated content**: the mermaid data-flow or architecture diagram, mockups of the resulting UI, and the code snippets that the reviewer needs to see before the approval.
+8. **Recommendation**: the open questions and the risks that the human needs to know before the approval of the plan.
 
 ## Recipe 2 — PR / code-review artifact
 
-For rendering a completed code review (findings against a diff) as a
-reviewable HTML artifact, typically saved alongside other review artifacts
-for the same repo/PR series.
+Use this recipe to render a finished code review (findings against a diff) as an HTML artifact for review. Such an artifact is usually saved next to the other review artifacts of the same repository or PR series.
 
-1. **Header card** — PR title, status pill (e.g. Active / Completed),
-   link back to the PR, author, and the source-branch → target-branch row
-   with commit tips.
-2. **Stats grid** — files changed; lines added / removed; commits on the
-   branch; finding counts by severity in one cell.
-3. **Summary paragraph + positive bullets** — what the change does in
-   plain prose, plus a short bulleted list of the conventions/patterns it
-   follows well.
-4. **Severity legend** — colored dots inline: critical (red), major
-   (orange), minor (yellow), info (blue), good (green).
-5. **Findings table** — `#`, severity badge, a "Where" cell deep-linking
-   (`<a href="#F-<anchor>">`) to the file's detail section, and the
-   finding description. Every finding must be linkable.
-6. **"Major changes by file"** collapsible `<details>` sections — typically
-   one for production code and one for tests — each listing files with
-   line counts and back-references to the findings that touch them.
-7. **Annotated diff sections** — one section per file, using the
-   annotated-line-grid pattern from `references/css-components.md` (line
-   number | code | side annotation chip, color-coded by severity). Anchor
-   each file section with `id="F-<anchor>"` tied to the findings table's
-   deep-links. Render the actual diff (added lines in green, removed in
-   red, context in gray); for very long files, render representative
-   excerpts but every finding must still point to its line via a chip.
-8. **Recommendation** — what's must-fix before merge vs. what can be a
-   follow-up.
+1. **Header card**: the PR title, a status pill (for example Active or Completed), a link back to the PR, and the author. Add a row with the source branch, the target branch, and their tip commits.
+2. **Stats grid**: the changed files, the added and removed lines, the commits on the branch, and the finding counts by severity in one cell.
+3. **Summary paragraph and positive bullets**: what the change does, in plain prose. Add a short bulleted list of the conventions and patterns that it follows well.
+4. **Severity legend**: colored dots, inline: critical (red), major (orange), minor (yellow), info (blue), and good (green).
+5. **Findings table**: the `#`, a severity badge, a "Where" cell, and the description of the finding. The "Where" cell has a deep link (`<a href="#F-<anchor>">`) to the detail section of the file. Every finding must have a link.
+6. **"Major changes by file"**: collapsible `<details>` sections, usually one for production code and one for tests. Each one lists the files with their line counts, and links back to the findings that touch each file.
+7. **Annotated diff sections**: one section for each file. Use the annotated line grid from `references/css-components.md`: the line number, the code, and a side annotation chip in the severity color. Give each file section the anchor `id="F-<anchor>"` that the deep links of the findings table use. Render the real diff, with added lines in green, removed lines in red, and context lines in gray. For a very long file, render excerpts, but each finding must still point to its line with a chip.
+8. **Recommendation**: what the author must fix before the merge, and what can wait for a follow-up.
 
 ## Notes for both recipes
 
-+ Don't force every section to be present if the content genuinely has
-  nothing for it (e.g. skip the legend if nothing below uses color
-  coding) — see `SKILL.md`'s "adapt sections to the content type" note.
-+ Keep finding/AC density honest per `references/pitfalls.md` — padding
-  either table to look thorough is a known anti-pattern.
-+ If this artifact is part of a recurring series (weekly plan renders,
-  repeated PR reviews for the same repo), reuse the most recent prior
-  artifact's CSS and layout rather than restyling from these recipes each
-  time — see `SKILL.md`'s "reuse the most recent prior artifact" rule.
+Keep the counts of findings and AC honest (see `references/pitfalls.md`). A table with padding to look thorough is a known anti-pattern.

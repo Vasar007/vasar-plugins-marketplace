@@ -1,22 +1,9 @@
 # Recurring pitfalls in HTML artifacts
 
-Items here are additive to `SKILL.md` — see that file for the
-self-contained-file, prior-artifact-reuse, live-anchor, and
-render-verification rules. Only the genuinely distinct pitfalls are listed
-below.
+This file adds to `SKILL.md` and does not repeat its rules: one self-contained file, reuse of the prior artifact, live anchors, and the tests before you finish.
 
-- **For long files/diffs, render representative excerpts, not everything**
-  — but every table row's finding must still point at a rendered line via
-  its annotation chip. Don't summarize a finding's location in prose only;
-  the reader should be able to click straight to it.
+- **For a long file or diff, render excerpts, not everything**. Each finding of the table must still point at a rendered line through its annotation chip. Do not give the location of a finding in prose only. The reader must be able to click straight to it.
 
-- **Don't inflate content to look thorough.** A findings table padded with
-  marginal nits reads as noise, not rigor — a healthy density for a
-  ~1000-line review is roughly 1 major + a handful of minor/info items,
-  not fifteen. The same principle applies to AC grids and step lists:
-  report what's actually notable, not everything that could be said.
+- **Do not inflate content to look thorough**. A findings table with padding of marginal nits reads as noise, not rigor. For a review of about 1,000 lines, a healthy density is about 1 major item and a few minor or info items, not fifteen. The same holds for AC grids and step lists. Report what is notable, not all that you can say.
 
-- **Ambiguous save location** — if it's genuinely unclear where in the
-  repo/task-artifacts structure this artifact belongs (no existing
-  series to match, no obvious folder), ask rather than guessing; getting
-  this wrong means the user can't find the file later.
+- **Unclear save location**: it can be unclear where the artifact belongs in the repository or in the task artifacts, with no series to match and no obvious folder. Then ask the user, and do not guess. A file in the wrong place is a file that the user cannot find later.

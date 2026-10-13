@@ -1,9 +1,6 @@
 # Starter CSS components
 
-Copy-paste starting points for the recurring pieces described in
-`SKILL.md`. Adapt colors/spacing to match a prior artifact in the same
-series if one exists — these are a starting point for a brand-new series,
-not a fixed design system.
+Starting points to copy for the recurring parts that `SKILL.md` describes. If a prior artifact of the same series exists, adapt the colors and the spacing to that artifact. This CSS is a starting point for a new series, not a fixed design system.
 
 ## Color map (CSS variables)
 
@@ -97,11 +94,7 @@ details.group[open] summary { border-bottom:1px solid var(--border); }
 .ann-card.pending  { border-color:var(--c-pending); }
 ```
 
-`white-space: pre-wrap` on `.file .code` preserves the source's indentation — without it, default
-HTML whitespace collapsing flattens leading spaces/tabs. Separately, always HTML-escape injected
-code/diff text (`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`) before inserting it into `.file .code` —
-raw code/diff content routinely contains `<`, `>`, `&`, which would otherwise be parsed as markup
-instead of rendered as text.
+`white-space: pre-wrap` on `.file .code` keeps the indentation of the source. Without it, HTML collapses the whitespace and removes the leading spaces and tabs. Also, always HTML-escape the code or diff text before you insert it into `.file .code`: `&` → `&amp;`, `<` → `&lt;`, and `>` → `&gt;`. Code and diff text often contains `<`, `>`, and `&`. Without the escape, the browser parses these characters as markup and does not show them as text.
 
 ## Mockup / wireframe block
 
