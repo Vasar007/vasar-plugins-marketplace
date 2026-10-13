@@ -50,7 +50,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 
 Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agents in read-only mode. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
 
-1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. In this mode, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
+1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. With `--interactive`, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
 2. **In Plan Mode**, follow the built-in planning workflow:
    - Explore the codebase with Explore agents to understand the relevant code, patterns, and architecture.
    - **Find the matching skills**: read the skill list in the system prompt. Identify every skill whose trigger description matches the task. Read the SKILL.md of each matching skill (with Explore agents or the Read tool). Note its mandatory deliverables, completion checklist, and subagent delegations. Put these requirements into the plan.
@@ -169,4 +169,4 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 - If any phase fails (test, build), stop the pipeline and report to the user.
 - With `--interactive`, only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline. Without it, step 19 decides. Other failures are hard stops.
 - After a re-run of Phase 1 with validator proposals, the full pipeline (Phases 1–4) runs again, with all five validators in parallel. Do not skip build, test, or any validator after a proposal-driven re-implementation.
-- Limit proposal re-run cycles to 2 iterations. After the second re-run, do not start a third one. If validation still finds CRITICAL issues, stop the pipeline and escalate to the user with the full history of aggregated findings. Else, proceed to Phase 5, and list the warnings that remain in the final report.
+- Limit proposal re-run cycles to 2 iterations. After the second re-run, do not start a third one. If validation still finds CRITICAL issues, stop the pipeline and escalate to the user with the full history of aggregated findings. Else, without `--interactive`, proceed to Phase 5, and list the warnings that remain in the final report.

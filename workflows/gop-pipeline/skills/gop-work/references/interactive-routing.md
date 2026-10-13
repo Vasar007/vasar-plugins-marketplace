@@ -34,5 +34,5 @@
 - Include all proposals (both criticals and warnings) in the same numbered-list format as above, with domain prefix and `also_seen_by` annotations preserved.
 - User options:
   - **Accept proposals** → collect accepted proposals into `validator_proposals`, return to Phase 1, re-run Phases 2–4
-  - **Dismiss specific findings and proceed** → for a dismissal of all CRITICALs, treat it as an override. Proceed to Phase 5 with a warning note in the commit message.
+  - **Dismiss specific findings and proceed** → for a dismissal of all CRITICALs, override and proceed to Phase 5 with a warning in the commit message.
   - **Request manual fix** → the user wants to fix it outside the pipeline. Stop, and wait until the user says that the run can resume.

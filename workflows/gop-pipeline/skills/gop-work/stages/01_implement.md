@@ -21,7 +21,7 @@ You have access to:
 4. **Test the assumptions**: before coding, find out whether:
    - the files listed in the plan still exist at the expected paths
    - the patterns and conventions that the plan references are still present
-   - a change since the plan was created conflicts with the plan
+   - no change since the plan was created conflicts with the plan
    If an assumption is false, note it as a deviation. If the intent is still clear, continue.
 5. **Implement changes** following the steps of the plan. If a loaded skill defines its own step-by-step workflow, follow that workflow. For the domain that it covers, the workflow of the skill takes precedence over the plan. Skills encode mandatory deliverables (tests, subagent delegations) that the plan can omit.
 6. Follow existing codebase patterns and conventions identified in the plan.
