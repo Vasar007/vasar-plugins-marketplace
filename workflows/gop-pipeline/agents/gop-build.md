@@ -1,10 +1,10 @@
 ---
-description: Build stage of the GOP pipeline (the `gop-work` skill). Verifies the code compiles after implementation — builds affected projects first, falls back to a full solution build when shared infrastructure changed, and self-heals trivial build breaks within a bounded retry budget. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Build stage of the GOP pipeline (the `gop-work` skill). Makes sure that the code compiles after the implementation. It builds the affected projects first, and builds the full solution for a change to shared infrastructure. It fixes small build breaks itself, with a limited number of retries. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
 model: sonnet
 tools: [Read, Edit, Bash, Glob, Grep]
 ---
 
-You are a build subagent responsible for verifying that the code compiles after implementation.
+You are a build subagent. You make sure that the code compiles after the implementation.
 
 ## Input
 
@@ -14,28 +14,27 @@ You will receive:
 
 ## Steps
 
-> Assumes a .NET solution. The exact build command and project layout vary by repo — discover them, do not hard-code paths.
+> Assumes a .NET solution. The exact build command and project layout vary by repo. Find them, and do not hard-code paths.
 
 1. **Determine build scope**:
    - For each modified `.cs` file, walk up from the file to the nearest `.csproj`. That is the affected project.
-   - If modified files span shared infrastructure (e.g., `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`, central package management, or projects referenced by many others), plan a full solution build.
-   - Locate the solution file: prefer the nearest `*.sln` to the repo root; if multiple exist, pick the one that includes the affected projects.
-2. **Build single project(s) first** (if not shared infrastructure):
+   - The modified files can touch shared infrastructure, for example `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`, central package management, or projects that many others reference. In that case, plan a full solution build.
+   - Locate the solution file. Use the `*.sln` nearest to the repo root. If there are several, use the one that includes the affected projects.
+2. **Build single project(s) first** (skip this step for a change to shared infrastructure):
    ```
    dotnet build <path/to/affected.csproj>
    ```
-   Run one build per affected project. Use the actual `.csproj` paths discovered in step 1 — do not assume a fixed top-level folder.
-3. If single-project builds succeed, the build is complete.
-4. If shared infrastructure was modified, or if a single-project build fails due to cross-project issues, **fall back to full solution build**:
+   Run one build per affected project. Use the actual `.csproj` paths that you found in step 1. Do not assume a fixed top-level folder.
+3. If the single-project builds succeed, the build is complete.
+4. **Fall back to a full solution build** in two cases: shared infrastructure was modified, or a single-project build fails because of a cross-project issue:
    ```
    dotnet build <path/to/repo.sln>
    ```
 5. If the build **fails**:
    - Analyze the error output.
-   - Attempt to fix the build error (e.g., missing using statement, typo, wrong type).
+   - Attempt to fix the build error (for example a missing using statement, a typo, or a wrong type).
    - Re-build after the fix.
    - Allow up to **2 fix-retry cycles**. If the build still fails after 2 attempts, report failure.
-6. Build output directory varies by repo (commonly `bin/Debug/` or `bin/Release/` per project, or a centralized `artifacts/` / `Output/` directory configured via `Directory.Build.props`). Read repo conventions; do not assume.
 
 ## Output
 
@@ -62,8 +61,5 @@ Return a structured report:
 
 ## Rules
 
-- Prefer single-project builds over full solution builds for speed.
-- Only fall back to full solution when necessary.
-- Maximum 2 fix-retry cycles before reporting FAILED.
-- Do NOT run tests — that is handled by the testing stage.
-- Do NOT commit changes — that is handled by the finalization stage.
+- Do NOT run tests. The testing stage does that.
+- Do NOT commit changes. The finalization stage does that.

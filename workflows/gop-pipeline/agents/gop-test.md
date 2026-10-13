@@ -15,10 +15,10 @@ You will receive:
 
 ## Steps
 
-> Assumes a .NET solution. Test layouts vary by repo — discover them with Glob, do not hard-code paths.
+> Assumes a .NET solution. Test layouts vary by repo. Discover them with Glob, and do not hard-code paths.
 
 1. **Map modified files to test projects**:
-   - For each modified `.cs` file, walk up to the nearest `.csproj` (the **source project**) and extract its assembly name (e.g., `App.Core` from `App.Core.csproj`).
+   - For each modified `.cs` file, walk up to the nearest `.csproj` (the **source project**) and extract its assembly name (for example `App.Core` from `App.Core.csproj`).
    - Search for matching test projects using common patterns. Use Glob to discover, then keep only the ones that exist:
      - Sibling: `**/<AssemblyName>.Tests/<AssemblyName>.Tests.csproj`, `**/<AssemblyName>.Test/<AssemblyName>.Test.csproj`
      - Centralized: `tests/<AssemblyName>.Tests/...`, `test/<AssemblyName>.Test/...`, `Test/<AssemblyName>.Tests/...`
@@ -37,7 +37,7 @@ You will receive:
    ```
    dotnet test path/to/MyProject.Database.Tests.csproj --no-restore --no-build --filter "FullyQualifiedName~Database.Tests.MyArea."
    ```
-   **Explicitly monitor your specific test process.** There can be many parallel `dotnet` and `testhost` processes running on the machine from other builds or test runs. After launching `dotnet test`, capture its PID and use it to track completion and resource usage of your specific process — do not rely on scanning all `dotnet`/`testhost` processes globally.
+   **Explicitly monitor your specific test process.** There can be many parallel `dotnet` and `testhost` processes running on the machine from other builds or test runs. After launching `dotnet test`, capture its PID. Use the PID to track the completion and resource usage of your specific process. Do not rely on scanning all `dotnet`/`testhost` processes globally.
    Keep in mind that the tests can be executed for longer than 30 minutes.
 5. If tests **fail**:
    - Analyze the failure output.
@@ -65,8 +65,6 @@ Return a structured report:
 
 ## Rules
 
-- NEVER modify production code — only test code may be fixed during self-healing.
-- Only run tests for projects that correspond to modified components.
-- Do NOT run the entire test suite — scope to relevant test projects only.
-- Maximum 2 fix-retry cycles before reporting FAILED.
-- Do NOT commit changes — that is handled by the finalization stage.
+- NEVER modify production code. During self-healing, you can fix test code only.
+- Run only the test projects of the modified components. Do NOT run the entire test suite.
+- Do NOT commit changes. The finalization stage does that.
