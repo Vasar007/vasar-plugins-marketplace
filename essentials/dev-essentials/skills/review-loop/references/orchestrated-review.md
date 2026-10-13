@@ -1,64 +1,38 @@
 # Orchestrated Review Mode — Context-Budget-Preserving Reviewer Dispatch
 
-Referenced by Phase 3 of `SKILL.md`. This is an **alternative execution mode for Phase 3 only**,
-for targets too large to comfortably fit in one reviewer's context — it does not replace the
-default single/parallel reviewer dispatch, which stays the default for everything below the
-threshold below. Read this file when Phase 3 decides to use orchestrated mode; otherwise use
-`references/reviewer-briefs.md` as normal.
+Phase 3 of `SKILL.md` uses this file. It is a **different way to run Phase 3 only**, for targets that are too large for the context of one reviewer. It does not replace the default dispatch of one reviewer or of parallel reviewers. That dispatch stays the default for every target below the threshold. If Phase 3 chooses this mode, read this file. Else use `references/reviewer-briefs.md` as normal.
 
-Mined from a validated end-to-end workflow (`help-review-pr` command's Orchestrator Workflow,
-proven on four large PRs). The shape generalizes to any large `branch` / `pr` / `diff` / `commits`
-target this skill supports.
+The shape works for any large `branch`, `pr`, `diff`, or `commits` target of this skill.
 
 ---
 
 ## When to use this mode
 
-Use orchestrated mode when the target is large enough that reading the full diff (or all changed
-files) would crowd out the orchestrating agent's context for the rest of the loop (Phases 4–9),
-or when `--reviewer-focus` narrowing alone doesn't bring the read volume down enough. Mirrors the
-threshold used by the source command:
+Use this mode for a target that is too large to read in full. Such a read of the diff or of all changed files fills the context that the orchestrator needs for Phases 4 to 9. The mode also fits a target where `--reviewer-focus` alone does not reduce the reading enough.
 
-- **Diff/target size > ~2,000 lines, or > ~30 files changed** → orchestrated mode is a reasonable
-  choice.
-- **Below that threshold** → stay on the default Phase 3 flow (single reviewer or parallel
-  reviewer pair/quad, briefed with the full diff per `references/reviewer-briefs.md`). Orchestrated
-  mode adds dispatch overhead that isn't worth it for a small or medium target.
+- **Diff or target size over about 2,000 lines, or over about 30 changed files**: this mode is a reasonable choice.
+- **Below that threshold**: stay on the default Phase 3 flow. That flow is one reviewer, or a parallel pair or quad, with the full diff in the brief of `references/reviewer-briefs.md`. This mode adds dispatch overhead, and a small or medium target does not need it.
 
-This is a judgment call, not a hard gate — a target just under the threshold with unusually wide
-file spread (many small files across unrelated areas) may still benefit from orchestration; a
-target just over it but concentrated in one file may not need it. State the choice made and why
-in the cycle's brief output.
+The threshold calls for judgment. It is not a fixed gate. A target just under it can still need this mode, for example a target spread over many small files in unrelated areas. A target just over it can still do without this mode, for example a target in one file. State the choice and the reason in the Brief format of the cycle.
 
 ## What this mode dispatches (not how — see cross-reference below)
 
-This file defines **roles and prompt shapes**: what each subagent is asked to do and what it must
-return. It does not restate **dispatch mechanics** (how independent `Agent` calls are batched into
-a single assistant message for concurrent execution, vs. genuinely sequential dispatch) — that is
-`dev-essentials:subagent-orchestration`'s job. Follow that skill's rules for how these subagents
-are actually launched; the roles below simply say which subagents to dispatch and in which
-order/dependency chain.
+This file defines **roles and prompt shapes**: what each subagent does and what it returns. It does not repeat the **dispatch mechanics**, which `dev-essentials:subagent-orchestration` covers. An example is several independent `Agent` calls in one message, against calls in sequence. Follow that skill to launch these subagents. The roles below say which subagents to dispatch, and in which order.
 
-Four roles, dispatched in this dependency order:
+Four roles, in this order of dependency:
 
-1. **Target Explorer** (always) — one subagent, produces a compact summary.
-2. **Area Explorers** (always, once Target Explorer returns) — one subagent per logical area,
-   dispatched together (independent — no cross-area dependency).
-3. **Finding Verifier** (optional — see trigger below) — one subagent, re-checks every finding's
-   anchor before it is trusted.
-4. **Main agent synthesis** (not a subagent) — collates results into the same reviewer report
-   format Phase 3 always produces, then hands off to Phase 4 unchanged.
+1. **Target Explorer** (always): one subagent. It writes a short summary.
+2. **Area Explorers** (always, after the Target Explorer returns): one subagent for each logical area, all dispatched together. They do not depend on each other.
+3. **Finding Verifier** (optional, see the trigger below): one subagent. It re-reads the anchor of every finding before anyone trusts the finding.
+4. **Main-agent synthesis** (not a subagent): the orchestrator collects the results into the reviewer report format that Phase 3 always produces. Then Phase 4 continues with no change.
 
-The orchestrating agent (the one running Phase 3) never reads the full diff or full files itself —
-only the Target Explorer's summary, the Area Explorers' structured findings, and, at the very end,
-the specific lines those surviving findings anchor to.
+The orchestrator never reads the full diff or full files itself. It reads only the summary of the Target Explorer and the structured findings of the Area Explorers. At the very end, it reads the lines that the remaining findings point to.
 
 ---
 
 ## Role 1 — Target Explorer
 
-One subagent, dispatched alone (its output gates Role 2's file assignment). Returns a compact
-summary — **hard cap ≤400 words** — not raw diff or file contents.
+One subagent, dispatched alone, because its output decides the file assignment of Role 2. It returns a short summary, with a **hard cap of 400 words**. It does not return raw diff or file contents.
 
 Prompt template:
 
@@ -107,13 +81,9 @@ Do NOT include raw diff content, file contents, or commit messages beyond one-li
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
-Once the Target Explorer returns its area-sharded file list, dispatch one subagent per area in a
-single message — parallel, per `dev-essentials:subagent-orchestration`. Each Area Explorer reads
-only its own area's files plus the comparison siblings it needs, and returns structured findings
-in this skill's own severity/type taxonomy (see `SKILL.md` §"Severity and type taxonomy") — never
-a different scale. The orchestrating agent never re-reads the files itself.
+After the Target Explorer returns its file list by area, dispatch one subagent for each area, all in one message. They run in parallel, as `dev-essentials:subagent-orchestration` says. Each Area Explorer reads only the files of its own area, plus the sibling files that it needs for a comparison. It returns structured findings in the severity and type taxonomy of this skill, never on another scale. The section "Severity and type taxonomy" of `SKILL.md` has the tokens. The orchestrator never reads the files again itself.
 
-Prompt template (fill one per `<Area>`):
+Prompt template (fill one for each `<Area>`). Before the dispatch, replace `<FOCUS_LIST>` with the focus areas of the brief that matches the target type in `references/reviewer-briefs.md`. The subagent cannot read that file.
 
 ```text
 You are reviewing the <Area> portion of <target identity> for the review-loop skill. The
@@ -137,18 +107,15 @@ Step 2 — For each new construct (class, wrapper, endpoint, converter, …), al
 similar existing sibling elsewhere in the repo to anchor your judgement of whether this follows
 established convention or deviates from it.
 
-Step 3 — Apply the focus-area list from `references/reviewer-briefs.md`'s Common Rules and the
-brief matching this target's type (bugs/logic, security, data integrity, performance, DI
-lifetime, contract breaks, test coverage — or the target-specific list, e.g. the `spec` brief's
-ambiguity/undefined-behavior/contradiction list, if this is a non-code target).
+Step 3 — Apply this focus-area list:
+<FOCUS_LIST>
 
 Step 4 — Use this skill's severity scale exactly: `Blocker`, `Critical`, `High`, `Medium`, `Low`,
-`Nit` (see `SKILL.md` §"Severity and type taxonomy" for definitions — do not invent your own
-scale). Use one type per finding from: `Bug`, `Reliability`, `Security`, `Performance`,
+`Nit` — do not invent your own scale. Use one type per finding from: `Bug`, `Reliability`, `Security`, `Performance`,
 `Maintainability`, `Test`, `Style`, `Architecture`, `Spec`, `Docs`.
 
-Don't over-flag. Apply the density guardrail from SKILL.md's Guardrails section — only report
-findings with real, actionable signal.
+Don't over-flag. A healthy density is about 1 Critical/High + 4 Medium + 3 Low/Nit per ~1,000
+lines — only report findings with real, actionable signal.
 
 Return a structured list. Each finding has:
 - severity: Blocker | Critical | High | Medium | Low | Nit
@@ -171,24 +138,15 @@ Hard cap: ≤600 words total for the response.
 
 ## Step between Role 2 and Role 3 — collate and check density
 
-Done inline by the orchestrating agent, not a subagent. Collapse cross-area duplicates (the same
-issue surfacing in two areas) into one multi-site finding. Rank by severity, then file path.
+The orchestrator does this step itself, with no subagent. Merge the duplicates across areas (one issue that shows up in two areas) into one finding with several sites. Sort the findings by severity, then by file path.
 
-**Apply the density guardrail from `SKILL.md`'s Guardrails section here**: if the collated count
-is wildly disproportionate to that baseline, challenge the Area Explorers' results — dispatch a
-recheck of the offending area(s) with a stricter bar — before moving on to Role 3 or Phase 4's
-triage table.
+**Apply the density guardrail of the section "Guardrails" of `SKILL.md` here**. If the collated count is far from that baseline, challenge the results of the Area Explorers. Dispatch a second review of the areas with too many findings, with a stricter bar. Do this before Role 3 and before the triage table of Phase 4.
 
 ## Role 3 — Finding Verifier (optional)
 
-Dispatch when accuracy is load-bearing and hard to walk back — e.g. `target=pr <id>` when the
-findings will be posted as PR threads (`dev-essentials:github-mcp-conventions`: no comment-edit or
-comment-delete via MCP once posted), or any run where the user has asked for a stricter pass. Skip
-it for a routine local `branch`/`diff` review where findings only feed this skill's own Phase 4–5
-loop and a wrong anchor just gets corrected in the next round.
+If accuracy matters and a mistake is hard to undo, dispatch this role. An example is `target=pr <id>`, where the findings become PR threads (`dev-essentials:github-mcp-conventions`: no comment edit or comment delete through MCP after a post). Another example is any run where the user asked for a stricter pass. Skip this role for a routine local `branch` or `diff` review. There, the findings only feed Phases 4 and 5 of this skill, and the next round corrects a wrong anchor.
 
-One subagent, foreground, dispatched after collation. Re-reads each finding's anchor before
-anything downstream trusts it.
+One subagent, dispatched after the collation step. It re-reads the anchor of each finding before any later step trusts the finding.
 
 Prompt template:
 
@@ -217,19 +175,10 @@ Return for each finding:
 Hard cap: ≤300 words.
 ```
 
-Apply confirmed and refined findings; drop rejects (record them as REJECT-at-source in the
-eventual Phase 9 rejected-findings list, same as any other rejected finding).
+Keep the findings with the verdict `confirm` or `refine`. Drop the findings with the verdict `reject`. Record each one as REJECT-at-source in the list of rejected findings of Phase 9, like any other rejected finding.
 
 ## Role 4 — Main-agent synthesis (not a subagent)
 
-The orchestrating agent reads — inline, with `Read` or a targeted
-`git show <Source tree-ish>:<path> | sed -n` — only the specific lines the surviving findings
-anchor to. Typical total: a few hundred lines for the whole target, regardless of target size.
+The orchestrator reads only the lines that the remaining findings point to. It reads them itself, with `Read` or with a targeted `git show <Source tree-ish>:<path> | sed -n`. The usual total is a few hundred lines for the whole target, at any target size.
 
-With that, the orchestrating agent has everything it needs to produce Phase 3's normal output:
-compose the standard **Full format** reviewer report (`SKILL.md` §"Output formats → Full
-format") from the collated, density-checked, (optionally) verified findings — same summary table,
-same severity/type columns, same "Review made by `<MODEL>`" footer (name the synthesizing model;
-note in the report body that findings were sourced from Area Explorer subagents so Phase 9's
-provenance stays honest). Hand that report to Phase 4 exactly as if a single reviewer had
-produced it — Phase 4 onward requires no changes for this mode.
+With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated, density-checked, and (optionally) verified findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.

@@ -1,7 +1,6 @@
 # Branch Review — End-to-End Worked Example
 
-Feature branch `feature/<username>/tasks/1234567-add-pagination`, 5 commits ahead of `main`,
-touching 4 .NET files. Two rounds, dual reviewer, explicit `--skip=medium,low,nit`.
+The feature branch `feature/<username>/tasks/1234567-add-pagination` is 5 commits ahead of `main` and touches 4 .NET files. The run has two rounds, the `dual` reviewer, and an explicit `--skip=medium,low,nit`.
 
 **Invocation:**
 
@@ -29,7 +28,7 @@ Output:
  4 files changed, 224 insertions(+), 0 deletions(-)
 ```
 
-Skill prints to chat:
+The skill prints in chat:
 
 ```
 Target resolved: branch diff main...HEAD
@@ -42,11 +41,9 @@ Target resolved: branch diff main...HEAD
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer=dual` resolves to `feature-dev:code-reviewer` + `general-purpose` in parallel.
-`feature-dev` plugin is installed — no fallback triggered.
-`--fixer` not specified — defaults to `general-purpose`.
+`--reviewer=dual` resolves to `feature-dev:code-reviewer` and `general-purpose` in parallel. The `feature-dev` plugin is installed, so no fallback applies. The run gives no `--fixer`, so the fixer is the default `general-purpose`.
 
-Skill prints:
+The skill prints:
 
 ```
 Reviewer:  dual → feature-dev:code-reviewer + general-purpose (foreground-parallel)
@@ -57,47 +54,25 @@ Fixer:     general-purpose
 
 ## Phase 3 — Round 1 review
 
-Two reviewer subagents dispatched in foreground-parallel (both Agent calls in one assistant
-message, no `run_in_background`). Each receives the branch brief from `references/reviewer-briefs.md`:
+The skill dispatches two reviewer subagents in parallel: both `Agent` calls go in one message, with no `run_in_background`. Both run on Opus, the default `--reviewer-model`. Each prompt holds the Common Rules, the Full format, and the `branch` brief of `references/reviewer-briefs.md`. In the brief, `<BASE>` is `main`, and the round is Round 1.
 
-> **Scope:** `git diff origin/main...HEAD`. Diff provided below.
-> **Round:** Round 1 — use this value; do not infer from conversation.
->
-> You are a code reviewer. Find real problems, not a list of everything you noticed.
->
-> **Focus areas (priority order):**
-> 1. **Bugs and logic errors** — read the actual changed files in context, not just diff hunks.
->    Cross-file consequences are invisible from the diff alone; load files the changed code calls.
-> 2. **Security** — injection, credential exposure, broken auth, unsafe deserialization, CORS bypass.
-> 3. **Data integrity** — broken FK relationships, silent truncation, lost updates, non-atomic ops.
-> 4. **Performance** — N+1 queries, unbounded collection loads, synchronous I/O blocking the pool.
-> 5. **DI lifetime** — scoped service captured in singleton, transient EF context in wrong lifetime.
-> 6. **Contract breaks** — REST API shape changes, interface violations, event schema changes.
-> 7. **Test coverage** — untested critical paths, assertions that don't verify anything meaningful.
->
-> **Coherence check (mandatory):** verify changes are coherent across commits. A later commit may
-> mask a regression introduced earlier — read `git log origin/main..HEAD` to check the commit sequence.
->
-> Apply common rules.
+Reviewer A (`feature-dev:code-reviewer`) reports 4 findings. Reviewer B (`general-purpose`) reports 3 findings. After the merge of duplicates, 2 findings of B are the same as findings of A.
 
-Reviewer A (`feature-dev:code-reviewer`) reports 4 findings.
-Reviewer B (`general-purpose`) reports 3 findings; 2 overlap with Reviewer A after deduplication.
-
-Deduplicated findings — 5 total:
+The 5 findings after the merge:
 
 | # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |
 |---|----------|------|--------------|--------------|---------------------|
-| 1 | Blocker | Performance | `TenantRepository.cs:89` | `GetPagedAsync` loads all rows then slices in memory — unbounded query on large datasets | Add `.Skip(offset).Take(pageSize)` to the EF queryable before `ToListAsync` |
-| 2 | High | Test | `TenantQueryServiceTests.cs:31` | No test for `pageSize=0` or negative offset | Add parameterised negative tests asserting `ArgumentOutOfRangeException` |
-| 3 | High | Architecture | `TenantQueryService.cs:44` | Service takes `IServiceScopeFactory` in constructor to resolve `ITenantRepository` at call time — claimed DI lifetime anti-pattern (captive dependency) | Inject `ITenantRepository` directly; verify whether scope-factory pattern is intentional |
-| 4 | Medium | Maintainability | `GetTenantsQuery.cs:12` | `PageSize` default of `50` is a magic literal repeated in three places | Extract to a `PaginationDefaults` static class |
-| 5 | Low | Style | `TenantQueryService.cs:67` | Method `GetPage` should be `GetPageAsync` per repo async naming convention | Rename |
+| 1 | Blocker | Performance | `TenantRepository.cs:89` | `GetPagedAsync` loads all rows and then slices them in memory. The query is unbounded on large datasets. | Add `.Skip(offset).Take(pageSize)` to the EF queryable before `ToListAsync` |
+| 2 | High | Test | `TenantQueryServiceTests.cs:31` | No test for `pageSize=0` or for a negative offset | Add negative tests with parameters that assert `ArgumentOutOfRangeException` |
+| 3 | High | Architecture | `TenantQueryService.cs:44` | The service takes `IServiceScopeFactory` in its constructor and resolves `ITenantRepository` at call time. The reviewer calls this a DI lifetime anti-pattern (captive dependency). | Inject `ITenantRepository` directly. First find out whether the scope-factory pattern is on purpose. |
+| 4 | Medium | Maintainability | `GetTenantsQuery.cs:12` | The `PageSize` default of `50` is a magic literal in three places | Move it to a static class `PaginationDefaults` |
+| 5 | Low | Style | `TenantQueryService.cs:67` | The method `GetPage` breaks the async naming convention of the repository. The correct name is `GetPageAsync`. | Rename |
 
 ---
 
 ## Phase 4 — Triage
 
-Skill prints to chat and waits for acknowledgment (`--interactive` is set):
+`--interactive` is set, so the skill prints the triage in chat and waits for the acknowledgment:
 
 ```
 Round 1 findings:
@@ -111,49 +86,27 @@ Round 1 findings:
 Proceeding to verify+fix 3 issues. Deferring 2.
 ```
 
-Findings #1–#3 (Blocker/2×High) are each `blocking: true` by default. #4 (Medium) and #5 (Low) are
-`blocking: false` — deferred via the explicit `--skip medium,low` and neither one's text warrants
-elevation.
+Findings #1 to #3 (one Blocker and two Highs) are each `blocking: true` by default. #4 (Medium) and #5 (Low) are `blocking: false`. The explicit `--skip medium,low` defers them, and the text of neither one calls for a higher status.
 
-User replies: `ok proceed`
+The user replies: `ok proceed`
 
 ---
 
 ## Phase 5 — Verify-then-fix
 
-**Step 5a — reviewer plans.** The same Opus reviewer subagent that reported the findings is
-dispatched again to propose a fix plan for each fixable finding, grounded in existing patterns:
-for F1, apply `.Skip().Take()` before `.ToListAsync()`, matching the sibling
-`ExternalResourceRepository.cs` pattern; for F2, add `foreach`-over-`List<Action>` negative tests
-per the constructor-null-arg-tests convention; F3 should first be re-verified against
-`BaseWorker.cs`'s `IServiceScopeFactory` usage before any fix is attempted.
+**Step 5a: the reviewer plans**. The skill dispatches the same Opus reviewer subagent that reported the findings again. It proposes a fix plan for each finding that can get a fix, based on existing patterns:
 
-**Step 5b — fixer implements.** The fixer subagent (`general-purpose`) classifies all five findings
-before touching any file, implementing against the reviewer's plan rather than deciding its own
-approach from scratch.
+- F1: apply `.Skip().Take()` before `.ToListAsync()`, as the sibling `ExternalResourceRepository.cs` does.
+- F2: add negative tests with `foreach` over a `List<Action>`, as the convention for constructor null-argument tests does.
+- F3: before any fix, compare the finding with the `IServiceScopeFactory` usage in `BaseWorker.cs`.
 
-**F1 [APPLY]** — Confirmed: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` then
-`.Skip().Take()` on the in-memory result. Known-working EF pattern (sibling service
-`ExternalResourceRepository.cs:54`) applies `.Skip().Take()` on the `IQueryable`
-before materialisation. Fix is bounded to lines 87–93.
+**Step 5b: the fixer carries out the plan**. The fixer subagent (`general-purpose`) classifies all five findings before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
 
-**F2 [PARTIAL]** — Test-shape gap confirmed: `TenantQueryServiceTests.cs` has no coverage for
-`pageSize=0` or negative `offset` inputs. Fixer read `TenantQueryService.cs:38` to scope the fix
-and confirmed the service delegates validation to the repository layer (consistent with other
-services in this codebase), so input-guard responsibility belongs at the repository layer and the
-finding is scoped to missing test coverage, not a missing runtime guard. The reviewer suggested
-`[TestCase]` attribute tests; the `foreach`-over-`List<Action>` pattern is the documented
-convention for **constructor null-argument tests** specifically (see
-`dotnet-backend-dev:create-tests` examples); other negative-test patterns (e.g., string-validation
-tests) may legitimately use `[TestCaseSource]`. Applied as a `foreach`-over-`List<Action>` test
-asserting `ArgumentOutOfRangeException`; `[TestCase]` boolean-stripes form rejected for this
-pattern.
+**F1 [APPLY]**. Proved: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then `.Skip().Take()` on the result in memory. A known working EF pattern in the sibling service (`ExternalResourceRepository.cs:54`) applies `.Skip().Take()` on the `IQueryable` before the query runs. The fix stays inside lines 87 to 93.
 
-**F3 [REJECT]** — Reviewer claims `IServiceScopeFactory` injection is a service-locator anti-pattern. Fixer reads
-`TenantQueryService.cs` in full: `IServiceScopeFactory` is used to create a short-lived scope per request — this is the documented pattern for consuming
-scoped services from a background-hosted context. Cross-referenced `BackgroundJobService`
-`BaseWorker.cs:31` which uses identical `IServiceScopeFactory` injection. Finding rejected;
-the code is correct.
+**F2 [PARTIAL]**. The gap in the test shape is real: `TenantQueryServiceTests.cs` has no test for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38` to scope the fix. The service leaves the input guard to the repository layer, as other services in this codebase do. So the finding is about missing test coverage, not about a missing runtime guard. The reviewer suggested `[TestCase]` attribute tests. But `foreach` over a `List<Action>` is the documented convention for **constructor null-argument tests** (see the examples of `dotnet-backend-dev:create-tests`). Other negative tests, for example tests of string validation, can use `[TestCaseSource]`. The fixer wrote a `foreach` over a `List<Action>` test that asserts `ArgumentOutOfRangeException`, and rejected the `[TestCase]` form for this pattern.
+
+**F3 [REJECT]**. The reviewer claims that the injection of `IServiceScopeFactory` is a service-locator anti-pattern. The fixer read all of `TenantQueryService.cs`. The service uses `IServiceScopeFactory` to create a short-lived scope for each request. This is the documented pattern to use scoped services from a background-hosted context. `BaseWorker.cs:31` of `BackgroundJobService` uses the same injection of `IServiceScopeFactory`. The fixer rejects the finding, because the code is correct.
 
 ```
 F1 [APPLY]   — In-memory slice confirmed at TenantRepository.cs:89; fix bounded to that method.
@@ -165,13 +118,13 @@ F3 [REJECT]  — IServiceScopeFactory scope pattern verified correct via Backgro
                BaseWorker.cs:31; reviewer's claim does not verify against the source.
 ```
 
-Files edited: `TenantRepository.cs`, `TenantQueryServiceTests.cs`.
+Edited files: `TenantRepository.cs` and `TenantQueryServiceTests.cs`.
 
 ---
 
 ## Phase 6 — Build / test verify
 
-`CLAUDE.md` documents: `dotnet build ./Sources/<example-repo>.sln -c Debug`.
+`CLAUDE.md` documents the command `dotnet build ./Sources/<example-repo>.sln -c Debug`.
 
 ```
 dotnet build ./Sources/<example-repo>.sln -c Debug
@@ -180,7 +133,7 @@ Build succeeded.
     0 Error(s)
 ```
 
-Focused test filter (files touched by the fix pass):
+A focused test filter for the files that the fix pass touched:
 
 ```
 dotnet test ./Sources/<example-repo>.sln \
@@ -208,28 +161,21 @@ tests for pageSize=0 and negative offset."
 
 ## Phase 8 — Repeat
 
-Rounds used: 1. Rounds max: 2. Fixer applied edits this cycle: yes. Continue.
+Rounds used: 1. Maximum rounds: 2. The fixer applied edits in this cycle, so the loop continues.
 
-Round 2 re-review scope: only the 2 files changed in the fix commit. Reviewer for re-review:
-single `general-purpose` agent (per SKILL.md Phase 8 rule — full reviewer/fixer config applies
-only to Round 1).
+The re-review in Round 2 covers only the 2 files that the fix commit changed. The re-review uses one `general-purpose` agent on Opus, as Phase 8 of `SKILL.md` says. The reviewer setup of the run (`dual`) applies only to Round 1.
 
-Re-review brief passed to the agent: branch brief from `references/reviewer-briefs.md` with
-scope narrowed to the fix diff only and Round set to 2.
+The re-review brief is the `branch` brief of `references/reviewer-briefs.md`, with the scope narrowed to the fix diff and the round set to 2.
 
-Agent reports: no new findings. Both applied fixes look correct; no regressions visible.
+The agent reports no new findings. Both applied fixes look correct, and it sees no regression.
 
-**Phase 6 in Round 2:** the fixer applied edits this cycle (2 files changed in Phase 5), so
-Phase 6 re-runs against those 2 files — build and focused test filter both pass (see outputs
-below). If the fixer had applied zero edits (all findings REJECT), Phase 6 would be skipped
-and the previous cycle's build/test status carried forward into Phase 9.
+**Phase 6 in Round 2**: Round 2 found no issues, so the fixer made no edit in Round 2. So Phase 6 does not run again in Round 2. The build and test status of Round 1 carries forward into Phase 9.
 
 ---
 
 ## Phase 9 — Final summary
 
-Two cycles ran — report written to
-`Notes/Reviews/branch-1234567-add-pagination-summary.md` (multi-cycle destination rule).
+Two cycles ran. So the summary goes to `Notes/Reviews/branch-1234567-add-pagination-summary.md` (the destination rule for a run with more than one cycle).
 
 ```
 ## Review Loop Complete
@@ -288,7 +234,7 @@ Cycle 2 — re-review of fix diff (2 files)
 
 ## Full format — Round 1 report
 
-Written to `Notes/Reviews/branch-1234567-add-pagination-cycle-1.md`.
+The skill writes this report to `Notes/Reviews/branch-1234567-add-pagination-cycle-1.md`.
 
 ---
 
@@ -296,95 +242,66 @@ Written to `Notes/Reviews/branch-1234567-add-pagination-cycle-1.md`.
 
 ## Description
 
-Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` via a new
-`GetTenantsQuery` model; 4 files changed, 224 insertions.
+Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` through a new `GetTenantsQuery` model. 4 files changed, with 224 insertions.
 
 ## Summary table
 
 | # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |
 |---|----------|------|--------------|--------------|---------------------|
-| 1 | Blocker | Performance | `TenantRepository.cs:89` | `GetPagedAsync` loads the full table into memory before slicing | Apply `.Skip(offset).Take(pageSize)` to the `IQueryable` before `ToListAsync` |
-| 2 | High | Test | `TenantQueryServiceTests.cs:31` | No coverage for `pageSize=0` or negative `offset`; the service forwards bounds to the repository, which is the guard layer, but that path has no tests | Add negative-input tests asserting `ArgumentOutOfRangeException` |
-| 3 | High | Architecture | `TenantQueryService.cs:44` | Service injects `IServiceScopeFactory` to resolve repository at call time — claimed DI anti-pattern | Verify against scope-factory pattern before acting |
-| 4 | Medium | Maintainability | `GetTenantsQuery.cs:12` | Magic literal `50` for default page size repeated in three locations | Extract to `PaginationDefaults` constant class |
-| 5 | Low | Style | `TenantQueryService.cs:67` | Method named `GetPage` in an async-convention codebase | Rename to `GetPageAsync` |
+| 1 | Blocker | Performance | `TenantRepository.cs:89` | `GetPagedAsync` loads the full table into memory before it slices it | Apply `.Skip(offset).Take(pageSize)` to the `IQueryable` before `ToListAsync` |
+| 2 | High | Test | `TenantQueryServiceTests.cs:31` | No coverage for `pageSize=0` or a negative `offset`. The service passes the bounds to the repository, which is the guard layer, but that path has no tests. | Add tests with negative input that assert `ArgumentOutOfRangeException` |
+| 3 | High | Architecture | `TenantQueryService.cs:44` | The service injects `IServiceScopeFactory` to resolve the repository at call time. The reviewer calls this a DI anti-pattern. | Compare with the scope-factory pattern before any action |
+| 4 | Medium | Maintainability | `GetTenantsQuery.cs:12` | The magic literal `50` for the default page size is in three places | Move it to a constant class `PaginationDefaults` |
+| 5 | Low | Style | `TenantQueryService.cs:67` | A method named `GetPage` in a codebase with an async naming convention | Rename it to `GetPageAsync` |
 
 ## Details per item
 
 ### 1 Blocker — GetPagedAsync loads all rows before slicing
 
-- **Problem:** `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` then applies
-  `.Skip(offset).Take(pageSize)` on the returned `List<TenantEntity>`. This materialises every
-  row in the table on every paginated request.
-- **Impact:** On a large table this causes full-table scans on every list call, O(n) memory
-  allocations per request, and query timeouts under load.
-- **Recommendation:** Move `.Skip(offset).Take(pageSize)` before `.ToListAsync()` so EF translates
-  them to SQL `OFFSET`/`FETCH` clauses.
-- **Verification source:** F1 [APPLY] — In-memory slice confirmed at `TenantRepository.cs:89`; fix
-  bounded to lines 87–93. Pattern verified against `ExternalResourceRepository.cs:54`
-  (known-working example in sibling service).
+- **Problem**: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then applies `.Skip(offset).Take(pageSize)` on the returned `List<TenantEntity>`. Each request for a page loads every row of the table into memory.
+- **Impact**: on a large table, each list call scans the full table and allocates O(n) memory, and queries time out under load.
+- **Recommendation**: move `.Skip(offset).Take(pageSize)` before `.ToListAsync()`, so that EF translates them to the SQL clauses `OFFSET` and `FETCH`.
+- **Verification source**: F1 [APPLY]. The slice in memory is real, at `TenantRepository.cs:89`. The fix stays inside lines 87 to 93. The pattern matches `ExternalResourceRepository.cs:54`, a known working example in a sibling service.
 
 ### 2 High — Missing edge-case tests for pageSize=0 and negative offset
 
-- **Problem:** `TenantQueryServiceTests.cs` has no coverage for `pageSize=0` or negative `offset`
-  inputs. The fixer read `TenantQueryService.cs:38` and confirmed validation is delegated to the
-  repository layer (the service correctly forwards bounds to the repo, which is the layer that
-  performs the guard). The finding is scoped to the missing test coverage, not a missing runtime
-  guard.
-- **Impact:** Edge-case inputs have no test coverage; regressions in guard behaviour would go
-  undetected.
-- **Recommendation:** Add `foreach`-over-`List<Action>` tests asserting `ArgumentOutOfRangeException`
-  for `pageSize=0` and `offset=-1`.
-- **Verification source:** F2 [PARTIAL] — Gap confirmed by reading `TenantQueryService.cs:38`.
-  Applied as `foreach`-over-`List<Action>` pattern — the documented convention for **constructor
-  null-argument tests** (see `dotnet-backend-dev:create-tests` skill examples). Note: other
-  negative-test patterns (e.g., string-validation tests) may legitimately use `[TestCaseSource]`;
-  the restriction to `List<Action>` applies specifically to constructor null-argument guard tests.
-  `[TestCase]` boolean-stripes form rejected for this pattern.
+- **Problem**: `TenantQueryServiceTests.cs` has no coverage for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38`. The service leaves validation to the repository layer: it passes the bounds to the repository, and the repository does the guard. So the finding is about missing test coverage, not about a missing runtime guard.
+- **Impact**: inputs at the edges have no test coverage, so a regression in the guard behavior goes unnoticed.
+- **Recommendation**: add tests with `foreach` over a `List<Action>` that assert `ArgumentOutOfRangeException` for `pageSize=0` and `offset=-1`.
+- **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. This is the documented convention for **constructor null-argument tests** (see the examples of `dotnet-backend-dev:create-tests`). Other negative tests, for example tests of string validation, can use `[TestCaseSource]`. The rule of `List<Action>` applies only to guard tests for null constructor arguments. The `[TestCase]` form is rejected for this pattern.
 
 ### 3 High — IServiceScopeFactory injection claimed as DI anti-pattern
 
-- **Problem:** Reviewer flags that `TenantQueryService` injects `IServiceScopeFactory` and resolves
-  `ITenantRepository` inside the method body, describing this as a "service locator anti-pattern".
-- **Impact:** Claimed: scoped service leak or hidden dependency coupling.
-- **Recommendation:** See verification source — finding rejected.
-- **Verification source:** F3 [REJECT] — Fixer read `TenantQueryService.cs` in full. The service
-  injects `IServiceScopeFactory` and creates a scoped lifetime per call — the documented pattern
-  for consuming scoped services from singleton-lifetime background hosts. Cross-referenced
-  `BackgroundJobService` `BaseWorker.cs:31` (known-working example). Reviewer's claim does
-  not verify against the source; finding rejected.
+- **Problem**: the reviewer says that `TenantQueryService` injects `IServiceScopeFactory` and resolves `ITenantRepository` in the method body. The reviewer calls this a "service locator anti-pattern".
+- **Impact**: claimed, a leak of a scoped service or a hidden dependency.
+- **Recommendation**: see the verification source. The finding is rejected.
+- **Verification source**: F3 [REJECT]. The fixer read all of `TenantQueryService.cs`. The service injects `IServiceScopeFactory` and creates a scoped lifetime for each call. This is the documented pattern to use scoped services from background hosts with a singleton lifetime. `BaseWorker.cs:31` of `BackgroundJobService` is a known working example of the same pattern. The claim of the reviewer does not hold against the source, so the finding is rejected.
 
 ### 4 Medium — Magic literal 50 for default page size
 
-- **Problem:** The value `50` appears as a bare integer literal in `GetTenantsQuery.cs:12`,
-  `TenantQueryService.cs:21`, and `TenantRepository.cs:14`.
-- **Impact:** A reader cannot tell the three literals are the same constant; changing the default
-  requires three edits with no compile-time guarantee of consistency.
-- **Recommendation:** Extract to a `PaginationDefaults.DefaultPageSize` constant. Deferred per
-  `--skip medium`.
-- **Verification source:** deferred — no fix applied this cycle.
+- **Problem**: the value `50` is a bare integer literal in `GetTenantsQuery.cs:12`, `TenantQueryService.cs:21`, and `TenantRepository.cs:14`.
+- **Impact**: a reader cannot tell that the three literals are the same constant. A change of the default needs three edits, and the compiler does not keep them the same.
+- **Recommendation**: move it to a constant `PaginationDefaults.DefaultPageSize`. Deferred by `--skip medium`.
+- **Verification source**: deferred. No fix in this cycle.
 
 ### 5 Low — GetPage not suffixed with Async
 
-- **Problem:** `TenantQueryService.cs:67` declares `public Task<PagedResult<TenantDto>> GetPage(...)`.
-  The repo async naming convention requires the `Async` suffix on all `Task`-returning methods.
-- **Impact:** Inconsistency with the naming convention; potential future analyser warning.
-- **Recommendation:** Rename to `GetPageAsync`. Deferred per `--skip low`.
-- **Verification source:** deferred — no fix applied this cycle.
+- **Problem**: `TenantQueryService.cs:67` declares `public Task<PagedResult<TenantDto>> GetPage(...)`. The async naming convention of the repository requires the suffix `Async` on every method that returns a `Task`.
+- **Impact**: the name does not follow the naming convention, and an analyzer can warn about it later.
+- **Recommendation**: rename it to `GetPageAsync`. Deferred by `--skip low`.
+- **Verification source**: deferred. No fix in this cycle.
 
 ## Conclusion
 
-- **Must fix before merge** — #1, #2
-- **Acceptable risks** — #3 (finding rejected; code is correct)
-- **Needs discussion** — _(none)_
+- **Must fix before merge**: #1, #2
+- **Acceptable risks**: #3 (the finding is rejected, and the code is correct)
+- **Needs discussion**: _(none)_
 
 ## Final verdict
 
-✅➕ **Approve with suggestions** — Blocker and fixable High findings addressed in this cycle's fix
-pass (F1 APPLY, F2 PARTIAL, F3 REJECT-correct). Deferred Medium and Low items are not
-merge-blocking but should be tracked.
+✅➕ **Approve with suggestions**. This cycle's fix pass handled the Blocker and the High findings that had a valid fix (F1 APPLY, F2 PARTIAL, F3 REJECT as correct). The deferred Medium and Low items do not block the merge, but keep track of them.
 
 ## Reviewer model
 
-Review made by `claude-sonnet-4-6`
-Review made by `claude-sonnet-4-6`
+Review made by `claude-opus-4-7`
+Review made by `claude-opus-4-7`
