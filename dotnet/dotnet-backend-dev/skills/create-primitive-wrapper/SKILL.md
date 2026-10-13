@@ -182,6 +182,7 @@ public readonly record struct ShippingMethodId : IStringWrapper<ShippingMethodId
    - `Constants.DefaultStringComparer` for case-insensitive (most common)
    - `StringComparer.Ordinal` for case-sensitive comparison (a domain that requires an exact match)
 6. **XML documentation** on all public members
+7. **Method bodies**: wrapper factories (`FromValue`, `FromType`, `CreateNew`) and equality members (`Equals`, `GetHashCode`) use `=>`. Every other method uses a block body.
 
 ## Common Domain Helpers
 
