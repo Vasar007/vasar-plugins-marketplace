@@ -85,7 +85,7 @@ Field rules:
   - Low: a small wrong behavior with a small effect. Examples: a wrong message text. A wrong value in a log line.
   - Edge case: if a wrong result changes data or output that the user keeps or uses, rate it Medium. If it changes only a message, a log line, or a display detail, rate it Low.
 - Confidence: High (the failure was shown, or the code path is proved), Medium (strong evidence, not shown), or Low (possible, the owner must look).
-- Category: one of Crash, Wrong result, Data loss, Security, Concurrency, Resource leak, Error handling, Performance, Compatibility, Build or packaging, Install or upgrade, or Other with a name.
+- Category: one of these values: `Crash`, `Wrong result`, `Data loss`, `Security`, `Concurrency`, `Resource leak`, `Error handling`, `Performance`, `Compatibility`, `Build or packaging`, or `Install or upgrade`. For another kind of bug, write `Other` and a name.
 - Location: `path:line`, relative to the snapshot root. More than one location is allowed, separated by commas.
 - Also on base: `Yes, <location in the base snapshot>`, `No (new in the analyzed commit)`, `Not compared (<reason>)`, or `Not applicable (the analyzed commit is the base)`. If the run has no base (`--base=none`), leave out this field.
 - Verdict: the hunter writes "Pending verification". The verifier sets the final value.
@@ -204,9 +204,9 @@ Markdown edit. A hunter or a verifier fixes only the hits in its own lines, and 
 hits in other sections in its reply. The auditor fixes all hits. The hook reports these
 patterns:
 
-- A mix of "check", "checklist", "verify", "validate", "ensure", and "confirm" in one file.
+- A mix of `check`, `checklist`, `verify`, `validate`, `ensure`, and `confirm` in one file.
 - An "if" or "when" clause after the main clause.
-- The words should, would, may, might, and could.
+- The words `should`, `would`, `may`, `might`, and `could`.
 - A quote that ends with a period inside the quote marks. The hook reads it as the end of a
   sentence.
 
