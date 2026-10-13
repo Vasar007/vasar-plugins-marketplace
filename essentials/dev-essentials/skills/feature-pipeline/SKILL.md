@@ -1,7 +1,7 @@
 ---
 name: feature-pipeline
 description: Use when the user asks to implement a tracked task, run the feature pipeline, develop a feature end-to-end, start the task pipeline for TASK-123, run feature-pipeline, or implement TASK-123. Orchestrates a full implementation-first development pipeline for a task provider in an isolated git worktree.
-argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive]
+argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive] [--autonomous]
 disable-model-invocation: true
 ---
 # Feature Pipeline
@@ -25,7 +25,7 @@ context:
 | 4 | Test coverage | test files | — |
 | 5 | Code simplifier | code changes | — |
 | 6+7+8 | Docs + Code Review + Security Review (parallel) | docs, `{ARTIFACTS_DIR}/{task-id}/review.md`, `{ARTIFACTS_DIR}/{task-id}/security-review.md` | — |
-| — | **Human Approve** | — | ✓ (posts, push, PR) |
+| — | **Human Approve** | — | ✓ without `--autonomous` (posts, push, PR) |
 | 9 | Finalization + PR | branch ready, PR if supported | — |
 
 ## Arguments
@@ -48,6 +48,8 @@ context:
   intentionally: this pipeline's unit is a numbered stage, not a phase.
 - `--interactive` — stop at Human Approve #1, and ask before each fix round of Human
   Approve #2, as before. See **Autonomy**.
+- `--autonomous`: do not stop at Human Approve #1 or #2. Post the task comments,
+  push, and open the PR without a question. See **Autonomy**.
 
 Stage names: `requirements`, `spec`, `plan-artifact`, `implementation`,
 `test-coverage`, `simplifier`, `docs`, `review`, `security-review`,
@@ -62,17 +64,27 @@ keep the default model of the stage (see **Autonomy**). Both per the
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Pipeline Discipline
 
@@ -602,7 +614,7 @@ does not re-attempt a known-broken render — and record `planArtifact` (see
 
 ### Human Approve #1 (after Spec)
 
-Without `--interactive`, report the paths of `spec.md`, `test-plan.md`, and the HTML artifact in one status line, and proceed. If `spec.md` lists open decisions without a resolution, ask them first. With `--interactive`:
+Without `--interactive`, report the paths of `spec.md`, `test-plan.md`, and the HTML artifact in one status line, and proceed. If `spec.md` lists open decisions without a resolution, ask them first. With `--autonomous`, decide them as **Autonomy** says, and write each decision into `spec.md`. With `--interactive`:
 
 Present to user:
 
@@ -625,7 +637,7 @@ Present to user:
 >
 > **Counts as explicit gate-skip authorization** (only these, or clear
 > equivalents, waive the gate — and only if typed by the user in this
-> session): "approve all gates", "auto-approve the pipeline", "skip Human
+> session), or the flag `--autonomous` on this invocation: "approve all gates", "auto-approve the pipeline", "skip Human
 > Approve #1/#2", "I trust you, run end-to-end".
 >
 > **Does NOT count** — the gate stays armed: "no clarifying questions", "make
@@ -641,14 +653,14 @@ Present to user:
 > `AskUserQuestion` (or stop and wait) at every gate, never a paraphrase of
 > "the user said to continue."
 
-Without `--interactive`, the default approval of **Autonomy** applies. The failure in the example cannot happen again, because the push, the PR, and the task comments still wait for Human Approve #2.
+Without `--interactive`, the default approval of **Autonomy** applies. In the default mode, the failure in the example cannot happen again. The push, the PR, and the task comments still wait for Human Approve #2. With `--autonomous`, they do not wait, because the user chose that with the flag. A general instruction such as "no clarifying questions" is not that flag.
 
 If user provides feedback: re-run Spec stage with feedback injected.
 If approved: proceed.
 
 ### Task Comment #1 (before Implementation)
 
-Without `--interactive`, do not post this comment now. Write it to `{ARTIFACTS_DIR}/{task-id}/task-comment-1.md`. Post it at Human Approve #2, after the yes of the user and before Task Comment #2. Then write "implementation started" in the past tense. With `--interactive`, post it now, because the approval at Human Approve #1 covers it.
+Without `--interactive` or `--autonomous`, do not post this comment now. Write it to `{ARTIFACTS_DIR}/{task-id}/task-comment-1.md`. Post it at Human Approve #2, after the yes of the user and before Task Comment #2. Then write "implementation started" in the past tense. With `--interactive`, post it now, because the approval at Human Approve #1 covers it. With `--autonomous`, post it now.
 
 Before launching Step 3, post an English comment to the task through the
 configured task-provider MCP server.
@@ -740,7 +752,7 @@ Wait for all three to complete, then update checkpoint.
 
 ### Human Approve #2 (after Review)
 
-This gate stops in every mode, because it approves the posts to the task provider, the push, and the PR of Stage 9. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
+This gate stops without `--autonomous`, because it approves the posts to the task provider, the push, and the PR of Stage 9. With `--autonomous`, write the gate content to the final report, and continue to Task Comment #2. One exception: if blocking issues remain after the automatic fix round, stop and show this gate in every mode. The run cannot fix them itself. Without `--interactive`, and with blocking issues in the review, run one automatic fix round (the numbered steps below) before you show this gate. If the review still has blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
 
 Present to user:
 
@@ -846,7 +858,9 @@ After the finalization result is confirmed:
    **If the GitHub MCP call fails** (MCP not loaded, network error,
    authentication timeout): STOP and ask the user — "GitHub PR lookup failed;
    should I proceed with cleanup based on the cached state, or wait?" Do NOT
-   silently skip the check and proceed to archiving or worktree removal.
+   silently skip the check and proceed to archiving or worktree removal. With
+   `--autonomous`, do not stop: skip archiving and worktree removal, and report
+   the failed lookup.
 
    **PR-branch eligibility test (shared by step 2 and step 4 below, when a
    PR exists):** an action (archiving in step 2, worktree removal in step 4)

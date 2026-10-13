@@ -69,22 +69,33 @@ config root or repo root.
 | `--dry-run` | off (bare) | Run Phases 0-4 only, stop after presenting the triage. No approval gate, no authoring, no cleanup. |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
 | `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate, also before deletion, posts to outside systems, push, and pull request creation. Questions that block the work still stop. See "Autonomy". |
 
-**There is deliberately no flag that skips the Phase 9 per-repo push gate.** This is intentional. It is the structural-impossibility principle: do not rely on a flag defaulting to safe, make the unsafe path not exist. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
+**Only `--autonomous` skips the Phase 9 gates, the per-repo push gate too.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Phases (the workflow)
 
@@ -557,6 +568,8 @@ confirmation before anything is written or deleted. **Nothing in any OTHER repos
 without `--cross-repo`.** See `references/cleanup-and-provenance.md`'s default-on-vs-opt-in matrix
 for the full risk-gradient rationale.
 
+With `--autonomous`, no gate of Phase 9 stops. This covers the 9a stub question, the 9b per-file question, and the 9c.3 sequencing gate. It also covers the 9c.8 push gate (push and open the PR) and the 9d confirmations. At the 9c.6 question about unrelated dirt, take its default: skip. At the 9c.7 path question, take the proposed path. The tests before each gate still run: Preconditions A, B, and C, and the hard stops of 9c.6. A failed test still skips or defers its repo or file. The final report lists each gate that passed and each push, PR, and deletion.
+
 #### 9a — Personal memory files (default-on)
 
 Governed by `--cleanup-mode`:
@@ -568,7 +581,7 @@ Governed by `--cleanup-mode`:
 - A **partially-promoted** file → never stubbed. Annotate only the promoted section; the rest of the
   file stays as-is.
 
-Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
+Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. With `--autonomous`, list them in the report, and write without the question. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 
 Extend — never invent from scratch — the project's own `MEMORY.md` index under a
 `## Cross-project rules — migrated to marketplace skills` heading. One bullet per promoted item:
@@ -586,7 +599,7 @@ With the flag: for each promoted rule sourced from the global CLAUDE.md, show th
 (removed prose → pointer) and ask, per file (there is only one global CLAUDE.md today, but the rule
 is stated generally in case a future version of this skill treats other global files the same way):
 "Replace this section of your global CLAUDE.md with a pointer to `<plugin>:<entity>`? (yes/no)".
-Never batch-apply without per-file confirmation — this file loads into every session.
+Never batch-apply without per-file confirmation — this file loads into every session. With `--autonomous`, apply each replacement without the question, and list each one in the report.
 
 #### 9c — Cross-repo project CLAUDE.md files (opt-in via `--cross-repo=`)
 
@@ -600,7 +613,7 @@ ignored → treat as a private local file, using the same direct-edit-plus-per-f
 as 9b, with no branch or PR involved.
 
 **9c.1 — Flag.** `--cross-repo=off|all|<repo>[,<repo>...]`, default `off`; bare `--cross-repo` means
-`all`. Opts into a capability, not a gate bypass — every repo still needs its own push-gate `yes`
+`all`. Opts into a capability, not a gate bypass — every repo still needs its own push-gate `yes` (or `--autonomous`)
 (9c.8). **9c-only re-entry mode:** `--resume=<path>` (alone or combined with `--cross-repo=`) makes
 Phase 9c operate on the promotion set recorded in the TODO file (9c.7) even though this run promoted
 nothing new — the ignore-if-nothing-promoted rule below doesn't apply, and Phase 9c re-enters at 9c.2.
@@ -873,7 +886,7 @@ elsewhere in the session.**
 
 ## Guardrails
 
-- No flag skips a Phase 9 push gate (the structural-impossibility principle — see Arguments). Phase 5 follows "Autonomy".
+- Only `--autonomous` skips a Phase 9 gate (see Arguments). Phase 5 follows "Autonomy".
 - No hardcoded marketplace or host name anywhere in this skill's own text, prompts, or examples,
   except to name the source marketplace of an external, optional tool referenced in prose — that
   identifies a dependency's provenance, not the promotion target, and not this skill's own shipping
@@ -885,7 +898,7 @@ elsewhere in the session.**
 - An **E** disposition is never a new entity. It is always a fix to an existing shipped entity,
   followed by pruning the source.
 - Never auto-edit a project-repo CLAUDE.md without `--cross-repo`.
-- Never push without an explicit per-repo yes, even with `--cross-repo` set.
+- Never push without an explicit per-repo yes, even with `--cross-repo` set. `--autonomous` counts as that yes.
 - Never delete a personal entity file without `--delete-personal-entities`, its automated
   publish-and-local-load verification check, the once-per-run marketplace-publish gate, and its own
   individual per-file confirmation.

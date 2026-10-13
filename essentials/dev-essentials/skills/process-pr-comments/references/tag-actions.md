@@ -20,7 +20,7 @@ Used by `[ToFix]`, `[Performance]`, `[PX]`, and "trivial" `[Suggestion]` / `[Opt
 
 The reviewer requires a change. The PR will not be approved without it.
 
-- Small: implement edit → verify build/tests → commit (eager, no approval needed — Phase 4) → reply immediately, referencing the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` Push is a separate, later, per-cycle step gated by explicit approval (see Phase 4) — unless `auto-push`/`autonomous` is set. Pass `no-commit` to stage only instead.
+- Small: implement edit → verify build/tests → commit (eager, no approval needed — Phase 4) → reply immediately, referencing the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` Push is a separate, later, per-cycle step gated by explicit approval (see Phase 4) — unless `autonomous` is set. Pass `no-commit` to stage only instead.
 - Medium / Large: if the comment or the existing code settles the approach, implement (SKILL.md § Autonomy, Bucket A1). Else prepare the diff in chat, explain the approach, and wait for the human's explicit go-ahead. With `interactive`, always draft and wait. If `deep-fix=<threadId>` names this thread, route it through `/research-implement-review-report` instead. This applies in both modes (SKILL.md's `deep-fix` override). In the draft path, do not edit files.
 - After implementation, the thread stays open until its commit's push actually lands. Once it does, the skill resolves the thread itself via `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`) (Phase 4) — no manual GitHub UI step needed for a fix this skill made.
 
@@ -96,8 +96,8 @@ Decision tree:
 Issue flow:
 
 1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a concise brief: the comment text, the file/line, why it is out of scope, and any priority hint from co-tags. Task Composer drafts title and description in chat — no file written, no GitHub call yet.
-2. Confirm title and type with the user. This step is never bypassed, `autonomous` or not — see SKILL.md § Autonomy, Bucket B.
-3. On user approval, re-invoke Task Composer with `mode: create` and the confirmed fields plus `owner` and `repo` (required by Task Composer; pass verbatim, never infer — see `dev-essentials:github-mcp-conventions` Rule 1). Task Composer handles the full create → link (when a parent is given) → verify flow and returns the verified ID and URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill.
+2. Confirm title and type with the user. With `autonomous`, skip this step: take the fields from the draft, and name them in the cycle log (SKILL.md § Autonomy, Bucket A2).
+3. On user approval, or with `autonomous`, re-invoke Task Composer with `mode: create` and the confirmed fields plus `owner` and `repo` (required by Task Composer; pass verbatim, never infer — see `dev-essentials:github-mcp-conventions` Rule 1). Task Composer handles the full create → link (when a parent is given) → verify flow and returns the verified ID and URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which confirms `mode: create`.
 4. Use ONLY the verified ID and URL returned by Task Composer. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
 If the user declines or wants to defer → reply `**[AI]** Noted — will not track separately yet.` No issue.

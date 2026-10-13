@@ -9,7 +9,7 @@ description: Creates and manages git worktrees at `<repo-root>/.claude/worktrees
 
 Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/` so multiple branches can be checked out simultaneously in isolation. This path is typically gitignored (`**/.claude/worktrees/`) — verify with `git check-ignore -v .claude/worktrees/placeholder` before relying on it — so worktrees do not pollute `git status` and never require cleanup outside the repo.
 
-To get the confirmation prompts of Workflow A, write `--interactive` in the request.
+To get the confirmation prompts of Workflow A, write `--interactive` in the request. To remove the confirmation prompts of the removal workflows too, write `--autonomous` in the request.
 
 ## When to Use
 
@@ -21,17 +21,27 @@ To get the confirmation prompts of Workflow A, write `--interactive` in the requ
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Workflow A: Creating a New Worktree
 
@@ -203,7 +213,7 @@ If the PR is still open or in review **and the user has not explicitly requested
 
 ### Step 2: Get confirmation
 
-Show the worktree path and branch. Ask for explicit yes.
+Show the worktree path and branch. Ask for explicit yes. With `--autonomous`, show them and continue without the question.
 
 ### Step 3: Remove
 
@@ -300,7 +310,7 @@ For each secondary worktree (path contains `.claude/worktrees/`), derive its bra
 
 3. **Apply the merged filter.** A worktree is eligible for removal only when its PR is confirmed merged. Any other status (open, draft, closed-without-merge, or no PR found) means the worktree must NOT be removed automatically.
 
-4. **If discovery fails or is ambiguous** (MCP unavailable, multiple PRs returned for the same source branch, zero PRs found but the branch looks active) — **STOP and ask the user** for the PR status or removal confirmation for that specific worktree. Do NOT guess or silently skip.
+4. **If discovery fails or is ambiguous** (MCP unavailable, multiple PRs returned for the same source branch, zero PRs found but the branch looks active) — **STOP and ask the user** for the PR status or removal confirmation for that specific worktree. Do NOT guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
 
 Worktrees with open or undiscoverable PRs must NOT be removed.
 
@@ -318,7 +328,7 @@ The main worktree will be preserved.
 Proceed with removing the 1 eligible worktree? (yes/no)
 ```
 
-**STOP and wait for explicit confirmation.**
+Without `--autonomous`, **STOP and wait for explicit confirmation.** With `--autonomous`, show the list and continue.
 
 ### Step 4: Remove each eligible worktree
 
@@ -347,7 +357,7 @@ Removal is allowed after the PR is confirmed merged (provider-specific — for G
 
 If the worktree is missing despite the lifecycle rule (manual removal, IDE prune, `git worktree prune`), and the branch has an active PR, recreate before doing any work.
 
-**Before deleting any stub directory:** verify the path starts with `.claude/worktrees/` so the fallback cannot apply to an arbitrary path. Try the git-native removal first (`git worktree remove --force`), which respects git's safety model for registered-but-missing entries. If a physical directory still exists afterwards (an unregistered orphan stub), list its contents and ask the user for explicit confirmation before deleting — the path may contain `Notes/` files or other unrecoverable artifacts (the entire `.claude/worktrees/` subtree is gitignored). Never silently `rm -rf` a stub directory.
+**Before deleting any stub directory:** verify the path starts with `.claude/worktrees/` so the fallback cannot apply to an arbitrary path. Try the git-native removal first (`git worktree remove --force`), which respects git's safety model for registered-but-missing entries. If a physical directory still exists afterwards (an unregistered orphan stub), list its contents and ask the user for explicit confirmation before deleting — the path may contain `Notes/` files or other unrecoverable artifacts (the entire `.claude/worktrees/` subtree is gitignored). Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
 
 ```bash
 git fetch origin <branch-ref>
@@ -391,7 +401,7 @@ Then work in the recreated worktree. Do not operate from master via `git show <b
 
 **Cannot remove main worktree:** The main repo worktree cannot be removed with this skill. Only secondary worktrees under `.claude/worktrees/` can be removed.
 
-**Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
+**Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
 
 **Permission denied on removal:** On Windows this is usually NOT an IDE file lock — see the ordered diagnosis in Workflow C Step 3 (shell CWD parked in the worktree is the dominant, self-inflicted cause; Windows long paths are the secondary cause on deep branch refs; leaf-first walkup is the reliable fallback). Work through that diagnosis rather than reporting an IDE lock and stopping. Never blind force-remove.
 

@@ -1,6 +1,6 @@
 ---
 description: Research → plan (auto-approved by default, a user sign-off gate with --interactive) → implement → review-loop → report cycle for one task, worked end-to-end in a single session — no OpenSpec change required (unlike opsx-implement/feature-pipeline) and doesn't stop short of review (unlike implement)
-argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive]
+argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive] [--autonomous]
 ---
 <!-- markdownlint-disable MD013 -->
 
@@ -65,20 +65,31 @@ a neighbour:**
 | `--context=<path>` | auto | Prior research/handoff file to load instead of (or in addition to) fresh research. Same resolution as `dev-essentials:implement`'s `--context`. **Repeatable** — pass it more than once to load several files (e.g. a wrapper's generated context document plus the user's own); every path given is read, none displaces another. |
 | `--skip-research` | off | Skip Phase 1 entirely (e.g., resuming a session where the plan already exists and is current). Phase 2 still loads `--context` if given. |
 | `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate, also before deletion, posts to outside systems, push, and pull request creation. Questions that block the work still stop. See "Autonomy". |
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Subagent dispatch
 
@@ -153,8 +164,8 @@ subagent coordination.
    report. With `--interactive`, ask the user rather than guessing which
    pattern applies.
 3. If $ARGUMENTS asks for a worktree (e.g. "Create a worktree ... from ..."),
-   create it per `dev-essentials:git-worktree-management` (for a run with
-   `--interactive`, pass the flag on) using the base
+   create it per `dev-essentials:git-worktree-management` (if the run has
+   `--interactive` or `--autonomous`, pass it on) using the base
    branch from step 1 and the branch name from step 2. Otherwise, create/check
    out the branch normally per `dev-essentials:git-sync` conventions.
 4. Run every subsequent phase inside that branch/worktree.
@@ -184,8 +195,10 @@ Skipped entirely when `--skip-research` is set.
    cover (per `dev-essentials:engineering-discipline` Rule 2).
 4. Save the plan to `Notes/Plans/<slug>-plan.md` (or the documented convention
    of the repo in `CLAUDE.md`). Without `--interactive`, report the plan path in
-   one status line and start Phase 2. If the plan lists open decisions, first
-   ask them all in one message. When they have answers, start Phase 2. With
+   one status line and start Phase 2. If the plan lists open decisions: without
+   `--autonomous`, first ask them all in one message, and start Phase 2 when
+   they have answers. With `--autonomous`, decide them as "Autonomy" says,
+   write each decision into the plan, and start Phase 2. With
    `--interactive`, **present the plan to the user for confirmation before
    Phase 2 starts**. If the user flags open questions, resolve them here. Do
    not carry ambiguity into Implement.
@@ -229,7 +242,7 @@ this command wants. There is nothing to override; pass only what is this
 command's own:
 
 - `--rounds=<N>` from this command's `--rounds` (default `2`).
-- `--interactive`, for a run that has it.
+- `--interactive` or `--autonomous`, for a run that has it.
 - Findings the user and the orchestrating session agree to genuinely defer
   are still recorded as deferred in Phase 4's report.
 - See "Commit cadence" below for how the loop's own per-round commits
@@ -238,7 +251,7 @@ command's own:
 ### Phase 4 — Report
 
 Write the handoff document the same way `dev-essentials:save-context` does —
-in fact, follow that command's logic directly (`--plan=<path from Phase 1>`, plus `--interactive` for a run that has it),
+in fact, follow that command's logic directly (`--plan=<path from Phase 1>` and `--no-continuation-prompt`, plus `--interactive` or `--autonomous` for a run that has it),
 producing `Notes/Results/<slug>-report.md` (or the repo's own documented
 convention, if one exists; or `-handoff-N.md` if this is a continuation of a
 numbered session sequence the user is already keeping):
@@ -247,7 +260,7 @@ numbered session sequence the user is already keeping):
 - **What Was Done** — per phase: research findings, the plan, each
   implemented task, each review round's outcome.
 - **Key Decisions** — table, with rationale, including every decision Phase 1
-  or Phase 3 surfaced for user sign-off, and every gate that this run approved without a stop.
+  or Phase 3 surfaced for user sign-off, and every gate that this run approved without a stop. With `--autonomous`, also list every decision that the run made for the user.
 - **Issues Found** — anything discovered but out of scope for this run,
   candidate follow-up issues, and any process problems worth flagging to
   the user.
@@ -258,9 +271,8 @@ numbered session sequence the user is already keeping):
 
 Confirm to the user where the report was saved and give the same one-line
 summary `save-context` gives, plus the final review-loop verdict
-(`stop-clean` / `stop-max-rounds` / `stop-blocked`). This includes
-`save-context`'s next-session continuation prompt (its Step 7) — carrying the
-worktree's absolute path and branch name whenever this run used one.
+(`stop-clean` / `stop-max-rounds` / `stop-blocked`). Print the report only.
+Do not print a next-session continuation prompt.
 
 ## Commit cadence
 
@@ -290,7 +302,8 @@ worktree's absolute path and branch name whenever this run used one.
 - **Squash-base safety stop**: if anything outside this run's own changes
   landed on `HEAD` in the meantime (e.g. an unrelated concurrent commit),
   **stop and ask the user** before soft-resetting — do not silently squash
-  across someone else's commit. A caller running this mode on a branch other
+  across someone else's commit. With `--autonomous`, do not stop: skip the
+  squash, keep the commits as they are, and report the unexpected commit. A caller running this mode on a branch other
   callers may also be committing to (e.g. a wrapper that dispatches this
   command mid-cycle on a shared PR branch) is responsible for guaranteeing
   nothing else commits between the recorded SHA and this squash — this
@@ -299,7 +312,8 @@ worktree's absolute path and branch name whenever this run used one.
 ## Guardrails
 
 - **Do not improvise.** If a research finding, a plan ambiguity, or a review
-  finding's right resolution isn't clear, ask the user — do not guess.
+  finding's right resolution isn't clear, ask the user — do not guess. With
+  `--autonomous`, decide as "Autonomy" says.
 - **Own every red signal** raised during Phase 2 or Phase 3's build/test
   steps in this session — never wave one off as "pre-existing" without
   verifying it actually predates this run (per
@@ -309,4 +323,5 @@ worktree's absolute path and branch name whenever this run used one.
   didn't already authorize. Surface them for the user instead. If an
   auto-approved plan grounds a decision in the task, the code, or the
   documentation, the plan authorizes it. Else the decision stays a question.
+  With `--autonomous`, follow "Autonomy".
 - **Never push without the user's explicit go-ahead each time.**

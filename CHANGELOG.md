@@ -19,26 +19,31 @@ No changes yet.
 
 ### Changed in dev-essentials
 
-- Workflows with decision gates now run without a stop at those gates by default. The default approval covers the whole task up to the merge. The new flag `--interactive` brings back every gate. Each workflow carries the same "Autonomy" section. Deletion of data, posts to outside systems, push, and pull request creation still wait for the user. The merge always stays with the user. If the work cannot continue without an answer, or a critical decision has no ground in the plan, the workflow still asks.
+- Workflows with decision gates now run without a stop at those gates by default. Deletion of data, posts to outside systems, push, and pull request creation still wait for the user. The new flag `--interactive` brings back every gate. The new flag `--autonomous` removes every stop, also before deletion, posts, push, and pull request creation. It does not add steps: a push that needs `--push` still needs it. It merges only where a workflow has a merge step and the branch policy allows a merge without a review. If the work cannot continue without an answer, the workflow asks in every mode. Each workflow carries the same "Autonomy" section.
+- Without `--autonomous`, the workflows ask about a critical decision that has no ground in the plan. With `--autonomous`, they choose the option that follows the plan and the existing code, and list the decision in the final report for review. They do not destroy work that has no other copy, for example uncommitted changes.
 - The change covers 13 workflows. Commands: `research-implement-review-report`, `implement-task`, `implement-batch`, `implement`, `opsx-implement`, and `save-context`. Skills: `review-loop`, `feature-pipeline`, `process-pr-comments`, `audit-personal-conventions`, `bug-hunt`, `trim-artifacts`, and `git-worktree-management`.
-- `review-loop`: `--auto-proceed` has no effect now. Without `--interactive`, the run does not wait at the Phase 4 triage.
-- `process-pr-comments`: By default, it implements larger fixes and non-trivial suggestions whose approach or direction the comment or the code settles. The new parameter `interactive` brings back draft-and-wait. `autonomous` still covers question and discussion replies, design-level fixes, and push.
-- `feature-pipeline`: Human Approve #1 stops only with `--interactive`. Task Comment #1 waits for Human Approve #2, which stops in every mode. Without `--interactive`, one automatic fix round runs before Human Approve #2 shows open blocking issues.
-- `audit-personal-conventions`: Phase 5 approves the recommended C, D, and E items by default and defers the rest. Phase 9a asks once before it writes stubs.
-- `engineering-discipline` Rule 2: If an auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user.
+- `review-loop`: Without `--interactive`, the run does not wait at the Phase 4 triage. With `--autonomous`, it also decides a finding that is not clear-cut, and lists the decision in the Phase 9 summary.
+- `process-pr-comments`: By default, it implements larger fixes and non-trivial suggestions whose approach or direction the comment or the code settles. The new parameter `interactive` brings back draft-and-wait. `autonomous` covers question and discussion replies, design-level fixes, and push. It now also creates `[OutOfScope]` issues through Task Composer without a question. If both `interactive` and `autonomous` are set, the skill asks once which mode to use.
+- `feature-pipeline`: Human Approve #1 stops only with `--interactive`. Task Comment #1 waits for Human Approve #2, which stops unless the run has `--autonomous`. With `--autonomous`, Human Approve #2 stops in one case: blocking issues remain after the automatic fix round. Without `--interactive`, one automatic fix round runs before Human Approve #2 shows open blocking issues.
+- `audit-personal-conventions`: Phase 5 approves the recommended C, D, and E items by default and defers the rest. Phase 9a asks once before it writes stubs. With `--autonomous`, no Phase 9 gate stops, the per-repo push gate too. The precondition tests before each gate still run.
+- `engineering-discipline` Rule 2: If an auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user. With `--autonomous`, the agent chooses the option that follows the plan and the existing code, and lists the decision for the user to review.
 - `subagent-orchestration`: A workflow that runs with its default autonomy uses Opus instead of a question about Fable. The run-format agreement can come from no objection.
 - `subagent-orchestration`: Rule 5 now allows `SendMessage` to your own subagent by its agent ID. Use it to resume the subagent after a stop, or to correct it on the same task. The rule still forbids `name`, `team_name`, shared task lists, and messages between subagents. Rule 3 and the anti-patterns now say the same.
 - `subagent-orchestration`: Replaced the section "Trust but verify" with three tiers. The orchestrator checks cheap facts, an agent checks the content, and the orchestrator spot-checks only before a high-risk action. The "Check scope" part of "Run format agreement" now points to these tiers.
 - `process-pr-comments` and `audit-personal-conventions`: Replaced the claim that a subagent cannot get a follow-up message. The Claude Code docs show that `SendMessage` can resume a subagent.
-- `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7. `research-implement-review-report` and `implement-task` use the new step number.
+- `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7.
+- `research-implement-review-report` and `implement-task`: The final report no longer ends with the next-session continuation prompt of `save-context`. The commands print the report only.
+- `task-composer`: If the user ran a calling skill with `autonomous`, that skill can confirm `mode: create` for the user.
 
 ### Removed in dev-essentials
 
 - `save-context`: Removed the tip to use `--context <path>` with `/implement` or `/opsx-implement`.
+- `review-loop`: Removed the flag `--auto-proceed`. The run does not wait at the Phase 4 triage without it.
+- `process-pr-comments`: Removed the parameter `auto-push`. Use `autonomous`, or ask for the push in the request.
 
 ### Changed in gop-pipeline
 
-- `gop-work`: Without `--interactive`, Explore and Plan agents write the plan, and the run approves it. The run accepts validation proposals with a confidence of 90% or more. The push now waits for the approval of the user. With `--interactive`, Plan Mode and the old routing come back, and the plan approval covers the push.
+- `gop-work`: Without `--interactive`, Explore and Plan agents write the plan, and the run approves it. The run accepts validation proposals with a confidence of 90% or more. The push now waits for the approval of the user. With `--interactive`, Plan Mode and the old routing come back, and the plan approval covers the push. With `--autonomous`, no gate stops, and `gop-commit` pushes without a question.
 - `gop-commit`: New input `push` (`yes` or `no`, default `no`).
 
 ## dev-essentials 2.3.0 in release [2.3.0] - 2026-10-13

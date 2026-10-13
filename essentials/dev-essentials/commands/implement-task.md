@@ -1,6 +1,6 @@
 ---
 description: Work one task end-to-end via research-implement-review-report — after first sweeping the additional context the user brings (PR/issue links to fetch, or plain free-text notes), and after the review loop adding a mandatory /simplify pass landed as its own separate commit on top. Never pushes.
-argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--interactive]
+argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--interactive] [--autonomous]
 ---
 <!-- markdownlint-disable MD013 -->
 
@@ -69,6 +69,7 @@ wanted.
 | `--no-simplify` | off | Skip Phase 4. **Off by default on purpose — the simplify pass is a standard part of this command, not an add-on.** Pass this only for a run where the user has said they don't want it. |
 | `--push` | off | Push after the final report. **Off by default and off unless the user asks for it in this invocation** — the default contract is commit locally, report, and wait for the user's review. |
 | `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate, also before deletion, posts to outside systems, push, and pull request creation. Questions that block the work still stop. See "Autonomy". |
 
 Any option not listed above that the wrapped command accepts (`--context`,
 `--skip-research`, `--branch-prefix`) is passed straight through, with one
@@ -78,17 +79,27 @@ by, Phase 2's document.
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Subagent dispatch
 
@@ -178,7 +189,7 @@ channel between subagents (that stays banned per
 ### Phase 1 — Worktree setup
 
 Create the worktree per `dev-essentials:git-worktree-management`
-(for a run with `--interactive`, pass the flag on),
+(if the run has `--interactive` or `--autonomous`, pass it on),
 branching from the Phase 0 base branch, and run its post-create bootstrap.
 Record its **absolute path** — every write-capable dispatch from here on
 carries it explicitly, per `dev-essentials:subagent-orchestration`
@@ -291,7 +302,7 @@ Pass it, explicitly:
   verification step only** — the worktree and branch already exist; confirm and
   proceed, do not create or re-derive.
 - `--commit-mode=<resolved>` and `--rounds=<N>`.
-- `--interactive`, for a run that has it.
+- `--interactive` or `--autonomous`, for a run that has it.
 - The resolved `<--notes-dir>` as this run's **artifact root**, stated
   explicitly: the wrapped command's own `Notes/Plans/` and `Notes/Results/`
   defaults become `<--notes-dir>/Plans/` and `<--notes-dir>/Results/`. The
@@ -356,7 +367,9 @@ phases invoke `dev-essentials:research-implement-review-report` and
    to simplify the code under it, and "simplifying" by swallowing an error
    path. Anything that would require one of those is a **STOP and ask the
    user**, not a unilateral call (per
-   `dev-essentials:engineering-discipline` Rule 2).
+   `dev-essentials:engineering-discipline` Rule 2). With `--autonomous`, do not
+   make that change: keep the code as it is, and list the skipped cleanup in the
+   report.
 4. **Re-verify before committing.** Build and run the tests again after the
    cleanup — a simplification that breaks a test is a regression this session
    owns, not a pre-existing failure (Rule 1 of the same skill). For .NET repos
@@ -410,9 +423,8 @@ everywhere below. Require these additions to what it reports:
 - The worktree's absolute path and the branch name, so the user can review it
   directly.
 - Each gate that this run or the wrapped command approved without a stop.
-- `save-context`'s next-session continuation prompt (its Step 7), carrying
-  that same worktree path and branch name so a fresh session restores into the
-  right copy.
+
+Print the report only. Do not print a next-session continuation prompt.
 
 **Do not push.** Stop here and wait for the user's review. Push only if
 `--push` was explicitly passed in this invocation, and even then only after the
@@ -444,7 +456,8 @@ report has been delivered.
   `dev-essentials:engineering-discipline`).
 - **No unilateral critical decisions** — public-contract changes, new DI
   dependencies, test-assertion relaxations — beyond what the Phase 1 plan
-  authorized. That includes anything the simplify pass proposes.
+  authorized. That includes anything the simplify pass proposes. With
+  `--autonomous`, follow "Autonomy".
 - **Never push by default** without the user's explicit go-ahead each time.
 - **Artifacts live under `<--notes-dir>`** (default `Notes/`, with
   `Research/`, `Plans/`, `Results/` subfolders) inside the worktree — never

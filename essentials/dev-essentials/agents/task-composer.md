@@ -81,7 +81,7 @@ All edit requests without an explicit `mode: create` instruction apply to the lo
 
 **Pre-flight checks (STOP if any fail):**
 
-- The user has explicitly confirmed `mode: create` or used equivalent language ("publish", "create issue", "add to GitHub").
+- The user has explicitly confirmed `mode: create` or used equivalent language ("publish", "create issue", "add to GitHub"). A calling skill can confirm it for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
 - The user has provided the explicit GitHub **`owner/repo`** pair. Never infer it from context, current git remote, or session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, STOP and ask — do not guess.
 
 **Step 1 — Create the issue (parent attached in the same call, if requested):**

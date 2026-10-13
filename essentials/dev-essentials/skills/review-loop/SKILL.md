@@ -39,8 +39,8 @@ A single reviewer misses things. Different perspectives — architecture, securi
 | `--audit-team-args <...>` | none | Free-form pass-through to the `/audit-team` command when `--reviewer audit-team`, appended after the `<path>` positional Phase 2 supplies (Phase 2 also handles positional collisions — a user-supplied `[agent-count]` or `[model]` always wins over anything this skill would otherwise fill in). Ignored (with a warning) when `--reviewer` is not `audit-team`. |
 | `--no-verify-fix` | off | Skip Phase 5 fix edits. Phase 6 still runs against existing code as a sanity check. Phase 7 is skipped. Phase 9 still runs. |
 | `--dry-run` | off | Skip Phase 5 fix edits, skip Phase 6 (nothing changed, so no build/test to run), skip Phase 7. Phase 9 still runs. |
-| `--auto-proceed` | off | Kept so that old calls still work. It has no effect, because the run does not wait at the Phase 4 triage by default. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate, also before deletion, posts to outside systems, push, and pull request creation. Questions that block the work still stop. See "Autonomy". |
 | `--save-reports` | off | Force-save every full cycle report to `Notes/Reviews/` even on single-cycle runs. |
 | `--print-reports` | off | Force-print every full cycle report to chat even on multi-cycle runs. |
 | `--include-resolved` | off | Only meaningful when `target=pr <id>`. Active and pending threads are always fetched and always appear in the reviewer brief as an **"Open reviewer threads"** section (regardless of this flag). When `--include-resolved` is set: (1) the Phase 1 PR-thread fetch also includes resolved/closed threads; and (2) the Phase 3 reviewer brief gains an additional **"Previously addressed in this PR"** section listing each resolved/closed thread so the reviewer can avoid re-raising already-handled issues. Has no effect on non-PR targets. |
@@ -59,17 +59,27 @@ The defaults in the table above are the configuration this loop is meant to run 
 
 ## Autonomy
 
-By default, this workflow does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. This default approval covers the whole task, up to the merge.
+This workflow has three modes. The user picks one with a flag.
 
-- At a decision gate, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run approved without a stop.
-- These stops stay in every mode: deletion of data, posts to outside systems (for example GitHub comments, reviews, and issues, or documentation pages), push, and pull request creation. The merge always stays with the user.
-- An action that the user approved for this run needs no new stop. Two cases count as approval. The first is a flag such as `--push`, `--commit-push`, `auto-push`, or `autonomous`. The second is a step of this workflow that names the action as its default.
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. Do not ask in other cases.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Ask the user about every other critical decision.
-- If a rule says to ask before a Fable dispatch that neither the user nor the defaults of this workflow chose, do not ask. Use Opus, and name the step in the final report.
-- With `--interactive`, every gate stops and waits for the user, as the gate text says.
-- When this workflow runs another workflow and this run has `--interactive`, pass the flag on.
+- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
+- `--interactive`: every gate stops and waits for the user, as the gate text says.
+- `--autonomous`: no gate stops, the dangerous gates too. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. Questions that block the work still stop (see below).
+
+These rules apply in all modes:
+
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
+- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
+- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
+- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
+- With `--autonomous`, do not destroy work that has no other copy. Examples: uncommitted changes, commits that no other branch or remote holds, and the only backup of changed files. Do not do such an action. List it in the final report.
+- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
+- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
+- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
+- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Flag interaction matrix
 
@@ -83,7 +93,7 @@ The three control flags affect phases independently. Consult this matrix before 
 
 Rules:
 - `--dry-run` and `--no-verify-fix` are mutually exclusive: if both are set, **STOP and ask the user which behavior is intended** before proceeding.
-- `--interactive` is independent of both flags above.
+- `--interactive` and `--autonomous` are independent of both flags above.
 
 ## Report destination rules
 
@@ -101,7 +111,7 @@ The run format says what the orchestrator checks itself and how the run reports 
 After Phase 2, state the run format in a few lines. If there is a Phase 1 scope hint, add it. Do not wait for an answer. The run format applies from this statement unless the user objects. If the calling workflow already stated the same run format in this session, do not state it again.
 
 - Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
-- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs the decision of the user. If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. When a calling workflow runs this skill, give the Phase 9 summary to that workflow and print only the status line.
+- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs the decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. When a calling workflow runs this skill, give the Phase 9 summary to that workflow and print only the status line.
 - Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage confirms it. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
 
 When the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the "Trust but verify" section of `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The Phase 4 triage judgment, Phase 6, and the Role 4 reads of large-target mode still run.
@@ -242,7 +252,7 @@ Apply `--skip` exactly: each severity token in `--skip` is its own independent g
 
 - A Medium that reintroduces a variant of the bug being fixed, or that leaves the fix's own regression uncovered, is worth fixing regardless of its label.
 - A Low or Nit that is genuinely cosmetic is not — record it as deferred and move on.
-- Where the fix is clear-cut, hand it to Phase 5 as normal. Where it is **not** confidently safe or scoped — it would need substantial refactoring, it touches a design decision, or the right resolution is genuinely ambiguous — do not decide unilaterally. Present that finding and the proposed fix(es) as a compact addendum to the triage (a short list, not a second review) and ask the user before the fixer touches it. This holds without `--interactive` too. The default approval covers the routine acknowledgment, never a genuine ambiguity.
+- Where the fix is clear-cut, hand it to Phase 5 as normal. Where it is **not** confidently safe or scoped — it would need substantial refactoring, it touches a design decision, or the right resolution is genuinely ambiguous — do not decide unilaterally. Present that finding and the proposed fix(es) as a compact addendum to the triage (a short list, not a second review) and ask the user before the fixer touches it. This holds without `--interactive` too. The default approval covers the routine acknowledgment, never a genuine ambiguity. With `--autonomous`, do not ask. Decide as "Autonomy" says, and list the finding and the decision in the Phase 9 summary.
 
 **Record `blocking: true|false` on every finding, independent of its severity label.** Set `blocking: true` when Phase 4 concludes the finding must be resolved before merge: any Blocker/Critical/High by default, plus any Medium/Low/Nit the judgment above elevates. Set `blocking: false` for anything Phase 4 is content to record and move on from, including a Blocker/Critical/High the user and the session explicitly agreed to defer — in that case say so in the triage. The triage table's per-severity `(<Y> blocking)` counts are an aggregate view of this flag; Phase 8's `stop-clean` and Phase 9's deferred list read the per-finding flag itself, not that count or the severity label.
 
