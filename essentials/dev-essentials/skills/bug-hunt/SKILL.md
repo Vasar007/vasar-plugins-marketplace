@@ -204,7 +204,8 @@ an earlier round, update that file for this run instead. Then run the structure 
 
 For each area, in the approved order:
 
-1. Compute the next ID with the `next-id` command in [references/structure-checks.md](references/structure-checks.md).2. Dispatch one hunter with the hunter brief. Set `{FIRST_SEARCH}` to "yes" only for the first hunter. That hunter also fills the section "Known issues that this report does not repeat".
+1. Compute the next ID with the `next-id` command in [references/structure-checks.md](references/structure-checks.md).
+2. Dispatch one hunter with the hunter brief. Set `{FIRST_SEARCH}` to "yes" only for the first hunter. That hunter also fills the section "Known issues that this report does not repeat".
 3. Wait for the reply. Do not dispatch the next hunter before this one finishes. Later hunters read the notes of earlier ones, and the IDs continue across areas.
 4. Run the structure check for step 3. Compare the reply with the counts.
 5. Update the session progress file: the area is done, the next ID, and the agent ID. In the run context file, set the area to "Searched", and append the build and test notes of the reply under "Build and test notes".
