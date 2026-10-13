@@ -41,7 +41,7 @@ If a GitHub MCP tool returns paginated results, always paginate to the end with 
 
 1. Pass the page size (`perPage` in the tool schemas) explicitly on every paginated call. Typical values: `30` for comment or thread lists, and `100` for list operations that return many results.
 2. Use `page` (starts at 1), a cursor, or `since`, as the tool supports. For a cursor method, pass the `endCursor` of the previous page as `after`. Example: `pull_request_read` with `method: "get_review_comments"`.
-3. **Stop condition:** a page with fewer items than the page size is the last page. Stop, and do not request the next page. For a cursor method, also stop at a response that gives no further cursor.
+3. **Stop condition:** a page with fewer items than the page size is the last page. Stop, and do not request the next page. For a cursor method, the response field `pageInfo.hasNextPage` set to `false` also marks the last page.
 4. **Never stop early** on the first non-empty page. Large PRs have many comments, and large repos have many branches. A stop after the first page drops data silently.
 
 **Example: paginating PR comments**

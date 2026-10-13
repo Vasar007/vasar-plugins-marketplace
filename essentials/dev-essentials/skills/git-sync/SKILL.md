@@ -69,7 +69,7 @@ git cherry-pick <broken-commit-sha>..tmp/cherry-pick-restore
 git tag -d tmp/cherry-pick-restore
 ```
 
-The cherry-pick of the saved commits keeps their author and author date. `git commit -F-` creates a fresh commit with the correct message. The tree comes from the cherry-pick, so no rebuild is needed.
+If the broken commit is `HEAD`, skip the last `git cherry-pick`, because no commit sits above it. The cherry-pick of the saved commits keeps their author and author date. `git commit -F-` creates a fresh commit with the correct message. The tree comes from the cherry-pick, so no rebuild is needed.
 
 ### Safety net
 

@@ -132,10 +132,10 @@ menu lists it.
    a duplicate as a finding on its own, also where the two copies agree
    today. The duplication is the bug, not only the disagreement that it
    causes later.
-3. For each nested file with a correct pointer, make sure that the pointer
-   still names a real section heading of the root. After a rename or a
-   restructure of the root preamble, a stale pointer is as silent as a stale
-   copy.
+3. For each nested file with a correct pointer, find out whether the pointer
+   still names a real section heading of the root. If it does not, report it.
+   After a rename or a restructure of the root preamble, a stale pointer is
+   as silent as a stale copy.
 4. Report drift for each file, not as one pass or fail. A nested file that
    lacks a bullet because the bullet does not apply to its subfolder is not
    drift. Two files with the same bullet in different words are drift.
