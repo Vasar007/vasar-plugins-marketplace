@@ -12,7 +12,7 @@ Use this recipe to render an approved implementation plan as an HTML artifact fo
 4. **Legend**: the color code for AC and step statuses, for example planned, in progress, and done. If no section below uses status badges, leave the legend out.
 5. **Main table(s)**: the AC grid and the list of execution-order steps, with one row for each AC or step. Each row has a deep link (`<a href="#anchor-id">`) down to its detail section.
 6. **Collapsible detail groups**: one `<details>` block for each file or each execution-order step. The blocks group the detailed content, so that the page stays easy to scan with the blocks closed.
-7. **Annotated content**: the mermaid data-flow or architecture diagram, mockups of the resulting UI, and the code snippets that the reviewer needs to see before the approval.
+7. **Annotated content**: the mermaid data-flow or architecture diagram, any mockups of the resulting UI, and the code snippets that the reviewer needs to see before the approval.
 8. **Recommendation**: the open questions and the risks that the human needs to know before the approval of the plan.
 
 ## Recipe 2 — PR / code-review artifact

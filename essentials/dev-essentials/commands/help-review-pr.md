@@ -136,7 +136,7 @@ To discard a batch before you submit it, use `method="delete_pending"`. You cann
 
 Use the tags and their meanings from `references/tag-actions.md` of `dev-essentials:process-pr-comments`: `[ToFix]`, `[Optional]`, `[Suggestion]`, `[Question]`, `[ToDiscuss]`, `[Performance]`, `[OutOfScope]`, `[Note]`, `[PX]`, and `[Repetition]`. The same tags apply to a **new** finding, not only to a reply to an existing thread. Start every comment with `**[Tag]**` in bold.
 
-Map severity to a tag with these defaults, and adapt them for each finding. In `tag-actions.md`, `[Performance]` is an action tag with the same workflow as `[ToFix]`. Never use it as an info label.
+Map severity to a tag with these defaults, and adapt them for each finding. In `tag-actions.md`, `[Performance]` is an ACTIONABLE tag with the same workflow as `[ToFix]`. Never use it as an info label.
 
 - Major, convention violation, or real defect → `**[ToFix]**`
 - Performance defect that needs the `[Performance]` workflow of `tag-actions.md` (a measurable regression, a hot path, or a similar case) → `**[Performance]**`
