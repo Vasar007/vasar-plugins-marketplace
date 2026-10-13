@@ -11,7 +11,7 @@ The skill acts as the PR author. In each cycle, it skips the threads that GitHub
 
 Each fix gets a local commit at once. Its `**[AI]** Fixed` reply names the local commit SHA, before any push. The push is a separate step that comes once per cycle, after every reply. It needs the go-ahead of the user, unless `autonomous` is set (see Rules). After the push lands, the skill resolves each thread that it fixed with `pull_request_review_write` (`method: resolve_thread`).
 
-Each cycle runs as two subagent dispatches. Stage 1 (Haiku) fetches and classifies, and changes nothing. Stage 2 (Sonnet) acts. Only the orchestrating session talks to the user (see "Dispatch model").
+Each cycle runs as two subagent dispatches. Stage 1 (Haiku) fetches and classifies, and changes nothing. Stage 2 (Sonnet) acts. Only the orchestrating session talks to the user. Stage 2 returns its open questions. The orchestrating session asks the user, and then resumes the same Stage 2 agent with `SendMessage` (see "Dispatch model").
 
 ## When NOT to use
 
@@ -151,7 +151,7 @@ Each cycle runs as **two** one-shot, unnamed subagent dispatches, never one. Sta
 
 Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching, thread-state filters, and git ancestry checks. Stage 2 does judgment work, which stays on Sonnet (see "Model selection" in `dev-essentials:subagent-orchestration`).
 
-**Who talks to the user**. Subagents do not talk to the user. The orchestrating session asks every question and owns every stop that waits for an answer. It runs these steps itself: Phase 1 steps 2 and 6, the question of Phase 2 step 5 for an `unconfirmed-commit-claim` thread, Phase 6, and Stage 3. A Stage 2 step can need an answer of the user. Examples: a `[Question]` draft, a Bucket A2 draft, an edit under `strict`, and the push go-ahead. Then Stage 2 records the open item and goes on with the other threads. It returns all open items at the end of its work. The orchestrating session asks the user. With the answer, it resumes the same Stage 2 agent with `SendMessage` (`dev-essentials:subagent-orchestration` Rule 5) to finish the open items.
+**Who talks to the user**. Subagents do not talk to the user. The orchestrating session asks every question and owns every stop that waits for an answer. It runs these steps itself: Phase 1 steps 2 and 6, the question of Phase 2 step 5 for an `unconfirmed-commit-claim` thread, Phase 6, and Stage 3. A Stage 2 step can need an answer of the user. Examples: a `[Question]` draft, a Bucket A2 draft, an edit under `strict`, and the push go-ahead. Then Stage 2 records the open item and goes on with the other threads. It returns all open items at the end of its work. The orchestrating session asks the user. It sends the answer to the same Stage 2 agent with `SendMessage`. Stage 2 then finishes the open items of the same task (`dev-essentials:subagent-orchestration` Rule 5).
 
 **Briefing the stages**. Each brief gives the absolute path of the skill folder, `${CLAUDE_SKILL_DIR}`. It names the files that the stage reads: this `SKILL.md` and the reference files of its phases (see "Supporting files"). `processedCommentIds` and the PR metadata cache live in the orchestrating session, not in a dispatch. Pass both into each Stage 1 brief, with every invocation parameter (`tags`, `bots`, `include-resolved`, `dry-run`, and the others). Stage 1 returns `prMetadata` in its report. Stage 1 must STOP at each ask-the-user branch of Phase 1, and report it in the `blockers` list of the report. It never picks an option silently. These branches are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available.
 
@@ -173,10 +173,10 @@ Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching,
 
 ### Phase 1 — Session bootstrap (once per `/loop` session)
 
-1. Make sure that the `mcp__plugin_github_github__*` tools are available. If they are missing, stop and ask the user to reconnect them with `/mcp`.
+1. Find out whether the `mcp__plugin_github_github__*` tools are available. If they are missing, stop and ask the user to reconnect them with `/mcp`.
 2. Orchestrating session: if the invocation has both `deep-fix` and `loop`, STOP and ask the user which one they meant (see Rules). Do not guess, and do not drop either flag silently.
 3. Resolve the target PR:
-   - For a full GitHub URL in `pr`, parse `owner`, `repo`, and the PR number from the URL. Call `mcp__plugin_github_github__pull_request_read` with `method: get` and these values, to make sure that the PR exists.
+   - For a full GitHub URL in `pr`, parse `owner`, `repo`, and the PR number from the URL. Call `mcp__plugin_github_github__pull_request_read` with `method: get` and these values, to find out whether the PR exists.
    - For a number in `pr`, `owner` and `repo` are required. Call `mcp__plugin_github_github__pull_request_read` with `method: get`, `owner`, `repo`, and `pullNumber`.
    - If `owner` or `repo` is missing and no URL holds it, STOP and ask the user before any call. Never infer it from the git remote or from the session context.
 4. Cache the PR metadata from the `pull_request_read` response: `title`, `state`, `html_url`, and `number`. Also cache the head branch as `headRefName` (from `head.ref`) and the base branch as `baseRefName` (from `base.ref`).

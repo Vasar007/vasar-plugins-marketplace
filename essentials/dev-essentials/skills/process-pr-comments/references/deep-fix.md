@@ -37,7 +37,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 
 ## Stage 3 — `deep-fix` brief and outcomes
 
-**Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that ABSOLUTE path as the worktree path in the brief below. Then make sure that `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, STOP. Ask the user before you check out or switch a branch, or create anything.
+**Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that ABSOLUTE path as the worktree path in the brief below. Then find out whether `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, STOP. Ask the user before you check out or switch a branch, or create anything.
 
 **Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the Stage 2 brief, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). It never goes to a subagent. That command can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
 
