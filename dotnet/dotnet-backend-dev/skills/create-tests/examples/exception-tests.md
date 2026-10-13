@@ -280,12 +280,12 @@ public void Constructor_SetsEntityId()
 
 ## Key Points
 
-1. **Implement all three Create overrides** - default, message-only, and message+inner
+1. **Implement all three Create overrides**: default, message-only, and message+inner
 
-2. **Test factory methods separately** - if your exception has `Create()` static methods
+2. **Test factory methods separately**: test each static `Create()` factory method of your exception
 
-3. **Use StringResources** - exception messages should use localized resources
+3. **Use StringResources**: exception messages must use localized resources
 
-4. **Test custom properties** - if your exception has additional state beyond message/inner
+4. **Test custom properties**: test each property that your exception adds to the message and the inner exception
 
-5. **Don't duplicate base tests** - the base class covers standard exception patterns
+5. **Do not repeat base tests**: the base class covers the standard exception patterns

@@ -4,7 +4,7 @@ Use `BaseDependencyInjectionTests` for verifying that services are correctly reg
 
 ## Base Class
 
-Location: `<Project>.Tests.Common.ForTests.BaseDependencyInjectionTests` (per-service — substitute your repo's Tests.Common namespace)
+Location: `<Project>.Tests.Common.ForTests.BaseDependencyInjectionTests` (one for each service: use the Tests.Common namespace of your repository)
 
 Inherits from: `BaseMockTest` (provides `Fixture` for mocking)
 
@@ -424,12 +424,12 @@ public void AddDiagnosticServices_RegistersConfigureOptions()
 
 1. **Use `CreateServiceCollection()`** for simple registration tests
 
-2. **Use `CreateHostAppBuilder()`** when testing configuration-dependent registration
+2. **Use `CreateHostAppBuilder()`** for tests of configuration-dependent registration
 
-3. **Always dispose ServiceProvider** - use `using var provider`
+3. **Always dispose ServiceProvider**: use `using var provider`
 
-4. **Test both positive and negative** - verify services ARE registered AND throw on null
+4. **Test both positive and negative**: verify services ARE registered AND throw on null
 
-5. **Test conditional logic** - verify feature toggles/options affect registration
+5. **Test conditional logic**: verify feature toggles/options affect registration
 
-6. **Private helper method** - extract common registration setup to `RegisterServices()`
+6. **Private helper method**: extract common registration setup to `RegisterServices()`

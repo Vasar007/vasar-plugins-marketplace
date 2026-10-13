@@ -10,7 +10,7 @@ Provides assertion helpers for validation results.
 
 ## Required Pattern
 
-Every configuration options test class should:
+Every test class for configuration options must:
 
 1. Inherit from `BaseValidatableObjectTests`
 2. Implement `CreateDefaultOptions()` - creates options with default/empty values
@@ -41,16 +41,16 @@ protected void VerifyResultOfSuccessfulValidation(
 // Copyright (c) Vasily Vasilyev
 
 using System.ComponentModel.DataAnnotations;
-using MyApp.Configuration.Options.Deployment;
+using MyApp.Configuration.Options.Shop;
 using MyApp.OnlyForTests.Basic.Validation;
 
-namespace MyApp.Configuration.Tests.Options.Deployment;
+namespace MyApp.Configuration.Tests.Options.Shop;
 
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
+public sealed class ShopOptionsTests : BaseValidatableObjectTests
 {
-    public DeploymentOptionsTests()
+    public ShopOptionsTests()
     {
     }
 
@@ -80,10 +80,10 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
         // Assert.
         VerifyResultOfFailedValidationForSeveral(
             results,
-            nameof(DeploymentOptions.Appliance.AppDeployment.InstanceKeyPairName),
-            nameof(DeploymentOptions.Infrastructure.NetworkCidrBlock),
-            nameof(DeploymentOptions.Elasticsearch.CloudId),
-            nameof(DeploymentOptions.Elasticsearch.ApiKey)
+            nameof(ShopOptions.Shipping.PrimaryCarrier.CarrierCode),
+            nameof(ShopOptions.Billing.CurrencyCode),
+            nameof(ShopOptions.Notifications.SenderAddress),
+            nameof(ShopOptions.Notifications.TemplateName)
         );
     }
 
@@ -102,13 +102,13 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
     }
 
     [Test]
-    public void Validate_WithNullAppliance_ReturnsValidationError()
+    public void Validate_WithNullShipping_ReturnsValidationError()
     {
         // Arrange.
         var validOptions = CreateValidOptions();
         var options = validOptions with
         {
-            Appliance = null!,
+            Shipping = null!,
         };
         var validationContext = new ValidationContext(options);
 
@@ -116,17 +116,17 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
         var results = options.Validate(validationContext);
 
         // Assert.
-        VerifyResultOfFailedValidation(results, nameof(DeploymentOptions.Appliance));
+        VerifyResultOfFailedValidation(results, nameof(ShopOptions.Shipping));
     }
 
     [Test]
-    public void Validate_WithNullInfrastructure_ReturnsValidationError()
+    public void Validate_WithNullBilling_ReturnsValidationError()
     {
         // Arrange.
         var validOptions = CreateValidOptions();
         var options = validOptions with
         {
-            Infrastructure = null!,
+            Billing = null!,
         };
         var validationContext = new ValidationContext(options);
 
@@ -134,21 +134,21 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
         var results = options.Validate(validationContext);
 
         // Assert.
-        VerifyResultOfFailedValidation(results, nameof(DeploymentOptions.Infrastructure));
+        VerifyResultOfFailedValidation(results, nameof(ShopOptions.Billing));
     }
 
     [TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]
-    public void Validate_WithInvalidInstanceKeyPairName_ReturnsValidationError(String? invalidValue)
+    public void Validate_WithInvalidCarrierCode_ReturnsValidationError(String? invalidValue)
     {
         // Arrange.
         var validOptions = CreateValidOptions();
         var options = validOptions with
         {
-            Appliance = validOptions.Appliance with
+            Shipping = validOptions.Shipping with
             {
-                AppDeployment = validOptions.Appliance.AppDeployment with
+                PrimaryCarrier = validOptions.Shipping.PrimaryCarrier with
                 {
-                    InstanceKeyPairName = invalidValue,
+                    CarrierCode = invalidValue,
                 },
             },
         };
@@ -160,42 +160,42 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
         // Assert.
         VerifyResultOfFailedValidation(
             results,
-            nameof(DeploymentOptions.Appliance.AppDeployment.InstanceKeyPairName)
+            nameof(ShopOptions.Shipping.PrimaryCarrier.CarrierCode)
         );
     }
 
     // ============ Helper methods ============
 
-    private static DeploymentOptions CreateDefaultOptions()
+    private static ShopOptions CreateDefaultOptions()
     {
-        return new DeploymentOptions();
+        return new ShopOptions();
     }
 
-    private static DeploymentOptions CreateValidOptions()
+    private static ShopOptions CreateValidOptions()
     {
-        return new DeploymentOptions
+        return new ShopOptions
         {
-            Appliance = new ApplianceDeploymentOptions
+            Shipping = new ShippingOptions
             {
-                AppDeployment = new AppDeploymentOptions
+                PrimaryCarrier = new PrimaryCarrierOptions
                 {
-                    InstanceKeyPairName = "my-key-pair",
-                    ElasticCloudAgentSecretName = "elastic-agent-secret",
+                    CarrierCode = "primary-carrier",
+                    ServiceLevel = "standard",
                 },
-                SecondaryDeployment = new SecondaryDeploymentOptions
+                FallbackCarrier = new FallbackCarrierOptions
                 {
-                    InstanceKeyPairName = "secondary-key-pair",
-                    ElasticCloudAgentSecretName = "secondary-elastic-secret",
+                    CarrierCode = "fallback-carrier",
+                    ServiceLevel = "economy",
                 },
             },
-            Infrastructure = new InfrastructureDeploymentOptions
+            Billing = new BillingOptions
             {
-                NetworkCidrBlock = "10.0.0.0/16",
+                CurrencyCode = "USD",
             },
-            Elasticsearch = new ElasticsearchOptions
+            Notifications = new NotificationOptions
             {
-                CloudId = "my-cloud-id",
-                ApiKey = "my-api-key",
+                SenderAddress = "orders@example.com",
+                TemplateName = "order-confirmation",
             },
         };
     }
@@ -204,15 +204,15 @@ public sealed class DeploymentOptionsTests : BaseValidatableObjectTests
 
 ## Standard Tests to Include
 
-1. **Null ValidationContext** - `Validate` throws `ArgumentNullException`
+1. **Null ValidationContext**: `Validate` throws `ArgumentNullException`
 
-2. **Default options** - `Validate` returns errors for all required fields
+2. **Default options**: `Validate` returns errors for all required fields
 
-3. **Valid options** - `Validate` returns no errors
+3. **Valid options**: `Validate` returns no errors
 
-4. **Individual null properties** - Each required nested object returns validation error when null
+4. **Individual null properties**: a null value in a required nested object gives a validation error
 
-5. **String validation** - Use `StringNullOrWhiteSpace_TestCases` for required string properties
+5. **String validation**: Use `StringNullOrWhiteSpace_TestCases` for required string properties
 
 ## Nested Options Pattern
 
@@ -244,12 +244,12 @@ public sealed class NestedOptionsTests : BaseValidatableObjectTests
 
 ## Key Points
 
-1. **CreateDefaultOptions** - Use default constructor or `new T()` to get empty/default state
+1. **CreateDefaultOptions**: Use default constructor or `new T()` to get empty/default state
 
-2. **CreateValidOptions** - Provide ALL required values to pass validation
+2. **CreateValidOptions**: Provide ALL required values to pass validation
 
-3. **Use `with` expressions** - Cleanly create invalid variants from valid options
+3. **Use `with` expressions**: Cleanly create invalid variants from valid options
 
-4. **Test each required property** - Null check for objects, `StringNullOrWhiteSpace_TestCases` for strings
+4. **Test each required property**: Null check for objects, `StringNullOrWhiteSpace_TestCases` for strings
 
-5. **Nameof for member names** - Ensures compile-time checking of property names
+5. **Nameof for member names**: the compiler finds a wrong property name

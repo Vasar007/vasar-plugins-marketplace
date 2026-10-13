@@ -19,6 +19,24 @@ Use repository base classes for integration tests that verify CRUD operations ag
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 ```
 
+The class shapes for the two factories:
+
+```csharp
+// Manual DbContext creation (most common)
+[TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
+public sealed class MyRepositoryTests : BaseRepositoryWithOneKeyTest<...>
+{
+    public MyRepositoryTests(ITestDbContextFactory factory) : base(factory) { }
+}
+
+// DI-managed DbContext
+[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
+public sealed class MyServiceIntegrationTests : BaseDbTest<...>
+{
+    public MyServiceIntegrationTests(ITestDbContextFactory factory) : base(factory) { }
+}
+```
+
 ## Required Overrides
 
 ```csharp
@@ -48,52 +66,52 @@ protected abstract TAlternateKey GetAlternateKeyFromEntity(TEntity entity);
 // Copyright (c) Vasily Vasilyev
 
 using Microsoft.EntityFrameworkCore;
-using MyApp.Domain.Workload.Tenants;
+using MyApp.Domain.Sales.Customers;
 using MyApp.Infrastructure.Persistence;
-using MyApp.Infrastructure.Persistence.Workload.Tenants;
+using MyApp.Infrastructure.Persistence.Sales.Customers;
 using MyApp.Infrastructure.Tests.ForTests;
 using MyApp.Infrastructure.Tests.ForTests.Factories;
-using MyApp.Tests.Common.Helpers.Generators.Workload.Tenants;
+using MyApp.Tests.Common.Helpers.Generators.Sales.Customers;
 
-namespace MyApp.Infrastructure.Tests.Persistence.Workload.Tenants;
+namespace MyApp.Infrastructure.Tests.Persistence.Sales.Customers;
 
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class TenantRepositoryTests<TTestDbContextFactory>
-    : BaseRepositoryWithOneKeyTest<TTestDbContextFactory, ITenantRepository, TenantEntity, Tenant, TenantId>
+public sealed class CustomerRepositoryTests<TTestDbContextFactory>
+    : BaseRepositoryWithOneKeyTest<TTestDbContextFactory, ICustomerRepository, CustomerEntity, Customer, CustomerId>
     where TTestDbContextFactory : ITestDbContextFactory, new()
 {
-    private readonly TenantGenerator _generator;
+    private readonly CustomerGenerator _generator;
 
-    public TenantRepositoryTests()
+    public CustomerRepositoryTests()
     {
-        _generator = new TenantGenerator();
+        _generator = new CustomerGenerator();
     }
 
-    protected override DbSet<TenantEntity> GetDbSet(ServiceDbContext dbContext)
+    protected override DbSet<CustomerEntity> GetDbSet(ServiceDbContext dbContext)
     {
-        return dbContext.Tenants;
+        return dbContext.Customers;
     }
 
-    protected override ITenantRepository CreateRepository(ServiceDbContext dbContext)
+    protected override ICustomerRepository CreateRepository(ServiceDbContext dbContext)
     {
-        return new TenantRepository(dbContext);
+        return new CustomerRepository(dbContext);
     }
 
-    protected override Task<Tenant> CreateModelAsync()
+    protected override Task<Customer> CreateModelAsync()
     {
-        var model = _generator.GenerateTenant();
+        var model = _generator.GenerateCustomer();
         return Task.FromResult(model);
     }
 
-    protected override TenantId CreatePrimaryKey()
+    protected override CustomerId CreatePrimaryKey()
     {
-        return _generator.GenerateTenantId();
+        return _generator.GenerateCustomerId();
     }
 
-    protected override TenantId GetPrimaryKeyFromEntity(TenantEntity entity)
+    protected override CustomerId GetPrimaryKeyFromEntity(CustomerEntity entity)
     {
-        return TenantId.FromValue(entity.TenantId);
+        return CustomerId.FromValue(entity.CustomerId);
     }
 
     // ============ Additional repository-specific tests ============
@@ -110,7 +128,7 @@ public sealed class TenantRepositoryTests<TTestDbContextFactory>
         await DbContext.SaveChangesAsync();
 
         // Create duplicate with same ID
-        var duplicate = _generator.GenerateTenant() with { TenantId = model.TenantId };
+        var duplicate = _generator.GenerateCustomer() with { CustomerId = model.CustomerId };
 
         // Act.
         var act = async () =>
@@ -130,22 +148,22 @@ public sealed class TenantRepositoryTests<TTestDbContextFactory>
         var repository = CreateRepository();
         var model = await CreateAndSaveModelAsync(repository);
 
-        var updatedName = _generator.GenerateTenantName();
-        var updatedModel = model with { TenantName = updatedName };
+        var updatedName = _generator.GenerateCustomerName();
+        var updatedModel = model with { CustomerName = updatedName };
 
         // Act.
         await repository.UpdateAsync(updatedModel);
         await DbContext.SaveChangesAsync();
 
         // Assert.
-        var result = await repository.FindByPrimaryKeyAsync(model.TenantId);
+        var result = await repository.FindByPrimaryKeyAsync(model.CustomerId);
         result.Should().NotBeNull();
-        result!.TenantName.Should().Be(updatedName);
+        result!.CustomerName.Should().Be(updatedName);
     }
 
     // ============ Private helpers ============
 
-    private async Task<Tenant> CreateAndSaveModelAsync(ITenantRepository repository)
+    private async Task<Customer> CreateAndSaveModelAsync(ICustomerRepository repository)
     {
         var model = await CreateModelAsync();
         await repository.AddAsync(model);
@@ -160,33 +178,33 @@ public sealed class TenantRepositoryTests<TTestDbContextFactory>
 ```csharp
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class RegionalDeploymentResultRepositoryTests<TTestDbContextFactory>
+public sealed class MarketShipmentRepositoryTests<TTestDbContextFactory>
     : BaseRepositoryWithTwoKeysTest<
         TTestDbContextFactory,
-        IRegionalDeploymentResultRepository,
-        RegionalDeploymentResultEntity,
-        RegionalDeploymentResult,
-        DeploymentId,    // Primary key
-        RegionId>        // Alternate key
+        IMarketShipmentRepository,
+        MarketShipmentEntity,
+        MarketShipment,
+        ShipmentId,    // Primary key
+        MarketId>        // Alternate key
     where TTestDbContextFactory : ITestDbContextFactory, new()
 {
-    private readonly DeploymentGenerator _generator;
+    private readonly ShipmentGenerator _generator;
 
-    public RegionalDeploymentResultRepositoryTests()
+    public MarketShipmentRepositoryTests()
     {
-        _generator = DeploymentGenerator.Instance;
+        _generator = ShipmentGenerator.Instance;
     }
 
     // ... implement all 6 required overrides
 
-    protected override RegionId CreateAlternateKey()
+    protected override MarketId CreateAlternateKey()
     {
-        return _generator.GenerateRegionId();
+        return _generator.GenerateMarketId();
     }
 
-    protected override RegionId GetAlternateKeyFromEntity(RegionalDeploymentResultEntity entity)
+    protected override MarketId GetAlternateKeyFromEntity(MarketShipmentEntity entity)
     {
-        return RegionId.FromValue(entity.RegionId);
+        return MarketId.FromValue(entity.MarketId);
     }
 }
 ```
@@ -197,7 +215,7 @@ Most repository tests can run in parallel (`[Parallelizable(ParallelScope.Fixtur
 
 **Use `[NonParallelizable]`** for tests that:
 
-- Test unique constraint violations (concurrent inserts may interfere)
+- Test unique constraint violations (concurrent inserts can interfere)
 - Modify shared state that other tests read
 - Test database-level locks or transactions
 
@@ -205,30 +223,30 @@ Most repository tests can run in parallel (`[Parallelizable(ParallelScope.Fixtur
 
 The base classes automatically test:
 
-- `FindByPrimaryKeyAsync` - returns entity when exists
-- `FindByPrimaryKeyAsync` - returns null when not exists
-- `GetByPrimaryKeyAsync` - returns entity when exists
-- `GetByPrimaryKeyAsync` - throws `NotFoundException` when not exists
-- `GetAllAsync` - returns all entities
-- `DeleteByPrimaryKeyAsync` - removes entity
-- `DeleteByPrimaryKeyAsync` - does not throw when entity does not exist
+- `FindByPrimaryKeyAsync`: returns an existing entity
+- `FindByPrimaryKeyAsync`: returns null for a missing entity
+- `GetByPrimaryKeyAsync`: returns an existing entity
+- `GetByPrimaryKeyAsync`: throws `NotFoundException` for a missing entity
+- `GetAllAsync`: returns all entities
+- `DeleteByPrimaryKeyAsync`: removes the entity
+- `DeleteByPrimaryKeyAsync`: does not throw for a missing entity
 
-**NOT provided** (add these yourself if needed): `AddAsync`, `UpdateAsync` tests.
+**NOT provided**: tests for `AddAsync` and `UpdateAsync`. If you need them, add them yourself.
 
 For `TwoKeysTest`, also tests:
 
-- `FindByAlternateKeyAsync` - returns entity / returns null
-- `GetByAlternateKeyAsync` - returns entity / throws `NotFoundException`
-- `DeleteByAlternateKeyAsync` - removes entity / does not throw
+- `FindByAlternateKeyAsync`: returns the entity, or null
+- `GetByAlternateKeyAsync`: returns the entity, or throws `NotFoundException`
+- `DeleteByAlternateKeyAsync`: removes the entity, or does not throw
 
 ## Key Points
 
-1. **Use generators** - Create test models via `{Model}Generator.Instance`
+1. **Use generators**: Create test models via `{Model}Generator.Instance`
 
-2. **Async CreateModelAsync** - Allows complex setup (e.g., creating related entities first)
+2. **Async CreateModelAsync**: allows a complex setup, for example related entities that the test creates first
 
-3. **Test fixture source** - Runs tests against multiple database providers
+3. **Test fixture source**: Runs tests against multiple database providers
 
-4. **Private helpers** - Extract `CreateAndSaveModelAsync()` pattern for reuse
+4. **Private helpers**: Extract `CreateAndSaveModelAsync()` pattern for reuse
 
-5. **NonParallelizable for conflicts** - Mark tests that could interfere with parallel execution
+5. **NonParallelizable for conflicts**: mark tests that can interfere with parallel runs

@@ -547,16 +547,16 @@ public void Bind_EnvironmentVariables_BindsProperties()
 
 ## Key Points
 
-1. **SectionName property** - Must match the options class name or configured section name
+1. **SectionName property**: Must match the options class name or configured section name
 
-2. **Test defaults first** - Verify empty configuration uses expected defaults
+2. **Test defaults first**: Verify empty configuration uses expected defaults
 
-3. **Test partial binding** - Verify individual properties bind correctly
+3. **Test partial binding**: Verify individual properties bind correctly
 
-4. **Test nested objects** - Verify complex hierarchies bind correctly
+4. **Test nested objects**: Verify complex hierarchies bind correctly
 
-5. **Test required parameters** - Use `VerifyMissingConfigParameterException` for constructor parameters
+5. **Test required parameters**: Use `VerifyMissingConfigParameterException` for constructor parameters
 
-6. **Test environment variables** - Use colon notation (`Section:Property`) for key-value pairs
+6. **Test environment variables**: Use colon notation (`Section:Property`) for key-value pairs
 
-7. **Use raw string literals** - Use `"""` for multi-line JSON for readability
+7. **Use raw string literals**: Use `"""` for multi-line JSON for readability

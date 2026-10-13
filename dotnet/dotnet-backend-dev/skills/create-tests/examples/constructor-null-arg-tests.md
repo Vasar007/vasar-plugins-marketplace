@@ -1,32 +1,17 @@
 # Constructor Null-Argument Tests
 
-For any service or hosted service with multiple constructor dependencies, null-argument coverage
-uses exactly **two** tests: one positive, one negative. The negative test iterates over a
-`List<Action>` — one entry per dependency — rather than using boolean-stripe `[TestCase]` parameters.
+For a service or hosted service with more than one constructor dependency, null-argument coverage uses exactly **two** tests: one positive and one negative. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe `[TestCase]` parameters.
 
 ## Pattern overview
 
-- **Test 1 (positive):** `Constructor_OnAllArgumentsProvided_CreatesInstance` — calls the SUT
-  factory helper with an all-valid `Create{Mock}()` positional argument per dependency; asserts
-  `act.Should().NotThrow()`.
-- **Test 2 (negative):** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` — builds a
-  `List<Action>` where each lambda calls the SUT factory helper with all-valid positional
-  `Create{Mock}()` arguments EXCEPT exactly one dependency passed as `null!`; iterates with
-  `foreach` and asserts `act.Should().Throw<ArgumentNullException>()` per entry.
-- A private helper `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`) lives
-  at the file end inside `#region Helper Methods`. Use `private static` when all nested `Create*`
-  helpers are static; drop `static` (instance method) when any nested helper needs `Fixture` from
-  `BaseMockTest` — `CreateServiceWithAllArguments` must match its callees' static-ness. Every ctor
-  parameter is **required and positional — no `= null` default, no `??` fallback of any kind**.
-  This is the ONE helper in the test class that stays required-positional; every other
-  `Create{Mock}` helper takes optional params applied via `.ApplyIf(...)` (see
-  [SKILL.md](../SKILL.md) rule 4).
-- The **boolean-stripes `[TestCase(true,false,...)]` pattern is banned** — see Anti-pattern section.
+- **Test 1 (positive):** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls the SUT factory helper with a valid `Create{Mock}()` positional argument for each dependency. It asserts `act.Should().NotThrow()`.
+- **Test 2 (negative):** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` builds a `List<Action>`. Each lambda calls the SUT factory helper with valid positional `Create{Mock}()` arguments, EXCEPT exactly one dependency that gets `null!`. The test iterates with `foreach` and asserts `act.Should().Throw<ArgumentNullException>()` for each entry.
+- A private helper `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`) goes at the end of the file, inside `#region Helper Methods`. If all nested `Create*` helpers are static, make it `private static`. If any nested helper needs `Fixture` from `BaseMockTest`, make it an instance method. `CreateServiceWithAllArguments` must match the `static` choice of its callees. Each constructor parameter is **required and positional: no `= null` default and no `??` fallback of any kind**. This is the ONE helper in the test class that stays required and positional. Every other `Create{Mock}` helper takes optional parameters and applies them with `.ApplyIf(...)` (see [SKILL.md](../SKILL.md) rule 4).
+- The **boolean-stripes `[TestCase(true,false,...)]` pattern is banned**. See the anti-pattern section below.
 
 ## Why the helper must be required-positional, not `dep ?? Create{Mock}()`
 
-An earlier, now-removed version of this pattern declared the helper's parameters as nullable
-optionals with an internal fallback:
+A tempting but wrong shape declares the parameters of the helper as nullable optionals with an internal fallback:
 
 ```csharp
 // ❌ BUGGY — DO NOT COPY. Every negative test built on this shape is a silent no-op.
@@ -38,17 +23,9 @@ private static OrderProcessingService CreateServiceWithAllArguments(
         repository ?? CreateRepository());
 ```
 
-`??` returns its right-hand side whenever the left-hand side is `null`. Calling
-`CreateServiceWithAllArguments(logger: null!)` under this shape does **not** pass `null` to the
-constructor — `logger ?? CreateLogger()` evaluates to `CreateLogger()`, a fully valid mock, and
-the constructor never sees `null`. Every `Constructor_ThrowsArgumentNullException_...` test built
-this way passes, but for the wrong reason: the `ArgumentNullException` guard is never exercised at
-all. This was discovered empirically (build-and-run passed; the negative assertions were no-ops)
-and confirmed independently in a second repository with the identical bug and fix.
+`??` returns its right-hand side whenever the left-hand side is `null`. So `CreateServiceWithAllArguments(logger: null!)` with this shape does **not** pass `null` to the constructor. `logger ?? CreateLogger()` gives `CreateLogger()`, a fully valid mock, and the constructor never gets `null`. Each `Constructor_ThrowsArgumentNullException_...` test with this shape passes for the wrong reason: the `ArgumentNullException` guard never runs.
 
-**The fix:** make every parameter required and positional. There is no default to fall back to,
-so the only way to satisfy the compiler is to pass either a real, valid mock or `null!` — and
-`null!` now actually reaches the constructor.
+**The fix:** make every parameter required and positional. There is no default to fall back to. The only way to satisfy the compiler is to pass a real, valid mock or `null!`, and `null!` then reaches the constructor.
 
 ## Canonical example
 
@@ -163,21 +140,14 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
 
 ### Key details
 
-- Every entry in the `actions` list calls the SAME required-positional `Create{Mock}()` helpers,
-  swapping `null!` into exactly one positional slot — adding a new dependency is one line.
-- Because the list is built from lambdas, each `Create{Mock}()` call is deferred until that
-  specific action runs; there is no shared "all valid" instance that a null substitution could
-  hide behind.
-- The `#region Constructor Tests` block sits at the top of the class, before feature-specific
-  regions.
-- `CreateServiceWithAllArguments` is the ONE helper in the file that is required-positional. Every
-  other `Create{Mock}` helper here (`CreateRepository`, `CreateOrderService`, …) follows the
-  normal "one helper, optional params, `.ApplyIf(...)`" convention when a test case needs to vary
-  its configuration — see [SKILL.md](../SKILL.md) rule 4.
+- Each entry in the `actions` list calls `CreateServiceWithAllArguments` with the SAME `Create{Mock}()` helpers and puts `null!` into exactly one positional slot. A new dependency adds one line.
+- The list holds lambdas, so each `Create{Mock}()` call is deferred to the run of its action. No shared valid instance exists that can hide a null substitution.
+- The `#region Constructor Tests` block is at the top of the class, before the regions for features.
+- `CreateServiceWithAllArguments` is the ONE required-positional helper in the file. The other `Create{Mock}` helpers here (`CreateRepository`, `CreateOrderService`, and the others) follow the normal convention. If a test case needs another configuration of a mock, the helper takes optional parameters and applies them with `.ApplyIf(...)`. See [SKILL.md](../SKILL.md) rule 4.
 
 ## Anti-pattern: boolean stripes
 
-The following shape is **explicitly bad code** in this pattern — avoid it:
+This shape is **explicitly bad code** for this pattern. Do not use it:
 
 ```csharp
 // ❌ BAD CODE — boolean-stripes pattern
@@ -206,18 +176,13 @@ public void Constructor_ThrowsArgumentNullException_WhenDependencyIsNull(
 
 **Why it is bad:**
 
-- Every dependency requires its own boolean column in the parameter list.
-- Reordering, renaming, or adding a ctor parameter forces editing the entire `[TestCase]` matrix.
-- The method signature carries N booleans that obscure intent — the reader must mentally map each
-  boolean position back to the parameter it controls.
-- NUnit names the test cases by position unless explicit `TestName` is provided — one typo and the
-  test name lies.
+- Each dependency needs its own boolean column in the parameter list.
+- A reorder, a rename, or a new constructor parameter forces an edit of the whole `[TestCase]` matrix.
+- The method signature carries N booleans that hide the intent. The reader must map each boolean position back to the parameter that it controls.
+- NUnit names the test cases by position unless a case has an explicit `TestName`. One typo, and the test name is wrong.
 
-**Replace with the `foreach`-over-`List<Action>` pattern shown in the Canonical example above.**
-Adding a new dependency is a single line in the `actions` list; removing one is a single deletion.
+**Replace it with the `foreach` over `List<Action>` pattern of the canonical example above**. A new dependency is one line in the `actions` list, and a removed one is one deleted line.
 
 ## Related gate: the same pattern applies to methods, not just constructors
 
-Public methods with required reference-type parameters get the same treatment — one combined
-`<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument` test per method. See
-[enforced-gates.md](enforced-gates.md) gate 1.
+Public methods with required reference-type parameters get the same treatment: one combined `<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument` test for each method. See [enforced-gates.md](enforced-gates.md) gate 1.

@@ -1,10 +1,10 @@
 # Test Mock Builders
 
-Use Test Mock Builders for complex mock configurations instead of inline `Fixture.Freeze<T>()` setup.
+Use Test Mock Builders for every interface mock, instead of inline `Fixture.Freeze<T>()` setup.
 
 ## When to Use Mock Builders
 
-**ALWAYS.** Mock Builders are **mandatory** for every interface mock — no exceptions.
+**ALWAYS.** Mock Builders are **mandatory** for every interface mock, with no exceptions.
 
 `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, and `Fixture.Create<IInterface>()` are **strictly forbidden** in test fixtures and test cases. If a builder does not exist for the interface you need, create one first in `Tests.Common/Helpers/Mocks/{Feature}/`.
 
@@ -14,18 +14,16 @@ Location: `Tests.Common/Helpers/Mocks/{Feature}/`
 
 ```text
 Mocks/
-├── Provisioning/
-│   └── Accounts/
-│       └── Deployments/
-│           └── Repositories/
-│               └── TestAccountDeploymentResultRepositoryBuilder.cs
+├── Accounts/
+│   └── Repositories/
+│       └── TestCustomerAccountRepositoryBuilder.cs
 ├── Sessions/
 │   └── Repositories/
 │       └── TestSessionRepositoryBuilder.cs
-└── Workload/
-    └── Tenants/
+└── Sales/
+    └── Customers/
         └── Repositories/
-            └── TestTenantRepositoryBuilder.cs
+            └── TestCustomerRepositoryBuilder.cs
 ```
 
 ## Repository Mock Builder Example
@@ -34,18 +32,18 @@ Mocks/
 // Copyright (c) Vasily Vasilyev
 
 using NSubstitute.Core;
-using MyApp.Application.Provisioning.Accounts.Deployments.Repositories;
-using MyApp.Sdk.Domain.Deployments;
+using MyApp.Application.Accounts.Repositories;
+using MyApp.Sdk.Domain.Customers;
 using MyApp.Sdk.Domain.Accounts;
 
-namespace MyApp.Tests.Common.Helpers.Mocks.Provisioning.Accounts.Deployments.Repositories;
+namespace MyApp.Tests.Common.Helpers.Mocks.Accounts.Repositories;
 
-public sealed class TestAccountDeploymentResultRepositoryBuilder
+public sealed class TestCustomerAccountRepositoryBuilder
 {
     private readonly IFixture _fixture;
-    private readonly List<IAccountDeploymentResult> _items;
+    private readonly List<ICustomerAccount> _items;
 
-    public TestAccountDeploymentResultRepositoryBuilder(IFixture fixture)
+    public TestCustomerAccountRepositoryBuilder(IFixture fixture)
     {
         _fixture = fixture.ThrowIfNull();
         _items = new();
@@ -54,35 +52,35 @@ public sealed class TestAccountDeploymentResultRepositoryBuilder
     /// <summary>
     /// Creates a repository without any pre-configured data.
     /// </summary>
-    public static IAccountDeploymentResultRepository CreateWithoutSetup(IFixture fixture)
+    public static ICustomerAccountRepository CreateWithoutSetup(IFixture fixture)
     {
         fixture.ThrowIfNull();
-        var builder = new TestAccountDeploymentResultRepositoryBuilder(fixture);
+        var builder = new TestCustomerAccountRepositoryBuilder(fixture);
         return builder.Build();
     }
 
-    public TestAccountDeploymentResultRepositoryBuilder AddAccountDeploymentResult(
-        IAccountDeploymentResult item)
+    public TestCustomerAccountRepositoryBuilder AddCustomerAccount(
+        ICustomerAccount item)
     {
         item.ThrowIfNull();
         _items.Add(item);
         return this;
     }
 
-    public TestAccountDeploymentResultRepositoryBuilder AddAccountDeploymentResultRange(
-        IEnumerable<IAccountDeploymentResult> items)
+    public TestCustomerAccountRepositoryBuilder AddCustomerAccountRange(
+        IEnumerable<ICustomerAccount> items)
     {
         items.ThrowIfNull();
         _items.AddRange(items);
         return this;
     }
 
-    public IAccountDeploymentResultRepository Build()
+    public ICustomerAccountRepository Build()
     {
-        var repository = _fixture.Create<IAccountDeploymentResultRepository>();
+        var repository = _fixture.Create<ICustomerAccountRepository>();
 
         // FindByPrimaryKeyAsync - lookup by ID
-        repository.FindByPrimaryKeyAsync(Arg.Any<DeploymentId>(), Arg.Any<CancellationToken>())
+        repository.FindByPrimaryKeyAsync(Arg.Any<AccountNumber>(), Arg.Any<CancellationToken>())
             .Returns(FindByPrimaryKeyInternal);
 
         // FindByAlternateKeyAsync - lookup by alternate key
@@ -94,52 +92,52 @@ public sealed class TestAccountDeploymentResultRepositoryBuilder
             .Returns(_items);
 
         // AddAsync - add to internal list
-        repository.AddAsync(Arg.Any<IAccountDeploymentResult>(), Arg.Any<CancellationToken>())
+        repository.AddAsync(Arg.Any<ICustomerAccount>(), Arg.Any<CancellationToken>())
             .Returns(AddInternalAsync);
 
         // UpdateAsync - update in internal list
-        repository.UpdateAsync(Arg.Any<IAccountDeploymentResult>(), Arg.Any<CancellationToken>())
+        repository.UpdateAsync(Arg.Any<ICustomerAccount>(), Arg.Any<CancellationToken>())
             .Returns(UpdateInternalAsync);
 
         // DeleteByPrimaryKeyAsync - remove from internal list
-        repository.DeleteByPrimaryKeyAsync(Arg.Any<DeploymentId>(), Arg.Any<CancellationToken>())
+        repository.DeleteByPrimaryKeyAsync(Arg.Any<AccountNumber>(), Arg.Any<CancellationToken>())
             .Returns(DeleteByPrimaryKeyInternalAsync);
 
         return repository;
     }
 
     // Private handlers implement stateful behavior
-    private IAccountDeploymentResult? FindByPrimaryKeyInternal(CallInfo ci)
+    private ICustomerAccount? FindByPrimaryKeyInternal(CallInfo ci)
     {
-        var primaryKey = ci.ArgAt<DeploymentId>(0);
-        return _items.Find(x => x.DeploymentId == primaryKey);
+        var primaryKey = ci.ArgAt<AccountNumber>(0);
+        return _items.Find(x => x.AccountNumber == primaryKey);
     }
 
-    private IAccountDeploymentResult? FindByAlternateKeyInternal(CallInfo ci)
+    private ICustomerAccount? FindByAlternateKeyInternal(CallInfo ci)
     {
         var alternateKey = ci.ArgAt<AccountId>(0);
         return _items.Find(x => x.AccountId == alternateKey);
     }
 
-    private Task<IAccountDeploymentResult> AddInternalAsync(CallInfo ci)
+    private Task<ICustomerAccount> AddInternalAsync(CallInfo ci)
     {
-        var item = ci.ArgAt<IAccountDeploymentResult>(0);
+        var item = ci.ArgAt<ICustomerAccount>(0);
         _items.Add(item);
         return Task.FromResult(item);
     }
 
-    private Task<IAccountDeploymentResult> UpdateInternalAsync(CallInfo ci)
+    private Task<ICustomerAccount> UpdateInternalAsync(CallInfo ci)
     {
-        var item = ci.ArgAt<IAccountDeploymentResult>(0);
-        var index = _items.FindIndex(x => x.DeploymentId == item.DeploymentId);
+        var item = ci.ArgAt<ICustomerAccount>(0);
+        var index = _items.FindIndex(x => x.AccountNumber == item.AccountNumber);
         if (index >= 0) _items[index] = item;
         return Task.FromResult(item);
     }
 
     private Task<Boolean> DeleteByPrimaryKeyInternalAsync(CallInfo ci)
     {
-        var primaryKey = ci.ArgAt<DeploymentId>(0);
-        var removed = _items.RemoveAll(x => x.DeploymentId == primaryKey) > 0;
+        var primaryKey = ci.ArgAt<AccountNumber>(0);
+        var removed = _items.RemoveAll(x => x.AccountNumber == primaryKey) > 0;
         return Task.FromResult(removed);
     }
 }
@@ -149,16 +147,18 @@ public sealed class TestAccountDeploymentResultRepositoryBuilder
 
 **IMPORTANT:** Test cases must NOT call builders or generators directly. All such calls must be wrapped in private helper methods.
 
+Do not copy two parts of the example below. `CreateAccountRepository` uses the `params` keyword, which rule 6 of [SKILL.md](../SKILL.md) forbids. The SUT variable is `sut`, which gate 3 of [enforced-gates.md](enforced-gates.md) forbids.
+
 ```csharp
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
 public sealed class AccountSelectionServiceTests : BaseMockTest
 {
-    private readonly DeploymentGenerator _generator;
+    private readonly AccountGenerator _generator;
 
     public AccountSelectionServiceTests()
     {
-        _generator = DeploymentGenerator.Instance;
+        _generator = AccountGenerator.Instance;
     }
 
     [Test]
@@ -199,16 +199,16 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
     // --- Private helper methods (mandatory indirection) ---
 
-    private IAccountDeploymentResult GenerateAccount(Int32 usageCount = 0)
+    private ICustomerAccount GenerateAccount(Int32 usageCount = 0)
     {
-        return _generator.GenerateAccountDeploymentResult(usageCount: usageCount);
+        return _generator.GenerateCustomerAccount(usageCount: usageCount);
     }
 
-    private IAccountDeploymentResultRepository CreateAccountRepository(
-        params IAccountDeploymentResult[] accounts)
+    private ICustomerAccountRepository CreateAccountRepository(
+        params ICustomerAccount[] accounts)
     {
-        return new TestAccountDeploymentResultRepositoryBuilder(Fixture)
-            .AddAccountDeploymentResultRange(accounts)
+        return new TestCustomerAccountRepositoryBuilder(Fixture)
+            .AddCustomerAccountRange(accounts)
             .Build();
     }
 }
@@ -216,16 +216,16 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 ## Key Points
 
-1. **Mandatory for ALL interface mocks** — no `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>` ever
+1. **Mandatory for ALL interface mocks**: never `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>`
 
-2. **Fluent API** - Use builder pattern with method chaining: `.AddItem(x).AddItem(y).Build()`
+2. **Fluent API**: Use builder pattern with method chaining: `.AddItem(x).AddItem(y).Build()`
 
-3. **Static CreateWithoutSetup** - Convenience method for empty mock
+3. **Static CreateWithoutSetup**: Convenience method for empty mock
 
-4. **Stateful behavior** - Internal list tracks add/update/delete operations
+4. **Stateful behavior**: Internal list tracks add/update/delete operations
 
-5. **Use generators** - Create test data with `{Model}Generator.Instance`
+5. **Use generators**: Create test data with `{Model}Generator.Instance`
 
-6. **Fixture.Inject** - Replace AutoFixture's default mock with configured builder result
+6. **Fixture.Inject**: Replace AutoFixture's default mock with configured builder result
 
-7. **Never call builders/generators in test cases directly** — always wrap in private `Create{Mock}` / `Generate{Model}` helper methods
+7. **Never call builders or generators directly in test cases**: always wrap them in private `Create{Mock}` or `Generate{Model}` helper methods
