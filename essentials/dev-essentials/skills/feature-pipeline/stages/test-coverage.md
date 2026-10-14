@@ -75,7 +75,7 @@ NO TEST MARKED AS PASSING WITHOUT WATCHING IT FAIL FIRST
 
 For each new test that you write:
 
-1. **RED**: write the test, and run it. Make sure that it FAILS for the expected reason (missing behavior, not a typo). If it passes at once, it tests existing behavior. Rewrite the test.
+1. **RED**: write the test, and run it. Stage 3 already wrote the implementation, so a correct test can pass at once. If it passes, change its expected value to a wrong value for a short time, and run it again. Make sure that it FAILS, and that the failure names the wrong value. Then restore the correct expected value. If the test cannot fail in this way, it proves nothing. Rewrite it. If the test fails on its first run, go to GREEN.
 2. **GREEN**: the implementation already exists (Stage 3 wrote it). If the test fails because of a test bug (a wrong mock or a wrong assertion), fix it, and run it again. If it fails because of an implementation bug, mark it with `[Ignore]`.
 3. **VERIFY**: run the full relevant test scope, and make sure that all tests pass.
 

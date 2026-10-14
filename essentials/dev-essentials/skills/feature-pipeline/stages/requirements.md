@@ -77,13 +77,22 @@ After you gather context and explore the codebase, rate your confidence that you
    - You can resolve it from the codebase or existing documentation: go and read it.
    - You can NOT resolve it without human input: add it to your question list.
 
-3. If your confidence is **below 0.9**, you MUST ask the user clarifying questions before you continue. Use the `AskUserQuestion` tool. Group your questions by topic, at most 4 questions in each tool call. Examples of questions:
+3. If your confidence is **below 0.9**, you MUST get answers from the user before you continue. You cannot ask the user yourself, because a subagent has no `AskUserQuestion` tool. So do not write `requirements.md`. End the run with a final reply in the format below, and stop. The master agent asks the user, and then runs this stage again with the answers. Group your questions by topic. Examples of questions:
    - An ambiguous acceptance criterion ("Does X also handle Y, or only Z?")
    - Missing context ("The task mentions a new permissions model. Is there a design doc or an earlier discussion to read?")
    - Scope boundaries ("Does this include a migration of existing data, or only new records from now on?")
    - Priority trade-offs ("If X and Y conflict, which one wins?")
 
-4. After the answers, rate your confidence again. If it is still below 0.9, ask follow-up questions. Repeat until your confidence is 0.9 or higher.
+   Format of the final reply:
+
+   ```text
+   QUESTIONS:
+   1. <question>
+      Options: <option 1> / <option 2> / <option 3>. Recommended: <option>.
+   2. <question>
+   ```
+
+4. If the prompt has a `<clarifications>` block, it holds the answers of the user to your earlier questions. Treat them as facts from the user, and rate your confidence again. If it is still below 0.9, return follow-up questions in the same format. Repeat until your confidence is 0.9 or higher.
 
 5. When you are confident, add all answers to your understanding, and continue to Phase 4 (Brainstorm).
 

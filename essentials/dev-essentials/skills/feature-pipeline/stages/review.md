@@ -31,7 +31,7 @@ Read these files before the review. They define the intended behavior. Review th
 
 ## Scope
 
-Use the base branch from the Project Context section above. Review only the files that this task changed relative to it.
+The master agent wrote the diff of this task against the base branch to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch`. Read it with the Read tool. Review only the files and the lines that this diff changes. To see the code around a change, read the file itself.
 
 Exclude from the review:
 
@@ -40,7 +40,7 @@ Exclude from the review:
 
 ## Output
 
-Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`, with exactly this structure:
+Return your findings as your final reply, with exactly this structure and no other text. Do not write a file. The master agent saves your reply as `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`.
 
 ```markdown
 ## Blocking Issues
@@ -81,7 +81,7 @@ Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`, wi
 
 ## Rules
 
-- NEVER modify any file except `review.md`. This is a read-only review.
+- NEVER modify any file. This is a read-only review.
 - ALWAYS give the `file:line` of each finding.
 - ALWAYS compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
 - DO NOT flag issues in code that this task did not change.
