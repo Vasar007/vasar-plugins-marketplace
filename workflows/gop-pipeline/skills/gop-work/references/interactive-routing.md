@@ -34,5 +34,9 @@
 - Include all proposals (both criticals and warnings) in the same numbered-list format as above, with domain prefix and `also_seen_by` annotations preserved.
 - User options:
   - **Accept proposals** → collect accepted proposals into `validator_proposals`, return to Phase 1, re-run Phases 2–4
-  - **Dismiss specific findings and proceed** → for a dismissal of all CRITICALs, override and proceed to Phase 5 with a warning in the commit message.
+  - **Dismiss specific findings and proceed** → record the IDs and titles of the dismissed findings for the rest of this run.
+    - If no CRITICAL finding remains, override and proceed to Phase 5. Pass the dismissed CRITICAL findings to `gop-commit` as `warning_note` (step 20 of `SKILL.md`).
+    - If CRITICAL findings remain, show only the remaining findings, with the same options, and route again.
   - **Request manual fix** → the user wants to fix it outside the pipeline. Stop, and wait until the user says that the run can resume.
+- The user can combine options in one answer. Example: dismiss one CRITICAL finding and accept the proposal for another one. Then return to Phase 1 with the accepted proposals.
+- In each later validation cycle of this run, a finding with the same file and the same issue as a dismissed finding counts as dismissed. Do not ask about it again. It does not make the status `BLOCKED`. If it is CRITICAL, keep it in the `warning_note` list.

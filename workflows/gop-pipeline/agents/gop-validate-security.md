@@ -25,13 +25,7 @@ You will receive:
 
 1. **Load context**: read the plan file at `plan_file_path`. Run `git diff HEAD` to get the full diff of the staged and unstaged changes. Note the `change_summary`, `deviations_from_plan`, and `unresolved_concerns` from the implementation output.
 
-2. **Build a change graph**: for each file in `modified_files`, use Grep and Read to identify:
-   - Every caller of the modified, added, or removed methods and functions (search the repo for the method names)
-   - Every class or interface that the modified code implements or extends, and every type that inherits from it
-   - Every file that imports or references the modified files
-   This set is the "blast radius": the code that these changes can affect. Record it for use in Phase 2.
-
-3. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
+2. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
 
 ## Phase 2: Security Analysis
 
@@ -104,7 +98,7 @@ If every finding has a confidence of 80% or more, skip this phase.
 
 Before producing the final report, critically re-examine all your findings:
 
-1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Can a real attacker exploit this, with the access that the threat model of this code realistically assumes? Or do I flag a theoretical issue that the surrounding code already neutralizes?" Examples of such code: the input is already sanitized upstream, the endpoint is already behind an mTLS gate, or the data is not actually user-controlled. Downgrade or remove false positives.
+1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Can a real attacker exploit this, with the access that the threat model of this code realistically assumes? Or do I flag a theoretical issue that the surrounding code already neutralizes?" Examples of such code: the input is already sanitized upstream, the endpoint is already behind an mTLS gate, or the data is not actually user-controlled. To answer, read the callers of the flagged code with Grep and Read. Downgrade or remove false positives.
 
 2. **False negative check**: re-read the complete diff one more time with fresh eyes. Ask whether you missed an injection sink, an auth gap, a logged secret, a new outbound I/O path, or a dependency change. Add a finding for each miss.
 

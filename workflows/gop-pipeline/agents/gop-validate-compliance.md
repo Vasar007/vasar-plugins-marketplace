@@ -25,13 +25,7 @@ You will receive:
 
 1. **Load context**: read the plan file at `plan_file_path`. Run `git diff HEAD` to get the full diff of the staged and unstaged changes. Note the `change_summary`, `deviations_from_plan`, and `unresolved_concerns` from the implementation output.
 
-2. **Build a change graph**: for each file in `modified_files`, use Grep and Read to identify:
-   - Every caller of the modified, added, or removed methods and functions (search the repo for the method names)
-   - Every class or interface that the modified code implements or extends, and every type that inherits from it
-   - Every file that imports or references the modified files
-   This set is the "blast radius": the code that these changes can affect. Record it for use in Phase 2.
-
-3. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
+2. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
 
 ## Phase 2: Compliance Analysis
 

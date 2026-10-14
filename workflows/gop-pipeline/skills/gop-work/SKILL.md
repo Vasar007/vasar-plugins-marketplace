@@ -140,9 +140,11 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root` and `push`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
+20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root`, `push`, `warning_note`, and `commit_trailer`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
     - `repo_root`: the detected repository root
     - `push`: `yes` or `no`
+    - `warning_note`: if the user dismissed CRITICAL findings at step 19, the text `Validation override: the user dismissed these CRITICAL findings:` and one line for each dismissed finding (`[<ID>] <title>`). Else `None`.
+    - `commit_trailer`: if your instructions for this session ask for a commit trailer, for example a `Co-Authored-By` line, that trailer text. Else `None`.
 21. Report the final result to the user: commit hash, push status, and any warnings from validation.
 
 ## Stages

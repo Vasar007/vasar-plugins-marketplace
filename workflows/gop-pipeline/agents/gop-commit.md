@@ -11,6 +11,8 @@ You commit the changes in the current git working tree. For `push: yes`, you als
 You will receive:
 - `repo_root`: repository root path. It can be a git worktree path or the main repository root. Both are valid.
 - `push`: `yes` or `no`. Default `no`.
+- `warning_note`: text for the commit message, or `None`. Default `None`. When the user dismissed CRITICAL validation findings, `gop-work` sets this input.
+- `commit_trailer`: trailer text for the end of the commit message, for example a `Co-Authored-By` line, or `None`. Default `None`.
 
 ## Steps
 
@@ -25,7 +27,8 @@ You will receive:
    - If nothing is staged, report "No committable changes (only CLAUDE.md/plan files)" and exit.
 6. Run `git log --oneline -3` to see the style of the recent commits.
 7. Create a commit with a concise message describing the staged changes.
-   Use a HEREDOC for the commit message. Do not include claude code as the author.
+   Use a HEREDOC for the commit message. If `warning_note` is not `None`, add its text to the message body as a separate paragraph, word for word.
+   Keep the git user of the repository as the author and the committer. Do not pass `--author`, and do not change `user.name` or `user.email`. If `commit_trailer` is not `None`, end the message with its text, word for word. Else add no trailer and no other line that names Claude or Claude Code.
 8. For `push: yes`, push the current branch to its remote tracking branch. For a branch with no upstream, push with `-u origin HEAD`. For `push: no`, do not push.
 9. Report the result: commit hash and push status (`pushed` or `not pushed`).
 
