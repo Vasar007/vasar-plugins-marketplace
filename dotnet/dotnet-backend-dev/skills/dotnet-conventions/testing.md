@@ -101,7 +101,7 @@ private Item GenerateItem(String? name = null)
 }
 ```
 
-Each mock dependency has exactly one `Create{Mock}` helper, and each test data type has exactly one `Generate{Model}` helper, with no overloads. Do not add setup such as `.Returns()` to a mock that a helper returns. The full rules, with the optional parameters and `.ApplyIf`, are in [Private Helper Methods (Mandatory Indirection)](../create-tests/SKILL.md#private-helper-methods-mandatory-indirection) of the `create-tests` skill.
+Each mock dependency has exactly one `Create{Mock}` helper, and each test data type has exactly one `Generate{Model}` helper, with no overloads. Do not add setup such as `.Returns()` to a mock that a helper returns. The full rules, with the optional parameters, `.ApplyIf`, and the bulk `Add*Range` methods, are in [Private Helper Methods (Mandatory Indirection)](../create-tests/SKILL.md#private-helper-methods-mandatory-indirection) of the `create-tests` skill.
 
 ## Common Builders
 
