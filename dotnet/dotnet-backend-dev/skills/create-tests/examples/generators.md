@@ -114,7 +114,7 @@ public sealed class MarketGenerator
 
 ## Usage in Tests
 
-This example shows only the choice between `Create` and `Generate`. A real test class also follows [SKILL.md](../SKILL.md). It wraps each generator call in a private `Generate{Model}` helper. It also names the SUT variable after the role of its class (gate 3 of [enforced-gates.md](enforced-gates.md)), not `sut`.
+The test cases call private helpers, as [SKILL.md](../SKILL.md) requires. The `GenerateMarket` helper makes the choice between the two generator methods. If the test needs a specific value, the helper calls `Create`. If any valid value works, it calls `Generate`. `TestMarketRepositoryBuilder` is the Test Mock Builder of the repository (see [mock-builders.md](mock-builders.md)).
 
 ```csharp
 [TestFixture]
@@ -133,15 +133,16 @@ public sealed class MarketServiceTests : BaseMockTest
     public async Task GetMarket_WithValidId_ReturnsMarket()
     {
         // Arrange.
-        // ✅ Use Create when you need specific values for assertions
-        var expectedMarketId = _generator.GenerateMarketId();
-        var expectedMarket = _generator.CreateMarket(expectedMarketId);
+        var expectedMarketId = GenerateMarketId();
+        var expectedMarket = GenerateMarket(marketId: expectedMarketId);
 
-        SetupRepositoryToReturn(expectedMarket);
-        var sut = Fixture.Create<MarketService>();
+        var repository = CreateMarketRepository(markets: new[] { expectedMarket });
+        Fixture.Inject(repository);
+
+        var service = Fixture.Create<MarketService>();
 
         // Act.
-        var result = await sut.GetMarketAsync(expectedMarketId);
+        var result = await service.GetMarketAsync(expectedMarketId);
 
         // Assert.
         result.Should().Be(expectedMarket);
@@ -151,20 +152,43 @@ public sealed class MarketServiceTests : BaseMockTest
     public async Task GetAllMarkets_ReturnsAllMarkets()
     {
         // Arrange.
-        // ✅ Use Generate when you just need valid instances
-        var market1 = _generator.GenerateMarket();
-        var market2 = _generator.GenerateMarket();
-        var market3 = _generator.GenerateMarket();
+        var market1 = GenerateMarket();
+        var market2 = GenerateMarket();
+        var market3 = GenerateMarket();
 
-        SetupRepositoryToReturn(market1, market2, market3);
-        var sut = Fixture.Create<MarketService>();
+        var repository = CreateMarketRepository(markets: new[] { market1, market2, market3 });
+        Fixture.Inject(repository);
+
+        var service = Fixture.Create<MarketService>();
 
         // Act.
-        var results = await sut.GetAllMarketsAsync();
+        var results = await service.GetAllMarketsAsync();
 
         // Assert.
         results.Should().HaveCount(3);
         results.Should().Contain(market1);
+    }
+
+    // ============ Private helpers ============
+
+    private Market GenerateMarket(MarketId? marketId = null)
+    {
+        // ✅ Create for a specific value, Generate when any valid value works
+        return marketId is { } id
+            ? _generator.CreateMarket(marketId: id)
+            : _generator.GenerateMarket();
+    }
+
+    private MarketId GenerateMarketId()
+    {
+        return _generator.GenerateMarketId();
+    }
+
+    private IMarketRepository CreateMarketRepository(Market[]? markets = null)
+    {
+        return new TestMarketRepositoryBuilder(Fixture)
+            .ApplyIf(markets is not null, b => b.AddMarketRange(markets!))
+            .Build();
     }
 }
 ```

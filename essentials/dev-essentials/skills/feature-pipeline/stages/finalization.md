@@ -18,7 +18,7 @@ You do fixed finalization steps after you validate the workflow hints of the Pro
 
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/requirements.md`: for the summary and the rationale
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`: for the summary and the rationale
-- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review
+- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If the run skipped the `review` stage, this file does not exist. Then continue without it.
 - The project guidance files, the base branch, and all workflow commands from the Project Context section above
 - The codebase at `{WORKTREE_PATH}`: full read and write access
 

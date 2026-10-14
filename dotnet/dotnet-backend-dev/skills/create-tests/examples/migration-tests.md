@@ -147,7 +147,7 @@ public async Task ExecuteAsync_ShouldMigratePlacedOnlyRecord()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var placedResult = GenerateOrderPlacedResult();
     var legacyRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
     await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
@@ -194,8 +194,8 @@ public async Task ExecuteAsync_ShouldMigratePlacedAndPaidRecords()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
-    var paidResult = _orderLegacyGenerator.GenerateOrderPaidResult(lineItemCount: 2);
+    var placedResult = GenerateOrderPlacedResult();
+    var paidResult = GenerateOrderPaidResult(lineItemCount: 2);
 
     var legacyPlacedRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
     var legacyPaidRecord = CreateLegacyPaidRecord(session.Id, paidResult);
@@ -253,7 +253,7 @@ public async Task ExecuteAsync_ShouldBeIdempotent()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var placedResult = GenerateOrderPlacedResult();
     var legacyRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
 
     await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
@@ -298,7 +298,7 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenPlacedRecordIsMissing()
     await sessionRepository.SaveChangesAsync();
 
     // Only Paid record, no Placed record.
-    var paidResult = _orderLegacyGenerator.GenerateOrderPaidResult(lineItemCount: 1);
+    var paidResult = GenerateOrderPaidResult(lineItemCount: 1);
     var legacyRecord = CreateLegacyPaidRecord(session.Id, paidResult);
 
     await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
@@ -386,9 +386,9 @@ public async Task ExecuteAsync_ShouldMigrateMultipleSessions()
     var session3 = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var placedResult1 = _orderLegacyGenerator.GenerateOrderPlacedResult();
-    var placedResult2 = _orderLegacyGenerator.GenerateOrderPlacedResult();
-    var placedResult3 = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var placedResult1 = GenerateOrderPlacedResult();
+    var placedResult2 = GenerateOrderPlacedResult();
+    var placedResult3 = GenerateOrderPlacedResult();
 
     await dbContext.OrderEventsLegacy.AddRangeAsync(
         CreateLegacyPlacedRecord(session1.Id, placedResult1),
@@ -555,6 +555,20 @@ private Session CreateSession()
         status: SessionStatus.Completed,
         result: SessionResult.Succeeded
     );
+}
+```
+
+### Legacy Result Generation
+
+```csharp
+private OrderPlacedLegacyResult GenerateOrderPlacedResult()
+{
+    return _orderLegacyGenerator.GenerateOrderPlacedResult();
+}
+
+private OrderPaidLegacyResult GenerateOrderPaidResult(Int32 lineItemCount)
+{
+    return _orderLegacyGenerator.GenerateOrderPaidResult(lineItemCount: lineItemCount);
 }
 ```
 

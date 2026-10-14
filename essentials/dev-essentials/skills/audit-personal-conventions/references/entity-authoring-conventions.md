@@ -14,7 +14,7 @@ The three shapes grow in different ways. Pick the shape that the approved rules 
 
 **Concrete precedent**. The history of this marketplace deleted the commands `/review-loop` and `/review-pr` in favor of the single skill `dev-essentials:review-loop`. Those commands outgrew the one-shot linear-script shape. They had phases, flags, and enough depth for reference files, which a single-file command cannot hold cleanly. The deletion is also the concrete MAJOR case of a version bump, because it removed existing invocation paths (`/review-loop`, `/review-pr`).
 
-## Frontmatter — this skill's own template sticks to `name` and `description`
+## Frontmatter: this skill's own template sticks to `name` and `description`
 
 The Claude Code skill frontmatter supports several optional fields beyond `name` and `description`. Examples are `allowed-tools`, `model`, `context`, `disable-model-invocation`, and `argument-hint`. The official Claude Code skills documentation has the full list. `dev-essentials:feature-pipeline` sets `argument-hint` and `disable-model-invocation`. Do not claim that skill frontmatter allows only two fields, or that an optional field is a schema error. It is not.
 
@@ -44,14 +44,17 @@ Claude reads the `description` of a skill to decide whether to use the skill. Wr
   - **Anti-patterns**: named wrong approaches that the rule prevents.
 - **Closing cross-references**: a table of related skills and entities, with the reason that this entity depends on or complements each one.
 
-## References vs. examples — conditional need, not line count
+## References vs. examples: conditional need and the 500-line limit
 
-Split content out into `references/*.md` or `examples/*.md` only for a part that applies conditionally: to only one of several invocation branches, target types, or flag combinations. Do not split because `SKILL.md` crossed some line-count threshold.
+Split content out into `references/*.md` or `examples/*.md` in two cases:
 
-Two data points from this marketplace, in opposite directions:
-
-- Some single-file skills with no subfolder run to about 500 lines or more. Every part of their content applies to every invocation.
-- A skill of only about 150 lines can still justify a `references/` split. The condition: a large part of its content applies to only one of several branches. Examples are one target type out of eight, or one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
+1. A part applies conditionally: to only one of several invocation branches, target types, or flag combinations. A short `SKILL.md` does not change this. Example: a skill of only about 150 lines can need a `references/` split. A large part of it applies to one target type out of eight, or to one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
+2. `SKILL.md` grows past 500 lines. The Claude Code docs say: "Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files." After a compaction, Claude Code also keeps only the first 5,000 tokens of an invoked skill. So keep the rules for every invocation in `SKILL.md`, near the top. Move the detailed material out with one or more of the options below. In `SKILL.md`, say which file to read or run, and when.
+   - Step references: move long tables, templates, worked examples, and the procedure of one step to `references/*.md`. The skill reads each file at the step that needs it.
+   - Scripts: move a mechanical procedure into a script in `scripts/`. Claude Code runs the script, and the script text does not load into the context.
+   - Agent files: move a role brief, for example of a reviewer or a fixer, into an agent file of the plugin (`agents/<name>.md`). The skill dispatches that agent. The brief loads only in the subagent, so the agent file must not depend on the text of the skill.
+   - `context: fork` with `agent`: these two frontmatter fields run the whole skill in a subagent of the named type. Use them only for a skill with an explicit task. The docs warn that a skill with guidelines only gives the subagent "no actionable prompt".
+   - An orchestrator skill: split the workflow into smaller skills, and keep one skill that invokes each of them with the Skill tool, in order.
 
 ## Author-commit-pairing discipline
 

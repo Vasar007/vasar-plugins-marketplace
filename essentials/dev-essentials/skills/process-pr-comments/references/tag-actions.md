@@ -8,7 +8,7 @@ The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs,
 
 The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text.
 
-Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Apply the strictest action (see "When multiple tags combine"). A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
+Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Pick one action with the rules of "When multiple tags combine". A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
 
 ## Size thresholds for autonomy
 
@@ -141,10 +141,19 @@ They take precedence over tags. Follow [`automated-review-verification.md`](auto
 
 ## When multiple tags combine
 
-Use the strictest action of the tags:
+Pick one action with these rules, in this order:
+
+1. A `[PX]` tag sets only the priority. Leave it out of the next steps.
+2. `[Note]` adds no action. If another tag is present, leave `[Note]` out.
+3. A workflow tag decides the workflow: `[OutOfScope]` first, then `[Repetition]`. Use the other tags as the underlying tag, with steps 4 and 5.
+4. Of the other tags, the tag that asks for the smaller code change wins. The order, from the smallest change: `[ToDiscuss]`, `[Question]`, `[Optional]`, `[Suggestion]`, then `[ToFix]` and `[Performance]`. The reviewer marked the change with the weaker tag, so do not do more than that tag asks.
+5. If `[Performance]` is present, also apply its two additions (the effect in the reply, and the local benchmark run).
+
+Examples:
 
 - `[P1][ToFix]`: treat it as `[ToFix]` with priority P1 (process it first).
-- `[Optional][Suggestion]`: treat it as `[Optional]` (the weakest action). The reply says clearly that the change is optional.
+- `[Optional][Suggestion]`: treat it as `[Optional]`. The reply says clearly that the change is optional.
+- `[ToFix][Optional]`: treat it as `[Optional]`, by step 4.
 - `[Repetition][ToFix]`: the `[Repetition]` workflow, with `[ToFix]` as the underlying tag.
 - `[OutOfScope][Suggestion]`: the `[OutOfScope]` workflow (never implement it in the current PR). Use the text of the suggestion in the brief for the follow-up issue.
 - `[Performance][ToFix]`: the `[Performance]` workflow, with the explicit note on the effect in the reply.

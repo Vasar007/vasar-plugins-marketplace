@@ -163,11 +163,12 @@ Process the repos one after the other, in ascending order of absolute path. The 
    ```
 
 6. **Push gate**. See 9c.8.
-7. **PR creation**, host-detected from `git config --get remote.origin.url`:
-   - GitHub pattern + `gh` / GitHub MCP tooling available → use that, following
-     `dev-essentials:github-mcp-conventions` (owner/repo passed verbatim on every call, per that
-     skill's Rule 1 and Rule 2).
-   - Any other host, or no matching tool: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
+7. **PR creation**. Find the host from `git config --get remote.origin.url`. For a GitHub remote, take the first option that applies:
+   1. The GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo. Name that source in the report, as the exception of Rule 1 allows. With `--interactive`, show both values in the push gate of 9c.8. Then the `yes` of the user also approves them. If an MCP call fails because of a wrong parameter, fix the call as Rule 5 says. Do not go to option 2.
+   2. The GitHub MCP tools are not available, and `gh auth status` succeeds: create the PR with `gh pr create --repo <owner>/<repo> --base <default-branch> --head <branch> --title "<title>" --body-file <file>`. If the MCP tools are missing from the session, count them as not available. Do the same after an MCP call fails with a connection error or an authentication error. Take `owner` and `repo` as in option 1, and the default branch from step 1. Write the body to a temporary file outside the repo. Report the PR URL that `gh` prints. In the report, say that the PR came from `gh`. Give the reason: the MCP tools were missing, or the error of the MCP call. This is a named exception to Rule 5 of `dev-essentials:github-mcp-conventions`. It holds only for this step. Use no `gh` command other than `gh auth status` and `gh pr create` in this skill.
+   3. Neither is available, or `gh` fails: use the manual path below. In the report, say that the GitHub MCP tools and an authenticated `gh` were both unusable.
+
+   For any other host, use the manual path. Report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
 
 ### 9c.5 — Pointer template
 
@@ -324,8 +325,8 @@ This flag lets the skill delete the personal entity files in scope itself. Its g
 
    For an already-shipped, F-stale file, the publication is already proven. The existence check of Precondition A and the coverage grep of Precondition C at the same ref prove it. So "has the PR for this run been merged" has no referent. Ask a readiness question instead. On this branch, `v<plugin-version>` is the published `plugin.json` version at `origin/<default-branch>`. It is for display only, because this branch has no promotion version of this run to use as a floor in a check. Ask this question.
 
-   > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>` — ready to
-   > delete the N personal file(s) it supersedes? (yes / not yet)
+   > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>`. Are you
+   > ready to delete the N personal file(s) it supersedes? (yes / not yet)
 
    Both branches still ask this gate. The proven publication makes the question shorter, but it does not remove it, because the deletion cannot be undone. Any answer other than an explicit `yes` falls back to the report-only default above for every personal entity file in scope of this run.
 

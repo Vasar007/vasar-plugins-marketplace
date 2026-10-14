@@ -21,7 +21,7 @@ The master agent (you) runs 10 stages, each in its own subagent with a fresh con
 | 4 | `test-coverage` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `test-plan.md` | Test files |
 | 5 | `simplifier` | `code-simplifier:code-simplifier` | `sonnet` | The diff against the base branch | Code |
 | 6 | `docs` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md` | Docs |
-| 7 | `review` | `feature-dev:code-reviewer` | `opus` | `requirements.md`, `spec.md`, `test-plan.md` | `review.md` |
+| 7 | `review` | `feature-dev:code-reviewer` | `opus` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
 | 8 | `security-review` | `general-purpose` | `opus` | `requirements.md`, `spec.md` | `security-review.md` |
 | 9 | `finalization` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `review.md` | Commit, push, and PR |
 
@@ -46,7 +46,7 @@ Stages 5 and 7 need the external plugins `code-simplifier` and `feature-dev`. In
 ## Arguments
 
 - `$ARGUMENTS[0]`: the task ID, for example `TASK-123`. Required.
-- `--dry-run`: make the plan only. Write no code.
+- `--dry-run`: make the plan only. Create no worktree and no branch, write no file, and run no stage.
 - `--no-worktree`: create no worktree. Work on the current branch in the current working directory.
 - `--start-from=<stage>`: resume the pipeline at the named stage.
 - `--skip=<stage>`: skip a stage. Separate more than one stage with commas.
@@ -55,7 +55,7 @@ Stages 5 and 7 need the external plugins `code-simplifier` and `feature-dev`. In
 - `--interactive`: stop at Human Approve #1, and ask before each fix round of Human Approve #2. See "Autonomy".
 - `--autonomous`: do not stop at Human Approve #1 or #2. Post the task comments, push, and open the PR without a question. See "Autonomy".
 
-The stage names are the stage keys in the Overview table. The valid models are `opus`, `sonnet`, `haiku`, and `fable`. A `--model-override=<stage>:fable` that the user typed is its own approval, because the explicit choice of the user outranks the matrix. If the master agent picks Fable on its **own** initiative, then with `--interactive`, ask the user first, every time. Without `--interactive`, keep the default model of the stage (see "Autonomy"). Both rules follow the "Model selection" section of `dev-essentials:subagent-orchestration`.
+The stage names are the stage keys in the Overview table. The valid models are `opus`, `sonnet`, `haiku`, and `fable`. A `--model-override=<stage>:fable` that the user typed is its own approval, because the explicit choice of the user outranks the matrix. If the master agent picks Fable on its **own** initiative, then with `--interactive`, ask the user first, every time. Without `--interactive`, do not ask. Use Opus, and name the stage in the final report (see "Autonomy"). Both rules follow the "Model selection" section of `dev-essentials:subagent-orchestration`.
 
 ## Autonomy
 
@@ -72,7 +72,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests`, with `head: "<owner>:<branch>"` and `state: "all"`. `<owner>` is the `owner` value of the call. The default state lists open pull requests only, and GitHub ignores a `head` value without the `<owner>:` prefix. Then read the pull request with `pull_request_read` (`method: "get"`), and make sure that `merged` is `true`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -83,7 +83,7 @@ These rules apply in all modes:
 
 ## Pipeline Discipline
 
-These three safeguards apply to every stage. The subagents of this pipeline MUST follow them too.
+These three safeguards apply to every stage. A stage subagent never sees this file. So "Stage Launch" step 4 copies the three safeguards into the prompt of each stage, and the subagents MUST follow them too.
 
 ### Safeguard 1: claims about Claude Code
 
@@ -117,10 +117,10 @@ State `{COMMIT_MODE}` explicitly in the prompt of each commit-capable stage. Do 
 
 Before you launch a stage, do these steps in order:
 
-1. Make sure that each file in the "Reads" column of the Overview table exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages.
+1. Make sure that each file in the "Reads" column of the Overview table exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages. One exception: if `--skip` removed the `review` stage from the plan, `review.md` is not required. Launch the stage without it.
 2. Resolve the model. If this invocation has a `--model-override` entry for this stage, use it. Else use the entry of this stage in `models` of `pipeline-state.json`, from an earlier run. Else use the default model of the Overview table. Write the result into `models` (`{"<stage>": "<model>"}`). If an override of this invocation replaces a recorded entry, log the change. Pass the model in the `model` parameter of the `Agent` tool.
 3. For a commit-capable stage, write the output of `git rev-parse HEAD` into `stageStartSha` (`{"<stage>": "<sha>"}`). This records the branch tip at the start of the stage. A later resume uses it to find out whether HEAD moved while the stage was incomplete.
-4. Compose the prompt. Put these blocks above the text of the stage file, in this order. `<commit-conventions>` goes only to the five commit-capable stages.
+4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages.
 
    ```md
    <project-context>
@@ -130,6 +130,14 @@ Before you launch a stage, do these steps in order:
    <task-context>
    {contents of {ARTIFACTS_DIR}/<task-id>/task-context.md}
    </task-context>
+
+   <pipeline-discipline>
+   {the text of Safeguards 1, 2, and 3 from "Pipeline Discipline", word for word}
+   </pipeline-discipline>
+
+   <clarifications>
+   {each question of the stage, and its answer}
+   </clarifications>
 
    <commit-conventions>
    {the block from references/commit-conventions.md, with its cadence line for {COMMIT_MODE}}
@@ -147,7 +155,16 @@ Before you launch a stage, do these steps in order:
 
 After each stage, run the output check (see "Output Validation"). Then update the checkpoint (see "Checkpoints").
 
-The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry.
+The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file. This includes a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
+
+### Stage questions
+
+Stages 1 and 2 can end with a final reply that starts with the line `QUESTIONS:`. Such a run writes no file. A subagent has no `AskUserQuestion` tool, so the stage returns its questions to you. Then do these steps:
+
+1. Do not run the output check, and do not update the checkpoint.
+2. Without `--autonomous`, ask the user the questions with `AskUserQuestion`, at most 4 questions in each call.
+3. With `--autonomous`, do not ask. For each question, take the option that the stage recommends. If a question has no recommended option, decide it as "Autonomy" says for a critical decision. List each answer that you picked in the final report under "Decisions for your review". Answer at most 2 rounds of questions in each stage. If the stage returns questions after the second round, stop the run, and report the open questions to the user. This step overrides the rule of "Autonomy" that a question that blocks the work stops the run in every mode.
+4. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and its answer. Include the questions and answers of the earlier rounds of the same stage.
 
 ## Output Validation
 
@@ -161,9 +178,9 @@ After each stage, and before you update the checkpoint, check the files that the
 | `review.md` | `## Blocking Issues`, `## Warnings`, `## Suggestions`, `## Summary` |
 | `security-review.md` | `## Blocking Issues`, `## Warnings`, `## Summary` |
 
-1. Read the file after the stage is done.
+1. Read the file after the stage is done. If the first line of `security-review.md` starts with `FETCH FAILED:`, the security stage failed to fetch the base branch. Do not check the headings, and do not run the stage again, because a rerun meets the same error. Stop the pipeline, and report the text of the file to the user.
 2. Find each required heading. The match ignores case.
-3. If a heading is missing, log the missing headings. Run the same stage again with this feedback: "Your output is missing required sections: [list]. Rewrite the file with all required sections."
+3. If a heading is missing, log the missing headings. Run the same stage again with this feedback: "Your output is missing required sections: [list]. Rewrite the file with all required sections." The `review` stage writes no file. For that stage, use this feedback: "Your reply is missing required sections: [list]. Return your full reply again with all required sections." Then save the new reply over `review.md`, and check it again.
 4. Allow 1 retry for the structure. If the file fails again, stop the pipeline, and report the malformed output to the user.
 5. Do not look for optional headings, such as `## 5. Database Migrations` in `spec.md`. They can be absent.
 
@@ -187,7 +204,7 @@ After a compaction, Claude Code keeps only the first part of this file. If a ste
 
 ### Step 0: Setup
 
-Read [references/setup.md](references/setup.md), and do its sub-steps 1 to 15. They parse the arguments, load the project context, fetch the task, and set up the worktree. They also write `task-context.md`, load or create `pipeline-state.json` with the resume checks, and resolve `{COMMIT_MODE}`. With `--dry-run`, the run ends after Step 0.
+Read [references/setup.md](references/setup.md), and do its sub-steps 1 to 15. They parse the arguments, load the project context, fetch the task, and set up the worktree. They also write `task-context.md`, load or create `pipeline-state.json` with the resume checks, and resolve `{COMMIT_MODE}`. With `--dry-run`, Step 0 creates and writes nothing, and the run ends after Step 0.
 
 ### Steps 1, 2, and 2b
 
@@ -259,7 +276,7 @@ Launch the stage `test-coverage`, then the stage `simplifier`. The simplifier is
 
 ### Steps 6, 7, and 8: Docs, Code Review, and Security Review (parallel)
 
-Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The reviewer is a plugin agent with its own review logic. Its stage file only adds the context and the output format. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
+Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The reviewer is a plugin agent with its own review logic. Its stage file only adds the context and the output format. The reviewer agent has no tool that writes a file or runs git. So before its "Stage Launch" steps, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>`. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the reviewer is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
 
 ### Human Approve #2 (after Review)
 
@@ -272,6 +289,8 @@ Show the user:
 - The contents of `{ARTIFACTS_DIR}/{TASK_ID}/review.md`
 - The contents of `{ARTIFACTS_DIR}/{TASK_ID}/security-review.md`
 - A summary of the git diff: the changed files and the added and removed lines
+
+If the run skipped `review` or `security-review`, show "skipped" in place of its file. The blocking issues then come only from the review file that exists.
 
 Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)".
 
@@ -302,7 +321,7 @@ Before you launch Step 9, post a second comment. It follows the rules of Task Co
 - What the run implemented
 - The added or updated tests, and the latest test status
 - Any documentation updates
-- The results of the code review and the security review
+- The results of the code review and the security review, or a note that the run skipped one of them
 - That the task moves into finalization next
 - A footer line: "This comment was generated by Claude Code"
 

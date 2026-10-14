@@ -169,28 +169,28 @@ public readonly record struct ApiSecretToken : IStringWrapper<ApiSecretToken>
 
 ```csharp
 // ❌ NEVER log credentials
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     $"User credentials: {username}/{password}",  // NEVER!
     cancellationToken: cancellationToken
 );
 
 // ❌ NEVER log API tokens
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     $"Using API key: {apiKey}",  // NEVER!
     cancellationToken: cancellationToken
 );
 
 // ✅ Log username WITHOUT password
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.UserAuthenticatedMessage.SafeFormat(username),
     cancellationToken: cancellationToken
 );
 
 // ✅ Log non-sensitive identifiers
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.ApiConnectionEstablishedMessage.SafeFormat(apiEndpoint),
     cancellationToken: cancellationToken

@@ -35,7 +35,7 @@ You will receive:
 
 ## Phase 2: Performance Analysis
 
-Run each lens. For each, produce findings classified as CRITICAL, WARNING, or INFO. Look only at the newly added or changed code. Do not audit old performance issues that the diff does not touch.
+Run each lens. For each, produce findings classified as CRITICAL, WARNING, or INFO. Look only at the newly added or changed code, and at its callers in lens G. Do not audit old performance issues that the diff does not touch.
 
 ### A. Loop × External-Call Shape (the N+1 family)
 
@@ -87,6 +87,12 @@ In languages with a distinct async or reactor model:
 - A new sequence of many small HTTP or RPC calls, where one composite call (or an existing batch endpoint) can do the same work. Flag a WARNING.
 - A new data contract that makes the client use several round trips to rebuild one logical entity (Hibernate-style N-query hydration). Flag a WARNING.
 
+### G. Callers in the Blast Radius
+
+Use the blast radius from Phase 1 step 2. An unchanged caller can get slower, because the code that it calls changed. This cost comes from the diff, so it is in scope.
+- A changed function can now do more work in each call: a new database query, a remote call, I/O, a lock, or a larger loop. If so, look at each caller in the blast radius. Find out whether it calls the function in a loop or on a hot path. Rate the finding as lens A, B, or C says, and give the caller reference.
+- A changed function can become async, or can now block. If so, look at each caller in the blast radius. Find out whether it blocks on the function or calls it from an async path. Rate the finding as lens D says, and give the caller reference.
+
 Do NOT flag: micro-optimizations with negligible impact, premature-optimization opportunities, style opinions about loop forms, or correctness/security/duplication/compliance concerns. Those belong to other specialists or to no specialist at all.
 
 ## Phase 3: Research (conditional)
@@ -101,7 +107,8 @@ If every finding has a confidence of 80% or more, skip this phase.
 
 Before producing the final report, critically re-examine all your findings:
 
-1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Is this actually on a hot path? Is the iterated size actually unbounded? Or do I flag a pattern that runs in microseconds on realistic inputs?" Downgrade or remove false positives. A performance finding on a cold path, an admin endpoint, or a trivially small input is usually not CRITICAL.
+1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Is this actually on a hot path? Is the iterated size actually unbounded? Or do I flag a pattern that runs in microseconds on realistic inputs?"
+   To answer, read the callers of the flagged code in the blast radius from Phase 1 step 2. Downgrade or remove false positives. A performance finding on a cold path, an admin endpoint, or a trivially small input is usually not CRITICAL.
 
 2. **False negative check**: re-read the complete diff one more time with fresh eyes. Ask whether you missed a loop of queries, a nested traversal, or a blocking call on an async path. Also ask whether you missed a chance for a batch call. Add a finding for each miss.
 

@@ -56,7 +56,7 @@ namespace {ProjectNamespace}.WebApi.Controllers.{Area}.{Feature};
 /// <summary>
 /// Implementation of {feature} controller.
 /// </summary>
-internal sealed class {Feature}ControllerImpl : ControllerBase, Rest.I{Feature}Controller
+internal sealed class {Feature}ControllerImpl : {ServiceName}ControllerBase, Rest.I{Feature}Controller
 {
     private readonly I{Service} _service;
     private readonly IIdentifierValidator _identifierValidator;
@@ -213,7 +213,7 @@ Create model converters in `WebApi/Converters/{Feature}/`:
 2. **Naming Convention**:
    - Generated interface: `Rest.I{Feature}Controller`
    - Implementation class: `{Feature}ControllerImpl`
-   - Base class: your project controller base (or `ControllerBase`)
+   - Base class: your project controller base (`{ServiceName}ControllerBase`)
 
 3. **Controllers are THIN**. They only:
    - Validate input (use `IIdentifierValidator`)

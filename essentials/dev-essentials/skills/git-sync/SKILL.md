@@ -19,13 +19,13 @@ This replays only the commits in `<old-base-tip>..HEAD` (the feature commits). I
 
 ### How to detect the rewrite
 
-After `git fetch origin <base-branch>`, find out whether the old local tip of the base is still in the upstream history:
+`<old-base-tip>` is the commit right below your first feature commit (see "Picking `<old-base-tip>`" below). After `git fetch origin <base-branch>`, find out whether this commit is still in the upstream history:
 
 ```bash
-git log --oneline origin/<base-branch> | grep -E "^<old-base-tip-prefix>"
+git merge-base --is-ancestor <old-base-tip> origin/<base-branch>
 ```
 
-If the output is empty, the upstream was rewritten. Use `--onto`.
+If the exit code is 0, the commit is still upstream, and a plain rebase is enough. If the exit code is 1, the upstream was rewritten. Use `--onto`. Any other exit code is an error, for example an unknown commit. Then stop, and find the cause before you rebase.
 
 ### Picking `<old-base-tip>`
 
@@ -56,9 +56,11 @@ git tag tmp/cherry-pick-restore HEAD
 
 git reset --hard <broken-commit>~1                # reset to parent of broken commit
 
-# Re-apply the broken commit's tree, then commit with the correct message:
+# Re-apply the broken commit's tree, then commit with the correct message.
+# --author and --date keep the original author and author date.
 git cherry-pick --no-commit <broken-commit-sha>
-git commit -F- <<'EOF'
+git commit --author="$(git log -1 --format='%an <%ae>' <broken-commit-sha>)" \
+  --date="$(git log -1 --format=%aI <broken-commit-sha>)" -F- <<'EOF'
 <subject line>
 
 <body restored from "git show <broken-commit> --format=%B">
@@ -69,7 +71,7 @@ git cherry-pick <broken-commit-sha>..tmp/cherry-pick-restore
 git tag -d tmp/cherry-pick-restore
 ```
 
-If the broken commit is `HEAD`, skip the last `git cherry-pick`, because no commit sits above it. The cherry-pick of the saved commits keeps their author and author date. `git commit -F-` creates a fresh commit with the correct message. The tree comes from the cherry-pick, so no rebuild is needed.
+If the broken commit is `HEAD`, skip the last `git cherry-pick`, because no commit sits above it. The cherry-pick of the saved commits keeps their author and author date. `git commit -F-` creates a fresh commit with the correct message, and `--author` and `--date` copy the author and the author date of the broken commit. Do not use `-C <sha>` for this, because git does not allow `-C` together with `-F`. The tree comes from the cherry-pick, so no rebuild is needed.
 
 ### Safety net
 

@@ -68,7 +68,7 @@ Do not edit or delete a posted comment through MCP. For PR review comments, the 
 
 - Before you post any review comment, make sure that `owner`, `repo`, `pullNumber`, and `commentId` (for replies) are correct. Rules 1 and 2 apply. Do not send test calls against real PRs.
 - If a post fails, call `pull_request_read` to find out whether the comment landed before you retry. The MCP layer can return an error even after a successful post, and a blind retry posts a duplicate.
-- If a stub comment does land, note it explicitly in chat: "A stub comment landed on PR #`<id>` — please delete it via the GitHub UI (PR → Conversation → the comment → Delete)."
+- If a stub comment does land, note it explicitly in chat: "A stub comment landed on PR #`<id>`. Please delete it in the GitHub UI (PR → Conversation → the comment → Delete)."
 - Do not try to "overwrite" a stub with a corrected comment. That adds a second comment next to the stub and doubles the clutter.
 
 **Pending review batches:** a batch from `add_comment_to_pending_review` is not visible until `pull_request_review_write` submits it. Do not discard a pending batch through MCP. Dismiss it in the GitHub UI.
@@ -84,12 +84,13 @@ If GitHub MCP tools are missing or misbehave, never use `gh pr comment`, `curl`,
 - If the session has no `mcp__plugin_github_github__*` tools, ask the user to reconnect with `/mcp`, and wait.
 - If a tool returns an unexpected error, diagnose the call. The usual causes are a missing `owner` or `repo`, a wrong type for `pullNumber`, or a permissions gap. Do not use the `gh` CLI or `curl` as a fallback.
 - `dev-essentials:subagent-orchestration` Rule 4 has the same rule for subagents. If MCP is missing in a subagent, the subagent reports the error upward and does not fall back to REST either.
+- One named exception: Phase 9c.4 step 7 of `dev-essentials:audit-personal-conventions` creates a PR with `gh pr create`. If the session has no GitHub MCP tools, the step uses `gh`. The step also uses `gh` after an MCP call fails with a connection error or an authentication error. The exception covers only that step. It does not cover an MCP call that fails because of a wrong parameter.
 
 **Anti-patterns**:
 
 - "MCP returned an error, so I post with `gh pr comment` directly." No. Fix the MCP call.
 - "The MCP tool does not work, so I write a shell script with `curl` and the GitHub REST API." No. Ask the user to fix `/mcp`.
-- "Just a quick `gh pr view`, because MCP is slow." No exceptions.
+- "Just a quick `gh pr view`, because MCP is slow." No. A slow MCP call is never a reason to use `gh`.
 
 ## Rule 6 — After a create call echoes a relationship, re-read to confirm it landed
 
@@ -116,14 +117,16 @@ For anything beyond a small change, do not get the diff of a PR through `pull_re
 
 **How to apply (use local git instead)**:
 
-Read the `base` and `head` branch names of the PR from `pull_request_read` `method: "get"` (`base.ref` and `head.ref`, plain branch names without a `refs/heads/` prefix). Then run:
+Read the base branch name of the PR from `pull_request_read` `method: "get"` (`base.ref`, a plain branch name without a `refs/heads/` prefix). Fetch the head of the PR from the `pull/<id>/head` ref, not by the name of the head branch. For a PR from a fork, the head branch is not on `origin`, but `pull/<id>/head` is. Then run:
 
 ```bash
-git fetch origin
-git diff --stat origin/<base>...origin/<head>
-git diff origin/<base>...origin/<head> -- <path>   # targeted reads
-git log --oneline origin/<base>..origin/<head>
+git fetch origin <base> "+refs/pull/<id>/head:refs/remotes/origin/pull/<id>/head"
+git diff --stat origin/<base>...origin/pull/<id>/head
+git diff origin/<base>...origin/pull/<id>/head -- <path>   # targeted reads
+git log --oneline origin/<base>..origin/pull/<id>/head
 ```
+
+This recipe needs `origin` to be the base repository of the PR. If the fetch fails, stop and ask the user which remote holds the base repository. Then use that remote in place of `origin`. Do not fall back to the name of the head branch.
 
 This is not a new pattern. The `target=pr <id>` resolution of `dev-essentials:review-loop` already fetches and diffs this way. Treat it as the precedent, and do not invent a new way at each call site.
 

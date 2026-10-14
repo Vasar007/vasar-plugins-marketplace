@@ -42,11 +42,12 @@ openspec list
 
 ### 2. Analyze Git Changes (Fallback Only)
 
-First, identify the base branch:
+First, find the base branch. Use the first source that works:
 
-```bash
-git symbolic-ref refs/remotes/origin/HEAD
-```
+1. If the brief names the base branch, use it.
+2. Run `git symbolic-ref refs/remotes/origin/HEAD`. The output is for example `refs/remotes/origin/main`. Then use `origin/main` as `<base>`.
+3. If that command fails or prints nothing, run `git rev-parse --verify --quiet origin/main`, then `git rev-parse --verify --quiet origin/master`. Use the first one that succeeds.
+4. If none works, stop. Do not guess. Ask for the base branch in your final reply.
 
 Then analyze changes against the base branch:
 
@@ -114,6 +115,7 @@ Writing rules:
 
 Ask the user in these cases:
 
+- The agent cannot find the base branch (step 2).
 - The git diff shows **no changes** (stale branch).
 - The changes span **multiple unrelated features**. Suggest that the user splits the PR.
 - The changes hold **breaking changes**, but no migration is documented.

@@ -90,6 +90,13 @@ For any new or modified entry point (HTTP route, RPC method, CLI command, job ha
 - New `install`-time or `postinstall` scripts from third-party packages.
 - Pinned to a floating major/latest tag instead of a fixed version.
 
+### G. Callers in the Blast Radius
+
+Use the blast radius from Phase 1 step 2:
+- A changed function can build a query, a command, a file path, an outbound URL, or a log line. If so, trace each caller in the blast radius back to its entry point. Find out whether untrusted input (see lens B) reaches the changed code through that caller without sanitizing. Flag each path that you proved as CRITICAL, with the caller reference and a CWE reference.
+- A changed function can do sensitive work (see lens C). If so, trace each caller in the blast radius back to its entry point. Find out whether that path has no authentication or authorization check. Flag each path that you proved as CRITICAL, with the caller reference.
+- The diff can remove a validation, an escape, or an auth check from shared code. If so, find out which callers in the blast radius relied on it. Flag each caller that is now exposed.
+
 Do NOT flag: general code quality, performance, naming, duplication, or compliance. Those belong to other specialists. Flag only security-relevant correctness, for example an off-by-one in a bounds check that guards an overflow. Ordinary logic bugs belong to the correctness specialist.
 
 ## Phase 3: Research (conditional)
@@ -104,7 +111,7 @@ If every finding has a confidence of 80% or more, skip this phase.
 
 Before producing the final report, critically re-examine all your findings:
 
-1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Can a real attacker exploit this, with the access that the threat model of this code realistically assumes? Or do I flag a theoretical issue that the surrounding code already neutralizes?" Examples of such code: the input is already sanitized upstream, the endpoint is already behind an mTLS gate, or the data is not actually user-controlled. Downgrade or remove false positives.
+1. **False positive check**: for each CRITICAL and WARNING, ask yourself: "Can a real attacker exploit this, with the access that the threat model of this code realistically assumes? Or do I flag a theoretical issue that the surrounding code already neutralizes?" Examples of such code: the input is already sanitized upstream, the endpoint is already behind an mTLS gate, or the data is not actually user-controlled. To answer, read the callers of the flagged code in the blast radius from Phase 1 step 2. Downgrade or remove false positives.
 
 2. **False negative check**: re-read the complete diff one more time with fresh eyes. Ask whether you missed an injection sink, an auth gap, a logged secret, a new outbound I/O path, or a dependency change. Add a finding for each miss.
 

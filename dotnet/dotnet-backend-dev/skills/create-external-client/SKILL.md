@@ -139,7 +139,7 @@ internal sealed class {Service}{Feature}Client : {Service}ClientBase, I{Service}
         request.ThrowIfNull();
 
         // Log request
-        Logger.LogInformation("[{ServiceName}] Creating {Entity} with request: {Request}", ServiceName, nameof({Entity}), request);
+        Logger.LogInformation("[{ServiceName}] Creating {Entity}", ServiceName, nameof({Entity}));
 
         var response = await _{feature}Client.CreateAsync(request, cancellationToken);
 
@@ -153,6 +153,8 @@ internal sealed class {Service}{Feature}Client : {Service}ClientBase, I{Service}
 
 ## Structured Logging Requirements
 
+Log only identifiers and other values that hold no sensitive data. Never log a whole request object, because it can hold a secret. See the [handle-sensitive-data](../handle-sensitive-data/SKILL.md) skill.
+
 All methods MUST log:
 
 ### Request Logging
@@ -163,7 +165,7 @@ Logger.LogInformation(
     ServiceName,          // From base class
     "Getting",            // Action verb
     nameof(Entity),       // Entity type
-    relevantParams        // Request parameters
+    safeParameters        // Identifiers and other non-sensitive request values
 );
 ```
 
@@ -247,6 +249,7 @@ If an external client contains business logic or complex transformations, create
 - [ ] Two constructors (direct params + IOptionsMonitor)
 - [ ] `/// <inheritdoc />` on implementation methods
 - [ ] Structured logging with ServiceName on all requests/responses
+- [ ] No whole request object and no sensitive value in a log message
 - [ ] Session ID logging for async operations
 - [ ] Input validation with `ThrowIfNull()`
 - [ ] Returns external service models (NOT domain models)

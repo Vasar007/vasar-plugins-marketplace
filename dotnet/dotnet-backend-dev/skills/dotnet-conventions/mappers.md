@@ -99,9 +99,10 @@ Use it alongside the framework one:
 If Mapperly generates too many errors, use manual mapping with a TODO comment:
 
 ```csharp
-public XxxModel ToDomainXxx(XxxEntity entity)
+public XxxModel ToDomainXxx(XxxEntity entity, XxxExternalValue externalParam)
 {
     // Manual mapping: constructor requires additional parameters not in entity
+    // TODO: Consider refactoring to use Riok.Mapperly when the mapping becomes simpler
     return new XxxModel(
         id: entity.Id.ToDomainXxxId(),
         otherParam: externalParam

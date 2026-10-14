@@ -208,32 +208,7 @@ private static {Type} TransformProperty2({Source} source)
 - Manual mapping is **acceptable and preferred** over complex attribute gymnastics
 - A developer can revisit the mapping later, after the requirements become simpler or as time allows.
 - Keep manual mapping methods clean and well-structured
-
-### Example: Complex Manual Mapping
-
-```csharp
-public Customer ToDomainCustomer(
-    CustomerEntity entity,
-    LoyaltyAccount loyaltyAccount,
-    Store homeStore)
-{
-    // Manual mapping: constructor requires additional parameters not in entity
-    // TODO: Evaluate if partial auto-generation is possible with custom property mappings
-    entity.ThrowIfNull();
-    loyaltyAccount.ThrowIfNull();
-    homeStore.ThrowIfNull();
-
-    return new Customer(
-        id: entity.Id.ToDomainCustomerId(),
-        loyaltyAccount: loyaltyAccount,  // External parameter
-        homeStore: homeStore,      // External parameter
-        defaultPaymentMethod: _customerPaymentMethodMapper.ToDomainPaymentMethod(entity.DefaultPaymentMethod),
-        membershipCard: ToDomainCustomerMembershipCard(entity.MembershipCard),
-        tier: _customerTierMapper.ToDomainCustomerTier(entity.Tier),
-        orderIds: ToDomainCustomerOrderIds(entity.OrderIds)
-    );
-}
-```
+- For a full example inside a mapper class, see `ToDomainCustomer` in the section "Non-Static Converter with [UseMapper]".
 
 ## Converter Naming Conventions
 
@@ -456,7 +431,8 @@ public sealed partial class CustomerMapper : ICustomerEntityMapper<Customer, Cus
         LoyaltyAccount loyaltyAccount,
         Store homeStore)
     {
-        // Manual mapping when automatic generation isn't suitable
+        // Manual mapping: constructor requires additional parameters not in entity
+        // TODO: Evaluate if partial auto-generation is possible with custom property mappings
         entity.ThrowIfNull();
         loyaltyAccount.ThrowIfNull();
         homeStore.ThrowIfNull();

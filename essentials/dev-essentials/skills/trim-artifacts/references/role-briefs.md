@@ -18,7 +18,7 @@ Shared placeholders:
 | `{PROGRESS_DIR}` | Folder for the agent's `_`-prefixed progress file |
 | `{LINT_COMMAND}` | The project's Markdown linter or formatter, or "none" |
 | `{BATCH_FILES}` | Relative paths of the files in one batch |
-| `{PLAN_PATH}` | Where the planner writes the plan, outside the workspace |
+| `{PLAN_PATH}` | Where the planner writes the plan, outside the workspace. For the reviewer: the plan path of every batch |
 | `{SCRATCH}` | Scratch folder for the planner's `orig` and `target` copies |
 | `{APPROVED_DELETIONS}` | The deletion list that the user approved at the gate |
 | `{APPROVED_TOMBSTONES}` | The tombstone list that the user approved at the gate, or "none" |
@@ -89,10 +89,13 @@ did not apply as written, and the script result.
 You review a finished trim pass. Do not edit anything.
 Before state: {BACKUP}. After state: {WORKSPACE}. Protect-set: {PROTECT_SET}.
 Approved tombstones: {APPROVED_TOMBSTONES}
+Plans: {PLAN_PATH}
 
 1. Run python3 -I {SKILL_DIR}/scripts/trim_report.py --before {BACKUP} --after {WORKSPACE}
    {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}. Find out whether each ALLOWED
    block is on the approved tombstone list. Report each one that is not.
+   For each IN OTHER FILE line, find out whether a plan names the move or the
+   deduplication. Report each one that no plan names.
    Look at each AMBIGUOUS line by hand.
    Read the lines right next to each protected block. The script does not test them.
    Report added text there that reverses a decision.

@@ -1,6 +1,6 @@
 ---
 name: engineering-discipline
-description: "Seven engineering rules against the urge to defer, dismiss, or decide alone. (a) Own every red signal (tests, lint, compile) in the session, and never call it pre-existing. (b) Make no critical decision alone (DI dependency, public signature, weaker contract, relaxed test assertion) that the spec or plan does not cover. (c) Never reference pipeline-internal artifacts (Notes/Tasks/..., §7d, scenario-coverage-gap.md) from shipped code, docs, or commit messages. (d) Never silence a red signal with try/catch. (e) Never claim `verified` or `confirmed` without solid proof, and never pad a report with fake blockers. (f) Report overblown or analyzer-dodging code first, not after a green-build summary. (g) Complete the refactor direction of the user, and keep a 'refactor only' scope. Apply during implementation, code review, PR-comment processing, and feature-pipeline runs. Triggers on requests like 'implement this spec', 'apply plan', 'fix tests', 'process PR comments', 'write feature code', or 'run feature pipeline'. Also triggers in any session where code is being written, reviewed, or committed."
+description: "Seven engineering rules against the urge to defer, dismiss, or decide alone. (a) Own every red signal (tests, lint, compile) in the session, and never call it pre-existing. (b) Make no critical decision alone (DI dependency, public signature, weaker contract, relaxed test assertion) that the spec or plan does not cover. (c) Never reference pipeline-internal artifacts (for example Notes/Tasks/...) from shipped code, docs, or commit messages. (d) Never silence a red signal with try/catch. (e) Never claim `verified` or `confirmed` without solid proof, and never pad a report with fake blockers. (f) Report overblown or analyzer-dodging code first, not after a green-build summary. (g) Complete the refactor direction of the user, and keep a 'refactor only' scope. Apply it in any session that writes, reviews, or commits code. Triggers on requests like 'implement this spec', 'apply plan', or 'fix tests'. Also on 'process PR comments', 'write feature code', or 'run feature pipeline'."
 ---
 
 # Engineering Discipline
@@ -19,6 +19,7 @@ How to apply:
 
 - If a test or a tool fails, investigate and fix it. Do not look for the author of the failure first.
 - If a fix is out of scope, tell the user and ask before you move on. Examples: the fix touches unrelated code, or it needs a new design discussion. Never skip it silently.
+- One named exception to the history rule above: Phase 6 of `dev-essentials:review-loop` runs a failing build or test again. It runs it on the commit before the fixes of its cycle. The result only picks the next step of the loop: one more fix, or a stop with a report to the user. It never excuses the failure.
 - If tests fail against your new code, a relaxed assertion is almost never the fix. Investigate the design gap before you touch the test (see also Rule 2).
 
 ## Rule 2 — No unilateral critical decisions in spec-first / plan-first work

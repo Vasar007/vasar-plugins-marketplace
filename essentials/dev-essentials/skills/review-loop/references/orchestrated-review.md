@@ -48,8 +48,8 @@ Also resolve, alongside the diff range above, a **source tree-ish** — a single
 `git show <tree-ish>:<path>` (a diff range like `A...B` is not valid there). Resolution by target:
 
 - `target=branch` → `HEAD`.
-- `target=pr <id>` → `origin/<sourceBranch>` (the same bare source branch name resolved for the
-  diff in SKILL.md Phase 1).
+- `target=pr <id>` → `origin/pull/<id>/head` (the head ref of the PR that SKILL.md Phase 1
+  fetched for the diff).
 - `target=commits <N>` → `HEAD`.
 - `target=diff <range>` → the range's right-hand endpoint (`HEAD` when the range has no explicit
   right side).
