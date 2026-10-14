@@ -91,7 +91,7 @@ Call `mcp__plugin_github_github__issue_write` with `method: "create"` and:
 
   **Labels.** Never create a label. Before the create call, choose the labels:
 
-  1. Start with the labels that the user gave, and add each label that fits the issue. If the repository does not have the approved type, also add the label with the name of the type. Example: `bug` for the type `Bug`. The match of the name ignores case.
+  1. Start with the labels that the user gave, and add each label that fits the issue. If the call failed or the list lacks the type, also add the label with the name of the type. Example: `bug` for the type `Bug`. The match of the name ignores case.
   2. If you have `mcp__plugin_github_github__list_label`, list the labels of the repository with the `owner` and the `repo`. Follow the pagination rule (`dev-essentials:github-mcp-conventions` Rule 3). Add each listed label that fits the issue. Keep only the labels that the list has.
   3. Else, call `mcp__plugin_github_github__get_label` with the `owner`, the `repo`, and the `name` of each label from step 1. Keep only the labels that it finds.
   4. In the report of Step 3, name each label that you did not keep.
