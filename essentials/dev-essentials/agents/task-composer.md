@@ -1,7 +1,7 @@
 ---
 name: task-composer
 description: "Compose concise architectural task descriptions, and create them as verified GitHub issues on request. The default mode `draft` writes a local Markdown draft only. `mode: response` returns the description text in chat, with no file and no GitHub call. `mode: create` creates a GitHub issue and reads it back. Invoke it for a request for a task description or a task draft. Also invoke it to create a GitHub issue, or to return a task description in chat."
-tools: [Read, Write, Edit, Grep, Glob, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__sub_issue_write]
+tools: [Read, Write, Edit, Grep, Glob, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__sub_issue_write, mcp__plugin_github_github__list_issue_types]
 ---
 
 # Task Composer Agent
@@ -87,6 +87,7 @@ Call `mcp__plugin_github_github__issue_write` with `method: "create"` and:
 - `title`: from user or draft H1
 - `body`: full content in Markdown (H2 sections, bullets) **without** the H1 title (GitHub renders its own title field)
 - `labels`: the labels that the user gave. Without labels, leave it out.
+- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out, and say so in the report of Step 3.
 - `parent_issue_number`: the number of the parent issue. Pass it only for a task that the user asked for as a sub-issue of an existing issue. The create call attaches the new issue to this parent in the same operation, so the normal case needs no separate link call. If the parent issue is in another repository, also pass `parent_owner` and `parent_repo`. Else leave both out, and `owner`/`repo` apply.
 
 If the call returns an error, report it honestly. Do not go on to Step 2.
@@ -100,6 +101,7 @@ Find out whether the response matches:
 - Title matches what was submitted
 - Body matches (spot-check first 200 characters)
 - Labels are set (if provided)
+- Type is set (if passed)
 
 If Step 1 passed `parent_issue_number`, do not trust the `parent` and `sub_issues_summary` fields of this `get` response. The tool description calls them best-effort and optional. Call `mcp__plugin_github_github__issue_read` again with `method: "get_parent"` on the new issue:
 

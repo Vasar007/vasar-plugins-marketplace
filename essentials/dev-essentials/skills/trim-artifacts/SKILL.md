@@ -170,7 +170,7 @@ Keep the file outside the workspace, or mark it as transient. Otherwise the next
 
 ### 9. Review independently (read-only reviewer)
 
-The reviewer runs in a fresh context, not the planner's. It works from the backup and the trimmed workspace with the reviewer brief in [references/role-briefs.md](references/role-briefs.md).
+The reviewer runs in a fresh context, not the planner's. It works from the backup and the trimmed workspace with the reviewer brief in [references/role-briefs.md](references/role-briefs.md). Fill `{PLAN_PATH}` with the plan path of every batch. The plans stay until step 11, so the reviewer can test each moved block against them.
 The reviewer also reads the lines right next to each protected block. Added text there, such as an `Update:` line, can reverse the decision.
 
 Severity rule: a lost protected item or a lost needed fact is High or Critical. Bloat is Medium or Low.

@@ -1,7 +1,7 @@
 ---
 name: test-engineer
 description: Write, refactor, or extend .NET unit and integration tests with the strict testing conventions of the project. Uses the preloaded `create-tests` skill for the matching example, and the existing base classes, mock builders, and generators of the repo. Use when the user asks to write, refactor, or add tests for a specific class.
-tools: [Read, Write, Edit, Bash, Grep, Glob]
+tools: [Read, Write, Edit, Bash, Grep, Glob, Skill]
 skills:
   - dotnet-backend-dev:create-tests
 ---
@@ -25,6 +25,8 @@ For each class to test:
 ### 2. Use the `create-tests` Skill (MANDATORY)
 
 The `skills` field of this agent preloads the `create-tests` skill (from the `dotnet-backend-dev` plugin) into your context. Its example table maps each test type to the exact shape that the test must have. **Before you write ANY code**, read the example file that the table names for the test type. Do not guess from memory. The example set of the skill is the source of truth.
+
+The skill links its example files with paths relative to its own folder (`examples/...`), not to the repository. The folder is in the plugin installation, so a search of the repository does not find it. If your context does not name that folder, invoke `dotnet-backend-dev:create-tests` once with the Skill tool. Its output names the base folder of the skill. Read each example file as `<base folder>/examples/<file name>`.
 
 If the `create-tests` content is not in your context, the `dotnet-backend-dev` plugin is not installed. Stop, and tell the user to install that plugin first.
 
