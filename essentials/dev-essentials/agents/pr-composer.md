@@ -145,7 +145,7 @@ Implements the OpenSpec change `order-discount-limits`. Added validation to prev
 Unit and integration tests cover multi-currency edge cases.
 ```
 
-*Characters: ~350*
+Length: about 350 characters.
 
 **Without OpenSpec:**
 
@@ -164,7 +164,7 @@ Added discount validation to prevent discounts that exceed the order total.
 Unit tests cover edge cases; integration tests verify multi-currency scenarios.
 ```
 
-*Characters: ~340*
+Length: about 340 characters.
 
 ## Example Output (Larger Change)
 
@@ -186,4 +186,4 @@ Integration tests simulate failures at each stage. Load tests verify 1000 concur
 Breaking change: Order status polling now uses an event subscription model. Update clients to use webhooks.
 ```
 
-*Characters: ~770*
+Length: about 770 characters.

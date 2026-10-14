@@ -44,9 +44,9 @@ If a GitHub MCP tool returns paginated results, always paginate to the end with 
 3. **Stop condition:** a page with fewer items than the page size is the last page. Stop, and do not request the next page. For a cursor method, the response field `pageInfo.hasNextPage` set to `false` also marks the last page.
 4. **Never stop early** on the first non-empty page. Large PRs have many comments, and large repos have many branches. A stop after the first page drops data silently.
 
-**Example: paginating PR comments**
+Example of the pagination of PR comments:
 
-```
+```text
 page=1, perPage=30 → 30 comments → continue
 page=2, perPage=30 → 30 comments → continue
 page=3, perPage=30 → 17 comments → stop (17 < 30, last page)

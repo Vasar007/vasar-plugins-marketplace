@@ -14,13 +14,13 @@ The feature branch `feature/<username>/tasks/1234567-add-pagination` is 5 commit
 
 The skill runs:
 
-```
+```bash
 git diff origin/main...HEAD --stat
 ```
 
 Output:
 
-```
+```text
  Sources/<example-repo>.Application/Workload/Tenants/Services/TenantQueryService.cs   | 87 +++++++++++-
  Sources/<example-repo>.Application/Workload/Tenants/Queries/GetTenantsQuery.cs       | 34 +++++
  Sources/<example-repo>.Infrastructure/Persistence/Repositories/TenantRepository.cs  | 61 +++++++--
@@ -30,7 +30,7 @@ Output:
 
 The skill prints in chat:
 
-```
+```text
 Target resolved: branch diff main...HEAD
   4 files changed, 224 insertions(+)
   Base: main  Branch: feature/<username>/tasks/1234567-add-pagination
@@ -45,7 +45,7 @@ Target resolved: branch diff main...HEAD
 
 The skill prints:
 
-```
+```text
 Reviewer:  dual → feature-dev:code-reviewer + general-purpose (parallel)
 Fixer:     general-purpose
 ```
@@ -74,7 +74,7 @@ The 5 findings after the merge:
 
 `--interactive` is set, so the skill prints the triage in chat and waits for the acknowledgment:
 
-```
+```text
 Round 1 findings:
   Blocker:  1  (will fix; 1 blocking)
   Critical: 0  (will fix; 0 blocking)
@@ -108,7 +108,7 @@ The user replies: `ok proceed`
 
 **F3 [REJECT]**. The reviewer claims that the injection of `IServiceScopeFactory` is a service-locator anti-pattern. The fixer read all of `TenantQueryService.cs`. The service uses `IServiceScopeFactory` to create a short-lived scope for each request. This is the documented pattern to use scoped services from a background-hosted context. `BaseWorker.cs:31` of `BackgroundJobService` uses the same injection of `IServiceScopeFactory`. The fixer rejects the finding, because the code is correct.
 
-```
+```text
 F1 [APPLY]   — In-memory slice confirmed at TenantRepository.cs:89; fix bounded to that method.
 F2 [PARTIAL] — Missing test coverage confirmed; [TestCase] boolean-stripes form rejected (the
                foreach-over-List<Action> pattern is the convention for constructor null-arg tests
@@ -126,7 +126,7 @@ Edited files: `TenantRepository.cs` and `TenantQueryServiceTests.cs`.
 
 `CLAUDE.md` documents the command `dotnet build ./Sources/<example-repo>.sln -c Debug`.
 
-```
+```bash
 dotnet build ./Sources/<example-repo>.sln -c Debug
 Build succeeded.
     0 Warning(s)
@@ -135,7 +135,7 @@ Build succeeded.
 
 A focused test filter for the files that the fix pass touched:
 
-```
+```bash
 dotnet test ./Sources/<example-repo>.sln \
   --filter "FullyQualifiedName~TenantQueryServiceTests|FullyQualifiedName~TenantRepositoryTests"
 
@@ -146,7 +146,7 @@ Passed: 24   Failed: 0   Skipped: 0
 
 ## Phase 7 — Commit
 
-```
+```bash
 git add Sources/<example-repo>.Infrastructure/Persistence/Repositories/TenantRepository.cs \
         Sources/<example-repo>.Application.Tests/Workload/Tenants/TenantQueryServiceTests.cs
 
@@ -177,7 +177,7 @@ The agent reports no new findings. Both applied fixes look correct, and it sees 
 
 Two cycles ran. So the summary goes to `Notes/Reviews/branch-1234567-add-pagination-summary.md` (the destination rule for a run with more than one cycle).
 
-```
+```markdown
 ## Review Loop Complete
 
 Rounds: 2 of 2 max
@@ -208,7 +208,7 @@ Stop verdict: stop-clean
 
 **After Round 1:**
 
-```
+```text
 Cycle 1 — branch diff main...HEAD (4 files, 224 insertions)
   5 findings: 1 Blocker, 0 Critical, 2 High, 1 Medium, 1 Low, 0 Nit
   Triage: fix=3, deferred=2 (per --skip medium,low,nit / merit triage)
@@ -220,7 +220,7 @@ Cycle 1 — branch diff main...HEAD (4 files, 224 insertions)
 
 **After Round 2:**
 
-```
+```text
 Cycle 2 — re-review of fix diff (2 files)
   0 findings: 0 Blocker, 0 Critical, 0 High, 0 Medium, 0 Low, 0 Nit
   Triage: fix=0, deferred=0

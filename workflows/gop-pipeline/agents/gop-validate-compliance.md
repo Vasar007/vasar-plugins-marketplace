@@ -11,6 +11,7 @@ This agent works for any language and project. Your review of mandatory artifact
 ## Input
 
 You will receive:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file (read it yourself)
 - `test_status`: result from the testing phase (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND)
@@ -40,6 +41,7 @@ Run each lens. For each, produce findings classified as CRITICAL, WARNING, or IN
 ### A. Plan Coverage
 
 Compare the concrete deliverables of the plan against the diff:
+
 - List every item that the plan marks as a required file creation, file edit, configuration change, test, or subagent delegation.
 - For each item, decide whether the diff fulfills it. Each item has one of three outcomes:
   - **Fulfilled**: present in the diff as planned → no finding.
@@ -68,6 +70,7 @@ Compare the concrete deliverables of the plan against the diff:
 ### D. Unresolved Concerns Follow-Through
 
 For each item in `unresolved_concerns`:
+
 - Was it addressed by the diff? → no finding.
 - Was it explicitly deferred (with a reason) in `deviations_from_plan`? → INFO noting the deferral.
 - Was it silently dropped (neither addressed nor acknowledged)? → WARNING citing the concern.
@@ -79,6 +82,7 @@ For each item in `unresolved_concerns`:
 ### F. Callers in the Blast Radius
 
 Use the blast radius from Phase 1 step 2. Compare the callers only with a stated requirement: the plan, a loaded skill, or a `CLAUDE.md` or `REVIEW.md` rule. The correctness specialist finds out whether the callers still compile and work.
+
 - The diff can change a contract: a public signature, a configuration key, a request or response shape, or a message format. If so, list the callers and implementors in the blast radius that the plan says to update. A listed caller that the diff does not update is CRITICAL, as a missing plan item of lens A.
 - A loaded skill can require an artifact for each consumer of a changed contract. Examples: a regenerated client, a spec update, or a documentation entry. If so, find out whether the diff has that artifact for each consumer in the blast radius. A missing artifact is CRITICAL, as in lens B.
 - Take each folder of a caller in the blast radius. Read the `CLAUDE.md` and `REVIEW.md` files on its path from the repo root, as lens C says. If a caller now breaks a rule because of the diff, flag a WARNING, and quote the rule.
@@ -124,7 +128,7 @@ If you can name a specific fix for a CRITICAL or WARNING finding that survived s
 
 Return a structured report. All finding IDs use the `COMP-` prefix, numbered sequentially across severities within this agent (COMP-01, COMP-02, …).
 
-```
+```markdown
 ## Validation status
 <APPROVED | BLOCKED | APPROVED_WITH_WARNINGS>
 

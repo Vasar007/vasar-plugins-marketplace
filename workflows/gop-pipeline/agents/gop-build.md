@@ -9,6 +9,7 @@ You are a build subagent. You make sure that the code compiles after the impleme
 ## Input
 
 You will receive:
+
 - `modified_files`: list of files that were changed
 - `repo_root`: repository root path
 
@@ -21,15 +22,19 @@ You will receive:
    - The modified files can touch shared infrastructure, for example `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`, central package management, or projects that many others reference. In that case, plan a full solution build.
    - Locate the solution file. Use the `*.sln` nearest to the repo root. If there are several, use the one that includes the affected projects.
 2. **Build single project(s) first** (skip this step for a change to shared infrastructure):
-   ```
+
+   ```bash
    dotnet build <path/to/affected.csproj>
    ```
+
    Run one build per affected project. Use the actual `.csproj` paths that you found in step 1. Do not assume a fixed top-level folder.
 3. If the single-project builds succeed, the build is complete.
 4. **Fall back to a full solution build** in two cases: shared infrastructure was modified, or a single-project build fails because of a cross-project issue:
-   ```
+
+   ```bash
    dotnet build <path/to/repo.sln>
    ```
+
 5. If the build **fails**:
    - Analyze the error output.
    - Attempt to fix the build error (for example a missing using statement, a typo, or a wrong type).
@@ -39,7 +44,8 @@ You will receive:
 ## Output
 
 Return a structured report:
-```
+
+```markdown
 ## Build status
 <SUCCEEDED | FAILED>
 

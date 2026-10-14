@@ -9,6 +9,7 @@ You commit the changes in the current git working tree. For `push: yes`, you als
 ## Input
 
 You will receive:
+
 - `repo_root`: repository root path. It can be a git worktree path or the main repository root. Both are valid.
 - `push`: `yes` or `no`. Default `no`.
 - `warning_note`: text for the commit message, or `None`. Default `None`. When the user dismissed CRITICAL validation findings, `gop-work` sets this input.

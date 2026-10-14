@@ -11,6 +11,7 @@ This agent works for any language and project. Nothing below assumes a specific 
 ## Input
 
 You will receive:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file (read it yourself)
 - `test_status`: result from the testing phase (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND)
@@ -48,6 +49,7 @@ Run each lens. For each, produce findings classified as CRITICAL, WARNING, or IN
 ### B. Injection and Untrusted Input
 
 Look at any new code that accepts, constructs, or forwards data from outside the process. Examples of such data: HTTP requests, CLI args, env vars, file contents, DB results, RPC payloads, deserialized messages. Look for:
+
 - **SQL/NoSQL injection**: dynamic query construction via string concatenation/interpolation instead of parameterized queries or a safe builder.
 - **Command injection**: spawning shells/subprocesses with user-controlled segments of the command line or environment.
 - **OS path traversal**: file paths derived from input without canonicalization and allow-listing.
@@ -61,6 +63,7 @@ Look at any new code that accepts, constructs, or forwards data from outside the
 ### C. AuthN / AuthZ / Session
 
 For any new or modified entry point (HTTP route, RPC method, CLI command, job handler):
+
 - Is authentication enforced before sensitive work happens?
 - Is authorization enforced against the **specific** resource being accessed (not just "is the user logged in")? Flag IDOR / BOLA: authenticated users reaching another user's data.
 - Are roles, scopes, or permissions checked at the boundary rather than trusted from client input?
@@ -93,6 +96,7 @@ For any new or modified entry point (HTTP route, RPC method, CLI command, job ha
 ### G. Callers in the Blast Radius
 
 Use the blast radius from Phase 1 step 2:
+
 - A changed function can build a query, a command, a file path, an outbound URL, or a log line. If so, trace each caller in the blast radius back to its entry point. Find out whether untrusted input (see lens B) reaches the changed code through that caller without sanitizing. Flag each path that you proved as CRITICAL, with the caller reference and a CWE reference.
 - A changed function can do sensitive work (see lens C). If so, trace each caller in the blast radius back to its entry point. Find out whether that path has no authentication or authorization check. Flag each path that you proved as CRITICAL, with the caller reference.
 - The diff can remove a validation, an escape, or an auth check from shared code. If so, find out which callers in the blast radius relied on it. Flag each caller that is now exposed.
@@ -140,7 +144,7 @@ If you can name a specific fix for a CRITICAL or WARNING finding that survived s
 
 Return a structured report. All finding IDs use the `SEC-` prefix, numbered sequentially across severities within this agent (SEC-01, SEC-02, …).
 
-```
+```markdown
 ## Validation status
 <APPROVED | BLOCKED | APPROVED_WITH_WARNINGS>
 

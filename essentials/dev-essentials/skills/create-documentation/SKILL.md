@@ -9,8 +9,6 @@ Create and maintain project documentation in the `Docs/` folder with the layout,
 
 ## Documentation Structure
 
-<!-- markdownlint-disable MD013 -->
-
 ```txt
 Docs/
 ├── {ProjectName} - {Topic}.md           # Top-level documentation
@@ -24,8 +22,6 @@ Docs/
     ├── {ProjectName} - REST-API-Overview.md
     └── {ProjectName} - REST-API-{Resource}.md
 ```
-
-<!-- markdownlint-enable MD013 -->
 
 ## File Naming Convention
 

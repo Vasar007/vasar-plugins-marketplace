@@ -3,6 +3,7 @@ These are the instructions for the implementation phase. Run them yourself in th
 ## Context
 
 You have access to:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file
 - `repo_root`: repository root path
@@ -31,6 +32,7 @@ You have access to:
 ## Output
 
 After completing implementation, record the following for use in subsequent phases:
+
 - `modified_files`: list of files changed
 - `change_summary`: brief description of what was done
 - `deviations_from_plan`: any differences from the plan, with reasons, or "None"

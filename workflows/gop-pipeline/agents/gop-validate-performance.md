@@ -11,6 +11,7 @@ This agent works for any language and project. Performance anti-patterns occur i
 ## Input
 
 You will receive:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file (read it yourself)
 - `test_status`: result from the testing phase (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND)
@@ -40,6 +41,7 @@ Run each lens. For each, produce findings classified as CRITICAL, WARNING, or IN
 ### A. Loop × External-Call Shape (the N+1 family)
 
 For every new or modified loop body in the diff, find out whether each iteration makes:
+
 - A database query (ORM call, raw SQL, repository method).
 - A remote RPC / HTTP call.
 - A disk or network I/O operation (file read, socket round-trip).
@@ -48,6 +50,7 @@ For every new or modified loop body in the diff, find out whether each iteration
 If yes, flag a WARNING. If the iterated collection can plausibly be large, flag a CRITICAL instead. Examples: a paged list, a full-table scan result, or a user-supplied array. Note whether the same interface has a **batch/bulk** API. Examples: `FindByIds` instead of a per-id `FindById`, a bulk insert instead of a per-row insert, or a multi-get instead of a per-key get. If such an API exists, the proposal is to use the batch form.
 
 Detect variants:
+
 - Map-style enrichment (`.Select(x => lookup(x.Id))`): classic N+1.
 - Lazy or proxy-driven round trips inside a rendering loop (for example ORM lazy-load).
 - `await inside for`: awaited async calls in a loop body that run one after another, but can run concurrently.
@@ -55,6 +58,7 @@ Detect variants:
 ### B. Algorithmic Complexity
 
 For each new or modified algorithm:
+
 - Identify nested loops. If both bounds can reach the same size `n` (driven by the user or the data), the complexity is O(n²). Flag it as WARNING, except for a size that is provably small (below about 100). Propose a map or set lookup, a single-pass sort-and-sweep, or an existing utility that fits.
 - Flag O(n·m) cases where both sides can scale, with the same treatment as O(n²).
 - In languages with immutable strings, flag strings built by repeated concatenation inside a loop. If `n` can be large, flag a CRITICAL.
@@ -63,6 +67,7 @@ For each new or modified algorithm:
 ### C. Allocations and Copies
 
 For each new or modified tight loop or hot path:
+
 - Per-iteration allocations of large or short-lived objects. Examples: list allocations inside a loop, boxing or autoboxing in generic code, string allocations that a pool can serve, and buffer allocations per request.
 - Unnecessary copies of large data. One example is a lazy enumerable turned into a full list only to count it. Another is a byte buffer copied end to end where a slice or view is enough. A third is a serialize-then-deserialize step across an in-process boundary.
 - LINQ or stream pipelines that materialize intermediate collections, where a single pass is enough.
@@ -72,6 +77,7 @@ Flag these as WARNING. If the code is clearly on a hot path, flag a CRITICAL ins
 ### D. Blocking / Sync-Over-Async
 
 In languages with a distinct async or reactor model:
+
 - Blocking I/O calls from an async method or an event-loop handler, for example a synchronous file read, a `Thread.Sleep` equivalent, or a blocking HTTP client. If the calling code runs on a hot or shared thread pool, flag a CRITICAL. Else flag a WARNING.
 - `sync-over-async`: blocking on a future, Task, or Promise (`.Result`, `.Wait()`, a block without `await`) inside code designed to be async. Flag a CRITICAL, because of both the performance and the deadlock risk.
 - Fire-and-forget tasks that do significant work without backpressure.
@@ -90,6 +96,7 @@ In languages with a distinct async or reactor model:
 ### G. Callers in the Blast Radius
 
 Use the blast radius from Phase 1 step 2. An unchanged caller can get slower, because the code that it calls changed. This cost comes from the diff, so it is in scope.
+
 - A changed function can now do more work in each call: a new database query, a remote call, I/O, a lock, or a larger loop. If so, look at each caller in the blast radius. Find out whether it calls the function in a loop or on a hot path. Rate the finding as lens A, B, or C says, and give the caller reference.
 - A changed function can become async, or can now block. If so, look at each caller in the blast radius. Find out whether it blocks on the function or calls it from an async path. Rate the finding as lens D says, and give the caller reference.
 
@@ -137,7 +144,7 @@ If you can name a specific fix for a CRITICAL or WARNING finding that survived s
 
 Return a structured report. All finding IDs use the `PERF-` prefix, numbered sequentially across severities within this agent (PERF-01, PERF-02, …).
 
-```
+```markdown
 ## Validation status
 <APPROVED | BLOCKED | APPROVED_WITH_WARNINGS>
 
