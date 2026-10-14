@@ -67,7 +67,7 @@ Find the output path. The value of `--change` or `--plan` names the context sour
 - If a path is given, write to that path.
 - If no name or path is given, use the context source. For a change, write to `Notes/Results/<change-name>-research.md`. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Notes/Results/my-plan-research.md`.
 - If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. With `--interactive`, use **AskUserQuestion** to ask:
-  > "What should I call this research file? (e.g., `investigate-bug-123`, `refactor-auth`)"
+  > "What name do you want for this research file? (for example, `investigate-bug-123` or `refactor-auth`)"
 
 ### 2. Gather context
 

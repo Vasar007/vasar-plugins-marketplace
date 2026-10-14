@@ -58,7 +58,7 @@ Both modes produce the same Markdown content: the H1 title, the H2 "Current Stat
 
 **`mode: draft` output:** Write the content to `Notes/Tasks/task-{feature-name}.md`, with a kebab-case file name. All paths are relative to the root of the repository. If the folder does not exist, create it. Confirm with the file path and a brief preview of the structure.
 
-**`mode: response` output:** Return the Markdown content directly in the chat response. Write no file. Confirm with a one-line note that no file was created, for example "Here is the description — no file written:".
+**`mode: response` output:** Return the Markdown content directly in the chat response. Write no file. Confirm with a one-line note that no file was created, for example "Here is the description (no file written):".
 
 ### 2. Editing a Draft
 
@@ -115,7 +115,7 @@ If Step 1 passed `parent_issue_number`, do not trust the `parent` and `sub_issue
 - If `get_parent` returns the expected parent issue, the relationship is confirmed.
 - If it returns no parent or a different one, the attach did not take effect. Do not report the link as set up. Either set it up yourself, or report the discrepancy to the user. To set it up, call `mcp__plugin_github_github__sub_issue_write` with `method: "add"`. Pass `issue_number` (the number of the parent) and `sub_issue_id` (the `id` of the new issue from the Step 1 response, not its issue number). Then read it again with `get_parent`.
 
-If any step above fails or the item does not match, report the discrepancy honestly. Never cover it with a fabricated success.
+If any call above fails or the item does not match, report the discrepancy honestly. Never cover it with a fabricated success.
 
 **Step 3: Report.**
 
@@ -168,5 +168,5 @@ The order export currently uses synchronous polling which blocks request threads
 ## Response Style
 
 - Be concise.
-- Confirm actions: "Created `Notes/Tasks/task-foo.md`", "Here is the description — no file written:" (for `mode: response`), "Created GitHub issue #12345 (verified): `<html_url>`".
+- Confirm actions: "Created `Notes/Tasks/task-foo.md`", "Here is the description (no file written):" (for `mode: response`), "Created GitHub issue #12345 (verified): `<html_url>`".
 - Ask for clarification only for a missing required input: `owner/repo` in `create` mode.

@@ -325,8 +325,8 @@ This flag lets the skill delete the personal entity files in scope itself. Its g
 
    For an already-shipped, F-stale file, the publication is already proven. The existence check of Precondition A and the coverage grep of Precondition C at the same ref prove it. So "has the PR for this run been merged" has no referent. Ask a readiness question instead. On this branch, `v<plugin-version>` is the published `plugin.json` version at `origin/<default-branch>`. It is for display only, because this branch has no promotion version of this run to use as a floor in a check. Ask this question.
 
-   > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>` — ready to
-   > delete the N personal file(s) it supersedes? (yes / not yet)
+   > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>`. Are you
+   > ready to delete the N personal file(s) it supersedes? (yes / not yet)
 
    Both branches still ask this gate. The proven publication makes the question shorter, but it does not remove it, because the deletion cannot be undone. Any answer other than an explicit `yes` falls back to the report-only default above for every personal entity file in scope of this run.
 

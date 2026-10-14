@@ -68,7 +68,7 @@ Do not edit or delete a posted comment through MCP. For PR review comments, the 
 
 - Before you post any review comment, make sure that `owner`, `repo`, `pullNumber`, and `commentId` (for replies) are correct. Rules 1 and 2 apply. Do not send test calls against real PRs.
 - If a post fails, call `pull_request_read` to find out whether the comment landed before you retry. The MCP layer can return an error even after a successful post, and a blind retry posts a duplicate.
-- If a stub comment does land, note it explicitly in chat: "A stub comment landed on PR #`<id>` — please delete it via the GitHub UI (PR → Conversation → the comment → Delete)."
+- If a stub comment does land, note it explicitly in chat: "A stub comment landed on PR #`<id>`. Please delete it in the GitHub UI (PR → Conversation → the comment → Delete)."
 - Do not try to "overwrite" a stub with a corrected comment. That adds a second comment next to the stub and doubles the clutter.
 
 **Pending review batches:** a batch from `add_comment_to_pending_review` is not visible until `pull_request_review_write` submits it. Do not discard a pending batch through MCP. Dismiss it in the GitHub UI.
