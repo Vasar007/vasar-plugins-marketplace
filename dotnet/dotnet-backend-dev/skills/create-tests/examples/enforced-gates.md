@@ -1,10 +1,12 @@
 # Enforced Gates
 
-This file holds seven more conventions that this skill enforces for every test class. They add to the patterns in [SKILL.md](../SKILL.md) and in the other files of this folder. Real corrections on shipped code support each gate. Each gate gives the rule and an example. Some gates also give a grep self-check to run before you finish.
+This file holds seven more conventions that this skill enforces. Gates 2 to 7 apply to every test class. Gate 1 applies only to the test classes that its section names. The gates add to the patterns in [SKILL.md](../SKILL.md) and in the other files of this folder. Real corrections on shipped code support each gate. Each gate gives the rule and an example. Some gates also give a grep self-check to run before you finish.
 
 ## Gate 1 — Method-level null-arg coverage (not just constructors)
 
 **Why:** The constructor null-argument pattern (see [constructor-null-arg-tests.md](constructor-null-arg-tests.md)) also applies to every **public method** of the SUT, not only to constructors. Separate tests for each parameter (`MethodAsync_ShouldThrow_WhenOrderIdIsNull`, `MethodAsync_ShouldThrow_WhenCustomerDetailsIsNull`, and so on) make the fixture large. They spread the null-argument tests of one method over several test names. Then it is hard to see at a glance that each required parameter has a null test. The merged `foreach` form keeps all of them in one place. A new required parameter adds ONE line to the list, not a new test.
+
+**Scope:** Gate 1 applies only to a test class that calls the methods of the SUT directly, for example the tests of a service, a repository, or a domain model. It does not apply to controller tests that send requests through the HTTP client (`WebApiBaseTest`, see [controller-tests.md](controller-tests.md)). It also does not apply to scenario tests (see [scenario-tests.md](scenario-tests.md)). These tests send HTTP requests and call no method of the SUT directly.
 
 For each public method with at least one required reference-type parameter, write ONE combined test: `<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument`. Iterate over a `List<Func<Task>>` for async methods, or a `List<Action>` for sync methods. Each entry passes `null!` in the position of exactly one required reference parameter. This is the same required-positional mechanism as in the constructor pattern, never `null! ?? CreateXxx()`.
 
@@ -88,7 +90,7 @@ Fixture body order, top to bottom:
 1. Class-level fields (rarely needed beyond what the base class already exposes).
 2. `#region Constructor Tests` (ctor null-arg `foreach`-over-`List<Action>`, see
    [constructor-null-arg-tests.md](constructor-null-arg-tests.md)).
-3. `#region <PublicMethod1> Tests`, `#region <PublicMethod2> Tests`, and so on: one region for each public method. Each region holds the behavior tests and the null-argument `foreach` test of that method (Gate 1).
+3. `#region <PublicMethod1> Tests`, `#region <PublicMethod2> Tests`, and so on: one region for each public method. Each region holds the behavior tests of that method, and its null-argument `foreach` test where Gate 1 applies.
 4. ALL helper methods last, inside one `#region Helper Methods`. They are private. The exception is a helper of a base fixture that a derived fixture must call: make it `protected` (see the inheritance pair rule below).
 
 **Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class ONLY. A derived class contains ONLY `[Test]` methods and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.

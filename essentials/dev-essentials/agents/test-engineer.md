@@ -44,7 +44,7 @@ Follow ALL conventions of the `create-tests` skill:
 
 - Correct base class inheritance.
 - `[TestFixture]` + `[Parallelizable(ParallelScope.Fixtures)]`.
-- `// Arrange.` `// Act.` `// Assert.` comments (with periods).
+- `// Arrange.` `// Act.` `// Assert.` comments (with periods). Combined sections join the names with `&`, for example `// Act & Assert.` or `// Arrange, Act & Assert.`.
 - Private helper methods for ALL builder/generator calls.
 - NO `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()`.
 - Test Mock Builders for every interface dependency.
