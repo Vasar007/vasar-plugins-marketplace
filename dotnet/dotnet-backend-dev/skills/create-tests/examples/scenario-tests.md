@@ -1,68 +1,57 @@
 # Scenario Tests
 
-Scenario tests live in `{ProjectName}.WebApi.Tests/Scenarios/` and exercise **real end-to-end
-orchestration** across all application layers. They are fundamentally different from unit tests
-that use mock builders — do not apply mock-builder patterns here.
+Scenario tests live in `{ProjectName}.WebApi.Tests/Scenarios/`. They run **real end-to-end orchestration** across all application layers. They are very different from unit tests that use mock builders. Do not use mock-builder patterns here.
 
 ## What scenario tests are for
 
-A scenario test starts at the HTTP layer (or at a top-level application service) and exercises the
-full call chain down through application services, domain logic, and infrastructure — with only
-the true external boundary stubbed. The goal is to catch integration bugs that mocks would hide:
-null returns, missing mappings, incorrect orchestration order, and cross-layer contract drift.
+A scenario test starts at the HTTP layer, or at a top-level application service. It runs the full call chain through application services, domain logic, and infrastructure. Only the true external boundary is a stub. The goal is to catch the integration bugs that mocks hide: null returns, missing mappings, a wrong orchestration order, and drift between the contracts of the layers.
 
-Scenario tests are the last line of defence before production. They are not fast unit tests with
-selective mocking — they are slow, stateful, integration-style tests that exercise the real system.
+Scenario tests are the last line of defense before production. They are not fast unit tests with some mocks. They are slow, stateful, integration-style tests that run the real system.
 
 ## Forbidden in scenario tests
 
-The following are **strictly forbidden** in `WebApi.Tests/Scenarios/` (and any equivalent
-integration-test project that exercises real orchestration):
+These are **strictly forbidden** in `WebApi.Tests/Scenarios/` and in any similar integration-test project that runs real orchestration:
 
-| Forbidden                            | Why                                                                             |
-|--------------------------------------|---------------------------------------------------------------------------------|
-| `IFixture` / `AutoFixture`           | Fixture-driven construction hides missing registrations and object-graph errors |
-| `Substitute.For<T>()`               | Replaces real services with stubs that return defaults, hiding failures         |
-| `Fixture.Create<IInterface>()`       | Same problem as `Substitute.For<T>()` — produces a silent NSubstitute mock     |
-| `Fixture.Freeze<IInterface>()`       | Same problem                                                                    |
-| Test Mock Builders (`Test*Builder`)  | Builders are for unit tests; they do not compose a real dependency graph        |
-| Mocks inside stubs internally        | A stub that internally delegates to a mock defeats the stub's purpose           |
+| Forbidden | Why |
+| --- | --- |
+| `IFixture` / `AutoFixture` | Construction through the fixture hides missing registrations and errors in the object graph |
+| `Substitute.For<T>()` | It replaces real services with stubs that return defaults, and so it hides failures |
+| `Fixture.Create<IInterface>()` | Same problem as `Substitute.For<T>()`: it makes a silent NSubstitute mock |
+| `Fixture.Freeze<IInterface>()` | Same problem |
+| Test Mock Builders (`Test*Builder`) | Builders are for unit tests. They do not build a real dependency graph |
+| Mocks inside stubs | A stub that sends its calls to a mock has no purpose |
 
 ## Allowed pattern — stubs and raw data only
 
-**Stub only the leaf dependency** that requires an external connection (network call,
-external HTTP client, secret store). Let every real service implementation run.
+**Stub only the leaf dependency** that needs an external connection (a network call, an external HTTP client, or a payment gateway). Let every real service implementation run.
 
-Naming convention: `Stub{DependencyName}` — e.g., `StubExternalSecretService`.
+Naming convention: `Stub{DependencyName}`, for example `StubExternalPaymentGateway`.
 
-A stub is a concrete class that implements the interface with in-memory state seeded by the test.
-It contains no NSubstitute machinery internally.
+A stub is a concrete class that implements the interface with in-memory state that the test seeds. It contains no NSubstitute code.
 
 ```csharp
 // ✅ CORRECT — leaf stub, no mocks inside
-public sealed class StubExternalSecretService : IExternalSecretService
+public sealed class StubExternalPaymentGateway : IExternalPaymentGateway
 {
-    private readonly Dictionary<ResourceId, Credential> _credentials = new();
+    private readonly Dictionary<PaymentId, Payment> _payments = new();
 
-    public void AddCredential(ResourceId id, Credential credential)
+    public void AddPayment(PaymentId id, Payment payment)
     {
-        _credentials[id] = credential;
+        _payments[id] = payment;
     }
 
-    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct)
+    public Task<Payment?> GetPaymentAsync(PaymentId id, CancellationToken ct)
     {
-        return Task.FromResult(_credentials.GetValueOrDefault(id));
+        return Task.FromResult(_payments.GetValueOrDefault(id));
     }
 }
 ```
 
-Raw data (domain objects, configuration records, primitive values) is created directly via
-constructors or generator classes — NOT via `IFixture`.
+Raw data (domain objects, configuration records, primitive values) comes directly from constructors or generator classes, NOT from `IFixture`.
 
 ## Worked example
 
-The following scenario tests that placing a new order end-to-end stores it and
-emits an integration event, without mocking any intermediate service.
+This scenario places a new order end to end. It tests that the order is stored and that an integration event goes out, with no mock of an intermediate service.
 
 ### Test fixture
 
@@ -77,32 +66,32 @@ namespace MyApp.WebApi.Tests.Scenarios.Orders;
 
 /// <summary>
 /// End-to-end scenario: order placement flow.
-/// Only the external secret service is stubbed (leaf dependency).
+/// Only the external payment gateway is stubbed (leaf dependency).
 /// All other services — including authentication, orchestration, and persistence — run for real.
 /// </summary>
 [TestFixture]
 [NonParallelizable] // Scenario tests share a real database — no parallel runs
 public sealed class OrderProcessingScenarioTests : ScenarioBaseTest // project-specific base — analogous to WebApiBaseTest in the Base Classes Overview table; check Tests.Common for the exact class name in your repo
 {
-    private StubExternalSecretService _secretService = null!;
+    private StubExternalPaymentGateway _paymentGateway = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _secretService = new StubExternalSecretService();
-        RegisterStub<IExternalSecretService>(_secretService);
+        _paymentGateway = new StubExternalPaymentGateway();
+        RegisterStub<IExternalPaymentGateway>(_paymentGateway);
     }
 
     [Test]
     public async Task PlaceOrder_WithValidRequest_StoresOrderAndEmitsEvent()
     {
         // Arrange.
-        var resourceId = new ResourceId(Guid.NewGuid());
-        var credential = new Credential(username: "admin", password: "secret");
-        _secretService.AddCredential(resourceId, credential);
+        var paymentId = new PaymentId(Guid.NewGuid());
+        var payment = new Payment(amount: 100m, currency: "USD");
+        _paymentGateway.AddPayment(paymentId, payment);
 
         var request = new PlaceOrderRequest(
-            resourceId: resourceId,
+            paymentId: paymentId,
             userId: new UserId(Guid.NewGuid()),
             name: new OrderName("my-order"));
 
@@ -131,27 +120,27 @@ public sealed class OrderProcessingScenarioTests : ScenarioBaseTest // project-s
 namespace MyApp.WebApi.Tests.Scenarios.Helpers.Stubs;
 
 /// <summary>
-/// In-memory stub for <see cref="IExternalSecretService"/>.
-/// Replaces the external secret store leaf dependency so scenario tests run without a real connection.
-/// No mocks inside — seeded directly with raw credential objects.
+/// In-memory stub for <see cref="IExternalPaymentGateway"/>.
+/// Replaces the external payment gateway leaf dependency so scenario tests run without a real connection.
+/// No mocks inside — seeded directly with raw payment objects.
 /// </summary>
-public sealed class StubExternalSecretService : IExternalSecretService
+public sealed class StubExternalPaymentGateway : IExternalPaymentGateway
 {
-    private readonly Dictionary<ResourceId, Credential> _credentials = new();
+    private readonly Dictionary<PaymentId, Payment> _payments = new();
 
     /// <summary>
-    /// Seeds a credential to be returned when <see cref="GetCredentialAsync"/> is called
+    /// Seeds a payment to be returned when <see cref="GetPaymentAsync"/> is called
     /// with the given <paramref name="id"/>.
     /// </summary>
-    public void AddCredential(ResourceId id, Credential credential)
+    public void AddPayment(PaymentId id, Payment payment)
     {
-        _credentials[id] = credential;
+        _payments[id] = payment;
     }
 
     /// <inheritdoc />
-    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken cancellationToken)
+    public Task<Payment?> GetPaymentAsync(PaymentId id, CancellationToken cancellationToken)
     {
-        return Task.FromResult(_credentials.GetValueOrDefault(id));
+        return Task.FromResult(_payments.GetValueOrDefault(id));
     }
 }
 ```
@@ -160,25 +149,25 @@ public sealed class StubExternalSecretService : IExternalSecretService
 
 ```csharp
 // ❌ FORBIDDEN — mock inside a stub
-public sealed class BadStubExternalSecretService : IExternalSecretService
+public sealed class BadStubExternalPaymentGateway : IExternalPaymentGateway
 {
-    private readonly IExternalSecretService _inner =
-        Substitute.For<IExternalSecretService>(); // ← forbidden
+    private readonly IExternalPaymentGateway _inner =
+        Substitute.For<IExternalPaymentGateway>(); // ← forbidden
 
-    public Task<Credential?> GetCredentialAsync(ResourceId id, CancellationToken ct)
+    public Task<Payment?> GetPaymentAsync(PaymentId id, CancellationToken ct)
     {
-        _inner.GetCredentialAsync(id, ct)
-            .Returns(Task.FromResult<Credential?>(null)); // ← forbidden
-        return _inner.GetCredentialAsync(id, ct);
+        _inner.GetPaymentAsync(id, ct)
+            .Returns(Task.FromResult<Payment?>(null)); // ← forbidden
+        return _inner.GetPaymentAsync(id, ct);
     }
 }
 ```
 
 ## Summary
 
-| What to do                                      | How                                                           |
-|-------------------------------------------------|---------------------------------------------------------------|
-| Stub a leaf external dependency                 | Write a `Stub{Name}` class with in-memory state               |
-| Provide test data                               | Use real constructors or generator classes — no `IFixture`    |
-| Run intermediate services (auth, orchestration) | Leave them as real implementations — do NOT mock them         |
-| Configure the stub                              | Call seeding methods (`AddCredential(...)`) in `[SetUp]`      |
+| What to do | How |
+| --- | --- |
+| Stub a leaf external dependency | Write a `Stub{Name}` class with in-memory state |
+| Provide test data | Use real constructors or generator classes, no `IFixture` |
+| Run intermediate services (auth, orchestration) | Leave them as real implementations. Do NOT mock them. |
+| Configure the stub | Call seeding methods (`AddPayment(...)`) in `[SetUp]` |

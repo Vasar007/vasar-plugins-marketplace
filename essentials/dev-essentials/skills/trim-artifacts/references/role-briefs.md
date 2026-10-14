@@ -91,8 +91,9 @@ Before state: {BACKUP}. After state: {WORKSPACE}. Protect-set: {PROTECT_SET}.
 Approved tombstones: {APPROVED_TOMBSTONES}
 
 1. Run python3 -I {SKILL_DIR}/scripts/trim_report.py --before {BACKUP} --after {WORKSPACE}
-   {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}. Make sure that each ALLOWED
-   block is on the approved tombstone list. Look at each AMBIGUOUS line by hand.
+   {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}. Find out whether each ALLOWED
+   block is on the approved tombstone list. Report each one that is not.
+   Look at each AMBIGUOUS line by hand.
    Read the lines right next to each protected block. The script does not test them.
    Report added text there that reverses a decision.
 2. Sample at least 8 files across all batches. Compare key facts with the backup:

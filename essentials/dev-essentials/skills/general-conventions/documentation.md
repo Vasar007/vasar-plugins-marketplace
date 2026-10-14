@@ -2,28 +2,29 @@
 
 ## Use the Skill
 
-When creating or editing `.md` files, follow the `write-markdown` skill for full markdownlint rules.
+For the full markdownlint rules, the suppression patterns, and the `markdownlint` commands, follow the `write-markdown` skill. For the file names and the folder layout of project documentation, follow the `create-documentation` skill. If the repository already has a documentation layout, use it.
 
 ## Quick Rules
 
 - **Single H1** (`#`) as document title.
 - **Blank lines** around headings, code blocks, lists, and tables.
-- **Language identifier** on all fenced code blocks (```csharp, ```json, etc.).
+- **Language identifier** on all fenced code blocks (for example `csharp` or `json`).
 - **No trailing whitespace**, no multiple consecutive blank lines.
 - **File ends with exactly one newline**.
-- **No bare URLs** — use `<https://url>` or `[text](url)`.
-- **Consistent list markers** — use `-` (not `*`), 2-space indent for nesting.
+- **No bare URLs**. Use `<https://url>` or `[text](url)`.
+- **Consistent list markers**. Use `-` (not `*`), and a 2-space indent for nesting.
+- **No inline lint-disable comments**. Fix the formatting instead. The `write-markdown` skill names the rare exceptions.
 
 ## Frontmatter Scalar Quoting
 
-A frontmatter value (`description:`, `argument-hint:`, etc.) that starts with a YAML
-flow-indicator character (`[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@`, backtick) or
-contains an unquoted `: ` (colon-space) sequence can break YAML parsing — and the
-failure is silent: the parser drops the entire frontmatter block instead of raising a
-visible error, so the command/skill loads with no `description` or `argument-hint` at
-all. Always wrap such a value in double quotes.
+Wrap a frontmatter value (`description:`, `argument-hint:`, and others) in double quotes in two cases:
 
-**Before** (breaks — `argument-hint` starts with `[`, a flow-sequence indicator):
+- The value starts with a YAML indicator character: `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@`, or backtick.
+- The value contains an unquoted `: ` (colon-space) sequence.
+
+Such a value can break YAML parsing, and the failure is silent. The parser drops the whole frontmatter block and shows no visible error. The command or the skill then loads with no `description` and no `argument-hint`.
+
+**Before** (breaks, because `argument-hint` starts with `[`, a flow-sequence indicator):
 
 ```yaml
 ---
@@ -31,7 +32,7 @@ argument-hint: [<folder> ...] [exclude=<substring>[,<substring>...]]
 ---
 ```
 
-**After** (quoted — parses correctly):
+**After** (quoted, parses correctly):
 
 ```yaml
 ---
@@ -39,37 +40,6 @@ argument-hint: "[<folder> ...] [exclude=<substring>[,<substring>...]]"
 ---
 ```
 
-The same applies to an unquoted colon inside a plain scalar, e.g.
-`description: Safe by default: skips inactive items.` — the second `:` is read as a new
-key, not text. Quote the value, or reword to avoid the mid-sentence colon.
+The same applies to an unquoted colon inside a plain scalar. Example: in `description: Safe by default: skips inactive items.`, YAML reads the second `:` as a new key, not as text. Quote the value, or reword it to remove the colon in the middle of the sentence.
 
-Validate with `claude plugin validate` after touching any frontmatter — it does catch a
-genuinely malformed YAML value (a hard parse error). It is not a complete guarantee,
-though: some malformed-but-technically-parseable values, and command/agent frontmatter
-specifically, may not always be caught. Treat a passing run as a useful check, not full
-confirmation — when in doubt, mentally parse the value yourself (or run it through a YAML
-linter) rather than relying on validation alone.
-
-## File Naming
-
-Project documentation naming convention (when a project uses one): `{ProjectName} - {Topic}.md` (title case, spaces in topic).
-
-Repo-specific doc folder layouts vary — common pattern is a top-level `Docs/` with per-topic subfolders (features, REST API, migrations, etc.). Use the layout already present in the repo rather than introducing a new one.
-
-## Suppressions
-
-**Do NOT use inline lint-disable comments** — fix the formatting instead. For tables, reformat (align pipes, fix column counts, add blank lines) rather than suppressing warnings.
-
-Only when a rule genuinely cannot be satisfied (e.g., inline HTML for `<details>`), use inline comments as a last resort:
-
-```markdown
-<!-- markdownlint-disable-next-line MD013 -->
-Long line here...
-```
-
-## Validate Before Committing
-
-```bash
-markdownlint "path/to/file.md"
-markdownlint --fix "path/to/file.md"
-```
+After you change any frontmatter, run `claude plugin validate`. A passing run does not prove that the YAML parses. The validator can pass a value that is not valid YAML, and it can miss errors in the frontmatter of a command or an agent. If you are not sure about a value, parse it yourself, or run it through a YAML linter.

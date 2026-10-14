@@ -1,8 +1,6 @@
 # Cleanup and Provenance — Phase 9 Full Mechanics
 
-Referenced by Phase 9 of `SKILL.md`. Holds the standardized heading/bullet format, the stub/annotate
-templates, the full Phase 9c cross-repo design, the Phase 9d personal-entities design, and the
-default-on-vs-opt-in matrix summarizing all four sub-phases.
+Phase 9 of `SKILL.md` reads this file. It holds, in this order: the matrix of sub-phases, the 9a templates, the full 9c cross-repo mechanism (9c.0 to 9c.9), and the full 9d mechanism for personal entities.
 
 ---
 
@@ -10,38 +8,28 @@ default-on-vs-opt-in matrix summarizing all four sub-phases.
 
 | Sub-phase | Default | Opt-in flag | Touches |
 | --- | --- | --- | --- |
-| 9a — personal memory files | On (mode = `stub`) | `--cleanup-mode=annotate\|none` changes the mode; there is no flag to disable 9a's index-extension | The user's own non-repo config under `<claude-root>` |
-| 9b — global CLAUDE.md | Off (report-only) | `--update-global-claude-md` | The single global `<claude-root>/CLAUDE.md` |
-| 9c — cross-repo project CLAUDE.md | Off (report-only) | `--cross-repo=all\|<repo>[,<repo>...]` | Tracked CLAUDE.md files in OTHER repos, via branch + PR |
-| 9d — personal entities (commands/agents/skills) | Report-only | `--delete-personal-entities` | The user's own personal global `commands/`, `agents/`, `skills/` under `<claude-root>` |
+| 9a, personal memory files | On (mode = `stub`) | `--cleanup-mode=annotate\|none` changes the mode. No flag turns off the index extension of 9a. | The non-repo configuration of the user under `<claude-root>` |
+| 9b, global CLAUDE.md | Off (report-only) | `--update-global-claude-md` | The single global `<claude-root>/CLAUDE.md` |
+| 9c, cross-repo project CLAUDE.md | Off (report-only) | `--cross-repo=all\|<repo>[,<repo>...]` | Tracked CLAUDE.md files in OTHER repos, through a branch and a PR |
+| 9d, personal entities (commands, agents, skills) | Report-only | `--delete-personal-entities` | The personal global `commands/`, `agents/`, and `skills/` of the user under `<claude-root>` |
 
-The risk gradient: 9a touches only the user's own private config and defaults on;
-9b touches a file that loads into every session and requires per-file confirmation even when
-opted in; 9c touches someone else's product repo and requires three independently-checked
-preconditions, a once-per-run sequencing gate, and a per-repo push gate, on top of the opt-in flag.
-9d sits between 9a and 9b: like 9a it touches only the user's own non-repo config, but deletion is
-less reversible than stubbing a memory file, so its opt-in path adds three gates before removing
-anything (see 9d below).
+Phase 9 of `SKILL.md` gives the risk order of 9a to 9c. 9d sits between 9a and 9b. Like 9a, it touches only the non-repo configuration of the user. But a deletion is harder to undo than a stub of a memory file. So its opt-in path adds three gates before it removes anything (see 9d below).
 
-With `--autonomous`, each confirmation and gate in this file passes without a question. The precondition tests still run. See SKILL.md Phase 9.
+With `--autonomous`, every gate and every question in this file passes without a stop. The precondition tests still run. See SKILL.md Phase 9.
 
 ---
 
 ## 9a — Standardized heading and bullet template
 
-Extend — never invent from scratch — the `## Cross-project rules — migrated to marketplace skills`
-heading in the project's own `MEMORY.md` index. This heading follows the convention an earlier
-ad-hoc promotion in this marketplace's history introduced; this skill standardizes and continues it.
+Extend the `MEMORY.md` index of the project under the `## Cross-project rules — migrated to marketplace skills` heading. Never invent another format from scratch.
 
-One bullet per promoted item (`v<plugin-version>` here and in every template below is the recorded
-promotion version — the minimum plugin version that carries the rule — not the marketplace's current
-version):
+Add one bullet for each promoted item. In this template and in every template below, `v<plugin-version>` is the recorded promotion version: the minimum plugin version that carries the rule. It is not the current version of the marketplace.
 
 ```markdown
 - <rule summary> -> `<plugin>:<entity>` -> <date> -> v<plugin-version>
 ```
 
-Append `Rule N` or `§ section` when the rule maps to only one part of a multi-rule entity:
+If the rule maps to only one part of a multi-rule entity, append `Rule N` or `§ section`:
 
 ```markdown
 - <rule summary> -> `<plugin>:<entity>` (Rule 3) -> <date> -> v<plugin-version>
@@ -50,7 +38,7 @@ Append `Rule N` or `§ section` when the rule maps to only one part of a multi-r
 
 ### Stub template (fully-promoted memory file, `--cleanup-mode=stub`, the default)
 
-Replace the entire body with a one-line pointer, keeping the file's own frontmatter intact:
+Replace the whole body with a one-line pointer. Keep the frontmatter of the file as it is:
 
 ```markdown
 ---
@@ -63,7 +51,7 @@ current content; this file is intentionally left as a pointer only.
 
 ### Annotate template (fully-promoted memory file, `--cleanup-mode=annotate`)
 
-Prepend a pointer, keep the body as-is:
+Put a pointer above the body, and keep the body as it is:
 
 ```markdown
 > Migrated to `<plugin>:<entity>` on <date> (v<plugin-version>). The content below is kept for
@@ -74,8 +62,7 @@ Prepend a pointer, keep the body as-is:
 
 ### Partial-promotion annotation (never stubbed)
 
-When only part of a file's content was promoted, annotate only the promoted section in place —
-never replace the whole file, since the un-promoted remainder is still live content:
+If only a part of the content of a file was promoted, annotate only the promoted section, in place. Never replace the whole file, because the rest of the file is still live content:
 
 ```markdown
 > The section below was promoted to `<plugin>:<entity>` on <date> (v<plugin-version>). Kept here
@@ -86,17 +73,13 @@ never replace the whole file, since the un-promoted remainder is still live cont
 
 ### `--cleanup-mode=none`
 
-Touch nothing at all for that item — no file stub/annotate AND no `MEMORY.md` index bullet for that
-specific promoted item. Other items in the same run that used `stub`/`annotate` still get their own
-index bullets normally; `none` is scoped to the one item it was chosen for, not to the whole run.
-List the file as a manual TODO in the Phase 10 report's "Manual TODOs" list, with a one-line reminder
-of which mode would apply if re-run.
+Touch nothing at all for that item: no stub, no annotation, and no `MEMORY.md` index bullet for that promoted item. The other items of the same run that use `stub` or `annotate` still get their own index bullets. `none` applies to the one item that it was chosen for, not to the whole run. List the file as a manual TODO in the "Manual TODOs" list of the Phase 10 report. Add a one-line reminder of the mode that applies on a re-run.
 
 ---
 
 ## 9c — Cross-repo project CLAUDE.md files, full mechanism
 
-This is the long form of `SKILL.md`'s Phase 9c summary. Read this before running any part of 9c.
+This is the long form of the Phase 9c summary in `SKILL.md`. Read it before you run any part of 9c.
 
 ### 9c.0 — Classify the source file via git, not path shape
 
@@ -105,90 +88,72 @@ git -C <repo-root> ls-files --error-unmatch <path>   # tracked?
 git -C <repo-root> check-ignore -v <path>             # ignored?
 ```
 
-**Tracked** → the full cross-repo flow below. **Untracked or ignored** → treat as a private local
-file: same direct-edit-plus-per-file-confirmation path as 9b, no branch, no PR.
+**Tracked** → the full cross-repo flow below. **Untracked or ignored** → treat it as a private local file. It takes the same path as 9b: a direct edit and a question for each file, with no branch and no PR.
 
 ### 9c.1 — Flag semantics
 
-`--cross-repo=off|all|<repo>[,<repo>...]`, default `off`. Bare `--cross-repo` means `all`. The flag
-opts into a *capability* — it is not a pre-authorization. Every repo still needs its own push-gate
-`yes` at 9c.8, regardless of how the flag was set.
+`--cross-repo=off|all|<repo>[,<repo>...]`, default `off`. Bare `--cross-repo` means `all`. The flag turns on a *capability*. It does not approve anything in advance. Each repo still needs its own push-gate `yes` at 9c.8, however the flag was set.
 
-**9c-only re-entry mode.** When `--resume=<path>` is supplied — alone, or combined with
-`--cross-repo=<value>` — the ignore-if-nothing-promoted rule below does not apply. Phase 9c instead
-operates on the promotion set recorded in the `--resume` TODO file from the earlier run (9c.7), even
-though this run itself promoted nothing new. This is what makes the documented two-phase workflow
-(audit + promote now, come back and run 9c once the marketplace PR is merged) actually reachable —
-without this mode, the second invocation would always promote nothing by construction and the
-ignore-rule would always fire.
+**9c-only re-entry mode**. With `--resume=<path>`, alone or with `--cross-repo=<value>`, the ignore-if-nothing-promoted rule below does not apply. Phase 9c then works on the promotion set that the `--resume` TODO file recorded in the earlier run (9c.7), although this run promoted nothing new. This mode makes the two-phase workflow possible: audit and promote now, then run 9c after the marketplace PR merges. Without the mode, the second run always promotes nothing, and the ignore rule always fires.
 
-Outside 9c-only re-entry mode, `--cross-repo` is ignored with a warning **only when** this run
-promoted nothing (report-only run, `--dry-run`, or the user declined the Phase 5 approval gate for
-everything) **AND** no `--resume` TODO was supplied — or when it names a repo this run (or the
-resumed TODO) did not source any promoted rule from.
+Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning in two cases only:
+
+- This run promoted nothing, **AND** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, a `--dry-run` run, or a run where the user declined the Phase 5 approval gate for everything.
+- The flag names a repo that is not the source of any promoted rule of this run (or of the resumed TODO file).
 
 ### 9c.2 — Three preconditions (all required, checked per promotion)
 
 | Precondition | Check | Failure behavior |
 | --- | --- | --- |
-| **A — target marketplace side is published** | Resolve the target marketplace's actual default branch per 9c.4 step 1's fallback chain below, then run `git fetch origin <default-branch>` in the target marketplace repo (if the fetch fails — network unavailable, remote not configured, etc. — that is itself a Precondition A failure: do NOT silently fall back to a stale local `<default-branch>` ref); confirm `git merge-base --is-ancestor <this-run-marketplace-head-sha> origin/<default-branch>`; confirm the promoted entity's files exist at that ref with `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`. These two checks are sufficient proof the promotion is still published; content-integrity (has the entity been silently gutted or mangled since publish) is Precondition C's job, not A's. **If the ancestor check fails** — including when the object no longer exists locally at all, e.g. after a re-clone — do NOT treat that alone as a Precondition A failure: a squash or rebase merge (this very marketplace repo's own history uses exactly that) legitimately discards the original commit, so the SHA is never an ancestor of `origin/<default-branch>` even though the promotion is genuinely published; fall back instead to confirming (a) the entity still exists at that ref (the same `cat-file -e` check above) AND (b) the published `plugin.json` version at that ref is `>=` the `@version` persisted in the TODO entry (or this run's own Phase 8 bump, on a non-`--resume` run) — that combination satisfies Precondition A. The reference point is the version this run promoted (Phase 8's single bump), or on a `--resume` run the per-edit `<plugin>:<entity>@<version>` block (which also carries that edit's `Entity path`) together with the repo-level `Marketplace root`, `Marketplace remote`, and `Promoted commit` fields recorded in the TODO artifact (9c.7) — never today's live `plugin.json` version. **On resume**, `<marketplace-root>` is whatever SKILL.md's Phase 0 already resolved for this run (the persisted `Marketplace root`, or a remote-verified explicit `--marketplace=` — see Phase 0's resume order), and `<this-run-marketplace-head-sha>` is read directly from the persisted `Promoted commit` field, which remains authoritative regardless of where `<marketplace-root>` resolved from. Precondition A re-validates `<marketplace-root>`'s remote against the persisted `Marketplace remote` field via `git -C <marketplace-root> config --get remote.origin.url` — a mismatch here means the remote diverged since Phase 0 resolved it, Phase 0's own check was inconclusive, or Phase 0 never checked at all (step 3, no `--marketplace=` override was given), and is itself a Precondition A failure, since it means `<marketplace-root>` no longer points at the right repo | Skip this repo; defer (9c.7) |
-| **B — repo B can load the plugin** | Grep repo B's tracked `.claude/settings.json` (and/or its own CLAUDE.md "Prerequisites" section) for the target marketplace name plus the owning plugin registered/enabled | Skip this repo; report that enabling the plugin there is a separate prerequisite PR, out of scope for a docs-only cleanup; defer (9c.7) |
-| **C — the pointer is not orphaned** | `Load-bearing terms` is a comma-separated list (9c.7); match each term as a **fixed string**, never a regex (terms can carry `.`, `[`, `*`, or a leading `-`) — one grep per term: `git -C <marketplace-root> grep -n -F -e '<term>' origin/<default-branch> -- <entity-path>` at the same ref Precondition A resolved and fetched. **Every** term must match; quote one matching line per term for the eventual push-gate display | Skip this repo; defer (9c.7) |
+| **A: the target marketplace side is published** | See "Precondition A" below. | Skip this repo. Defer it (9c.7). |
+| **B: repo B can load the plugin** | Grep the tracked `.claude/settings.json` of repo B, or its own CLAUDE.md "Prerequisites" section, or both. Look for the target marketplace name and the owning plugin, registered or enabled. | Skip this repo. Report that the plugin needs a separate prerequisite PR in that repo, out of scope for a docs-only cleanup. Defer it (9c.7). |
+| **C: the pointer is not orphaned** | `Load-bearing terms` is a comma-separated list (9c.7). Match each term as a **fixed string**, never as a regex. Terms can hold `.`, `[`, `*`, or a leading `-`. Run one grep for each term, at the same ref that Precondition A resolved and fetched: `git -C <marketplace-root> grep -n -F -e '<term>' origin/<default-branch> -- <entity-path>`. **Every** term must match. Quote one matching line for each term for the later push-gate display. | Skip this repo. Defer it (9c.7). |
 
-Rationale for B specifically: removing a rule from repo B's CLAUDE.md without confirming repo B can
-load the replacement strands repo B's other users — they lose the rule and have no way to load the
-plugin that now documents it.
+#### Precondition A
 
-Any failing precondition for a given repo → skip that repo, record it in the deferred TODO (9c.7),
-continue processing the remaining repos.
+1. Resolve the real default branch of the target marketplace with the fallback chain of 9c.4 step 1 below. Then run `git fetch origin <default-branch>` in the target marketplace repo. If the fetch fails (for example, no network or no configured remote), Precondition A fails. Do NOT fall back in silence to a stale local `<default-branch>` ref.
+2. Run `git merge-base --is-ancestor <this-run-marketplace-head-sha> origin/<default-branch>`. This ancestor check tests whether the commit of this run is on the default branch.
+3. Find out whether the files of the promoted entity exist at that ref: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`. If they do not exist, Precondition A fails.
+4. The checks of steps 2 and 3 are enough proof that the promotion is still published. They do not check content integrity, for example whether someone gutted or mangled the entity after the publish. Precondition C checks that.
+5. **If the ancestor check of step 2 fails**, that alone is not a Precondition A failure. The object can also be missing locally, for example after a re-clone. That case is the same. A squash merge or a rebase merge discards the original commit on purpose, and the history of this marketplace uses such merges. Then the SHA is never an ancestor of `origin/<default-branch>`, although the promotion is published. In that case, use this fallback. If both of these hold, Precondition A passes:
+   - The entity still exists at that ref (the `cat-file -e` check of step 3).
+   - The published `plugin.json` version at that ref is `>=` the `@version` that the TODO entry holds. On a run without `--resume`, compare with the Phase 8 bump of this run.
+6. The reference point is the version that this run promoted (the single bump of Phase 8). On a `--resume` run, the reference point is in the TODO file (9c.7). It is the per-edit `<plugin>:<entity>@<version>` block, which also holds the `Entity path` of that edit. It also includes the repo-level fields `Marketplace root`, `Marketplace remote`, and `Promoted commit`. Never use the live `plugin.json` version of today.
+7. **On resume**, `<marketplace-root>` is the root that Phase 0 of `SKILL.md` already resolved for this run. It is the persisted `Marketplace root`, or an explicit `--marketplace=` with a matching remote, as the resume order of Phase 0 says. Read `<this-run-marketplace-head-sha>` directly from the persisted `Promoted commit` field. That field holds, wherever `<marketplace-root>` came from.
+8. On resume, Precondition A also compares the remote of `<marketplace-root>` again with the persisted `Marketplace remote` field: `git -C <marketplace-root> config --get remote.origin.url`. A mismatch is a Precondition A failure, because `<marketplace-root>` then no longer points at the right repo. A mismatch has three possible causes:
+   - The remote changed after Phase 0 resolved it.
+   - The remote check of Phase 0 was inconclusive.
+   - Phase 0 did no remote check (step 3, with no `--marketplace=` override).
+
+The reason for B: the run can remove a rule from the CLAUDE.md of repo B although repo B cannot load the replacement. Then the other users of repo B lose the rule, and they have no way to load the plugin that now documents it.
+
+If a precondition fails for a repo, skip that repo, record it in the deferred TODO (9c.7), and continue with the other repos.
 
 ### 9c.3 — Sequencing gate (asked once per run)
 
-Before any worktree is created for ANY repo, show the mechanical Precondition-A check results, then
-ask exactly once:
+Before the run creates a worktree for ANY repo, show the results of the mechanical Precondition A checks. Then ask exactly once:
 
 > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
 > you ready for other repos to reference it? (yes / not yet)
 
-Only an explicit `yes` proceeds — "sure", "ok", silence, or anything else is treated as "not yet".
-On anything but explicit yes: stop, write the deferred TODO (9c.7), touch nothing in any other repo.
+Only an explicit `yes` lets the run go on. The run treats "sure", "ok", silence, and every other answer as "not yet". On any answer other than an explicit yes, stop: write the deferred TODO (9c.7), and touch nothing in any other repo.
 
-If Precondition A's automated checks already show a failure (not merged, entity missing at the
-merged ref), skip the question entirely — report the failure and defer directly.
+The automated checks of Precondition A can already show a failure (not merged, or the entity is missing at the merged ref). In that case, skip the question. Report the failure, and defer directly.
 
 ### 9c.4 — Per-repo mechanism
 
-Process repos sequentially, in ascending absolute-path order (stable reports across runs; one repo
-STOPping never aborts the rest):
+Process the repos one after the other, in ascending order of absolute path. The order keeps the reports stable across runs. A STOP in one repo never aborts the other repos.
 
-1. **Preflight.** A clean-tree check scoped to the target file, plus a separate looser check for
-   unrelated dirt elsewhere in the repo (see the dirty-repo matrix below). Detect the actual default
-   branch: (1) run `git symbolic-ref refs/remotes/origin/HEAD` and strip the
-   `refs/remotes/origin/` prefix to get the bare branch name — this returns the remote's actual
-   default (e.g. `main`, `master`, or `release/1.0/master`) — never assume `main`/`master`; (2) if
-   that command fails or returns nothing, check `git rev-parse --verify origin/main` then
-   `git rev-parse --verify origin/master` and use the first that succeeds; (3) if none succeeds,
-   **STOP and ask the user for the default branch**. Fetch the resolved branch. If the fetch fails
-   (network unavailable, remote not configured, etc.), **STOP and ask the user** — do NOT silently
-   fall back to a stale local `<default-branch>` ref.
-2. **Branch name.** `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>` (see `--branch-prefix` in
-   `SKILL.md`'s Arguments table), the same branch name across every repo touched in this run.
-   `chores/` is chosen over `researches/` because this is routine maintenance in someone else's
-   product repo, not exploratory work.
-3. **Worktree creation.** Delegate to the target marketplace's own worktree-management skill if one
-   exists (in this marketplace: `dev-essentials:git-worktree-management`), using its
-   pipeline-mode / pre-confirmed path — the `--cross-repo` flag plus the 9c.3 sequencing gate already
-   constitute confirmation, so there is no need for a second confirmation prompt from the
-   worktree skill itself. If no such skill is available in the target marketplace, create the
-   worktree directly with `git worktree add`, using the same path convention
-   (`<repo-root>/.claude/worktrees/<branch>/`), and note the degraded path explicitly in the
-   eventual report.
-4. **Surgical edit.** Remove the promoted section; insert or extend the pointer per the 9c.5
-   template below. Touch nothing else. Verify with `git status --porcelain` showing exactly the
-   target file(s) before committing.
-5. **Commit.** One commit per repo. Stage with an explicit `git add <path>` — never `-A` or `.`.
-   Commit message names the target marketplace, plugin, skill, and version, with the marketplace
-   name interpolated from the resolved `--marketplace` value, never hardcoded:
+1. **Preflight**. Run a clean-tree check scoped to the target file. Also run a separate, looser check for unrelated dirt elsewhere in the repo (see the dirty-repo matrix below). Then find the real default branch:
+   1. Run `git symbolic-ref refs/remotes/origin/HEAD`, and strip the prefix `refs/remotes/origin/` to get the bare branch name. This gives the real default of the remote, for example `main`, `master`, or `release/1.0/master`. Never assume `main` or `master`.
+   2. If that command fails or prints nothing, run `git rev-parse --verify origin/main`, then `git rev-parse --verify origin/master`. Use the first one that succeeds.
+   3. If none succeeds, **STOP and ask the user for the default branch**.
+
+   Fetch the resolved branch. If the fetch fails (for example, no network or no configured remote), **STOP and ask the user**. Do NOT fall back in silence to a stale local `<default-branch>` ref.
+2. **Branch name**. `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>` (see `--branch-prefix` in the Arguments table of `SKILL.md`). Every repo of this run gets the same branch name. The prefix `chores/` fits better than `researches/`, because this is routine maintenance in the product repo of someone else, not exploratory work.
+3. **Worktree creation**. If the target marketplace has its own worktree-management skill, delegate to it. In this marketplace, that skill is `dev-essentials:git-worktree-management`, with its pipeline mode. The `--cross-repo` flag and the 9c.3 sequencing gate already count as the approval, so the worktree skill needs no second question. If the target marketplace has no such skill, create the worktree directly with `git worktree add`, with the same path convention (`<repo-root>/.claude/worktrees/<branch>/`). Note the degraded path explicitly in the report.
+4. **Surgical edit**. Remove the promoted section. Insert or extend the pointer with the 9c.5 template below. Touch nothing else. Before the commit, run `git status --porcelain`. It must show exactly the target file or files.
+5. **Commit**. One commit for each repo. Stage with an explicit `git add <path>`, never with `-A` or `.`. The commit message names the target marketplace, the plugin, the skill, and the version. Take the marketplace name from the resolved `--marketplace` value. Never hardcode it:
 
    ```text
    Point CLAUDE.md at <plugin>:<entity> (v<plugin-version>) in <marketplace-name>
@@ -197,65 +162,43 @@ STOPping never aborts the rest):
    under "Cross-project rules — migrated to marketplace skills".
    ```
 
-6. **Push gate.** See 9c.8.
+6. **Push gate**. See 9c.8.
 7. **PR creation**, host-detected from `git config --get remote.origin.url`:
    - GitHub pattern + `gh` / GitHub MCP tooling available → use that, following
      `dev-essentials:github-mcp-conventions` (owner/repo passed verbatim on every call, per that
      skill's Rule 1 and Rule 2).
-   - Any other host, or the matching tool isn't available → report the pushed branch, the composed
-     PR title/body ready to paste, and a host-appropriate "create PR" URL pattern if derivable, or
-     "open a PR through your hosting provider" if not.
+   - Any other host, or no matching tool: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
 
 ### 9c.5 — Pointer template
 
-Extend — never duplicate — a `## Cross-project rules — migrated to marketplace skills` heading
-(reuse this exact heading text, per 9a's own convention, so a repo's own tooling or habits around
-that heading keep working) with one bullet per promoted rule:
+Extend a `## Cross-project rules — migrated to marketplace skills` heading, and never add a second one. Reuse this exact heading text, by the convention of 9a, so that the tooling and habits of a repo around that heading keep working. Add one bullet for each promoted rule:
 
 ```markdown
 - **<Rule title>** (<one-line gist, 5-15 words>) -> `<plugin>:<entity>`
 ```
 
-Append `Rule N` / `§ section` as needed, same convention as 9a above. The one-line gist is
-load-bearing, not decoration — it is what lets anyone reading repo B's CLAUDE.md who has not yet
-updated their plugin still get the gist of the rule without opening the marketplace entity. Only
-fall back to an inline stub-in-place (keep the heading, replace only its body with a short pointer
-blockquote) when the removed heading text is referenced elsewhere in the repo — grep for it first,
-before assuming the extend-the-index approach is safe.
+Append `Rule N` or `§ section` as needed, by the same convention as 9a above. The one-line gist is required. It helps a reader of the CLAUDE.md of repo B whose plugin is not updated yet. That reader still gets the gist of the rule without the marketplace entity. Use an inline stub in place (keep the heading, and replace only its body with a short pointer blockquote) in one case only: other files of the repo refer to the removed heading text. Grep for that text first, before you assume that the extension of the index is safe.
 
 ### 9c.6 — Dirty-repo handling matrix
 
 | Condition | Handling |
 | --- | --- |
-| Target file itself modified/staged/conflicted | Hard STOP, no override |
-| Rebase/merge/cherry-pick in progress | Hard STOP, no override |
+| Target file itself modified, staged, or in conflict | Hard STOP, no override |
+| Rebase, merge, or cherry-pick in progress | Hard STOP, no override |
 | Detached or unborn HEAD | Hard STOP, no override |
-| Target file untracked | Route to 9c.0's other branch (private-file path), not this flow |
+| Target file untracked | Send it to the other branch of 9c.0 (the private-file path), not to this flow |
 | Worktree creation fails for any reason | Hard STOP, no override |
-| Unrelated dirt elsewhere in the repo | Report and ask once; default answer on anything but explicit yes = skip. The isolated worktree does not touch this dirt regardless, but ask before proceeding anyway |
+| Unrelated dirt elsewhere in the repo | Report it and ask once. Any answer other than an explicit yes means skip. The isolated worktree does not touch this dirt, but ask before you go on anyway |
 
-Never force-push. Never amend or rebase repo B's branch. Never stash or checkout-discard a user's
-file in repo B. Never touch `.gitignore` or `.claude/settings.json` in repo B.
+Never force-push. Never amend or rebase the branch of repo B. Never stash a file of the user in repo B, and never discard it with `git checkout`. Never touch `.gitignore` or `.claude/settings.json` in repo B.
 
 ### 9c.7 — Deferred TODO artifact
 
-Write one markdown artifact in the CALLING repo (wherever this skill was invoked from). Apply
-Phase 10's own propose-then-confirm pattern to this artifact too: propose a default path — next to
-wherever `--report=<path>` would otherwise go, or a sensible default like
-`.claude-audit-todo-<date>.md` in the current working directory if no other convention exists — and
-ask for confirmation before writing. If the user declines a file, print the full TODO content
-inline in chat instead — identical content and format to the entry template below. Because
-`--resume=<path>` reads a file and nothing else, say so explicitly when printing: the user must
-save that block verbatim to a file themselves and pass that path as `--resume=<path>`; until they
-do, this deferred promotion cannot be resumed.
+Write one Markdown artifact in the CALLING repo, the repo where the user invoked this skill. Use the propose-then-ask pattern of Phase 10 for this artifact too. Propose a default path: next to the place where `--report=<path>` puts its report. If no such convention exists, use a sensible default like `.claude-audit-todo-<date>.md` in the current working directory. Ask before you write. If the user declines a file, print the full TODO content in chat instead, with the same content and format as the entry template below. `--resume=<path>` reads only a file. Print it with an explicit note: the user must save that block word for word to a file and pass its path as `--resume=<path>`. Until the user does that, this deferred promotion cannot resume.
 
-**Written whenever any repo is skipped or deferred for any reason — including simply because
-`--cross-repo` was `off` (the default) for a promoted rule sourced from a tracked project CLAUDE.md
-file**, not only when `--cross-repo` was set but failed a gate. This is what makes the 9c-only
-re-entry mode (9c.1) usable on a later, separate invocation.
+**Write the TODO file each time that a repo is skipped or deferred, for any reason**. This includes the case where `--cross-repo` was `off` (the default) for a promoted rule from a tracked project CLAUDE.md file. It is not only for a set flag that failed a gate. The file makes the 9c-only re-entry mode (9c.1) usable in a later, separate run.
 
-One entry per pending repo, and within it one `### <plugin>:<entity>@<version>` block per pending
-edit — repeat the block for every promoted section landing in that repo, per 9c.9's batching rule:
+Write one entry for each pending repo. Inside it, write one `### <plugin>:<entity>@<version>` block for each pending edit. Repeat the block for every promoted section that lands in that repo, by the batching rule of 9c.9:
 
 ```markdown
 ## <repo-name>
@@ -278,82 +221,58 @@ edit — repeat the block for every promoted section landing in that repo, per 9
 - Pointer bullet(s) to add: <quoted bullet(s)>
 ```
 
-Resumable later via `--resume=<path> --cross-repo=<repo|all>` without re-running the whole audit.
-Resume does **not** jump directly to 9c.4 — it re-enters at 9c.2 (re-checking the three preconditions
-against current state, since time has passed, using whatever marketplace root SKILL.md's Phase 0
-already resolved for this run — see Phase 0's resume order) and then re-runs 9c.3's sequencing
-confirmation once for the resumed set, only then proceeding to 9c.4 for the named repo(s). Re-running
-that gate rather than skipping it is what keeps 9c.9's "sequencing is absolute" guarantee intact.
-Phase 5's approval gate is NOT re-run; the approvals being resumed were already recorded in the
-original run's TODO artifact. On resume, Precondition A's `git merge-base --is-ancestor` and
-`git -C <marketplace-root> cat-file -e` checks (9c.2) use that Phase-0-resolved `<marketplace-root>`
-and read `<this-run-marketplace-head-sha>` directly from the persisted `Promoted commit` field, which
-remains authoritative regardless of where `<marketplace-root>` resolved from or an unrelated later
-version bump — the resumed run may be launched from a different location, and only the persisted
-`Promoted commit` is an immutable reference to what the original run actually promoted.
+A later run resumes the file with `--resume=<path> --cross-repo=<repo|all>`, without a new full audit. The resume does **not** jump directly to 9c.4:
+
+1. It re-enters at 9c.2 and checks the three preconditions again against the current state, because time went by since the earlier run. It uses the marketplace root that Phase 0 of `SKILL.md` already resolved for this run (see the resume order of Phase 0).
+2. It runs the 9c.3 sequencing question again, once for the resumed set. The repeated gate keeps the guarantee of 9c.9 that sequencing is absolute.
+3. Only then does it go on to 9c.4 for the named repo or repos.
+
+The Phase 5 approval gate does NOT run again, because the TODO file of the original run already holds the approvals. On resume, the Precondition A checks `git merge-base --is-ancestor` and `git -C <marketplace-root> cat-file -e` (9c.2) use the `<marketplace-root>` that Phase 0 resolved. They read `<this-run-marketplace-head-sha>` directly from the persisted `Promoted commit` field. That field holds, wherever `<marketplace-root>` came from, and after any unrelated later version bump. The resumed run can start from a different location. Only the persisted `Promoted commit` is an immutable reference to what the original run promoted.
 
 ### 9c.8 — Verbatim push gate per repo
 
-Show, per repo, before asking:
+Before you ask, show these facts for each repo:
 
-- Repo root and remote.
-- Branch, worktree path.
-- Commit sha and subject.
-- Diff stat.
-- Removed section heading(s).
-- Pointer(s) added.
-- The Precondition-C coverage quotes — one matching line per load-bearing term, always the output of
-  this run's own 9c.2 Precondition-C pass: re-run Precondition C's per-term grep against current
-  content and display the resulting matching line for each term from the published entity, never a
-  stale captured quote carried forward from an earlier pass. On resume specifically, this matters
-  because the grep's input — the persisted `Load-bearing terms` — comes from the TODO artifact
-  rather than from a Precondition-C pass run moments earlier in the same invocation, but the
-  requirement to re-derive fresh applies on every run, not only a resumed one.
-- The Precondition-B "plugin enabled: yes" confirmation.
-- The planned PR's source/target branches and linked-issue status (if any).
+- The repo root and the remote.
+- The branch and the worktree path.
+- The commit SHA and the subject.
+- The diff stat.
+- The removed section heading or headings.
+- The added pointer or pointers.
+- The coverage quotes of Precondition C: one matching line for each term of `Load-bearing terms`. Run the per-term grep of Precondition C again on the current content of the published entity, and show its matching line for each term. Never show a stale quote from an earlier pass. This holds on every run. On a resume run, the grep takes the persisted `Load-bearing terms` from the TODO file. No Precondition C pass of the same run gives them.
+- The result of Precondition B: "plugin enabled: yes".
+- The source and target branches of the planned PR, and the status of any linked issue.
 
 Then ask explicitly:
 
 > Push this branch and open a PR? (yes / no / push-only)
 
-- `no` — stays local, reported as prepared-but-unpushed.
-- `push-only` — push without opening a PR.
-- There is no separate pre-edit confirmation step. The edit lands inside an isolated worktree,
-  invisible to the repo's working tree until push — so this diff-bearing push gate is the single
-  decision point for the whole repo's change.
+- `no`: the branch stays local. The report lists it as prepared but not pushed.
+- `push-only`: push without a PR.
+- No separate question comes before the edit. The edit lands in an isolated worktree, which the working tree of the repo does not see until the push. So this push gate, which shows the diff, is the single decision point for the whole change of the repo.
 
 ### 9c.9 — Guardrails specific to 9c
 
-- The `--cross-repo` flag is not a pre-authorization — every repo still gets its own push-gate
-  `yes`.
-- Sequencing (9c.2 preconditions + the 9c.3 gate) is absolute — there is no exception for "it's just
-  docs".
-- One repo = one worktree, one branch, one commit, one PR. Multiple promoted sections landing in the
-  same repo's CLAUDE.md batch into that repo's single commit.
+- The `--cross-repo` flag does not approve anything in advance. Each repo still gets its own push-gate `yes`.
+- Sequencing (the 9c.2 preconditions and the 9c.3 gate) is absolute. There is no exception for a change that is "only docs".
+- One repo means one worktree, one branch, one commit, and one PR. Several promoted sections for the CLAUDE.md of one repo go into the single commit of that repo.
 - Never force past a dirty product repo.
-- No hard dependency on any specific host's tooling — always have a manual fallback (report pushed
-  branch + composed PR text + "open a PR through your hosting provider").
-- Worktrees persist until PR merge, per the worktree skill's own lifecycle rule (see
-  `dev-essentials:git-worktree-management`, if present in the target marketplace).
-- Pointers always keep a one-line gist so they degrade gracefully for anyone who has not yet updated
-  their plugins.
+- No hard dependency on the tools of a specific host. Always keep a manual fallback: report the pushed branch and the composed PR text, and say "open a PR through your hosting provider".
+- Worktrees stay until the PR merges, by the lifecycle rule of the worktree skill (see `dev-essentials:git-worktree-management` in the target marketplace, where it exists).
+- Pointers always keep a one-line gist, so that they still help each reader whose plugins are not updated yet.
 
 ---
 
 ## 9d — Personal entities (commands/agents/skills) cleanup
 
-Applies to personal global commands, agents, and skills under
-`<claude-root>/{commands,agents,skills}` that were fully superseded by an entity promoted or
-E-fixed this run (Phase 6), **or** classified **F-stale** by Phase 3's classification step because
-an already-shipped marketplace entity supersedes their content — not F-stale for an unrelated reason,
-e.g. a dangling reference to a deleted file.
+9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in two cases:
+
+- An entity that this run promoted or E-fixed (Phase 6) fully supersedes the file.
+- The classification step of Phase 3 classified the file **F-stale**, because an already-shipped marketplace entity supersedes its content. F-stale for an unrelated reason does not count, for example a dangling reference to a deleted file.
 
 ### Default — report-only
 
-List each superseded personal file with a suggested manual action — either edit it to reference the
-new marketplace entity in place of its own duplicated content, or delete it outright — in the
-Phase 10 report's "Manual TODOs" list, the same shape already used for a project-repo CLAUDE.md file
-when `--cross-repo` is off:
+List each superseded personal file in the "Manual TODOs" list of the Phase 10 report, with a suggested manual action. The action is one of two: edit the file to point to the new marketplace entity instead of its own duplicated content, or delete the file outright. The list has the same shape as the entry for a project-repo CLAUDE.md file while `--cross-repo` is off:
 
 ```markdown
 - `<claude-root>/commands/<name>.md` — superseded by `<plugin>:<entity>`. Suggested action: delete
@@ -363,102 +282,58 @@ when `--cross-repo` is off:
   `<plugin>:<entity>` was already shipped.
 ```
 
-Nothing is deleted or edited under this default. The two routes recover differently, mirroring 9c.1's
-"this is what makes re-entry reachable" framing:
+This default deletes and edits nothing. The two routes recover in different ways:
 
-- A **promoted/E-fixed-this-run** deferral becomes reachable once the marketplace PR merges — a
-  later run then classifies the file F-stale-because-already-shipped, and it takes the F-stale
-  branch of the same three gates described below.
-- An **already-shipped/F-stale** deferral needs no PR merge at all: there is no this-run promotion to
-  key a later re-entry off, but there is also nothing pending on one — just re-run the audit directly
-  with `--scope=personal-entities --delete-personal-entities`.
+- A deferral **promoted or E-fixed in this run** becomes reachable after the marketplace PR merges. A later run then classifies the file F-stale, because the entity is already shipped. The file then takes the F-stale branch of the same three gates below.
+- An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Re-run the audit directly with `--scope=personal-entities --delete-personal-entities`.
+
+### Partially superseded wrapper
+
+A wrapper can still need its personal layer and also carry an F-stale section. The personal layer stays by the orthogonality rule of Step 4 in `references/classification-framework.md`, because it keeps B-taste or pure-forwarding sections. The F-stale section is a divergence that an upstream fix already removed. Step 4 tests the self-label of the wrapper against the current content of the shipped entity. Such a wrapper is **never eligible for deletion**, even with `--delete-personal-entities`.
+
+Handle it like a partially promoted memory file in 9a, which the run never stubs. Report only. Name each section to trim, and the shipped entity and version that now covers it. The two recovery routes of 9d apply:
+
+- A section that an EARLIER run fixed with E-fix-shipped can be trimmed now.
+- A section whose fix landed in THIS run can be trimmed only after that promotion is published. The publish checks are the same as for a fully superseded file.
 
 ### Opt-in — `--delete-personal-entities` (bare boolean, default off)
 
-Allows the skill to delete promoted personal entity files itself, gated like 9c's sequencing gate
-but scoped to the marketplace-publish and content-integrity checks plus a caller-side load check,
-since personal entities are not tied to any target repo. There is no *repo-side* equivalent of
-Precondition B — its repo-B framing, protecting a product repo's other users, doesn't apply — but its
-underlying concern does, redirected at the caller: don't remove an entrypoint whose replacement the
-user can't load. Precondition C's content-integrity check is marketplace-side and applies unchanged,
-which is why step 1 below reuses both:
+This flag lets the skill delete the personal entity files in scope itself. Its gates are like the 9c sequencing gate. But personal entities belong to no target repo. So the gates cover only three checks: the marketplace-publish check, the content-integrity check, and a load check on the caller side. Precondition B has no *repo-side* counterpart here. Its frame of repo B protects the other users of a product repo, and that does not apply. But its concern does apply, aimed at the caller: do not remove an entry point whose replacement the user cannot load. The content-integrity check of Precondition C is on the marketplace side and applies unchanged. So step 1 below reuses both:
 
-1. **Automated publish and local-load verification**, run once per run before showing any
-   human-facing prompt — runs 9c.2's Preconditions A and C exactly as specified there, against the
-   target marketplace, rather than restating their mechanics here. Precondition A's mechanics branch
-   on which route classified the personal file in scope:
+1. **Automated check of publication and local load**. Run it once for each run, before any question to the user. It runs Preconditions A and C of 9c.2 exactly as 9c.2 specifies them, against the target marketplace. This step does not restate their mechanics. Precondition A branches on the route that put the personal file in scope:
 
-   - **Promoted/E-fixed this run** (Phase 6 output): Precondition A **in full**, including its
-     default-branch fallback chain, its fetch-failure rule, and — load-bearing here — its
-     ancestor-check-failure fallback (entity still exists at the ref AND the published `plugin.json`
-     version at that ref is `>=` the promoted `@version`): this very marketplace's history is
-     squash-merged, so the raw `git merge-base --is-ancestor` check routinely fails on a genuinely
-     published promotion, and dropping the fallback would make this step report-only after every
-     normal merge. The reference point is always this run's own Phase 8 bump and
-     `<this-run-marketplace-head-sha>`, not a persisted TODO field — 9c.1's re-entry mode is 9c-only.
-   - **Already-shipped/F-stale** (Phase 3 classification, new): there is no this-run commit to prove
-     publication — the shipped entity superseding this file predates this run entirely. Precondition
-     A still resolves the target marketplace's actual default branch via 9c.4 step 1's fallback chain
-     and still runs `git fetch origin <default-branch>` under the same fetch-failure rule — a failed fetch is a hard
-     Precondition-A failure on this branch too, exactly as it is on the promoted/E-fixed branch. ONLY
-     the ancestor check (`git merge-base --is-ancestor`) and the `plugin.json` version-floor check are
-     skipped on this branch: there is no this-run commit or recorded promotion version for either to
-     compare against. What remains, once the default branch is resolved and fetched, is the existence
-     check, `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
+   - **Promoted or E-fixed in this run** (output of Phase 6): Precondition A **in full**. This includes its default-branch fallback chain and its fetch-failure rule. It also includes its fallback for a failed ancestor check: the entity still exists at the ref, AND the published `plugin.json` version at that ref is `>=` the promoted `@version`. The fallback matters most here. The history of this marketplace uses squash merges, so the raw `git merge-base --is-ancestor` check often fails on a published promotion. Without the fallback, this step falls back to report-only after every normal merge. The reference point is always the Phase 8 bump of this run and `<this-run-marketplace-head-sha>`, not a persisted TODO field. The re-entry mode of 9c.1 is for 9c only.
+   - **Already shipped, F-stale** (classification of Phase 3): no commit of this run can prove the publication. The shipped entity that supersedes this file is older than this run. Precondition A still resolves the real default branch of the target marketplace with the fallback chain of 9c.4 step 1. It still runs `git fetch origin <default-branch>` under the same fetch-failure rule. A failed fetch is a hard Precondition A failure on this branch too, as on the promoted or E-fixed branch. This branch skips ONLY two checks: the ancestor check (`git merge-base --is-ancestor`) and the version-floor check of `plugin.json`. No commit of this run and no recorded promotion version exist for them to compare with. After the run resolves and fetches the default branch, the existence check is left: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
 
-   Precondition C is UNCHANGED across both branches — same mechanism, re-verifying that the personal
-   file's own load-bearing terms are still covered in the shipped entity. Per superseded personal
-   file, Precondition C at the same ref A resolved and fetched — one `git -C <marketplace-root> grep
-   -n -F -e '<term>' origin/<default-branch> -- <entity-path>` run per comma-separated term (each
-   matched as a fixed string, never a regex) — against every one of that personal file's own
-   load-bearing terms — since A's "still published" proof is explicitly scoped to NOT cover content
-   mangling; record the matching lines — one matching line per load-bearing term — for step 3's
-   per-file prompt below. Then the caller-side
-   counterpart of Precondition B — B's mechanics with repo B replaced by the caller's own
-   environment: grep `<claude-root>/settings.json` (and/or the global `<claude-root>/CLAUDE.md`
-   "Prerequisites" section) for the target marketplace name plus the owning plugin registered or
-   enabled. Not registered → do not delete; report enabling the plugin locally as a prerequisite, so
-   the user isn't left without a loadable replacement for the entrypoint being removed. If A, C, or
-   the caller-side load check fails, skip straight to the report-only default above for every personal
-   entity file in scope this run — do not show the marketplace-publish gate or the per-file
-   confirmation below at all — the same way 9c.3 skips its own sequencing question when Precondition
-   A's automated checks already show a failure.
+   Precondition C is UNCHANGED on both branches. With the same mechanism, it checks again that the shipped entity still covers each term in the `Load-bearing terms` of the personal file. The "still published" proof of A explicitly does NOT cover mangled content, so cover every term. For each superseded personal file, run Precondition C at the same ref that A resolved and fetched:
 
-2. **Marketplace-publish gate**, asked once per run, only once step 1 has passed (reuses 9c.3's "has
-   this been merged, are you ready" style confirmation). Wording depends on which branch step 1 took:
+   - Run one `git -C <marketplace-root> grep -n -F -e '<term>' origin/<default-branch> -- <entity-path>` for each comma-separated term.
+   - Match each term as a fixed string, never as a regex.
+   - Record one matching line for each term, for the per-file question of step 3.
 
-   - **Promoted/E-fixed this run** — unchanged:
+   Then run the caller-side counterpart of Precondition B. It is the mechanism of B, with repo B replaced by the environment of the caller. Grep `<claude-root>/settings.json`, or the "Prerequisites" section of the global `<claude-root>/CLAUDE.md`, or both. Look for the target marketplace name and the owning plugin, registered or enabled. If the plugin is not registered, do not delete. Report that the user must turn on the plugin locally first. Then the user keeps a loadable replacement for the entry point that the run removes.
 
-     > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
-     > you ready to delete the personal file(s) it supersedes? (yes / not yet)
+   If A, C, or the caller-side load check fails, go straight to the report-only default above. This holds for every personal entity file in scope of this run. Do not show the marketplace-publish gate or the per-file question below at all. 9c.3 skips its sequencing question in the same way after a failed automated check of Precondition A.
 
-   - **Already-shipped/F-stale** — publication is already mechanically proven by Precondition A's
-     existence check plus Precondition C's coverage grep at the same ref, so "has the PR for this run
-     been merged" has no referent; ask a readiness confirmation instead. On this branch,
-     `v<plugin-version>` is the published `plugin.json` version read at `origin/<default-branch>` —
-     display only, since this branch has no this-run promotion version to use as a floor/gate check:
+2. **Marketplace-publish gate**. Ask it once for each run, and only after step 1 passed. It reuses the style of the 9c.3 question ("is it merged, and are you ready"). The wording depends on the branch that step 1 took.
 
-     > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>` — ready to
-     > delete the N personal file(s) it supersedes? (yes / not yet)
+   For a file that this run promoted or E-fixed, ask this question, unchanged.
 
-   Both branches still ask this gate — publication being already proven shortens the question, it
-   does not remove it, since this is still an irreversible delete. Anything but an explicit `yes` —
-   falls back to the report-only default above for every personal entity file in scope this run.
+   > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
+   > you ready to delete the personal file(s) it supersedes? (yes / not yet)
 
-   Step 1 branches per file on which route classified it, but this gate is asked once per run. On a
-   run whose scope contains both a promoted/E-fixed-this-run deferral and an already-shipped/F-stale
-   file, ask the gate exactly once using the stricter promoted/E-fixed wording, and let that single
-   `yes` cover every file in scope for the run regardless of which route classified it — mirroring
-   9c.3's precedent of one absolute run-level sequencing gate rather than a per-item gate.
+   For an already-shipped, F-stale file, the publication is already proven. The existence check of Precondition A and the coverage grep of Precondition C at the same ref prove it. So "has the PR for this run been merged" has no referent. Ask a readiness question instead. On this branch, `v<plugin-version>` is the published `plugin.json` version at `origin/<default-branch>`. It is for display only, because this branch has no promotion version of this run to use as a floor in a check. Ask this question.
 
-3. **Per-file confirmation**, once both step 1's automated checks and step 2's gate have passed.
-   Deletion is less reversible than stubbing a memory file, so treat it at least as cautiously as 9b's
-   per-file CLAUDE.md edit confirmation — ask individually, per file, immediately before each
-   deletion, carrying step 1's matching Precondition-C grep lines as required coverage quotes — one
-   matching line per load-bearing term, mirroring 9c.8's required coverage quotes:
+   > `<plugin>:<entity>` (`v<plugin-version>`) is published on `<default-branch>` — ready to
+   > delete the N personal file(s) it supersedes? (yes / not yet)
+
+   Both branches still ask this gate. The proven publication makes the question shorter, but it does not remove it, because the deletion cannot be undone. Any answer other than an explicit `yes` falls back to the report-only default above for every personal entity file in scope of this run.
+
+   Step 1 branches for each file on its route, but the run asks this gate once. A run can have both a deferral promoted or E-fixed in this run and an already-shipped, F-stale file in scope. Then ask the gate exactly once, with the stricter wording for the promoted or E-fixed file. That single `yes` covers every file in scope of the run, whatever route classified it. This follows the precedent of 9c.3: one absolute gate for the run, not a gate for each item.
+
+3. **Per-file question**. Ask it after the automated checks of step 1 and the gate of step 2 passed. A deletion is harder to undo than a stub of a memory file. So treat it at least as carefully as the per-file question of 9b about a CLAUDE.md edit. Ask for each file, right before its deletion. Carry the matching Precondition C grep lines of step 1 as required coverage quotes: one matching line for each term, like the required coverage quotes of 9c.8. Ask this question.
 
    > Delete `<path>`? Its content is now covered by `<plugin>:<entity>` (`v<plugin-version>`), verified
    > at `origin/<default-branch>`: "`<matching line per term>`". (yes/no)
 
-   `no` — leave the file in place; list it in the Phase 10 report as a manual TODO instead (same
-   line shape as the report-only default above).
+   `no`: leave the file in place. List it in the Phase 10 report as a manual TODO instead, with the same line shape as the report-only default above.

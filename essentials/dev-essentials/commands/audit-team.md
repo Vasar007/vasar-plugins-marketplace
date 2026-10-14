@@ -7,9 +7,9 @@ Launch a team of agents to review artifacts/designs from multiple professional p
 **Arguments**: $ARGUMENTS
 
 - Format: `<path> [agent-count] [model]`
-- `path` — file or folder to review (required). If not provided, use **AskUserQuestion** to ask.
-- `agent-count` — number of agents (optional, default: 5). Maps to roles below.
-- `model` — model to use for agents (optional, default: current model).
+- `path`: the file or folder to review (required). If it is not provided, use **AskUserQuestion** to ask.
+- `agent-count`: the number of agents (optional, default: 5). Maps to roles below.
+- `model`: the model of the agents (optional, default: current model).
 
 If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
 
@@ -31,7 +31,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
 1. **Read the target**
 
-   Read all `.md` files at the given path (recursively if folder). Summarize the content so you can include it in each agent's prompt.
+   Read all `.md` files at the given path. If the path is a folder, also read the `.md` files in its subfolders. Summarize the content so you can include it in each agent's prompt.
 
 2. **Launch the agent team**
 
@@ -54,8 +54,9 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
       - **Warnings** — could cause problems, should be addressed
       - **Suggestions** — would improve quality (only include if clearly valuable)
    4. For each finding: state which file/section, what the issue is, and a concrete suggestion.
-   5. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
-   6. Present your final findings with your role clearly stated at the top.
+   5. Test each claim about the codebase against the real code. If you did not test a suggested fix against a primary source (official docs or a working example in the code), label it as a theory, not as a fix.
+   6. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
+   7. Present your final findings with your role clearly stated at the top.
    ```
 
    **Launch:** launch all agents in a single message so they run concurrently, then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).
@@ -64,7 +65,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
    After all agents finish:
    - Collect all findings from all agents.
-   - Deduplicate — if multiple agents found the same issue, merge into one entry and note which roles flagged it.
+   - Deduplicate. If several agents found the same issue, merge them into one entry, and name the roles that flagged it.
    - Present a unified report:
 
    ```md
@@ -86,8 +87,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
 ## Guardrails
 
-- **Read-only** — do not modify any files. Only report findings.
-- **Real issues only** — instruct each agent to reverify. Then reverify again during consolidation.
-- **Be specific** — every finding must reference a concrete file/section and include a resolution suggestion.
-- **Verify against real code** — agents should check claims against the actual codebase.
-- **Verify before confident fixes.** When any agent (or this command during consolidation) proposes a resolution for any technical claim — config, schema, library API, method signature, codebase reference, or DI lifetime — require verification against a primary source: official docs, a known-working real example, or a throwaway test. Pattern-matching a plausible-sounding cause and presenting it as the answer wastes review cycles and erodes trust. Unverified theories must be framed as theories ("this might be …"), not fixes. See `dev-essentials:engineering-discipline`.
+- **Read-only**: do not change any file. Only report findings.
+- **Real issues only**: each agent reverifies its findings (step 6 of the prompt). Reverify them again during consolidation.
+- **Be specific**: every finding names a concrete file/section and includes a resolution suggestion.
+- **Verify before confident fixes**: apply this rule to the findings of the agents and to your consolidation. A suggested fix for a technical claim (configuration, schema, library API, method signature, codebase reference, or DI lifetime) must rest on a primary source: official docs, a known-working real example, or a throwaway test. If neither an agent nor you tested it, label it as a theory, not as a fix. See `dev-essentials:engineering-discipline` Rule 5.

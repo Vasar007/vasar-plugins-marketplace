@@ -1,20 +1,11 @@
 ---
 name: add-migration
-description: EF Core migration + container configuration for Cosmos DB - Database/Product schema changes. Use when adding database migrations, modifying entity schemas, or implementing product upgrade operations. Triggers on requests like "add migration", "database migration", "schema change", "data transformation", "product upgrade".
+description: EF Core migrations and container configuration for Cosmos DB, for database schema changes and product upgrades. Use when adding database migrations, modifying entity schemas, or implementing product upgrade operations. Triggers on requests like "add migration", "database migration", "schema change", "data transformation", "product upgrade".
 ---
 
 # Add Migration
 
 Create EF Core migrations for database schema changes or product-level upgrade operations using the Framework migration system.
-
-## When to Use
-
-Use this skill when:
-
-- **Database schema changes**: Adding/removing entity properties, new entity types, changing relationships
-- **Data transformations**: Migrating existing data to new formats
-- **Product upgrades**: One-time operations during product version upgrades (infrastructure upgrades, cloud-resource reconfigurations)
-- **Cosmos DB container configuration**: Adding new containers or modifying partition keys
 
 ## Migration Types
 
@@ -42,9 +33,9 @@ public interface IDatabaseMigration : IMigration
 **Use for**:
 
 - Adding new fields to entities
-- Transforming existing data (e.g., splitting/combining fields)
+- Transforming existing data (for example, splitting or combining fields)
 - Reading all documents, modifying them, and saving back (Cosmos DB pattern)
-- Schema-specific changes (e.g., SQLite-only or Cosmos-only migrations)
+- Schema-specific changes (for example, SQLite-only or Cosmos-only migrations)
 
 **Execution order**: Database migrations run **before** product migrations.
 
@@ -63,7 +54,7 @@ public interface IProductMigration : IMigration
 **Use for**:
 
 - Upgrading deployed infrastructure (resource stacks, compute instances)
-- Reconfiguring cloud-provider resources (e.g. access roles, firewall rules)
+- Reconfiguring cloud-provider resources (for example, access roles or firewall rules)
 - One-time data cleanup or transformation tasks
 - Running operations that depend on external services
 
@@ -81,7 +72,7 @@ public interface IMigration
     /// </summary>
     /// <remarks>
     /// Migration identifiers typically follow the format "YYYYMMDD_Description"
-    /// (e.g., "20250101_AddTenantFields") to ensure proper ordering.
+    /// (e.g., "20250101_AddOrderFields") to ensure proper ordering.
     /// </remarks>
     MigrationId Id { get; }
 
@@ -128,7 +119,7 @@ public interface IMigration
 
 **Naming convention**: `{Description}Migration.cs`
 
-Example: `EmbedCustomerAccountsInTemplateMigration.cs`
+Example: `EmbedLineItemsInOrderSummaryMigration.cs`
 
 #### Database Migration Example
 
@@ -145,51 +136,51 @@ using MyApp.Framework.Domain.Versioning;
 using MyApp.Framework.Infrastructure.Migrations.Abstractions;
 using MyApp.Framework.Infrastructure.Migrations.Contexts;
 
-namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.CloudResource.Templates;
+namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.Orders.Summaries;
 
 /// <summary>
-/// Migration to transform cloud-resource template storage from legacy separate records to unified embedded entities.
+/// Migration to transform order summary storage from legacy separate records to unified embedded entities.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This migration transforms the cloud-resource template storage model:
+/// This migration transforms the order summary storage model:
 /// </para>
 /// <list type="bullet">
-///   <item>Reads legacy records from <c>CloudResourceOperationResultsLegacy</c> DbSet</item>
-///   <item>Groups records by SessionId (one Generate + optional Application per session)</item>
+///   <item>Reads legacy records from <c>OrderEventsLegacy</c> DbSet</item>
+///   <item>Groups records by SessionId (one Placed + optional Paid per session)</item>
 ///   <item>Combines data into a single unified entity with embedded structured data</item>
-///   <item>Writes new unified records to <c>CloudResourceDeploymentResults</c> DbSet</item>
+///   <item>Writes new unified records to <c>OrderSummaries</c> DbSet</item>
 ///   <item>Removes legacy records after successful migration</item>
 /// </list>
 /// <para>
 /// The migration is idempotent - if no legacy records exist, it will complete without changes.
 /// </para>
 /// </remarks>
-public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigration
+public sealed class EmbedLineItemsInOrderSummaryMigration : IDatabaseMigration
 {
-    private readonly ILogger<EmbedCustomerAccountsInTemplateMigration> _logger;
+    private readonly ILogger<EmbedLineItemsInOrderSummaryMigration> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EmbedCustomerAccountsInTemplateMigration"/> class.
+    /// Initializes a new instance of the <see cref="EmbedLineItemsInOrderSummaryMigration"/> class.
     /// </summary>
     /// <param name="logger">The logger instance.</param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="logger" /> is <see langword="null" />.
     /// </exception>
-    public EmbedCustomerAccountsInTemplateMigration(
-        ILogger<EmbedCustomerAccountsInTemplateMigration> logger)
+    public EmbedLineItemsInOrderSummaryMigration(
+        ILogger<EmbedLineItemsInOrderSummaryMigration> logger)
     {
         _logger = logger.ThrowIfNull();
     }
 
     /// <inheritdoc />
-    public MigrationId Id => MigrationId.FromValue("20260113_EmbedCustomerAccountsInTemplate");
+    public MigrationId Id => MigrationId.FromValue("20260113_EmbedLineItemsInOrderSummary");
 
     /// <inheritdoc />
     public VersionInfo Version => VersionInfo.ParseVersion("1.1.0.0");
 
     /// <inheritdoc />
-    public String Description => "Combines Generate and Application cloud-resource template records into unified entities with embedded data.";
+    public String Description => "Combines Placed and Paid order event records into unified entities with embedded data.";
 
     /// <inheritdoc />
     public DatabaseProviderType? TargetProvider => null; // All providers.
@@ -199,17 +190,17 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
     {
         var dbContext = context.GetRequiredService<{ServiceName}DbContext>();
 
-        _logger.LogInformation("Starting EmbedCustomerAccountsInTemplateMigration...");
+        _logger.LogInformation("Starting EmbedLineItemsInOrderSummaryMigration...");
 
-        var legacyTemplates = await dbContext.CloudResourceOperationResultsLegacy
+        var legacyEvents = await dbContext.OrderEventsLegacy
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Found {Count} legacy cloud-resource template records to process.",
-            legacyTemplates.Count
+            "Found {Count} legacy order event records to process.",
+            legacyEvents.Count
         );
 
-        if (legacyTemplates.Count == 0)
+        if (legacyEvents.Count == 0)
         {
             _logger.LogInformation("No legacy records to migrate. Migration complete.");
             return;
@@ -220,7 +211,7 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("EmbedCustomerAccountsInTemplateMigration completed.");
+        _logger.LogInformation("EmbedLineItemsInOrderSummaryMigration completed.");
     }
 }
 ```
@@ -231,56 +222,56 @@ public sealed class EmbedCustomerAccountsInTemplateMigration : IDatabaseMigratio
 // Copyright (c) Vasily Vasilyev
 
 using Microsoft.Extensions.Logging;
-using {ProjectNamespace}.Application.Services.Compute.Instances;
+using {ProjectNamespace}.Application.Services.Sales.Storefronts;
 using MyApp.Framework.Assertions;
 using MyApp.Framework.Domain.Migrations;
 using MyApp.Framework.Domain.Versioning;
 using MyApp.Framework.Infrastructure.Migrations.Abstractions;
 using MyApp.Framework.Infrastructure.Migrations.Contexts;
 
-namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.Appliances;
+namespace {ProjectNamespace}.Infrastructure.Persistence.Migration.Storefronts;
 
 /// <summary>
-/// Product migration to upgrade all appliances to the latest version.
+/// Product migration to upgrade all storefronts to the latest version.
 /// </summary>
 /// <remarks>
 /// This migration:
 /// <list type="bullet">
-///   <item>Enumerates all deployed appliances across all regions</item>
-///   <item>Initiates upgrade operations for appliances below target version</item>
+///   <item>Enumerates all published storefronts across all sales channels</item>
+///   <item>Initiates upgrade operations for storefronts below target version</item>
 ///   <item>Tracks upgrade progress via sessions</item>
 /// </list>
 /// </remarks>
-public sealed class UpgradeAppliancesMigration : IProductMigration
+public sealed class UpgradeStorefrontsMigration : IProductMigration
 {
-    private readonly ILogger<UpgradeAppliancesMigration> _logger;
+    private readonly ILogger<UpgradeStorefrontsMigration> _logger;
 
-    public UpgradeAppliancesMigration(
-        ILogger<UpgradeAppliancesMigration> logger)
+    public UpgradeStorefrontsMigration(
+        ILogger<UpgradeStorefrontsMigration> logger)
     {
         _logger = logger.ThrowIfNull();
     }
 
     /// <inheritdoc />
-    public MigrationId Id => MigrationId.FromValue("20260115_UpgradeAppliances");
+    public MigrationId Id => MigrationId.FromValue("20260115_UpgradeStorefronts");
 
     /// <inheritdoc />
     public VersionInfo Version => VersionInfo.ParseVersion("1.2.0.0");
 
     /// <inheritdoc />
-    public String Description => "Upgrades all appliances to the latest product version.";
+    public String Description => "Upgrades all storefronts to the latest product version.";
 
     /// <inheritdoc />
     public async Task ExecuteAsync(IMigrationContext context, CancellationToken cancellationToken)
     {
-        var applianceService = context.GetRequiredService<IComputeInstanceService>();
+        var storefrontService = context.GetRequiredService<IStorefrontService>();
 
-        _logger.LogInformation("Starting UpgradeAppliancesMigration...");
+        _logger.LogInformation("Starting UpgradeStorefrontsMigration...");
 
         // Product upgrade logic...
-        // (Call external services, upgrade infrastructure, etc.)
+        // (Call external services, upgrade storefronts, etc.)
 
-        _logger.LogInformation("UpgradeAppliancesMigration completed.");
+        _logger.LogInformation("UpgradeStorefrontsMigration completed.");
     }
 }
 ```
@@ -290,20 +281,20 @@ public sealed class UpgradeAppliancesMigration : IProductMigration
 **Format**: `"YYYYMMDD_Description"`
 
 ```csharp
-public MigrationId Id => MigrationId.FromValue("20260128_AddTenantEncryptionFields");
+public MigrationId Id => MigrationId.FromValue("20260128_AddOrderDiscountFields");
 ```
 
 **Rules**:
 
-- **YYYYMMDD**: Date when migration was created (use actual date)
+- **YYYYMMDD**: Creation date of the migration (use the actual date)
 - **Description**: PascalCase, concise, describes what the migration does
 - Must be **unique** across all migrations
 
 **Examples**:
 
-- `20260113_EmbedCustomerAccountsInTemplate`
-- `20260115_UpgradeAppliances`
-- `20260128_AddTenantBackupRetentionPolicy`
+- `20260113_EmbedLineItemsInOrderSummary`
+- `20260115_UpgradeStorefronts`
+- `20260128_AddCustomerRetentionPolicy`
 - `20260201_MigrateSessionLogsToNewFormat`
 
 ### 4. Version Format
@@ -317,7 +308,7 @@ public VersionInfo Version => VersionInfo.ParseVersion("1.1.0.0");
 **Rules**:
 
 - **Major.Minor.Build.Revision** matches product version
-- Migrations are executed if their version is **higher** than the stored version
+- Only migrations with a version **higher** than the stored version are executed
 - All migrations for a version are executed in `MigrationId` (date) order
 
 **Examples**:
@@ -384,7 +375,7 @@ For Cosmos DB, migrations typically follow this pattern:
 
 ```csharp
 // Read all documents of a type
-var entities = await dbContext.Tenants.ToListAsync(cancellationToken);
+var entities = await dbContext.Orders.ToListAsync(cancellationToken);
 
 // Transform in memory
 foreach (var entity in entities)
@@ -400,11 +391,13 @@ foreach (var entity in entities)
 await dbContext.SaveChangesAsync(cancellationToken);
 ```
 
-**Why this pattern?** Cosmos DB doesn't enforce schema, so you must:
+**Why this pattern?** Cosmos DB does not enforce a schema, so you must:
 
 1. Read existing documents
 2. Transform them in memory (add/remove/modify properties)
 3. Save back to persist schema changes
+
+For grouping records, JSON parsing, progress logs, removal of legacy data, and batch processing, read [references/common-patterns.md](references/common-patterns.md).
 
 ### 6. Add Container Configuration (Cosmos DB)
 
@@ -437,7 +430,7 @@ public DbSet<NewEntity> NewEntities => Set<NewEntity>();
 
 ### 7. Create Tests
 
-Create comprehensive tests for the migration to verify data transformation, idempotency, and error handling.
+Create tests for the migration that cover data transformation, idempotency, and error handling.
 
 **File location**: `tests/{ProjectName}.Infrastructure.Tests/Persistence/Migration/{Feature}/`
 
@@ -466,94 +459,7 @@ Create comprehensive tests for the migration to verify data transformation, idem
 **Manual registration** (if needed):
 
 ```csharp
-services.AddSingleton<IDatabaseMigration, EmbedCustomerAccountsInTemplateMigration>();
-```
-
-## Common Patterns
-
-### Grouping Records by Key
-
-```csharp
-var groupedBySession = legacyRecords.GroupBy(r => r.SessionId);
-
-foreach (var sessionGroup in groupedBySession)
-{
-    var sessionId = sessionGroup.Key;
-    var records = sessionGroup.ToList();
-    
-    // Process group...
-}
-```
-
-### JSON Deserialization in Migrations
-
-```csharp
-private static Boolean TryDeserializeJsonResult<TValue>(
-    String json,
-    [NotNullWhen(true)] out TValue? result)
-    where TValue : class
-{
-    result = null;
-
-    try
-    {
-        result = JsonSerializer.Deserialize<TValue>(json, DefaultJsonSerializerOptions);
-        return result is not null;
-    }
-    catch (JsonException)
-    {
-        return false;
-    }
-}
-```
-
-### Progress Logging
-
-```csharp
-_logger.LogInformation(
-    "Processing batch {Current}/{Total}...",
-    currentBatch,
-    totalBatches
-);
-
-_logger.LogInformation(
-    "Migration completed: [migrated={Migrated}, skipped={Skipped}, errors={Errors}].",
-    migratedCount, skippedCount, errorCount
-);
-```
-
-### Removing Legacy Data After Migration
-
-```csharp
-if (legacyRecordsToRemove.Count > 0)
-{
-    dbContext.LegacyRecords.RemoveRange(legacyRecordsToRemove);
-    _logger.LogInformation("Marking {Count} legacy records for removal.", legacyRecordsToRemove.Count);
-}
-
-await dbContext.SaveChangesAsync(cancellationToken);
-```
-
-### Batch Processing (Large Datasets)
-
-```csharp
-const Int32 batchSize = 100;
-var totalRecords = await dbContext.LegacyRecords.CountAsync(cancellationToken);
-var totalBatches = (totalRecords + batchSize - 1) / batchSize;
-
-for (var batchIndex = 0; batchIndex < totalBatches; ++batchIndex)
-{
-    var batch = await dbContext.LegacyRecords
-        .Skip(batchIndex * batchSize)
-        .Take(batchSize)
-        .ToListAsync(cancellationToken);
-
-    // Process batch...
-    
-    await dbContext.SaveChangesAsync(cancellationToken);
-    
-    _logger.LogInformation("Processed batch {Current}/{Total}.", batchIndex + 1, totalBatches);
-}
+services.AddSingleton<IDatabaseMigration, EmbedLineItemsInOrderSummaryMigration>();
 ```
 
 ## Cosmos DB Specific Considerations
@@ -571,11 +477,11 @@ If you need a different partition key:
 
 ### No Schema Enforcement
 
-Cosmos DB doesn't enforce schema, so:
+Cosmos DB does not enforce a schema, so:
 
 - Old documents can coexist with new schema
-- Migrations must handle documents that may lack new fields
-- Always check for `null` when reading potentially missing properties
+- Migrations must handle documents that can lack the new fields
+- Each time you read a property that can be missing, test it for `null`
 
 ### Container Configuration
 
@@ -584,7 +490,7 @@ When adding new containers, configure in `OnModelCreating`:
 ```csharp
 modelBuilder.Entity<MyNewEntity>()
     .ToContainer("MyNewEntities")
-    .HasPartitionKey(e => e.TenantId); // Choose appropriate partition key
+    .HasPartitionKey(e => e.CustomerId); // Choose appropriate partition key
 
 modelBuilder.Entity<MyNewEntity>()
     .HasKey(e => e.Id);
@@ -612,10 +518,10 @@ modelBuilder.Entity<MyNewEntity>()
 
 ### Migration Not Executing
 
-1. Check `MigrationId` uniqueness
-2. Verify `Version` is higher than current stored version
-3. Check logs for discovery errors
-4. Ensure migration class is `public` and has parameterless constructor or DI-compatible constructor
+1. Find out whether the `MigrationId` is unique
+2. Find out whether the `Version` is higher than the current stored version
+3. Read the logs for discovery errors
+4. Make sure that the migration class is `public` and has a parameterless constructor or a DI-compatible constructor
 
 ### Migration Fails in Production
 
@@ -627,7 +533,7 @@ modelBuilder.Entity<MyNewEntity>()
 
 ### Performance Issues (Large Datasets)
 
-1. Add batch processing (see pattern above)
+1. Add batch processing (see "Batch Processing" in [references/common-patterns.md](references/common-patterns.md))
 2. Log progress every N records
 3. Consider breaking into multiple smaller migrations
 4. For Cosmos DB, monitor RU consumption
@@ -637,24 +543,24 @@ modelBuilder.Entity<MyNewEntity>()
 - [ ] Determined migration type (IDatabaseMigration or IProductMigration)
 - [ ] Created migration class in `Infrastructure/Persistence/Migration/{Feature}/`
 - [ ] Used correct MigrationId format: `"YYYYMMDD_Description"`
-- [ ] Set Version to match product version (e.g., "1.1.0.0")
+- [ ] Set Version to match product version (for example, "1.1.0.0")
 - [ ] Implemented idempotent ExecuteAsync logic
-- [ ] Added comprehensive logging (start, progress, completion)
+- [ ] Added logging for start, progress, and completion
 - [ ] Handled CancellationToken properly
-- [ ] Added container configuration to DbContext if new entities added
+- [ ] For new entity types, added container configuration to DbContext
 - [ ] Created test class with [TestFixtureSource] for all database providers
 - [ ] Tested empty database scenario
 - [ ] Tested happy path (successful migration)
 - [ ] Tested idempotency (running twice)
 - [ ] Tested invalid/malformed data handling
-- [ ] Tested with production data if available
-- [ ] Verified legacy data removal (if applicable)
+- [ ] Tested with production data (where available)
+- [ ] Tested the removal of legacy data (if applicable)
 - [ ] Added XML documentation to migration class
-- [ ] Reviewed for performance (batch processing if needed)
+- [ ] Reviewed for performance (batch processing for large datasets)
 
 ## Related Skills
 
-- [create-tests](../create-tests/SKILL.md) - Testing patterns for migrations (BaseMockTest, TestFixtureSource)
-- [create-ef-entity](../create-ef-entity/SKILL.md) - Creating entities and repositories
-- `dev-essentials:generate-xml-docs` - XML documentation standards
-- `dev-essentials:create-documentation` - Documenting migrations in Docs/Migrations/
+- [create-tests](../create-tests/SKILL.md): Testing patterns for migrations (BaseMockTest, TestFixtureSource)
+- [create-ef-entity](../create-ef-entity/SKILL.md): Creating entities and repositories
+- `dev-essentials:generate-xml-docs`: XML documentation standards
+- `dev-essentials:create-documentation`: Documenting migrations in Docs/Migrations/

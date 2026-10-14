@@ -14,10 +14,10 @@ Tests for primitive wrappers (string/GUID/integer IDs and value objects) using b
 
 The project provides runtime wrapper interfaces in `MyApp.Framework.Basic.Wrappers` and corresponding base test classes in `MyApp.OnlyForTests.Basic.Wrappers` to simplify testing.
 
-- `IStringWrapper<T>` — use `BaseStringWrapperTests<T>` for testing string-based wrappers
-- `IGuidWrapper<T>` — use `BaseGuidWrapperTests<T>` for testing GUID-based wrappers
-- `IInt32Wrapper<T>` — use `BaseInt32WrapperTests<T>` for testing integer-based wrappers
-- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>` — use the corresponding base test classes where available
+- `IStringWrapper<T>`: use `BaseStringWrapperTests<T>` for testing string-based wrappers
+- `IGuidWrapper<T>`: use `BaseGuidWrapperTests<T>` for testing GUID-based wrappers
+- `IInt32Wrapper<T>`: use `BaseInt32WrapperTests<T>` for testing integer-based wrappers
+- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`: use the corresponding base test classes where available
 
 If no matching interface exists for your domain wrapper (for example, a bespoke value object without `IStringWrapper<T>`), implement the same test pattern manually: exercise Empty/IsEmpty, `FromValue` factory, equality/ordering, `ToString`, and validation checks rather than inheriting from a base test class.
 
@@ -30,7 +30,7 @@ If no matching interface exists for your domain wrapper (for example, a bespoke 
 
 ## GUID Wrapper Pattern
 
-**Simplest case** - only need to override `CreateNewWrapperValue()`:
+**Simplest case**: override only `CreateNewWrapperValue()`:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -79,45 +79,45 @@ Inherited from `BaseEqualityMemberTests`: Equals (same, identical, different, de
 // Copyright (c) Vasily Vasilyev
 
 using MyApp.OnlyForTests.Basic.Wrappers;
-using MyApp.Domain.Workload.Tenants;
-using MyApp.Tests.Common.Helpers.Generators.Domain.Workload.Tenants;
+using MyApp.Domain.Sales.Customers;
+using MyApp.Tests.Common.Helpers.Generators.Domain.Sales.Customers;
 
-namespace MyApp.Domain.Tests.Workload.Tenants;
+namespace MyApp.Domain.Tests.Sales.Customers;
 
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class TenantIdTests : BaseStringWrapperTests<TenantId>
+public sealed class CustomerIdTests : BaseStringWrapperTests<CustomerId>
 {
-    private readonly TenantGenerator _generator;
+    private readonly CustomerGenerator _generator;
 
-    public TenantIdTests()
+    public CustomerIdTests()
         : base(ignoreCase: true)  // Case-insensitive comparison
     {
-        _generator = TenantGenerator.Instance;
+        _generator = CustomerGenerator.Instance;
     }
 
-    protected override TenantId CreateNewWrapperValue()
+    protected override CustomerId CreateNewWrapperValue()
     {
-        return _generator.GenerateTenantId();
+        return _generator.GenerateCustomerId();
     }
 }
 ```
 
 **Constructor parameters:**
 
-- `ignoreCase: true` - For case-insensitive wrappers (most common)
-- `ignoreCase: false` - For case-sensitive wrappers
-- `conversionType` (optional) - Applies string conversion before comparison/equality:
-  - `StringWrapperConversionType.None` (default) - No conversion
-  - `StringWrapperConversionType.ToLower` - Converts to lowercase (current culture)
-  - `StringWrapperConversionType.ToLowerInvariant` - Converts to lowercase (invariant culture)
-  - `StringWrapperConversionType.ToUpper` - Converts to uppercase (current culture)
-  - `StringWrapperConversionType.ToUpperInvariant` - Converts to uppercase (invariant culture)
-- `validationMode` (optional) - Controls input validation strictness:
-  - `StringWrapperValidationMode.Strict` (default) - Rejects null, empty, and whitespace
-  - `StringWrapperValidationMode.AllowNull` - Allows null values
-  - `StringWrapperValidationMode.AllowEmpty` - Allows empty strings
-  - `StringWrapperValidationMode.AllowWhiteSpace` - Allows whitespace-only strings
+- `ignoreCase: true`: for case-insensitive wrappers (most common)
+- `ignoreCase: false`: for case-sensitive wrappers
+- `conversionType` (optional): applies string conversion before comparison/equality:
+  - `StringWrapperConversionType.None` (default): No conversion
+  - `StringWrapperConversionType.ToLower`: Converts to lowercase (current culture)
+  - `StringWrapperConversionType.ToLowerInvariant`: Converts to lowercase (invariant culture)
+  - `StringWrapperConversionType.ToUpper`: Converts to uppercase (current culture)
+  - `StringWrapperConversionType.ToUpperInvariant`: Converts to uppercase (invariant culture)
+- `validationMode` (optional): controls input validation strictness:
+  - `StringWrapperValidationMode.Strict` (default): Rejects null, empty, and whitespace
+  - `StringWrapperValidationMode.AllowNull`: Allows null values
+  - `StringWrapperValidationMode.AllowEmpty`: Allows empty strings
+  - `StringWrapperValidationMode.AllowWhiteSpace`: Allows whitespace-only strings
 
 **Example with conversion:**
 
@@ -133,9 +133,9 @@ public MyWrapperIdTests()
 
 All tests from parent classes (`BaseValueWrapperTests`, `BaseEqualityMemberTests`), plus:
 
-- `FromValue_ShouldThrow_WhenValueIsNull` (skipped if `validationMode` allows null)
-- `FromValue_ShouldThrow_WhenValueIsEmpty` (skipped if `validationMode` allows empty)
-- `FromValue_ShouldThrow_WhenValueIsWhiteSpace` (skipped if `validationMode` allows whitespace)
+- `FromValue_ShouldThrow_WhenValueIsNull` (skipped for a `validationMode` that allows null)
+- `FromValue_ShouldThrow_WhenValueIsEmpty` (skipped for a `validationMode` that allows empty strings)
+- `FromValue_ShouldThrow_WhenValueIsWhiteSpace` (skipped for a `validationMode` that allows whitespace)
 - `FromValue_AfterConversion_Returns_Wrapper_With_ExpectedValue` (verifies conversion is applied)
 - `Equals_Returns_True_For_Same_Value_InDifferentCases` (case-insensitive equality)
 - `GetHashCode_Returns_Same_Result_For_Same_Value_InDifferentCases` (case-insensitive hash)
@@ -178,7 +178,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Zero_For_Equal_MigrationIds()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -192,7 +192,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Negative_When_First_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -206,7 +206,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Positive_When_First_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -220,7 +220,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Returns_Positive_When_Object_Is_Null()
     {
         // Arrange.
-        var id = MigrationId.FromValue("20250101_AddTenantFields");
+        var id = MigrationId.FromValue("20250101_AddCustomerFields");
 
         // Act.
         var result = id.CompareTo(null);
@@ -233,7 +233,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Returns_Correct_Value_When_Object_Is_MigrationId()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         Object id2 = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -247,7 +247,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Throws_When_Object_Is_Not_MigrationId()
     {
         // Arrange.
-        var id = MigrationId.FromValue("20250101_AddTenantFields");
+        var id = MigrationId.FromValue("20250101_AddCustomerFields");
         Object invalidObject = "not a MigrationId";
         var expectedMessage = StringResources.ObjectMustBeOfType.SafeFormat(nameof(MigrationId));
 
@@ -263,7 +263,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_True_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -277,7 +277,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_False_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -291,7 +291,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_False_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -305,7 +305,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThanOrEqual_Operator_Returns_True_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -319,7 +319,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThanOrEqual_Operator_Returns_True_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -333,7 +333,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_True_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -347,7 +347,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_False_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -361,7 +361,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_False_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -375,7 +375,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThanOrEqual_Operator_Returns_True_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddTenantFields");
+        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
         var laterId = MigrationId.FromValue("20250102_AddUserFields");
 
         // Act.
@@ -389,7 +389,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThanOrEqual_Operator_Returns_True_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -406,7 +406,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         var ids = new List<MigrationId>
         {
             MigrationId.FromValue("20250105_UpdateSchema"),
-            MigrationId.FromValue("20250101_AddTenantFields"),
+            MigrationId.FromValue("20250101_AddCustomerFields"),
             MigrationId.FromValue("20250103_AddUserFields"),
             MigrationId.FromValue("20250102_AddIndexes"),
             MigrationId.FromValue("20250104_RemoveObsoleteFields"),
@@ -414,7 +414,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
 
         var expected = new List<MigrationId>
         {
-            MigrationId.FromValue("20250101_AddTenantFields"),
+            MigrationId.FromValue("20250101_AddCustomerFields"),
             MigrationId.FromValue("20250102_AddIndexes"),
             MigrationId.FromValue("20250103_AddUserFields"),
             MigrationId.FromValue("20250104_RemoveObsoleteFields"),
@@ -435,13 +435,13 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         var ids = new List<MigrationId>
         {
             MigrationId.FromValue("20250101_ZUpdateSchema"),
-            MigrationId.FromValue("20250101_AddTenantFields"),
+            MigrationId.FromValue("20250101_AddCustomerFields"),
             MigrationId.FromValue("20250101_BAddUserFields"),
         };
 
         var expected = new List<MigrationId>
         {
-            MigrationId.FromValue("20250101_AddTenantFields"),
+            MigrationId.FromValue("20250101_AddCustomerFields"),
             MigrationId.FromValue("20250101_BAddUserFields"),
             MigrationId.FromValue("20250101_ZUpdateSchema"),
         };
@@ -458,7 +458,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     {
         // Arrange.
         var emptyId = MigrationId.Empty;
-        var validId = MigrationId.FromValue("20250101_AddTenantFields");
+        var validId = MigrationId.FromValue("20250101_AddCustomerFields");
 
         // Act.
         var result1 = emptyId.CompareTo(validId);
@@ -473,8 +473,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void Comparison_Is_Case_Sensitive()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_addtenantfields");
-        var id2 = MigrationId.FromValue("20250101_AddTenantFields");
+        var id1 = MigrationId.FromValue("20250101_addcustomerfields");
+        var id2 = MigrationId.FromValue("20250101_AddCustomerFields");
 
         // Act.
         var result = id1.CompareTo(id2);
@@ -487,21 +487,21 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
 
 ## Key Points
 
-1. **Always use test generators** - Never inline-create wrapper values
+1. **Always use test generators**: never create wrapper values inline
 
-2. **Choose correct base class** based on wrapper type (string, GUID, int, etc.)
+2. **Choose the correct base class** for the wrapper type (string, GUID, int, and so on)
 
 3. **Specify ignoreCase** for string wrappers in constructor:
    - `ignoreCase: true` for case-insensitive (most IDs)
-   - `ignoreCase: false` for case-sensitive (migrations, etc.)
+   - `ignoreCase: false` for case-sensitive IDs (for example migrations)
 
 4. **Add domain-specific tests** for:
-   - Custom helper methods (IsType, TryGetType, etc.)
+   - Custom helper methods (for example `IsType` and `TryGetType`)
    - IComparable implementation (CompareTo, operators)
    - Sorting behavior
    - Edge cases specific to domain rules
 
-5. **Base classes cover standard tests** - Don't duplicate:
+5. **Base classes cover the standard tests**: do not repeat these:
    - Empty/IsEmpty
    - FromValue factory
    - Equals/GetHashCode

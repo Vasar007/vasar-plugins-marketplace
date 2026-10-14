@@ -9,7 +9,7 @@ Create external service client wrappers in `{ProjectNamespace}.Infrastructure` f
 
 ## Architecture Pattern
 
-```mermaid
+```text
 I{Service}{Feature}Client (Application interface)
     ↓ implemented by
 {Service}{Feature}Client (Infrastructure, inherits base)
@@ -19,14 +19,14 @@ I{Service}{Feature}Client (Application interface)
 
 ## Service Naming Conventions
 
-These prefixes are illustrative — they are example service names from a reference implementation. Substitute your own service abbreviations when applying the pattern in your project.
+These prefixes are examples. Use the service abbreviations of your own project.
 
-| Service                           | Prefix | Example              |
-|-----------------------------------|--------|----------------------|
-| Infrastructure Deployment Service | `Ids`  | `IIdsSessionsClient` |
-| Deployment Service                | `Ds`   | `IDsSessionsClient`  |
-| Storage Management Service        | `Sms`  | `ISmsStorageClient`  |
-| Data Collector Service            | `Dcs`  | `IDcsVersionClient`  |
+| Service | Prefix | Example |
+| --- | --- | --- |
+| Order Management Service | `Oms` | `IOmsOrdersClient` |
+| Payment Service | `Ps` | `IPsPaymentsClient` |
+| Inventory Service | `Inv` | `IInvStockClient` |
+| Customer Directory Service | `Cds` | `ICdsProfilesClient` |
 
 ## Files to Create
 
@@ -64,8 +64,6 @@ public interface I{Service}{Feature}Client
     Task<Guid> CreateAsync({ExternalRequestModel} request, CancellationToken cancellationToken = default);
 }
 ```
-
-**IMPORTANT**: External clients return external service models directly. Business logic converts these to domain models as needed.
 
 ## Step 2: Implementation (Infrastructure Layer)
 
@@ -153,8 +151,6 @@ internal sealed class {Service}{Feature}Client : {Service}ClientBase, I{Service}
 }
 ```
 
-**IMPORTANT**: External clients return external service models directly. Business logic (Application layer services) converts these to domain models based on code needs.
-
 ## Structured Logging Requirements
 
 All methods MUST log:
@@ -196,13 +192,13 @@ Logger.LogInformation(
 
 ## Model Conversion
 
-**External clients return external service models directly** - they do NOT convert to domain models.
+**External clients return external service models directly.** They do NOT convert them to domain models.
 
 **Why?**
 
 - External models can be converted to different domain models based on business logic needs
 - Conversion logic belongs in Application layer services, not Infrastructure clients
-- One external model might map to multiple domain models in different contexts
+- One external model can map to multiple domain models in different contexts
 
 **When conversion IS needed:**
 
@@ -240,7 +236,7 @@ services.AddScoped<I{Service}{Feature}Client, {Service}{Feature}Client>();
 
 ## Tests
 
-Create unit tests for external clients when they contain business logic or complex transformations.
+If an external client contains business logic or complex transformations, create unit tests for it.
 
 **See the [create-tests](../create-tests/SKILL.md) skill for complete unit and integration testing guidance.**
 

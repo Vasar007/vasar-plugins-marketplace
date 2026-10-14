@@ -6,7 +6,7 @@ Testing patterns for database and product migrations using Framework migration s
 
 Migration tests verify:
 
-- Empty database scenario (idempotency when nothing to migrate)
+- Empty database (idempotency with nothing to migrate)
 - Successful data transformation (happy path)
 - Idempotency (running twice produces same result)
 - Invalid data handling (graceful skipping/error handling)
@@ -27,12 +27,12 @@ Migration tests MUST use `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeC
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
-public sealed class EmbedCustomerAccountsInTemplateMigrationTests<TTestDbContextFactory> : BaseMockTest
+public sealed class EmbedLineItemsInOrderSummaryMigrationTests<TTestDbContextFactory> : BaseMockTest
     where TTestDbContextFactory : ITestDbContextFactory, new()
 {
     private readonly TTestDbContextFactory _testDbContextFactory;
 
-    public EmbedCustomerAccountsInTemplateMigrationTests()
+    public EmbedLineItemsInOrderSummaryMigrationTests()
     {
         _testDbContextFactory = new TTestDbContextFactory();
     }
@@ -93,10 +93,10 @@ private static IMigrationContext CreateMigrationContext(IServiceProvider service
 Instantiate migration with mocked logger:
 
 ```csharp
-private EmbedCustomerAccountsInTemplateMigration CreateMigration()
+private EmbedLineItemsInOrderSummaryMigration CreateMigration()
 {
-    var logger = TestLoggerBuilder.CreateWithoutSetup<EmbedCustomerAccountsInTemplateMigration>(Fixture);
-    return new EmbedCustomerAccountsInTemplateMigration(logger);
+    var logger = TestLoggerBuilder.CreateWithoutSetup<EmbedLineItemsInOrderSummaryMigration>(Fixture);
+    return new EmbedLineItemsInOrderSummaryMigration(logger);
 }
 ```
 
@@ -104,7 +104,7 @@ private EmbedCustomerAccountsInTemplateMigration CreateMigration()
 
 ### 1. Empty Database (Idempotency Check)
 
-Verify migration completes without errors when no data exists:
+Test that the migration completes without errors on an empty database:
 
 ```csharp
 [Test]
@@ -123,8 +123,8 @@ public async Task ExecuteAsync_ShouldComplete_WhenDatabaseIsEmpty()
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().BeEmpty();
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().BeEmpty();
 }
 ```
 
@@ -134,7 +134,7 @@ Verify migration successfully transforms records:
 
 ```csharp
 [Test]
-public async Task ExecuteAsync_ShouldMigrateGenerateOnlyRecord()
+public async Task ExecuteAsync_ShouldMigratePlacedOnlyRecord()
 {
     // Arrange.
     await using var serviceProvider = SetupServiceProvider();
@@ -147,9 +147,9 @@ public async Task ExecuteAsync_ShouldMigrateGenerateOnlyRecord()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var generateResult = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
-    var legacyRecord = CreateLegacyGenerateRecord(session.Id, generateResult);
-    await dbContext.CloudResourceOperationResultsLegacy.AddAsync(legacyRecord);
+    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var legacyRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
+    await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -159,18 +159,18 @@ public async Task ExecuteAsync_ShouldMigrateGenerateOnlyRecord()
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().HaveCount(1);
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().HaveCount(1);
 
-    var newTemplate = newTemplates[0];
-    newTemplate.Id.Should().Be(legacyRecord.Id);
-    newTemplate.SessionId.Should().Be(session.Id.Value);
-    newTemplate.GenerateParameters.Should().NotBeNull();
-    newTemplate.GenerateResult.Should().NotBeNull();
-    newTemplate.CustomerAccounts.Should().BeEmpty();
+    var newSummary = newSummaries[0];
+    newSummary.Id.Should().Be(legacyRecord.Id);
+    newSummary.SessionId.Should().Be(session.Id.Value);
+    newSummary.PlacedDetails.Should().NotBeNull();
+    newSummary.PlacedResult.Should().NotBeNull();
+    newSummary.LineItems.Should().BeEmpty();
 
     // Verify legacy record was removed.
-    var legacyRecords = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var legacyRecords = await dbContext.OrderEventsLegacy.ToListAsync();
     legacyRecords.Should().BeEmpty();
 }
 ```
@@ -181,7 +181,7 @@ Test migration with multiple related records:
 
 ```csharp
 [Test]
-public async Task ExecuteAsync_ShouldMigrateGenerateAndApplicationRecords()
+public async Task ExecuteAsync_ShouldMigratePlacedAndPaidRecords()
 {
     // Arrange.
     await using var serviceProvider = SetupServiceProvider();
@@ -194,13 +194,13 @@ public async Task ExecuteAsync_ShouldMigrateGenerateAndApplicationRecords()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var generateResult = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
-    var applicationResult = _templateLegacyGenerator.GenerateCloudResourceApplicationResult(customerAccountCount: 2);
+    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var paidResult = _orderLegacyGenerator.GenerateOrderPaidResult(lineItemCount: 2);
 
-    var legacyGenerateRecord = CreateLegacyGenerateRecord(session.Id, generateResult);
-    var legacyApplicationRecord = CreateLegacyApplicationRecord(session.Id, applicationResult);
+    var legacyPlacedRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
+    var legacyPaidRecord = CreateLegacyPaidRecord(session.Id, paidResult);
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddRangeAsync(legacyGenerateRecord, legacyApplicationRecord);
+    await dbContext.OrderEventsLegacy.AddRangeAsync(legacyPlacedRecord, legacyPaidRecord);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -210,26 +210,26 @@ public async Task ExecuteAsync_ShouldMigrateGenerateAndApplicationRecords()
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().HaveCount(1);
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().HaveCount(1);
 
-    var newTemplate = newTemplates[0];
-    newTemplate.Id.Should().Be(legacyGenerateRecord.Id);
-    newTemplate.SessionId.Should().Be(session.Id.Value);
-    newTemplate.GenerateParameters.Should().NotBeNull();
-    newTemplate.GenerateResult.Should().NotBeNull();
-    newTemplate.CustomerAccounts.Should().HaveCount(2);
+    var newSummary = newSummaries[0];
+    newSummary.Id.Should().Be(legacyPlacedRecord.Id);
+    newSummary.SessionId.Should().Be(session.Id.Value);
+    newSummary.PlacedDetails.Should().NotBeNull();
+    newSummary.PlacedResult.Should().NotBeNull();
+    newSummary.LineItems.Should().HaveCount(2);
 
-    // Verify customer accounts were migrated.
-    foreach (var account in newTemplate.CustomerAccounts)
+    // Verify line items were migrated.
+    foreach (var lineItem in newSummary.LineItems)
     {
-        account.Id.Should().NotBeEmpty();
-        account.AccountId.Should().NotBeNullOrWhiteSpace();
-        account.RoleName.Should().NotBeNullOrWhiteSpace();
+        lineItem.Id.Should().NotBeEmpty();
+        lineItem.ProductCode.Should().NotBeNullOrWhiteSpace();
+        lineItem.ProductName.Should().NotBeNullOrWhiteSpace();
     }
 
     // Verify legacy records were removed.
-    var legacyRecords = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var legacyRecords = await dbContext.OrderEventsLegacy.ToListAsync();
     legacyRecords.Should().BeEmpty();
 }
 ```
@@ -253,10 +253,10 @@ public async Task ExecuteAsync_ShouldBeIdempotent()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var generateResult = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
-    var legacyRecord = CreateLegacyGenerateRecord(session.Id, generateResult);
+    var placedResult = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var legacyRecord = CreateLegacyPlacedRecord(session.Id, placedResult);
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddAsync(legacyRecord);
+    await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -265,16 +265,16 @@ public async Task ExecuteAsync_ShouldBeIdempotent()
     // Act.
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
-    var newTemplatesAfterFirstRun = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    var firstRunCount = newTemplatesAfterFirstRun.Count;
+    var newSummariesAfterFirstRun = await dbContext.OrderSummaries.ToListAsync();
+    var firstRunCount = newSummariesAfterFirstRun.Count;
 
     // Run migration again.
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplatesAfterSecondRun = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplatesAfterSecondRun.Should().HaveCount(firstRunCount);
-    newTemplatesAfterSecondRun[0].Id.Should().Be(newTemplatesAfterFirstRun[0].Id);
+    var newSummariesAfterSecondRun = await dbContext.OrderSummaries.ToListAsync();
+    newSummariesAfterSecondRun.Should().HaveCount(firstRunCount);
+    newSummariesAfterSecondRun[0].Id.Should().Be(newSummariesAfterFirstRun[0].Id);
 }
 ```
 
@@ -284,7 +284,7 @@ Verify migration skips records with missing required data:
 
 ```csharp
 [Test]
-public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateRecordIsMissing()
+public async Task ExecuteAsync_ShouldSkipRecord_WhenPlacedRecordIsMissing()
 {
     // Arrange.
     await using var serviceProvider = SetupServiceProvider();
@@ -297,11 +297,11 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateRecordIsMissing()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    // Only Application record, no Generate record.
-    var applicationResult = _templateLegacyGenerator.GenerateCloudResourceApplicationResult(customerAccountCount: 1);
-    var legacyRecord = CreateLegacyApplicationRecord(session.Id, applicationResult);
+    // Only Paid record, no Placed record.
+    var paidResult = _orderLegacyGenerator.GenerateOrderPaidResult(lineItemCount: 1);
+    var legacyRecord = CreateLegacyPaidRecord(session.Id, paidResult);
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddAsync(legacyRecord);
+    await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -311,11 +311,11 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateRecordIsMissing()
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().BeEmpty();
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().BeEmpty();
 
     // Legacy record should remain since migration skipped it.
-    var legacyRecords = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var legacyRecords = await dbContext.OrderEventsLegacy.ToListAsync();
     legacyRecords.Should().HaveCount(1);
 }
 ```
@@ -326,7 +326,7 @@ Verify migration handles invalid JSON gracefully:
 
 ```csharp
 [Test]
-public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateResultJsonIsInvalid()
+public async Task ExecuteAsync_ShouldSkipRecord_WhenPlacedResultJsonIsInvalid()
 {
     // Arrange.
     await using var serviceProvider = SetupServiceProvider();
@@ -339,15 +339,15 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateResultJsonIsInvalid(
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var legacyRecord = new CloudResourceOperationResultLegacyEntity
+    var legacyRecord = new OrderEventLegacyEntity
     {
-        Id = GenerateCloudResourceOperationResultId().Value,
+        Id = GenerateOrderEventId().Value,
         SessionId = session.Id.Value,
-        ResultType = CloudResourceOperationResultTypeLegacyEntity.Generate,
+        ResultType = OrderEventTypeLegacyEntity.Placed,
         Result = "{ invalid json }",
     };
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddAsync(legacyRecord);
+    await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -357,10 +357,10 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenGenerateResultJsonIsInvalid(
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().BeEmpty();
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().BeEmpty();
 
-    var legacyRecords = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var legacyRecords = await dbContext.OrderEventsLegacy.ToListAsync();
     legacyRecords.Should().HaveCount(1);
 }
 ```
@@ -386,14 +386,14 @@ public async Task ExecuteAsync_ShouldMigrateMultipleSessions()
     var session3 = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var generateResult1 = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
-    var generateResult2 = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
-    var generateResult3 = _templateLegacyGenerator.GenerateCloudResourceGenerateResult();
+    var placedResult1 = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var placedResult2 = _orderLegacyGenerator.GenerateOrderPlacedResult();
+    var placedResult3 = _orderLegacyGenerator.GenerateOrderPlacedResult();
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddRangeAsync(
-        CreateLegacyGenerateRecord(session1.Id, generateResult1),
-        CreateLegacyGenerateRecord(session2.Id, generateResult2),
-        CreateLegacyGenerateRecord(session3.Id, generateResult3)
+    await dbContext.OrderEventsLegacy.AddRangeAsync(
+        CreateLegacyPlacedRecord(session1.Id, placedResult1),
+        CreateLegacyPlacedRecord(session2.Id, placedResult2),
+        CreateLegacyPlacedRecord(session3.Id, placedResult3)
     );
     await dbContext.SaveChangesAsync();
 
@@ -404,10 +404,10 @@ public async Task ExecuteAsync_ShouldMigrateMultipleSessions()
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Assert.
-    var newTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    newTemplates.Should().HaveCount(3);
+    var newSummaries = await dbContext.OrderSummaries.ToListAsync();
+    newSummaries.Should().HaveCount(3);
 
-    var legacyRecords = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var legacyRecords = await dbContext.OrderEventsLegacy.ToListAsync();
     legacyRecords.Should().BeEmpty();
 }
 ```
@@ -424,33 +424,33 @@ public async Task ExecuteAsync_ShouldMigrateRealProductionData()
 {
     // Arrange & Act.
     var result = await RunMigrationWithProductionDataAsync(
-        jsonFileName: "MyService_CloudResourceOperationResults_seed.json",
+        jsonFileName: "MyService_OrderEvents_seed.json",
         expectedTotalRecords: 162,
         expectedSessionCount: 86
     );
 
     // Assert.
-    result.MigratedTemplates.Should().HaveCount(86, "each unique session should have one migrated template");
+    result.MigratedSummaries.Should().HaveCount(86, "each unique session should have one migrated summary");
 
-    // Verify all templates have GenerateParameters and GenerateResult.
-    result.MigratedTemplates.Should().AllSatisfy(t =>
+    // Verify all summaries have PlacedDetails and PlacedResult.
+    result.MigratedSummaries.Should().AllSatisfy(t =>
     {
-        t.GenerateParameters.Should().NotBeNull("all production records have Generate data");
-        t.GenerateResult.Should().NotBeNull("all production records have Generate results");
+        t.PlacedDetails.Should().NotBeNull("all production records have Placed data");
+        t.PlacedResult.Should().NotBeNull("all production records have Placed results");
     });
 
-    // Verify customer accounts were migrated for templates that had Application records.
-    var templatesWithAccounts = result.MigratedTemplates.Where(t => t.CustomerAccounts.IsNotEmpty()).ToList();
-    templatesWithAccounts.Should().HaveCount(35, "35 sessions have Application records with non empty customer accounts");
+    // Verify line items were migrated for summaries that had Paid records.
+    var summariesWithLineItems = result.MigratedSummaries.Where(t => t.LineItems.IsNotEmpty()).ToList();
+    summariesWithLineItems.Should().HaveCount(35, "35 sessions have Paid records with non empty line items");
 
-    // Verify all customer accounts have required fields.
-    foreach (var template in templatesWithAccounts)
+    // Verify all line items have required fields.
+    foreach (var summary in summariesWithLineItems)
     {
-        template.CustomerAccounts.Should().AllSatisfy(account =>
+        summary.LineItems.Should().AllSatisfy(lineItem =>
         {
-            account.Id.Should().NotBeEmpty();
-            account.AccountId.Should().NotBeNullOrWhiteSpace();
-            account.RoleName.Should().NotBeNullOrWhiteSpace();
+            lineItem.Id.Should().NotBeEmpty();
+            lineItem.ProductCode.Should().NotBeNullOrWhiteSpace();
+            lineItem.ProductName.Should().NotBeNullOrWhiteSpace();
         });
     }
 
@@ -479,12 +479,12 @@ private async Task<ProductionMigrationResult> RunMigrationWithProductionDataAsyn
         TestContext.CurrentContext.WorkDirectory,
         "Persistence",
         "Migration",
-        "CloudResources",
-        "Templates",
+        "Orders",
+        "Summaries",
         jsonFileName
     );
     var jsonText = await File.ReadAllTextAsync(jsonFilePath);
-    var productionRecords = JsonSerializer.Deserialize<List<CloudResourceOperationResultLegacyRecord>>(jsonText);
+    var productionRecords = JsonSerializer.Deserialize<List<OrderEventLegacyRecord>>(jsonText);
     productionRecords.Should().NotBeNull();
     productionRecords.Should().HaveCount(expectedTotalRecords, $"the exported file contains {expectedTotalRecords} records");
     productionRecords.ThrowIfNull();
@@ -506,22 +506,22 @@ private async Task<ProductionMigrationResult> RunMigrationWithProductionDataAsyn
     await sessionRepository.SaveChangesAsync();
 
     // Create legacy records using the mapped session IDs.
-    var legacyRecords = new List<CloudResourceOperationResultLegacyEntity>();
+    var legacyRecords = new List<OrderEventLegacyEntity>();
     foreach (var record in productionRecords)
     {
         var mappedSessionId = sessionIdMap[record.SessionId];
-        legacyRecords.Add(new CloudResourceOperationResultLegacyEntity
+        legacyRecords.Add(new OrderEventLegacyEntity
         {
             Id = record.Id,
             SessionId = mappedSessionId.Value,
             ResultType = record.ResultType == 1
-                ? CloudResourceOperationResultTypeLegacyEntity.Generate
-                : CloudResourceOperationResultTypeLegacyEntity.Application,
+                ? OrderEventTypeLegacyEntity.Placed
+                : OrderEventTypeLegacyEntity.Paid,
             Result = record.Result,
         });
     }
 
-    await dbContext.CloudResourceOperationResultsLegacy.AddRangeAsync(legacyRecords);
+    await dbContext.OrderEventsLegacy.AddRangeAsync(legacyRecords);
     await dbContext.SaveChangesAsync();
 
     var migration = CreateMigration();
@@ -531,15 +531,15 @@ private async Task<ProductionMigrationResult> RunMigrationWithProductionDataAsyn
     await migration.ExecuteAsync(migrationContext, CancellationToken.None);
 
     // Gather results.
-    var migratedTemplates = await dbContext.CloudResourceDeploymentResults.ToListAsync();
-    var legacyRecordsAfterMigration = await dbContext.CloudResourceOperationResultsLegacy.ToListAsync();
+    var migratedSummaries = await dbContext.OrderSummaries.ToListAsync();
+    var legacyRecordsAfterMigration = await dbContext.OrderEventsLegacy.ToListAsync();
 
-    return new ProductionMigrationResult(migratedTemplates, legacyRecordsAfterMigration);
+    return new ProductionMigrationResult(migratedSummaries, legacyRecordsAfterMigration);
 }
 
 private sealed record ProductionMigrationResult(
-    List<CloudResourceDeploymentResultEntity> MigratedTemplates,
-    List<CloudResourceOperationResultLegacyEntity> LegacyRecordsAfterMigration
+    List<OrderSummaryEntity> MigratedSummaries,
+    List<OrderEventLegacyEntity> LegacyRecordsAfterMigration
 );
 ```
 
@@ -551,7 +551,7 @@ private sealed record ProductionMigrationResult(
 private Session CreateSession()
 {
     return _sessionGenerator.GenerateSessionPartially(
-        type: SessionType.CloudResourceGenerate,
+        type: SessionType.OrderImport,
         status: SessionStatus.Completed,
         result: SessionResult.Succeeded
     );
@@ -561,29 +561,29 @@ private Session CreateSession()
 ### Legacy Record Creation
 
 ```csharp
-private CloudResourceOperationResultLegacyEntity CreateLegacyGenerateRecord(
+private OrderEventLegacyEntity CreateLegacyPlacedRecord(
     SessionId sessionId,
-    CloudResourceGenerateLegacyResult generateResult)
+    OrderPlacedLegacyResult placedResult)
 {
-    return new CloudResourceOperationResultLegacyEntity
+    return new OrderEventLegacyEntity
     {
-        Id = GenerateCloudResourceOperationResultId().Value,
+        Id = GenerateOrderEventId().Value,
         SessionId = sessionId.Value,
-        ResultType = CloudResourceOperationResultTypeLegacyEntity.Generate,
-        Result = SerializeToJsonString(generateResult).Value,
+        ResultType = OrderEventTypeLegacyEntity.Placed,
+        Result = SerializeToJsonString(placedResult).Value,
     };
 }
 
-private CloudResourceOperationResultLegacyEntity CreateLegacyApplicationRecord(
+private OrderEventLegacyEntity CreateLegacyPaidRecord(
     SessionId sessionId,
-    CloudResourceApplicationLegacyResult applicationResult)
+    OrderPaidLegacyResult paidResult)
 {
-    return new CloudResourceOperationResultLegacyEntity
+    return new OrderEventLegacyEntity
     {
-        Id = GenerateCloudResourceOperationResultId().Value,
+        Id = GenerateOrderEventId().Value,
         SessionId = sessionId.Value,
-        ResultType = CloudResourceOperationResultTypeLegacyEntity.Application,
-        Result = SerializeToJsonString(applicationResult).Value,
+        ResultType = OrderEventTypeLegacyEntity.Paid,
+        Result = SerializeToJsonString(paidResult).Value,
     };
 }
 
@@ -627,6 +627,6 @@ productionRecords.Should().AllSatisfy(r => r.RequiredField.Should().NotBeNull())
 
 ## Related Patterns
 
-- [repository-tests.md](repository-tests.md) - Database testing patterns
-- [generators.md](generators.md) - Test data generation
-- [mock-builders.md](mock-builders.md) - Complex mock setups
+- [repository-tests.md](repository-tests.md): Database testing patterns
+- [generators.md](generators.md): Test data generation
+- [mock-builders.md](mock-builders.md): Complex mock setups

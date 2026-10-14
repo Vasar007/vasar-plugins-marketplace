@@ -46,7 +46,7 @@ If the user gives a resume time or a start time, schedule a one-shot job with th
 
 4. Write the job ID, the time, and the steps into the session progress file. Step 6 of the run deletes each of these jobs with `CronDelete`.
 
-A start time works the same way. After the OK to the meta-plan, write the session progress file, schedule the job for step 1, and end the turn.
+A start time works the same way. At step 0 item 8 of `SKILL.md`, write the session progress file, schedule the job for step 1, and end the turn.
 
 The main session can reach its own usage limit while it waits for an agent. If the user gives the reset times, schedule a resume job for 1 to 3 minutes after each reset. The run then goes on without a wait for the user.
 

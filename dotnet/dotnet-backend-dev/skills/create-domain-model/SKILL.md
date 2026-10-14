@@ -5,11 +5,11 @@ description: Create domain models as sealed records with equality members and va
 
 # Create Domain Model
 
-Create domain models in your domain project (e.g., `src/{ProjectName}.Domain`) following project conventions.
+Create domain models in your domain project (for example, `src/{ProjectName}.Domain`) following project conventions.
 
 ## Structure
 
-Domain models are `sealed record` types implementing `IStaticEquatable<T>` (a framework-internal marker — substitute `IEquatable<T>` if your project does not provide it):
+Domain models are `sealed record` types that implement `IStaticEquatable<T>`. This marker interface comes from the internal framework of the project. If your project does not have it, use `IEquatable<T>` instead:
 
 ```csharp
 public sealed record {ModelName} : IStaticEquatable<{ModelName}>
@@ -63,12 +63,12 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
    - `ThrowIfValueIsOutOfRange()` for numeric constraints
    - Add XML docs with `<exception>` tags
 
-5. **Override Equals** (REQUIRED when model has collections or computed properties):
+5. **Override Equals**. If the model has collections or computed properties, this override is REQUIRED:
    - Use only identity fields for comparison
    - Handle null and reference equality first
-   - Use `DefaultStringComparer` for string comparisons - choose based on domain:
+   - Use `DefaultStringComparer` for string comparisons. Choose the comparer that the domain needs:
      - `StringComparer.OrdinalIgnoreCase` for case-insensitive (most common)
-     - `StringComparer.Ordinal` for case-sensitive when domain requires exact matching
+     - `StringComparer.Ordinal` for case-sensitive comparison (a domain that requires an exact match)
 
 6. **Override GetHashCode**:
    - Use `HashCode.Combine()` with same fields as Equals
@@ -94,66 +94,66 @@ using {ProjectNamespace}.Common;
 namespace {ProjectNamespace}.Domain.{Feature};
 
 /// <summary>
-/// Represents a provisioned cloud resource that was successfully deleted.
+/// Represents an order item that was successfully cancelled.
 /// </summary>
-public sealed record DeletedProvisionedResource : IStaticEquatable<DeletedProvisionedResource>
+public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 {
     private static StringComparer DefaultStringComparer => StringComparer.OrdinalIgnoreCase;
 
     /// <summary>
-    /// The type of the deleted resource.
+    /// The type of the cancelled item.
     /// </summary>
     [Required]
-    public ProvisionedResourceType ResourceType { get; init; }
+    public OrderItemType ItemType { get; init; }
 
     /// <summary>
-    /// The unique identifier of the deleted resource.
+    /// The unique identifier of the cancelled item.
     /// </summary>
     [Required]
-    public String ResourceId { get; init; }
+    public String ItemId { get; init; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DeletedProvisionedResource"/> class.
+    /// Initializes a new instance of the <see cref="CancelledOrderItem"/> class.
     /// </summary>
-    /// <param name="resourceType">The type of the deleted resource.</param>
-    /// <param name="resourceId">The unique identifier of the deleted resource.</param>
+    /// <param name="itemType">The type of the cancelled item.</param>
+    /// <param name="itemId">The unique identifier of the cancelled item.</param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="resourceType"/> is not a valid <see cref="ProvisionedResourceType"/> value.
+    /// <paramref name="itemType"/> is not a valid <see cref="OrderItemType"/> value.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="resourceId"/> is <see langword="null"/>, empty, or whitespace.
+    /// <paramref name="itemId"/> is <see langword="null"/>, empty, or whitespace.
     /// </exception>
-    public DeletedProvisionedResource(
-        ProvisionedResourceType resourceType,
-        String resourceId)
+    public CancelledOrderItem(
+        OrderItemType itemType,
+        String itemId)
     {
-        ResourceType = resourceType.ThrowIfUndefined();
-        ResourceId = resourceId.ThrowIfNullOrWhiteSpace();
+        ItemType = itemType.ThrowIfUndefined();
+        ItemId = itemId.ThrowIfNullOrWhiteSpace();
     }
 
-    public Boolean Equals(DeletedProvisionedResource? other)
+    public Boolean Equals(CancelledOrderItem? other)
     {
         if (other is null)
             return false;
         if (ReferenceEquals(this, other))
             return true;
 
-        return ResourceType == other.ResourceType
-            && DefaultStringComparer.Equals(ResourceId, other.ResourceId);
+        return ItemType == other.ItemType
+            && DefaultStringComparer.Equals(ItemId, other.ItemId);
     }
 
     public override Int32 GetHashCode()
     {
-        return HashCode.Combine(ResourceType, DefaultStringComparer.GetHashCode(ResourceId));
+        return HashCode.Combine(ItemType, DefaultStringComparer.GetHashCode(ItemId));
     }
 
     public override String ToString()
     {
         var sb = new StringBuilder(capacity: 128)
-            .Append(nameof(DeletedProvisionedResource))
+            .Append(nameof(CancelledOrderItem))
             .Append(" {")
-            .Append(" ResourceType = ").Append(ResourceType)
-            .Append(", ResourceId = ").Append(ResourceId)
+            .Append(" ItemType = ").Append(ItemType)
+            .Append(", ItemId = ").Append(ItemId)
             .Append(" }");
 
         return sb.ToString();
@@ -182,7 +182,7 @@ public sealed record DeletedProvisionedResource : IStaticEquatable<DeletedProvis
 - Using collection expressions for equality (use `.All()` or `.SequenceEqual()`)
 - Not handling null in Equals
 - Inconsistent fields between Equals and GetHashCode
-- **Exposing sensitive data in ToString()** - use erased placeholder instead
+- **Exposing sensitive data in ToString()**: use an erased placeholder instead
 
 ## Tests
 

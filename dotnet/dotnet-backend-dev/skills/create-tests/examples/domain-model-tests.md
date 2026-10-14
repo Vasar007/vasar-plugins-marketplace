@@ -2,7 +2,7 @@
 
 Use `BaseEqualityMemberTests<T>` for **all** domain models implementing `IEquatable<T>` and `IEqualityOperators<T, T, Boolean>`.
 
-**MANDATORY:** If the model implements these interfaces, the test class MUST inherit from `BaseEqualityMemberTests<T>`. Do NOT inherit from `BaseTest` or `BaseMockTest` for such models.
+**MANDATORY:** The test class of a model that implements these interfaces MUST inherit from `BaseEqualityMemberTests<T>`. Do NOT inherit from `BaseTest` or `BaseMockTest` for such models.
 
 ## Base Class
 
@@ -31,7 +31,7 @@ There is only **one** abstract method to implement:
 protected abstract TValue CreateUniqueValue();
 ```
 
-**NOTE:** `CreateConstantValue()` is already provided by the base class — it lazily caches the first `CreateUniqueValue()` call. Do NOT override it.
+**NOTE:** The base class already provides `CreateConstantValue()`. It caches the result of the first `CreateUniqueValue()` call. Do NOT override it.
 
 ## Optional Overrides (Mutators)
 
@@ -62,171 +62,171 @@ protected virtual IEnumerable<Func<TValue, TValue>> GetValueMutatorsForEquality(
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
-using MyApp.Domain.Appliances.Deployment.Resources;
-using MyApp.Tests.Common.Helpers.Generators.Appliances;
-using MyApp.Tests.Common.Helpers.Generators.Provisioning.Deployments;
+using MyApp.Domain.Stores.Shipments;
+using MyApp.Tests.Common.Helpers.Generators.Stores;
+using MyApp.Tests.Common.Helpers.Generators.Shipping.Shipments;
 using MyApp.OnlyForTests.Basic.Equality;
 
-namespace MyApp.Domain.Tests.Appliances.Deployment.Resources;
+namespace MyApp.Domain.Tests.Stores.Shipments;
 
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class ApplianceDeploymentResourcesTests : BaseEqualityMemberTests<ApplianceDeploymentResources>
+public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments>
 {
-    private readonly ApplianceGenerator _applianceGenerator;
-    private readonly DeploymentGenerator _deploymentGenerator;
+    private readonly StoreGenerator _storeGenerator;
+    private readonly ShipmentGenerator _shipmentGenerator;
 
-    public ApplianceDeploymentResourcesTests()
+    public StoreShipmentsTests()
     {
-        _applianceGenerator = new ApplianceGenerator();
-        _deploymentGenerator = new DeploymentGenerator();
+        _storeGenerator = new StoreGenerator();
+        _shipmentGenerator = new ShipmentGenerator();
     }
 
     [Test]
     public void Constructor_SetsPropertiesCorrectly()
     {
         // Arrange.
-        var computeAccountDeploymentId = GenerateDeploymentId();
-        var serverNetworkDeploymentId = GenerateDeploymentId();
-        var databaseNetworkDeploymentId = GenerateDeploymentId();
-        var databaseClusterDeploymentId = GenerateDeploymentId();
-        var applianceId = GenerateApplianceId();
+        var outboundShipmentId = GenerateShipmentId();
+        var returnShipmentId = GenerateShipmentId();
+        var replacementShipmentId = GenerateShipmentId();
+        var exchangeShipmentId = GenerateShipmentId();
+        var storeId = GenerateStoreId();
 
         // Act.
-        var resources = CreateApplianceDeploymentResources(
-            computeAccountDeploymentId: computeAccountDeploymentId,
-            serverNetworkDeploymentId: serverNetworkDeploymentId,
-            databaseNetworkDeploymentId: databaseNetworkDeploymentId,
-            databaseClusterDeploymentId: databaseClusterDeploymentId,
-            applianceId: applianceId
+        var shipments = CreateStoreShipments(
+            outboundShipmentId: outboundShipmentId,
+            returnShipmentId: returnShipmentId,
+            replacementShipmentId: replacementShipmentId,
+            exchangeShipmentId: exchangeShipmentId,
+            storeId: storeId
         );
 
         // Assert.
-        resources.Should().NotBeNull();
-        resources.ComputeAccountDeploymentId.Should().Be(computeAccountDeploymentId);
-        resources.ServerNetworkDeploymentId.Should().Be(serverNetworkDeploymentId);
-        resources.DatabaseNetworkDeploymentId.Should().Be(databaseNetworkDeploymentId);
-        resources.DatabaseClusterDeploymentId.Should().Be(databaseClusterDeploymentId);
-        resources.ApplianceId.Should().Be(applianceId);
+        shipments.Should().NotBeNull();
+        shipments.OutboundShipmentId.Should().Be(outboundShipmentId);
+        shipments.ReturnShipmentId.Should().Be(returnShipmentId);
+        shipments.ReplacementShipmentId.Should().Be(replacementShipmentId);
+        shipments.ExchangeShipmentId.Should().Be(exchangeShipmentId);
+        shipments.StoreId.Should().Be(storeId);
     }
 
     [Test]
     public void ToString_ShouldReturnStringContainingAllProperties()
     {
         // Arrange.
-        var resources = CreateUniqueValue();
+        var shipments = CreateUniqueValue();
 
         // Act.
-        var stringRepresentation = resources.ToString();
+        var stringRepresentation = shipments.ToString();
 
         // Assert.
         stringRepresentation.Should().NotBeNullOrEmpty();
-        stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources));
-        stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources.ComputeAccountDeploymentId));
-        stringRepresentation.Should().Contain(resources.ComputeAccountDeploymentId.ToString());
-        stringRepresentation.Should().Contain(nameof(ApplianceDeploymentResources.ServerNetworkDeploymentId));
-        stringRepresentation.Should().Contain(resources.ServerNetworkDeploymentId.ToString());
+        stringRepresentation.Should().Contain(nameof(StoreShipments));
+        stringRepresentation.Should().Contain(nameof(StoreShipments.OutboundShipmentId));
+        stringRepresentation.Should().Contain(shipments.OutboundShipmentId.ToString());
+        stringRepresentation.Should().Contain(nameof(StoreShipments.ReturnShipmentId));
+        stringRepresentation.Should().Contain(shipments.ReturnShipmentId.ToString());
     }
 
     // --- BaseEqualityMemberTests overrides ---
 
-    protected override ApplianceDeploymentResources CreateUniqueValue()
+    protected override StoreShipments CreateUniqueValue()
     {
-        return _applianceGenerator.GenerateApplianceDeploymentResources();
+        return _storeGenerator.GenerateStoreShipments();
     }
 
-    protected override IEnumerable<Func<ApplianceDeploymentResources, ApplianceDeploymentResources>> GetValueMutatorsForInequality()
+    protected override IEnumerable<Func<StoreShipments, StoreShipments>> GetValueMutatorsForInequality()
     {
-        yield return x => x with { ComputeAccountDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { ServerNetworkDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { DatabaseNetworkDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { DatabaseClusterDeploymentId = GenerateDeploymentId() };
-        yield return x => x with { ApplianceId = GenerateApplianceId() };
+        yield return x => x with { OutboundShipmentId = GenerateShipmentId() };
+        yield return x => x with { ReturnShipmentId = GenerateShipmentId() };
+        yield return x => x with { ReplacementShipmentId = GenerateShipmentId() };
+        yield return x => x with { ExchangeShipmentId = GenerateShipmentId() };
+        yield return x => x with { StoreId = GenerateStoreId() };
     }
 
     // NOTE: Do NOT override GetValueMutatorsForEquality — only needed when some fields are excluded from equality
 
     // --- Private helpers ---
 
-    private ApplianceDeploymentResources CreateApplianceDeploymentResources(
-        DeploymentId computeAccountDeploymentId,
-        DeploymentId serverNetworkDeploymentId,
-        DeploymentId databaseNetworkDeploymentId,
-        DeploymentId databaseClusterDeploymentId,
-        ApplianceId applianceId)
+    private StoreShipments CreateStoreShipments(
+        ShipmentId outboundShipmentId,
+        ShipmentId returnShipmentId,
+        ShipmentId replacementShipmentId,
+        ShipmentId exchangeShipmentId,
+        StoreId storeId)
     {
-        return _applianceGenerator.CreateApplianceDeploymentResources(
-            computeAccountDeploymentId: computeAccountDeploymentId,
-            serverNetworkDeploymentId: serverNetworkDeploymentId,
-            databaseNetworkDeploymentId: databaseNetworkDeploymentId,
-            databaseClusterDeploymentId: databaseClusterDeploymentId,
-            applianceId: applianceId
+        return _storeGenerator.CreateStoreShipments(
+            outboundShipmentId: outboundShipmentId,
+            returnShipmentId: returnShipmentId,
+            replacementShipmentId: replacementShipmentId,
+            exchangeShipmentId: exchangeShipmentId,
+            storeId: storeId
         );
     }
 
-    private DeploymentId GenerateDeploymentId()
+    private ShipmentId GenerateShipmentId()
     {
-        return _deploymentGenerator.GenerateDeploymentId();
+        return _shipmentGenerator.GenerateShipmentId();
     }
 
-    private ApplianceId GenerateApplianceId()
+    private StoreId GenerateStoreId()
     {
-        return _applianceGenerator.GenerateApplianceId();
+        return _storeGenerator.GenerateStoreId();
     }
 }
 ```
 
 ## Complete Example (Complex model — some fields are excluded from equality)
 
-When a model has fields that do NOT affect equality (e.g., mutable properties like Name, Status), **only then** override `GetValueMutatorsForEquality()`:
+Override `GetValueMutatorsForEquality()` **only** for a model with fields that do NOT affect equality, for example mutable properties such as `Name` or `Status`:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
-using MyApp.Domain.Workload.Tenants;
-using MyApp.Tests.Common.Helpers.Generators.Workload.Tenants;
+using MyApp.Domain.Sales.Customers;
+using MyApp.Tests.Common.Helpers.Generators.Sales.Customers;
 using MyApp.OnlyForTests.Basic.Equality;
 
-namespace MyApp.Domain.Tests.Workload.Tenants;
+namespace MyApp.Domain.Tests.Sales.Customers;
 
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class TenantTests : BaseEqualityMemberTests<Tenant>
+public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
 {
-    private readonly TenantGenerator _tenantGenerator;
-    private readonly ApplianceGenerator _applianceGenerator;
+    private readonly CustomerGenerator _customerGenerator;
+    private readonly StoreGenerator _storeGenerator;
     private readonly OrganizationGenerator _organizationGenerator;
-    private readonly ManagementRegionGenerator _managementRegionGenerator;
+    private readonly SalesRegionGenerator _salesRegionGenerator;
 
-    public TenantTests()
+    public CustomerTests()
     {
-        _tenantGenerator = new TenantGenerator();
-        _applianceGenerator = new ApplianceGenerator();
+        _customerGenerator = new CustomerGenerator();
+        _storeGenerator = new StoreGenerator();
         _organizationGenerator = new OrganizationGenerator();
-        _managementRegionGenerator = new ManagementRegionGenerator();
+        _salesRegionGenerator = new SalesRegionGenerator();
     }
 
     // --- BaseEqualityMemberTests overrides ---
 
-    protected override Tenant CreateUniqueValue()
+    protected override Customer CreateUniqueValue()
     {
-        return _tenantGenerator.GenerateTenant();
+        return _customerGenerator.GenerateCustomer();
     }
 
-    protected override IEnumerable<Func<Tenant, Tenant>> GetValueMutatorsForInequality()
+    protected override IEnumerable<Func<Customer, Customer>> GetValueMutatorsForInequality()
     {
         // Fields that AFFECT equality — changing them makes instances unequal
-        yield return x => x with { TenantId = GenerateTenantId() };
-        yield return x => x with { ManagementRegionId = _managementRegionGenerator.GenerateManagementRegionId() };
+        yield return x => x with { CustomerId = GenerateCustomerId() };
+        yield return x => x with { SalesRegionId = _salesRegionGenerator.GenerateSalesRegionId() };
         yield return x => x with { CreatedTime = x.CreatedTime.AddDays(1) };
     }
 
-    protected override IEnumerable<Func<Tenant, Tenant>> GetValueMutatorsForEquality()
+    protected override IEnumerable<Func<Customer, Customer>> GetValueMutatorsForEquality()
     {
         // Fields that DO NOT affect equality — changing them keeps instances equal
-        yield return x => CreateTenant(x.TenantId, GenerateTenantName(), x.ManagementRegionId, x.Status, x.TenantAppliance, x.Organizations, x.CreatedTime, x.DeployedResources);
-        yield return x => CreateTenant(x.TenantId, x.TenantName, x.ManagementRegionId, x.Status.SelectOtherUniqueEnumValue(), x.TenantAppliance, x.Organizations, x.CreatedTime, x.DeployedResources);
-        yield return x => CreateTenant(x.TenantId, x.TenantName, x.ManagementRegionId, x.Status, GenerateAppliance(), x.Organizations, x.CreatedTime, x.DeployedResources);
+        yield return x => CreateCustomer(x.CustomerId, GenerateCustomerName(), x.SalesRegionId, x.Status, x.CustomerStore, x.Organizations, x.CreatedTime, x.LoyaltyProgram);
+        yield return x => CreateCustomer(x.CustomerId, x.CustomerName, x.SalesRegionId, x.Status.SelectOtherUniqueEnumValue(), x.CustomerStore, x.Organizations, x.CreatedTime, x.LoyaltyProgram);
+        yield return x => CreateCustomer(x.CustomerId, x.CustomerName, x.SalesRegionId, x.Status, GenerateStore(), x.Organizations, x.CreatedTime, x.LoyaltyProgram);
     }
 
     // --- Additional tests beyond automatic equality tests ---
@@ -235,72 +235,72 @@ public sealed class TenantTests : BaseEqualityMemberTests<Tenant>
     public void Constructor_Sets_Properties_Correctly()
     {
         // Arrange.
-        var tenantId = GenerateTenantId();
-        var tenantName = GenerateTenantName();
+        var customerId = GenerateCustomerId();
+        var customerName = GenerateCustomerName();
         // ...
 
         // Act.
-        var tenant = CreateTenant(tenantId: tenantId, tenantName: tenantName, ...);
+        var customer = CreateCustomer(customerId: customerId, customerName: customerName, ...);
 
         // Assert.
-        tenant.Should().NotBeNull();
-        tenant.TenantId.Should().Be(tenantId);
-        tenant.TenantName.Should().Be(tenantName);
+        customer.Should().NotBeNull();
+        customer.CustomerId.Should().Be(customerId);
+        customer.CustomerName.Should().Be(customerName);
     }
 
     [Test]
     public void ToString_ShouldReturnStringContainingAllProperties()
     {
         // Arrange.
-        var tenant = CreateUniqueValue();
+        var customer = CreateUniqueValue();
 
         // Act.
-        var stringRepresentation = tenant.ToString();
+        var stringRepresentation = customer.ToString();
 
         // Assert.
         stringRepresentation.Should().NotBeNullOrEmpty();
-        stringRepresentation.Should().Contain(nameof(Tenant));
-        stringRepresentation.Should().Contain(nameof(Tenant.TenantId));
-        stringRepresentation.Should().Contain(tenant.TenantId.ToString());
+        stringRepresentation.Should().Contain(nameof(Customer));
+        stringRepresentation.Should().Contain(nameof(Customer.CustomerId));
+        stringRepresentation.Should().Contain(customer.CustomerId.ToString());
         // ... check all properties
     }
 
     // --- Private helpers ---
 
-    private TenantId GenerateTenantId()
+    private CustomerId GenerateCustomerId()
     {
-        return _tenantGenerator.GenerateTenantId();
+        return _customerGenerator.GenerateCustomerId();
     }
 
-    private TenantName GenerateTenantName()
+    private CustomerName GenerateCustomerName()
     {
-        return _tenantGenerator.GenerateTenantName();
+        return _customerGenerator.GenerateCustomerName();
     }
 
-    private Appliance GenerateAppliance()
+    private Store GenerateStore()
     {
-        return _applianceGenerator.GenerateAppliance();
+        return _storeGenerator.GenerateStore();
     }
 
-    private Tenant CreateTenant(
-        TenantId tenantId,
-        TenantName tenantName,
-        ManagementRegionId managementRegionId,
-        TenantStatus status,
-        Appliance appliance,
+    private Customer CreateCustomer(
+        CustomerId customerId,
+        CustomerName customerName,
+        SalesRegionId salesRegionId,
+        CustomerStatus status,
+        Store store,
         IReadOnlyList<Organization> organizations,
         DateTimeUtc createdTime,
-        TenantDeployedResources deployedResources)
+        CustomerLoyaltyProgram loyaltyProgram)
     {
-        return _tenantGenerator.CreateTenant(
-            tenantId: tenantId,
-            tenantName: tenantName,
-            managementRegionId: managementRegionId,
+        return _customerGenerator.CreateCustomer(
+            customerId: customerId,
+            customerName: customerName,
+            salesRegionId: salesRegionId,
             status: status,
-            appliance: appliance,
+            store: store,
             organizations: organizations,
             createdTime: createdTime,
-            deployedResources: deployedResources
+            loyaltyProgram: loyaltyProgram
         );
     }
 }
@@ -308,18 +308,18 @@ public sealed class TenantTests : BaseEqualityMemberTests<Tenant>
 
 ## Key Points
 
-1. **MANDATORY inheritance** — if model implements `IEquatable<T>` + `IEqualityOperators`, the test MUST use `BaseEqualityMemberTests<T>`
+1. **MANDATORY inheritance**: a test for a model that implements `IEquatable<T>` and `IEqualityOperators` MUST use `BaseEqualityMemberTests<T>`
 
-2. **Only one abstract method** — `CreateUniqueValue()`. Each call must return a distinct instance (different equality-significant fields). The base class calls this multiple times to test inequality
+2. **Only one abstract method**: `CreateUniqueValue()`. Each call must return a distinct instance (different equality-significant fields). The base class calls it several times to test inequality
 
-3. **`CreateConstantValue()`** — provided by the base class, returns the same cached instance. Used by the base to test that identical instances are equal. Do NOT override
+3. **`CreateConstantValue()`**: the base class provides it, and it returns the same cached instance. The base class uses it to test that identical instances are equal. Do NOT override it
 
-4. **Mutators for inequality** — override `GetValueMutatorsForInequality()` to yield `with` expressions that change one equality-significant field at a time. The base asserts these produce unequal instances
+4. **Mutators for inequality**: override `GetValueMutatorsForInequality()` to yield `with` expressions that change one equality-significant field at a time. The base class asserts that these give unequal instances
 
-5. **Mutators for equality** — override `GetValueMutatorsForEquality()` **only** when the model has fields excluded from equality (e.g., mutable Name, Status). If all fields participate in equality, do NOT override — omit it entirely
+5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do NOT override it
 
-6. **Additional tests** — add Constructor, ToString, method behavior tests as `[Test]` methods alongside the automatic equality tests
+6. **Additional tests**: add constructor, `ToString`, and method behavior tests as `[Test]` methods next to the automatic equality tests
 
-7. **Private helpers** — all generator/factory calls via private methods, same rules as everywhere
+7. **Private helpers**: make all generator and factory calls through private methods, with the same rules as in [SKILL.md](../SKILL.md)
 
-8. **When unsure about the pattern** — read the [examples/](examples/) folder first. If no matching example exists, search existing tests in the repo's Domain.Tests project (typically under `Sources/Tests/<Project>.Domain.Tests/` or `Tests/<Project>.Domain.Tests/`) to find a similar test class and follow its pattern
+8. **Unsure about the pattern**: read the example table in [SKILL.md](../SKILL.md) first. If no example matches, look for a similar test class in the Domain.Tests project of the repository and follow its pattern. The project is usually `Sources/Tests/<Project>.Domain.Tests/` or `Tests/<Project>.Domain.Tests/`

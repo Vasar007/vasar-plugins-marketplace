@@ -30,10 +30,6 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Verifier model and effort | `--verifier-model`, `--verifier-effort` | `opus`, `xhigh` |
 | Auditor model and effort | `--auditor-model`, `--auditor-effort` | `opus`, `xhigh` |
 
-Do not guess the report folder. Ask for it. With `--interactive`, do not take the GitHub repository from the
-remote without the OK of the user. GitHub redirects a renamed repository, so the remote can show
-an old name.
-
 The context file is for orientation only. Do not read other files in its folder. If an agent
 needs one of them, the agent reads it.
 
@@ -75,7 +71,7 @@ Ask a question in these cases:
 
 ## Session progress file
 
-After the user's OK, write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
+At step 0 item 8 of `SKILL.md`, write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
 
 - The inputs, the commit SHAs, the base source, and the scratch folder.
 - The approved models and effort levels.

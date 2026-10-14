@@ -20,7 +20,7 @@ public class {ExceptionName}Exception : Exception
 }
 ```
 
-**Optional: Use `sealed`** if the exception will not be further inherited.
+**Optional:** you can add `sealed` to an exception that no other class inherits from.
 
 ## Required Constructors
 
@@ -183,7 +183,7 @@ var message = StringResources.MissingOutputMessage.SafeFormat(entityInfo);
 
 ## XML Documentation
 
-ALL exceptions require comprehensive XML documentation:
+ALL exceptions require XML documentation:
 
 - Class-level `<summary>` and `<remarks>`
 - Constructor documentation
@@ -201,11 +201,11 @@ Create exception tests extending `BaseExceptionTests<T>`.
 
 1. **3 standard constructors required** (parameterless, message, message+inner)
 2. **Inherit from `Exception`** (or appropriate base like `ArgumentException`)
-3. **Optional `sealed`** if no further inheritance needed
+3. **Optional `sealed`** for an exception that no other class inherits from
 4. **XML documentation required** on all public members
 5. **Use StringResources** for user-facing messages with `[TBD]` prefix
 6. **Static factory methods** for complex construction or formatting
-7. **Validate parameters** in factory methods (use `ThrowIfNull()`, etc.)
+7. **Validate parameters** in factory methods (for example, with `ThrowIfNull()`)
 8. **File location**: `Domain/Exceptions/` or `Domain/{Feature}/Exceptions/`
 
 ## Common Exception Patterns
@@ -213,16 +213,16 @@ Create exception tests extending `BaseExceptionTests<T>`.
 ### Domain Business Rule Violation
 
 ```csharp
-public class InvalidTenantStateException : Exception
+public class InvalidOrderStateException : Exception
 {
     // 3 standard constructors
     
-    public static InvalidTenantStateException Create(
-        TenantStatus currentStatus,
-        TenantStatus expectedStatus)
+    public static InvalidOrderStateException Create(
+        OrderStatus currentStatus,
+        OrderStatus expectedStatus)
     {
-        var message = StringResources.InvalidTenantStateMessage.SafeFormat(currentStatus, expectedStatus);
-        return new InvalidTenantStateException(message);
+        var message = StringResources.InvalidOrderStateMessage.SafeFormat(currentStatus, expectedStatus);
+        return new InvalidOrderStateException(message);
     }
 }
 ```
@@ -230,16 +230,16 @@ public class InvalidTenantStateException : Exception
 ### Resource Not Found
 
 ```csharp
-public class TenantNotFoundException : Exception
+public class OrderNotFoundException : Exception
 {
     // 3 standard constructors
     
-    public static TenantNotFoundException Create(TenantId tenantId)
+    public static OrderNotFoundException Create(OrderId orderId)
     {
-        tenantId.ThrowIfNull();
+        orderId.ThrowIfNull();
         
-        var message = StringResources.TenantNotFoundMessage.SafeFormat(tenantId);
-        return new TenantNotFoundException(message);
+        var message = StringResources.OrderNotFoundMessage.SafeFormat(orderId);
+        return new OrderNotFoundException(message);
     }
 }
 ```

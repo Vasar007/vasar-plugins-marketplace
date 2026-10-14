@@ -10,7 +10,7 @@ Configuration/
       {Name}OptionsValidator.cs        (FluentValidation, AbstractValidator<T>)
 ```
 
-Domain subfolders are project-specific (e.g., `Deployment/`, `Services/`, `Workload/`, `Logging/`). Nest deeper for sub-features as the project already does.
+Domain subfolders are project-specific, for example `Shipping/`, `Services/`, `Sales/`, and `Logging/`. Nest deeper for sub-features as the project already does.
 
 ## Options Class Pattern
 
@@ -76,7 +76,7 @@ Key requirements:
 - `sealed class` inheriting `AbstractValidator<T>`.
 - Use `ValidationErrorBuilder.Default` for error messages.
 - Validate nested options with `.SetValidator(new ChildValidator())`.
-- If the .NET backend framework exposes a shared base validator for service options (e.g. a `Base*ServiceOptionsValidator<T>`), prefer inheriting from it over reimplementing the same rules.
+- The .NET backend framework can have a shared base validator for service options, for example a `Base*ServiceOptionsValidator<T>`. If it has one, prefer inheriting from it over reimplementing the same rules.
 
 ## Nested Options
 
@@ -86,7 +86,7 @@ Root options compose child options via properties initialized with `new()`:
 public NestedOptions Child { get; set; } = new();
 ```
 
-Validators cascade — the root validator uses `.SetValidator()` for each nested child.
+Validators cascade. The root validator uses `.SetValidator()` for each nested child.
 
 ## Computed Properties
 
@@ -94,9 +94,9 @@ Expression-bodied readonly members for derived values:
 
 ```csharp
 /// <summary>
-/// Gets the computed maximum items per region.
+/// Gets the total retry timeout in seconds.
 /// </summary>
-public Int32 MaxItemsPerRegion => MaxRetries * TimeoutSeconds;
+public Int32 TotalRetryTimeoutSeconds => MaxRetries * TimeoutSeconds;
 ```
 
 ## DI Registration
@@ -104,7 +104,7 @@ public Int32 MaxItemsPerRegion => MaxRetries * TimeoutSeconds;
 Options are registered in the host application builder extensions (commonly `WebApi/Services/Builders/ExtensionMethodsHostApplicationBuilder.cs`):
 
 ```csharp
-builder.ConfigureOptionsAndEnableValidation<DeploymentOptions>();
+builder.ConfigureOptionsAndEnableValidation<ShippingOptions>();
 ```
 
 `ConfigureOptionsAndEnableValidation` is a framework helper that binds options from configuration and enables `IValidatableObject` validation on startup.
@@ -114,15 +114,15 @@ builder.ConfigureOptionsAndEnableValidation<DeploymentOptions>();
 Services inject `IOptionsMonitor<T>` (not `IOptions<T>`):
 
 ```csharp
-private readonly IOptionsMonitor<DeploymentOptions> _deploymentOptions;
+private readonly IOptionsMonitor<ShippingOptions> _shippingOptions;
 
 // Access current value
-var options = _deploymentOptions.CurrentValue;
+var options = _shippingOptions.CurrentValue;
 ```
 
 ## Adding a New Options Class
 
-1. Create `{Name}Options.cs` — sealed record, `IValidatableObject`, with defaults.
-2. Create `{Name}OptionsValidator.cs` — `AbstractValidator` with rules.
-3. If top-level: register in the project's host-builder extension method (e.g. `ConfigureXxxOptionsAndEnableValidation`).
-4. If nested: add as a property on the parent options and validate via `.SetValidator()` in the parent validator.
+1. Create `{Name}Options.cs`: a sealed record that implements `IValidatableObject` and has defaults.
+2. Create `{Name}OptionsValidator.cs`: an `AbstractValidator` with rules.
+3. If the options class is top-level, register it in the host-builder extension method of the project (for example, `ConfigureXxxOptionsAndEnableValidation`).
+4. If the options class is nested, add it as a property of the parent options class. Validate it with `.SetValidator()` in the parent validator.

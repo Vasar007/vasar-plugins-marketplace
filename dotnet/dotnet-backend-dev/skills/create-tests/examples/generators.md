@@ -1,51 +1,37 @@
 # Test Model Generators
 
-Use test model generators for creating consistent, valid test data. **Never create test data inline** - always use generators.
+Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators.
 
 ## Generator Pattern
 
 Location: `Tests.Common/Helpers/Generators/{Feature}/`
 
-```mermaid
+```text
 Generators/
-├── Appliances/
-│   └── ApplianceGenerator.cs
-├── Provisioning/
-│   ├── Compute/
-│   │   └── ComputeInstanceGenerator.cs
-│   ├── Databases/
-│   │   └── DatabaseInstanceGenerator.cs
-│   ├── Deployments/
-│   │   └── DeploymentGenerator.cs
-│   ├── Identity/
-│   │   └── IdentityGenerator.cs
-│   ├── Network/
-│   │   └── NetworkGenerator.cs
-│   ├── ObjectStorage/
-│   │   └── ObjectStorageInfoGenerator.cs
-│   ├── Regions/
-│   │   └── RegionGenerator.cs
-│   └── Templates/
-│       └── Definitions/
-│           └── CloudResourceGenerator.cs
-├── Authentication/
-│   ├── ExternalAuthInfoGenerator.cs
-│   └── AuthenticationInfoGenerator.cs
+├── Accounts/
+│   └── AccountGenerator.cs
+├── Catalog/
+│   ├── CategoryGenerator.cs
+│   └── ProductGenerator.cs
+├── Orders/
+│   ├── OrderGenerator.cs
+│   └── OrderLineGenerator.cs
+├── Organizations/
+│   └── OrganizationGenerator.cs
+├── Payments/
+│   └── PaymentGenerator.cs
+├── Sales/
+│   ├── Customers/
+│   │   └── CustomerGenerator.cs
+│   └── Markets/
+│       └── MarketGenerator.cs
 ├── Sessions/
 │   └── SessionGenerator.cs
-├── Storage/
-│   └── StorageModelGenerator.cs
-├── Versioning/
-│   ├── ProductVersionGenerator.cs
-│   └── VersionInfoGenerator.cs
-├── Backend/
-│   └── Organizations/
-│       └── OrganizationGenerator.cs
-└── Workload/
-    ├── Resources/
-    │   └── ProvisionedResourceGenerator.cs
-    └── Tenants/
-        └── TenantGenerator.cs
+├── Stores/
+│   └── StoreGenerator.cs
+└── Versioning/
+    ├── ProductVersionGenerator.cs
+    └── VersionInfoGenerator.cs
 ```
 
 ## Generator Structure
@@ -56,16 +42,16 @@ Generators/
 using MyApp.OnlyForTests.Data.Generators;
 using MyApp.OnlyForTests.Enumerations;
 
-namespace MyApp.Tests.Common.Helpers.Generators.Provisioning.Regions;
+namespace MyApp.Tests.Common.Helpers.Generators.Sales.Markets;
 
-public sealed class RegionGenerator
+public sealed class MarketGenerator
 {
     /// <summary>
     /// Singleton instance for convenient access.
     /// </summary>
-    public static RegionGenerator Instance { get; } = new();
+    public static MarketGenerator Instance { get; } = new();
 
-    public RegionGenerator()
+    public MarketGenerator()
     {
     }
 
@@ -75,14 +61,14 @@ public sealed class RegionGenerator
     /// Creates model with explicit parameter values.
     /// Use when you need specific values for assertions.
     /// </summary>
-    public Region CreateRegion(RegionId regionId)
+    public Market CreateMarket(MarketId marketId)
     {
-        return Region.FromId(regionId: regionId);
+        return Market.FromId(marketId: marketId);
     }
 
-    public RegionProvision CreateRegionProvision(RegionId regionId)
+    public MarketListing CreateMarketListing(MarketId marketId)
     {
-        return new RegionProvision(regionId: regionId);
+        return new MarketListing(marketId: marketId);
     }
 
     // ============ Generate methods - random/unique values ============
@@ -91,92 +77,94 @@ public sealed class RegionGenerator
     /// Generates model with random unique values.
     /// Use when you just need a valid instance, values don't matter.
     /// </summary>
-    public Region GenerateRegion()
+    public Market GenerateMarket()
     {
-        return CreateRegion(regionId: GenerateRegionId());
+        return CreateMarket(marketId: GenerateMarketId());
     }
 
-    public RegionProvision GenerateRegionProvision()
+    public MarketListing GenerateMarketListing()
     {
-        return CreateRegionProvision(regionId: GenerateRegionId());
+        return CreateMarketListing(marketId: GenerateMarketId());
     }
 
     // ============ Generate primitive values ============
 
-    public RegionId GenerateRegionId()
+    public MarketId GenerateMarketId()
     {
         // Select random from well-known, append GUID for uniqueness
-        return WellKnownRegions.WellKnown.GetRandomItem(
-            selectedRegion => RegionId.FromValue($"{selectedRegion.Id.Value}.{Guid.NewGuid()}")
+        return WellKnownMarkets.WellKnown.GetRandomItem(
+            selectedMarket => MarketId.FromValue($"{selectedMarket.Id.Value}.{Guid.NewGuid()}")
         );
     }
 
-    public RegionName GenerateRegionName()
+    public MarketName GenerateMarketName()
     {
-        return GenerateRegionId().ResolveRegionDisplayName();
+        return GenerateMarketId().ResolveMarketDisplayName();
     }
 }
 ```
 
 ## Naming Conventions
 
-| Method Prefix         | Purpose                                       | Example                     |
-|-----------------------|-----------------------------------------------|-----------------------------|
-| `Create{Model}`       | Explicit parameters - for specific assertions | `CreateRegion(regionId)` |
-| `Generate{Model}`     | Random values - when values don't matter      | `GenerateRegion()`       |
-| `Generate{Primitive}` | Random primitive wrapper values               | `GenerateRegionId()`     |
+| Method prefix | Purpose | Example |
+| --- | --- | --- |
+| `Create{Model}` | Explicit parameters, for specific assertions | `CreateMarket(marketId)` |
+| `Generate{Model}` | Random values, for tests where the values do not matter | `GenerateMarket()` |
+| `Generate{Primitive}` | Random primitive wrapper values | `GenerateMarketId()` |
 
 ## Usage in Tests
+
+This example shows only the choice between `Create` and `Generate`. A real test class also follows [SKILL.md](../SKILL.md). It wraps each generator call in a private `Generate{Model}` helper. It also names the SUT variable after the role of its class (gate 3 of [enforced-gates.md](enforced-gates.md)), not `sut`.
 
 ```csharp
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
-public sealed class RegionServiceTests : BaseMockTest
+public sealed class MarketServiceTests : BaseMockTest
 {
-    private readonly RegionGenerator _generator;
+    private readonly MarketGenerator _generator;
 
-    public RegionServiceTests()
+    public MarketServiceTests()
     {
         // Use singleton instance
-        _generator = RegionGenerator.Instance;
+        _generator = MarketGenerator.Instance;
     }
 
     [Test]
-    public async Task GetRegion_WithValidId_ReturnsRegion()
+    public async Task GetMarket_WithValidId_ReturnsMarket()
     {
         // Arrange.
         // ✅ Use Create when you need specific values for assertions
-        var expectedRegionId = _generator.GenerateRegionId();
-        var expectedRegion = _generator.CreateRegion(expectedRegionId);
+        var expectedMarketId = _generator.GenerateMarketId();
+        var expectedMarket = _generator.CreateMarket(expectedMarketId);
 
-        SetupRepositoryToReturn(expectedRegion);
-        var sut = Fixture.Create<RegionService>();
+        SetupRepositoryToReturn(expectedMarket);
+        var sut = Fixture.Create<MarketService>();
 
         // Act.
-        var result = await sut.GetRegionAsync(expectedRegionId);
+        var result = await sut.GetMarketAsync(expectedMarketId);
 
         // Assert.
-        result.Should().Be(expectedRegion);
+        result.Should().Be(expectedMarket);
     }
 
     [Test]
-    public async Task GetAllRegions_ReturnsAllRegions()
+    public async Task GetAllMarkets_ReturnsAllMarkets()
     {
         // Arrange.
         // ✅ Use Generate when you just need valid instances
-        var region1 = _generator.GenerateRegion();
-        var region2 = _generator.GenerateRegion();
-        var region3 = _generator.GenerateRegion();
+        var market1 = _generator.GenerateMarket();
+        var market2 = _generator.GenerateMarket();
+        var market3 = _generator.GenerateMarket();
 
-        SetupRepositoryToReturn(region1, region2, region3);
-        var sut = Fixture.Create<RegionService>();
+        SetupRepositoryToReturn(market1, market2, market3);
+        var sut = Fixture.Create<MarketService>();
 
         // Act.
-        var results = await sut.GetAllRegionsAsync();
+        var results = await sut.GetAllMarketsAsync();
 
         // Assert.
         results.Should().HaveCount(3);
-        results.Should().Contain(region1);
+        results.Should().Contain(market1);
     }
 }
 ```
@@ -186,24 +174,24 @@ public sealed class RegionServiceTests : BaseMockTest
 Generators can use other generators for complex models:
 
 ```csharp
-public sealed class TenantGenerator
+public sealed class CustomerGenerator
 {
-    private readonly ApplianceGenerator _applianceGenerator;
+    private readonly StoreGenerator _storeGenerator;
     private readonly OrganizationGenerator _orgGenerator;
 
-    public TenantGenerator()
+    public CustomerGenerator()
     {
-        _applianceGenerator = ApplianceGenerator.Instance;
+        _storeGenerator = StoreGenerator.Instance;
         _orgGenerator = new OrganizationGenerator();
     }
 
-    public Tenant GenerateTenant()
+    public Customer GenerateCustomer()
     {
-        return new Tenant(
-            tenantId: GenerateTenantId(),
-            tenantName: GenerateTenantName(),
-            status: TenantStatus.Creating,
-            appliance: _applianceGenerator.GenerateAppliance(), // Compose
+        return new Customer(
+            customerId: GenerateCustomerId(),
+            customerName: GenerateCustomerName(),
+            status: CustomerStatus.Creating,
+            store: _storeGenerator.GenerateStore(), // Compose
             organizations: GenerateSeveralOrganizations(),
             createdTime: DateTimeUtc.UtcNow
         );
@@ -225,12 +213,12 @@ public sealed class TenantGenerator
 For models with optional/configurable parts:
 
 ```csharp
-public AccountDeploymentResult GenerateAccountDeploymentResult(
+public CustomerAccount GenerateCustomerAccount(
     Int32? usageCount = null,
     AccountStatus? status = null)
 {
-    return new AccountDeploymentResult(
-        deploymentId: GenerateDeploymentId(),
+    return new CustomerAccount(
+        accountNumber: GenerateAccountNumber(),
         accountId: GenerateAccountId(),
         usageCount: usageCount ?? Random.Shared.Next(0, 100),
         status: status ?? AccountStatus.Active
@@ -240,14 +228,14 @@ public AccountDeploymentResult GenerateAccountDeploymentResult(
 
 ## Key Points
 
-1. **Singleton access** - Use `{Generator}.Instance` for convenience
+1. **Singleton access**: Use `{Generator}.Instance` for convenience
 
-2. **Create vs Generate** - `Create` for explicit values, `Generate` for random
+2. **Create vs Generate**: `Create` for explicit values, `Generate` for random
 
-3. **Composition** - Complex generators use other generators
+3. **Composition**: Complex generators use other generators
 
-4. **Uniqueness** - `Generate` methods append GUIDs or use random selection
+4. **Uniqueness**: `Generate` methods append GUIDs or use random selection
 
-5. **Keep tests independent** - Generated values are unique per call
+5. **Keep tests independent**: Generated values are unique per call
 
-6. **Parameterized generation** - Allow overriding specific properties when needed
+6. **Parameterized generation**: let a test override specific properties

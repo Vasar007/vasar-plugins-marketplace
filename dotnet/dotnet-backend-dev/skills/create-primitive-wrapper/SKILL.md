@@ -18,7 +18,7 @@ Primitive wrappers are `readonly record struct` implementing wrapper interfaces 
 - `IInt32Wrapper<T>` for integer-based IDs
 - `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`, etc.
 
-**If no matching interface exists, no interface is needed** - just implement the pattern without interface.
+**If no matching interface exists, no interface is needed.** Implement the pattern without an interface.
 
 ```csharp
 public readonly record struct {WrapperName} : IStringWrapper<{WrapperName}>
@@ -70,7 +70,7 @@ public readonly record struct {WrapperName} : IStringWrapper<{WrapperName}>
 
 4. **Implement required members** with XML documentation
 
-5. **Add domain-specific helpers** if needed (e.g., `IsType()`, `TryGetType()`)
+5. **Add domain-specific helpers** as needed, for example `IsType()` and `TryGetType()`
 
 ## Example: String Wrapper
 
@@ -82,25 +82,25 @@ using MyApp.Framework.Assertions;
 using MyApp.Framework.Basic.Wrappers;
 using MyApp.Framework.Constants;
 
-namespace MyApp.Domain.Backend.Regions;
+namespace MyApp.Domain.Shipping;
 
 /// <summary>
-/// Represents a strongly-typed identifier for a .NET backend data region.
+/// Represents a strongly-typed identifier for a shipping method.
 /// </summary>
-public readonly record struct DataRegionId : IStringWrapper<DataRegionId>
+public readonly record struct ShippingMethodId : IStringWrapper<ShippingMethodId>
 {
     /// <summary>
-    /// Gets the default string comparer for data region identifiers.
+    /// Gets the default string comparer for shipping method identifiers.
     /// </summary>
     private static StringComparer DefaultStringComparer => Constants.DefaultStringComparer;
 
     /// <summary>
-    /// Represents an empty instance of .NET backend data region identifier.
+    /// Represents an empty shipping method identifier.
     /// </summary>
-    public static DataRegionId Empty { get; } = new();
+    public static ShippingMethodId Empty { get; } = new();
 
     /// <summary>
-    /// Gets the underlying string value of the data region identifier.
+    /// Gets the underlying string value of the shipping method identifier.
     /// </summary>
     [Required]
     public String Value { get; init; }
@@ -113,7 +113,7 @@ public readonly record struct DataRegionId : IStringWrapper<DataRegionId>
     /// <summary>
     /// Initializes a new instance with an empty value.
     /// </summary>
-    public DataRegionId()
+    public ShippingMethodId()
     {
         Value = String.Empty;
     }
@@ -127,26 +127,29 @@ public readonly record struct DataRegionId : IStringWrapper<DataRegionId>
     /// <exception cref="ArgumentException">
     /// <paramref name="value" /> is empty or whitespace.
     /// </exception>
-    private DataRegionId(String value)
+    private ShippingMethodId(String value)
     {
         Value = value.ThrowIfNullOrWhiteSpace();
     }
 
     /// <summary>
-    /// Creates a <see cref="DataRegionId"/> from the specified string value.
+    /// Creates a <see cref="ShippingMethodId"/> from the specified string value.
     /// </summary>
-    public static DataRegionId FromValue(String value) => new(value);
+    public static ShippingMethodId FromValue(String value) => new(value);
 
     /// <summary>
-    /// Creates from the specified <see cref="DataRegionType"/>.
+    /// Creates from the specified <see cref="ShippingMethodType"/>.
     /// </summary>
-    public static DataRegionId FromType(DataRegionType type) => new(type.ToString());
+    public static ShippingMethodId FromType(ShippingMethodType type) => new(type.ToString());
 
     /// <inheritdoc />
-    public override String ToString() => Value;
+    public override String ToString()
+    {
+        return Value;
+    }
 
     /// <inheritdoc />
-    public Boolean Equals(DataRegionId other) => DefaultStringComparer.Equals(Value, other.Value);
+    public Boolean Equals(ShippingMethodId other) => DefaultStringComparer.Equals(Value, other.Value);
 
     /// <inheritdoc />
     public override Int32 GetHashCode() => DefaultStringComparer.GetHashCode(Value);
@@ -154,33 +157,40 @@ public readonly record struct DataRegionId : IStringWrapper<DataRegionId>
     /// <summary>
     /// Determines whether the identifier represents the specified type.
     /// </summary>
-    public Boolean IsType(DataRegionType type) => DefaultStringComparer.Equals(Value, type.ToString());
+    public Boolean IsType(ShippingMethodType type)
+    {
+        return DefaultStringComparer.Equals(Value, type.ToString());
+    }
 
     /// <summary>
-    /// Tries to parse the identifier as a <see cref="DataRegionType"/>.
+    /// Tries to parse the identifier as a <see cref="ShippingMethodType"/>.
     /// </summary>
-    public Boolean TryGetType(out DataRegionType type) => Enum.TryParse(Value, ignoreCase: true, out type);
+    public Boolean TryGetType(out ShippingMethodType type)
+    {
+        return Enum.TryParse(Value, ignoreCase: true, out type);
+    }
 }
 ```
 
 ## Key Requirements
 
 1. **Private constructor** with validation (public parameterless for Empty only)
-2. **Static FromValue** factory method for creation; **CreateNew()** additionally for GUID wrappers
+2. **Static FromValue** factory method for creation. GUID wrappers also need **CreateNew()**.
 3. **Static Empty** property and **IsEmpty** check
 4. **[Required]** attribute on Value property
-5. **String comparer** for string equality - choose based on domain:
+5. **String comparer** for string equality. Choose the comparer that the domain needs:
    - `Constants.DefaultStringComparer` for case-insensitive (most common)
-   - `StringComparer.Ordinal` for case-sensitive when domain requires exact matching
+   - `StringComparer.Ordinal` for case-sensitive comparison (a domain that requires an exact match)
 6. **XML documentation** on all public members
+7. **Method bodies**: wrapper factories (`FromValue`, `FromType`, `CreateNew`) and equality members (`Equals`, `GetHashCode`) use `=>`. Every other method uses a block body.
 
 ## Common Domain Helpers
 
 Add when wrapper represents an enum-compatible value:
 
-- `FromType(TEnum type)` - Create from enum
-- `IsType(TEnum type)` - Check if matches enum
-- `TryGetType(out TEnum type)` - Try parse to enum
+- `FromType(TEnum type)`: creates the wrapper from the enum value
+- `IsType(TEnum type)`: tests whether the value matches the enum value
+- `TryGetType(out TEnum type)`: tries to parse the value to the enum
 
 ## Sensitive Information
 
@@ -197,7 +207,7 @@ Create wrapper tests extending base wrapper test classes from `MyApp.OnlyForTest
 ## Checklist
 
 - [ ] `readonly record struct`
-- [ ] Implements correct `IWrapper<T>` interface
+- [ ] Implements the matching `I{Type}Wrapper<T>` interface. No match means no interface.
 - [ ] Private constructor with validation
 - [ ] Public `FromValue()` factory
 - [ ] `Empty` property and `IsEmpty` check

@@ -9,7 +9,7 @@ Generate XML documentation for C# types, methods, properties, and parameters fol
 
 ## Required Documentation
 
-**ALL public/internal types, methods, and properties MUST have XML documentation** (except tests).
+**ALL public, protected, and internal types, methods, and properties MUST have XML documentation** (except tests).
 
 This includes:
 
@@ -262,27 +262,27 @@ Use `<remarks>` for:
 
 ## Key Rules
 
-1. **ALL public/protected members need XML docs** (except tests)
+1. **ALL public and protected members, and all internal types, methods, and properties, need XML docs** (except tests)
 2. **Document exceptions based on validation** in method body
 3. **Use standard formats** for common validation exceptions
-4. **Include CancellationToken docs** when parameter is present
+4. **Include CancellationToken docs**: if a method has a `CancellationToken` parameter, document it with the standard text
 5. **Use `<see langword="..."/>` for keywords** (null, true, false)
 6. **Put header comments in `<remarks>`** section
-7. **Be concise but complete** - describe what, not how
-8. **Use proper grammar** - capitalize, punctuate correctly
-9. **Do NOT delete any constants, fields, methods, or properties** — only add or edit documentation. Invalid or incorrect existing XML docs should be fixed or replaced
-10. **Search for examples** — if no specific rules are found, search the project for similar classes and follow their documentation patterns
+7. **Be concise but complete**: describe what, not how
+8. **Use proper grammar**: capitalize, punctuate correctly
+9. **Do NOT delete any constants, fields, methods, or properties**: only add or edit documentation. Fix or replace invalid or incorrect existing XML docs.
+10. **Search for examples**: if you find no specific rule, search the project for similar classes and follow their documentation patterns
 
 ## Checklist
 
 - [ ] Type has `<summary>` describing its purpose
-- [ ] All public/internal methods have `<summary>`
+- [ ] All public, protected, and internal methods have `<summary>`
 - [ ] All parameters documented with `<param>`
 - [ ] Return values documented with `<returns>`
 - [ ] Generic type parameters documented with `<typeparam>`
 - [ ] Exceptions documented based on validation in method body
 - [ ] CancellationToken has standard description
-- [ ] OperationCanceledException documented if token is used
+- [ ] `OperationCanceledException` documented for a method that uses the token
 - [ ] Used `<see langword="null"/>` for null references
 - [ ] Header comments moved to `<remarks>` section
 - [ ] Follows standard exception formats

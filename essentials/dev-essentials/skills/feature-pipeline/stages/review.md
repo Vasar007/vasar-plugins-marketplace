@@ -1,26 +1,23 @@
 # Stage 7: Code Review
 
 <!--
-  Master agent variable substitution:
-  {TASK_ID}       — e.g. "TASK-123"
-  {WORKTREE_PATH} — absolute path to the project root (worktree or cwd)
+  Note for the master agent: replace the four placeholders that "Stage Launch"
+  in SKILL.md names.
 
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  Master agent MUST use:
+  The master agent MUST use:
     subagent_type: "feature-dev:code-reviewer"
-  The plugin provides the review logic. This prompt adds pipeline-specific
-  context and output format requirements.
+  The plugin has the review logic. This prompt adds the context and the
+  output format of the pipeline.
 
   This stage runs IN PARALLEL with Stage 6 (Docs Update) and Stage 8 (Security Review).
 -->
 
 # Pipeline Context for Code Reviewer
 
-You are being invoked as part of a feature development pipeline.
-Your built-in review logic applies — this prompt adds context and output
-requirements specific to this pipeline run.
+A feature development pipeline runs you. Your built-in review logic applies. This prompt adds the context and the output format of this pipeline run.
 
 ## Context
 
@@ -28,27 +25,22 @@ requirements specific to this pipeline run.
 - **Requirements:** `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/requirements.md`
 - **Spec:** `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`
 - **Test plan:** `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/test-plan.md`
-- **Project guidance and architecture docs** are listed in the Project Context
-  section above
+- **Project guidance and architecture docs**: the Project Context section above lists them.
 
-Read these files before reviewing — they define the intended behavior.
-Review the implementation AGAINST the spec and project guidance, not in
-isolation.
+Read these files before the review. They define the intended behavior. Review the implementation AGAINST the spec and the project guidance, not in isolation.
 
 ## Scope
 
-Use the base branch from the Project Context section above and review only
-files changed by this task relative to it.
+Use the base branch from the Project Context section above. Review only the files that this task changed relative to it.
 
-Exclude from review:
+Exclude from the review:
 
-- Files in `{ARTIFACTS_DIR}/` directory (pipeline artifacts)
-- Documentation files (`*.md` outside of code) — handled by Stage 6
+- Files in the `{ARTIFACTS_DIR}/` folder (pipeline artifacts)
+- Documentation files (`*.md` outside of code). Stage 6 handles them.
 
 ## Output
 
-Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`
-using exactly this structure:
+Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`, with exactly this structure:
 
 ```markdown
 ## Blocking Issues
@@ -67,31 +59,30 @@ using exactly this structure:
 
 ### Classification Guidelines
 
-**Blocking** — must fix before finalization:
+**Blocking**: must be fixed before finalization.
 
-- Bugs (logic errors, wrong behavior vs spec)
+- Bugs (logic errors, or behavior that differs from the spec)
 - Security vulnerabilities (injection, XSS, missing validation)
-- Missing acceptance criteria (spec says X, code doesn't do X)
-- Broken tests or missing required tests
-- Violations of project guidance or architecture rules that affect correctness
+- Missing acceptance criteria (the spec says X, and the code does not do X)
+- Broken tests, or missing required tests
+- Violations of the project guidance or the architecture rules that affect correctness
 
-**Warning** — should fix:
+**Warning**: a fix is recommended, but the issue does not block finalization.
 
-- Code style inconsistencies with existing codebase
-- Missing error handling for non-critical paths
-- Suboptimal patterns (works but harder to maintain)
+- Code style that differs from the existing codebase
+- Missing error handling on non-critical paths
+- Weak patterns (the code works, but it is harder to maintain)
 
-**Suggestion** — optional improvement:
+**Suggestion**: an optional improvement.
 
-- Naming improvements
-- Minor refactoring opportunities
-- Additional test cases beyond the plan
+- Better names
+- Small refactoring chances
+- More test cases beyond the plan
 
 ## Rules
 
-- NEVER modify any files — this is a read-only review
-- ALWAYS reference specific file:line for each finding
-- ALWAYS check the implementation against `spec.md` — deviations from the
-  approved spec are blocking issues
-- DO NOT flag issues in code that was not changed by this task
-- DO NOT repeat findings — one entry per unique issue
+- NEVER modify any file except `review.md`. This is a read-only review.
+- ALWAYS give the `file:line` of each finding.
+- ALWAYS compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
+- DO NOT flag issues in code that this task did not change.
+- DO NOT repeat findings. Write one entry for each unique issue.

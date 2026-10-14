@@ -1,15 +1,13 @@
 ---
 name: git-sync
-description: Git sync mechanics — when to rebase, when to merge, and how to verify branch state before reviews/PRs. Covers the `git rebase --onto <new-base> <old-base-tip>` pattern with subject-corruption fix recipe, the `git merge --no-ff` rule for branches the user does not own, and the pre-review branch-state verification checklist. Triggers on requests like "rebase the branch", "sync with master", "the base was rewritten", "fix conflicts after merge", "review this branch", "compose PR", "bring branch up to date", or any time the agent is about to invoke `git rebase` / `git pull --rebase` / `git merge` on a long-lived branch.
+description: Git sync mechanics. When to rebase, when to merge, how to look at branch state before reviews and PRs, and how to stage files. Covers the `git rebase --onto <new-base> <old-base-tip>` pattern with a fix recipe for corrupted subjects, and the `git merge --no-ff` rule for branches that the user does not own. Also covers the pre-review branch-state verification checklist and explicit-path staging (never `git add -A` or `git add .`). Triggers on requests like "rebase the branch", "sync with master", "the base was rewritten", or "fix conflicts after merge". Also on "review this branch", "compose PR", or "bring branch up to date". Also triggers any time the agent is about to invoke `git rebase` / `git pull --rebase` / `git merge` on a long-lived branch.
 ---
 
 # Git Sync Conventions
 
-Three patterns the user has corrected the main agent on enough times that they belong in a skill, not just memory.
-
 ## Rule 1 — Use `git rebase --onto` when the upstream base has been rewritten
 
-When the upstream base of a feature branch has been **rewritten behind it** — different SHAs for the same logical content (squashed PR merges, branch resets, force-pushes on release branches) — plain `git rebase <new-base>` will replay redundant intermediate "Merged PR" commits and produce conflicts you don't need.
+A rewrite gives the same logical content different SHAs. Examples: squashed PR merges, branch resets, and force-pushes on release branches. If the upstream base of a feature branch was **rewritten behind it**, a plain `git rebase <new-base>` replays redundant "Merged PR" commits. These commits produce conflicts that you do not need.
 
 Use the explicit form:
 
@@ -17,45 +15,44 @@ Use the explicit form:
 git rebase --onto <new-base> <old-base-tip-or-commit-just-before-feature-commits>
 ```
 
-This replays only the commits between `<old-base-tip>..HEAD` (the feature commits), skipping the obsolete merges whose tree state is already in `<new-base>`.
+This replays only the commits in `<old-base-tip>..HEAD` (the feature commits). It skips the obsolete merges whose tree state is already in `<new-base>`.
 
 ### How to detect the rewrite
 
-After `git fetch origin <base-branch>`, check whether the prior local-master tip is still in upstream history:
+After `git fetch origin <base-branch>`, find out whether the old local tip of the base is still in the upstream history:
 
 ```bash
 git log --oneline origin/<base-branch> | grep -E "^<old-base-tip-prefix>"
 ```
 
-If empty, the upstream was rewritten — use `--onto`.
+If the output is empty, the upstream was rewritten. Use `--onto`.
 
 ### Picking `<old-base-tip>`
 
-The `<old-base-tip>` argument is the commit immediately below your first feature commit on the branch.
+The `<old-base-tip>` argument is the commit right below your first feature commit on the branch.
 
 - One-commit feature branch: `git rebase --onto origin/<base> HEAD~1`
-- Multi-commit: identify the parent of your earliest feature commit and use that.
+- Multi-commit branch: find the parent of your earliest feature commit, and use it.
 
-After the rebase, sanity-check `git log --oneline origin/<base>..HEAD` — the count must equal the number of feature commits, no more.
+After the rebase, sanity-check with `git log --oneline origin/<base>..HEAD`. The count must equal the number of feature commits, no more.
 
 ### Watch out — silent subject-line corruption
 
-`git rebase --onto` can mangle commit subjects when crossing many obsolete merges in the replay path. The body line gets promoted to the subject; the original subject line is silently dropped.
+In a replay across many obsolete merges, `git rebase --onto` can mangle commit subjects. The body line becomes the subject, and the original subject line is lost silently.
 
-Detect immediately after rebase:
+Look for it right after the rebase:
 
 ```bash
 git log --format="%h %s" origin/<base>..HEAD
 ```
 
-If a subject is just the body's opening sentence (no leading scope tag or issue reference), it's been mangled.
+If a subject is only the opening sentence of the body (no leading scope tag or issue reference), the rebase mangled it.
 
 ### Fix recipe — does NOT require interactive rebase or amend permission
 
 ```bash
-# Save the top commit(s) above the broken one
-git tag tmp/cherry-pick-restore HEAD              # for one-commit-above
-# (for multiple, save patches: git format-patch -<n> HEAD --stdout > /tmp/keep.mbox)
+# Save the commit(s) above the broken one
+git tag tmp/cherry-pick-restore HEAD
 
 git reset --hard <broken-commit>~1                # reset to parent of broken commit
 
@@ -67,12 +64,12 @@ git commit -F- <<'EOF'
 <body restored from "git show <broken-commit> --format=%B">
 EOF
 
-# Re-apply the saved commit(s)
-git cherry-pick tmp/cherry-pick-restore
+# Re-apply every saved commit above the broken one, in order
+git cherry-pick <broken-commit-sha>..tmp/cherry-pick-restore
 git tag -d tmp/cherry-pick-restore
 ```
 
-Cherry-pick preserves authorship and committer dates; `git commit -F-` creates a fresh commit with the correct message (tree from the cherry-pick, no rebuild needed).
+If the broken commit is `HEAD`, skip the last `git cherry-pick`, because no commit sits above it. The cherry-pick of the saved commits keeps their author and author date. `git commit -F-` creates a fresh commit with the correct message. The tree comes from the cherry-pick, so no rebuild is needed.
 
 ### Safety net
 
@@ -82,80 +79,82 @@ ALWAYS create a backup tag before any rebase that crosses an upstream rewrite:
 git tag backup/<task>-pre-rebase-<n> <current-head>
 ```
 
-If conflicts during `--onto` rebase look unexpectedly broad (the same files modified by both sides for unrelated reasons), STOP and re-check the merge-base with `git merge-base HEAD <new-base>` and the diff between old/new bases — there may be a third commit you didn't expect.
+If conflicts during an `--onto` rebase look unexpectedly broad (the same files changed on both sides for unrelated reasons), STOP. Look at the merge base again with `git merge-base HEAD <new-base>`, and at the diff between the old and the new base. A third commit that you did not expect can be the cause.
 
 ### Anti-patterns
 
-- `git pull --rebase` on a feature branch when upstream was rewritten — same problem as plain rebase, plus auto-applies before you can audit.
-- Skipping the post-rebase subject-line check because "the rebase succeeded with no conflicts" — the corruption is silent.
-- Using `git rebase -i --interactive` and a TUI editor in this harness — interactive editors are blocked. Use the tag + reset + amend + cherry-pick recipe above.
+- `git pull --rebase` on a feature branch after an upstream rewrite. It has the same problem as a plain rebase, and it applies before you can review the result.
+- No subject-line check after the rebase, because "the rebase succeeded with no conflicts". The corruption is silent.
+- `git rebase -i` with a TUI editor. Interactive editors are blocked in this environment. Use the tag, reset, and cherry-pick recipe above.
 
 ## Rule 2 — `git merge --no-ff`, never rebase, when working someone else's branch
 
-When you are processing PR feedback on a branch authored by **someone else** (typical case: a collaborator whose code the user is covering), sync with the base via a no-fast-forward merge commit:
+This rule is for PR feedback on a branch that **someone else** wrote, typically a collaborator whose code the user covers. On such a branch, sync with the base through a no-fast-forward merge commit:
 
 ```bash
 git fetch origin <base-ref>
 git -C <worktree> merge --no-ff origin/<base-ref> -m "Merge branch '<base-ref>' into <feature-branch>"
 ```
 
-Never `git rebase`, `git pull --rebase`, or `git rebase -i`. Never force-push.
+Never run `git rebase`, `git pull --rebase`, or `git rebase -i` on it. Never force-push.
 
 ### Why
 
-Rebasing rewrites the original author's commit SHAs and authorship metadata, erasing their attribution from blame/log and breaking any local checkouts the original author has. A merge commit keeps the original author's commits intact and adds one new merge commit on top authored by the user covering them.
+A rebase rewrites the commit SHAs and the authorship metadata of the original author. It removes their attribution from blame and log, and it breaks their local checkouts. A merge commit keeps the commits of the original author intact. It adds one new merge commit on top, authored by the user who covers them.
 
 ### Anti-patterns
 
-- `git pull --rebase origin <base>` from inside someone else's worktree — rewrites their commits.
-- `git rebase origin/<base>` — same problem.
-- Auto-fast-forward (`git merge --ff-only`) — silently absorbs master commits without a merge commit; loses the audit trail of when the user synced.
-- Force-pushing after any rebase — visible to the original author and breaks their local clones.
-- "The merge commit clutters history, let me rebase instead" — preserve attribution over aesthetics whenever the branch isn't yours.
+- `git pull --rebase origin <base>` inside the worktree of someone else rewrites their commits.
+- `git rebase origin/<base>` has the same problem.
+- A fast-forward (`git merge --ff-only`) takes in base commits silently, without a merge commit. The audit trail of the sync is lost.
+- A force-push after any rebase is visible to the original author and breaks their local clones.
+- "The merge commit clutters history, so I rebase instead." On a branch that is not yours, attribution comes before a clean history.
 
 ### How to detect "someone else's branch"
 
-- The PR's `createdBy` is not the user, OR
-- The branch name contains another `<username>` segment (e.g. `release/<other-user>/tasks/...`), OR
-- The user has explicitly said they're not the author.
+Any one of these signs means that the branch belongs to someone else:
 
-When the author is ambiguous, default to merge.
+- The PR author is not the user.
+- The branch name has the `<username>` segment of another user (for example `release/<other-user>/tasks/...`).
+- The user said explicitly that they are not the author.
+
+If the author is ambiguous, default to a merge.
 
 ### Operational rules
 
-- Always `--no-ff` so the merge commit is explicit even when fast-forward would be possible. The merge commit is the audit trail of when the user pulled master into the branch.
-- Run from inside the branch's worktree using `git -C <worktree> ...`.
-- Build-verify the full affected scope after the merge — a cross-area merge can pull in changes anywhere; build the solution rather than a single project unless you have specific scoping evidence.
-- Do NOT push the merge as part of the sync. Push is a separate, user-gated step.
-- If conflicts arise: report the file list, run `git merge --abort`, hand it back to the user. Do NOT auto-resolve — the original author may have context about the correct resolution.
-- Do NOT change the worktree's upstream (see `dev-essentials:git-worktree-management` for the unset-upstream rule).
+- Always use `--no-ff`, so that the merge commit is explicit even where a fast-forward is possible. The merge commit records the moment that the user pulled the base into the branch.
+- Run from inside the worktree of the branch with `git -C <worktree> ...`.
+- After the merge, build the full affected scope. A merge across areas can pull in changes anywhere. Build the solution, not a single project, unless you have specific evidence for a narrower scope.
+- Do NOT push the merge as part of the sync. A push is a separate step, and the user decides on it.
+- If conflicts arise, report the file list, run `git merge --abort`, and hand it back to the user. Do NOT resolve them automatically, because the original author can have context about the correct resolution.
+- Do NOT change the upstream of the worktree. See `dev-essentials:git-worktree-management` for the rule to unset the upstream.
 
 ### Edge case
 
-If the user IS the branch author and asks for a rebase, that's their call — Rule 1 applies. Rule 2 is specifically about assisting on another author's branch.
+If the user IS the author of the branch and asks for a rebase, that is the choice of the user, and Rule 1 applies. Rule 2 is only for help on the branch of another author.
 
 ## Rule 3 — Verify branch state before reviews and PRs
 
-Before composing PR descriptions, running code reviews, or generating change summaries, verify the branch is rebased on the target branch and only analyze the actual diff.
+Before you write a PR description, run a code review, or write a change summary, look only at the changes that the branch adds. Use the three-dot diff against the target branch:
 
 ```bash
 git diff origin/<base>...HEAD --stat
 ```
 
-Exclude files/changes that are already in the base branch. Do not include already-merged changes in PR descriptions or review analysis.
+Leave out files and changes that are already in the base branch. Do not put changes that are already merged into PR descriptions or review analysis.
 
 ### Why this matters
 
-A branch that was rebased after the initial commit may have stranded changes already in master. Without the `origin/<base>...HEAD` filter, the PR description and review will treat already-merged changes as if they belonged to this branch. Concrete example: a rename `MaxSeatsPerTeam` → `MaxSeatsPerOrganization` that already landed in master via another PR was incorrectly attributed to the feature branch because the base filter was missing.
+After a rebase, a branch can hold stranded changes that are already in the base. Without the `origin/<base>...HEAD` filter, the PR description and the review treat already-merged changes as part of this branch.
 
-The three-dot form (`origin/<base>...HEAD`) diffs from the merge base, showing only what the branch contributes regardless of whether the branch is behind `origin/<base>`. The two-dot form (`..`) is a plain tree diff that includes base-side changes when the branch is not up to date, reintroducing the misattribution problem this rule exists to prevent.
+The three-dot form (`origin/<base>...HEAD`) diffs from the merge base. It shows only what the branch adds, even for a branch that is behind `origin/<base>`. The two-dot form (`..`) is a plain tree diff. If the branch is not up to date, the two-dot form includes changes from the base side and brings the misattribution back.
 
 ### Checklist
 
-1. Run `git fetch origin <base>` so `origin/<base>` is current.
-2. Run `git diff origin/<base>...HEAD --stat` to see the actual ahead-set.
-3. If anything in the diff looks unrelated to the task, suspect a stale base — confirm with the user before publishing.
-4. Hand the diff (or its summary) to the PR/review subagent. Do not paste raw `git log` output that may include rewritten commits.
+1. Run `git fetch origin <base>`, so that `origin/<base>` is current.
+2. Run `git diff origin/<base>...HEAD --stat` to see what the branch adds.
+3. If anything in the diff looks unrelated to the task, suspect a stale base. Ask the user before you publish.
+4. Give the diff, or its summary, to the PR or review subagent. Do not paste raw `git log` output, which can include rewritten commits.
 
 ## Rule 4 — Stage explicit paths only, never `git add -A` or `git add .`
 
@@ -165,27 +164,21 @@ Always stage files by explicit path:
 git add <path1> <path2> ...
 ```
 
-Never `git add -A` or `git add .`. A blanket add silently sweeps in anything sitting in the working tree — stray local edits, formatter/build byproducts, or files a previous step forgot to roll back — into the same commit as the intended change.
+Never run `git add -A` or `git add .`. A blanket add sweeps everything in the working tree into the commit, without a warning: stray local edits, formatter or build byproducts, and files that an earlier step forgot to roll back.
 
 ### Never auto-stage shared build-configuration files
 
-Never stage these unless the task's change genuinely modifies them:
+Never stage these files unless the change of the task really modifies them:
 
 - `Directory.Build.props`
 - `Directory.Packages.props`
 - `global.json`
 
-A local build or format pass can regenerate or reformat these shared files as a side effect (whitespace normalization, package-version drift, SDK-pin churn) even though the task never touched them. Because they sit at a solution/repo root, `-A`/`.` picks them up without any visible diff review, and the result is an unrelated shared-build-config change riding along inside an otherwise-scoped PR — easy to ship, hard to spot in review, and risky because these files affect every project in the solution.
+A local build or format pass can regenerate or reformat these shared files as a side effect, even though the task never touched them. Examples: whitespace normalization, package-version drift, and SDK-pin churn. They sit at the root of the solution or the repo, so `-A` or `.` stages them without any visible diff review. These files affect every project in the solution, so an unrelated change to them is a risk, and it is easy to miss in review.
 
 ### How to apply
 
-1. Before staging, run `git status --short` and review every entry.
-2. Stage only the files that are an intended consequence of the current task: `git add -- <path1> <path2>`.
-3. If `Directory.Build.props`, `Directory.Packages.props`, or `global.json` shows as modified and the task did not intend to change it, roll it back first (`git checkout -- <path>`) rather than staging it.
-4. If one of those files' change IS an intended part of the task, staging it is fine — the rule is about accidental inclusion via a blanket add, not a blanket ban on ever touching these files.
-
-### Anti-patterns
-
-- `git add -A` / `git add .` "to save time" before a commit — stages everything in the working tree regardless of relevance.
-- Staging `Directory.Build.props` / `Directory.Packages.props` / `global.json` because they showed up as modified after a build, without checking whether the task actually changed them.
-- Assuming a clean build means the staged set is correct — a build can dirty shared config files without any build error to flag it.
+1. Before you stage, run `git status --short` and review every entry.
+2. Stage only the files that the current task changes on purpose: `git add -- <path1> <path2>`.
+3. If one of the three files above shows as modified, and the task did not intend to change it, roll it back first. Use `git checkout -- <path>`, and do not stage it.
+4. If a change to one of those files IS an intended part of the task, you can stage it. The rule is about an accidental add through a blanket add, not a ban on these files.

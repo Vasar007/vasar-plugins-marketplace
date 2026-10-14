@@ -1,6 +1,6 @@
 ---
 name: pr-composer
-description: Compose a concise architectural pull request description by analyzing git diffs against the base branch (or an OpenSpec change proposal when one exists). Use when the user asks for a PR description, PR summary, or to "compose a PR" for the current branch.
+description: Compose a concise architectural pull request (PR) description from the git diff against the base branch. If an active OpenSpec change proposal exists, the agent uses it instead of the diff. Use it for a request for a PR description, a PR summary, or to "compose a PR" for the current branch.
 tools: [Bash, Read, Write, Edit, Grep, Glob]
 ---
 
@@ -8,7 +8,7 @@ tools: [Bash, Read, Write, Edit, Grep, Glob]
 
 ## Purpose
 
-Generate concise, architectural-focused pull request descriptions by analyzing git changes. Focus on **what changed and why** at a high level, not implementation details.
+Write concise pull request descriptions about the architecture of a change. Focus on **what changed and why** at a high level, not on implementation details.
 
 ## Length Constraints
 
@@ -18,9 +18,11 @@ Generate concise, architectural-focused pull request descriptions by analyzing g
 
 ## Workflow
 
+All paths below are relative to the root of the repository.
+
 ### 1. Check OpenSpec Changes (Priority)
 
-If openspec is used in this project, check for active change proposals:
+If the project uses OpenSpec, look for active change proposals:
 
 ```bash
 openspec list
@@ -28,19 +30,17 @@ openspec list
 
 **If active changes exist:**
 
-- Read files in `/openspec/changes/` (ignore `/openspec/changes/archive/`)
-- These contain **architectural context and rationale**
-- Use **ONLY** the OpenSpec proposal as the source for PR description
-- Reference the change proposal ID/name in the PR
-- **Skip steps 2-4** and proceed directly to step 5
+- Read the files in `openspec/changes/`. Ignore `openspec/changes/archive/`.
+- These files contain the **architectural context and rationale**.
+- Use **ONLY** the OpenSpec proposal as the source for the PR description.
+- Name the ID or the name of the change proposal in the PR.
+- **Skip steps 2-4** and go directly to step 5.
 
 **If NO active changes exist:**
 
-- Proceed with git diff analysis (steps 2-4)
+- Analyze the git diff (steps 2-4).
 
 ### 2. Analyze Git Changes (Fallback Only)
-
-**Only execute this step if no OpenSpec proposal was found.**
 
 First, identify the base branch:
 
@@ -59,9 +59,7 @@ git log <base>...HEAD --oneline
 
 ### 3. Categorize Changes (Fallback Only)
 
-**Only execute this step if no OpenSpec proposal was found.**
-
-Group files by purpose, using the project's own folder layout. Common groupings:
+Group files by purpose, with the folder layout of the project. Common groups:
 
 - **Core logic** (Domain/Application/WebApi code)
 - **Tests** (`*.Tests/` projects)
@@ -71,12 +69,10 @@ Group files by purpose, using the project's own folder layout. Common groupings:
 
 ### 4. Read Key Files (Fallback Only)
 
-**Only execute this step if no OpenSpec proposal was found.**
-
 - For **new files**: Read to understand purpose.
 - For **modified files**: Use `git diff` to see actual changes, not full content.
 - Focus on **public APIs, interfaces, domain models**.
-- Skip: test files, minor config tweaks, formatting.
+- Skip: test files, minor configuration changes, formatting.
 
 ### 5. Generate PR Description
 
@@ -97,28 +93,30 @@ Use this structure:
 [Any breaking changes, migration steps, or risks - if applicable]
 ```
 
-### 6. Save PR Description
+Writing rules:
 
-- Create `/Notes/PRs/` folder under the repo root if it does not exist. (If the repo already uses a different drafts folder — e.g. `docs/prs/` — use that instead.)
-- Save as: `/Notes/PRs/PR-<branch-name-or-timestamp>.md`.
-- File must be valid Markdown (`.md` extension).
-
-### 7. Optimization Rules
-
-- **Omit** obvious changes (e.g., "updated tests to match").
-- **Combine** related changes (e.g., "Enhanced CIDR validation across allocator and domain models").
-- **Skip** implementation details (how it works).
+- **Omit** obvious changes, for example "updated tests to match".
+- **Combine** related changes, for example "Added discount validation to the pricing service and the order model".
+- **Skip** implementation details (how it works). Do not describe every file change, and do not explain code line by line.
 - **Focus** on architectural impact (what capabilities changed).
 - Use **bullet points**, not paragraphs.
 - Use **technical terms**, not marketing language.
+- Do not copy commit messages word for word.
+- Stay within the character limits above.
 
-## What NOT to Do
+### 6. Save PR Description
 
-- Don't describe every file change
-- Don't explain code line-by-line
-- Don't include commit messages verbatim
-- Don't write marketing copy
-- Don't exceed character limits
+- Save the description as `Notes/PRs/PR-<branch-name-or-timestamp>.md`. If the `Notes/PRs/` folder does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
+- The file must be valid Markdown with the `.md` extension.
+- Tell the user the file path, and show the PR description for a quick review.
+
+## When to Ask for Help
+
+Ask the user in these cases:
+
+- The git diff shows **no changes** (stale branch).
+- The changes span **multiple unrelated features**. Suggest that the user splits the PR.
+- The changes hold **breaking changes**, but no migration is documented.
 
 ## Example Output (Small Change)
 
@@ -127,69 +125,57 @@ Use this structure:
 ```markdown
 ## Changes
 
-Implements [CHNG-001: CIDR Overlap Prevention](../../openspec/changes/archive/cidr-overlap.md). Added validation to prevent overlapping subnet allocations across regions.
+Implements the OpenSpec change `order-discount-limits`. Added validation to prevent discounts that exceed the order total.
 
 ## Modified Components
 
-- **CidrAllocator**: Overlap detection using interval trees
-- **RegionConfig**: CIDR range validation rules
+- **DiscountCalculator**: Limit check against the order total
+- **DiscountPolicy**: Validation rules for discount ranges
 
 ## Testing
 
-Unit and integration tests cover multi-region edge cases.
+Unit and integration tests cover multi-currency edge cases.
 ```
 
-*Characters: ~320*
+*Characters: ~350*
 
 **Without OpenSpec:**
 
 ```markdown
 ## Changes
 
-Added CIDR validation to prevent overlapping subnet allocations across regions.
+Added discount validation to prevent discounts that exceed the order total.
 
 ## Modified Components
 
-- **CidrAllocator**: Added overlap detection using interval trees
-- **RegionConfig**: Added validation rules for CIDR ranges
+- **DiscountCalculator**: Added a limit check against the order total
+- **DiscountPolicy**: Added validation rules for discount ranges
 
 ## Testing
 
-Unit tests cover edge cases; integration tests verify multi-region scenarios.
+Unit tests cover edge cases; integration tests verify multi-currency scenarios.
 ```
 
-*Characters: ~280*
+*Characters: ~340*
 
 ## Example Output (Larger Change)
 
 ```markdown
 ## Changes
-Refactored session processing to support async state transitions and improve error handling. Introduced event-driven architecture for deployment lifecycle management.
+Refactored order processing to support async state transitions and improve error handling. Introduced an event-driven design for the order lifecycle.
 
 ## Modified Components
-- **SessionProcessor**: Async state machine with retry logic and dead-letter queue
-- **DeploymentOrchestrator**: Event sourcing for audit trail and recovery
-- **WebApi Controllers**: Updated to return 202 Accepted for long-running ops
+- **OrderProcessor**: Async state machine with retry logic and dead-letter queue
+- **PaymentCoordinator**: Event sourcing for audit trail and recovery
+- **WebApi Controllers**: Updated to return 202 Accepted for long-running operations
 - **Configuration**: Added circuit breaker and timeout settings
 - **Persistence**: Added event store container with TTL policies
 
 ## Testing
-Integration tests simulate failures at each stage. Load tests verify 1000 concurrent sessions.
+Integration tests simulate failures at each stage. Load tests verify 1000 concurrent orders.
 
 ## Notes
-Breaking change: Session status polling now uses event subscription model. Update clients to use webhooks.
+Breaking change: Order status polling now uses an event subscription model. Update clients to use webhooks.
 ```
 
-*Characters: ~685*
-
-## When to Ask for Help
-
-- If git diff shows **no changes** (stale branch).
-- If changes span **multiple unrelated features** (suggest splitting PR).
-- If **breaking changes** detected but no migration documented.
-
-## Output
-
-1. Save the PR description as a Markdown file in `/Notes/PRs/PR-<name>.md`.
-2. Confirm the file location to the user.
-3. Display the PR description content for quick review.
+*Characters: ~770*

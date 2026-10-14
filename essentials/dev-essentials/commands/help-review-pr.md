@@ -1,5 +1,5 @@
 ---
-description: "Review a GitHub PR end-to-end — fetch metadata and diff, evaluate against repo conventions, render an HTML review artifact, and optionally post findings as new PR review comments"
+description: "Review a GitHub PR end-to-end and report on it: fetch the metadata and the diff, and evaluate them against the conventions of the repo. Render an HTML review artifact, and optionally post the findings as new PR review comments."
 argument-hint: "<pr-url> [--mode=html-only|post-all|post-<N>|post-<N>-<M>] [--orchestrate] | --multi <url1> <url2> ... [--orchestrate]"
 ---
 
@@ -7,123 +7,143 @@ Review the GitHub pull request: $ARGUMENTS
 
 # Not a duplicate of `dev-essentials:review-loop`
 
-`review-loop` already supports `target=pr <id>` end-to-end, ending in a verify-then-fix pass that **edits code**. Reach for it when the goal is "review and fix".
+`review-loop` also supports `target=pr <id>` end-to-end. It ends with a verify-then-fix pass that **edits code**. Use it for the goal "review and fix".
 
-This command is for the other case — "review and report": evaluating a PR against conventions, producing a shareable HTML artifact, and optionally posting findings back as new PR review comments. It never edits the reviewed code, in either mode.
+This command is for the other goal, "review and report". It evaluates a PR against the conventions, makes an HTML artifact to share, and optionally posts the findings back as new PR review comments. It never edits the reviewed code, in any mode.
 
 # Mode selection
 
-Inspect `$ARGUMENTS` for the `--orchestrate` flag (anywhere after the URL):
+Look in `$ARGUMENTS` for the `--orchestrate` flag (anywhere after the URL):
 
-- **Without `--orchestrate`** (default — "inline" mode): the main agent reads everything itself. Best for small PRs (< ~1,500 lines) where the full diff comfortably fits in context.
-- **With `--orchestrate`** (delegation mode): the main agent dispatches subagents for the context-heavy steps (PR exploration, codebase/diff reading, convention evaluation, finding verification) and only keeps **synthesized findings + the specific lines referenced by those findings** in its own context. Best for large PRs (> ~2,000 lines, > 30 files), PRs touching many distinct areas, or when the user wants the main context preserved for follow-up work.
+- **Without `--orchestrate`** (default, the "inline" mode): the main agent reads everything itself. This mode fits small PRs (under about 1,500 lines), where the full diff fits in the context.
+- **With `--orchestrate`** (the delegation mode): the main agent dispatches subagents for the steps that need much context. These steps are PR exploration, the reading of the codebase and the diff, convention evaluation, and finding verification. The main agent keeps only the synthesized findings and **the specific lines that those findings point to**. This mode fits large PRs (over about 2,000 lines or over 30 files) and PRs that touch many separate areas. It also fits a run where the user wants to keep the main context for follow-up work.
 
-When `--orchestrate` is set, follow the **Orchestrator mode** section below instead of Phases 2–4. Phase 1 (setup), Phase 5 (HTML assembly), and Phase 6 (post comments) are the same in both modes. Phase 7 (multi-PR) is different in kind: it fans out one review subagent per PR **whether or not `--orchestrate` is set**, so `--orchestrate` has no top-level meaning there — it is forwarded into each per-PR subagent instead. See Phase 7.
+With `--orchestrate`, follow the section **Orchestrator mode** below instead of Phases 2 to 4. Phase 1 (setup), Phase 5 (HTML artifact), and Phase 6 (post comments) are the same in both modes. Phase 7 (multi-PR) is different: it always dispatches one review subagent for each PR, **with or without `--orchestrate`**. So the flag has no effect at the top level there. Phase 7 passes it on to each subagent. See Phase 7.
 
 # Workflow
 
 ## Phase 1 — Setup
 
-Invoke `dev-essentials:github-mcp-conventions` via the `Skill` tool. Every rule in it applies here — most load-bearing for this workflow: Rule 1 (never infer `owner`/`repo` — pass the user-supplied values verbatim), Rule 2 (`owner` + `repo` on every call), Rule 3 (pagination discipline), Rule 4 (no comment edit/delete after posting — clean up via the GitHub UI), and Rule 5 (no REST/`gh`-CLI fallback).
+Invoke `dev-essentials:github-mcp-conventions` with the `Skill` tool. All its rules apply here. These rules matter most for this workflow:
 
-Then invoke whichever convention skill(s) apply to the **target repo** — infer them from that repo's own `CLAUDE.md`, or ask the user if it's unclear which apply. This is repo-specific: e.g. reviewing a PR in this repo itself would mean `dev-essentials:general-conventions` and `dev-essentials:engineering-discipline`; a .NET backend repo would additionally mean `dotnet-backend-dev:dotnet-conventions`; another repo will have different (or no) registered convention skills.
+- Rule 1: never infer `owner` or `repo`. Pass the values of the user word for word.
+- Rule 2: pass `owner` and `repo` on every call.
+- Rule 3: pagination.
+- Rule 4: no comment edit or comment delete after a post. Clean up in the GitHub UI.
+- Rule 5: no fallback to REST or to the `gh` CLI.
+
+Then invoke the convention skills that apply to the **target repo**. Find them in the `CLAUDE.md` of that repo. If it is not clear which skills apply, ask the user. The skills differ for each repo. For example, a PR in a plugin marketplace of Markdown skills needs `dev-essentials:general-conventions` and `dev-essentials:engineering-discipline`. A .NET backend repo also needs `dotnet-backend-dev:dotnet-conventions`. Another repo can have other registered convention skills, or none.
 
 ## Phase 2 — Fetch PR metadata
 
-Parse the PR URL to extract `<owner>`, `<repo>`, `<pullRequestNumber>` (`github-mcp-conventions` Rule 1 — never infer these from git remote or session context). Call:
+Parse the PR URL for `<owner>`, `<repo>`, and `<number>`. Never infer these values from the git remote or from the session context (`github-mcp-conventions` Rule 1). Call:
 
 ```text
 mcp__plugin_github_github__pull_request_read(
   method="get",
   owner="<owner>",
   repo="<repo>",
-  pullRequestNumber=<number>)
+  pullNumber=<number>)
 ```
 
-Capture `headRefName`, `baseRefName`, `state`, `title`, `html_url`, `number`.
+From the response, keep `title`, `state`, `html_url`, and `number`. Also keep the head branch as `<headRefName>` (from `head.ref`) and the base branch as `<baseRefName>` (from `base.ref`).
 
 ## Phase 3 — Get the diff locally
 
-Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself — follow `dev-essentials:review-loop`'s own `target=pr <id>` diff-resolution pattern instead of re-deriving it: after Phase 2's metadata, run `git fetch origin <headRefName> <baseRefName>`, then diff using the remote-tracking names: `git diff origin/<baseRefName>...origin/<headRefName>` — never rely on local branch names, which may be absent or stale.
+Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself (`github-mcp-conventions` Rule 7). Use the `target=pr <id>` diff steps of `dev-essentials:review-loop`, and do not invent other steps. After Phase 2, run `git fetch origin <headRefName> <baseRefName>`. Then diff with the remote-tracking names: `git diff origin/<baseRefName>...origin/<headRefName>`. Never use local branch names, because they can be missing or stale.
 
-Run that diff separately for the production path(s) and the test path(s) — append `-- <paths>` to scope each run — so you can read them separately. For very large diffs, save to a temp file and read in chunks.
+Run this diff once for the production paths and once for the test paths, so that you read them separately. Put `-- <paths>` at the end of each command. If a diff is very large, save it to a temp file and read it in parts.
 
 ## Phase 4 — Evaluate against conventions
 
-Apply the convention skill(s) invoked in Phase 1. Focus on real deviations, not stylistic preferences.
+Apply the convention skills of Phase 1. Look for real deviations, not for style preferences.
 
-The category list below is **illustrative, not a checklist** — adapt it to whatever conventions the target repo's own skills actually define:
+The categories below are **examples, not a full list**. Adapt them to the conventions that the skills of the target repo define:
 
-- **Domain models / types** — equality members, required-field validation, constructor validation. Compare to existing siblings in the same area of the repo.
-- **Wrapper / value types** — factory methods, private constructors, comparers, whatever the repo's own wrapper convention specifies. Compare to an existing sibling wrapper.
-- **Services** — DI pattern consistency with sibling services. **Watch for inconsistencies within the same class** — a new helper introduced but not propagated to the class's existing methods is a real finding, not a nitpick.
-- **Converters / mappers** — extension-method or converter-class conventions, boundary-input validation.
-- **Tests** — base-class conventions, AAA structure, assertion-library conventions, unit vs. integration categorization.
-- **Documentation / Markdown** — this repo's own `dev-essentials:general-conventions` rules (e.g. frontmatter scalar quoting) when the diff touches skill/command/agent Markdown.
-- **Exception / user-facing messages** — resource-based messages vs. inline string literals, if the repo centralizes user-facing strings.
+- **Domain models and types**: equality members, validation of required fields, and constructor validation. Compare with existing siblings in the same area of the repo.
+- **Wrapper and value types**: factory methods, private constructors, comparers, and the other parts that the wrapper convention of the repo asks for. Compare with an existing sibling wrapper.
+- **Services**: the DI pattern matches the sibling services. **Look for inconsistencies inside one class**. A new helper that the existing methods of the class do not use is a real finding, not a nitpick.
+- **Converters and mappers**: the conventions for extension methods or converter classes, and the validation of boundary input.
+- **Tests**: base-class conventions, AAA structure, assertion-library conventions, and the split between unit and integration tests.
+- **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:general-conventions`, for example the quoting of frontmatter scalars.
+- **Exception and user-facing messages**: if the repo keeps its user-facing strings in one place, messages come from resources, not from inline string literals.
 
-Don't over-flag — see `dev-essentials:review-loop`'s finding-density guardrail (~1 Critical/High + 4 Medium + 3 Low/Nit per ~1,000 lines) for a sane ratio of findings to PR size.
+Do not report too many findings. A sane ratio for each 1,000 lines is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings. See the finding-density guardrail of `dev-essentials:review-loop`.
 
 ## Phase 5 — Produce the HTML artifact
 
 Output path: `Notes/Reviews/pr-<number>-review.html`.
 
-Invoke `dev-essentials:create-html-artifact` (via the `Skill` tool) for the generic mechanics — self-contained inline CSS, the badge/annotation-chip/collapsible CSS component patterns, mermaid gotchas, and the section-by-section PR-review mapping, which lives in that skill's `references/recipes.md` Recipe 2 (PR / code-review artifact). End with the `ARTIFACT: <path>` line that skill's invocation contract requires. Reuse the most recent prior artifact in `Notes/Reviews/` as the visual template so the series stays visually consistent.
+Invoke `dev-essentials:create-html-artifact` with the `Skill` tool. Map the review onto the sections of Recipe 2 (PR / code-review artifact) in its `references/recipes.md`. Give the `ARTIFACT: <path>` line that the invocation contract of that skill requires (see Output). Use the most recent prior artifact in `Notes/Reviews/` as the visual template, so that the series looks the same.
 
-One PR-review-specific detail not covered by the recipe: the deep-link anchor convention. Every row in the findings table links via `<a href="#F-<anchor>">` to its file section, and that file section is anchored `id="F-<anchor>"`. Keep `<anchor>` stable (e.g. a slug of file path + line) so links survive artifact edits, and make sure every finding is linkable both ways (table → section, and back-references from the "major changes by file" collapsible sections).
+Recipe 2 links each row of the findings table (`<a href="#F-<anchor>">`) to the file section with `id="F-<anchor>"`. Keep each `<anchor>` stable, so that the links still work after edits of the artifact. An example is a slug of the file path and the line. Make sure that each finding has links in both directions: from the table to the section, and back from the collapsible sections "major changes by file".
 
 # Orchestrator mode (`--orchestrate` flag)
 
-For large PRs, delegate the context-heavy phases (2–4) to subagents instead of reading everything inline. Follow `dev-essentials:review-loop`'s "Large-target orchestrated mode" (`references/orchestrated-review.md`) — Role 1 (Target Explorer subagent, compact summary) → Role 2 (parallel, per-area Codebase/Convention Explorer subagents, structured findings only) → the density check between Role 2 and Role 3 → Role 3 (optional Finding Verifier subagent) → Role 4 (main-agent synthesis, reading back in only the specific lines the surviving findings anchor to). Invoke that reference directly rather than duplicating its subagent prompts here.
+For a large PR, delegate the phases that need much context (2 to 4) to subagents, and do not read everything inline. Follow the "Large-target orchestrated mode" of `dev-essentials:review-loop` (`references/orchestrated-review.md`):
 
-The one difference: the synthesis step doesn't feed a fixer. It feeds Phase 5 (the HTML artifact) and, optionally, Phase 6 (posting **new** findings as PR review comments).
+1. Role 1: a Target Explorer subagent writes a compact summary.
+2. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
+3. The density test between Role 2 and Role 3.
+4. Role 3: an optional Finding Verifier subagent.
+5. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
+
+Read that reference file directly. This command does not copy its subagent prompts.
+
+The one difference: the synthesis does not feed a fixer. It feeds Phase 5 (the HTML artifact). If `--mode` asks for posts, it also feeds Phase 6 (the post of **new** findings as PR review comments).
 
 # Phase 6 — Post findings as new PR review comments (only when explicitly requested)
 
-Trigger on `--mode=post-all` / `--mode=post-<N>` / `--mode=post-<N>-<M>`. Default (`--mode=html-only`) stops after Phase 5.
+This phase runs only with `--mode=post-all`, `--mode=post-<N>`, or `--mode=post-<N>-<M>`. The default (`--mode=html-only`) stops after Phase 5.
 
 ## Before posting — check for existing duplicate threads
 
-Fetch the PR's existing review threads first, using the same call `dev-essentials:process-pr-comments` uses for thread listing:
+First fetch the existing review threads of the PR. Use the same call that `dev-essentials:process-pr-comments` uses to list threads:
 
 ```text
 mcp__plugin_github_github__pull_request_read(
   method="get_review_comments",
   owner="<owner>",
   repo="<repo>",
-  pullRequestNumber=<number>,
+  pullNumber=<number>,
   perPage=30)
 ```
 
-Paginate to exhaustion with cursor-based `after` (`github-mcp-conventions` Rule 3 — this method uses `after`/`endCursor`, not page numbers). The response includes each thread's `isResolved`/`isOutdated` state, its comments, and each comment's `path`/`line`/`html_url`.
+Read all pages, and pass the `endCursor` of the previous page as `after` (`github-mcp-conventions` Rule 3). This method uses a cursor, not page numbers. The response has the `isResolved` and `isOutdated` state of each thread, its comments, and the `path`, `line`, and `html_url` of each comment.
 
-Compare each finding about to be posted against every existing thread — whoever authored it — using a simple heuristic: same `path`, an overlapping or near-adjacent line (within a few lines of the existing thread's anchor line, or an overlapping multi-line range), and a similar one-line gist. A clear match on all three is enough to call it a duplicate. Skip posting those, and note each one (with the existing thread's `html_url`) in the Output summary instead of silently dropping it.
+Compare each finding that you plan to post with each existing thread, whoever wrote it. Use a simple test with three parts:
+
+1. The same `path`.
+2. A line that overlaps the anchor line of the thread or is near it (within a few lines), or a range of lines that overlaps.
+3. A similar one-line gist.
+
+A clear match on all three parts makes the finding a duplicate. Do not post a duplicate. List each one in the Output summary, with the `html_url` of the existing thread, and do not drop it in silence.
 
 ## Post via the GitHub MCP review workflow
 
-Per the GitHub MCP server's own documented review-comment workflow (create a pending review, add comments to it, then submit):
+Follow the review-comment workflow that the GitHub MCP server documents: create a pending review, add comments to it, then submit it.
 
-1. `mcp__plugin_github_github__pull_request_review_write(method="create", owner="<owner>", repo="<repo>", pullNumber=<number>)` — no `event` param, so this creates a **pending** review rather than submitting immediately.
-2. `mcp__plugin_github_github__add_comment_to_pending_review(owner="<owner>", repo="<repo>", pullNumber=<number>, path="<file>", line=<N>, subjectType="LINE", body="<comment>")` for each finding anchored to a specific line. For a multi-line span, also pass `startLine=<first line>` with `side="RIGHT"` and `startSide="RIGHT"` (the new/right-hand version of the file — there is no separate offset to compute, unlike a start/end-offset PR-tracker API: this tool anchors by line number alone).
-   - For findings that span multiple sites in a single file: anchor to the first violation and list the other sites in the body.
-   - For findings that span multiple files: anchor to one representative first violation, list the others in the body, and cross-reference both files.
-   - For cross-cutting/global concerns (e.g., a convention applied inconsistently across many files): **don't** call `add_comment_to_pending_review` for it — that tool requires a `path`. Instead fold the finding into the review's overall `body` text in step 3.
-3. `mcp__plugin_github_github__pull_request_review_write(method="submit_pending", owner="<owner>", repo="<repo>", pullNumber=<number>, event="COMMENT", body="<summary + any cross-cutting findings from step 2>")` — submits the batch as one review with `COMMENT` (never `REQUEST_CHANGES` or `APPROVE`; this command reports, it doesn't gate merge).
+1. `mcp__plugin_github_github__pull_request_review_write(method="create", owner="<owner>", repo="<repo>", pullNumber=<number>)`. The call has no `event` parameter, so it creates a **pending** review and does not submit it.
+2. `mcp__plugin_github_github__add_comment_to_pending_review(owner="<owner>", repo="<repo>", pullNumber=<number>, path="<file>", line=<N>, subjectType="LINE", body="<comment>")` for each finding on a specific line. For a span of several lines, also pass `startLine=<first line>`, `side="RIGHT"`, and `startSide="RIGHT"` (the new, right-hand version of the file). The tool anchors by line number only, so you do not compute an offset.
+   - A finding with several sites in one file: anchor it to the first violation, and list the other sites in the body.
+   - A finding with sites in several files: anchor it to one typical first violation, list the other sites in the body, and refer to both files.
+   - A cross-cutting or global concern, for example a convention that many files apply in different ways: **do not** call `add_comment_to_pending_review` for it, because that tool requires a `path`. Put the finding into the overall `body` of the review in step 3.
+3. `mcp__plugin_github_github__pull_request_review_write(method="submit_pending", owner="<owner>", repo="<repo>", pullNumber=<number>, event="COMMENT", body="<summary + any cross-cutting findings from step 2>")`. This call submits the batch as one review with `COMMENT`. Never use `REQUEST_CHANGES` or `APPROVE`, because this command reports and does not gate the merge.
 
-If you need to discard a batch before submitting, use `method="delete_pending"` — there is no way to edit an individual pending comment once added.
+To discard a batch before you submit it, use `method="delete_pending"`. You cannot edit a single pending comment after you add it.
 
 ## Tag taxonomy and comment shape
 
-Use the tag taxonomy and per-tag semantics from `dev-essentials:process-pr-comments`'s `references/tag-actions.md` (`[ToFix]` / `[Optional]` / `[Suggestion]` / `[Question]` / `[ToDiscuss]` / `[Performance]` / `[OutOfScope]` / `[Note]` / `[PX]` / `[Repetition]`) — the same tags apply when posting a **new** finding, not only when replying to an existing one. Lead every comment with `**[Tag]**` in bold.
+Use the tags and their meanings from `references/tag-actions.md` of `dev-essentials:process-pr-comments`: `[ToFix]`, `[Optional]`, `[Suggestion]`, `[Question]`, `[ToDiscuss]`, `[Performance]`, `[OutOfScope]`, `[Note]`, `[PX]`, and `[Repetition]`. The same tags apply to a **new** finding, not only to a reply to an existing thread. Start every comment with `**[Tag]**` in bold.
 
-Severity → tag mapping (defaults; adjust per finding). Note that `[Performance]` is an ACTIONABLE tag in `tag-actions.md` with the same workflow as `[ToFix]` — never use it as an "info" label:
+Map severity to a tag with these defaults, and adapt them for each finding. In `tag-actions.md`, `[Performance]` is an ACTIONABLE tag with the same workflow as `[ToFix]`. Never use it as an info label.
 
-- Major / convention violation / real defect → `**[ToFix]**`
-- Performance defect that genuinely warrants `tag-actions.md`'s `[Performance]` workflow (measurable regression, hot path, etc.) → `**[Performance]**`
-- Minor cosmetic → `**[Optional]**`
-- Minor refactor / test-coverage improvement → `**[Suggestion]**`
-- Non-blocking performance observation (no measured impact, not a hot path) → `**[Suggestion]**`, `**[Note]**`, or `**[OutOfScope]**`, depending on how actionable it is — never `**[Performance]**`
-- Info / operational follow-up → `**[OutOfScope]**` or `**[Note]**`
+- Major, convention violation, or real defect → `**[ToFix]**`
+- Performance defect that needs the `[Performance]` workflow of `tag-actions.md` (a measurable regression, a hot path, or a similar case) → `**[Performance]**`
+- Minor cosmetic issue → `**[Optional]**`
+- Minor refactor or better test coverage → `**[Suggestion]**`
+- Non-blocking performance observation (no measured impact, not a hot path) → `**[Suggestion]**`, `**[Note]**`, or `**[OutOfScope]**`. Pick by how actionable it is. Never `**[Performance]**`.
+- Info or operational follow-up → `**[OutOfScope]**` or `**[Note]**`
 
 Comment shape:
 
@@ -135,58 +155,56 @@ Comment shape:
 **Fix:** <concrete suggested fix>.
 ```
 
-Markdown only — code-formatted symbols in backticks, no HTML tags.
+Use Markdown only: symbols as code in backticks, and no HTML tags.
 
 ## Before posting — verify
 
-- `owner`/`repo` are present on every call (`github-mcp-conventions` Rule 2).
-- The tag is the right one for this finding — comments cannot be edited or deleted after posting via MCP (`github-mcp-conventions` Rule 4); a wrong tag needs cleanup via the GitHub UI.
-- The `line` (and `startLine`, if multi-line) actually points at the line you intend — re-derive from the source-branch file, e.g. `git show origin/<headRefName>:<path> | sed -n '<N>p'`, rather than trusting a line number computed earlier in the run.
+- Make sure that `owner` and `repo` are present on every call (`github-mcp-conventions` Rule 2).
+- Make sure that the tag fits the finding. After the post, you cannot edit or delete the comment through MCP (`github-mcp-conventions` Rule 4). A wrong tag then needs a cleanup in the GitHub UI.
+- Make sure that the `line` (and `startLine` for a span of several lines) points at the line that you mean. Read the line again from the file of the source branch, for example with `git show origin/<headRefName>:<path> | sed -n '<N>p'`. Do not trust a line number from earlier in the run.
 
 # Phase 7 — Multi-PR mode (`--multi` mode)
 
-If the input lists multiple PR URLs, dispatch one review subagent per PR via the `Agent` tool with `subagent_type: general-purpose`, `model: opus` (a per-PR critical review is judgment work, per the model matrix in the "Model selection" section of `dev-essentials:subagent-orchestration`), all dispatched in one message per that same skill's Rule 3 (agent dispatch has no foreground/background choice — issue every `Agent` call in a single message so they run concurrently) and Rule 5 (pure, unnamed one-shot dispatch — no `name`, no `team_name`). Each subagent gets:
+If the input lists several PR URLs, dispatch one review subagent for each PR with the `Agent` tool: `subagent_type: general-purpose` and `model: opus`. A critical review of a PR is judgment work (see the model matrix in the section "Model selection" of `dev-essentials:subagent-orchestration`). Put every `Agent` call into one message, so that the subagents run at the same time (Rule 3 of that skill). Each dispatch is a pure, unnamed one-shot dispatch, with no `name` and no `team_name` (Rule 5 of that skill). Each subagent gets:
 
 - The PR URL.
-- The path to the most recent reference artifact in `Notes/Reviews/` (so it can mirror the CSS/structure).
-- The full Phase 1–5 instructions copied into the prompt (the subagent has no session context).
-- An instruction to end with a single `ARTIFACT: <path>` line.
-- **The `--orchestrate` flag, when the multi-PR invocation carried it** — stated explicitly in the prompt, so that subagent runs its own Phases 2–4 via its own sub-dispatches per **Orchestrator mode** rather than reading its whole diff inline. This fan-out is unconditional either way, so forwarding the flag is `--orchestrate`'s entire effect here — nothing about the top-level dispatch changes.
+- The path of the most recent reference artifact in `Notes/Reviews/`, so that it can copy the CSS and the structure.
+- The full instructions of Phases 1 to 5, copied into the prompt, because the subagent has no session context.
+- An instruction to end with one `ARTIFACT: <path>` line.
+- **The `--orchestrate` flag**. If the multi-PR invocation has the flag, state it explicitly in the prompt. The subagent then runs its own Phases 2 to 4 through its own dispatches (see **Orchestrator mode**). It does not read its whole diff inline. The fan-out happens with or without the flag, so this forwarding is the only effect of `--orchestrate` here. The dispatch at the top level does not change.
 
-Each subagent reports back in under 200 words: what the PR does, finding counts by severity, the artifact path.
+Each subagent reports back in under 200 words: what the PR does, the finding counts by severity, and the artifact path.
 
 # Arguments
 
-`$ARGUMENTS` takes one of two top-level shapes:
+`$ARGUMENTS` has one of two top-level shapes:
 
-- `<pr-url> [--mode=<mode>] [--orchestrate]` — single-PR review. `<pr-url>` is the first positional argument.
-- `--multi <url1> <url2> ... [--orchestrate]` — multi-PR review (Phase 7). The `--multi` flag replaces `<pr-url>` as the first argument and consumes the space-separated URL list that follows it; there is no separate leading single-PR URL in this shape.
+- `<pr-url> [--mode=<mode>] [--orchestrate]`: a review of one PR. `<pr-url>` is the first positional argument.
+- `--multi <url1> <url2> ... [--orchestrate]`: a review of several PRs (Phase 7). `--multi` takes the place of `<pr-url>` as the first argument. It takes the list of URLs after it, separated by spaces. This shape has no separate single-PR URL at the start.
 
-The `--orchestrate` flag can appear in any position after the URL (single-PR shape) or after the last `--multi` URL (multi-PR shape), and combines with any mode.
+The `--orchestrate` flag can come at any position after the URL (single-PR shape), or after the last `--multi` URL (multi-PR shape). It works with any mode.
 
 Modes (single-PR shape only):
 
-- `<pr-url>` alone → produce the HTML artifact only (Phases 1–5).
-- `<pr-url> --mode=html-only` → same as above (explicit).
-- `<pr-url> --mode=post-all` → produce the artifact, then post every finding as a PR review comment.
-- `<pr-url> --mode=post-<N>` → post only finding number `N` (1-based, matching the artifact's findings table).
-- `<pr-url> --mode=post-<N>-<M>` → post findings `N` through `M`.
+- `<pr-url>` alone → only the HTML artifact (Phases 1 to 5).
+- `<pr-url> --mode=html-only` → the same, stated explicitly.
+- `<pr-url> --mode=post-all` → the artifact, then a PR review comment for every finding.
+- `<pr-url> --mode=post-<N>` → a post of finding number `N` only (1-based, as in the findings table of the artifact).
+- `<pr-url> --mode=post-<N>-<M>` → a post of findings `N` to `M`.
 
 Multi-PR shape:
 
-- `--multi <url1> <url2> ...` → dispatch parallel review subagents (Phase 7). `--orchestrate` in this shape is forwarded into every per-PR subagent, which then runs its own Phases 2–4 via Orchestrator mode.
+- `--multi <url1> <url2> ...` → parallel review subagents (Phase 7).
 
-`--orchestrate` combines with any mode. **In the single-PR shape** (e.g. `<pr-url> --mode=post-all --orchestrate`): Phases 1, 5, and 6 stay inline, Phases 2–4 go to subagents per Orchestrator mode above. **In the multi-PR shape**: it is forwarded per Phase 7, and each per-PR subagent then applies that same single-PR rule to its own PR. See **Mode selection** for when it's worth it.
+`--orchestrate` in the single-PR shape (for example `<pr-url> --mode=post-all --orchestrate`): Phases 1, 5, and 6 stay inline, and Phases 2 to 4 go to subagents, as **Orchestrator mode** says. In the multi-PR shape, Phase 7 passes the flag on, and each subagent applies the single-PR rule to its own PR. See **Mode selection** for the PR sizes where the flag helps.
 
 # Output
 
-End the response with the `ARTIFACT: <path>` line — nothing else on that
-line, per `create-html-artifact`'s output contract — followed by a
-separate findings-summary line, per PR:
+In the final response, give the `ARTIFACT: <path>` line for each PR, with nothing else on that line (the output contract of `create-html-artifact`). Put a separate line with the finding counts after it:
 
 ```text
 ARTIFACT: Notes/Reviews/pr-<number>-review.html
 N findings (X critical · Y major · Z minor · W info)
 ```
 
-If comments were posted, also list each posted comment's `html_url` and its anchor (`<path>:<line>`), and any findings skipped as duplicates of an existing thread (with the existing thread's `html_url`).
+If you posted comments, also list the `html_url` and the anchor (`<path>:<line>`) of each posted comment. Also list each finding that you skipped as a duplicate of an existing thread, with the `html_url` of that thread.

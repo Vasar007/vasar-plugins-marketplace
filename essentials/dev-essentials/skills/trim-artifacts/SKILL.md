@@ -61,7 +61,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -87,24 +87,7 @@ Parts 1 and 2 form the byte-identical tier. Parts 3 and 4 form the substance tie
 
 Other verbatim user text is not in the protect-set. If it duplicates protected text, you can delete it. Never paraphrase it. Keep it verbatim, or remove it.
 
-List the file types in the workspace, for example with `find WORKSPACE -type f | sed -E 's|.*/||; s/.*\.//' | sort | uniq -c`. The script checks `**/*.md` by default. If other types can cite a trimmed file, such as `.txt` or `.log`, use `--glob '**/*'` in one run. A separate run for each type cannot see a `.txt` file that cites a deleted `.md` file. Record the glob in the protect-set.
-
-The glob `**/*` also walks hidden folders such as `.git`. In a git workspace, a deleted file then shows as DANGLING in `.git/index`. The size table also counts git objects. Instead, compare the subfolder that holds every file that can cite a trimmed file, for example `--before BACKUP/docs --after WORKSPACE/docs`. The glob and the PATH in each `--allow-changed` regex are then relative to that subfolder. The default glob `**/*.md` does not match the git index or objects, so only `**/*` has this problem.
-
-To find id families, list the prefixes of tokens that look like ids:
-
-```bash
-grep -rhoE '\b[A-Z][A-Z0-9]*-?[0-9]+\b' --include='*.md' WORKSPACE \
-  | sed -E 's/[0-9]+$//' | sort | uniq -c | sort -rn
-```
-
-Drop noise such as version strings. Turn each real family into one regex, for example `\bREQ-\d+\b`.
-
-Then write one multiline regex for each protected block type. It must cover only the byte-identical text, such as the quote and the decision line, not the whole section. Then the pass can still cut the agent framing around a decision. Example for files with a quote line and a decision line:
-
-```text
-(?m)^## Decision \d+\n\nQuote: .*\nDecision: .*$
-```
+Then build the glob and the regexes with [references/protect-set.md](references/protect-set.md). One glob covers every file that can cite a trimmed file.
 
 Make sure that each regex matches at least once in the workspace.
 
@@ -113,7 +96,7 @@ Also settle the byte targets (defaults are in [references/cut-rules.md](referenc
 ### 2. Back up the workspace
 
 Before the first edit, copy the whole workspace to a location outside it, for example with `cp -a WORKSPACE BACKUP`.
-The script refuses a `--before` path that equals, contains, or sits inside the `--after` path. It cannot see a stray copy that you do not pass to it. It also cannot see a backup inside the workspace in the subfolder form. Keep every copy outside the workspace, because a copy inside it can hide a loss.
+The script refuses a `--before` path that equals, contains, or sits inside the `--after` path. It cannot find a stray copy that you do not pass to it, or a backup inside the workspace in the subfolder form. Keep every copy outside the workspace.
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
@@ -138,7 +121,7 @@ The planner reads every file of its batch and writes one plan per batch. Use [re
 The planner proves each anchor with a script. Then it makes two copies of the batch in a scratch folder, an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
 Keep plans and scratch copies outside the workspace, so that the pass does not measure or trim them.
 
-Measure bytes, not lines. Agents pay for bytes. Joining lines is not a cut: it drops the line count and keeps the cost. Remove words instead. If a file stays above its target, the plan says why.
+Measure bytes, not lines. Joining lines is not a cut, because the bytes stay. Remove words instead. If a file stays above its target, the plan says why.
 
 ### 5. Gate the deletions
 
@@ -146,7 +129,7 @@ Before any deletion, show the user these lists:
 
 1. The files to delete, with a one-line reason each.
 2. Files or records that the user approved for deletion before the pass, to show the real scope.
-3. The protected items that the plan withdraws as tombstones, each with its file and its `--allow-changed` regex.
+3. The protected items that the plan withdraws as tombstones, each with its file and its `--allow-changed` regex (see step 7).
 
 Under the lists, add one line that reminds the user of the path of the backup.
 
@@ -175,16 +158,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after 
   --allow-changed '^notes/decisions\.md:## Decision 3\b' --target-percent 60
 ```
 
-- Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error. Examples are a bad flag, an unreadable path, an absolute `--glob` and a backup inside the workspace.
-- A regex that matches nothing in the backup is a failure.
-- The script converts CRLF to LF in both trees before it matches or compares.
-- A glob is one relative pattern from the root of the tree. `*.md` matches only top-level files. `notes/*.md` matches only files in `notes/`. `**/*.md` matches files at any depth.
-- A protected block is exactly the text that its regex matches. Text that you add after the match, such as an `Update:` line below the decision line, is not tested.
-- For each approved tombstone, add `--allow-changed REGEX`. The script tests REGEX against the string `PATH:FIRST_LINE`. PATH is the relative path with forward slashes. FIRST_LINE is the first line of the protected block.
-- To allow a block in one file, write the file in the regex, for example `'^notes/decisions\.md:## DEC-3\b'`. To allow it in any file, write `':## DEC-3\b'`.
-- The script reports a matching block as ALLOWED. After the trim, the same file must still hold a line that matches REGEX. If not, the script reports WITHDRAWN, NO TOMBSTONE and fails. Do not end REGEX with `$`, so that it matches both the old heading and the tombstone heading.
-- The script reports a block that it finds intact in another file as IN OTHER FILE. This does not fail. The reviewer makes sure that the move or the deduplication was planned.
-- If no file with the name of a deleted file survives, a reference to it is DANGLING. If another file has that name, the line is AMBIGUOUS. This passes, but you must look at each AMBIGUOUS line by hand. The name match ignores case.
+Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error. Before you write the `--glob` and `--allow-changed` flags, read [references/script-results.md](references/script-results.md). Read it again before you act on the result. Look at each AMBIGUOUS line by hand.
 
 If the project has a Markdown linter or another formatter, run it too. Accept no new error types.
 
@@ -243,8 +217,6 @@ These habits keep the next pass small:
 
 If the agent platform has no subagents, run the roles one after another in one context. Then give the review (step 9) to a fresh session or to the user. Give the re-review of step 10 to a fresh context too. If no fresh reviewer is available, tell the user that the pass has no independent review.
 
-Briefs with placeholders for all four roles are in [references/role-briefs.md](references/role-briefs.md).
-
 ## Crash safety
 
 Long runs keep a progress file. It holds a `STATUS` line, a list of steps, an append-only log, the current draft, and the next action. Update it at every step. On resume, read it first and continue from the next action. When the pass is done, delete it.
@@ -256,28 +228,17 @@ Use the same protections inline. Work in this order:
 1. Do step 1 of the full pass, with its glob, id regexes and protected-block regexes.
 2. Copy the whole folder to a backup folder outside the workspace, for example with `cp -a FOLDER BACKUP`. Then tell the user the path and size of the backup.
 3. Classify each file with a profile. List each cut with its anchor and a reason from the cut table. List the fixes for references that a deletion breaks. Prove that each anchor matches once.
-4. Before you delete a file, ask the user. List each planned tombstone too. This is the deletion gate of step 5.
+4. Before you delete a file or write a tombstone, run the deletion gate of step 5. Show its three lists, and follow its rules for each mode.
 5. Apply the approved cuts. Remove words, not line breaks.
-6. Run `python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after FOLDER` with the regexes and one `--allow-changed` for each approved tombstone. Use one glob that covers every file that can cite the trimmed files. Do not narrow the glob to the trimmed files. Fix every failure.
+6. Run `python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after FOLDER` with the regexes and one `--allow-changed` for each approved tombstone. Use one glob that covers every file that can cite the trimmed files. Do not narrow the glob to the trimmed files. Read the result as step 7 says, and fix every failure.
 7. Show the user the size table and a short list of what went. Then end the pass with the final message of step 11, and follow its three cases.
-
-## Common failure modes
-
-- Measuring lines instead of bytes, so joined lines pass as cuts.
-- Paraphrasing protected text instead of keeping it byte-identical.
-- A protected regex that covers more than the byte-identical text, so that permitted cuts fail.
-- Cutting a fact that only one source cites, or a source that a kept fact uses.
-- Renumbering or reusing ids after a deletion.
-- Dangling references to deleted files or removed headings.
-- Trimming without a backup, which leaves no way to prove that nothing was lost.
-- Trimming everything at once, with no deletion gate and no pilot batch.
-- Over-trimming a research file so that a claim loses its source or its uncertainty marker.
-- A backup or a scratch copy left behind that the user does not know about.
 
 ## Reference files
 
 - [references/cut-rules.md](references/cut-rules.md): the cut table, depth rules, row rules, byte targets and the tombstone template. Read it before planning.
 - [references/artifact-profiles.md](references/artifact-profiles.md): keep and cut rules per artifact type.
 - [references/plan-template.md](references/plan-template.md): the plan format and the anchor proof script.
+- [references/protect-set.md](references/protect-set.md): the glob, the id regexes and the protected-block regexes of step 1.
+- [references/script-results.md](references/script-results.md): how to read the result of the script in step 7.
 - [references/role-briefs.md](references/role-briefs.md): briefs for the planner, executor, reviewer and fixer.
 - [scripts/trim_report.py](scripts/trim_report.py): the size table and integrity tests. Run it with `--help` for all flags.

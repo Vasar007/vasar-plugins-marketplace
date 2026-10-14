@@ -4,9 +4,9 @@ description: >-
   Read-only bug hunt over a whole repository. It finds new potential bugs area by area, has
   other agents try to refute each one, and saves one verified bug report. It skips bugs that
   notes files or GitHub issues already describe, and it never creates issues. Use it for "bug
-  hunt", "hunt for bugs", "find new bugs in this project", "find potential bugs in every area",
-  "audit the codebase for bugs", or "write a verified bug report". Do not use it to review one
-  diff or one pull request. Use review-loop or code-review for that.
+  hunt", "hunt for bugs", or "find new bugs in this project". Also use it for "find potential bugs
+  in every area", "audit the codebase for bugs", or "write a verified bug report". Do not use it
+  to review one diff or one pull request. Use review-loop or code-review for that.
 argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--interactive] [--autonomous]"
 ---
 
@@ -50,7 +50,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -65,9 +65,6 @@ These rules apply to the orchestrator. The agent files and the briefs carry them
 agents. If a `CLAUDE.md` file conflicts with rule 1 or rule 2, rules 1 and 2 win.
 
 ### 1. The project is read-only
-
-Another session can work in the project at the same time. For this reason, agents read code
-only from the snapshots.
 
 - Do not edit, build, test, or run anything in the project folder. Do not create files there. The report folder is the only exception (see the report-folder point).
 - Against the live repository, always use `git -C "<repo>"`. Run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, and `show`. Also `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
@@ -130,8 +127,8 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 8. Run format
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
-meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the OK, rule 3
-replaces tiers 1 and 2 of the "Trust but verify" section of
+meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the run format is accepted, rule 3
+replaces tiers 1 and 2 of the section `Trust but verify` of
 `dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
 claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
 
@@ -175,14 +172,14 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
 
-1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Make sure that the report folder exists, and list the files in it that start with `bug-hunt` or `_bug-hunt`.
+1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
 2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat, with every part that the reference file lists.
 6. Ask only questions that block the run.
 7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, or after step 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
 
 ### Step 1. Isolation
 
@@ -207,7 +204,7 @@ an earlier round, update that file for this run instead. Then run the structure 
 
 For each area, in the approved order:
 
-1. Compute the next ID with the `next-id` command in [references/structure-checks.md](references/structure-checks.md). The first area starts at `BH-01`.
+1. Compute the next ID with the `next-id` command in [references/structure-checks.md](references/structure-checks.md).
 2. Dispatch one hunter with the hunter brief. Set `{FIRST_SEARCH}` to "yes" only for the first hunter. That hunter also fills the section "Known issues that this report does not repeat".
 3. Wait for the reply. Do not dispatch the next hunter before this one finishes. Later hunters read the notes of earlier ones, and the IDs continue across areas.
 4. Run the structure check for step 3. Compare the reply with the counts.
@@ -252,7 +249,7 @@ the content below into its matching sections. Else use these three sections, in 
 
 1. Blocked on me: the decisions that only the user can make. List each Unconfirmed finding by ID and point to "For the owner's review" in the Summary. If there are none, write "Nothing".
 2. Changed: the report path, the run context file, the final summary file, and the artifacts folder with the number of subfolders. Say that the run made no change in the project, no commits, and no GitHub issues.
-3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not confirm. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and any leftover file.
+3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not confirm. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and any leftover file. Also the lists that "Autonomy" asks for.
 
 Save the final report, as is, to `bug-hunt-final-summary.md` in the report folder with the
 Write tool. If step 0 chose a dated name, use that name. Then post the same text in chat.

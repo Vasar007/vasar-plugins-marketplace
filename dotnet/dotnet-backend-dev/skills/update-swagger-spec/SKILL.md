@@ -1,21 +1,11 @@
 ---
 name: update-swagger-spec
-description: Add/modify OpenAPI spec with [TBD] descriptions, NSwag regeneration workflow - API-first development approach. Use when adding REST endpoints, modifying API contracts, or updating OpenAPI documentation. Triggers on requests like "update swagger", "add API endpoint", "modify OpenAPI spec", "add REST operation".
+description: Add or modify an OpenAPI spec with [TBD] descriptions and the NSwag regeneration workflow, for API-first development. Use when adding REST endpoints, modifying API contracts, or updating OpenAPI documentation. Triggers on requests like "update swagger", "add API endpoint", "modify OpenAPI spec", "add REST operation".
 ---
 
 # Update Swagger Spec
 
 Add or modify OpenAPI specification files with required [TBD] prefix for all user-facing content, following API-first development approach.
-
-## When to Use
-
-Use this skill when:
-
-- Adding new REST API endpoints
-- Modifying existing API operations (request/response models)
-- Updating API documentation (summaries, descriptions)
-- Adding new OpenAPI schemas or parameters
-- Changing API contracts
 
 ## File Locations
 
@@ -47,11 +37,11 @@ This applies to:
 
 ```json
 {
-  "summary": "[TBD] Retrieves a list of workload tenants",
-  "description": "[TBD] Returns all workload tenants for the specified .NET backend organization. Use this endpoint to list tenants before performing operations on specific tenants.",
+  "summary": "[TBD] Retrieves a list of retail stores",
+  "description": "[TBD] Returns all retail stores for the specified partner organization. Use this endpoint to list stores before performing operations on specific stores.",
   "responses": {
     "200": {
-      "description": "[TBD] Successfully retrieved workload tenants list"
+      "description": "[TBD] Successfully retrieved retail stores list"
     }
   }
 }
@@ -66,25 +56,25 @@ This applies to:
 ```json
 {
   "paths": {
-    "/api/v1/workload-tenants": {
+    "/api/v1/retail-stores": {
       "post": {
-        "tags": ["Tenants"],
-        "summary": "[TBD] Creates a new workload tenant",
-        "description": "[TBD] Initiates asynchronous provisioning of a new workload tenant. Returns a session ID to track operation progress.",
-        "operationId": "CreateTenant",
+        "tags": ["Stores"],
+        "summary": "[TBD] Creates a new retail store",
+        "description": "[TBD] Initiates asynchronous onboarding of a new retail store. Returns a session ID to track operation progress.",
+        "operationId": "CreateStore",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTenantRequest"
+                "$ref": "#/components/schemas/CreateStoreRequest"
               }
             }
           }
         },
         "responses": {
           "202": {
-            "description": "[TBD] Provisioning started, session created",
+            "description": "[TBD] Onboarding started, session created",
             "content": {
               "application/json": {
                 "schema": {
@@ -116,25 +106,25 @@ This applies to:
 {
   "components": {
     "schemas": {
-      "CreateTenantRequest": {
+      "CreateStoreRequest": {
         "type": "object",
-        "description": "[TBD] Request to create a new workload tenant",
-        "required": ["organizationId", "name", "regionId"],
+        "description": "[TBD] Request to create a new retail store",
+        "required": ["organizationId", "name", "warehouseId"],
         "properties": {
           "organizationId": {
             "type": "string",
             "format": "uuid",
-            "description": "[TBD] .NET backend organization ID that owns the tenant"
+            "description": "[TBD] Partner organization ID that owns the store"
           },
           "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "[TBD] Human-readable tenant name (1-100 characters)"
+            "description": "[TBD] Human-readable store name (1-100 characters)"
           },
-          "regionId": {
+          "warehouseId": {
             "type": "string",
-            "description": "[TBD] cloud region ID where tenant infrastructure will be deployed"
+            "description": "[TBD] ID of the warehouse that ships the orders of the store"
           }
         }
       }
@@ -149,9 +139,9 @@ This applies to:
 {
   "tags": [
     {
-      "name": "Tenants",
-      "x-displayName": "Workload Tenants",
-      "description": "[TBD] The `/workload-tenants` collection represents all deployed workload tenants and allows to configure or delete them."
+      "name": "Stores",
+      "x-displayName": "Retail Stores",
+      "description": "[TBD] The `/retail-stores` collection represents all retail stores and allows to configure or delete them."
     }
   ]
 }
@@ -161,7 +151,7 @@ This applies to:
 
 ### How Auto-Generation Works
 
-This project uses **MSBuild-integrated NSwag generation** — code is auto-generated during the build. You must **NEVER** call `nswag`, `NSwagExe`, or any NSwag tool directly. The build handles everything.
+This project uses **MSBuild-integrated NSwag generation**: the build auto-generates the code. You must **NEVER** call `nswag`, `NSwagExe`, or any NSwag tool directly. The build handles everything.
 
 #### Discovering NSwag Configuration
 
@@ -186,14 +176,14 @@ This tells you:
 
 #### What Gets Generated
 
-- Controller interfaces (e.g., `ITenantsController`)
+- Controller interfaces (for example, `IStoresController`)
 - Request/response DTOs
 - Enums
 - All output goes to the directory specified in `<GeneratedDir>`
 
 ### When Regeneration Happens
 
-Auto-generation triggers automatically during the build. After modifying `swagger.json`, simply build the project:
+The build runs the generation. After you change `swagger.json`, build the project:
 
 ```bash
 dotnet build
@@ -203,9 +193,9 @@ dotnet build
 
 **CRITICAL**: If you build the project and the auto-generated files are not updated:
 
-1. **STOP** — Do NOT attempt to run NSwag manually
-2. **STOP** — Do NOT call `nswag run`, `$(NSwagExe_Net80)`, or any NSwag command
-3. **ASK the user** to perform the regeneration manually (e.g., via Visual Studio Rebuild or other tooling)
+1. **STOP**. Do NOT attempt to run NSwag manually.
+2. **STOP**. Do NOT call `nswag run`, `$(NSwagExe_Net80)`, or any NSwag command.
+3. **ASK the user** to perform the regeneration manually (for example, with Visual Studio Rebuild or other tooling).
 
 ## Step-by-Step Workflow
 
@@ -216,21 +206,21 @@ Edit `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`:
 ```json
 {
   "paths": {
-    "/api/v1/workload-tenants/{tenantId}/configurations": {
+    "/api/v1/retail-stores/{storeId}/configurations": {
       "get": {
-        "tags": ["Tenants"],
-        "summary": "[TBD] Retrieves tenant configuration",
-        "operationId": "GetTenantConfiguration",
+        "tags": ["Stores"],
+        "summary": "[TBD] Retrieves store configuration",
+        "operationId": "GetStoreConfiguration",
         "parameters": [
           {
-            "name": "tenantId",
+            "name": "storeId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
             },
-            "description": "[TBD] Unique identifier of the workload tenant"
+            "description": "[TBD] Unique identifier of the retail store"
           }
         ],
         "responses": {
@@ -239,13 +229,13 @@ Edit `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`:
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TenantConfiguration"
+                  "$ref": "#/components/schemas/StoreConfiguration"
                 }
               }
             }
           },
           "404": {
-            "description": "[TBD] Workload tenant not found"
+            "description": "[TBD] Retail store not found"
           }
         }
       }
@@ -260,18 +250,18 @@ Edit `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`:
 {
   "components": {
     "schemas": {
-      "TenantConfiguration": {
+      "StoreConfiguration": {
         "type": "object",
-        "description": "[TBD] Configuration settings for a workload tenant",
+        "description": "[TBD] Configuration settings for a retail store",
         "properties": {
-          "backupRetentionDays": {
+          "returnWindowDays": {
             "type": "integer",
             "format": "int32",
-            "description": "[TBD] Number of days to retain backups"
+            "description": "[TBD] Number of days in which customers can return items"
           },
-          "encryptionEnabled": {
+          "giftWrappingEnabled": {
             "type": "boolean",
-            "description": "[TBD] Whether encryption is enabled for backups"
+            "description": "[TBD] Whether gift wrapping is enabled for orders"
           }
         }
       }
@@ -294,7 +284,7 @@ dotnet build
 
 **IMPORTANT**: Controllers implement auto-generated interfaces.
 
-Create controller in `src/{ProjectName}.WebApi/Controllers/`:
+Create controller in `src/{ProjectName}.WebApi/Controllers/`. The sketch below shows only the link to the generated interface. Write the class itself with [create-controller](../create-controller/SKILL.md). That skill gives the class name, the access modifier, the base class, the `Rest` alias, and the try-catch rule:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -302,17 +292,17 @@ Create controller in `src/{ProjectName}.WebApi/Controllers/`:
 using Microsoft.AspNetCore.Mvc;
 using {ProjectNamespace}.WebApi.AutoGenerated;
 
-namespace {ProjectNamespace}.WebApi.Controllers.Workload.Tenants;
+namespace {ProjectNamespace}.WebApi.Controllers.Retail.Stores;
 
 /// <summary>
-/// Controller for workload tenant configuration operations.
+/// Controller for retail store configuration operations.
 /// </summary>
 [ApiController]
-public sealed class TenantConfigurationController : ControllerBase, ITenantsController
+public sealed class StoreConfigurationController : ControllerBase, IStoresController
 {
     /// <inheritdoc />
-    public async Task<IActionResult> GetTenantConfigurationAsync(
-        Guid tenantId,
+    public async Task<IActionResult> GetStoreConfigurationAsync(
+        Guid storeId,
         CancellationToken cancellationToken)
     {
         // Implementation
@@ -325,14 +315,14 @@ public sealed class TenantConfigurationController : ControllerBase, ITenantsCont
 
 ### 5. Verify Generated Code
 
-Check auto-generated files:
+Read the auto-generated files:
 
 - `src/{ProjectName}.WebApi/AutoGenerated/ControllersAndModels.Generated.cs`
 - `tests/{ProjectName}.WebApi.Tests/AutoGenerated/ClientAndModels.Generated.cs`
 
 Look for:
 
-- New controller interface (e.g., `ITenantsController` with new method)
+- New controller interface (for example, `IStoresController` with the new method)
 - New request/response DTOs
 - Correct parameter types and nullability
 
@@ -342,17 +332,17 @@ Use generated client in integration tests:
 
 ```csharp
 [Test]
-public async Task GetTenantConfiguration_ShouldReturnConfiguration()
+public async Task GetStoreConfiguration_ShouldReturnConfiguration()
 {
     // Arrange.
-    var tenantId = Guid.NewGuid();
+    var storeId = Guid.NewGuid();
     
     // Act.
-    var response = await Client.GetTenantConfigurationAsync(tenantId);
+    var response = await Client.GetStoreConfigurationAsync(storeId);
     
     // Assert.
     response.Should().NotBeNull();
-    response.BackupRetentionDays.Should().BeGreaterThan(0);
+    response.ReturnWindowDays.Should().BeGreaterThan(0);
 }
 ```
 
@@ -367,10 +357,10 @@ For long-running operations, return `202 Accepted` with session reference:
 ```json
 {
   "post": {
-    "summary": "[TBD] Initiates workload tenant provisioning",
+    "summary": "[TBD] Initiates retail store onboarding",
     "responses": {
       "202": {
-        "description": "[TBD] Provisioning started successfully",
+        "description": "[TBD] Onboarding started successfully",
         "content": {
           "application/json": {
             "schema": {
@@ -389,7 +379,7 @@ For long-running operations, return `202 Accepted` with session reference:
 ```json
 {
   "get": {
-    "summary": "[TBD] Retrieves workload tenants with optional filtering",
+    "summary": "[TBD] Retrieves retail stores with optional filtering",
     "parameters": [
       {
         "name": "organizationId",
@@ -399,16 +389,16 @@ For long-running operations, return `202 Accepted` with session reference:
           "type": "string",
           "format": "uuid"
         },
-        "description": "[TBD] Filter by .NET backend organization ID"
+        "description": "[TBD] Filter by partner organization ID"
       },
       {
         "name": "status",
         "in": "query",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/TenantStatus"
+          "$ref": "#/components/schemas/StoreStatus"
         },
-        "description": "[TBD] Filter by tenant status"
+        "description": "[TBD] Filter by store status"
       }
     ]
   }
@@ -421,15 +411,15 @@ For long-running operations, return `202 Accepted` with session reference:
 {
   "components": {
     "schemas": {
-      "TenantStatus": {
+      "StoreStatus": {
         "type": "string",
-        "description": "[TBD] Current status of a workload tenant",
+        "description": "[TBD] Current status of a retail store",
         "enum": [
-          "Provisioning",
+          "Onboarding",
           "Active",
           "Updating",
-          "Terminating",
-          "Terminated",
+          "Closing",
+          "Closed",
           "Failed"
         ]
       }
@@ -477,11 +467,11 @@ info:
   title: MyService Customer Portal OpenAPI
   version: v1
 paths:
-  /api/customer-portal/workload-tenants/getUsage/{orgId}:
+  /api/customer-portal/retail-stores/getUsage/{orgId}:
     get:
       tags:
-        - Tenants
-      summary: Retrieves storage usage for an organization
+        - Stores
+      summary: Retrieves subscription usage for an organization
       parameters:
         - name: orgId
           in: path
@@ -503,19 +493,19 @@ paths:
 ### Generated Code Not Updated
 
 1. Build the project: `dotnet build`
-2. Check MSBuild output for NSwag errors
-3. Read the `.csproj` and verify the `NSwagGeneration` item group exists and paths are correct
-4. If the build does not regenerate — **STOP and ask the user** to regenerate manually
+2. Read the MSBuild output for NSwag errors
+3. Read the `.csproj`. Find out whether the `NSwagGeneration` item group exists and whether its paths are correct.
+4. If the build does not regenerate the files, **STOP and ask the user** to regenerate them manually
 
 **CRITICAL**: Do NOT run NSwag commands directly. Do NOT attempt `nswag run`, `$(NSwagExe_Net80)`, or any manual NSwag invocation.
 
 ### Controller Interface Signature Mismatch
 
-If controller implementation doesn't match generated interface:
+If the controller implementation does not match the generated interface:
 
 1. Build project to regenerate
-2. Check swagger.json parameter names/types match C# conventions
-3. Verify operationId uniqueness
+2. Find out whether the parameter names and types in swagger.json match C# conventions
+3. Find out whether each operationId is unique
 
 ## Checklist
 
@@ -524,16 +514,16 @@ If controller implementation doesn't match generated interface:
 - [ ] Defined schema models in `components/schemas`
 - [ ] Added standard error responses (400, 404, 500)
 - [ ] Rebuilt solution to trigger NSwag auto-generation
-- [ ] Verified generated code in `AutoGenerated/ControllersAndModels.Generated.cs`
-- [ ] Verified test client code in `AutoGenerated/ClientAndModels.Generated.cs`
+- [ ] Generated code in `AutoGenerated/ControllersAndModels.Generated.cs` reviewed
+- [ ] Test client code in `AutoGenerated/ClientAndModels.Generated.cs` reviewed
 - [ ] Implemented controller interface (see create-controller skill)
 - [ ] Created integration tests using generated client
-- [ ] Documented async operations with session-based pattern if needed
+- [ ] Each long-running operation documented with the session-based pattern
 
 ## Related Skills
 
-- [create-controller](../create-controller/SKILL.md) - Implement controllers using generated interfaces
-- [create-tests](../create-tests/SKILL.md) - Test API endpoints using generated client
-- [create-string-resource](../create-string-resource/SKILL.md) - Similar [TBD] prefix pattern for user-facing strings
-- [model-mapping](../model-mapping/SKILL.md) - Convert REST models to Domain models
-- `dev-essentials:create-documentation` - Documenting REST APIs in Docs/REST API/
+- [create-controller](../create-controller/SKILL.md): Implement controllers using generated interfaces
+- [create-tests](../create-tests/SKILL.md): Test API endpoints using generated client
+- [create-string-resource](../create-string-resource/SKILL.md): Similar [TBD] prefix pattern for user-facing strings
+- [model-mapping](../model-mapping/SKILL.md): Convert REST models to Domain models
+- `dev-essentials:create-documentation`: Documenting REST APIs in Docs/REST API/

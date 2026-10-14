@@ -1,8 +1,6 @@
 # Example — Spec / Design Document Review
 
-Worked example: reviewing an OpenSpec change document (`target=spec`). Illustrates divergence
-from a code review: no build step, fixes are spec edits, validation runs the repo's OpenSpec
-validator instead of a compiler.
+A worked example of the review of an OpenSpec change document (`target=spec`). It shows how this differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the OpenSpec validator of the repository instead of a compiler.
 
 ---
 
@@ -12,15 +10,13 @@ validator instead of a compiler.
 /review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --interactive
 ```
 
-Parameters resolved: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`,
-`--fixer=general-purpose` (default), `--skip=medium,low,nit` (explicit — the default is `none`),
-`--interactive` (set, so that this example shows the triage stop).
+Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`, `--fixer=general-purpose` (the default), and `--skip=medium,low,nit` (explicit, because the default is `none`). `--interactive` is set, so that this example shows the stop at the triage.
 
 ---
 
 ## Phase 1 — Resolve target
 
-`target=spec` → read the file in full; brief the reviewer for spec-style review.
+`target=spec`: read the file in full, and brief the reviewer for a spec review.
 
 ```
 Resolved: openspec/changes/2026-05-08-add-tenant-quotas/proposal.md (spec target)
@@ -31,40 +27,31 @@ Reading full file... 412 lines loaded.
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer audit-team` → target is `spec <path>`, a documentation path, so the adapter is
-eligible (no fallback). Argument mapping: `<path>` = the resolved `proposal.md` path;
-`--audit-team-args` is unset, so `[agent-count]` fills with `/audit-team`'s own default (`5`);
-`--reviewer-model` is `opus` (this skill's own default for the flag), so it is forwarded as
-`/audit-team`'s `[model]` positional — the dispatch is `/audit-team proposal.md 5 opus`. `--fixer
-general-purpose` (default) → resolves without fallback.
+`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
 
 ---
 
 ## Phase 3 — Round 1 review
 
-Reviewer brief (from `references/reviewer-briefs.md` §`spec <path>`, paraphrased for this example):
+The reviewer brief (from the section `spec <path>` of `references/reviewer-briefs.md`, in short form for this example):
 
-> You are reviewing a **specification or design document**, not code. Read it as a skeptical
-> implementer who must build exactly what is written — nothing more, nothing less. Your job is to
-> find gaps, ambiguities, and contradictions before any implementation is written.
+> You are reviewing a **specification or design document**, not code. Read it as a skeptical implementer who must build exactly what it says, nothing more and nothing less. Your job is to find gaps, ambiguities, and contradictions before anyone writes an implementation.
 >
-> **Focus areas (priority order):** Ambiguity → Undefined behavior → Missing error paths →
-> Contradictions → Coverage gaps → Deferred decisions → Docs quality.
+> **Focus areas (in priority order):** Ambiguity, Undefined behavior, Missing error paths, Contradictions, Coverage gaps, Deferred decisions, Docs quality.
 >
-> **Not in scope:** code quality; checking whether an implementation matches this spec.
+> **Not in scope:** code quality, and whether an implementation matches this spec.
 
-`audit-team` returns four findings (mapped from its Blockers/Warnings/Suggestions buckets per
-Phase 2's adapter — items 1–2 were `Blockers`, with item 2 re-graded down to Critical because the
-underlying contradiction is a logic defect rather than an implementation-blocking gap, items 3–4
-`Warnings`, with item 4 re-graded down to Medium because it flags a non-normative "should" rather
-than a defect):
+`audit-team` returns four findings. The adapter of Phase 2 maps them from the buckets Blockers, Warnings, and Suggestions:
+
+- Items 1 and 2 were `Blockers`. Item 2 is graded down to Critical, because the contradiction behind it is a logic defect, not a gap that blocks the implementation.
+- Items 3 and 4 were `Warnings`. Item 4 is graded down to Medium, because it flags a `should` that is not normative, not a defect.
 
 | # | Severity | Type | Location | What's wrong |
 |---|---|---|---|---|
-| 1 | Blocker | Spec | §4 "Rate-Limiting Algorithm" | Window size, reset semantics, and boundary behavior undefined — correct implementation impossible |
-| 2 | Critical | Spec | §3 vs §7 | §3: quota checked before dispatch; §7: counter decremented after success only — failed requests bypass quota, breaking enforcement under high error rates |
-| 3 | High | Spec | §5 "Error Handling" | No HTTP status, body schema, log line, or event defined for quota-exceeded |
-| 4 | Medium | Spec | §2 "Overview" | "should typically be enforced at the gateway layer" — non-normative; enforcement layer unspecified |
+| 1 | Blocker | Spec | §4 "Rate-Limiting Algorithm" | The window size, the reset semantics, and the boundary behavior are undefined. A correct implementation is impossible. |
+| 2 | Critical | Spec | §3 vs §7 | §3 tests the quota before dispatch. §7 decrements the counter only after a success. So failed requests bypass the quota, and enforcement breaks under high error rates. |
+| 3 | High | Spec | §5 "Error Handling" | No HTTP status, body schema, log line, or event for a quota-exceeded case |
+| 4 | Medium | Spec | §2 "Overview" | The text `should typically be enforced at the gateway layer` is not normative, so the enforcement layer is not specified. |
 
 Review made by `claude-opus-4-7`
 
@@ -84,39 +71,31 @@ Round 1 findings:
 Proceeding to verify+fix 3 issues. Deferring 1.
 ```
 
-Findings #1–#3 are the Blocker/Critical/High set — each `blocking: true` by default. #4 (Medium,
-deferred via the explicit `--skip medium`) is `blocking: false`; nothing about its text elevates it.
+Findings #1 to #3 are the Blocker, the Critical, and the High. Each one is `blocking: true` by default. #4 (Medium) is `blocking: false`, because the explicit `--skip medium` defers it, and nothing in its text raises it.
 
-Waiting for user acknowledgment... user replies "proceed".
+The skill waits for the acknowledgment. The user replies "proceed".
 
 ---
 
 ## Phase 5 — Verify-then-fix
 
-Target file: `openspec/changes/2026-05-08-add-tenant-quotas/proposal.md`.
-For a spec review, "fix" means editing the spec — not touching any code.
+Target file: `openspec/changes/2026-05-08-add-tenant-quotas/proposal.md`. In a spec review, a fix is an edit of the spec, not a change of code.
 
-**#1 — APPLY.** Verification source: `openspec/changes/2025-11-01-resource-limits/proposal.md`
-uses fixed 60-second windows. Rewrote §4 to specify window size (60 s, wall-clock aligned), reset
-trigger (boundary crossing), and boundary-arrival rule (counted against the window it arrives in).
+**Step 5a**. `/audit-team` returns no fix plan. So a new Opus dispatch (`--reviewer-model`) plans the fix of #1 to #3, as the adapter says. The fixer works from that plan.
+
+**#1: APPLY**. Verification source: `openspec/changes/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
 
 ```
 Edit: proposal.md §4 — 3 paragraphs rewritten with explicit window definition.
 ```
 
-**#2 — APPLY.** Verification source: contradiction is self-evident from §3 and §7; correct
-semantics (consume at admission, failures count) matches existing `resource-limits`
-spec ("admit-then-count, no reclaim on failure"). Deleted §7 decrement sentence; added
-clarifying sentence anchoring decrement to §3 admission, noting that failed requests do
-consume quota and are not refunded.
+**#2: APPLY**. Verification source: the contradiction is plain from §3 and §7. The correct semantics (consume at admission, and failures count) match the existing `resource-limits` spec ("admit-then-count, no reclaim on failure"). The fixer deleted the decrement sentence of §7. It added a sentence that ties the decrement to the admission of §3. The sentence says that failed requests consume quota and get no refund.
 
 ```
 Edit: proposal.md §7 — deleted conflicting sentence; added clarification.
 ```
 
-**#3 — APPLY.** Verification source: `CLAUDE.md` §"HTTP Error Path Convention" — every error path
-must specify status, body, log level, and event emission. Added "Quota exceeded" subsection to §5:
-HTTP 429, `{ "error": "quota_exceeded", "retryAfterSeconds": <N> }`, WARN log, no event.
+**#3: APPLY**. Verification source: `CLAUDE.md` §"HTTP Error Path Convention". Every error path must give the status, the body, the log level, and the event. The fixer added the subsection "Quota exceeded" to §5: HTTP 429, `{ "error": "quota_exceeded", "retryAfterSeconds": <N> }`, a WARN log, and no event.
 
 ```
 Edit: proposal.md §5 — added "Quota exceeded" subsection.
@@ -126,13 +105,13 @@ Edit: proposal.md §5 — added "Quota exceeded" subsection.
 
 ## Phase 6 — Build / test verify
 
-`target=spec` → non-code artifact. No `*.sln` or other build manifest applies.
+`target=spec`: the target is not code. No `*.sln` or other build manifest applies.
 
 ```
 Spec target detected — build/test step skipped (non-code artifact).
 ```
 
-Spec-level validation still applies. `CLAUDE.md` documents `openspec validate <change-name>`:
+The spec validation still applies, because `CLAUDE.md` documents `openspec validate <change-name>`:
 
 ```
 openspec validate 2026-05-08-add-tenant-quotas
@@ -141,7 +120,7 @@ openspec validate 2026-05-08-add-tenant-quotas
 ✓ No broken internal references
 ```
 
-Validation passed.
+The validation passed.
 
 ---
 
@@ -156,12 +135,9 @@ git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, 
 
 ## Phase 8 — Stop
 
-`--rounds=1` → rounds used (1) equals max (1). Stop verdict: **stop-max-rounds**.
+`--rounds=1`: the rounds used (1) equal the maximum (1). Stop verdict: **stop-max-rounds**.
 
-> Note: `stop-max-rounds` is correct here even though all Blocker/Critical/High findings were
-> addressed. `stop-clean` requires the re-review pass to have confirmed no issues remain in the
-> fix diff (Phase 8 rule). With a single round there is no re-review, so the loop cannot confirm
-> clean — `stop-max-rounds` is the accurate verdict.
+> Note: `stop-max-rounds` is correct here, although the fixer handled all Blocker, Critical, and High findings. `stop-clean` needs a re-review pass that found no issues left in the fix diff (the rule of Phase 8). With a single round, no re-review runs, so the loop cannot prove a clean state. `stop-max-rounds` is the accurate verdict.
 
 ---
 
@@ -193,69 +169,56 @@ Stop verdict: stop-max-rounds
 
 ## Description
 
-OpenSpec change proposal adding per-tenant quota enforcement via a sliding-window rate limiter.
-412 lines; covers algorithm, error handling, and API contract. Three spec-correctness issues fixed.
+An OpenSpec change proposal that adds a quota for each tenant, enforced by a sliding-window rate limiter. 412 lines. It covers the algorithm, the error handling, and the API contract. This cycle fixed three spec-correctness issues.
 
 ## Summary table
 
 | # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |
 |---|---|---|---|---|---|
-| 1 | Blocker | Spec | proposal.md:§4 | Window size, reset semantics, boundary behavior all undefined | Define window size, reset trigger, and boundary rule explicitly |
-| 2 | Critical | Spec | proposal.md:§3 + §7 | Pre-dispatch check (§3) contradicts post-success decrement (§7) | Delete §7 sentence; anchor decrement to §3 admission (failures count, no refund) |
-| 3 | High | Spec | proposal.md:§5 | No observable response defined for quota-exceeded | Add HTTP 429, body schema, log level, event rule |
-| 4 | Medium | Spec | proposal.md:§2 | "should typically" makes enforcement layer non-normative | Replace with MUST statement naming the mandatory layer |
+| 1 | Blocker | Spec | proposal.md:§4 | The window size, the reset semantics, and the boundary behavior are all undefined | Define the window size, the reset trigger, and the boundary rule explicitly |
+| 2 | Critical | Spec | proposal.md:§3 + §7 | The test before dispatch (§3) contradicts the decrement after success (§7) | Delete the §7 sentence. Tie the decrement to the admission of §3 (failures count, no refund). |
+| 3 | High | Spec | proposal.md:§5 | No observable response for a quota-exceeded case | Add HTTP 429, a body schema, a log level, and an event rule |
+| 4 | Medium | Spec | proposal.md:§2 | `should typically` makes the enforcement layer not normative | Replace it with a MUST statement that names the required layer |
 
 ## Details per item
 
 ### 1 Undefined rate-limiting algorithm (§4)
 
-- **Problem:** §4 says "within a sliding window" but gives no window size, reset semantics, or
-  boundary-arrival rule. Three implementers would produce three incompatible counters.
-- **Impact:** Correct implementation is impossible without guessing at window semantics.
-- **Recommendation:** Specify window size (60 s, fixed), reset trigger (window boundary), and
-  boundary rule (request counted against the window it arrives in).
-- **Verification source:** `openspec/changes/2025-11-01-resource-limits/proposal.md` —
-  existing quota design uses fixed 60-second windows; align with that precedent.
+- **Problem**: §4 says "within a sliding window", but gives no window size, reset semantics, or rule for an arrival at a boundary. Three implementers can build three incompatible counters.
+- **Impact**: a correct implementation is impossible without a guess about the window semantics.
+- **Recommendation**: give the window size (60 s, fixed) and the reset trigger (the window boundary). Also give the boundary rule: a request counts against the window that it arrives in.
+- **Verification source**: `openspec/changes/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
 
 ### 2 §3 vs §7 contradiction on decrement timing
 
-- **Problem:** §3 checks quota before dispatch; §7 decrements ONLY after a successful response —
-  so a failed request costs nothing and does not drain the quota counter. Under sustained failure
-  rates, actual throughput can far exceed the intended limit.
-- **Impact:** High-failure workloads bypass quota enforcement; rate limiting is ineffective when
-  error rates are elevated.
-- **Recommendation:** Delete §7 decrement sentence; add note that decrement occurs at §3 admission
-  and failed requests consume quota and are not refunded (admit-then-count, no reclaim on failure).
-- **Verification source:** `resource-limits` spec — same admit-then-count, no reclaim on
-  failure.
+- **Problem**: §3 tests the quota before dispatch. §7 decrements ONLY after a successful response. So a failed request costs nothing and does not drain the quota counter. Under a lasting failure rate, the real throughput can be far above the intended limit.
+- **Impact**: workloads with many failures bypass the quota. Rate limiting does not work while error rates are high.
+- **Recommendation**: delete the decrement sentence of §7. Add a note that the decrement happens at the admission of §3. The note also says that failed requests consume quota with no refund (admit-then-count, no reclaim on failure).
+- **Verification source**: the `resource-limits` spec, with the same admit-then-count and no reclaim on failure.
 
 ### 3 Missing quota-exceeded error path (§5)
 
-- **Problem:** §5 lists timeouts and auth failures but is silent on quota-exceeded: no HTTP
-  status, no response body, no log entry, no event emission.
-- **Impact:** Implementations diverge; client libraries and dashboards have nothing to pattern-match.
-- **Recommendation:** Add "Quota exceeded" subsection: HTTP 429, `{ "error": "quota_exceeded",
-  "retryAfterSeconds": N }`, WARN log with entity ID and limit, no event emitted.
-- **Verification source:** `CLAUDE.md` §"HTTP Error Path Convention."
+- **Problem**: §5 lists timeouts and auth failures, but says nothing about a quota-exceeded case: no HTTP status, no response body, no log entry, and no event.
+- **Impact**: implementations differ, and client libraries and dashboards have nothing to match against.
+- **Recommendation**: add a subsection "Quota exceeded": HTTP 429, `{ "error": "quota_exceeded", "retryAfterSeconds": N }`, a WARN log with the entity ID and the limit, and no event.
+- **Verification source**: `CLAUDE.md` §"HTTP Error Path Convention."
 
 ### 4 Non-normative enforcement-layer statement (§2)
 
-- **Problem:** "should typically be enforced at the gateway layer" — "should typically" is not
-  normative; service-layer enforcement is compliant under this wording.
-- **Impact:** Architectural divergence between services implementing this spec.
-- **Recommendation:** Replace with "MUST be implemented at the gateway layer." If service-layer
-  is also acceptable, say so explicitly.
-- **Verification source:** unverified — design preference; flag for author to confirm intent.
+- **Problem**: the text `should typically be enforced at the gateway layer` is not normative. Under this wording, enforcement in the service layer also complies.
+- **Impact**: the services that implement this spec can use different architectures.
+- **Recommendation**: replace it with `MUST be implemented at the gateway layer`. If the service layer is also acceptable, say so explicitly.
+- **Verification source**: no proof. This is a design preference. Flag it for the author to make the intent clear.
 
 ## Conclusion
 
-- **Must fix before merge** — #1, #2, #3
-- **Acceptable risks** — none
-- **Needs discussion** — #4 (author to confirm enforcement-layer normative intent)
+- **Must fix before merge**: #1, #2, #3
+- **Acceptable risks**: none
+- **Needs discussion**: #4 (the author makes the normative intent for the enforcement layer clear)
 
 ## Final verdict
 
-✅➕ **Approve with suggestions** — Blocker, Critical, and High resolved; one Medium (#4) deferred.
+✅➕ **Approve with suggestions**. The Blocker, the Critical, and the High are resolved. One Medium (#4) is deferred.
 
 ## Reviewer model
 

@@ -1,61 +1,49 @@
 ---
 name: review-loop
-description: "Iterative multi-agent review loop for anything reviewable — branch diffs, PR diffs, spec files, individual classes or methods, or arbitrary file targets. Each cycle dispatches a reviewer (or parallel reviewer pair), triages findings on their merits rather than on severity labels alone, runs a verify-then-fix subagent that classifies every finding as APPLY/PARTIAL/REJECT before touching code, then re-reviews only the fix diff until clean or max rounds reached. Ships its own default configuration — 2 cycles, one Opus reviewer, one Sonnet fixer with Opus planning each fix, a commit per cycle, and nothing auto-deferred by severity label — so callers get the intended loop without overriding anything from a global or per-repo CLAUDE.md. Triggers on requests like 'run a review loop', 'review the PR', 'review this branch', 'review these changes', 'do a code review', '/review-loop', '/review-pr', 'review this file', 'review the spec', 'full review pass', 'iterative review', 'multi-agent review'."
+description: "Iterative multi-agent review loop for anything reviewable: branch diffs, PR diffs, spec files, single classes or methods, or any file. Each cycle dispatches a reviewer (or reviewers in parallel) and triages the findings on their merits, not on severity labels alone. A fixer subagent then classifies every finding as APPLY, PARTIAL, or REJECT before it edits code. The next cycle re-reviews only the fix diff, until the diff is clean or the round limit is reached. The skill ships its own default configuration, so callers do not need a CLAUDE.md for it: 2 cycles, one Opus reviewer, one Sonnet fixer with Opus planning each fix, a commit per cycle, and nothing auto-deferred by severity label. Triggers on requests like 'run a review loop', 'review the PR', 'review this branch', 'review these changes', 'do a code review', '/review-loop', or '/review-pr'. Also triggers on 'review this file', 'review the spec', 'full review pass', 'iterative review', and 'multi-agent review'."
 ---
 
 # Review Loop
 
-A single reviewer misses things. Different perspectives — architecture, security, testing, domain logic — catch different classes of bugs. Running multiple review passes catches issues introduced by fixes themselves. This skill automates that cycle: each round dispatches one or more reviewers in parallel, triages findings, runs a dedicated verify-then-fix agent that rejects unverified theories, and re-reviews only the fix diff. The result is a review record with explicit APPLY/PARTIAL/REJECT verdicts rather than a pile of speculative suggestions.
-
-## When to use
-
-- Reviewing a feature branch before merge (`target=branch`, the default).
-- Reviewing a full PR diff by ID (`target=pr <id>`).
-- Reviewing only the last N commits (`target=commits <N>`).
-- Reviewing a spec, OpenSpec change, or design doc (`target=spec <path>`).
-- Reviewing any file not in a diff (`target=file <path>`).
-- Reviewing a specific C# class or method (`target=class <FQN>` / `target=method <FQN>`).
-- Legacy phrases: `/review-loop`, `/review-pr`, "run a review loop", "review the PR".
+This skill runs review cycles. In each cycle, one or more reviewer subagents review the target, and the orchestrator triages their findings. Then a fixer subagent tests each finding against a primary source and fixes only what it can prove. The next cycle re-reviews only the fix diff. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer.
 
 ## When NOT to use
 
-- Acting on pull-request review comments posted by human reviewers — use `dev-essentials:process-pr-comments`.
-- Composing or updating a PR description — use the PR Composer agent.
-- A single one-off review with no iterative loop (just invoke `dev-essentials:process-pr-comments` or ask Claude to review the diff inline).
+- To act on pull-request review comments from human reviewers, use `dev-essentials:process-pr-comments`.
+- To write or update a PR description, use the `dev-essentials:pr-composer` agent.
+- For one review pass with no fixes and no loop, use `dev-essentials:help-review-pr` for a pull request, or ask Claude to review the diff inline.
 
 ## Parameters
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `target=` | `branch` | What to review. Values: `branch`, `pr <id>`, `commits <N>`, `diff <range>`, `file <path>`, `class <FQN>`, `method <FQN>`, `spec <path>`. |
-| `--base <branch>` | auto-detect from git | Base branch for `branch` / `pr` targets. |
-| `--rounds <N>` | `2` | Maximum review-fix-re-review cycles: one review-and-fix pass plus one re-review of the fix diff. |
-| `--skip <severities>` | `none` | Comma-separated severity tokens to defer **by label, unread**, rather than triage. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`, and `none`. Each token is independent — `--skip medium,low` defers Medium and Low but NOT Nit. The default `none` defers nothing by label; every finding reaches Phase 4's merit-based triage instead (see "Default configuration" and Phase 4). Pass an explicit set (e.g. `--skip medium,low,nit`) only when label-based auto-deferral is genuinely what is wanted. |
-| `--reviewer <id>` | `general-purpose` | Reviewer subagent(s) — one by default. Values: `general-purpose`, `audit-team`, `dual`, `feature-dev:code-reviewer`, `pair <a>+<b>`, `quad <a>,<b>,<c>,<d>`, or any `<plugin>:<agent>`. The multi-perspective values stay first-class opt-ins for targets that genuinely warrant several angles. **`audit-team` is not an agent ID** — it is a slash command that takes a documentation `<path>`, so it is valid only for `target=spec <path>` and for `target=file <path>` whose extension is `.md`. On any other target it warns and falls back to `general-purpose` (Phase 2 has the full adapter). |
-| `--reviewer-model <model>` | `opus` | Model tier for the reviewer subagent, passed via the `model:` field of each reviewer Agent dispatch. Opus by default because reviewing is judgment work, and because the reviewer's tier also plans each fix (Phase 5, step 5a). Accepts any model name the `Agent` tool's `model` parameter takes, or `inherit` to keep the session's own model. |
-| `--reviewer-focus <tokens>` | (brief default) | Comma-separated focus-area tokens that override the default focus list in the reviewer brief (e.g. `security,performance,test-coverage`). Valid tokens are defined in `references/reviewer-briefs.md` (Phase 3 loads that file unconditionally; the canonical token list lives there). If every token is unrecognized, falls back to the brief's default list with a warning. If only some tokens are unrecognized, uses the recognized tokens and warns about the unrecognized ones. |
-| `--fixer <id>` | `general-purpose` | Verify+fix subagent. Same value space as `--reviewer`. |
-| `--fixer-model <model>` | `sonnet` | Model tier for the fixer subagent, passed via the `model:` field of the fixer Agent dispatch. Sonnet by default because the fixer implements an approach the reviewer's tier already planned (Phase 5, step 5a) rather than designing one. Accepts `inherit` to keep the session's own model. |
-| `--audit-team-args <...>` | none | Free-form pass-through to the `/audit-team` command when `--reviewer audit-team`, appended after the `<path>` positional Phase 2 supplies (Phase 2 also handles positional collisions — a user-supplied `[agent-count]` or `[model]` always wins over anything this skill would otherwise fill in). Ignored (with a warning) when `--reviewer` is not `audit-team`. |
-| `--no-verify-fix` | off | Skip Phase 5 fix edits. Phase 6 still runs against existing code as a sanity check. Phase 7 is skipped. Phase 9 still runs. |
-| `--dry-run` | off | Skip Phase 5 fix edits, skip Phase 6 (nothing changed, so no build/test to run), skip Phase 7. Phase 9 still runs. |
+| `target=` | `branch` | What to review: `branch`, `pr <id>`, `commits <N>`, `diff <range>`, `file <path>`, `class <FQN>`, `method <FQN>`, or `spec <path>`. Phase 1 resolves it. |
+| `--base <branch>` | detected from git | The base branch for the `branch` and `pr` targets. |
+| `--rounds <N>` | `2` | The maximum number of review-fix-re-review cycles. The default gives one review-and-fix pass and one re-review of the fix diff. |
+| `--skip <severities>` | `none` | Comma-separated severity tokens to defer **by label, unread**, without triage. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`, and `none`. Each token is independent: `--skip medium,low` defers Medium and Low, but NOT Nit. The default `none` defers nothing by label. Every finding then goes to the merit-based triage of Phase 4 (see "Default configuration" and Phase 4). Do not pass an explicit set, for example `--skip medium,low,nit`, unless the user wants deferral by label. |
+| `--reviewer <id>` | `general-purpose` | The reviewer subagent or subagents. One reviewer by default. Values: `general-purpose`, `audit-team`, `dual`, `feature-dev:code-reviewer`, `pair <a>+<b>`, `quad <a>,<b>,<c>,<d>`, or any `<plugin>:<agent>`. The values with more than one reviewer are opt-in, for targets that need several points of view. **`audit-team` is not an agent ID**. It is a slash command that takes a documentation `<path>`. So it works only for `target=spec <path>` and for a `target=file <path>` with the extension `.md`. For any other target, Phase 2 warns and uses `general-purpose`. |
+| `--reviewer-model <model>` | `opus` | The model of each reviewer subagent, passed in the `model` field of each reviewer `Agent` call. The default is Opus, because a review needs judgment, and because this model also plans each fix (Phase 5, step 5a). It accepts any value of the `model` parameter of the `Agent` tool, or `inherit` for the model of the session. |
+| `--reviewer-focus <tokens>` | the default list of the brief | Comma-separated focus tokens, for example `security,performance,test-coverage`. They replace the default focus list of the reviewer brief. `references/reviewer-briefs.md` defines the valid tokens and the rule for unknown tokens. |
+| `--fixer <id>` | `general-purpose` | The subagent that tests and fixes the findings (the fixer). It takes the same values as `--reviewer`. |
+| `--fixer-model <model>` | `sonnet` | The model of the fixer, passed in the `model` field of the fixer `Agent` call. The default is Sonnet, because the fixer carries out an approach that the reviewer model already planned (Phase 5, step 5a). It accepts `inherit` for the model of the session. |
+| `--audit-team-args <...>` | none | Free text for the `/audit-team` command, added after the `<path>` argument that Phase 2 supplies. It works only with `--reviewer audit-team`. `references/audit-team-adapter.md` has the argument rules. A value of the user for `[agent-count]` or `[model]` always wins. |
+| `--no-verify-fix` | off | Skip the fix edits of Phase 5. Phase 6 still runs on the existing code as a sanity check. Phase 7 does not run. Phase 9 still runs. |
+| `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
 | `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
-| `--save-reports` | off | Force-save every full cycle report to `Notes/Reviews/` even on single-cycle runs. |
-| `--print-reports` | off | Force-print every full cycle report to chat even on multi-cycle runs. |
-| `--include-resolved` | off | Only meaningful when `target=pr <id>`. Active and pending threads are always fetched and always appear in the reviewer brief as an **"Open reviewer threads"** section (regardless of this flag). When `--include-resolved` is set: (1) the Phase 1 PR-thread fetch also includes resolved/closed threads; and (2) the Phase 3 reviewer brief gains an additional **"Previously addressed in this PR"** section listing each resolved/closed thread so the reviewer can avoid re-raising already-handled issues. Has no effect on non-PR targets. |
-
-Every flag and `target=` value has an explicit default above. No parameter is optional-but-undefined.
+| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`, also in a run with one cycle. |
+| `--print-reports` | off | Print every full cycle report in chat, also in a run with more than one cycle. |
+| `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also fetches the resolved and closed threads, and the reviewer brief gets the section "Previously addressed in this PR". The active and pending threads always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
 
 ## Default configuration
 
-The defaults in the table above are the configuration this loop is meant to run with, and they ship here rather than being assumed from a global or per-repo `CLAUDE.md` — so a caller never has to restate them to get the intended behavior. Out of the box: **2 cycles, one Opus reviewer, one Sonnet fixer, a commit per cycle, and nothing auto-deferred by severity label.** Anything else is a targeted override of the specific flag, not a boilerplate block every caller has to carry.
+The defaults in the table above are the configuration that this loop is meant to run with. They ship with this skill. A global or per-repo `CLAUDE.md` does not have to state them, and a caller does not have to repeat them. Out of the box: **2 cycles, one Opus reviewer, one Sonnet fixer, a commit per cycle, and nothing auto-deferred by severity label**. For any other behavior, override only the flag that needs it.
 
-- **The reviewer's tier plans each fix; the fixer only implements it.** See Phase 5, step 5a. The model that found the problem decides the approach — grounded in how the existing code already solves the equivalent case — before any file is edited.
-- **Every cycle's fix pass gets its own commit.** Phase 7 commits after the first fix pass and after each later one, so each cycle's changes land as a discrete, reviewable commit. A caller that wants a single commit squashes the round commits afterwards; it does not suppress Phase 7.
-- **Nothing is deferred by label.** Severity still orders the triage table and drives Phase 9's deferred list — it just does not silently decide what gets fixed. Phase 4 makes that call on each finding's merits.
-- **Fable is not a default reviewer, and never a silent one.** `--reviewer-model fable` is reserved for reviewing large, complex, or critical-path change sets, and used rarely. If Fable is the idea of the orchestrator and not the instruction of the user: with `--interactive`, ask the user first, every time, per the "Model selection" section of `dev-essentials:subagent-orchestration`. Without it, keep Opus (see "Autonomy").
-- **An explicit choice outranks these defaults.** When the user names a round count, a reviewer, a fixer, a model, or a `--skip` set for a run, use it. These defaults describe the baseline; they are not a policy to correct the user back toward.
+- **The reviewer model plans each fix, and the fixer only carries it out**. See Phase 5, step 5a. The model that found the problem chooses the approach before anyone edits a file. It bases the approach on how the existing code already solves the same case.
+- **The fix pass of every cycle gets its own commit**. Phase 7 commits after the first fix pass and after each later one. So the changes of each cycle land as a separate commit that a reader can review. If a caller wants a single commit, it squashes the round commits afterwards. It does not turn off Phase 7.
+- **Nothing is deferred by label**. Severity still orders the triage table and the deferred list of Phase 9. It does not decide on its own what gets fixed. Phase 4 decides that on the merits of each finding.
+- **Fable is not a default reviewer, and never a silent one**. Use `--reviewer-model fable` only rarely, for large, complex, or critical-path change sets. Sometimes Fable is the idea of the orchestrator and not the instruction of the user. Then, with `--interactive`, ask the user first, every time, as the "Model selection" section of `dev-essentials:subagent-orchestration` says. Without `--interactive`, keep Opus (see "Autonomy").
+- **An explicit choice of the user outranks these defaults**. If the user names a round count, a reviewer, a fixer, a model, or a `--skip` set for a run, use it. These defaults are the baseline, not a policy to push the user back to.
 
 ## Autonomy
 
@@ -72,7 +60,7 @@ These rules apply in all modes:
 - `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
 - A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
 - If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. Delete such a branch with `git branch -D` only if both checks pass. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -83,156 +71,121 @@ These rules apply in all modes:
 
 ## Flag interaction matrix
 
-The three control flags affect phases independently. Consult this matrix before executing each phase:
+These flags change which phases run. Read this matrix before each phase:
 
 | Flag | Phase 5 (fix edits) | Phase 6 (build/test) | Phase 7 (commit) | Phase 8 (loop) | Phase 9 (summary) |
 |---|---|---|---|---|---|
-| _(none)_ | runs | runs | commits | continues if eligible | runs |
+| _(none)_ | runs | runs | commits | continues (if eligible) | runs |
 | `--dry-run` | **skipped** | **skipped** (nothing changed) | **skipped** | **stops** (no edits to re-review) | runs |
 | `--no-verify-fix` | **skipped** | runs against existing code | **skipped** | **stops** (no edits to re-review) | runs |
 
 Rules:
-- `--dry-run` and `--no-verify-fix` are mutually exclusive: if both are set, **STOP and ask the user which behavior is intended** before proceeding.
-- `--interactive` and `--autonomous` are independent of both flags above.
+
+- `--dry-run` and `--no-verify-fix` exclude each other. If a run has both, **STOP and ask the user which behavior to use** before any phase.
+- `--interactive` and `--autonomous` do not depend on these two flags.
+
+## Guardrails
+
+These rules hold for the whole run.
+
+- **Never push by default**. Commits stay local, and the push is a decision of the user. Do not push unless the user explicitly allows it, for example "you can push after each fix commit".
+- **Never touch unrelated files**. Edit only the files that the triage names, plus a supporting file that the fix structurally needs (see section 6 of `references/verify-fix-discipline.md`). Do not start unrelated refactors.
+- **Fix only what a primary source proves**. Apply only the findings with the verdict APPLY or PARTIAL. REJECT means no edit. See `dev-essentials:engineering-discipline` Rule 5.
+- **Judge findings on their merits, not on their labels**. The default `--skip none` defers nothing unread. In return, Phase 4 records `blocking: true|false` on every finding. Without `--autonomous`, Phase 4 also asks the user about each fix that is not clearly safe or in scope, before the fixer touches it. Phase 8 reads the flag **in addition to** the severity, not instead of it. An unresolved `blocking: true` finding blocks `stop-clean` at any severity, and an unflagged Blocker, Critical, or High blocks it too.
+- **Be honest about uncertainty**. Mark an unclear finding as PARTIAL or REJECT, and give the reason. Do not skip it in silence, and do not apply it blindly.
+- **Do not over-fix**. Fix the findings of the triage only. This is not a refactoring session.
+- **Respect `--rounds`**. Do not loop past the maximum. Report the unresolved findings under "Deferred items" in the final summary.
+- **Build and test after every fix pass (Phase 6)**. No flag skips Phase 6 after a fix pass. This session owns every red signal after a fix round: investigate and fix it, or escalate to the user.
+- **Watch the finding density**. A healthy density is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings for each 1,000 lines. The lines are the lines of diff or of file content. A high count to look thorough does not help the user. If the Phase 4 count is far from this baseline, challenge the result of the reviewer. Ask for a stricter second review before the triage. An example is 15 or more Mediums for a target of about 1,000 lines. Do not accept an inflated count as it is.
+- **Fall back to `general-purpose` for an unknown or failed agent ID**. Phase 2 has the rules. They hold for `--reviewer` and `--fixer`. If `general-purpose` is also not available, **STOP and ask the user to install at least one reviewer plugin**.
+- **Take the round number from the cycle counter of this skill**. The counter starts at 1. Never take the round number from the conversation history.
 
 ## Report destination rules
 
-Single-cycle runs default to printing the full cycle report to chat. Multi-cycle runs default to writing each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md` to avoid replaying long reports in the chat context.
+A run with one cycle prints the full cycle report in chat. A run with more than one cycle writes each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md`, so that long reports do not fill the chat context.
 
-- `--save-reports`: forces write-to-file even for single-cycle runs.
-- `--print-reports`: forces print-to-chat even for multi-cycle runs.
-- Phase 9 (final summary) follows the same destination rule: write-to-file when multi-cycle or `--save-reports`; print-to-chat otherwise. File path: `Notes/Reviews/<target-slug>-summary.md`.
-- When the run format applies (see "Run format" below), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
+- `--save-reports` writes each report to a file, also in a run with one cycle.
+- `--print-reports` prints each report in chat, also in a run with more than one cycle.
+- The Phase 9 summary follows the same rule. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
+- If the run format applies (see "Run format"), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
 
 ## Run format
 
-The run format says what the orchestrator checks itself and how the run reports in chat. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer. This section follows the section "Run format agreement" in `dev-essentials:subagent-orchestration`.
+The run format says what the orchestrator checks itself and how the run reports in chat. This section follows the section "Run format agreement" in `dev-essentials:subagent-orchestration`.
 
-After Phase 2, state the run format in a few lines. If there is a Phase 1 scope hint, add it. Do not wait for an answer. The run format applies from this statement unless the user objects. If the calling workflow already stated the same run format in this session, do not state it again.
+After Phase 2, state the run format in a few lines. If Phase 1 has a scope hint, add it. Do not wait for an answer. If the calling workflow already stated the same run format in this session, do not state it again.
 
-- Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
-- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs the decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. When a calling workflow runs this skill, give the Phase 9 summary to that workflow and print only the status line.
-- Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage confirms it. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
+- Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result, and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
+- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line.
+- Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage is also the agreement. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
 
-When the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the "Trust but verify" section of `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The Phase 4 triage judgment, Phase 6, and the Role 4 reads of large-target mode still run.
+If the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The triage judgment of Phase 4, Phase 6, and the Role 4 reads of the large-target mode still run.
 
 ## Severity and type taxonomy
 
-Every finding carries one severity and one type. Use these values consistently across all output formats and phases — do not invent new levels or abbreviate.
+Every finding has one severity and one type. Use these exact tokens in all output formats and phases. Do not invent new levels, and do not abbreviate. The triage of Phase 4 and the deferred list of Phase 9 depend on them.
 
-| Severity | When to use |
-|---|---|
-| Blocker | Will not merge / will not ship — data loss, security holes, broken contracts, crashes. |
-| Critical | Must fix before merge — logic errors with significant impact, missing critical error handling. |
-| High | Should fix before merge — N+1 patterns, unsound assumptions, weak coverage of critical paths. |
-| Medium | Quality issue — pattern violations, minor coverage gaps, cleanup opportunities. |
-| Low | Nice-to-have — minor improvements, refactoring opportunities. |
-| Nit | Style only — naming, formatting, conventions. |
+- Severities, from the highest: `Blocker`, `Critical`, `High`, `Medium`, `Low`, `Nit`.
+- Types: `Bug`, `Reliability`, `Security`, `Performance`, `Maintainability`, `Test`, `Style`, `Architecture`, `Spec`, `Docs`. Use `Spec` and `Docs` for targets that are not code.
 
-**Type categories** (one per finding): `Bug`, `Reliability`, `Security`, `Performance`, `Maintainability`, `Test`, `Style`, `Architecture`, `Spec`, `Docs`. Use `Spec` and `Docs` for non-code targets; they are additive to the set from `review-pr`.
-
-The taxonomy matters because it drives the triage decision in Phase 4 and the deferred-items list in Phase 9. If you use an unlisted severity or type, downstream triage logic becomes undefined.
+The Common Rules of `references/reviewer-briefs.md` give the reviewer a one-line definition of each severity. `references/triage-matrix.md` gives the full definitions with examples, and the action for each severity.
 
 ## Phases (the workflow)
 
 ### Phase 1 — Resolve target
 
-Convert `target=` into a concrete diff or file set. The following resolution is exact — no "best effort" guessing:
+Turn `target=` into a diff or a set of files. Follow this table exactly. Do not guess.
 
 | `target=` | Resolution |
 |---|---|
-| `branch` | Auto-detect `<base>` from git if `--base` not set: (1) run `git symbolic-ref refs/remotes/origin/HEAD` and strip the `refs/remotes/origin/` prefix to get the bare branch name — this returns the remote's actual default (e.g. `main`, `master`, or `release/1.0/master`); (2) if that command fails or returns nothing, check `git rev-parse --verify origin/main` then `git rev-parse --verify origin/master` and use the first that succeeds; (3) if none succeeds, **STOP and ask the user for the base branch**. A user-supplied `--base <branch>` always wins over auto-detect (top priority). After resolving `<base>`, run `git fetch origin <base>` to refresh the remote-tracking ref. If the fetch fails (network unavailable, remote not configured, etc.), **STOP and ask the user** — do NOT silently fall back to a stale local `<base>` ref. Then diff using the remote-tracking name: `git diff origin/<base>...HEAD`. Never diff against a local `<base>` ref, which may be absent or stale. |
-| `pr <id>` | Full branch diff for the named PR via GitHub MCP (see `dev-essentials:github-mcp-conventions` for how to call `pull_request_read` with explicit `owner` and `repo`). If the MCP call fails (MCP unavailable, PR not found, auth missing), **STOP and ask the user** — do NOT silently fall back to a local diff. After reading PR metadata, derive source and target branch names, then run `git fetch origin <sourceBranch> <targetBranch>`. Then diff using remote-tracking names: `git diff origin/<targetBranch>...origin/<sourceBranch>` — never rely on local branch names, which may be absent or stale. **Thread fetch (runs in parallel with the diff resolution above — both are independent operations):** call `pull_request_read` to retrieve review comments with pagination; paginate with bounded `per_page` until exhausted (see `dev-essentials:github-mcp-conventions` Rule 3). Status filter: by default keep only active/unresolved threads; when `--include-resolved` is set, also include resolved threads. The collected threads are passed forward to Phase 3. |
+| `branch` | Find `<base>`. A `--base <branch>` of the user always wins. Else detect it: (1) Run `git symbolic-ref refs/remotes/origin/HEAD`, and remove the prefix `refs/remotes/origin/`. This gives the default branch of the remote, for example `main`, `master`, or `release/1.0/master`. (2) If that command fails or prints nothing, try `git rev-parse --verify origin/main`, then `git rev-parse --verify origin/master`, and use the first that succeeds. (3) If none succeeds, **STOP and ask the user for the base branch**. Then run `git fetch origin <base>` to refresh the remote-tracking ref. If the fetch fails, for example with no network or no remote, **STOP and ask the user**. Do NOT fall back to a stale local `<base>` ref. Then diff with the remote-tracking name: `git diff origin/<base>...HEAD`. Never diff against a local `<base>` ref, because it can be missing or stale. |
+| `pr <id>` | Read the PR with the GitHub MCP tool `pull_request_read` (`method: "get"`), with explicit `owner` and `repo` (see `dev-essentials:github-mcp-conventions`). If the MCP call fails (MCP not available, PR not found, or no auth), **STOP and ask the user**. Do NOT fall back to a local diff. From the PR metadata, take the source and target branch names, and run `git fetch origin <sourceBranch> <targetBranch>`. Then diff with the remote-tracking names: `git diff origin/<targetBranch>...origin/<sourceBranch>`. Never rely on local branch names, because they can be missing or stale. **Thread fetch, at the same time as the diff (the two do not depend on each other):** call `pull_request_read` with `method: "get_review_comments"`. Read all pages with a bounded `perPage` (see `dev-essentials:github-mcp-conventions` Rule 3). By default, keep only the active and unresolved threads. With `--include-resolved`, also keep the resolved threads. Phase 3 gets the threads. |
 | `commits <N>` or `last-N` | `git diff HEAD~N..HEAD`. |
-| `diff <range>` | `git diff <range>` verbatim. |
+| `diff <range>` | `git diff <range>`, with the range as given. |
 | `file <path>` | Read the file at `<path>` in full. |
-| `spec <path>` | Read the file at `<path>` in full; brief the reviewer for spec-style review. |
-| `class <FQN>` | Locate the class via `grep -rn "class <SimpleName>"` under the repo root. If exactly one match: extract that file and line range. If zero or multiple matches: **STOP and ask the user** — "Which file and line range contains `<FQN>`?" — before proceeding. Never pick a candidate silently. |
-| `method <FQN>` | Resolve the containing type first (same file-location logic as `class <FQN>` — `grep -rn "class <ContainingType>"` under the repo root; if zero or multiple files match, **STOP and ask the user** which file to use). Within that file, search for the method name: scan for `\b<MethodName>\b` followed by `(` on the same line OR within ≤2 lines (handles long parameter lists). If **exactly one** match is found, extract the line range from the method declaration to its closing brace (use brace counting or read until the next method/end-of-class). If **zero or multiple** matches are found (overloads), **STOP and ask the user**: "Found `<N>` matches for method `<MethodName>` in `<file>`. Which line range should I review?" — do NOT pick silently. |
+| `spec <path>` | Read the file at `<path>` in full. Brief the reviewer for a spec review. |
+| `class <FQN>` | Find the class with `grep -rn "class <SimpleName>"` under the repository root. If exactly one match exists, take that file and line range. If no match or more than one match exists, **STOP and ask the user**: "Which file and line range contains `<FQN>`?" Never pick a candidate in silence. |
+| `method <FQN>` | First find the file of the containing type, as for `class <FQN>` (`grep -rn "class <ContainingType>"` under the repository root). If no file or more than one file matches, **STOP and ask the user** which file to use. In that file, search for `\b<MethodName>\b` followed by `(` on the same line or within 2 lines, for long parameter lists. If **exactly one** match exists, take the lines from the method declaration to its closing brace. Count braces, or read up to the next method or the end of the class. If **no match or more than one match** exists (overloads), **STOP and ask the user**: "Found `<N>` matches for method `<MethodName>` in `<file>`. Which line range do you want me to review?" Do NOT pick in silence. |
 
-Free-form scope hints (e.g. "phases 5-13", "cleanup module") are passed as a context hint in the reviewer brief and echoed back in the cycle's brief output as "scope hint: `<text>`" so the user can confirm it was received.
+A free-form scope hint, for example "phases 5-13" or "cleanup module", goes into the reviewer brief as a context hint. The Brief format of the cycle repeats it as "scope hint: `<text>`", so that the user sees that the hint arrived.
 
 ### Phase 2 — Resolve reviewer + fixer
 
-Validate `--reviewer` and `--fixer` against the installed plugin set before dispatching. Use these rules exactly:
+Before the dispatch, resolve `--reviewer` and `--fixer`. Use these rules exactly:
 
-- If the value is `audit-team`: `audit-team` is a **slash command, not an agent ID**, so it is not dispatched through the `Agent` `subagent_type` path the other values use, and it needs the adapter below.
-  - **Target restriction.** Valid only when the Phase 1 target resolved to a documentation path: `target=spec <path>`, or `target=file <path>` whose extension is `.md` (`/audit-team` reads only `.md` files — narrower than Phase 6's non-code extension set, which also covers `.txt`/`.rst`/`.adoc`). Every other target — `branch`, `pr <id>`, `commits <N>`, `diff <range>`, `class <FQN>`, `method <FQN>`, or a non-`.md` `file` — resolves to a diff or a code symbol rather than a documentation path `/audit-team` can take, so **fall back to `general-purpose` and print a warning**: "`--reviewer audit-team` needs a documentation path target; `target=<value>` is not one — falling back to `general-purpose`."
-  - **Argument mapping.** Invoke `/audit-team <path> [agent-count] [model]` with `<path>` = the Phase 1 resolved target path, then append anything left in `--audit-team-args` verbatim.
-    - `[agent-count]` — from `--audit-team-args` if it names one, else `/audit-team`'s own default (`5`). Positionals cannot be skipped, so always fill this slot, including when the user supplied only a model: `--audit-team-args "opus"` must produce `/audit-team <path> 5 opus`, never `/audit-team <path> opus` (which `/audit-team` would read as `[agent-count]`).
-    - `[model]` — the resolved `--reviewer-model` (Opus by default), so the reviewer tier is actually honoured. **Except** with `--reviewer-model inherit`, or when `--audit-team-args` already names a model: omit the positional and let `/audit-team`'s own "current model" default stand.
-  - **Output mapping — `/audit-team` returns 3 buckets, this skill triages 6 severities.** Map `Blockers` → **Blocker**, `Warnings` → **High**, `Suggestions` → **Low**. Record the originating bucket next to each mapped severity so Phase 4 can see it was not a native six-level grade, and re-grade an individual finding up or down when its own text plainly warrants it (a `Warning` describing a data-corrupting bug is Critical; a `Warning` about a non-normative "should" is Medium). `/audit-team` emits no **type** token: use `Spec` for `target=spec`, and for a documentation `target=file` derive the type from the finding's text per the type taxonomy, defaulting to `Docs`.
-  - **Conclusion mapping.** `/audit-team`'s report has no "Must fix before merge / Acceptable risks / Needs discussion" section, but the Full-format report template (see Output formats) expects one. Synthesize it for that report section: consolidated `Blockers` → Must fix before merge; `Warnings` → Needs discussion; `Suggestions` → Acceptable risks. Use `/audit-team`'s **agreement matrix** as the multi-role signal — a finding flagged by multiple roles is elevated. **Precedence:** multi-role agreement elevates a finding by one bucket (Suggestion → Warning, Warning → Blocker) but never skips past Warnings/Needs-discussion in one step — i.e., a `Suggestion` flagged by multiple roles becomes Needs-discussion, not Must-fix; only a `Warning` (or higher) flagged by multiple roles becomes Must-fix. **This synthesized bucket is informational for the written report only — it does not by itself route a finding to Phase 5 vs. the discussion addendum.** What actually governs that is Phase 4's own severity- and merit-based `blocking` determination (see Phase 4): a `Warning` mapped to High severity defaults to `blocking: true` — "will fix" — exactly like any other High, regardless of which Conclusion bucket it was synthesized into here. `examples/spec-review.md` shows this in practice: a Warning-derived High finding is placed under "Must fix before merge" in the synthesized Conclusion (not "Needs discussion"), because Phase 4's severity default is what decided the outcome.
-  - **Phase 5 step 5a.** `/audit-team` is read-only and returns no fix plan, and its per-role `Explore` subagents cannot be asked back. So step 5a's fix plan comes from a **fresh dispatch at `--reviewer-model`** — the same-model follow-up step 5a already permits — not from the audit-team run.
-  - **Phase 8's Round N+1 re-review is unaffected**: it already uses a single `general-purpose` agent regardless of `--reviewer`, so no adapter is needed there.
-- If the value is `general-purpose`: no validation is needed — it's a built-in agent type.
-- If the value is a `<plugin>:<agent>` form: verify the plugin is installed. Check whether the plugin appears in the session's known skill list. If it does not appear, **fall back to `general-purpose` and print a warning**: "Reviewer `<id>` not found — falling back to `general-purpose`. Install the plugin and retry if you want the specified reviewer." Pre-dispatch agent-name validation is not possible (Claude Code's agent surface is opaque until dispatch), so additionally: **if the plugin is installed but agent dispatch fails at runtime** (e.g. the agent name is misspelled or the agent no longer exists in the installed plugin version), treat the ID as unresolvable, apply the same fallback (`general-purpose` for both `--reviewer` and `--fixer`), and print a warning naming the failed dispatch — for example "Agent `<id>` dispatch failed — falling back to `<fallback>`. Verify the agent name against the installed plugin."
-- If the value is `dual`: use `feature-dev:code-reviewer` + `general-purpose` in parallel. If `feature-dev` is not installed, fall back to `general-purpose` × 2 with two distinct briefs, with a warning naming the fallback. If `general-purpose` is also unavailable, **STOP and ask the user to install at least one reviewer plugin** — do NOT proceed with an empty reviewer set.
-- If the value is `pair <a>+<b>` or `quad <a>,<b>,<c>,<d>`: validate each ID individually. When a slot is unresolvable, replace ONLY that slot with `general-purpose` and print a warning naming the unresolved slot (e.g. "Slot `<id>` not found — substituted `general-purpose`"). Do NOT collapse the full pair/quad to `dual`.
-- The **same fallback rule applies to `--fixer`**. An unresolvable fixer ID falls back to `general-purpose` with a warning.
-- When `--reviewer` is not `audit-team`, `--audit-team-args` is ignored. Print a warning: "`--audit-team-args` is set but `--reviewer` is `<value>`, not `audit-team` — ignoring `--audit-team-args`." One exception: if `--audit-team-args` is set and `--reviewer` was **not** given at all, read it as an implicit `--reviewer audit-team` rather than silently discarding the args against the default reviewer.
+- `general-purpose`: a built-in agent type. It needs no lookup.
+- `audit-team`: a **slash command, not an agent ID**, so it does not go through the `subagent_type` path of the `Agent` tool. Read `references/audit-team-adapter.md` and follow it. It has the target restriction, the argument mapping, the output mapping, and the source of the step 5a fix plan.
+- `<plugin>:<agent>`: look for the ID in the list of available agent types that the session shows for the `Agent` tool. If the ID is not in that list, **fall back to `general-purpose` and print a warning**: "Reviewer `<id>` not found. Using `general-purpose`. To use this reviewer, install its plugin and run again."
+  The dispatch can also fail at run time. Examples: the agent name is wrong, or the installed plugin version no longer has the agent. Then treat the ID as unknown, and apply the same fallback to `--reviewer` and `--fixer`. Print a warning that names the failed dispatch, for example "Agent `<id>` dispatch failed. Using `<fallback>`. Make sure that the agent name exists in the installed plugin."
+- `dual`: dispatch `feature-dev:code-reviewer` and `general-purpose` in parallel. If `feature-dev` is not installed, use two `general-purpose` reviewers with two different briefs, and print a warning that names the fallback. If `general-purpose` is also not available, **STOP and ask the user to install at least one reviewer plugin**. Do NOT continue with no reviewer.
+- `pair <a>+<b>` or `quad <a>,<b>,<c>,<d>`: resolve each ID on its own. If a slot does not resolve, replace ONLY that slot with `general-purpose`. Print a warning that names the slot, for example "Slot `<id>` not found. Using `general-purpose`." Do NOT turn the full pair or quad into `dual`.
+- The **same fallback rule applies to `--fixer`**. An unknown fixer ID falls back to `general-purpose` with a warning.
+- `--audit-team-args` with no `--reviewer audit-team`: if the user gave no `--reviewer` at all, read the args as an implicit `--reviewer audit-team`. Do not discard them in silence. If `--reviewer` has another value, ignore `--audit-team-args`, and print a warning: "`--audit-team-args` is set, but `--reviewer` is `<value>`, not `audit-team`. Ignoring `--audit-team-args`."
 
-The fallback rule is uniform — it applies to any unknown agent ID, not only `feature-dev:code-reviewer`. The user is always told which ID was unresolvable and what was substituted.
+The fallback rule applies to every unknown agent ID. Each warning names the ID that did not resolve and the agent that replaces it.
 
-When Phase 2 is done, state the run format (see "Run format"). Do not wait for an answer.
+After Phase 2, state the run format (see "Run format"). Do not wait for an answer.
 
 ### Phase 3 — Round-N review
 
-Before composing the reviewer brief or validating `--reviewer-focus` tokens, load `references/reviewer-briefs.md` to obtain the per-target brief template AND the canonical `--reviewer-focus` token list. Use the loaded list to validate user-supplied tokens (recognized tokens override the default focus list; unrecognized-only tokens fall back with a warning).
+Before you write the reviewer brief or resolve `--reviewer-focus` tokens, read `references/reviewer-briefs.md`. It has the Common Rules, the Full format of the reviewer report, and one brief for each target type. It also has the valid `--reviewer-focus` tokens and the rule for unknown tokens.
 
-Dispatch the reviewer per the rules in `dev-essentials:subagent-orchestration`. Do not restate those rules here — cross-reference them. Key dispatch decisions:
+Build each reviewer prompt from these parts. The reviewer does not see this skill or its files.
 
-- **Foreground-parallel** when more than one reviewer is selected — issue multiple `Agent` calls within a single assistant message so they run concurrently (per `subagent-orchestration` Rule 3; there is no separate foreground/background choice for the `Agent` tool).
-- **Single dispatch** for a single reviewer.
+1. The Common Rules and the Full format, word for word.
+2. The brief for the target type, with its placeholders filled in. Set Round N from the cycle counter of this skill.
+3. The diff or the file contents that Phase 1 resolved. Do not ask the reviewer to fetch them again.
+4. For `target=pr <id>`: the thread sections of the `pr` brief, filled from the threads of Phase 1. If Phase 1 found active or pending threads, the section "Open reviewer threads" is always present. The section "Previously addressed in this PR" comes only with `--include-resolved`.
 
-Pass `--reviewer-model` (Opus by default) to each reviewer subagent's Agent dispatch via the `model:` field.
+Dispatch the reviewers as `dev-essentials:subagent-orchestration` Rule 3 says. For more than one reviewer, put all `Agent` calls in one message, so that they run at the same time. Pass `--reviewer-model` (Opus by default) in the `model` field of each reviewer call.
 
-Brief the reviewer with:
-
-- Target diff or file contents (do not ask the reviewer to re-fetch what has already been resolved in Phase 1).
-- Focus areas: bugs and logic errors, security (injection, credential exposure, broken auth), data integrity (FK breaks, silent truncation, lost updates), performance (N+1, unbounded collections), DI lifetime mismatches, contract breaks, test coverage of critical paths.
-- Read the actual changed code — not just the diff. Context matters; cross-file consequences are invisible in isolation.
-- For `branch` / `pr` / `commits` targets: verify changes are coherent across commits (no regressions introduced in earlier commits that a later commit masks).
-- Call out missing tests or inadequate coverage explicitly.
-- If something cannot be determined from the provided material, ask a specific question rather than guessing. Flag it as a question in the findings.
-- Attribute the review model: every reviewer's report ends with "Review made by `<MODEL>`".
-- **Round number is set by this skill** — always "Round N" where N is the current cycle count tracked by this skill. The reviewer must NOT look in the conversation history to infer a round number.
-
-**`target=pr <id>` — open threads (always):** when `target=pr <id>`, always insert an **"Open reviewer threads"** section into the reviewer brief, populated from the active/unresolved threads fetched in Phase 1. Place this section BEFORE the "Previously addressed in this PR" section (when present). Format:
-
-```
-### Open reviewer threads
-(Existing questions or issues raised by reviewers — not findings you wrote. They may indicate hot
-spots worth looking at more closely, or findings you can independently endorse or refute. Do NOT
-re-attribute these as your own findings.)
-
-- [T#<threadId>] <Severity> <Type> on <file>:<firstLine> — <one-line summary> — status <Active|Pending>
-- ...
-```
-
-If there are no active/pending threads, omit this section entirely. This section is inserted regardless of whether `--include-resolved` is set.
-
-**`target=pr <id>` with `--include-resolved`:** when both conditions hold, append a "Previously addressed in this PR" section to the reviewer brief. List every resolved/closed thread in this format:
-
-```
-### Previously addressed in this PR
-(For context only — do not re-raise these unless the surrounding code regressed.)
-
-- [T#<threadId>] <Severity> <Type> on <file>:<firstLine> — <one-line summary> — resolved as <statusLabel>
-- ...
-```
-
-If there are no resolved/closed threads, omit this section entirely.
-
-Full reviewer brief templates per target type live in `references/reviewer-briefs.md`. Read that file when composing the reviewer subagent's prompt.
-
-**Large-target orchestrated mode (optional):** when the target's diff exceeds roughly 2,000 lines or 30 files changed — or `--reviewer-focus` narrowing alone doesn't bring the read volume down enough — Phase 3 MAY use a context-budget-preserving orchestrator shape instead of briefing a reviewer with the full diff directly: dispatch a Target Explorer subagent (compact summary), then parallel per-area Codebase/Convention Explorer subagents (structured findings only, no raw diff/file content back to the orchestrator), then an optional Finding Verifier subagent, and finally read only the specific lines the surviving findings anchor to. This is a **mode, not a replacement** — for targets below that size, the default single/parallel reviewer dispatch above stays in effect. Full role definitions and prompt templates live in `references/orchestrated-review.md`.
+**Large-target orchestrated mode (optional)**. For a large target, Phase 3 can use a different dispatch shape that saves the context of the orchestrator. A large target has a diff of more than about 2,000 lines or 30 changed files. The mode also fits a target where `--reviewer-focus` alone does not reduce the reading enough. A Target Explorer subagent writes a short summary. Parallel Area Explorer subagents return structured findings only, with no raw diff or file content. An optional Finding Verifier subagent re-reads the anchors. Last, the orchestrator reads only the lines that the remaining findings point to. This is a **mode, not a replacement**: for smaller targets, the default dispatch above stays. `references/orchestrated-review.md` has the roles and the prompt templates.
 
 ### Phase 4 — Triage
 
-**Finding-density check (before triage):** apply the density guardrail from the Guardrails section below — if the collected finding count is wildly disproportionate to that baseline, challenge the reviewer's result and request a stricter recheck before producing the triage table below, rather than triaging an inflated count at face value.
+**Finding-density check (before triage):** apply the density guardrail of the "Guardrails" section. If the count of findings is far from that baseline, challenge the result of the reviewer. Ask for a stricter second review before you write the triage table below. Do not triage an inflated count as it is.
 
-After collecting all reviewer output, produce a triage table before taking any action:
+After all reviewer output is in, write a triage table before any action:
 
 ```text
 Round <N> findings:
@@ -246,73 +199,75 @@ Round <N> findings:
 Proceeding to verify+fix <F> issues. Deferring <D>.
 ```
 
-Apply `--skip` exactly: each severity token in `--skip` is its own independent gate — `--skip medium,low` defers Medium and Low but Nit remains eligible for fixing. When `--skip none` (the default), every severity row shows "(will fix)" and no "(deferred)" rows appear. Without `--interactive`, write the triage into the cycle report, print its status line, and start Phase 5. With `--interactive`, print the triage and **wait for the user to acknowledge** before Phase 5. The acknowledgment also gives the final agreement to the run format (see "Run format").
+Apply `--skip` exactly. Each severity token in `--skip` is its own gate: `--skip medium,low` defers Medium and Low, but a Nit can still get a fix. With `--skip none` (the default), every severity row shows "(will fix)", and no "(deferred)" row appears. Without `--interactive`, write the triage into the cycle report, print its status line, and start Phase 5. With `--interactive`, print the triage, and **wait for the user to acknowledge it** before Phase 5. The acknowledgment is also the final agreement to the run format (see "Run format").
 
-**Judge every finding on its merits, not on its label.** `--skip none` is the default precisely so nothing is auto-deferred unread — but it is not licence to mechanically fix everything either. For each finding, read what the reviewer actually concluded — its own **Must fix before merge** / **Acceptable risks** / **Needs discussion** call from the report's Conclusion section — instead of triaging off the severity label alone:
+**Judge every finding on its merits, not on its label**. The default is `--skip none`, so that nothing is deferred unread. This does not mean that you fix everything without thought. For each finding, read the conclusion of the reviewer: the call **Must fix before merge**, **Acceptable risks**, or **Needs discussion** in the Conclusion section of the report. Do not triage on the severity label alone.
 
-- A Medium that reintroduces a variant of the bug being fixed, or that leaves the fix's own regression uncovered, is worth fixing regardless of its label.
-- A Low or Nit that is genuinely cosmetic is not — record it as deferred and move on.
-- Where the fix is clear-cut, hand it to Phase 5 as normal. Where it is **not** confidently safe or scoped — it would need substantial refactoring, it touches a design decision, or the right resolution is genuinely ambiguous — without `--autonomous`, do not decide unilaterally. Present that finding and the proposed fix(es) as a compact addendum to the triage (a short list, not a second review) and ask the user before the fixer touches it. This holds without `--interactive` too. The default approval covers the routine acknowledgment, never a genuine ambiguity. With `--autonomous`, do not ask. Decide as "Autonomy" says, and list the finding and the decision in the "Decisions for your review" section of the Phase 9 summary.
+- A Medium is worth a fix at any label in two cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
+- A Low or Nit that is only cosmetic is not worth a fix. Record it as deferred and move on.
+- If the fix is clear-cut, give it to Phase 5 as normal. Some fixes are **not** clearly safe or in scope: they need a large refactor, they touch a design decision, or the right resolution is truly ambiguous. For such a finding, without `--autonomous`, do not decide alone. Show the finding and the proposed fix or fixes as a short addendum to the triage (a short list, not a second review). Ask the user before the fixer touches it. This holds without `--interactive` too. The default approval covers the routine acknowledgment, never a real ambiguity. With `--autonomous`, do not ask. Decide as "Autonomy" says, and list the finding and the decision in the section "Decisions for your review" of the Phase 9 summary.
 
-**Record `blocking: true|false` on every finding, independent of its severity label.** Set `blocking: true` when Phase 4 concludes the finding must be resolved before merge: any Blocker/Critical/High by default, plus any Medium/Low/Nit the judgment above elevates. Set `blocking: false` for anything Phase 4 is content to record and move on from, including a Blocker/Critical/High the user and the session explicitly agreed to defer — in that case say so in the triage. The triage table's per-severity `(<Y> blocking)` counts are an aggregate view of this flag; Phase 8's `stop-clean` and Phase 9's deferred list read the per-finding flag itself, not that count or the severity label.
+**Record `blocking: true|false` on every finding, independent of its severity label**. Phase 4 sets `blocking: true` on a finding that it concludes must be resolved before merge. By default, this is any Blocker, Critical, or High, plus any Medium, Low, or Nit that the judgment above raises. Set `blocking: false` for anything that Phase 4 records and moves on from. This includes a Blocker, Critical, or High that the user and the session explicitly agreed to defer. In that case, say so in the triage. The `(<Y> blocking)` count of each severity row only sums up this flag. Phase 8 (`stop-clean`) and the deferred list of Phase 9 read the flag of each finding, not that count. Phase 8 also reads the severity label (see Phase 8).
 
-Findings deferred either way — by `--skip` or by the judgment above — are still recorded in Phase 9's deferred-items list.
+Phase 9 lists every deferred finding, deferred by `--skip` or by the judgment above.
 
-For triage reference, the full severity-to-action mapping, and the `blocking` flag's full definition see `references/triage-matrix.md`.
+`references/triage-matrix.md` has the full mapping from severity to action and the full definition of the `blocking` flag.
 
 ### Phase 5 — Verify-then-fix
 
-**Skipped when `--dry-run` or `--no-verify-fix` is set** (see flag interaction matrix above).
+**If `--dry-run` or `--no-verify-fix` is set, skip this phase** (see "Flag interaction matrix").
 
-**Step 5a — the reviewer's model plans the fix; the fixer only implements it.** Before the fixer edits anything, every finding cleared for fixing gets a fix *approach* from the reviewer's own model tier (`--reviewer-model`, Opus by default) — either the same reviewer subagent that raised the finding, or a fresh same-model dispatch. That plan is the general approach, architecture, and direction — **not** line-by-line code — and it must be grounded in how the existing/pre-existing code already handles the equivalent case: find the working pattern already in the codebase and follow it rather than inventing a new one. Pass each finding's plan into the fixer's brief as the required approach. The fixer implements against that plan instead of deciding its own approach from scratch, and still classifies the finding APPLY/PARTIAL/REJECT per the rules below — a planned fix is not an automatically verified one.
+**Step 5a: the reviewer model plans the fix, and the fixer only carries it out**. Every finding cleared for a fix gets a fix *approach* before the fixer edits anything. The approach comes from the model of the reviewer (`--reviewer-model`, Opus by default). The plan comes from the reviewer subagent that raised the finding, or from a new dispatch on the same model. The plan gives the general approach, the architecture, and the direction, **not** code line by line. Base it on how the existing code already handles the same case: find the working pattern in the codebase and follow it, and do not invent a new one. Put the plan of each finding into the fixer brief as the required approach. The fixer works from that plan, and does not choose its own approach from scratch. It still classifies each finding APPLY, PARTIAL, or REJECT by the rules below. A planned fix is not automatically a proven one.
 
-**Step 5b — dispatch the fixer.** Pass `--fixer-model` (Sonnet by default) to the fixer Agent dispatch via the `model:` field. The fixer's job is to filter unverified theories OUT of the fix pass — the verify-before-apply discipline is the core value of this skill over a naive fix loop. Detailed playbook in `references/verify-fix-discipline.md`. Inline rules the fixer MUST follow:
+**Step 5b: dispatch the fixer**. Pass `--fixer-model` (Sonnet by default) in the `model` field of the fixer `Agent` call. The fixer keeps theories without proof out of the fix pass. This proof-before-fix rule is the main value of this skill over a plain fix loop. The fixer does not see this skill. So put these parts into the fixer brief:
 
-- For each finding: classify as **APPLY**, **PARTIAL**, or **REJECT** before touching any file.
-  - APPLY: the finding is verified against a primary source (official docs, known-working example, the repo's own working code, CLAUDE.md, or a throwaway test). Apply the fix as described.
-  - PARTIAL: the finding is partially correct but the proposed fix needs adjustment. Apply the verified portion; note what was adjusted.
-  - REJECT: the finding is unverified, ambiguous, or based on pattern-matching without a primary source. Do NOT apply it. Report the rejection reason.
-- **Never touch unrelated files.** Only edit files named in the triage, plus directly related supporting files that are structurally required (see `references/verify-fix-discipline.md` §6 — covers e.g. the matching `*Tests.cs` for a missing-test-coverage finding, or the config registration file for a missing-config-knob finding). The strict no-drift default still applies — do not extend into unrelated refactors.
-- **Don't over-fix.** Fix the identified issue; do not refactor surrounding code or fix adjacent issues not on the triage list.
-- **Be honest about uncertainty.** Flag ambiguous findings as PARTIAL/REJECT with reasons. Do not silently skip or blindly apply.
-- After every fix, confirm the edit matches the reviewer's intent. If intent is ambiguous, ask rather than guessing.
-- Report the classification for every finding, including REJECTs. No silent discards.
+1. The findings of the triage, each with its plan.
+2. The rules below, word for word.
+3. The absolute path of `references/verify-fix-discipline.md`, which is the base directory of this skill plus that path. Tell the fixer to read that file before its first edit.
 
-Cross-reference `dev-essentials:engineering-discipline` Rule 2 — no unilateral critical decisions (public signature changes, new DI dependencies, test assertion relaxations) that the triage does not authorize.
+The rules that the fixer MUST follow:
+
+- Classify each finding as **APPLY**, **PARTIAL**, or **REJECT** before you touch any file.
+  - APPLY: a primary source proves the finding: official docs, a known working example, the working code of the repository, CLAUDE.md, or a throwaway test. Apply the fix as described.
+  - PARTIAL: the finding is partly correct, but the proposed fix needs a change. Apply the proven part, and note what you changed.
+  - REJECT: no primary source proves the finding, or the finding is ambiguous, or it rests on pattern matching only. Do NOT apply it. Report the reason for the rejection.
+- **Never touch unrelated files**. Edit only the files that the triage names, plus a directly related supporting file that the fix structurally needs (see section 6 of `references/verify-fix-discipline.md`). Examples: the matching `*Tests.cs` for a finding about missing test coverage, or the registration file for a finding about a missing configuration option. The strict no-drift default still applies: do not start unrelated refactors.
+- **Do not over-fix**. Fix the named issue. Do not refactor the code around it, and do not fix nearby issues that are not on the triage list.
+- **Be honest about uncertainty**. Mark an ambiguous finding as PARTIAL or REJECT, with reasons. Do not skip it in silence, and do not apply it blindly.
+- After each fix, make sure that the edit matches the intent of the reviewer. If the intent is unclear, do not guess. Keep only the part of the edit that a primary source proves, and mark the finding PARTIAL. If no part is proven, undo the edit and mark the finding REJECT. In both cases, put the open question in the reason.
+- Report the verdict of every finding, REJECT included. Discard nothing in silence.
+
+Follow `dev-essentials:engineering-discipline` Rule 2: make no critical decision alone that the triage does not allow. Examples: a change of a public signature, a new DI dependency, or a weaker test assertion.
 
 ### Phase 6 — Build / test verify
 
-**Skipped when `--dry-run` is set** (nothing was changed, so there is nothing to verify). When `--no-verify-fix` is set, Phase 6 runs against the existing code as a sanity check.
+**If `--dry-run` is set, skip this phase** (nothing changed, so there is nothing to build or test). With `--no-verify-fix`, Phase 6 runs on the existing code as a sanity check.
 
-After the fixer completes (or, for `--no-verify-fix`, against existing code), run the repo's build and test suite. Build/test verification is **mandatory in all other cases** — there is no flag to skip it. Rationale: `dev-essentials:engineering-discipline` Rule 1 (own every red signal in your session). Any failure that the fix pass introduces is this skill's failure, not a pre-existing issue.
+After the fixer finishes, run the build and the tests of the repository. With `--no-verify-fix`, run them on the existing code. In all other cases, this build and test run is **mandatory**, and no flag skips it. The reason is `dev-essentials:engineering-discipline` Rule 1 (own every red signal in your session). A failure that the fix pass causes is a failure of this skill, not a pre-existing issue.
 
-**Non-code targets:** When `target=spec`, OR when `target=file <path>` and the file extension is a documentation format (`.md`, `.txt`, `.rst`, `.adoc`), AND no validator (e.g., `openspec validate`, a doc linter) is documented in CLAUDE.md: **skip Phase 6** with a single-line note in the cycle's brief: `Phase 6 skipped — non-code target with no validator`. If a validator IS documented in CLAUDE.md (e.g., `openspec validate`), Phase 6 runs that validator instead of a build/test command.
+**Targets that are not code:** `target=spec`, or `target=file <path>` with a documentation extension (`.md`, `.txt`, `.rst`, `.adoc`). If `CLAUDE.md` documents no validator for them, **skip Phase 6**, with one note in the brief of the cycle: `Phase 6 skipped — non-code target with no validator`. If `CLAUDE.md` documents a validator, for example `openspec validate` or a doc linter, Phase 6 runs that validator instead of a build and tests.
 
-**Code-oriented targets with no auto-detectable build command:** `target=class <FQN>`, `target=method <FQN>`, and `target=file <path>` with a non-documentation extension always point at code. Do **not** skip Phase 6 for these — instead follow command resolution step 3 below and ask the user: "What is the build command for this repo?" Then record the answer and run Phase 6 normally. The mandatory-verification contract above admits no exception for code targets.
+**Code targets with no build command to detect:** these targets always point at code: `target=class <FQN>`, `target=method <FQN>`, and `target=file <path>` with an extension that is not a documentation format. Do **not** skip Phase 6 for them. Follow step 3 below, and ask the user: "What is the build command for this repo?" Record the answer, and run Phase 6 as normal. The mandatory build and test run has no exception for code targets.
 
-Command resolution order — follow this exactly:
+Find the commands in this order, exactly:
 
-1. Read the repo's `CLAUDE.md`. If it documents a build command or test command, use that.
-2. If CLAUDE.md is silent: auto-detect from repo contents. For every manifest type below, apply
-   the same three-way rule: **exactly one** → use it; **zero** → skip to the next type;
-   **two or more** → **STOP and ask the user** with the file list before proceeding.
-   - `*.sln` (C# / .NET) — count matching files:
-     - **Exactly one** `.sln`: use it for `dotnet build <solution>` / `dotnet test <solution>`.
-     - **Zero** `.sln`: skip this branch and continue to the next auto-detect step.
-     - **Two or more** `.sln`: **STOP and ask the user** — "Multiple solutions found: `<list>`. Which solution should Phase 6 build and test?" — record the answer and use it for both commands.
-   **Other ecosystems (Node, Rust, Python, Go, etc.):** auto-detect is not implemented for non-.NET stacks. Apply the same single-manifest resolution logic as `.sln` if a clear analogue exists for the language at hand (`package.json`, `Cargo.toml`, `pyproject.toml`/`setup.py`, `go.mod`, etc.) — exactly one → use it; zero → skip; two or more → STOP and ask. Whichever manifest is selected, run the build/test commands from that manifest's directory (cd into it, or use the equivalent `--prefix` / `--manifest-path` / `-C` flag), not from the repo root. **If the language detection or the directory-bound command form is unclear, STOP and ask the user for the build and test commands** rather than guessing — do not silently fall back to a repo-root invocation.
-3. If auto-detection produces no match: **STOP and ask the user** — "What is the build command for this repo?" — then record the answer and proceed.
+1. Read the `CLAUDE.md` of the repository. If it documents a build command or a test command, use it.
+2. If `CLAUDE.md` says nothing, detect a manifest in the repository. For every manifest type, use the same rule: **exactly one** file, use it. **None**, go to the next type. **Two or more**, **STOP and ask the user** with the list of files before you continue.
+   - `*.sln` (C# and .NET): with exactly one `.sln`, run `dotnet build <solution>` and `dotnet test <solution>`. With two or more, ask: "Multiple solutions found: `<list>`. Which solution does Phase 6 build and test?" Use the answer for both commands.
+   - Other stacks (Node, Rust, Python, Go, and others): this skill has no detection rule of its own for them. If the language has a clear analogue of `.sln`, apply the same rule to it: `package.json`, `Cargo.toml`, `pyproject.toml` or `setup.py`, `go.mod`, and so on. Run the build and test commands from the folder of the chosen manifest, not from the repository root. Change into that folder, or use the matching option (`--prefix`, `--manifest-path`, or `-C`). **If the language or the command form for that folder is unclear, STOP and ask the user for the build and test commands**. Do not guess, and do not fall back to a run from the repository root.
+3. If no manifest matches: **STOP and ask the user**: "What is the build command for this repo?" Record the answer, and continue.
 
-If the build or tests fail:
-- Report the failures honestly. Do not claim "pre-existing".
-- If the failure is in code touched by the fix pass, treat it as a regression: return to Phase 5 for that finding and attempt one re-fix.
-- If Phase 5 cannot resolve the regression after one re-attempt (the fixer reports REJECT or PARTIAL and cannot produce a passing build), exit the loop with `stop-blocked`, include the regression in Phase 9's deferred-items list, and report to the user.
+If the build or the tests fail:
+
+- Report the failures honestly. Do not call them "pre-existing".
+- If the failure is in code that the fix pass touched, treat it as a regression. Go back to Phase 5 for that finding, and try one more fix.
+- Phase 5 can fail to resolve the regression after that one more try: the fixer reports REJECT or PARTIAL, and the build still does not pass. Then end the loop with `stop-blocked`, put the regression in the deferred list of Phase 9, and report to the user.
 
 ### Phase 7 — Commit fixes
 
-**Skipped when `--dry-run` or `--no-verify-fix` is set** (see flag interaction matrix above).
+**If `--dry-run` or `--no-verify-fix` is set, skip this phase** (see "Flag interaction matrix").
 
-Stage and commit only the files changed in this fix pass. Never `git add -A` or `git add .`.
+Stage and commit only the files that this fix pass changed. Never use `git add -A` or `git add .`.
 
 Commit message format:
 
@@ -323,26 +278,27 @@ Review round <N>: Fix <short summary of issues fixed>
 ```
 
 Rules:
-- **One commit per round, every round.** The first round's fix pass gets its own commit, and so does each later round's — never accumulate a multi-round run into a single commit at the end. A caller that wants one commit squashes the round commits afterwards; it does not suppress this phase.
-- **Never push by default.** The user pushes when ready. The user can explicitly grant permission to push (e.g. "you can push after each fix commit").
+
+- **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. It does not turn off this phase.
+- **Never push by default**. The push is a decision of the user. The user can explicitly allow a push, for example "you can push after each fix commit".
 
 ### Phase 8 — Repeat or stop
 
-Decide whether to run another cycle. The decision is deterministic:
+Decide whether to run another cycle. The decision follows fixed rules.
 
-- **Continue** if ALL of the following hold: (a) rounds used < `--rounds`, AND (b) the fixer applied at least one edit in this cycle (new code is on disk).
-  - If no edit was applied in this cycle (all findings were REJECT or the cycle was `--dry-run`/`--no-verify-fix`), **stop** — there is no new code to re-review.
-  - When the fixer applied zero edits in the re-review cycle, **skip Phase 6** for the next round — there is no new code to verify; carry forward the previous cycle's build/test status into Phase 9.
-  - The re-review scope is ONLY the files changed in the fix commit, not the full original target. This is intentional: re-reviewing the whole target conflates new findings with old deferred ones.
-  - The re-review in Round N+1 always uses a single `general-purpose` agent regardless of `--reviewer`, dispatched at `--reviewer-model` (Opus by default) so the re-review carries the same judgment as Round 1. The reviewer *composition* config (`audit-team`/`dual`/`pair`/`quad`) applies only to Round 1. The goal is "did the fix resolve the issue and introduce no regressions?" — not a full architectural review.
-- **Stop** otherwise. Classify the stop verdict:
-  - **stop-clean**: BOTH of the following hold: (1) no unresolved finding within the re-review scope is `blocking: true` or carries severity Blocker/Critical/High, AND (2) no such finding appears in the deferred-items list across the entire run (whether deferred via `--skip`, marked PARTIAL/REJECT-then-deferred by the fixer, or deferred by Phase 4's merit judgment). Both halves of the test matter: `blocking: true` is Phase 4's own per-finding judgment, so a flagged Medium (or Low, or Nit) blocks `stop-clean` exactly as a High does; and the severity check reads the label, so an unflagged Blocker/Critical/High can never quietly clear the gate. If either condition fails, classify as `stop-max-rounds` instead.
-  - **stop-max-rounds**: `--rounds` limit reached before a re-review pass could confirm clean — covers all four cases that prevent a `stop-clean` classification: (a) issues remain open in the re-review scope; (b) every finding was deferred via `--skip`; (c) every finding was fixed but no re-review round ran to confirm; (d) merge-blocking work is still outstanding anywhere in the run even though the rounds limit was not reached — either a deferred Blocker/Critical/High (via `--skip critical`, `--skip high`, etc.) or any unresolved finding Phase 4 marked `blocking: true`, at **any** severity label.
-  - **stop-blocked**: the build or tests are failing and cannot be resolved in this session; escalate to user.
+- **Continue** only on two conditions, and both must hold. (a) The rounds used are fewer than `--rounds`. (b) The fixer applied at least one edit in this cycle, so new code is on disk.
+  - If the fixer applied no edit in this cycle, **stop**, because there is no new code to re-review. Examples: all findings were REJECT, or the cycle ran with `--dry-run` or `--no-verify-fix`.
+  - If the fixer applies no edit in a re-review cycle, skip Phase 6 in that cycle. There is no new code to build or test. Carry the build and test status of the previous cycle forward into Phase 9.
+  - The re-review covers ONLY the files that the fix commit changed, not the full original target. This is on purpose: a re-review of the whole target mixes new findings with old deferred ones.
+  - The re-review in Round N+1 always uses one `general-purpose` agent, for any `--reviewer` value. Dispatch it on `--reviewer-model` (Opus by default), so that the re-review has the same judgment as Round 1. The reviewer setup (`audit-team`, `dual`, `pair`, `quad`) applies to Round 1 only. The goal is the question "did the fix resolve the issue, with no new regression?", not a full architecture review.
+- **Stop** in every other case. Classify the stop verdict:
+  - **stop-clean**: BOTH conditions hold. (1) No unresolved finding in the re-review scope is `blocking: true` or has the severity Blocker, Critical, or High. (2) No such finding is in the deferred list of the whole run. This covers three kinds of deferral: by `--skip`, after a PARTIAL or REJECT verdict of the fixer, and by the merit judgment of Phase 4. Both halves of the test matter. `blocking: true` is the judgment of Phase 4 on each finding, so a flagged Medium, Low, or Nit blocks `stop-clean` exactly as a High does. The severity half reads the label, so an unflagged Blocker, Critical, or High can never clear the gate in silence. If either condition fails, use `stop-max-rounds` instead.
+  - **stop-max-rounds**: the `--rounds` limit came before a re-review pass found the run clean. It covers all four cases that prevent `stop-clean`. (a) Issues remain open in the re-review scope. (b) `--skip` deferred every finding. (c) The fixer fixed every finding, but no re-review round ran to prove it. (d) Merge-blocking work is still open somewhere in the run, although the rounds limit was not reached. That work is a deferred Blocker, Critical, or High, for example through `--skip critical` or `--skip high`. It is also any unresolved finding that Phase 4 marked `blocking: true`, at **any** severity label.
+  - **stop-blocked**: the build or the tests fail, and this session cannot fix them. Escalate to the user.
 
 ### Phase 9 — Final summary
 
-Aggregate across all cycles. Follow the report destination rules (see "Report destination rules" section above): write to `Notes/Reviews/<target-slug>-summary.md` when multi-cycle or `--save-reports`; print to chat otherwise. When the run format applies, the final chat report follows the "Run format" section.
+Aggregate across all cycles. Follow the "Report destination rules": write to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section.
 
 Format:
 
@@ -380,7 +336,7 @@ Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
   ...
 ```
 
-Any `(blocking)` row, and any deferred Blocker/Critical/High row, means the run could not classify `stop-clean` (see Phase 8).
+A `(blocking)` row, or a deferred Blocker, Critical, or High row, means that the run did not reach `stop-clean` (see Phase 8).
 
 ---
 
@@ -388,7 +344,7 @@ Any `(blocking)` row, and any deferred Blocker/Critical/High row, means the run 
 
 ### Brief format (printed to chat after every cycle)
 
-Print at the end of every cycle. When the run format applies (see "Run format"), write it into the cycle report and print only one status line. Multi-cycle runs accumulate these into the final summary table in Phase 9.
+Print it at the end of every cycle. If the run format applies (see "Run format"), write it into the cycle report, and print only one status line. A run with more than one cycle collects these into the final summary of Phase 9.
 
 ```text
 Cycle <N> — <target-summary>
@@ -400,104 +356,21 @@ Cycle <N> — <target-summary>
   Verdict: <continue|stop-clean|stop-max-rounds|stop-blocked>
 ```
 
-### Full format (written per cycle to chat or to `Notes/Reviews/<target-slug>-cycle-<N>.md`)
+### Full format
 
-Follow the report destination rules (see "Report destination rules" section above).
+The Full format of the reviewer report is in `references/reviewer-briefs.md`, because the reviewer gets it with the Common Rules. Phase 3 reads that file in every run. Each cycle report uses the same format, and goes to chat or to `Notes/Reviews/<target-slug>-cycle-<N>.md` as the "Report destination rules" say.
 
-```markdown
-# Review by AI Agent (Round-<N>) — <target-summary>
+## Files and related skills
 
-## Description
-
-<100-200-character impression of the target.>
-
-## Summary table
-
-| # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |
-|---|----------|------|--------------|--------------|---------------------|
-| 1 | Blocker | Security | <file>:<line> | <one short sentence> | <not the exact fix; "refactor", "add validation", "ok to accept risk", etc.> |
-| ... | ... | ... | ... | ... | ... |
-
-(Only meaningful items. Skip trivial commentary.)
-
-## Details per item
-
-For each row from the table:
-
-### <#> <one-line header matching the table>
-
-- **Problem:** 1–2 sentences.
-- **Impact:** 1 sentence.
-- **Recommendation:** 1–2 sentences (still no full code dumps).
-- **Verification source** (when proposing a concrete fix): the primary source consulted (official
-  docs / known-working example / throwaway test) per `dev-essentials:engineering-discipline`.
-  If unverified, frame as a theory ("this might be …"), not a fix.
-
-## Conclusion
-
-In bullets:
-
-- **Must fix before merge** — list of `#` numbers
-- **Acceptable risks** — list of `#` numbers
-- **Needs discussion** — list of `#` numbers
-
-## Final verdict
-
-One line:
-
-- ✅ **Approve**
-- ✅➕ **Approve with suggestions**
-- 🕒 **Wait for author**
-- ❌ **Reject**
-
-## Reviewer model
-
-Review made by `<MODEL>` (one line per reviewer if multiple ran in parallel — the skill
-aggregates them in the cycle summary).
-```
-
-Both formats are inline in this SKILL.md (not in `references/`) so the AI composing the report has the templates loaded without a second tool roundtrip. Concrete filled-in samples live in `examples/` to make the formats tangible.
-
----
-
-## Reviewer briefs
-
-Reviewer brief templates per target type (branch, pr, commits, diff, file, class, method, spec) live in `references/reviewer-briefs.md`. Read that file when dispatching the reviewer subagent — it handles the per-target framing and the default focus-area list for each target type.
-
-For targets too large to comfortably brief a single reviewer with (see Phase 3's "Large-target orchestrated mode"), `references/orchestrated-review.md` defines the alternative Target Explorer → Area Explorers → Finding Verifier → main-agent-synthesis dispatch shape.
-
-## Verify+fix discipline
-
-The verify+fix subagent's job is to filter unverified theories out of the fix pass. The detailed playbook — primary-source verification steps, APPLY/PARTIAL/REJECT decision tree, common rejection patterns, escalation policy for ambiguous findings — lives in `references/verify-fix-discipline.md`. Read it before dispatching the fixer.
-
-## Guardrails
-
-- **Never push by default.** Commits stay local; the user pushes when ready. The user can explicitly grant permission to push (e.g. "you can push after each fix commit") — only then.
-- **Never touch unrelated files.** Only edit files named in the current triage, plus structurally required supporting files (see `references/verify-fix-discipline.md` §6 — covers e.g. the matching `*Tests.cs` for a missing-test-coverage finding, or the config registration file for a missing-config-knob finding). Do not extend into unrelated refactors.
-- **Verify before confident fixes.** Apply only APPLY/PARTIAL-classified findings. REJECT means no edit. See `dev-essentials:engineering-discipline`.
-- **Judge findings on their merits, not their labels.** `--skip none` is the default so nothing is auto-deferred unread; its counterpart obligation is Phase 4's per-finding judgment — recording `blocking: true|false` on every finding, escalating anything not confidently safe or scoped to the user before the fixer touches it, and letting Phase 8's `stop-clean` read that flag **in addition to** the Blocker/Critical/High severity guard, not instead of it — an unresolved `blocking: true` finding blocks `stop-clean` at any severity, and an unflagged Blocker/Critical/High blocks it too.
-- **The reviewer's tier plans each fix; the fixer implements it.** See Phase 5, step 5a. A fixer inventing its own approach from scratch is a defect, not a shortcut.
-- **Fable is never dispatched silently**. Sometimes `--reviewer-model fable` is the idea of the orchestrator and not the instruction of the user. Then, with `--interactive`, ask first, every time. Without it, keep Opus (see "Autonomy").
-- **Be honest about uncertainty.** Flag ambiguous findings explicitly — as PARTIAL or REJECT with reasons — rather than silently ignoring or blindly applying them.
-- **Don't over-fix.** Fix the identified issues only. This is not a refactoring session.
-- **Respect `--rounds`.** Do not loop past the configured maximum. Report unresolved issues under "Deferred items" in the final summary.
-- **Build/test verify is mandatory** unless `--dry-run` or `--no-verify-fix` is set. Any red signal after a fix round is owned by this skill session — investigate and fix, or escalate to the user.
-- **Watch finding density.** A healthy density is roughly 1 Critical/High + 4 Medium + 3 Low/Nit per ~1,000 lines of diff or file content. Inflating finding counts to look thorough is anti-helpful. If Phase 4's collected count is wildly off that baseline (e.g. 15+ Mediums for a ~1,000-line target), challenge the reviewer's result and request a stricter recheck before triaging — do not accept an inflated count at face value.
-- **Fall back to `general-purpose` on unknown or failed agent IDs.** Print a warning naming the unresolvable ID and the fallback applied. This applies to both `--reviewer` and `--fixer`, and covers two failure modes: (1) the plugin itself is not installed (caught during Phase 2 pre-dispatch validation); (2) the plugin is installed but the specific agent name is wrong or has been removed (caught when dispatch fails at runtime — apply the same fallback chain). If `general-purpose` is also unavailable, STOP and ask the user to install at least one reviewer plugin.
-- **Never resolve round number from conversation history.** Round N is set by this skill's own cycle counter, starting at 1.
-
-## Examples
-
-| File | When to read |
+| File or skill | When to read it, or why this skill depends on it |
 |---|---|
-| `examples/branch-review.md` | Feature branch review end-to-end — both report formats filled in with real numbers. |
-| `examples/spec-review.md` | OpenSpec change document review — spec-focused reviewer brief and findings. |
-
-## Cross-references
-
-| Skill | Why this skill depends on it |
-|---|---|
-| `dev-essentials:engineering-discipline` | Rule 1 (own every red signal) drives Phase 6 build/test ownership. Rule 2 (no unilateral critical decisions) drives Phase 5 REJECT classification for signature changes the triage did not authorize. |
-| `dev-essentials:subagent-orchestration` | Dispatch rules (concurrent multi-`Agent`-call dispatch for independent reviewers/fixers — no separate foreground/background choice for the `Agent` tool) for Phase 3 reviewer dispatch and Phase 5 fixer dispatch. |
-| `dev-essentials:process-pr-comments` | Tone and reply-format parallel — that skill acts on human reviewer comments; this skill runs the AI review cycle. They are complementary, not redundant. |
-| `dev-essentials:github-mcp-conventions` | When `target=pr <id>`, use this skill's rules for calling `pull_request_read` with explicit `owner` and `repo`. |
+| `references/reviewer-briefs.md` | Phase 3, in every run: the Common Rules, the Full format, a brief for each target type, and the `--reviewer-focus` tokens. |
+| `references/orchestrated-review.md` | Phase 3, only in the large-target orchestrated mode. |
+| `references/audit-team-adapter.md` | Phase 2, only with `--reviewer audit-team`. |
+| `references/triage-matrix.md` | Phase 4: the severity scale, the action for each severity, and the `blocking` flag. |
+| `references/verify-fix-discipline.md` | Phase 5: the playbook of the fixer. Read it before the fixer dispatch, and give its path to the fixer. |
+| `examples/branch-review.md` | A full review of a feature branch, with both report formats filled in with real numbers. |
+| `examples/spec-review.md` | A review of an OpenSpec change document, with the spec brief, the `audit-team` adapter, and the findings. |
+| `dev-essentials:engineering-discipline` | Rule 1 (own every red signal) drives the build and test run of Phase 6. Rule 2 (no critical decision alone) drives the REJECT of a signature change that the triage did not allow, in Phase 5. Rule 5 (no claim without proof) drives the primary-source rule of the reviewer and the fixer. |
+| `dev-essentials:subagent-orchestration` | Rule 3 for the reviewer dispatch of Phase 3 and the fixer dispatch of Phase 5. Independent `Agent` calls go in one message, and there is no separate foreground or background choice. "Model selection" for Fable. `Trust but verify` and "Run format agreement" for the run format. |
+| `dev-essentials:github-mcp-conventions` | For `target=pr <id>`: how to call `pull_request_read` with explicit `owner` and `repo`, and how to paginate (Rule 3). |

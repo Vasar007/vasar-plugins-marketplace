@@ -34,25 +34,25 @@ public sealed class {Name}Service : I{Name}Service
 }
 ```
 
-Repositories are injected directly via constructor — do **not** use `IUnitOfWork` to access them.
+Repositories are injected directly through the constructor. Do **not** use `IUnitOfWork` to access them.
 
 ## Query vs Command Separation
 
 ### Queries (read-only)
 
-- `FindByPrimaryKeyAsync(id, ct)` — returns `T?` (nullable, safe lookup).
-- `GetByPrimaryKeyAsync(id, ct)` — returns `T`, throws `NotFoundException` if missing.
-- `GetAllAsync(ct)` — returns `IReadOnlyList<T>`.
-- `GetAllByQueryAsync(query, ct)` — returns `ItemsPage<T>` (pagination).
-- Query interfaces may inherit `IFinder<T, TId>` from the framework.
+- `FindByPrimaryKeyAsync(id, ct)`: returns `T?` (nullable, safe lookup).
+- `GetByPrimaryKeyAsync(id, ct)`: returns `T`. If the entity is missing, it throws `NotFoundException`.
+- `GetAllAsync(ct)`: returns `IReadOnlyList<T>`.
+- `GetAllByQueryAsync(query, ct)`: returns `ItemsPage<T>` (pagination).
+- Query interfaces can inherit `IFinder<T, TId>` from the framework.
 
 ### Commands (mutations)
 
-- `CreateAsync(request, ct)` — returns `T`.
-- `UpdateAsync(entity, ct)` — returns `void` or `T`.
-- `AddAsync(entity, ct)` — returns `void`.
-- `DeleteByPrimaryKeyAsync(id, ct)` — returns `void`.
-- **Repositories call `SaveChangesAsync` internally** — callers must NOT call it. One save per logical operation happens inside the repository method.
+- `CreateAsync(request, ct)`: returns `T`.
+- `UpdateAsync(entity, ct)`: returns `void` or `T`.
+- `AddAsync(entity, ct)`: returns `void`.
+- `DeleteByPrimaryKeyAsync(id, ct)`: returns `void`.
+- **Repositories call `SaveChangesAsync` internally.** Callers must NOT call it. One save per logical operation happens inside the repository method.
 
 ## Repository Access — Direct Injection
 
@@ -74,13 +74,13 @@ public MyService(IUnitOfWork unitOfWork) // ❌ REMOVED
 - All input parameters: `.ThrowIfNull()`.
 - Enum parameters: `.ThrowIfUndefined()`.
 - CancellationToken: `cancellationToken.ThrowIfCancellationRequested()` at entry.
-- Delegate domain validation to entity methods (e.g., `session.ChangeStatus(newStatus)`).
+- Delegate domain validation to entity methods (for example, `session.ChangeStatus(newStatus)`).
 
 ## Error Handling
 
-- `FindByPrimaryKeyAsync()` returns `null` — caller decides.
-- `GetByPrimaryKeyAsync()` throws `NotFoundException` — when entity must exist.
-- Domain exceptions propagate naturally — services do not catch them.
+- `FindByPrimaryKeyAsync()` returns `null`, and the caller decides what to do.
+- If the entity must exist, use `GetByPrimaryKeyAsync()`. It throws `NotFoundException`.
+- Domain exceptions propagate. Services do not catch them.
 - User-facing messages from `StringResources`.
 - Document exceptions in interface XML docs:
 
@@ -98,16 +98,16 @@ serviceCollection.AddScoped<ISessionService, SessionService>();
 ```
 
 - **Scoped** (default): services with repository access.
-- **Singleton**: stateless services or caches (e.g., token providers).
+- **Singleton**: stateless services or caches (for example, token providers).
 
 ## Background Task Orchestration
 
-For long-running operations (provisioning/deprovisioning):
+For long-running operations (for example, store onboarding or a data import):
 
 1. Create a `Session` immediately and return it to the caller.
 2. Queue background work via `IBackgroundTaskQueue`.
 3. Create a new DI scope with `IServiceScopeFactory` for the background task.
-4. Use app-level `CancellationTokenSource.Token` — never the request's cancellation token.
+4. Use the app-level `CancellationTokenSource.Token`. Never use the cancellation token of the request.
 
 ```csharp
 var session = await _sessionRepository.AddAsync(request, cancellationToken);
@@ -121,14 +121,14 @@ return session;  // Return immediately
 private async Task DoWorkOnBackgroundAsync(...)
 {
     await using var scope = _scopeFactory.CreateAsyncScope();
-    var service = scope.ServiceProvider.GetRequiredService<IProvisionService>();
-    await service.ProvisionAsync(session, request, cancellationToken);
+    var service = scope.ServiceProvider.GetRequiredService<IOnboardingService>();
+    await service.OnboardAsync(session, request, cancellationToken);
 }
 ```
 
 ## Domain Logic Delegation
 
-Services orchestrate — domain validates. Delegate business rules to entity methods:
+Services orchestrate, and the domain validates. Delegate business rules to entity methods:
 
 ```csharp
 // CORRECT — domain entity validates status transition

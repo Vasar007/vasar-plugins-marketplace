@@ -22,16 +22,16 @@ Guidelines for securely handling sensitive information in code to prevent accide
 - Non-secret metadata: Usernames (without passwords), instance IDs, timestamps
 - System state: Status codes, operation types, version numbers
 
-**IMPORTANT**: Always discuss with developers whether specific data is truly sensitive. Context matters - some identifiers that seem sensitive may be safe to log in your domain.
+**IMPORTANT**: Always ask the user whether specific data is sensitive. Context matters. Some identifiers that seem sensitive can be safe to log in your domain.
 
 ## The Golden Rule
 
-| Operation                                 | Sensitive Data Allowed?  | Reason                                                             |
-|-------------------------------------------|--------------------------|--------------------------------------------------------------------|
-| `ToString()`                              | ❌ NO - Use placeholder  | Output may be logged, displayed in debugger, or exposed externally |
-| `Equals()`                                | ✅ YES - Safe to use     | Internal comparison, never exposed externally                      |
-| `GetHashCode()`                           | ✅ YES - Safe to use     | Internal hashing, never exposed externally                         |
-| Logging (`ILogger`, `ISessionLogRepository`) | ❌ NO - Never log        | Logs are persistent, searchable, and may be shared                 |
+| Operation | Sensitive Data Allowed? | Reason |
+| --- | --- | --- |
+| `ToString()` | ❌ NO. Use the placeholder. | The output can be logged, shown in a debugger, or exposed externally. |
+| `Equals()` | ✅ YES. Safe to use. | Internal comparison, never exposed externally. |
+| `GetHashCode()` | ✅ YES. Safe to use. | Internal hashing, never exposed externally. |
+| Logging (`ILogger`, `ISessionLogRepository`) | ❌ NO. Never log it. | Logs are persistent and searchable, and they can be shared. |
 
 ## Erasing Sensitive Data in ToString()
 
@@ -156,7 +156,10 @@ public readonly record struct ApiSecretToken : IStringWrapper<ApiSecretToken>
         DefaultStringComparer.GetHashCode(Value);
 
     // ✅ CRITICAL - never expose actual token
-    public override String ToString() => DefaultErasedPlaceholder;
+    public override String ToString()
+    {
+        return DefaultErasedPlaceholder;
+    }
 }
 ```
 
@@ -212,10 +215,10 @@ _logger.LogDebug("Connecting to {ApiEndpoint} with authentication", apiEndpoint)
 
 ## When Username Alone is Sensitive
 
-In some contexts, even usernames may be sensitive (e.g., exposing internal account names). Always consider:
+In some contexts, even usernames can be sensitive, for example internal account names. Always consider these points:
 
-1. **Public vs Internal Systems**: Internal usernames may reveal organizational structure
-2. **Compliance Requirements**: GDPR, HIPAA may classify usernames as PII
+1. **Public vs Internal Systems**: Internal usernames can reveal the structure of the organization
+2. **Compliance Requirements**: GDPR and HIPAA can classify usernames as PII
 3. **Security Policies**: Your organization's data classification
 
 ```csharp
@@ -236,19 +239,19 @@ public override String ToString()
 
 ## Discussion with Developers
 
-**Before implementing**, always discuss:
+**Before you implement**, always ask the user about these points:
 
 1. **What data is sensitive in your domain?**
-   - Some GUIDs/IDs may be public identifiers (safe)
-   - Some may be security-critical tokens (sensitive)
+   - Some GUIDs/IDs can be public identifiers (safe)
+   - Others can be security-critical tokens (sensitive)
 
 2. **What are the compliance requirements?**
    - GDPR, HIPAA, SOC2, PCI-DSS requirements
    - Data retention and logging policies
 
 3. **What is the deployment environment?**
-   - Production logs may be shared with support teams
-   - Development logs may be less restricted
+   - Production logs can be shared with support teams
+   - Development logs can have fewer restrictions
 
 4. **What is the debugging impact?**
    - Erasing too much makes debugging harder
@@ -268,7 +271,10 @@ public override String ToString()
 
 ```csharp
 // Erase entire token
-public override String ToString() => DefaultErasedPlaceholder;
+public override String ToString()
+{
+    return DefaultErasedPlaceholder;
+}
 ```
 
 ### Pattern 3: Certificate with Private Key
@@ -295,7 +301,7 @@ public override String ToString() => DefaultErasedPlaceholder;
 1. **Internal operations**: Used for collections (Dictionary, HashSet), never exposed externally
 2. **No logging**: Results are never logged or displayed
 3. **Required for correctness**: Two credentials with same username/password MUST be equal
-4. **No security risk**: Hash codes don't reveal the original sensitive data
+4. **No security risk**: Hash codes do not reveal the original sensitive data
 
 **Example:**
 
@@ -321,12 +327,12 @@ dict[creds1] = "session-id";  // Safe, internal hashing
 - [ ] Session logs never expose sensitive data
 - [ ] Runtime logs never expose sensitive data
 - [ ] String resources for logging avoid placeholders for sensitive data
-- [ ] Tests verify `ToString()` doesn't leak sensitive data
+- [ ] Tests verify that `ToString()` does not leak sensitive data
 - [ ] Documentation warns about sensitive data handling
 
 ## References
 
-- [create-domain-model](../create-domain-model/SKILL.md) - Domain model conventions
-- [create-primitive-wrapper](../create-primitive-wrapper/SKILL.md) - Primitive wrapper conventions  
-- [add-session-logging](../add-session-logging/SKILL.md) - Logging best practices
-- [create-tests](../create-tests/SKILL.md) - Testing conventions
+- [create-domain-model](../create-domain-model/SKILL.md): domain model conventions
+- [create-primitive-wrapper](../create-primitive-wrapper/SKILL.md): primitive wrapper conventions
+- [add-session-logging](../add-session-logging/SKILL.md): logging best practices
+- [create-tests](../create-tests/SKILL.md): testing conventions
