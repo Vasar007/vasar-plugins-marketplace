@@ -8,13 +8,13 @@ Implement tasks from a plan or task list file.
 
 - Format: `<path-to-plan-file> [phase/section numbers] [options]`
 - Examples:
-  - `Notes/Results/my-plan.md` — implement all tasks
-  - `Notes/Results/my-plan.md 3` — implement only section/phase 3
-  - `Notes/Results/my-plan.md 2-5` — implement sections 2 through 5
-  - `Notes/Results/my-plan.md 1,3,7` — implement sections 1, 3, and 7
-  - `Notes/Results/my-plan.md 3-5 --commit` — implement and commit after each phase
-  - `Notes/Results/my-plan.md --commit-push` — commit and push after each phase
-  - `Notes/Results/my-plan.md --context Notes/Results/research.md` — use a specific context file
+  - `Notes/Results/my-plan.md`: implement all tasks
+  - `Notes/Results/my-plan.md 3`: implement only section/phase 3
+  - `Notes/Results/my-plan.md 2-5`: implement sections 2 through 5
+  - `Notes/Results/my-plan.md 1,3,7`: implement sections 1, 3, and 7
+  - `Notes/Results/my-plan.md 3-5 --commit`: implement and commit after each phase
+  - `Notes/Results/my-plan.md --commit-push`: commit and push after each phase
+  - `Notes/Results/my-plan.md --context Notes/Results/research.md`: use a specific context file
 - If no arguments, use the **AskUserQuestion tool** to ask for the plan file path.
 
 **Options:**
@@ -66,28 +66,28 @@ These rules apply in all modes:
 
    Check for prior context in this order:
    1. If `--context <path>` was specified, read that file.
-   2. Otherwise, derive a research file name from the plan file (e.g., `my-plan.md` → `Notes/Results/my-plan-research.md`). If it exists, read it.
+   2. Otherwise, derive a research file name from the plan file (for example, `my-plan.md` → `Notes/Results/my-plan-research.md`). If it exists, read it.
    3. As a final fallback, check the auto-memory directory (`MEMORY.md` and topic files) for relevant project notes.
 
 3. **Determine which tasks to implement**
 
    - If section/phase numbers are specified, filter to only those.
    - If no filter, implement all incomplete tasks.
-   - Show the user which tasks will be implemented. Without `--interactive`, continue. With `--interactive`, ask for confirmation first.
+   - Show the user which tasks will be implemented. Without `--interactive`, continue. With `--interactive`, ask the user to approve the list first.
 
 4. **Implement tasks**
 
    For each pending task:
    - Announce which task is being worked on.
-   - **Follow existing patterns** in the codebase — read related files before writing new code.
-   - **If unclear about something, ask the user** — do NOT improvise. With `--autonomous`, decide as "Autonomy" says.
-   - Use skills from `.claude/` folder for appropriate actions (e.g., `create-domain-model`, `create-tests`, etc.).
+   - **Follow existing patterns** in the codebase. Read the related files before you write new code.
+   - **If unclear about something, ask the user**. Do NOT improvise. With `--autonomous`, decide as "Autonomy" says.
+   - Use the skills that fit the change type, for example `create-domain-model` and `create-tests`.
    - Mark each task complete in the plan file as you finish it: `- [ ]` → `- [x]`
 
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase/section:
-   - Stage the files relevant to that phase by explicit path — never `git add -A`/`.`.
+   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`.
    - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
      - If the plan has no phases, use: `Task X - brief description`
      - If no task numbering either, use: `brief description of changes`
@@ -96,8 +96,8 @@ These rules apply in all modes:
 
 6. **Save research and findings**
 
-   After completing the selected sections (or if stopping), save session context by following the `/save-context` command logic with `--plan "<path>"` (plus `--interactive` or `--autonomous` for a run that has it).
-   - If `--context <path>` was specified, save to that path; otherwise fallback to derived name (e.g., `my-plan.md` -> `Notes/Results/my-plan-research.md`)
+   Run this step after the selected sections. If the run stops early, run it before the stop. Follow the `/save-context` command logic with `--plan "<path>"`, plus `--interactive` or `--autonomous` for a run that has it.
+   - If `--context <path>` was given, save to that path. Else save to the research file name of Step 2 (for example, `Notes/Results/my-plan-research.md`).
    - Include: what was done, decisions made, issues found, what's next.
    - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
@@ -112,9 +112,8 @@ These rules apply in all modes:
 
 ## Guardrails
 
-- **Do NOT improvise** when uncertain — ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
-- Follow existing codebase patterns — read before writing
-- Stop after the specified sections — don't continue into unselected ones
+- **Do NOT improvise**. If you are not sure, ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
+- Stop after the specified sections. Do not continue into sections that the user did not select.
 - Always save research findings before stopping
 - If implementation reveals plan issues: without `--interactive`, update the plan for a clear fix, and list the change in the output. If the fix needs a critical decision, follow "Autonomy". With `--interactive`, pause and suggest updates.
-- The plan file is the single source of truth — keep it updated
+- The plan file is the single source of truth. Keep it up to date.

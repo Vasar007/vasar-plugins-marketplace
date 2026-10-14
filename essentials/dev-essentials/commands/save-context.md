@@ -9,11 +9,11 @@ Save the current session's context, research findings, decisions, and progress t
 
 - Format: `[name-or-path] [options]`
 - Examples:
-  - *(no args)* — auto-detect from conversation context (openspec change, plan file, or ask)
-  - `enhance-provisioning-plans` — save as `Notes/Results/enhance-provisioning-plans-research.md`
-  - `Notes/Results/my-investigation.md` — save to an explicit path
-  - `--change enhance-provisioning-plans` — explicitly use openspec change context
-  - `--plan Notes/Results/my-plan.md` — explicitly use plan file context
+  - *(no args)*: detect the context source and the file name from the conversation (see Step 1)
+  - `add-order-discounts`: save as `Notes/Results/add-order-discounts-research.md`
+  - `Notes/Results/my-investigation.md`: save to an explicit path
+  - `--change add-order-discounts`: use the context of an OpenSpec change, and save as `Notes/Results/add-order-discounts-research.md`
+  - `--plan Notes/Results/my-plan.md`: use the context of a plan file, and save as `Notes/Results/my-plan-research.md`
 
 **Options:**
 
@@ -55,15 +55,18 @@ These rules apply in all modes:
 
 ### 1. Determine output path and context source
 
-**Auto-detection** (no explicit `--change` or `--plan`):
+Find the context source. Without `--change` or `--plan`, look at the conversation:
 
-- Check conversation context for clues:
-  - If an OpenSpec change was discussed, treat as `--change <name>`
-  - If a plan file was discussed, treat as `--plan <path>`
-  - Otherwise, treat as a generic session
-- If a name (not a path) is given as argument, write to `Notes/Results/<name>-research.md`
-- If a path is given, write to that path
-- If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in the confirmation step. With `--interactive`, use **AskUserQuestion** to ask:
+- If an OpenSpec change was discussed, treat the run as `--change <name>`.
+- If a plan file was discussed, treat the run as `--plan <path>`.
+- Else, treat it as a generic session.
+
+Find the output path. The value of `--change` or `--plan` names the context source. It is never the output path.
+
+- If a name (not a path) is given, write to `Notes/Results/<name>-research.md`.
+- If a path is given, write to that path.
+- If no name or path is given, use the context source. For a change, write to `Notes/Results/<change-name>-research.md`. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Notes/Results/my-plan-research.md`.
+- If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. With `--interactive`, use **AskUserQuestion** to ask:
   > "What should I call this research file? (e.g., `investigate-bug-123`, `refactor-auth`)"
 
 ### 2. Gather context
@@ -72,27 +75,27 @@ Collect the following from the current conversation. Skip sections that have no 
 
 **Always gather:**
 
-- **What was done** — summarize actions taken, files read, code written, investigations performed
-- **Key decisions** — choices made and their rationale (table format if 3+)
-- **Issues found** — problems, bugs, inconsistencies discovered
-- **What's next** — remaining work, open questions, suggested next steps
+- **What was done**: the actions taken, the files read, the code written, and the investigations.
+- **Key decisions**: the choices made and the reason for each. For three or more, use a table.
+- **Issues found**: the problems, bugs, and inconsistencies found.
+- **What's next**: the remaining work, the open questions, and the suggested next steps.
 
 **If `--change <name>`** (OpenSpec context), also gather:
 
 - Change name, branch, date
 - Link to openspec change directory
 - Which artifacts exist and their status (`openspec status --change "<name>"`)
-- GitHub issue and Projects references (`#123`, a project item, or a URL) if mentioned in conversation
+- The GitHub issue and Projects references that the conversation mentions (`#123`, a project item, or a URL)
 
 **If `--plan <path>`** (plan context), also gather:
 
 - Plan file path and current progress (N/M tasks complete)
 - Which phases/sections were worked on
 
-**Always gather if relevant:**
+**Also gather, where the session has them:**
 
-- **Key file paths** — important files that were read, modified, or identified for future work (group by category: core, tests, config, docs)
-- **Codebase patterns** — notable patterns or conventions discovered that future sessions should know
+- **Key file paths**: the important files that were read, changed, or named for future work. Group them by category: core, tests, configuration, docs.
+- **Codebase patterns**: the patterns or conventions found that a future session needs to know.
 
 ### 3. Check for existing file
 
@@ -100,11 +103,11 @@ If the output file already exists:
 
 - Read the existing content
 - **Merge** new findings into the existing structure:
-  - Update "What Was Done" — append new work (use sub-sections with dates if multiple sessions)
-  - Update "Key Decisions" — add new rows to the table
-  - Update "Issues Found" — add new issues, mark resolved ones
-  - Update "What's Next" — replace with current state
-  - Update "Key File Paths" — merge new paths
+  - Update "What Was Done": append the new work. For more than one session, use a sub-section with a date for each session.
+  - Update "Key Decisions": add the new rows to the table.
+  - Update "Issues Found": add the new issues, and mark the resolved ones.
+  - Update "What's Next": replace it with the current state.
+  - Update "Key File Paths": merge the new paths.
 - If `--compact` is specified, summarize older session content into a brief paragraph before adding new content
 
 ### 4. Write the file
@@ -147,7 +150,7 @@ Date: <today>
 2. <Next step>
 ```
 
-Ensure the file follows markdown conventions (H1 title, blank lines around headings, no bare URLs).
+Make sure that the file follows the Markdown conventions: an H1 title, blank lines around headings, and no bare URLs.
 
 ### 5. Light cleanup of context files
 
@@ -169,7 +172,7 @@ Safety rules:
 - Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
 - Do not delete a file from an older session or a branch without the user's yes or `--autonomous`.
-- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. With `--autonomous`, use it only if both checks pass (a squash merge makes `git branch -d` refuse such a branch). First, the pull request of the branch is merged. Find it with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.
+- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. With `--autonomous`, use it only after both checks pass. A squash merge makes `git branch -d` refuse such a branch. First, the pull request of the branch is merged. Find it with `list_pull_requests` (branch as `head`), then read it with `pull_request_read`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.
 
 ### 6. Confirm to user
 
@@ -184,9 +187,9 @@ Then continue to Step 7 to emit the next-session continuation prompt.
 
 ### 7. Emit the next-session continuation prompt
 
-Unless `--no-continuation-prompt` was passed, or the near-empty-conversation guardrail below applies (too little to save, so no file was written), emit a short, paste-ready prompt for a fresh session in a fenced `text` code block. It is the **last thing in the response** — after Step 6's confirmation, and after the calling command's own final summary when save-context is being followed as a step of a larger command.
+Emit a short prompt for a fresh session, ready to paste, in a fenced `text` code block. Skip it in two cases: `--no-continuation-prompt` was passed, or Step 4 wrote no file because of the near-empty guardrail below. The prompt is the **last thing in the response**. It comes after the output of Step 6. If another command follows these steps as one of its own steps, the prompt also comes after the final summary of that command.
 
-Template (the third line is a *location* line whose form depends on what was actually in play — see rule **(a)**; omit it entirely when this session ran in the repo root on the default branch):
+Template. The third line is a *location* line. Rule **(a)** gives its form. If this session ran in the repo root on the default branch, omit the line.
 
 ```text
 Restore context from `<path to the saved context file>` — read it in full,
@@ -196,21 +199,23 @@ Then stop and wait for my instructions. Do not start any work, do not re-plan,
 and do not summarize the file back to me.
 ```
 
-Rules that make this reliable:
+Rules for the prompt:
 
-- **(a)** Name the saved file's path — repo-relative when the file lives in the repo. Then add a location line so the next session starts in the right copy and on the right branch instead of the repo root. Decide its two facts independently: include the **branch name** whenever this session was not on the default branch, and include the **worktree's absolute path** only when this session actually ran in a worktree. Label it for the case that is true — both: ``Worktree: `<absolute worktree path>`, branch `<branch name>`.``; non-default branch, no worktree: ``Branch: `<branch name>`.``; worktree on the default branch: ``Worktree: `<absolute worktree path>`.``; neither: omit the line entirely.
+- **(a)** Name the path of the saved file. If the file is in the repo, give the path relative to the repo root. Then add a location line, so that the next session starts in the right copy and on the right branch, not in the repo root. Decide its two facts separately. If this session was not on the default branch, include the **branch name**. If this session ran in a worktree, include the **absolute path of the worktree**. Else, leave the path out. Use the label of the case that is true:
+  - A worktree and a branch that is not the default: ``Worktree: `<absolute worktree path>`, branch `<branch name>`.``
+  - A branch that is not the default, and no worktree: ``Branch: `<branch name>`.``
+  - A worktree on the default branch: ``Worktree: `<absolute worktree path>`.``
+  - Neither: omit the line.
 - **(b)** Always say "stop and wait for my instructions" explicitly.
-- **(c)** Explicitly forbid the two failure modes: starting work, and restating/summarizing the file's content. Stating the prohibition is what makes the prompt reliable — "restore context and wait" alone reliably produces a next session that immediately summarizes the file and proposes a plan.
-- **(d)** Contains **no** findings, decisions, task lists, or next steps of its own. Those are the file's job, not the prompt's.
-- **(e)** Hard cap: **6 lines**. Do not let this grow into a mini-briefing over time — if there is more to say, it belongs in the file, not the prompt.
+- **(c)** Forbid the two failure modes in words: to start work, and to restate or summarize the content of the file. A prompt that only says "restore context and wait" makes the next session summarize the file and propose a plan.
+- **(d)** The prompt holds only the lines of the template: the restore instruction with the path, the location line, the wait instruction, and the prohibitions. It has **no** findings, decisions, task lists, next steps, plans, or commands to run. The file holds these, or the user decides them.
+- **(e)** Hard cap: **6 lines**. If there is more to say, put it in the file, not in the prompt.
 
 ## Guardrails
 
-- Do NOT fabricate information — only capture what actually happened in the conversation
-- Do NOT include raw code dumps — summarize findings, reference file paths
-- Keep it concise — this is a handoff document, not a transcript
-- Preserve existing content when updating — never lose prior session data
+- Do NOT fabricate information. Capture only what happened in the conversation.
+- Do NOT include raw code dumps. Summarize the findings, and give the file paths.
+- Keep it short. This is a handoff document, not a transcript.
+- If you update an existing file, keep its content. Never lose the data of an earlier session.
 - Step 5 removes only content that is finished or no longer true, and only under its safety rules
 - If the conversation has very little to save, say so instead of writing a near-empty file
-- The Step 7 continuation prompt must not restate, summarize, or duplicate any of the file's content — path + "wait" + prohibitions only
-- The Step 7 continuation prompt must not invent next steps, propose a plan, or name a command to run — that is the file's / the user's call

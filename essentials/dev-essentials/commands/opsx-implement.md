@@ -8,14 +8,14 @@ Implement tasks from an OpenSpec change, optionally limited to specific phases.
 
 - Format: `<change-name> [phase numbers] [options]`
 - Examples:
-  - `split-account-balancing-options` — implement all phases
-  - `split-account-balancing-options 10` — implement only phase 10
-  - `split-account-balancing-options 3-5` — implement phases 3 through 5
-  - `split-account-balancing-options 2,4,7` — implement phases 2, 4, and 7
-  - `split-account-balancing-options 3-5 --commit` — implement and commit after each phase
-  - `split-account-balancing-options --commit-push` — commit and push after each phase
-  - `split-account-balancing-options --context Notes/Results/research.md` — use a specific context file
-- If no change name provided, prompt for selection using `openspec list --json`
+  - `split-account-balancing-options`: implement all phases
+  - `split-account-balancing-options 10`: implement only phase 10
+  - `split-account-balancing-options 3-5`: implement phases 3 through 5
+  - `split-account-balancing-options 2,4,7`: implement phases 2, 4, and 7
+  - `split-account-balancing-options 3-5 --commit`: implement and commit after each phase
+  - `split-account-balancing-options --commit-push`: commit and push after each phase
+  - `split-account-balancing-options --context Notes/Results/research.md`: use a specific context file
+- If no change name is given, run `openspec list --json`, and use the **AskUserQuestion tool** to ask which change to implement.
 
 **Options:**
 
@@ -57,7 +57,7 @@ These rules apply in all modes:
 
 1. **Parse arguments**
 
-   Extract the change name and optional phase filter from the arguments. If no arguments, use the **AskUserQuestion tool** to ask which change to implement.
+   Extract the change name and the optional phase filter from the arguments. If no change name is given, ask as "Arguments" says.
 
 2. **Load context**
 
@@ -81,21 +81,17 @@ These rules apply in all modes:
 
    For each pending task in the selected phases:
    - Announce which task is being worked on.
-   - **Follow existing patterns** in the codebase — read related files before writing new code.
-   - **If unclear about something, ask the user** — do NOT improvise. This is critical. With `--autonomous`, decide as "Autonomy" says.
-   - Use skills from `.claude/` folder for appropriate actions (e.g., `create-domain-model`, `create-tests`, etc.).
+   - **Follow existing patterns** in the codebase. Read the related files before you write new code.
+   - **If unclear about something, ask the user**. Do NOT improvise. With `--autonomous`, decide as "Autonomy" says.
+   - Use the skills that fit the change type, for example `create-domain-model` and `create-tests`.
    - Mark each task complete in `tasks.md` as you finish it: `- [ ]` → `- [x]`
-   - Keep OpenSpec artifacts in sync — if you discover inconsistencies or issues, update the relevant artifacts (specs, design, tasks).
-   - Once this change is approved and its behavior is implemented, the canonical/living spec lives
-     under `openspec/specs/` — update it there, in place. Do not retroactively back-fill completed
-     work into the `openspec/changes/<name>/` folder after the fact: that folder is the transient
-     proposal/staging area for work not yet merged into the living spec, not a permanent record.
-     (A team convention, not something the OpenSpec tooling enforces.)
+   - Keep the OpenSpec artifacts in sync with the code. If you find an inconsistency or an issue, update the artifacts that it affects (specs, design, tasks).
+   - After a change is archived, its delta specs are part of the living spec under `openspec/specs/`. To change that behavior, update the living spec there, in place. Do not back-fill finished work into `openspec/changes/<name>/`. That folder is a staging area for work that is not merged into the living spec yet. It is not a permanent record.
 
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase:
-   - Stage the files relevant to that phase by explicit path — never `git add -A`/`.`.
+   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`.
    - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
      - If the plan has no phases, use: `Task X - brief description`
      - If no task numbering either, use: `brief description of changes`
@@ -104,8 +100,8 @@ These rules apply in all modes:
 
 6. **Save research and findings**
 
-   After completing the selected phases (or if stopping due to a blocker), save session context by following the `/save-context` command logic with `--change "<name>"` (plus `--interactive` or `--autonomous` for a run that has it).
-   - If `--context <path>` was specified, save to that path; otherwise fallback to `Notes/Results/<change-name>-research.md`
+   Run this step after the selected phases. If the run stops because of a blocker, run it before the stop. Follow the `/save-context` command logic with `--change "<name>"`, plus `--interactive` or `--autonomous` for a run that has it.
+   - If `--context <path>` was given, save to that path. Else save to `Notes/Results/<change-name>-research.md`.
    - Include: what was done, decisions made, issues found, what's next.
    - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
 
@@ -120,10 +116,7 @@ These rules apply in all modes:
 
 ## Guardrails
 
-- **Do NOT improvise** when uncertain — ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
-- Follow existing codebase patterns — read before writing
-- Keep OpenSpec artifacts in sync with reality
-- Use any matching plugin skills for standard operations
-- Stop after the specified phases — don't continue into unselected phases
+- **Do NOT improvise**. If you are not sure, ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
+- Stop after the specified phases. Do not continue into phases that the user did not select.
 - Always save research findings before stopping
 - If implementation reveals design issues: without `--interactive`, update the artifacts for a clear fix, and list the change in the output. If the fix needs a critical decision, follow "Autonomy". With `--interactive`, pause and suggest artifact updates.
