@@ -80,6 +80,10 @@ Only readers who modify this marketplace or add new plugins need this section.
 vasar-plugins-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json        # Lists every plugin in this marketplace
+├── .github/
+│   └── workflows/
+│       └── tests.yml           # Runs the tests in CI
+├── .markdownlint.jsonc         # markdownlint rules for the plugin files
 ├── essentials/
 │   └── dev-essentials/
 │       ├── .claude-plugin/
@@ -94,12 +98,13 @@ vasar-plugins-marketplace/
 │       ├── agents/
 │       ├── commands/
 │       └── skills/
-└── workflows/
-    └── gop-pipeline/
-        ├── .claude-plugin/
-        │   └── plugin.json
-        ├── agents/
-        └── skills/
+├── workflows/
+│   └── gop-pipeline/
+│       ├── .claude-plugin/
+│       │   └── plugin.json
+│       ├── agents/
+│       └── skills/
+└── tests/                      # Repository tests, not part of a plugin
 ```
 
 ### `marketplace.json` schema
@@ -153,6 +158,26 @@ Before you push changes, run the bundled CLI validator:
 claude plugin validate .                       # validates marketplace.json
 claude plugin validate ./<group>/<plugin>      # validates a single plugin manifest
 ```
+
+### Testing
+
+The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3 and Git. The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
+
+To run all tests, run this command from the repository root:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+The command runs these parts:
+
+- The tests of `check_report.py` (skill `bug-hunt`) and `trim_report.py` (skill `trim-artifacts`).
+- The simple-english linter on every tracked `.md` file of the plugins. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception.
+- markdownlint on the same files, with the rules in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+
+The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
+
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter fails the run.
 
 ## Conventions
 

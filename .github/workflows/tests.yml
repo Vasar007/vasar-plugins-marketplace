@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # The simple-english linter at tag v2.1.1. The baseline in tests/ is for this version.
+      - uses: actions/checkout@v7
+        with:
+          repository: AminBlg/SimpleEnglish
+          ref: 32ea2d3f4404bfbff162c1861e5ae4f1bcc628b3
+          path: .simple-english
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Run the tests and the linters
+        env:
+          SIMPLE_ENGLISH_DIR: ${{ github.workspace }}/.simple-english
+        run: python3 -m unittest discover -s tests -v
