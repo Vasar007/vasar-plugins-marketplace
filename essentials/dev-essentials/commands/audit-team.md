@@ -35,10 +35,11 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
 2. **Launch the agent team**
 
-   For each role, launch an Agent (subagent_type: `Explore`) with the following prompt structure:
+   For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore`. It only finds code, and it does not load the CLAUDE.md files of the repository.
 
    ```md
    You are reviewing the following artifacts/design as a **{role name}**.
+   This is a read-only review. Do not change any file.
 
    ## Target
    Path: {path}

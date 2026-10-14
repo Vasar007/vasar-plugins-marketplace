@@ -24,16 +24,16 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 | `--reviewer <id>` | `general-purpose` | The reviewer subagent or subagents. One reviewer by default. Values: `general-purpose`, `audit-team`, `dual`, `feature-dev:code-reviewer`, `pair <a>+<b>`, `quad <a>,<b>,<c>,<d>`, or any `<plugin>:<agent>`. The values with more than one reviewer are opt-in, for targets that need several points of view. **`audit-team` is not an agent ID**. It is a slash command that takes a documentation `<path>`. So it works only for `target=spec <path>` and for a `target=file <path>` with the extension `.md`. For any other target, Phase 2 warns and uses `general-purpose`. |
 | `--reviewer-model <model>` | `opus` | The model of each reviewer subagent, passed in the `model` field of each reviewer `Agent` call. The default is Opus, because a review needs judgment, and because this model also plans each fix (Phase 5, step 5a). It accepts any value of the `model` parameter of the `Agent` tool, or `inherit` for the model of the session. |
 | `--reviewer-focus <tokens>` | the default list of the brief | Comma-separated focus tokens, for example `security,performance,test-coverage`. They replace the default focus list of the reviewer brief. `references/reviewer-briefs.md` defines the valid tokens and the rule for unknown tokens. |
-| `--fixer <id>` | `general-purpose` | The subagent that tests and fixes the findings (the fixer). It takes the same values as `--reviewer`. |
+| `--fixer <id>` | `general-purpose` | The subagent that tests and fixes the findings (the fixer). It takes one agent ID: `general-purpose` or any `<plugin>:<agent>`. The values `audit-team`, `dual`, `pair`, and `quad` are for reviewers only (see Phase 2). |
 | `--fixer-model <model>` | `sonnet` | The model of the fixer, passed in the `model` field of the fixer `Agent` call. The default is Sonnet, because the fixer carries out an approach that the reviewer model already planned (Phase 5, step 5a). It accepts `inherit` for the model of the session. |
 | `--audit-team-args <...>` | none | Free text for the `/audit-team` command, added after the `<path>` argument that Phase 2 supplies. It works only with `--reviewer audit-team`. `references/audit-team-adapter.md` has the argument rules. A value of the user for `[agent-count]` or `[model]` always wins. |
 | `--no-verify-fix` | off | Skip the fix edits of Phase 5. Phase 6 still runs on the existing code as a sanity check. Phase 7 does not run. Phase 9 still runs. |
 | `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
 | `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
-| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`, also in a run with one cycle. |
-| `--print-reports` | off | Print every full cycle report in chat, also in a run with more than one cycle. |
-| `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also fetches the resolved and closed threads, and the reviewer brief gets the section "Previously addressed in this PR". The active and pending threads always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
+| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`, also with `--rounds 1`. |
+| `--print-reports` | off | Print every full cycle report in chat, also with `--rounds` 2 or more. |
+| `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also keeps the resolved threads (`is_resolved: true`), and the reviewer brief gets the section "Previously addressed in this PR". The open threads (`is_resolved: false`) always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
 
 ## Default configuration
 
@@ -102,11 +102,11 @@ These rules hold for the whole run.
 
 ## Report destination rules
 
-A run with one cycle prints the full cycle report in chat. A run with more than one cycle writes each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md`, so that long reports do not fill the chat context.
+The value of `--rounds` decides where a cycle report goes. At the end of a cycle, the real number of cycles is not known yet. With `--rounds 1`, the run prints the full cycle report in chat. With `--rounds` 2 or more, the run writes each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md`, so that long reports do not fill the chat context.
 
-- `--save-reports` writes each report to a file, also in a run with one cycle.
-- `--print-reports` prints each report in chat, also in a run with more than one cycle.
-- The Phase 9 summary follows the same rule. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
+- `--save-reports` writes each report to a file, also with `--rounds 1`.
+- `--print-reports` prints each report in chat, also with `--rounds` 2 or more.
+- The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
 - If the run format applies (see "Run format"), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
 
 ## Run format
@@ -139,7 +139,7 @@ Turn `target=` into a diff or a set of files. Follow this table exactly. Do not 
 | `target=` | Resolution |
 |---|---|
 | `branch` | Find `<base>`. A `--base <branch>` of the user always wins. Else detect it: (1) Run `git symbolic-ref refs/remotes/origin/HEAD`, and remove the prefix `refs/remotes/origin/`. This gives the default branch of the remote, for example `main`, `master`, or `release/1.0/master`. (2) If that command fails or prints nothing, try `git rev-parse --verify origin/main`, then `git rev-parse --verify origin/master`, and use the first that succeeds. (3) If none succeeds, **STOP and ask the user for the base branch**. Then run `git fetch origin <base>` to refresh the remote-tracking ref. If the fetch fails, for example with no network or no remote, **STOP and ask the user**. Do NOT fall back to a stale local `<base>` ref. Then diff with the remote-tracking name: `git diff origin/<base>...HEAD`. Never diff against a local `<base>` ref, because it can be missing or stale. |
-| `pr <id>` | Read the PR with the GitHub MCP tool `pull_request_read` (`method: "get"`), with explicit `owner` and `repo` (see `dev-essentials:github-mcp-conventions`). If the MCP call fails (MCP not available, PR not found, or no auth), **STOP and ask the user**. Do NOT fall back to a local diff. From the PR metadata, take the source and target branch names, and run `git fetch origin <sourceBranch> <targetBranch>`. Then diff with the remote-tracking names: `git diff origin/<targetBranch>...origin/<sourceBranch>`. Never rely on local branch names, because they can be missing or stale. **Thread fetch, at the same time as the diff (the two do not depend on each other):** call `pull_request_read` with `method: "get_review_comments"`. Read all pages with a bounded `perPage` (see `dev-essentials:github-mcp-conventions` Rule 3). By default, keep only the active and unresolved threads. With `--include-resolved`, also keep the resolved threads. Phase 3 gets the threads. |
+| `pr <id>` | Read the PR with the GitHub MCP tool `pull_request_read` (`method: "get"`), with explicit `owner` and `repo` (see `dev-essentials:github-mcp-conventions`). If the MCP call fails (MCP not available, PR not found, or no auth), **STOP and ask the user**. Do NOT fall back to a local diff. From the PR metadata, take the target branch name (`base.ref`). Run `git fetch origin <targetBranch> "+refs/pull/<id>/head:refs/remotes/origin/pull/<id>/head"` (`dev-essentials:github-mcp-conventions` Rule 7). The `pull/<id>/head` ref also exists for a PR from a fork, whose source branch is not on `origin`. If the fetch fails, **STOP and ask the user**. Then diff with the remote-tracking names: `git diff origin/<targetBranch>...origin/pull/<id>/head`. Never rely on local branch names, because they can be missing or stale. **Thread fetch, at the same time as the diff (the two do not depend on each other):** call `pull_request_read` with `method: "get_review_comments"`. Read all pages with a bounded `perPage` (see `dev-essentials:github-mcp-conventions` Rule 3). By default, keep only the open threads (`is_resolved: false`). With `--include-resolved`, also keep the resolved threads (`is_resolved: true`). Phase 3 gets the threads. |
 | `commits <N>` or `last-N` | `git diff HEAD~N..HEAD`. |
 | `diff <range>` | `git diff <range>`, with the range as given. |
 | `file <path>` | Read the file at `<path>` in full. |
@@ -159,7 +159,7 @@ Before the dispatch, resolve `--reviewer` and `--fixer`. Use these rules exactly
   The dispatch can also fail at run time. Examples: the agent name is wrong, or the installed plugin version no longer has the agent. Then treat the ID as unknown, and apply the same fallback to `--reviewer` and `--fixer`. Print a warning that names the failed dispatch, for example "Agent `<id>` dispatch failed. Using `<fallback>`. Make sure that the agent name exists in the installed plugin."
 - `dual`: dispatch `feature-dev:code-reviewer` and `general-purpose` in parallel. If `feature-dev` is not installed, use two `general-purpose` reviewers with two different briefs, and print a warning that names the fallback. If `general-purpose` is also not available, **STOP and ask the user to install at least one reviewer plugin**. Do NOT continue with no reviewer.
 - `pair <a>+<b>` or `quad <a>,<b>,<c>,<d>`: resolve each ID on its own. If a slot does not resolve, replace ONLY that slot with `general-purpose`. Print a warning that names the slot, for example "Slot `<id>` not found. Using `general-purpose`." Do NOT turn the full pair or quad into `dual`.
-- The **same fallback rule applies to `--fixer`**. An unknown fixer ID falls back to `general-purpose` with a warning.
+- The **same fallback rule applies to `--fixer`**. An unknown fixer ID falls back to `general-purpose` with a warning. The values `audit-team`, `dual`, `pair <a>+<b>`, and `quad <a>,<b>,<c>,<d>` are for reviewers only. For such a `--fixer` value, also use `general-purpose`, and print a warning: "`--fixer` takes one agent ID. Using `general-purpose`."
 - `--audit-team-args` with no `--reviewer audit-team`: if the user gave no `--reviewer` at all, read the args as an implicit `--reviewer audit-team`. Do not discard them in silence. If `--reviewer` has another value, ignore `--audit-team-args`, and print a warning: "`--audit-team-args` is set, but `--reviewer` is `<value>`, not `audit-team`. Ignoring `--audit-team-args`."
 
 The fallback rule applies to every unknown agent ID. Each warning names the ID that did not resolve and the agent that replaces it.
@@ -175,7 +175,7 @@ Build each reviewer prompt from these parts. The reviewer does not see this skil
 1. The Common Rules and the Full format, word for word.
 2. The brief for the target type, with its placeholders filled in. Set Round N from the cycle counter of this skill.
 3. The diff or the file contents that Phase 1 resolved. Do not ask the reviewer to fetch them again.
-4. For `target=pr <id>`: the thread sections of the `pr` brief, filled from the threads of Phase 1. If Phase 1 found active or pending threads, the section "Open reviewer threads" is always present. The section "Previously addressed in this PR" comes only with `--include-resolved`.
+4. For `target=pr <id>`: the thread sections of the `pr` brief, filled from the threads of Phase 1. If Phase 1 found open threads, the section "Open reviewer threads" is always present. The section "Previously addressed in this PR" comes only with `--include-resolved`.
 
 Dispatch the reviewers as `dev-essentials:subagent-orchestration` Rule 3 says. For more than one reviewer, put all `Agent` calls in one message, so that they run at the same time. Pass `--reviewer-model` (Opus by default) in the `model` field of each reviewer call.
 
@@ -260,8 +260,9 @@ Find the commands in this order, exactly:
 If the build or the tests fail:
 
 - Report the failures honestly. Do not call them "pre-existing".
-- If the failure is in code that the fix pass touched, treat it as a regression. Go back to Phase 5 for that finding, and try one more fix.
+- A failure can be in a file that the fix pass changed, or in code that uses what the fix pass changed. Treat such a failure as a regression. Go back to Phase 5 for that finding, and try one more fix.
 - Phase 5 can fail to resolve the regression after that one more try: the fixer reports REJECT or PARTIAL, and the build still does not pass. Then end the loop with `stop-blocked`, put the regression in the deferred list of Phase 9, and report to the user.
+- Any other failure is outside the code that this loop fixes. Do not fix it in this loop, because the fix is outside the review target. Phase 7 still commits the fixes of this cycle. Then end the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
 
 ### Phase 7 — Commit fixes
 
