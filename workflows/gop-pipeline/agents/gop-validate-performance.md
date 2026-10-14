@@ -90,7 +90,7 @@ In languages with a distinct async or reactor model:
 ### G. Callers in the Blast Radius
 
 Use the blast radius from Phase 1 step 2. An unchanged caller can get slower, because the code that it calls changed. This cost comes from the diff, so it is in scope.
-- A changed function can now do more work in each call: a new database query, a remote call, I/O, a lock, or a larger loop. If so, find out whether a caller in the blast radius calls it in a loop or on a hot path. Rate the finding as lens A or lens C says, and give the caller reference.
+- A changed function can now do more work in each call: a new database query, a remote call, I/O, a lock, or a larger loop. If so, find out whether a caller in the blast radius calls it in a loop or on a hot path. Rate the finding as lens A, B, or C says, and give the caller reference.
 - A changed function can become async, or can now block. If so, find out whether a caller in the blast radius blocks on it or calls it from an async path. Rate the finding as lens D says, and give the caller reference.
 
 Do NOT flag: micro-optimizations with negligible impact, premature-optimization opportunities, style opinions about loop forms, or correctness/security/duplication/compliance concerns. Those belong to other specialists or to no specialist at all.

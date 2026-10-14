@@ -86,13 +86,13 @@ Call `mcp__plugin_github_github__issue_write` with `method: "create"` and:
 - `repo`: user-supplied repo, verbatim
 - `title`: from user or draft H1
 - `body`: full content in Markdown (H2 sections, bullets) **without** the H1 title (GitHub renders its own title field)
-- `labels`: the labels that the user gave. If `type` is left out, add the labels that fit the issue. Pass only labels that exist in the repository (see "Labels" below). Without labels, leave it out.
-- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out and say so in the report of Step 3. Set labels in its place (see "Labels" below).
+- `labels`: the labels that the user gave, and each other label that fits the issue. Do this for every issue, with a type or without one. Pass only labels that exist in the repository (see "Labels" below). Without labels, leave it out.
+- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out and say so in the report of Step 3. Then the labels also get the label with the name of the type (see "Labels" below).
 
   **Labels.** Never create a label. Before the create call, choose the labels:
 
-  1. Start with the labels that the user gave. If `type` is left out, also add each label that fits the issue, and one label for the type. Examples: `bug` for `Bug`, and `enhancement` for `Feature`.
-  2. If you have `mcp__plugin_github_github__list_label`, list the labels of the repository with the `owner` and the `repo`. Follow the pagination rule (`dev-essentials:github-mcp-conventions` Rule 3). If `type` is left out, add each listed label that fits the issue. Keep only the labels that the list has.
+  1. Start with the labels that the user gave, and add each label that fits the issue. If the repository does not have the approved type, also add the label with the name of the type. Example: `bug` for the type `Bug`. The match of the name ignores case.
+  2. If you have `mcp__plugin_github_github__list_label`, list the labels of the repository with the `owner` and the `repo`. Follow the pagination rule (`dev-essentials:github-mcp-conventions` Rule 3). Add each listed label that fits the issue. Keep only the labels that the list has.
   3. Else, call `mcp__plugin_github_github__get_label` with the `owner`, the `repo`, and the `name` of each label from step 1. Keep only the labels that it finds.
   4. In the report of Step 3, name each label that you did not keep.
 - `parent_issue_number`: the number of the parent issue. Pass it only for a task that the user asked for as a sub-issue of an existing issue. The create call attaches the new issue to this parent in the same operation, so the normal case needs no separate link call. If the parent issue is in another repository, also pass `parent_owner` and `parent_repo`. Else leave both out, and `owner`/`repo` apply.
@@ -107,7 +107,7 @@ Find out whether the response matches:
 
 - Title matches what was submitted
 - Body matches (spot-check first 200 characters)
-- Labels are set (if provided)
+- Labels are set (if passed)
 - Type is set (if passed)
 
 If Step 1 passed `parent_issue_number`, do not trust the `parent` and `sub_issues_summary` fields of this `get` response. The tool description calls them best-effort and optional. Call `mcp__plugin_github_github__issue_read` again with `method: "get_parent"` on the new issue:

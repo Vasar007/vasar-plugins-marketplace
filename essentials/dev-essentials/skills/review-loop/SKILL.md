@@ -263,14 +263,15 @@ If the build or the tests fail:
 - With `--no-verify-fix`, no fix pass ran, and the failure is in the existing code. Do not fix it in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
 - After a fix pass, do not decide from file names or from a read of the code whether the fix pass caused the failure. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
 
-**Failure check** (after the Phase 7 commit of this cycle):
+**Failure check** (after the Phase 7 commit of this cycle). In this check, `<fix-commit>` is the Phase 7 commit of the review fixes of this cycle. It is never a regression-fix commit.
 
-1. Create a temporary worktree at the commit before the fix commit of this cycle, in a folder outside the repository: `git worktree add --detach <temp-folder> <fix-commit>^`.
-2. In that worktree, run the build or test command that failed. If the test tool can run only the failing tests, run only those.
-3. After step 2, remove the worktree with `git worktree remove --force <temp-folder>`. Remove it whether step 2 passes or fails.
-4. Act on the result:
-   - The command passes in the worktree: the fixes of this cycle broke the build or the tests. Treat the failure as a regression. Go back to Phase 5 with the failure and the diff of the fix commit, and try one more fix. Commit that fix (Phase 7), and run Phase 6 again. If the fixer reports REJECT or PARTIAL, or the failure stays, end the loop with `stop-blocked`. Put the regression in the deferred list of Phase 9, and report to the user.
-   - The command fails in the worktree with the same error: the failure is also in the code before the fixes of this cycle. Do not fix it in this loop, because the fix is outside the review target. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. Add the evidence: the command, and the SHA of the commit where it also fails. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
+1. Run `git status --porcelain` in the main worktree. If it prints nothing, the main worktree holds only `<fix-commit>`, and the failed Phase 6 run is the result at `<fix-commit>`. If it prints files, the main worktree also holds uncommitted changes. Then create a temporary worktree at `<fix-commit>`, in a folder outside the repository: `git worktree add --detach <temp-folder-1> <fix-commit>`. Run the build or test command that failed there. That run is the result at `<fix-commit>`.
+2. Create a temporary worktree at the commit before the fixes, in a folder outside the repository: `git worktree add --detach <temp-folder-2> <fix-commit>^`. Run the build or test command that failed there. That run is the result at `<fix-commit>^`.
+3. If the test tool can run only the failing tests, run only those in each temporary worktree. After its run, remove each temporary worktree with `git worktree remove --force <temp-folder>`. Remove it in every case: the run passes, fails, or cannot start.
+4. Act on the two results:
+   - The command passes at `<fix-commit>`: the committed code builds and passes, and the uncommitted changes in the main worktree cause the failure. Do not fix it in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure, its error message, and the files that `git status --porcelain` printed.
+   - The command fails at `<fix-commit>` and passes at `<fix-commit>^`: the fixes of this cycle broke the build or the tests. Treat the failure as a regression. Go back to Phase 5 with the failure and the diff of `<fix-commit>`, and try one more fix. Commit that fix (Phase 7), and run Phase 6 again. Do not run the failure check again in this cycle. If the fixer reports REJECT or PARTIAL, or Phase 6 fails again, end the loop with `stop-blocked`. Put the regression in the deferred list of Phase 9, and report to the user.
+   - The command fails at `<fix-commit>` and at `<fix-commit>^` with the same error: the failure is also in the code before the fixes of this cycle. Do not fix it in this loop, because the fix is outside the review target. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. Add the evidence: the command, and the SHA of the commit where it also fails. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
    - Any other result, for example another error, or a command that cannot run in the worktree: end the loop with `stop-blocked`. In the Phase 9 summary, list the failure and the output of both runs.
 
 The check only picks the next step. It never excuses a failure. Each path ends with a fix or with a report to the user.
@@ -292,7 +293,7 @@ Review round <N>: Fix <short summary of issues fixed>
 Rules:
 
 - **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. It does not turn off this phase.
-- **Commit also after a failed Phase 6**. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
+- **Commit also after a failed Phase 6**. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6, one time in each cycle. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
 - **Never push by default**. The push is a decision of the user. The user can explicitly allow a push, for example "you can push after each fix commit".
 
 ### Phase 8 — Repeat or stop

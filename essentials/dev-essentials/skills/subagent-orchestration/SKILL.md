@@ -122,7 +122,7 @@ The rule covers reads, such as list threads, get a PR by ID, get a repo, or sear
 
 Reason: PR-thread payloads are large. Even with minimal options, the threads of a PR with 20 or more comments fill the main context. They hold comment HTML, identity data, and `_links` arrays. The main agent does not need most of it for its orchestration decisions. Subagents read the threads, classify them, and report the small structured summary that the main agent uses. If the main agent needs a few values from the payload, for example the timestamps for reply anchors, the subagent returns them in its report.
 
-If an MCP server for an outside system is missing in the current session, ask the user to fix it (`/mcp`). Never silently fall back to REST APIs or CLI tools. The main agent is the right place for the repair, because the user sees the MCP errors and the request to reconnect there.
+If an MCP server for an outside system is missing in the current session, ask the user to fix it (`/mcp`). Never silently fall back to REST APIs or CLI tools. Rule 5 of `dev-essentials:github-mcp-conventions` names the one exception, a PR that `audit-personal-conventions` creates with `gh`. The main agent is the right place for the repair, because the user sees the MCP errors and the request to reconnect there.
 
 What this rule does NOT change:
 
