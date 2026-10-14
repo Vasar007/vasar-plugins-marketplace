@@ -86,7 +86,7 @@ These rules apply in all modes:
    - Use the skills that fit the change type, for example `create-domain-model` and `create-tests`.
    - Mark each task complete in `tasks.md` as you finish it: `- [ ]` → `- [x]`
    - Keep the OpenSpec artifacts in sync with the code. If you find an inconsistency or an issue, update the artifacts that it affects (specs, design, tasks).
-   - After a change is archived, its delta specs are part of the living spec under `openspec/specs/`. To change that behavior, update the living spec there, in place. Do not back-fill finished work into `openspec/changes/<name>/`. That folder is a staging area for work that is not merged into the living spec yet. It is not a permanent record.
+   - After this change is approved and its behavior is implemented, the living spec under `openspec/specs/` is the canonical spec. Update it there, in place. Do not back-fill finished work into `openspec/changes/<name>/`. That folder is a staging area for work that is not merged into the living spec yet. It is not a permanent record. This rule is a convention of the team. The OpenSpec tooling does not enforce it.
 
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
