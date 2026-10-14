@@ -162,6 +162,6 @@ Return control to **Phase 4 (Report)** of RIRR. It writes the report through `de
 - The absolute worktree path and the branch name.
 - Each gate that this run or RIRR passed without a stop.
 
-Print the report only. Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
+Print the report only. Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. When the user says yes, delete the listed files in this session, with the safety rules of Step 5. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
 **Do not push.** Wait for the review of the user. Push only with `--push` in this invocation, and only after the report.

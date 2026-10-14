@@ -146,7 +146,7 @@ Write the handoff document with `dev-essentials:save-context`, and follow all of
 - **Key File Paths**: grouped by category (core, tests, configuration, docs).
 - **What's Next**: the remaining work. Say whether the branch is pushed or has a PR. The default is no, because a push needs the explicit go-ahead of the user.
 
-Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only. Step 5 can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
+Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only. Step 5 can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. When the user says yes, delete the listed files in this session, with the safety rules of Step 5. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
 ## Commit cadence
 
