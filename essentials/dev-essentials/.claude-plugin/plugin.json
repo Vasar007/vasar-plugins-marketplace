@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dev-essentials",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Cross-stack composer agents (PR, Task, Test, Docs), bug-hunt agents (hunter, verifier, auditor), workflow commands, and generic skills (feature pipeline, markdown, XML docs, git worktrees, PR review comments, general conventions, personal-convention auditing, artifact trimming, verified bug hunting).",
   "author": {
     "name": "Vasily Vasilyev",

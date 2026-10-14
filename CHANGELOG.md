@@ -11,6 +11,53 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 2.4.2, dotnet-backend-dev 1.2.2, and gop-pipeline 1.2.0 in release [2.4.2] - 2026-10-14
+
+This release fixes the skill bugs that the lint sweep found (issue #12).
+
+### Added in gop-pipeline
+
+- `gop-commit`: New optional input `warning_note`. A CRITICAL finding that the user overrides now reaches the commit message.
+- `gop-commit`: New optional input `commit_trailer`. The agent now has a clear rule for the commit author and the trailer.
+
+### Changed in dev-essentials
+
+- `review-loop`: The option `--fixer` takes one agent ID. If the value names several agents (`audit-team`, `dual`, `pair`, or `quad`), the run warns and uses `general-purpose`.
+- `process-pr-comments`: The default `bots` list now uses the real Copilot reviewer login `copilot-pull-request-reviewer[bot]`. The skill compares bot logins without the `[bot]` suffix.
+- `feature-pipeline`: `--dry-run` now creates no worktree, no branch, and no file.
+- `test-engineer`: The agent can now use the `Skill` tool, so it can find the example folder of `create-tests`.
+
+### Fixed in dev-essentials
+
+- All workflows with the shared "Autonomy" section, `save-context`, and `git-worktree-management` (Workflow D): The lookup of a merged pull request now uses the head `owner:branch` and the state `all`. Before, the lookup missed some merged pull requests.
+- `review-loop`, `help-review-pr`, and `github-mcp-conventions`: For a pull request from a fork, the diff recipe now fetches `pull/<id>/head`. `process-pr-comments` now checks ancestry against `origin/pull/<prId>/head`, so a pull request from a fork works.
+- `git-sync`: The test for a rewritten branch uses `git merge-base --is-ancestor`. The repair recipe keeps the original author and date.
+- `implement` and `opsx-implement`: The commands now forbid the word "pre-existing" for a red signal, as `engineering-discipline` Rule 1 says.
+- `review-loop`: The thread states now use `is_resolved` and `is_outdated`. Phase 6 has a path for a failure outside the fixed code. The place of the cycle report now depends on `--rounds`.
+- `audit-team`: The roles now run as `general-purpose` agents with a read-only brief.
+- `feature-pipeline`: Stages 1 and 2 return `QUESTIONS`, and the master agent asks the user. The master agent writes `review-diff.patch` and saves the reply of the reviewer as `review.md`. The text of the arguments follows the Autonomy core for the Fable rule, and every stage prompt gets the pipeline-discipline block. The RED step now proves that a passing test can fail, with a temporary wrong value. The run deletes `review-feedback.md` after each re-entry run. With `--skip=review`, `review.md` is optional.
+- `process-pr-comments`: Bucket B now covers pushed history and commits that the run did not make, with an exception for deep fixes. Ordered rules replace "strictest action" for combined tags.
+- `subagent-orchestration`: The Post-edit gate now covers only the edited paths, compared with the Pre-flight state.
+- `audit-personal-conventions`: The skill creates the pull request with GitHub MCP tools only, never with the `gh` CLI. A skill that it authors and that grows past 500 lines is split, with the conditional parts in separate files.
+- `task-composer`: The agent passes the approved issue type after a `list_issue_types` check.
+- `pr-composer`: The agent has a fallback chain for the base branch. If the chain finds none, it asks in the final reply.
+- `trim-artifacts`: The reviewer brief now has `{PLAN_PATH}` and the "in other file" test.
+- The descriptions of `subagent-orchestration`, `process-pr-comments`, `audit-personal-conventions`, and `engineering-discipline` are now below the limit of 1,024 characters.
+
+### Fixed in dotnet-backend-dev
+
+- `create-controller`: The example now inherits the project controller base.
+- `add-session-logging`: The failure message of the session log no longer holds `ex.Message`. The field is now `_sessionLogRepository` in all files.
+- `create-external-client`: The client no longer logs the whole request object.
+- `model-mapping`: `SKILL.md` is now under 500 lines. The duplicate example is removed.
+- `dotnet-conventions`: The manual mapping example in `mappers.md` has its TODO and its parameter. The usage examples in `generators.md` and `mock-builders.md` now follow the test rules. The examples in "Test Structure" build the SUT with a helper named for its role. Test cases call the `Generate` helpers, not the generators. The controller example sets up `ExternalServicesMock` in a named method. `repository-tests.md` uses one generic test class shape.
+
+### Fixed in gop-pipeline
+
+- `gop-test`: The agent runs long tests in the background and polls an exit file.
+- `gop-validate-compliance`, `gop-validate-security`, and `gop-validate-performance`: Removed a blast-radius step that the agents did not use.
+- `gop-work`: The `--interactive` routing now defines a partial dismissal and a repeated finding.
+
 ## dev-essentials 2.4.1, dotnet-backend-dev 1.2.1, and gop-pipeline 1.1.1 in release [2.4.1] - 2026-10-14
 
 ### Changed in dev-essentials
@@ -272,7 +319,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.2.0...v2.3.0
