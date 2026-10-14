@@ -17,13 +17,6 @@ Install the [vscode-markdownlint](https://marketplace.visualstudio.com/items?ite
 code --install-extension DavidAnson.vscode-markdownlint
 ```
 
-The extension provides:
-
-- Real-time linting as you type (wavy green underlines)
-- Quick fixes via `Ctrl+.` (light bulb icon)
-- Auto-fix on save with `editor.codeActionsOnSave`
-- Format document with `Shift+Alt+F`
-
 ### CLI Tool for Validation
 
 Use [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli) for command-line validation:
@@ -53,27 +46,11 @@ markdownlint --config .markdownlint.json "README.md"
 
 ### Preferred Validation Workflow
 
-**Recommended approach for this project:**
-
-```bash
-# Validate all project documentation
-markdownlint "Docs/**/*.md" ".github/skills/**/*.md" "README.md"
-
-# Auto-fix all fixable issues
-markdownlint --fix "Docs/**/*.md" ".github/skills/**/*.md" "README.md"
-
-# Validate specific folder
-markdownlint "Docs/Features/**/*.md"
-
-# Validate single file
-markdownlint ".github/skills/create-documentation/SKILL.md"
-```
-
-**Before committing:**
+Before you commit a Markdown file:
 
 1. Run auto-fix: `markdownlint --fix "path/to/file.md"`
 2. Validate: `markdownlint "path/to/file.md"`
-3. Review and commit if exit code is `0`
+3. If the exit code is `0`, review the changes and commit.
 
 ## Essential Rules to Follow
 
@@ -248,9 +225,9 @@ Final section content.
 
 ## Inline Suppressions
 
-**Do NOT use inline lint-disable comments to suppress warnings.** Fix the underlying formatting issue instead. This is especially common with tables — if a table triggers lint warnings, reformat the table (align pipes, fix column counts, add surrounding blank lines) rather than adding `<!-- markdownlint-disable -->` comments.
+**Do NOT use inline lint-disable comments to suppress warnings.** Fix the underlying formatting issue instead. Tables often trigger this. If a table triggers lint warnings, reformat the table: align the pipes, fix the column counts, and add blank lines around it. Do not add `<!-- markdownlint-disable -->` comments.
 
-When a rule genuinely cannot be satisfied (e.g., required inline HTML for `<details>`/`<summary>`), use inline comments as a last resort:
+If a rule cannot be satisfied, for example because the document needs inline HTML for `<details>`/`<summary>`, use inline comments as a last resort:
 
 ```markdown
 <!-- markdownlint-disable-next-line MD013 -->
@@ -280,7 +257,7 @@ Content with inline HTML that requires disabling the rule.
 
 ## Configuration File
 
-Create `.markdownlint.json` in project root for consistent settings:
+Create `.markdownlint.json` in the project root, so that every run uses the same rules:
 
 ```json
 {
@@ -328,21 +305,6 @@ These rules can be fixed automatically with `markdownlint --fix`:
 - MD034, MD037-MD039 (URLs, emphasis, code spans)
 - MD047, MD049, MD050 (newlines, emphasis style)
 
-## Validation Workflow
-
-Before committing Markdown files:
-
-```bash
-# Validate all documentation
-markdownlint "Docs/**/*.md" "README.md"
-
-# Fix auto-fixable issues
-markdownlint --fix "Docs/**/*.md"
-
-# Validate specific file
-markdownlint "Docs/{ServiceName} - Configuration.md"
-```
-
 ## VS Code Settings
 
 Add to `.vscode/settings.json` for consistent behavior:
@@ -363,4 +325,4 @@ Add to `.vscode/settings.json` for consistent behavior:
 
 ## Cross-References
 
-- [create-documentation](../create-documentation/SKILL.md) - Creating project documentation files
+- [create-documentation](../create-documentation/SKILL.md): Creating project documentation files

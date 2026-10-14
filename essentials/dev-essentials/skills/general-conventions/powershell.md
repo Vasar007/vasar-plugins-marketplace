@@ -3,11 +3,9 @@
 ## Invocation
 
 Invoke `.ps1` scripts via `pwsh` (PowerShell 7+), never the legacy `powershell.exe`
-(Windows PowerShell 5.1). This is more than a style preference — PS 5.1 and PS 7 have
-real semantic differences: different default module versions, different
-`$PSVersionTable`, and some cmdlets behave differently between the two. A script
-written and tested against `pwsh` is not guaranteed to run correctly under
-`powershell.exe`, and vice versa.
+(Windows PowerShell 5.1). The two versions differ in their default module versions, in
+`$PSVersionTable`, and in the behavior of some cmdlets. A script that works under `pwsh`
+can fail under `powershell.exe`, and the reverse is also true.
 
 ## Script Structure
 
@@ -34,7 +32,7 @@ Every script must include comment-based help at the top:
 
 - Use `[CmdletBinding()]` and `param()` blocks.
 - Destructive scripts: default `$DryRun = $true`. Require explicit `-DryRun $false`.
-- Provide sensible defaults (e.g., `-Region "eu-central-1"`).
+- Provide sensible defaults, for example `-Region "eu-central-1"`.
 - Use `[ValidateSet()]`, `[ValidateNotNullOrEmpty()]` where appropriate.
 
 ## Output and Logging
@@ -63,5 +61,5 @@ Every script must include comment-based help at the top:
 ## Azure Conventions
 
 - Use `az` CLI with `--output json`.
-- Authenticate via `az login` — never embed credentials.
+- Authenticate with `az login`. Never embed credentials.
 - Use `az account set` for subscription targeting.
