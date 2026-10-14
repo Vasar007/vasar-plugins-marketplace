@@ -12,7 +12,7 @@ test, a typo switches the protection off.
 An allowed block is a protected block that the user approved for withdrawal.
 The script tests the allow regex against the text PATH:FIRST_LINE. PATH is the
 relative path with forward slashes. After the trim, the same file must still
-hold one line that matches the regex. This line is the tombstone.
+hold at least one line that matches the regex. This line is the tombstone.
 
 The script resolves both roots, including symbolic links. It refuses a before
 tree and an after tree that are equal or that contain each other. A backup
