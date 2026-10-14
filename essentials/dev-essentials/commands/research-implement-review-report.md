@@ -137,7 +137,7 @@ Record each finding that the user and the orchestrating session agree to defer, 
 
 ### Phase 4 — Report
 
-Write the handoff document by the logic of `dev-essentials:save-context`. Pass the path `Notes/Results/<slug>-report.md` as its path argument. Also pass `--plan=<path from Phase 1>`, `--no-continuation-prompt`, and `--interactive` or `--autonomous` for a run that has it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
+Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Notes/Results/<slug>-report.md` as its path argument. Also pass `--plan=<path from Phase 1>`, and `--interactive` or `--autonomous` for a run that has it. Pass no other flag. The defaults of `save-context` are right here: it runs its Step 5 cleanup and prints no continuation prompt. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. The plan of Phase 1 belongs to work that still runs (the review and the merge by the user), so the cleanup keeps it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
 
 - **Overview**: what this run covered, the branch, the worktree, and the date.
 - **What Was Done**: for each phase, the research findings, the plan, each implemented task, and the outcome of each review round.
@@ -146,7 +146,7 @@ Write the handoff document by the logic of `dev-essentials:save-context`. Pass t
 - **Key File Paths**: grouped by category (core, tests, configuration, docs).
 - **What's Next**: the remaining work. Say whether the branch is pushed or has a PR. The default is no, because a push needs the explicit go-ahead of the user.
 
-Tell the user where the report is. Give the same one-line summary as `save-context`, and the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only. Do not print a continuation prompt for the next session.
+Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only. Do not print a continuation prompt for the next session, unless the user asks for one in this run.
 
 ## Commit cadence
 

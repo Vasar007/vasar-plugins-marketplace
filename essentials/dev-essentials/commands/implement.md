@@ -99,7 +99,7 @@ These rules apply in all modes:
    Run this step after the selected sections. If the run stops early, run it before the stop. Follow the `/save-context` command logic with `--plan "<path>"`, plus `--interactive` or `--autonomous` for a run that has it.
    - If `--context <path>` was given, save to that path. Else save to the research file name of Step 2 (for example, `Notes/Results/my-plan-research.md`).
    - Include: what was done, decisions made, issues found, what's next.
-   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
+   - Print no continuation prompt for the next session. Step 7 prints the summary only.
 
 7. **Output results**
 
