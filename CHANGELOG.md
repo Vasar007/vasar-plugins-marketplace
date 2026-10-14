@@ -11,6 +11,37 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 3.0.0 and dotnet-backend-dev 1.3.0 in release [3.0.0] - 2026-10-14
+
+This release makes the continuation prompt of `save-context` opt-in (issue #23). It also moves the .NET test tools from `dev-essentials` to `dotnet-backend-dev` (issue #24).
+
+### Added in dotnet-backend-dev
+
+- The command `/dotnet-backend-dev:write-tests` and the agent `dotnet-backend-dev:test-engineer`. Both moved from `dev-essentials` and work as before. They use the skill `create-tests` of the same plugin.
+
+### Changed in dotnet-backend-dev
+
+- `test-engineer`: If the agent cannot load `create-tests`, it now stops and reports the error. Before, it told the user to install `dotnet-backend-dev`.
+- The plugin description now names the `write-tests` command and the `test-engineer` agent.
+
+### Changed in dev-essentials
+
+- `save-context`: The next-session continuation prompt is now opt-in. The new flag `--continuation-prompt` prints it. A request in words also prints it. A run without a request cleans up the context files (Step 5) and prints no prompt. The flag `--no-cleanup` still skips the cleanup.
+- `research-implement-review-report` and `implement-task`: The report phase now runs `save-context` with its defaults, as the last step of the run. So the `save-context` cleanup now runs at the end of the run. The cleanup keeps the plan of the run. `save-context` prints no continuation prompt.
+- `implement` and `opsx-implement`: The commands no longer print the continuation prompt of `save-context`. They print their summary only.
+- The plugin description no longer names a test agent.
+
+### Removed in dev-essentials
+
+- `save-context`: Removed the flag `--no-continuation-prompt`. The prompt is now off by default.
+- Removed the command `write-tests` and the agent `test-engineer`. They moved to `dotnet-backend-dev`.
+
+### Breaking changes in dev-essentials
+
+- `/dev-essentials:write-tests` no longer exists. Install `dotnet-backend-dev` and run `/dotnet-backend-dev:write-tests`.
+- The agent type `dev-essentials:test-engineer` no longer exists. Dispatch `dotnet-backend-dev:test-engineer`.
+- `save-context` no longer accepts `--no-continuation-prompt`, and it prints no continuation prompt by default. To get the prompt, pass `--continuation-prompt`.
+
 ## dev-essentials 2.5.0 and dotnet-backend-dev 1.2.3 in release [2.5.0] - 2026-10-14
 
 This release applies the design decisions from the lint sweep (issue #11).
@@ -346,7 +377,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.0...v2.4.1

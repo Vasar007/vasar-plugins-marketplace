@@ -8,8 +8,8 @@ This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplac
 
 | Plugin | Group | Purpose |
 |---|---|---|
-| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Test, Docs), bug-hunt agents (hunter, verifier, auditor), and generic workflow commands. Cross-stack skills for markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, personal-convention auditing, artifact trimming, and verified bug hunting. |
-| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET, Clean Architecture, DDD, EF Core, and OpenAPI skills. A hub of backend conventions for controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing. |
+| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Docs), bug-hunt agents (hunter, verifier, auditor), and generic workflow commands. Cross-stack skills for markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, personal-convention auditing, artifact trimming, and verified bug hunting. |
+| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET, Clean Architecture, DDD, EF Core, and OpenAPI skills. The `write-tests` command and the `test-engineer` agent for .NET tests. A hub of backend conventions for controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing. |
 | [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A pipeline with specialist validator subagents. The stages run in this order: plan, implement, build, test, validate, commit. The validate stage runs in parallel for correctness, reuse, security, compliance, and performance. |
 
 ## Installing the marketplace
@@ -91,6 +91,8 @@ vasar-plugins-marketplace/
 │   └── dotnet-backend-dev/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
+│       ├── agents/
+│       ├── commands/
 │       └── skills/
 └── workflows/
     └── gop-pipeline/
