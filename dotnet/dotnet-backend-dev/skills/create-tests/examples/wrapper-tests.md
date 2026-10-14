@@ -26,7 +26,7 @@ If no matching interface exists for your domain wrapper (for example, a bespoke 
 - `IStringWrapper<T>` for string-based IDs
 - `IGuidWrapper<T>` for GUID-based IDs
 - `IInt32Wrapper<T>` for integer-based IDs
-- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`, etc.
+- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`, and others
 
 ## GUID Wrapper Pattern
 
