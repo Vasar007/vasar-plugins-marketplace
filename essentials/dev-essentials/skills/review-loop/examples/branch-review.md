@@ -46,7 +46,7 @@ Target resolved: branch diff main...HEAD
 The skill prints:
 
 ```
-Reviewer:  dual → feature-dev:code-reviewer + general-purpose (foreground-parallel)
+Reviewer:  dual → feature-dev:code-reviewer + general-purpose (parallel)
 Fixer:     general-purpose
 ```
 
