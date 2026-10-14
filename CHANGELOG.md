@@ -26,6 +26,7 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `process-pr-comments`: The default `bots` list now uses the real Copilot reviewer login `copilot-pull-request-reviewer[bot]`. The skill compares bot logins without the `[bot]` suffix.
 - `feature-pipeline`: `--dry-run` now creates no worktree, no branch, and no file.
 - `test-engineer`: The agent can now use the `Skill` tool to load `create-tests`. It reads the example files of the skill from the base folder that the Skill tool prints. Without that folder, it finds them in the plugin cache with Glob.
+- `audit-personal-conventions`: The trigger phrases moved from `description` to the frontmatter field `when_to_use`. Claude Code adds this field to the description in the skill listing.
 
 ### Fixed in dev-essentials
 
