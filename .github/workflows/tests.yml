@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # The simple-english linter at tag v2.1.1. The baseline in tests/ is for this version.
       - uses: actions/checkout@v7

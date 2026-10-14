@@ -13,7 +13,7 @@
   "MD029": false,
   // The other elements are placeholders in angle brackets, for example <ID>.
   "MD033": {
-    "allowed_elements": ["details", "summary", "br", "add", "command", "id", "model", "role", "time"]
+    "allowed_elements": ["details", "summary", "br", "add", "command", "id", "role", "time"]
   },
   // Some code spans hold a literal text that starts with a space.
   "MD038": false,

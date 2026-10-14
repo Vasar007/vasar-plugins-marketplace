@@ -25,7 +25,7 @@ from support import REPO, load_module, plugin_markdown_files, tool_missing
 
 BASELINE = Path(__file__).resolve().parent / "simple-english-baseline.json"
 CACHE = Path("plugins/cache/simple-english/simple-english")
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 TABLE_RULE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
 
@@ -67,6 +67,15 @@ def prepare(text):
 
 def key(file, rule, text):
     return (file, rule, " ".join(text.split()))
+
+
+class PrepareTests(unittest.TestCase):
+    def test_indented_fence_in_a_list_is_blanked(self):
+        text = "1. Run it:\n\n     ```bash\n     a; b\n     ```\n\nYou should go.\n"
+        out = prepare(text).split("\n")
+        self.assertEqual(len(out), len(text.split("\n")))
+        self.assertEqual(out[2:5], ["", "", ""])
+        self.assertEqual(out[6], "You should go.")
 
 
 class SimpleEnglishLintTest(unittest.TestCase):

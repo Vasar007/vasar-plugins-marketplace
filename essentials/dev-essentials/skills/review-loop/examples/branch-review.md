@@ -126,7 +126,7 @@ Edited files: `TenantRepository.cs` and `TenantQueryServiceTests.cs`.
 
 `CLAUDE.md` documents the command `dotnet build ./Sources/<example-repo>.sln -c Debug`.
 
-```bash
+```text
 dotnet build ./Sources/<example-repo>.sln -c Debug
 Build succeeded.
     0 Warning(s)
@@ -135,7 +135,7 @@ Build succeeded.
 
 A focused test filter for the files that the fix pass touched:
 
-```bash
+```text
 dotnet test ./Sources/<example-repo>.sln \
   --filter "FullyQualifiedName~TenantQueryServiceTests|FullyQualifiedName~TenantRepositoryTests"
 

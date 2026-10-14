@@ -113,7 +113,7 @@ Spec target detected — build/test step skipped (non-code artifact).
 
 The spec validation still applies, because `CLAUDE.md` documents `openspec validate <change-name>`:
 
-```bash
+```text
 openspec validate 2026-05-08-add-tenant-quotas
 ✓ Schema valid
 ✓ All required sections present

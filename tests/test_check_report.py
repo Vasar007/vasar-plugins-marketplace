@@ -31,6 +31,13 @@ def fixture(name):
     return (FIXTURES / name).read_text(encoding="utf-8")
 
 
+def edit(text, old, new):
+    """Replace the first old with new. Fail if the text has no old."""
+    if old not in text:
+        raise AssertionError(f"the fixture has no {old!r}")
+    return text.replace(old, new, 1)
+
+
 class CheckReportCase(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
@@ -101,7 +108,7 @@ class ValidReportTests(CheckReportCase):
         block = ("~~~text\n## Not a section\n### BH-99: Not an entry\n~~~\n\n"
                  "```text\n## Not a section either\n```\n\n")
         anchor = "### New details for known issues\n\nNone.\n\n### BH-01"
-        text = fixture("final.md").replace(anchor, anchor.replace("None.\n\n", "None.\n\n" + block), 1)
+        text = edit(fixture("final.md"), anchor, anchor.replace("None.\n\n", "None.\n\n" + block))
         self.assertPasses(self.check_text(text))
 
     def test_base_no_drops_the_also_on_base_field(self):
@@ -112,7 +119,7 @@ class ValidReportTests(CheckReportCase):
                           "BH-01: missing field 'Also on base'")
 
     def test_changed_severity_with_was_form_is_legal(self):
-        text = fixture("final.md").replace("- Severity: High\n", "- Severity: Medium (was High)\n", 1)
+        text = edit(fixture("final.md"), "- Severity: High\n", "- Severity: Medium (was High)\n")
         self.assertPasses(self.check_text(text))
 
 
@@ -214,7 +221,7 @@ class StructureDefectTests(CheckReportCase):
         self.assertDefect(self.check_text(no_review, 2, "final"), "no 'For the owner's review' subsection")
         placeholder = fixture("final.md").replace("Out of scope: none.", "Out of scope: {EXCLUDED}.", 1)
         self.assertDefect(self.check_text(placeholder), "placeholder left: {EXCLUDED}")
-        quoted = fixture("final.md").replace("Out of scope: none.", "Out of scope: `{EXCLUDED}`.", 1)
+        quoted = edit(fixture("final.md"), "Out of scope: none.", "Out of scope: `{EXCLUDED}`.")
         self.assertPasses(self.check_text(quoted))
 
     def test_open_note_without_result(self):

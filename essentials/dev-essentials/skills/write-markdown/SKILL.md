@@ -227,7 +227,7 @@ Final section content.
 
 **Do NOT use inline lint-disable comments to suppress warnings.** Fix the underlying formatting issue instead. Tables often trigger this. If a table triggers lint warnings, reformat the table: align the pipes, fix the column counts, and add blank lines around it. Do not add `<!-- markdownlint-disable -->` comments.
 
-Some documents need inline HTML, for example for `<details>`/`<summary>`. If a rule cannot pass in such a case, use inline comments as a last resort:
+If a rule cannot pass, use inline comments as a last resort. One example is a document that needs inline HTML for `<details>`/`<summary>`:
 
 ```markdown
 <!-- markdownlint-disable-next-line MD013 -->

@@ -131,10 +131,16 @@ class ProtectedBlockTests(TrimReportCase):
         result = self.run_trim({"n.md": "# Notes\n"}, {"n.md": "# Notes\n"}, "--protected-regex", DECISION)
         self.assertResult(result, 1, "FAIL: regex matched nothing in the before tree")
 
-    def test_invalid_utf8_does_not_crash_the_output(self):
+    def test_invalid_utf8_in_a_block_does_not_crash(self):
         before = {"n.md": NOTES.encode("utf-8").replace(b"keep the cache", b"keep \xff cache")}
         result = self.check({"n.md": b"# Notes\n"}, before=before)
         self.assertResult(result, 1, "- MISSING n.md:5")
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_invalid_utf8_in_a_printed_line_is_escaped(self):
+        before = {"n.md": b"# Notes\n\nQuote: keep \xff it\n"}
+        result = self.run_trim(before, {"n.md": b"# Notes\n"}, "--protected-regex", r"(?m)^Quote: .*$")
+        self.assertResult(result, 1, r"- MISSING n.md:3: Quote: keep \udcff it")
         self.assertNotIn("Traceback", result.stderr)
 
 
