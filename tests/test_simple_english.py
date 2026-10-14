@@ -53,7 +53,7 @@ def prepare(text):
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and line.strip() == m.group(1):
                 fence = None
             out.append("")
-        elif m:
+        elif m and not (m.group(1)[0] == "`" and "`" in line.strip()[len(m.group(1)):]):
             fence = m.group(1)
             out.append("")
         elif TABLE_RULE.match(line):
@@ -76,6 +76,10 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(len(out), len(text.split("\n")))
         self.assertEqual(out[2:5], ["", "", ""])
         self.assertEqual(out[6], "You should go.")
+
+    def test_line_that_starts_with_a_code_span_is_not_a_fence(self):
+        text = "1. Run it:\n\n     ``` `x` ``` is code.\n\nYou should go.\n"
+        self.assertEqual(prepare(text).split("\n")[4], "You should go.")
 
 
 class SimpleEnglishLintTest(unittest.TestCase):

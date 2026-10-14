@@ -35,7 +35,7 @@ Every reviewer report MUST follow these rules. Each brief below ends with "Apply
 
 **Skip trivial comments**: report only findings that call for an action.
 
-**Reviewer model footer**: end every report with exactly: ``Review made by `<MODEL>` ``
+**Reviewer model footer**: end every report with exactly: `` Review made by `<MODEL>` ``
 
 ---
 
