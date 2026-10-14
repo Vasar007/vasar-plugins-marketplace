@@ -71,7 +71,7 @@ Do not edit or delete a posted comment through MCP. For PR review comments, the 
 - If a stub comment does land, note it explicitly in chat: "A stub comment landed on PR #`<id>`. Please delete it in the GitHub UI (PR → Conversation → the comment → Delete)."
 - Do not try to "overwrite" a stub with a corrected comment. That adds a second comment next to the stub and doubles the clutter.
 
-**Pending review batches:** a batch from `add_comment_to_pending_review` is not visible until `pull_request_review_write` submits it. Do not discard a pending batch through MCP. Dismiss it in the GitHub UI.
+**Pending review batches:** a batch from `add_comment_to_pending_review` is not visible until `pull_request_review_write` submits it. You can discard your own pending review through MCP: call `pull_request_review_write` with `method: "delete_pending"`. The call deletes the whole pending review of the current user, with all its comments. Nobody else saw these comments, so this is not a delete of a posted comment. MCP has no tool to edit or delete one comment of a pending review. To change one comment, delete the whole pending review, and create it again.
 
 ## Rule 5 — No REST/`gh`-CLI fallback when MCP is unavailable
 

@@ -4,7 +4,7 @@
 
 - **Authentication credentials**: Passwords, secret keys, API tokens, access keys
 - **Private cryptographic material**: Private keys, certificates with private data
-- **Security tokens**: Session tokens, OAuth tokens, refresh tokens, fleet tokens
+- **Security tokens**: Session tokens, OAuth tokens, refresh tokens
 
 **Not sensitive** (safe to log): Resource IDs, tenant IDs, region names, usernames (without passwords), instance IDs, timestamps, status codes, version numbers.
 

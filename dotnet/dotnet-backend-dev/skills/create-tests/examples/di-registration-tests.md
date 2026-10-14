@@ -74,7 +74,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => serviceCollection!.AddSharedWebApiServices();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -129,7 +129,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => serviceCollection!.ConfigureHttpLogging();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -168,7 +168,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => hostAppBuilder.Services.ConfigureHttpLogging();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentException>();
     }
 
@@ -205,7 +205,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => serviceCollection!.AddAppApiVersioning();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -241,7 +241,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => serviceCollection!.AddAppDiagnosticServices();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -278,7 +278,7 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         // Act.
         var act = () => serviceCollection!.AddAppAppSwaggerGen();
 
-        // Act & Assert.
+        // Assert.
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -306,7 +306,7 @@ public void AddMyServices_OnNullServiceCollection_ThrowsArgumentNullException()
     // Act.
     var act = () => serviceCollection!.AddMyServices();
 
-    // Act & Assert.
+    // Assert.
     act.Should().Throw<ArgumentNullException>();
 }
 ```

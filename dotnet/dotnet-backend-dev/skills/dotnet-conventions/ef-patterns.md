@@ -50,12 +50,14 @@ The service's EF context lives in `Infrastructure/Persistence/` and is named aft
 - Repositories create mappers internally with `new TMapper()`. Do **not** use `IEntityDomainMappingService`.
 - Use the Find + Update pattern. Do not call `UpsertAsync` directly.
 
-## RegionId Storage — Two Patterns
+## Reference Storage: Two Patterns
 
-1. **Appliance-like entities** that relate to a deployable region: store `Guid RegionId` as FK to `DeployableRegionEntity` with `HasForeignKey`.
-2. **Cloud-resource deployment entities** (VPC, subnet, and similar infrastructure records whose region is stored as a provider string): store `String` directly and convert via `SharedDomainWrappersConverter.ToDomainRegionId()`.
+An entity can refer to a value that another model owns. Store the reference in one of two ways:
 
-When adding new entities with region, follow the pattern of the closest existing entity in the repo.
+1. **A reference to an entity of this service**: store the `Guid` key of that entity as a foreign key, and configure it with `HasForeignKey`. Example: `Guid HomeStoreId` as the foreign key to `StoreEntity`.
+2. **A value that an external system gives as a string** (for example a country code): store the `String` directly. In the mapper, convert it to the domain wrapper through `SharedDomainWrappersConverter` (see [mappers.md](mappers.md)), for example with `.ToDomainCountryCode()`.
+
+When you add a new entity with such a reference, follow the pattern of the closest existing entity in the repo.
 
 ## Entity DI Registration
 

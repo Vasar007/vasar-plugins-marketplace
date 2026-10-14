@@ -5,6 +5,14 @@ Use this template to document a service feature and its workflow.
 ```markdown
 # {ProjectName} - {Feature Name}
 
+- [Overview](#overview)
+- [Workflow](#workflow)
+  - [User Steps (API Calls)](#user-steps-api-calls)
+  - [Internal Steps (Service Logic)](#internal-steps-service-logic)
+- [Configuration Options](#configuration-options)
+- [Edge Cases and Error Handling](#edge-cases-and-error-handling)
+- [See Also](#see-also)
+
 Brief description of the feature and its purpose.
 
 ---

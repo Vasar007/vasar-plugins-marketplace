@@ -56,7 +56,7 @@ tests/ (or src/Tests/)
 | Method null-argument tests, async lambdas, SUT names, helper order, `Arg.Any<T>()` or `default`, `ThrowIfNull()`, block bodies | [enforced-gates.md](examples/enforced-gates.md) |
 | Scenario or end-to-end integration test | [scenario-tests.md](examples/scenario-tests.md) |
 
-The seven gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. See "Enforced gates" in the checklist below.
+The seven gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. One exception: Gate 1 applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests. See "Enforced gates" in the checklist below.
 
 If no example matches your case, look for a similar test class in the test projects of the repository. They are usually under `tests/`, `src/Tests/`, `Sources/Tests/`, or `Tests/`. Follow the pattern of that class. Never guess the API of a base class. Read it first.
 
@@ -117,6 +117,8 @@ public void MethodName_Condition_ExpectedResult()
     result.Should().NotBeNull();
 }
 ```
+
+If one statement does the work of two or three sections, use one combined comment. Join the section names with `&`, and keep the dot at the end: `// Act & Assert.` or `// Arrange, Act & Assert.`. `// Arrange & Act.` is also allowed, for a statement that builds the SUT and is the action under test. Never use `+` or another separator.
 
 ### Test Class Structure
 
@@ -376,12 +378,12 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 - [ ] **Read the matching example file in examples/ BEFORE you write any code**
 - [ ] The test class inherits the correct base class
 - [ ] `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` attributes (unless the fixture is non-parallelizable)
-- [ ] All tests use the `// Arrange.` `// Act.` `// Assert.` comments
+- [ ] All tests use the `// Arrange.` `// Act.` `// Assert.` comments, or a combined form with `&`, such as `// Act & Assert.` or `// Arrange, Act & Assert.` (see "Test Structure")
 - [ ] Props files (`Directory.Build.props`, `Directory.Packages.props`, `global.json`) are NOT staged, unless the user named them explicitly
 
 ### Enforced gates (details in [enforced-gates.md](examples/enforced-gates.md))
 
-- [ ] Gate 1: each public method with a required reference parameter has ONE `foreach` null-argument test. A required `String` parameter gets its own `StringNullOrWhiteSpace_TestCases` test instead.
+- [ ] Gate 1 (only for a test class that calls the methods of the SUT directly, never for controller tests through the HTTP client or for scenario tests): each public method with a required reference parameter has ONE `foreach` null-argument test. A required `String` parameter gets its own `StringNullOrWhiteSpace_TestCases` test instead.
 - [ ] Gate 2: no `async () => await x` around a single expression
 - [ ] Gate 3: the SUT variable and its helper use the role noun of the class (`processor`, `CreateProcessor`), never `sut`
 - [ ] Gate 4: helper methods come last, in one `#region Helper Methods`

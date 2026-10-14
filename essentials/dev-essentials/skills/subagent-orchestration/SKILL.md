@@ -92,21 +92,19 @@ Acceptable exceptions:
 
 Anti-pattern: "let me preload the PR metadata so the subagent's prompt is richer". Do not do this. Pass the IDs and let the subagent fetch.
 
-## Rule 3 — Agent dispatch has no foreground/background choice; dispatch independent work concurrently
+## Rule 3 — Dispatch independent work as several `Agent` calls in one message
 
-**Fact, not preference**: the `Agent` tool has no synchronous "foreground" mode that you can choose. Its parameter schema has no `run_in_background` field. Its own description says that subagents run in the background, and that a notification arrives at the end of each one. Every `Agent` dispatch returns at once. The result of the subagent arrives later in a task notification. So for the `Agent` tool, no foreground option exists to prefer.
+Subagents run in the background by default. A task notification arrives when each subagent completes. Do not poll, sleep, or call a "check progress" tool while you wait. The notification is the signal.
 
-This fact is about the `Agent` tool only. `Bash` and `PowerShell` have a real `run_in_background` parameter and a real choice between foreground and background. This rule changes nothing for those two tools.
+**Parallel dispatch.** To run independent work at the same time, make several `Agent` calls in ONE assistant message. All subagents start together, and each one sends its own notification.
 
-**Parallelism is still the goal.** To dispatch independent work at the same time, make several `Agent` calls in a SINGLE assistant message. All agents start together, and a separate task notification arrives as each one completes. This skill calls this pattern "foreground-parallel" dispatch. It is the only way to run independent `Agent` calls in parallel.
+**Sequential dependency** (stage B needs the output of stage A): dispatch A, wait for the notification of A, and then dispatch B in a later message.
 
-**Genuine sequential dependency** (stage B needs the output of stage A): dispatch A, wait for the task notification of A, and then dispatch B in a later message.
+**Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied"). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief.
 
-**Never poll, sleep, or call any "check progress" tool** while you wait for a dispatched agent. The runtime sends a task notification at the end of each agent. That notification is the correct signal.
+Other cases:
 
-Cases that do not change:
-
-- **Bash/PowerShell**: never set `run_in_background: true` on Bash for "convenience". That flag really exists there, and it is a real choice. Long-running Bash and PowerShell commands stay in the foreground. The one exception is a long test run in a subagent, under Rule 3 of `dev-essentials:dotnet-build-test`. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
+- **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. The one exception is a long test run in a subagent, under Rule 3 of `dev-essentials:dotnet-build-test`. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
 - **`SendMessage` is not a dispatch.** Use it only to resume or correct a subagent that you dispatched for the same task (see Rule 5). For new work, make a fresh, unnamed `Agent` call.
 
 ## Rule 4 — Delegate high-volume external-system MCP work to subagents by default

@@ -11,6 +11,28 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 2.5.0 and dotnet-backend-dev 1.2.3 in release [2.5.0] - 2026-10-14
+
+This release applies the design decisions from the lint sweep (issue #11).
+
+### Changed in dev-essentials
+
+- `process-pr-comments`: With `autonomous`, an automated-review fix that adds a new architecture or a new public contract is now implemented. Before, the skill drafted the fix and waited. Some such fixes also leave the files of the PR diff. If such a fix is not at the rewrite-from-scratch exception, the skill still drafts it and waits. The cycle log now has a list "Decisions for your review". The list names each decision that `autonomous` made in the cycle without a stop.
+- `compose-pr`: The command now dispatches the `pr-composer` agent, so both write one PR description format, the format of `pr-composer`. `pr-composer` now ignores OpenSpec drafts and notes folders in the diff, and follows the extra context of the brief, as `compose-pr` did.
+- `github-mcp-conventions`: Rule 4 now allows `delete_pending` for your own pending review. The ban on an edit or a delete of a posted comment through MCP stays.
+- `subagent-orchestration`: Rule 3 now says that subagents run in the background by default, and how to dispatch independent work in parallel. It adds a short note on forks. The old text about the parameters of the `Agent` tool is gone.
+- `review-loop`: The reference to Rule 3 of `subagent-orchestration` no longer speaks of a foreground or background choice. The branch-review example now prints `(parallel)`, not `(foreground-parallel)`.
+- `create-documentation`: The feature template and the migration template now have a table of contents, as the checklist asks.
+- `test-engineer`: The agent now names the combined comment forms `// Act & Assert.` and `// Arrange, Act & Assert.`.
+
+### Changed in dotnet-backend-dev
+
+- `create-tests`: Gate 1 now applies only to test classes that call the methods of the SUT directly. Controller tests through the HTTP client and scenario tests are out of its scope.
+- `create-tests` and `dotnet-conventions`: The rule for test comments now names the combined forms `// Act & Assert.`, `// Arrange, Act & Assert.`, and `// Arrange & Act.`. The examples no longer use `// Act + Assert.`, and no longer put `// Act & Assert.` after `// Act.`.
+- `create-tests`: The examples now end every section comment with a dot, as the rule says. For example, `// Arrange - empty database (cleared in SetUp).`.
+- `handle-sensitive-data`: If it is not clear whether data is sensitive, the skill now asks the user. Before, it always asked. This matches `dotnet-conventions/security.md`.
+- `dotnet-conventions`: `ef-patterns.md` and `domain-models.md` now give generic rules for stored references and for wrappers from a shared SDK. `security.md` no longer names a token type of one infrastructure domain.
+
 ## dev-essentials 2.4.2, dotnet-backend-dev 1.2.2, and gop-pipeline 1.2.0 in release [2.4.2] - 2026-10-14
 
 This release fixes the skill bugs that the lint sweep found (issue #12).
@@ -324,7 +346,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.3.0...v2.4.0

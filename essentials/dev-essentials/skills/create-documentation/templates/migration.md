@@ -7,6 +7,26 @@ Use this template to document a database migration. See `dotnet-backend-dev:add-
 ````markdown
 # {ProjectName} - {Migration Name} Migration
 
+- [Overview](#overview)
+- [Why This Migration is Needed](#why-this-migration-is-needed)
+  - [Current Problems](#current-problems)
+  - [New Format Benefits](#new-format-benefits)
+- [What Changes](#what-changes)
+  - [Database Schema](#database-schema)
+  - [Field Mapping](#field-mapping)
+- [How It Works](#how-it-works)
+  - [Migration Steps](#migration-steps)
+  - [Edge Cases Handled](#edge-cases-handled)
+- [Testing](#testing)
+  - [Test Coverage](#test-coverage)
+- [Deployment](#deployment)
+  - [Pre-Deployment Checklist](#pre-deployment-checklist)
+  - [Deployment Process](#deployment-process)
+  - [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
+  - [Migration Does Not Run](#migration-does-not-run)
+  - [Migration Fails](#migration-fails)
+
 Brief description of the migration for DevOps engineers, operations teams,
 and support engineers who need to understand the migration process.
 

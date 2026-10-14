@@ -66,6 +66,8 @@ public void Method_Condition_ExpectedResult()
 }
 ```
 
+For combined sections, join the names with `&`: `// Act & Assert.`, `// Arrange, Act & Assert.`, or `// Arrange & Act.`. Never use `+`.
+
 ## STRICT: No Direct Mock Creation
 
 ```csharp

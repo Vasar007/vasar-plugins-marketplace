@@ -82,7 +82,7 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
                 CreateEventPublisher(), null!),
         };
 
-        // Act + Assert.
+        // Act & Assert.
         foreach (var act in actions)
             act.Should().Throw<ArgumentNullException>();
     }
@@ -185,4 +185,4 @@ public void Constructor_ThrowsArgumentNullException_WhenDependencyIsNull(
 
 ## Related gate: the same pattern applies to methods, not just constructors
 
-Public methods with required reference-type parameters get the same treatment: one combined `<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument` test for each method. See [enforced-gates.md](enforced-gates.md) gate 1.
+Public methods with required reference-type parameters get the same treatment: one combined `<Method>_ShouldThrowArgumentNullException_ForEachRequiredArgument` test for each method. See [enforced-gates.md](enforced-gates.md) gate 1 for the rule and its scope.
