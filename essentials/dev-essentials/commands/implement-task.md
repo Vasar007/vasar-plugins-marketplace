@@ -81,7 +81,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 ## Guardrails
 
 - **Context is context, never a target.** Never change, comment on, or vote on a fetched reference. The task does not fix what a fetched reference left undone, unless the user asks.
-- **Own every red signal** from each build or test run in this session, also in Phase 4 (`dev-essentials:engineering-discipline`). Never call one "pre-existing" without proof that it predates `RUN_BASE_SHA`.
+- **Own every red signal** from each build or test run in this session, also in Phase 4 (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates `RUN_BASE_SHA`.
 - **The files of this run live under `<--notes-dir>`** inside the worktree, never at the root of the repo. Never reference them from shipped code, docs, or commit messages (`dev-essentials:engineering-discipline` Rule 3).
 
 ## Progress tracking for the user

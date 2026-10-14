@@ -116,14 +116,16 @@ For anything beyond a small change, do not get the diff of a PR through `pull_re
 
 **How to apply (use local git instead)**:
 
-Read the `base` and `head` branch names of the PR from `pull_request_read` `method: "get"` (`base.ref` and `head.ref`, plain branch names without a `refs/heads/` prefix). Then run:
+Read the base branch name of the PR from `pull_request_read` `method: "get"` (`base.ref`, a plain branch name without a `refs/heads/` prefix). Fetch the head of the PR from the `pull/<id>/head` ref, not by the name of the head branch. For a PR from a fork, the head branch is not on `origin`, but `pull/<id>/head` is. Then run:
 
 ```bash
-git fetch origin
-git diff --stat origin/<base>...origin/<head>
-git diff origin/<base>...origin/<head> -- <path>   # targeted reads
-git log --oneline origin/<base>..origin/<head>
+git fetch origin <base> "+refs/pull/<id>/head:refs/remotes/origin/pull/<id>/head"
+git diff --stat origin/<base>...origin/pull/<id>/head
+git diff origin/<base>...origin/pull/<id>/head -- <path>   # targeted reads
+git log --oneline origin/<base>..origin/pull/<id>/head
 ```
+
+This recipe needs `origin` to be the base repository of the PR. If the fetch fails, stop and ask the user which remote holds the base repository. Then use that remote in place of `origin`. Do not fall back to the name of the head branch.
 
 This is not a new pattern. The `target=pr <id>` resolution of `dev-essentials:review-loop` already fetches and diffs this way. Treat it as the precedent, and do not invent a new way at each call site.
 

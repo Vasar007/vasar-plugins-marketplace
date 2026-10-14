@@ -50,7 +50,7 @@ From the response, keep `title`, `state`, `html_url`, and `number`. Also keep th
 
 ## Phase 3 — Get the diff locally
 
-Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself (`github-mcp-conventions` Rule 7). Use the `target=pr <id>` diff steps of `dev-essentials:review-loop`, and do not invent other steps. After Phase 2, run `git fetch origin <headRefName> <baseRefName>`. Then diff with the remote-tracking names: `git diff origin/<baseRefName>...origin/<headRefName>`. Never use local branch names, because they can be missing or stale.
+Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself (`github-mcp-conventions` Rule 7). Use the `target=pr <id>` diff steps of `dev-essentials:review-loop`, and do not invent other steps. After Phase 2, run `git fetch origin <baseRefName> "+refs/pull/<number>/head:refs/remotes/origin/pull/<number>/head"`. The `pull/<number>/head` ref also exists for a PR from a fork, whose head branch is not on `origin`. If the fetch fails, STOP and ask the user which remote holds the base repository. Then diff with the remote-tracking names: `git diff origin/<baseRefName>...origin/pull/<number>/head`. Never use local branch names, because they can be missing or stale.
 
 Run this diff once for the production paths and once for the test paths, so that you read them separately. Put `-- <paths>` at the end of each command. If a diff is very large, save it to a temp file and read it in parts.
 
@@ -161,7 +161,7 @@ Use Markdown only: symbols as code in backticks, and no HTML tags.
 
 - Make sure that `owner` and `repo` are present on every call (`github-mcp-conventions` Rule 2).
 - Make sure that the tag fits the finding. After the post, you cannot edit or delete the comment through MCP (`github-mcp-conventions` Rule 4). A wrong tag then needs a cleanup in the GitHub UI.
-- Make sure that the `line` (and `startLine` for a span of several lines) points at the line that you mean. Read the line again from the file of the source branch, for example with `git show origin/<headRefName>:<path> | sed -n '<N>p'`. Do not trust a line number from earlier in the run.
+- Make sure that the `line` (and `startLine` for a span of several lines) points at the line that you mean. Read the line again from the file of the source branch, for example with `git show origin/pull/<number>/head:<path> | sed -n '<N>p'`. Do not trust a line number from earlier in the run.
 
 # Phase 7 — Multi-PR mode (`--multi` mode)
 

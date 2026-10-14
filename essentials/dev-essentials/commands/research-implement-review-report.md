@@ -72,7 +72,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 ## Guardrails
 
 - **Do not improvise**. If the right resolution of a research finding, a plan ambiguity, or a review finding is unclear, ask the user. Do not guess. With `--autonomous`, decide as "Autonomy" says.
-- **Own every red signal** from the build and test steps of Phase 2 and Phase 3 in this session (`dev-essentials:engineering-discipline`). Never call one "pre-existing" without proof that it predates this run.
+- **Own every red signal** from the build and test steps of Phase 2 and Phase 3 in this session (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates this run.
 - **Never push without the explicit go-ahead of the user, each time.**
 
 ## Progress tracking for the user

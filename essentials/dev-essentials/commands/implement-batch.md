@@ -76,7 +76,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 ## Guardrails
 
 - **One task per commit** in the final stack. Do not merge two tasks into one commit or split one task across two, unless the user asks. One exception: the commit of task 1 also holds the Step 2 plans commit (Step 3.1). The guard "implement only this task" of Step 3.2 still binds the implementer of task 1. Only the squash of the orchestrating session takes in the plans commit.
-- **Own every red signal** from each build or test run in this session (`dev-essentials:engineering-discipline`). Never call one "pre-existing" without proof that it predates the batch.
+- **Own every red signal** from each build or test run in this session (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates the batch.
 - **Do not improvise.** Ask the user about an unclear plan item, an ambiguous review finding, or a task that is bigger than its plan. Do not guess. With `--autonomous`, decide as "Autonomy" says.
 - The plan files are the source of truth. Keep them up to date as tasks complete.
 
