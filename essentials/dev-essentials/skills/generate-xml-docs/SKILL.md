@@ -262,7 +262,7 @@ Use `<remarks>` for:
 
 ## Key Rules
 
-1. **ALL public, protected, and internal members need XML docs** (except tests)
+1. **ALL public and protected members, and all internal types, methods, and properties, need XML docs** (except tests)
 2. **Document exceptions based on validation** in method body
 3. **Use standard formats** for common validation exceptions
 4. **Include CancellationToken docs**: if a method has a `CancellationToken` parameter, document it with the standard text

@@ -72,7 +72,7 @@ Docs/
 
 ## Document Templates by Type
 
-Each template is in its own file. Read only the file for the type of document that you write.
+Each template is in its own file. Before you write a document of one of these types, read its template file and follow its structure. Do not read the other template files.
 
 | Document type | Template file | Related skill |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ Before you submit documentation:
 - [ ] No trailing whitespace
 - [ ] File ends with single newline
 - [ ] Internal links use relative paths with URL encoding for spaces
-- [ ] `markdownlint` reports no warnings for each changed file, for example `markdownlint "Docs/**/*.md"`
+- [ ] `markdownlint` reports no warnings for the documentation folder, for example `markdownlint "Docs/**/*.md"`
 
 ## Cross-References
 
