@@ -1,0 +1,35 @@
+"""Paths and helpers that the repository tests share."""
+import importlib.util
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Keep __pycache__ folders out of the plugin folders, which ship to users.
+sys.dont_write_bytecode = True
+
+REPO = Path(__file__).resolve().parent.parent
+PLUGIN_DIRS = ("essentials", "dotnet", "workflows")
+IN_CI = os.environ.get("CI") == "true"
+
+
+def plugin_markdown_files():
+    """The tracked .md files of all plugins, as paths relative to the repository root."""
+    patterns = [f"{d}/*.md" for d in PLUGIN_DIRS]
+    out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", *patterns],
+                         capture_output=True, text=True, check=True).stdout
+    return sorted(p for p in out.split("\0") if p)
+
+
+def load_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def tool_missing(test, message):
+    """Skip on a developer machine. Fail in CI, where every tool must exist."""
+    if IN_CI:
+        test.fail(message)
+    test.skipTest(message)
