@@ -179,7 +179,7 @@ After each stage, and before you update the checkpoint, check the files that the
 
 1. Read the file after the stage is done.
 2. Find each required heading. The match ignores case.
-3. If a heading is missing, log the missing headings. Run the same stage again with this feedback: "Your output is missing required sections: [list]. Rewrite the file with all required sections."
+3. If a heading is missing, log the missing headings. Run the same stage again with this feedback: "Your output is missing required sections: [list]. Rewrite the file with all required sections." The `review` stage writes no file. For that stage, use this feedback: "Your reply is missing required sections: [list]. Return your full reply again with all required sections." Then save the new reply over `review.md`, and check it again.
 4. Allow 1 retry for the structure. If the file fails again, stop the pipeline, and report the malformed output to the user.
 5. Do not look for optional headings, such as `## 5. Database Migrations` in `spec.md`. They can be absent.
 
@@ -275,7 +275,7 @@ Launch the stage `test-coverage`, then the stage `simplifier`. The simplifier is
 
 ### Steps 6, 7, and 8: Docs, Code Review, and Security Review (parallel)
 
-Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The reviewer is a plugin agent with its own review logic. Its stage file only adds the context and the output format. The reviewer agent has no tool that writes a file or runs git. So before its "Stage Launch" steps, write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base <base-branch>`. Take `<base-branch>` from the project context. When the reviewer is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
+Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The reviewer is a plugin agent with its own review logic. Its stage file only adds the context and the output format. The reviewer agent has no tool that writes a file or runs git. So before its "Stage Launch" steps, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>`. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the reviewer is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
 
 ### Human Approve #2 (after Review)
 

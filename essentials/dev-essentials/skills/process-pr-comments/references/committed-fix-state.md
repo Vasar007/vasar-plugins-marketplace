@@ -32,7 +32,7 @@ These rules apply to the two outcomes below:
 
 ## `cured`
 
-The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fix already landed on the remote through the push of an earlier cycle or invocation, but the resolve call is missing or failed. This is the catch-up path. Normally, the `isResolved` filter of Phase 2 drops a resolved thread before this step. Always derive this state.
+The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fix already landed on the remote through the push of an earlier cycle or invocation, but the resolve call is missing or failed. This is the catch-up path. Normally, the `is_resolved` filter of Phase 2 drops a resolved thread before this step. Always derive this state.
 
 - If `openFindingsMarker` is `true` for the thread (see `thread-state-schema.md`), do NOT resolve it. Report `T#<id> cured (open findings) — left open.`
 - Else call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId: <threadNodeId>` from the roster. Also pass `owner`, `repo`, and `pullNumber` from Phase 1. The schema of the tool requires all three on every call, although `resolve_thread` does not use their values. A resolve of an already resolved thread does nothing, so an old roster entry does no harm.

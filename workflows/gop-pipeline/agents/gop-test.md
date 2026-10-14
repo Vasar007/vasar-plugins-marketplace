@@ -37,7 +37,7 @@ You will receive:
    ```
    dotnet test path/to/MyProject.Database.Tests.csproj --no-restore --no-build --filter "FullyQualifiedName~Database.Tests.MyArea."
    ```
-   A test run can take longer than 30 minutes. A foreground Bash command runs for at most 10 minutes. So run each test project in the background, and wait for it as follows:
+   A test run can take longer than 30 minutes. A foreground Bash command runs for at most 10 minutes. So run each test project in the background, and wait for it as follows. If your context also has `dev-essentials:dotnet-build-test`, this background run is the long-run exception of its Rule 3:
    - Make a log folder outside the repository with `mktemp -d`. Note the path that it prints. The Bash tool does not keep shell variables between calls, so write that path into each later command. Do not put the logs inside `repo_root`, because the commit stage stages all files of the repository.
    - Start the run with the Bash parameters `run_in_background: true` and `timeout: 7200000`. Send the output to a log file, and then write the exit code to an exit file:
      ```

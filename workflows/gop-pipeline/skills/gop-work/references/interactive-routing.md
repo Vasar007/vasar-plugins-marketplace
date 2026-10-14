@@ -39,4 +39,4 @@
     - If CRITICAL findings remain, show only the remaining findings, with the same options, and route again.
   - **Request manual fix** → the user wants to fix it outside the pipeline. Stop, and wait until the user says that the run can resume.
 - The user can combine options in one answer. Example: dismiss one CRITICAL finding and accept the proposal for another one. Then return to Phase 1 with the accepted proposals.
-- In each later validation cycle of this run, a finding with the same file and the same issue as a dismissed finding counts as dismissed. Do not ask about it again. It does not make the status `BLOCKED`. If it is CRITICAL, keep it in the `warning_note` list.
+- In each later validation cycle of this run, a finding with the same file and the same issue as a dismissed finding counts as dismissed. Do not ask about it again. Step 18c of `SKILL.md` leaves it out of the status, so it does not make the status `BLOCKED`. If it is CRITICAL, keep it in the `warning_note` list.

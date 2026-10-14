@@ -109,7 +109,7 @@ mcp__plugin_github_github__pull_request_read(
   perPage=30)
 ```
 
-Read all pages, and pass the `endCursor` of the previous page as `after` (`github-mcp-conventions` Rule 3). This method uses a cursor, not page numbers. The response has the `isResolved` and `isOutdated` state of each thread, its comments, and the `path`, `line`, and `html_url` of each comment.
+Read all pages, and pass the `endCursor` of the previous page as `after` (`github-mcp-conventions` Rule 3). This method uses a cursor, not page numbers. The response has the `is_resolved` and `is_outdated` state of each thread, its comments, and the `path`, `line`, and `html_url` of each comment.
 
 Compare each finding that you plan to post with each existing thread, whoever wrote it. Use a simple test with three parts:
 

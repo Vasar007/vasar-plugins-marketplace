@@ -134,7 +134,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 ```
 
 - `summary` lets the orchestrating session report the cycle counts to the user at once, without a wait for Stage 2.
-- `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `isResolved` or `isOutdated` (Phase 2 step 2).
+- `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `is_resolved` or `is_outdated` (Phase 2 step 2).
 - `summary.newComments` counts the comments of this cycle that are not yet in `processedCommentIds`. Stage 1 has every input that it needs for this count. The number feeds the "N new comments" figure in the header of the cycle log (`SKILL.md` Phase 5). So Stage 2 does not have to derive it from the `comments` arrays of the threads.
 - `blockers` lists in free text the STOP conditions that Stage 1 met and did not settle on its own. These are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available. Subagents do not talk to the user. So Stage 1 reports the condition, and the orchestrating session asks.
 - If `blockers` is not empty and `threads` is empty, the orchestrating session does NOT dispatch Stage 2 in this cycle.
@@ -180,7 +180,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 | --- | --- | --- |
 | `commentId` / `threadNodeId` | yes | The ID of the top comment, for the `T#` tag and for references to other threads. The node ID of the thread, which `pull_request_review_write` `method: resolve_thread` requires. The two IDs differ. Never use one in place of the other. |
 | `htmlUrl` | yes | The `html_url` that `pull_request_read` returns for the top comment of the thread, word for word. Stage 2 uses it for the T# link and for references to other threads. Never build a URL by hand (`commit-push-resolve.md` § "Reply templates"). |
-| `isResolved` / `isOutdated` | yes | The thread-state booleans of GitHub from Phase 2 step 2. An entry that stays in the roster has both `false`, unless `include-resolved` is set. |
+| `isResolved` / `isOutdated` | yes | The `is_resolved` and `is_outdated` booleans of the thread from Phase 2 step 2. Unless `include-resolved` is set, an entry that stays in the roster has both `false`. |
 | `filePath` / `lineStart` / `lineEnd` | yes | The file path and the line range of the thread (Phase 2 step 3). `null` for a thread with no file context, for example the summary banner of an automated review at PR level. |
 | `tags` | yes | The parsed leading bracket tags in order, without brackets, for example `["ToFix","Performance"]`. If no tag parses, `["Note"]` (the rule for untagged comments in Phase 2 step 4). |
 | `isAutomatedReview` | yes | `true` for a comment with an automated-review header or first-line marker. It sends Stage 2 to Phase 3b, which takes precedence over `tags`. |
@@ -279,7 +279,7 @@ Cycle 2 @ 15:42 — PR #4421 (5 threads checked, 2 new comments)
 1 commit ready, not yet pushed — push when ready.
 ```
 
-The fix of `T#9` was committed and replied to in cycle 1, but that cycle ended before its push. At the start of cycle 2, Phase 2 step 5 read the existing `**[AI]** Fixed: ... Committed as 9f3a1c2` reply again. The commit was not yet an ancestor of `origin/pull/<prId>/head`. So the step flagged the thread `unconfirmed-commit-claim`, and the orchestrating session asked the human. The human answered in this session with a push-and-resolve direction for `T#9`. The push of cycle 2 included `9f3a1c2`. After that push landed, the resolve step of Phase 4 ran the ancestry check again against `<pushed-tip>`. The human approved the resolve, so the step called `resolve_thread` and reported `T#9` as resolved. That happened in the SAME cycle as the push, not one cycle later. The resolve call sets `isResolved` of `T#9` to `true` on GitHub. So the filter of Phase 2 skips the thread in every later fetch, and it does not appear in the table of cycle 3.
+The fix of `T#9` was committed and replied to in cycle 1, but that cycle ended before its push. At the start of cycle 2, Phase 2 step 5 read the existing `**[AI]** Fixed: ... Committed as 9f3a1c2` reply again. The commit was not yet an ancestor of `origin/pull/<prId>/head`. So the step flagged the thread `unconfirmed-commit-claim`, and the orchestrating session asked the human. The human answered in this session with a push-and-resolve direction for `T#9`. The push of cycle 2 included `9f3a1c2`. After that push landed, the resolve step of Phase 4 ran the ancestry check again against `<pushed-tip>`. The human approved the resolve, so the step called `resolve_thread` and reported `T#9` as resolved. That happened in the SAME cycle as the push, not one cycle later. The resolve call sets `is_resolved` of `T#9` to `true` on GitHub. So the filter of Phase 2 skips the thread in every later fetch, and it does not appear in the table of cycle 3.
 
 ### Dry-run cycle
 

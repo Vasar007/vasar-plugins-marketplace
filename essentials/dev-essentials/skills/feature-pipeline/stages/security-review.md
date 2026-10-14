@@ -26,18 +26,23 @@ Read these files to understand the intended behavior before the review.
 
 ## Scope
 
-Use the base branch from the Project Context section above. Get the diff relative to the merge base with that branch:
+Use the base branch from the Project Context section above. Fetch it, and get the diff relative to the merge base with `origin/<base-branch>`. Do not use the local `<base-branch>`, because it can be missing or stale:
 
 ```bash
+# Refresh the remote-tracking ref
+git -C "{WORKTREE_PATH}" fetch origin <base-branch>
+
 # Changed files
-git -C "{WORKTREE_PATH}" diff --name-only --merge-base <base-branch>
+git -C "{WORKTREE_PATH}" diff --name-only --merge-base origin/<base-branch>
 
 # Full diff content
-git -C "{WORKTREE_PATH}" diff --merge-base <base-branch>
+git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>
 
 # Commit log
-git -C "{WORKTREE_PATH}" log --no-decorate <base-branch>..HEAD
+git -C "{WORKTREE_PATH}" log --no-decorate origin/<base-branch>..HEAD
 ```
+
+If the fetch fails, stop. Do not write `security-review.md`. Report the failure in your final reply.
 
 Review ONLY the code changes in the diff. Do not comment on older security concerns in unchanged code.
 

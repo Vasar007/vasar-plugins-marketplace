@@ -128,7 +128,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 18. **Aggregate into one unified validation report:**
     a. **Parse and merge.** Extract each finding record from the five markdown reports using the fields listed above. Build one combined list. Keep the ID prefix of each finding (CORR-, REUSE-, SEC-, COMP-, PERF-), so that its domain stays traceable.
     b. **Deduplicate.** Two findings collapse into one only in this case: **both** have the same `File: <path>:<line>` coordinate (or near-adjacent lines on the same logical element), AND their descriptions overlap in meaning. Keep the finding with the **higher Confidence %**. On the kept finding, add an `also_seen_by: [<dropped-ID>, ...]` annotation. The aggregator writes it, not a validator. It shows reviewers that more than one lens agreed, which is evidence strength, not noise. If the descriptions disagree in a real way, keep both findings.
-    c. **Compute overall `validation_status`**, with the first rule that matches:
+    c. **Compute overall `validation_status`**, with the first rule that matches. A finding that counts as dismissed does not count here (see the last rule of `references/interactive-routing.md`):
        - A surviving finding has `Severity: CRITICAL`: `BLOCKED`.
        - Else, a surviving finding has `Severity: WARNING`: `APPROVED_WITH_WARNINGS`.
        - Else: `APPROVED`.
