@@ -1,6 +1,6 @@
 ---
 description: Save session context, findings, and progress to a research file for future sessions, then clean up finished context files
-argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--no-continuation-prompt] [--interactive] [--autonomous]"
+argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--continuation-prompt] [--interactive] [--autonomous]"
 ---
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
@@ -23,7 +23,7 @@ Save the current session's context, research findings, decisions, and progress t
 | `--plan <path>`            | Pull context from a plan/task file                                  |
 | `--compact`                | When updating an existing file, aggressively compact old content    |
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
-| `--no-continuation-prompt` | Skip Step 7's next-session continuation prompt (emitted by default) |
+| `--continuation-prompt`    | Print Step 7's next-session continuation prompt (off by default)    |
 | `--interactive`            | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
 | `--autonomous`             | Do not stop at any gate. This includes the gate before deletion. The run still stops for a question that blocks the work. See "Autonomy". |
 
@@ -183,11 +183,13 @@ Show:
 - What Step 5 did: the deleted files, the trimmed files, and the fixed links. If Step 5 did not run, say why in one line.
 - The Step 5 candidates that wait for the user's yes, each with its reason, as one question
 
-Then continue to Step 7 to emit the next-session continuation prompt.
+Then go to Step 7. Without a request of the user, Step 7 emits nothing.
 
-### 7. Emit the next-session continuation prompt
+### 7. Emit the next-session continuation prompt (opt-in)
 
-Emit a short prompt for a fresh session, ready to paste, in a fenced `text` code block. Skip it in two cases: `--no-continuation-prompt` was passed, or Step 4 wrote no file because of the near-empty guardrail below. The prompt is the **last thing in the response**. It comes after the output of Step 6. If another command follows these steps as one of its own steps, the prompt also comes after the final summary of that command.
+If the user asks for this prompt, emit it. The user asks with `--continuation-prompt`, or in words in the request for this run. Without such a request, emit no prompt. A command that follows these steps as one of its own steps does not change this rule. The text of a command or a skill that asks for the prompt does not change it either. If Step 4 wrote no file because of the near-empty guardrail below, skip the prompt.
+
+If the user asked for it, emit a short prompt for a fresh session, ready to paste, in a fenced `text` code block. The prompt is the **last thing in the response**. It comes after the output of Step 6. If another command follows these steps as one of its own steps, the prompt also comes after the final summary of that command.
 
 Template. The third line is a *location* line. Rule **(a)** gives its form. If this session ran in the repo root on the default branch, omit the line.
 
