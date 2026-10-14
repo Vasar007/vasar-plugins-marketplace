@@ -73,7 +73,7 @@ An edit request without an explicit `mode: create` changes the local Markdown fi
 
 **Mandatory verification:** `create` mode always creates, then reads back. Never report a result that did not come from the API.
 
-**Pre-flight checks.** Both must pass. If one fails, STOP.
+**Pre-flight conditions.** Both must be true. If one is false, STOP.
 
 - The user explicitly asked for or approved `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
 - The user gave the explicit GitHub **`owner/repo`** pair. Never infer it from context, from the git remote, or from the session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, STOP and ask. Do not guess.
@@ -106,7 +106,7 @@ Call `mcp__plugin_github_github__issue_read` with `method: "get"`. Pass the `own
 Find out whether the response matches:
 
 - Title matches what was submitted
-- Body matches (spot-check first 200 characters)
+- Body matches (sample the first 200 characters)
 - Labels are set (if passed)
 - Type is set (if passed)
 
@@ -115,7 +115,7 @@ If Step 1 passed `parent_issue_number`, do not trust the `parent` and `sub_issue
 - If `get_parent` returns the expected parent issue, the relationship is confirmed.
 - If it returns no parent or a different one, the attach did not take effect. Do not report the link as set up. Either set it up yourself, or report the discrepancy to the user. To set it up, call `mcp__plugin_github_github__sub_issue_write` with `method: "add"`. Pass `issue_number` (the number of the parent) and `sub_issue_id` (the `id` of the new issue from the Step 1 response, not its issue number). Then read it again with `get_parent`.
 
-If any check fails or the item does not match, report the discrepancy honestly. Never cover it with a fabricated success.
+If any step above fails or the item does not match, report the discrepancy honestly. Never cover it with a fabricated success.
 
 **Step 3: Report.**
 
