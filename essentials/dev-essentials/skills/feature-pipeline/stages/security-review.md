@@ -42,7 +42,7 @@ git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>
 git -C "{WORKTREE_PATH}" log --no-decorate origin/<base-branch>..HEAD
 ```
 
-If the fetch fails, stop. Do not write `security-review.md`. Report the failure in your final reply.
+If the fetch fails, stop, and do not review. Write `security-review.md` with one line only: `FETCH FAILED: <the error of git fetch>`. Do not add the required headings. The master agent then finds no headings, and runs this stage once more. If the fetch fails again, the master agent stops the pipeline and reports this file to the user. Also report the failure in your final reply.
 
 Review ONLY the code changes in the diff. Do not comment on older security concerns in unchanged code.
 

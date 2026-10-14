@@ -36,7 +36,7 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `review-loop`, `help-review-pr`, and `process-pr-comments`: The thread states now use the field names of the GitHub MCP response, `is_resolved` and `is_outdated`.
 - `review-loop`: Phase 6 has a path for a failure outside the fixed code. The place of the cycle report now depends on `--rounds`.
 - `audit-team`: The roles now run as `general-purpose` agents with a read-only brief.
-- `feature-pipeline`: Stages 1 and 2 return `QUESTIONS`, and the master agent asks the user. The master agent writes `review-diff.patch` against `origin/<base-branch>`, and saves the reply of the reviewer as `review.md`. A failed output check asks the reviewer for a new reply, not a new file. The security review also diffs against `origin/<base-branch>`. The text of the arguments follows the Autonomy core for the Fable rule, and every stage prompt gets the pipeline-discipline block. The RED step now proves that a passing test can fail, with a temporary wrong value. The run deletes `review-feedback.md` after each re-entry run. With `--skip=review`, `review.md` is optional.
+- `feature-pipeline`: Stages 1 and 2 return `QUESTIONS`, and the master agent asks the user. The master agent writes `review-diff.patch` against `origin/<base-branch>`, and saves the reply of the reviewer as `review.md`. A failed output check asks the reviewer for a new reply, not a new file. The security review also diffs against `origin/<base-branch>`. If its fetch fails, it writes the error to `security-review.md`. The text of the arguments follows the Autonomy core for the Fable rule, and every stage prompt gets the pipeline-discipline block. The RED step now proves that a passing test can fail, with a temporary wrong value. The run deletes `review-feedback.md` after each re-entry run. With `--skip=review`, `review.md` is optional.
 - `process-pr-comments`: Bucket B now covers pushed history and commits that the run did not make, with an exception for deep fixes. Ordered rules replace "strictest action" for combined tags.
 - `subagent-orchestration`: The Post-edit gate now covers only the edited paths, compared with the Pre-flight state.
 - `audit-personal-conventions`: The skill creates the pull request with GitHub MCP tools only, never with the `gh` CLI. A skill that it authors and that grows past 500 lines is split, with the conditional parts in separate files.
@@ -44,7 +44,7 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `pr-composer`: The agent has a fallback chain for the base branch. If the chain finds none, it asks in the final reply.
 - `trim-artifacts`: The reviewer brief now has `{PLAN_PATH}` and the "in other file" test.
 - The descriptions of `subagent-orchestration`, `process-pr-comments`, `audit-personal-conventions`, and `engineering-discipline` are now below the limit of 1,024 characters.
-- `dotnet-build-test`: Rule 3 now has one exception for a subagent whose test run can take longer than 10 minutes. The subagent runs the tests in the background, and polls an exit file.
+- `dotnet-build-test`: Rule 3 now has one exception for a subagent whose test run can take longer than 10 minutes. The subagent runs the tests in the background with a `timeout`, and polls an exit file. `subagent-orchestration` points to this exception.
 
 ### Fixed in dotnet-backend-dev
 
