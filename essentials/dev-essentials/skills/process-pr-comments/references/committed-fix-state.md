@@ -20,7 +20,7 @@ If such a reply exists, run no catch-up branch on this thread, whatever the SHA 
 ## SHA and ancestry check
 
 1. If the wording of the reply gives a commit SHA clearly, take it. Examples: `Committed as <sha>`, `commit <sha>`. An exact template match is not required.
-2. Run the ancestry check (`thread-state-schema.md` § "Ancestry check") for that SHA against `origin/<headRefName>`. This is the source branch of the PR, which Phase 1 cached.
+2. Run the ancestry check (`thread-state-schema.md` § "Ancestry check") for that SHA against `origin/pull/<prId>/head`. This ref holds the head of the PR, also for a PR from a fork. The command list of that section shows how to fetch it.
 
 ## Report modes
 
@@ -32,7 +32,7 @@ These rules apply to the two outcomes below:
 
 ## `cured`
 
-The SHA resolves locally and is an ancestor of `origin/<headRefName>`. The fix already landed on the remote through the push of an earlier cycle or invocation, but the resolve call is missing or failed. This is the catch-up path. Normally, the `isResolved` filter of Phase 2 drops a resolved thread before this step. Always derive this state.
+The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fix already landed on the remote through the push of an earlier cycle or invocation, but the resolve call is missing or failed. This is the catch-up path. Normally, the `isResolved` filter of Phase 2 drops a resolved thread before this step. Always derive this state.
 
 - If `openFindingsMarker` is `true` for the thread (see `thread-state-schema.md`), do NOT resolve it. Report `T#<id> cured (open findings) — left open.`
 - Else call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId: <threadNodeId>` from the roster. Also pass `owner`, `repo`, and `pullNumber` from Phase 1. The schema of the tool requires all three on every call, although `resolve_thread` does not use their values. A resolve of an already resolved thread does nothing, so an old roster entry does no harm.

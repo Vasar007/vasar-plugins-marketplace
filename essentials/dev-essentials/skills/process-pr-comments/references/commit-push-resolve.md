@@ -67,7 +67,7 @@ Then resolve and report as in group (a), in this cycle. Do not wait for a later 
 
 ## Threads carried over from an earlier cycle
 
-A fix can be committed and replied to in an earlier cycle or invocation that ended before its push. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/<headRefName>`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question.
+A fix can be committed and replied to in an earlier cycle or invocation that ended before its push. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/pull/<prId>/head`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question.
 
 In normal runs, this catch-up path is rare. After a resolve call succeeds, `isResolved` of the thread becomes true on GitHub, and the Phase 2 filter drops the thread in each later fetch. The path exists for a failed resolve call, and for a reply from a time before the skill resolved threads. It works across sessions and invocations, because it depends on the thread history of GitHub and on real git ancestry, not on a file.
 

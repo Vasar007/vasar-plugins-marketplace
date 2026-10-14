@@ -1,6 +1,6 @@
 ---
 name: subagent-orchestration
-description: How the main agent dispatches work in long, multi-step, or complex tasks, and which model each dispatch uses. Use it in multi-stage workflows (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks), and to choose between a subagent dispatch and inline work. Seven rules. (1) Orchestrate, and delegate even small research. (2) Pass user context word for word. (3) Dispatch independent work as several Agent calls in one message. (4) Give high-volume MCP work to subagents. (5) Use no named teammates. (6) Give each write-capable dispatch the absolute worktree path. (7) Never dispatch a pass-through delegator. It ships the model matrix (Sonnet default, Haiku mechanical-only, Opus planning and review, Fable exceptional-only), so model choice does not depend on CLAUDE.md. Triggers on requests like "orchestrate this", "dispatch a subagent", "run the pipeline", or "process PR comments". Also triggers on "review the branch", "audit the change", or "handle this multi-stage task". Also triggers in any session where the agent is about to do inline work in the middle of a multi-stage workflow.
+description: How the main agent dispatches work in long, multi-step, or complex tasks, and which model each dispatch uses. Use it in multi-stage workflows (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks). Also use it to choose between a subagent dispatch and inline work in the middle of such a workflow. Seven rules. (1) Orchestrate, and delegate even small research. (2) Pass user context word for word. (3) Dispatch independent work as several Agent calls in one message. (4) Give high-volume MCP work to subagents. (5) Use no named teammates. (6) Give each write-capable dispatch the absolute worktree path. (7) Never dispatch a pass-through delegator. It ships the model matrix (Sonnet default, Haiku mechanical-only, Opus planning and review, Fable exceptional-only). Triggers on requests like "orchestrate this", "dispatch a subagent", "run the pipeline", or "process PR comments". Also triggers on "review the branch", "audit the change", or "handle this multi-stage task".
 ---
 
 # Subagent Orchestration
@@ -184,8 +184,8 @@ Every git call in the work of the subagent uses `git -C "<absolute-worktree-path
 
 Two verification gates belong in every such brief:
 
-- **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, STOP.
-- **Post-edit** (after each batch of edits): `git -C "<main-repo-root>" status --porcelain` prints nothing. This shows that nothing leaked outside the intended worktree.
+- **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, STOP. Also save the output of `git -C "<main-repo-root>" status --porcelain` for the Post-edit gate.
+- **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Check only these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, STOP, and report the paths. Do not revert them, because another agent can own them.
 
 No `.bak` files. The Edit tool already fails loudly on a content mismatch. So manual backups are not necessary, and they pollute the tree.
 
