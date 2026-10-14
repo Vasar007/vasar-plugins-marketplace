@@ -87,9 +87,9 @@ Call `mcp__plugin_github_github__issue_write` with `method: "create"` and:
 - `title`: from user or draft H1
 - `body`: full content in Markdown (H2 sections, bullets) **without** the H1 title (GitHub renders its own title field)
 - `labels`: the labels that the user gave, and each other label that fits the issue. Do this for every issue, with a type or without one. Pass only labels that exist in the repository (see "Labels" below). Without labels, leave it out.
-- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out and say so in the report of Step 3. Then the labels also get the label with the name of the type (see "Labels" below).
+- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out. Say so in the report of Step 3. Then the labels also get the label with the name of the type (see "Labels" below).
 
-  **Labels.** Never create a label. Before the create call, choose the labels:
+  Never create a label. Before the create call, choose the labels:
 
   1. Start with the labels that the user gave, and add each label that fits the issue. If the call failed or the list lacks the type, also add the label with the name of the type. Example: `bug` for the type `Bug`. The match of the name ignores case.
   2. If you have `mcp__plugin_github_github__list_label`, list the labels of the repository with the `owner` and the `repo`. Follow the pagination rule (`dev-essentials:github-mcp-conventions` Rule 3). Add each listed label that fits the issue. Keep only the labels that the list has.

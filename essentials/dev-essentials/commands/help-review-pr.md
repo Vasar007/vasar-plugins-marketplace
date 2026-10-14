@@ -46,7 +46,7 @@ mcp__plugin_github_github__pull_request_read(
   pullNumber=<number>)
 ```
 
-From the response, keep `title`, `state`, `html_url`, and `number`. Also keep the head branch as `<headRefName>` (from `head.ref`) and the base branch as `<baseRefName>` (from `base.ref`).
+From the response, keep `title`, `state`, `html_url`, and `number`. Also keep the base branch as `<baseRefName>` (from `base.ref`).
 
 ## Phase 3 — Get the diff locally
 

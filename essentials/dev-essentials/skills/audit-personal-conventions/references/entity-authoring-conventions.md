@@ -44,7 +44,7 @@ Claude reads the `description` of a skill to decide whether to use the skill. Wr
   - **Anti-patterns**: named wrong approaches that the rule prevents.
 - **Closing cross-references**: a table of related skills and entities, with the reason that this entity depends on or complements each one.
 
-## References vs. examples — conditional need and the 500-line limit
+## References vs. examples: conditional need and the 500-line limit
 
 Split content out into `references/*.md` or `examples/*.md` in two cases:
 

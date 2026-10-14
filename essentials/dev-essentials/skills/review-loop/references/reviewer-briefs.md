@@ -144,7 +144,7 @@ The diff below comes from PR `<PR_ID>`. The remote-tracking refs `origin/<TARGET
 
 **Scope hint:** `<SCOPE_HINT>`. This is a focus note, not a hard boundary. If the hint is empty, leave this line out.
 
-**Open reviewer threads** (the threads with `is_resolved: false` at the time of the fetch, for context only). If Phase 1 found such threads, always add this section, also without `--include-resolved`. Else leave it out.
+**Open reviewer threads** (the threads with `is_resolved: false` at the time of the fetch, for context only). If Phase 1 found such threads, always add this section. Add it with or without `--include-resolved`. Else leave it out.
 
 ```
 ### Open reviewer threads

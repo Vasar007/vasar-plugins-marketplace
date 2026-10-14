@@ -94,7 +94,7 @@ For any new or modified entry point (HTTP route, RPC method, CLI command, job ha
 
 Use the blast radius from Phase 1 step 2:
 - A changed function can build a query, a command, a file path, an outbound URL, or a log line. If so, trace each caller in the blast radius back to its entry point. Find out whether untrusted input (see lens B) reaches the changed code through that caller without sanitizing. Flag each path that you proved as CRITICAL, with the caller reference and a CWE reference.
-- A changed function can do sensitive work (see lens C). If so, find out whether a caller in the blast radius reaches it from an entry point without an authentication or an authorization check. Flag each path that you proved as CRITICAL, with the caller reference.
+- A changed function can do sensitive work (see lens C). If so, trace each caller in the blast radius back to its entry point. Find out whether that path has no authentication or authorization check. Flag each path that you proved as CRITICAL, with the caller reference.
 - The diff can remove a validation, an escape, or an auth check from shared code. If so, find out which callers in the blast radius relied on it. Flag each caller that is now exposed.
 
 Do NOT flag: general code quality, performance, naming, duplication, or compliance. Those belong to other specialists. Flag only security-relevant correctness, for example an off-by-one in a bounds check that guards an overflow. Ordinary logic bugs belong to the correctness specialist.

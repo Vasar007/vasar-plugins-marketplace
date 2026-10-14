@@ -19,7 +19,7 @@ How to apply:
 
 - If a test or a tool fails, investigate and fix it. Do not look for the author of the failure first.
 - If a fix is out of scope, tell the user and ask before you move on. Examples: the fix touches unrelated code, or it needs a new design discussion. Never skip it silently.
-- One named exception to the history rule above: Phase 6 of `dev-essentials:review-loop` runs a failing build or test again on the commit before the fixes of its cycle. The result only picks the next step of the loop: one more fix, or a stop with a report to the user. It never excuses the failure.
+- One named exception to the history rule above: Phase 6 of `dev-essentials:review-loop` runs a failing build or test again. It runs it on the commit before the fixes of its cycle. The result only picks the next step of the loop: one more fix, or a stop with a report to the user. It never excuses the failure.
 - If tests fail against your new code, a relaxed assertion is almost never the fix. Investigate the design gap before you touch the test (see also Rule 2).
 
 ## Rule 2 — No unilateral critical decisions in spec-first / plan-first work

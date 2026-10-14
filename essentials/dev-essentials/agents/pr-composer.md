@@ -115,7 +115,7 @@ Writing rules:
 
 Ask the user in these cases:
 
-- The base branch cannot be found (step 2).
+- The agent cannot find the base branch (step 2).
 - The git diff shows **no changes** (stale branch).
 - The changes span **multiple unrelated features**. Suggest that the user splits the PR.
 - The changes hold **breaking changes**, but no migration is documented.

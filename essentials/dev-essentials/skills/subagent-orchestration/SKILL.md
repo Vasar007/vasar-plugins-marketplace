@@ -185,7 +185,7 @@ Every git call in the work of the subagent uses `git -C "<absolute-worktree-path
 Two verification gates belong in every such brief:
 
 - **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, STOP. Also save the output of `git -C "<main-repo-root>" status --porcelain` for the Post-edit gate.
-- **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Check only these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, STOP, and report the paths. Do not revert them, because another agent can own them.
+- **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Look only at these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, STOP, and report the paths. Do not revert them, because another agent can own them.
 
 No `.bak` files. The Edit tool already fails loudly on a content mismatch. So manual backups are not necessary, and they pollute the tree.
 

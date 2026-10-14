@@ -155,7 +155,7 @@ Before you launch a stage, do these steps in order:
 
 After each stage, run the output check (see "Output Validation"). Then update the checkpoint (see "Checkpoints").
 
-The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file, also after a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
+The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file. This includes a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
 
 ### Stage questions
 
@@ -164,7 +164,7 @@ Stages 1 and 2 can end with a final reply that starts with the line `QUESTIONS:`
 1. Do not run the output check, and do not update the checkpoint.
 2. Without `--autonomous`, ask the user the questions with `AskUserQuestion`, at most 4 questions in each call.
 3. With `--autonomous`, do not ask. For each question, take the option that the stage recommends. If a question has no recommended option, decide it as "Autonomy" says for a critical decision. List each answer that you picked in the final report under "Decisions for your review". Answer at most 2 rounds of questions in each stage. If the stage returns questions after the second round, stop the run, and report the open questions to the user. This step overrides the rule of "Autonomy" that a question that blocks the work stops the run in every mode.
-4. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and its answer, also from the earlier rounds of the same stage.
+4. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and its answer. Include the questions and answers of the earlier rounds of the same stage.
 
 ## Output Validation
 

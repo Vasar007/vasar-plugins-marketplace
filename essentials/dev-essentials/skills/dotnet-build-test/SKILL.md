@@ -73,7 +73,7 @@ To compare warnings, use one of these two ways:
 
 Two incremental builds are NOT a safe basis for a comparison. For a routine "is it green" build, still avoid `--no-incremental` (Rule 2).
 
-## Rule 3 — Tests run foreground, with two exceptions
+## Rule 3: Tests run foreground, with two exceptions
 
 Never run tests with `run_in_background: true` or an equivalent. Run tests in the foreground, and wait for the result. The same holds for builds, deploys, and any other long-running command. This rule has two exceptions: a request of the user, and a long test run in a subagent (see below).
 
@@ -96,7 +96,7 @@ A foreground Bash command runs for at most 10 minutes by default. At its timeout
 
 1. Make a log folder outside the repository with `mktemp -d`.
 2. Start the run with `run_in_background: true` and a `timeout` that covers the run, at most 2 hours (`7200000`). Without a `timeout`, an unattended session stops a background command after 30 minutes. Send the output to a log file in that folder. Then write the exit code to an exit file in the same folder.
-3. Wait in foreground calls of less than 10 minutes each. Each call checks for the exit file in a loop with a short `sleep`. Do not end the run of the subagent before the exit file exists, unless step 5 applies.
+3. Wait in foreground calls of less than 10 minutes each. Each call looks for the exit file in a loop with a short `sleep`. Do not end the run of the subagent before the exit file exists, unless step 5 applies.
 4. When the exit file exists, read the log file. Report the result from the exit code and the log only.
 5. If Claude Code reports that the background command stopped at its time limit, the exit file does not come. Stop the wait, report the test run as failed, and give that reason.
 

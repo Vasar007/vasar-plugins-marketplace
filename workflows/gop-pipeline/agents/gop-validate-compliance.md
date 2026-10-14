@@ -78,7 +78,7 @@ For each item in `unresolved_concerns`:
 
 ### F. Callers in the Blast Radius
 
-Use the blast radius from Phase 1 step 2. Check the callers only against a stated requirement: the plan, a loaded skill, or a `CLAUDE.md` or `REVIEW.md` rule. The correctness specialist checks whether the callers still compile and work.
+Use the blast radius from Phase 1 step 2. Compare the callers only with a stated requirement: the plan, a loaded skill, or a `CLAUDE.md` or `REVIEW.md` rule. The correctness specialist finds out whether the callers still compile and work.
 - The diff can change a contract: a public signature, a configuration key, a request or response shape, or a message format. If so, list the callers and implementors in the blast radius that the plan says to update. A listed caller that the diff does not update is CRITICAL, as a missing plan item of lens A.
 - A loaded skill can require an artifact for each consumer of a changed contract. Examples: a regenerated client, a spec update, or a documentation entry. If so, find out whether the diff has that artifact for each consumer in the blast radius. A missing artifact is CRITICAL, as in lens B.
 - Take each folder of a caller in the blast radius. Read the `CLAUDE.md` and `REVIEW.md` files on its path from the repo root, as lens C says. If a caller now breaks a rule because of the diff, flag a WARNING, and quote the rule.

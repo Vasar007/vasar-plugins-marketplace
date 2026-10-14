@@ -31,8 +31,8 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 | `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
 | `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
-| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`, also with `--rounds 1`. |
-| `--print-reports` | off | Print every full cycle report in chat, also with `--rounds` 2 or more. |
+| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`. This includes a run with `--rounds 1`. |
+| `--print-reports` | off | Print every full cycle report in chat. This includes a run with `--rounds` 2 or more. |
 | `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also keeps the resolved threads (`is_resolved: true`), and the reviewer brief gets the section "Previously addressed in this PR". The open threads (`is_resolved: false`) always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
 
 ## Default configuration
@@ -104,8 +104,8 @@ These rules hold for the whole run.
 
 The value of `--rounds` decides where a cycle report goes. At the end of a cycle, the real number of cycles is not known yet. With `--rounds 1`, the run prints the full cycle report in chat. With `--rounds` 2 or more, the run writes each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md`, so that long reports do not fill the chat context.
 
-- `--save-reports` writes each report to a file, also with `--rounds 1`.
-- `--print-reports` prints each report in chat, also with `--rounds` 2 or more.
+- `--save-reports` writes each report to a file. This includes a run with `--rounds 1`.
+- `--print-reports` prints each report in chat. This includes a run with `--rounds` 2 or more.
 - The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
 - If the run format applies (see "Run format"), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
 
@@ -260,19 +260,19 @@ Find the commands in this order, exactly:
 If the build or the tests fail:
 
 - Report the failures honestly. Do not call them "pre-existing".
-- With `--no-verify-fix`, no fix pass ran, and the failure is in the existing code. Do not fix it in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
-- After a fix pass, do not decide from file names or from a read of the code whether the fix pass caused the failure. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
+- If the run uses `--no-verify-fix`, or the fix pass of this cycle changed no file, no fix of this cycle is on disk. Then the failure is in the existing code. Do not run the failure check. Do not fix the failure in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
+- After a fix pass, do not guess the cause of a failure. Do not use file names or a read of the code to decide whether the fix pass caused it. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
 
-**Failure check** (after the Phase 7 commit of this cycle). In this check, `<fix-commit>` is the Phase 7 commit of the review fixes of this cycle. It is never a regression-fix commit.
+Failure check (after the Phase 7 commit of this cycle). In this check, `<fix-commit>` is the Phase 7 commit of the review fixes of this cycle. It is never a regression-fix commit.
 
-1. Run `git status --porcelain` in the main worktree. Ignore the files that this loop wrote in this run: its cycle reports and summary under `Notes/Reviews/<target-slug>-*`, and any progress file of the loop. If it prints nothing else, the main worktree holds only `<fix-commit>`, and the failed Phase 6 run is the result at `<fix-commit>`. If it prints other files, the main worktree also holds uncommitted changes. Then create a temporary worktree at `<fix-commit>`, in a folder outside the repository: `git worktree add --detach <temp-folder-1> <fix-commit>`. Run the build or test command that failed there. That run is the result at `<fix-commit>`.
+1. Run `git status --porcelain` in the main worktree. Ignore the files that this loop wrote in this run. They are its cycle reports and summary under `Notes/Reviews/<target-slug>-*`, and any progress file of the loop. If it prints nothing else, the main worktree holds only `<fix-commit>`. Then the failed Phase 6 run is the result at `<fix-commit>`. If it prints other files, the main worktree also holds uncommitted changes. Then create a temporary worktree at `<fix-commit>`, in a folder outside the repository: `git worktree add --detach <temp-folder-1> <fix-commit>`. Run the build or test command that failed there. That run is the result at `<fix-commit>`.
 2. If the command passed at `<fix-commit>`, skip this step, because the next step does not use the result at `<fix-commit>^`. Else, create a temporary worktree at the commit before the fixes, in a folder outside the repository: `git worktree add --detach <temp-folder-2> <fix-commit>^`. Run the build or test command that failed there. That run is the result at `<fix-commit>^`.
 3. If the test tool can run only the failing tests, run only those in each temporary worktree. After its run, remove each temporary worktree with `git worktree remove --force <temp-folder>`. Remove it in every case: the run passes, fails, or cannot start.
 4. Act on the two results:
    - The command passes at `<fix-commit>`: the committed code builds and passes, and the uncommitted changes in the main worktree cause the failure. Do not fix it in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure, its error message, and the files that `git status --porcelain` printed.
    - The command fails at `<fix-commit>` and passes at `<fix-commit>^`: the fixes of this cycle broke the build or the tests. Treat the failure as a regression. Go back to Phase 5 with the failure and the diff of `<fix-commit>`, and try one more fix. Commit that fix (Phase 7), and run Phase 6 again. Do not run the failure check again in this cycle. If the fixer reports REJECT or PARTIAL, or Phase 6 fails again, end the loop with `stop-blocked`. Put the regression in the deferred list of Phase 9, and report to the user.
    - The command fails at `<fix-commit>` and at `<fix-commit>^` with the same error: the failure is also in the code before the fixes of this cycle. Do not fix it in this loop, because the fix is outside the review target. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. Add the evidence: the command, and the SHA of the commit where it also fails. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
-   - Any other result, for example another error, or a command that cannot run in the worktree: end the loop with `stop-blocked`. In the Phase 9 summary, list the failure and the output of both runs.
+   - In any other case, end the loop with `stop-blocked`. Examples: another error, or a command that cannot run in the worktree. In the Phase 9 summary, list the failure and the output of both runs.
 
 The check only picks the next step. It never excuses a failure. Each path ends with a fix or with a report to the user.
 
@@ -293,7 +293,7 @@ Review round <N>: Fix <short summary of issues fixed>
 Rules:
 
 - **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. It does not turn off this phase.
-- **Commit also after a failed Phase 6**. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6, one time in each cycle. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
+- Commit also after a failed Phase 6. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6, one time in each cycle. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
 - **Never push by default**. The push is a decision of the user. The user can explicitly allow a push, for example "you can push after each fix commit".
 
 ### Phase 8 — Repeat or stop
