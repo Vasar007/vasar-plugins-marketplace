@@ -24,16 +24,26 @@ The class shapes for the two factories:
 ```csharp
 // Manual DbContext creation (most common)
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
-public sealed class MyRepositoryTests : BaseRepositoryWithOneKeyTest<...>
+public sealed class MyRepositoryTests<TTestDbContextFactory>
+    : BaseRepositoryWithOneKeyTest<TTestDbContextFactory, ...>
+    where TTestDbContextFactory : ITestDbContextFactory, new()
 {
-    public MyRepositoryTests(ITestDbContextFactory factory) : base(factory) { }
+    public MyRepositoryTests()
+    {
+    }
 }
 
 // DI-managed DbContext
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
-public sealed class MyServiceIntegrationTests : BaseDbTest<...>
+public sealed class MyServiceIntegrationTests<TTestDbContextFactory> : BaseMockTest
+    where TTestDbContextFactory : ITestDbContextFactory, new()
 {
-    public MyServiceIntegrationTests(ITestDbContextFactory factory) : base(factory) { }
+    private readonly TTestDbContextFactory _testDbContextFactory;
+
+    public MyServiceIntegrationTests()
+    {
+        _testDbContextFactory = new TTestDbContextFactory();
+    }
 }
 ```
 
@@ -100,7 +110,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
 
     protected override Task<Customer> CreateModelAsync()
     {
-        var model = _generator.GenerateCustomer();
+        var model = GenerateCustomer();
         return Task.FromResult(model);
     }
 
@@ -128,7 +138,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
         await DbContext.SaveChangesAsync();
 
         // Create duplicate with same ID
-        var duplicate = _generator.GenerateCustomer() with { CustomerId = model.CustomerId };
+        var duplicate = GenerateCustomer() with { CustomerId = model.CustomerId };
 
         // Act.
         var act = async () =>
@@ -148,7 +158,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
         var repository = CreateRepository();
         var model = await CreateAndSaveModelAsync(repository);
 
-        var updatedName = _generator.GenerateCustomerName();
+        var updatedName = GenerateCustomerName();
         var updatedModel = model with { CustomerName = updatedName };
 
         // Act.
@@ -169,6 +179,16 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
         await repository.AddAsync(model);
         await DbContext.SaveChangesAsync();
         return model;
+    }
+
+    private Customer GenerateCustomer()
+    {
+        return _generator.GenerateCustomer();
+    }
+
+    private CustomerName GenerateCustomerName()
+    {
+        return _generator.GenerateCustomerName();
     }
 }
 ```

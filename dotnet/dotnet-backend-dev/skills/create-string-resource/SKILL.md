@@ -135,7 +135,7 @@ _logger.LogInformation(StringResources.SomeMessage.SafeFormat(storeId));
 
 ```csharp
 // ✅ Good - StringResources with SafeFormat
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.StoreOnboardingContextMessage.SafeFormat(
         storeId,

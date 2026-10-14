@@ -121,7 +121,7 @@ public sealed class CustomersControllerTests : WebApiBaseTest
     public async Task GetCustomerAsync_ReturnsNotFound_WhenCustomerDoesNotExist()
     {
         // Arrange.
-        var customerId = _customerGenerator.GenerateCustomerId();
+        var customerId = GenerateCustomerId();
 
         // Act.
         var act = () => _customersClient.GetCustomerAsync(customerId.Value);
@@ -168,6 +168,11 @@ public sealed class CustomersControllerTests : WebApiBaseTest
         return new TestCustomerRepository(scope.ServiceProvider);
     }
 
+    private CustomerId GenerateCustomerId()
+    {
+        return _customerGenerator.GenerateCustomerId();
+    }
+
     private static Rest.CustomerRegistrationRequest CreateTestRegistrationRequest()
     {
         return new Rest.CustomerRegistrationRequest
@@ -210,7 +215,7 @@ public async Task GetResource_ReturnsOk_WhenExists()
 public async Task GetResource_ReturnsNotFound_WhenDoesNotExist()
 {
     // Arrange.
-    var resourceId = _generator.GenerateResourceId();
+    var resourceId = GenerateResourceId();
 
     // Act.
     var act = () => _client.GetResourceAsync(resourceId.Value);
@@ -300,16 +305,26 @@ await builder.SaveChangesAsync();
 
 ## External Service Mocking
 
-Configure external service responses via `ExternalServicesMock`:
+Configure external service responses with named setup methods of `ExternalServicesMock`. The NSubstitute setup stays inside `ForTests/Mocks/ExternalServicesMock.cs`. A test case calls the method. It never calls `.Returns()`, `.Throws()`, or `.ThrowsAsync()` itself (rule 3 of [SKILL.md](../SKILL.md)). If a test needs a new behavior, add a method to `ExternalServicesMock`:
+
+```csharp
+// ForTests/Mocks/ExternalServicesMock.cs
+public void SetupLoyaltyMemberLookupFailure(Exception exception)
+{
+    exception.ThrowIfNull();
+
+    LoyaltyClient
+        .GetMemberAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+        .ThrowsAsync(exception);
+}
+```
 
 ```csharp
 [Test]
 public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGateway()
 {
     // Arrange.
-    ExternalServicesMock.LoyaltyClient
-        .GetMemberAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-        .ThrowsAsync(new HttpRequestException("loyalty service unavailable"));
+    ExternalServicesMock.SetupLoyaltyMemberLookupFailure(new HttpRequestException("loyalty service unavailable"));
 
     var request = CreateTestRegistrationRequest();
 
@@ -333,4 +348,4 @@ public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGate
 
 5. **Generators**: Use test generators for creating valid request data
 
-6. **External mocks**: Configure `ExternalServicesMock` for external service behavior
+6. **External mocks**: Configure external service behavior through the named setup methods of `ExternalServicesMock`, never in a test case

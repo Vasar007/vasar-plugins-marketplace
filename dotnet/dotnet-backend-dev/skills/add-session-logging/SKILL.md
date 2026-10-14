@@ -41,7 +41,7 @@ Add entries to your string resources file (see create-string-resource skill):
 StoreOnboardingStartedMessage = [TBD] Store onboarding started.
 StoreOnboardingContextMessage = [TBD] Onboarding context: store [{0}] ({1}), warehouse [{2}], plan result [{3}].
 StoreOnboardingCompletedMessage = [TBD] Store onboarding completed successfully.
-StoreOnboardingFailedMessage = [TBD] Store onboarding failed: {0}
+StoreOnboardingFailedMessage = [TBD] Store onboarding failed.
 ```
 
 **CRITICAL**: Use `[{0}]` (square brackets) for placeholders.
@@ -51,14 +51,14 @@ StoreOnboardingFailedMessage = [TBD] Store onboarding failed: {0}
 ```csharp
 public sealed class StoreOnboardingOrchestrator
 {
-    private readonly ISessionLogRepository _sessionLogService;
+    private readonly ISessionLogRepository _sessionLogRepository;
     private readonly ILogger<StoreOnboardingOrchestrator> _logger;
 
     public StoreOnboardingOrchestrator(
-        ISessionLogRepository sessionLogService,
+        ISessionLogRepository sessionLogRepository,
         ILogger<StoreOnboardingOrchestrator> logger)
     {
-        _sessionLogService = sessionLogService.ThrowIfNull();
+        _sessionLogRepository = sessionLogRepository.ThrowIfNull();
         _logger = logger.ThrowIfNull();
     }
 }
@@ -84,13 +84,13 @@ public async Task OnboardStoreAsync(
     );
 
     // Session log (portal users) - use SafeFormat
-    await _sessionLogService.CreateInformationAsync(
+    await _sessionLogRepository.CreateInformationAsync(
         sessionId,
         StringResources.StoreOnboardingStartedMessage,
         cancellationToken: cancellationToken
     );
 
-    await _sessionLogService.CreateInformationAsync(
+    await _sessionLogRepository.CreateInformationAsync(
         sessionId,
         StringResources.StoreOnboardingContextMessage.SafeFormat(
             request.StoreId,
@@ -106,7 +106,7 @@ public async Task OnboardStoreAsync(
         // Step 1: Create account
         var account = await CreateAccountAsync(request, cancellationToken);
 
-        await _sessionLogService.CreateInformationAsync(
+        await _sessionLogRepository.CreateInformationAsync(
             sessionId,
             StringResources.StoreAccountCreatedMessage.SafeFormat(
                 account.AccountId,
@@ -120,7 +120,7 @@ public async Task OnboardStoreAsync(
         await ConfigureStoreAsync(account, request, cancellationToken);
 
         // Success
-        await _sessionLogService.CreateInformationAsync(
+        await _sessionLogRepository.CreateInformationAsync(
             sessionId,
             StringResources.StoreOnboardingCompletedMessage,
             cancellationToken: cancellationToken
@@ -136,10 +136,10 @@ public async Task OnboardStoreAsync(
             request.StoreName
         );
 
-        // Session log (portal users - sanitized message)
-        await _sessionLogService.CreateInformationAsync(
+        // Session log (portal users - no exception text)
+        await _sessionLogRepository.CreateInformationAsync(
             sessionId,
-            StringResources.StoreOnboardingFailedMessage.SafeFormat(ex.Message),
+            StringResources.StoreOnboardingFailedMessage,
             cancellationToken: cancellationToken
         );
 
@@ -175,7 +175,7 @@ _logger.LogInformation(
 using MyApp.Framework.Basic.Strings;
 
 // ✅ Good - SafeFormat extension method
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.StoreOnboardingContextMessage.SafeFormat(
         storeId,
@@ -194,7 +194,7 @@ String.Format(StringResources.StoreOnboardingContextMessage, storeId, storeName)
 
 ```csharp
 // ✅ Good - ); on new line, aligned with statement start
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.StoreOnboardingContextMessage.SafeFormat(
         storeId,
@@ -206,7 +206,7 @@ await _sessionLogService.CreateInformationAsync(
 );
 
 // ❌ Bad - ); on same line as last argument
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.StoreOnboardingContextMessage.SafeFormat(
         storeId,
@@ -250,14 +250,17 @@ var message = StringResources.StoreCreatedMessage.SafeFormat(
 
 ### 3. Error Messages
 
-Session log errors must be user-friendly (no stack traces):
+Session log errors must be user-friendly. Do not write a stack trace or the exception text (`ex.Message`) into a session log. Write the exception to `ILogger`:
 
 ```csharp
 // ✅ Good - user-friendly
-StringResources.StoreOnboardingFailedMessage.SafeFormat("Unable to create the account")
+StringResources.StoreOnboardingFailedMessage
 
 // ❌ Bad - technical details
 $"NullReferenceException at line 42 in OnboardingService.cs"
+
+// ❌ Bad - the exception text can hold technical details or sensitive data
+ex.Message
 ```
 
 ### 4. Sensitive Information
@@ -271,7 +274,7 @@ $"NullReferenceException at line 42 in OnboardingService.cs"
 When logging parallel operations, include identifiers:
 
 ```csharp
-await _sessionLogService.CreateInformationAsync(
+await _sessionLogRepository.CreateInformationAsync(
     sessionId,
     StringResources.OrderShippingMessage.SafeFormat(orderId),
     cancellationToken: cancellationToken

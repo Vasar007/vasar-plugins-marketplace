@@ -147,8 +147,6 @@ public sealed class TestCustomerAccountRepositoryBuilder
 
 **IMPORTANT:** Test cases must NOT call builders or generators directly. All such calls must be wrapped in private helper methods.
 
-Do not copy two parts of the example below. `CreateAccountRepository` uses the `params` keyword, which rule 6 of [SKILL.md](../SKILL.md) forbids. The SUT variable is `sut`, which gate 3 of [enforced-gates.md](enforced-gates.md) forbids.
-
 ```csharp
 [TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
@@ -169,13 +167,13 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var account2 = GenerateAccount(usageCount: 2);
         var account3 = GenerateAccount(usageCount: 8);
 
-        var repository = CreateAccountRepository(account1, account2, account3);
+        var repository = CreateAccountRepository(accounts: new[] { account1, account2, account3 });
         Fixture.Inject(repository);
 
-        var sut = Fixture.Create<AccountSelectionService>();
+        var service = Fixture.Create<AccountSelectionService>();
 
         // Act.
-        var result = await sut.SelectAccountAsync();
+        var result = await service.SelectAccountAsync();
 
         // Assert.
         result.Should().Be(account2); // Least usage
@@ -188,10 +186,10 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var repository = CreateAccountRepository();
         Fixture.Inject(repository);
 
-        var sut = Fixture.Create<AccountSelectionService>();
+        var service = Fixture.Create<AccountSelectionService>();
 
         // Act.
-        var result = await sut.SelectAccountAsync();
+        var result = await service.SelectAccountAsync();
 
         // Assert.
         result.Should().BeNull();
@@ -204,11 +202,10 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         return _generator.GenerateCustomerAccount(usageCount: usageCount);
     }
 
-    private ICustomerAccountRepository CreateAccountRepository(
-        params ICustomerAccount[] accounts)
+    private ICustomerAccountRepository CreateAccountRepository(ICustomerAccount[]? accounts = null)
     {
         return new TestCustomerAccountRepositoryBuilder(Fixture)
-            .AddCustomerAccountRange(accounts)
+            .ApplyIf(accounts is not null, b => b.AddCustomerAccountRange(accounts!))
             .Build();
     }
 }

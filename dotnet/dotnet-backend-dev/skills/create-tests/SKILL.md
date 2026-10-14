@@ -108,9 +108,10 @@ public void MethodName_Condition_ExpectedResult()
 {
     // Arrange.
     var input = CreateTestInput();
+    var service = CreateService();
 
     // Act.
-    var result = _sut.DoSomething(input);
+    var result = service.DoSomething(input);
 
     // Assert.
     result.Should().NotBeNull();
