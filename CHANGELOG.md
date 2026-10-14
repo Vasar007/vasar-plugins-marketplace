@@ -25,7 +25,7 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `review-loop`: The option `--fixer` takes one agent ID. If the value names several agents (`audit-team`, `dual`, `pair`, or `quad`), the run warns and uses `general-purpose`.
 - `process-pr-comments`: The default `bots` list now uses the real Copilot reviewer login `copilot-pull-request-reviewer[bot]`. The skill compares bot logins without the `[bot]` suffix.
 - `feature-pipeline`: `--dry-run` now creates no worktree, no branch, and no file.
-- `test-engineer`: The agent can now use the `Skill` tool, so it can find the example folder of `create-tests`.
+- `test-engineer`: The agent can now use the `Skill` tool to load `create-tests`. It finds the example files of the skill in the plugin cache with Glob.
 
 ### Fixed in dev-essentials
 
@@ -34,13 +34,13 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `git-sync`: The test for a rewritten branch uses `git merge-base --is-ancestor`. The repair recipe keeps the original author and date.
 - `implement-batch`, `implement-task`, and `research-implement-review-report`: The guardrails now forbid the word "pre-existing" for a red signal, as `engineering-discipline` Rule 1 says.
 - `review-loop`, `help-review-pr`, and `process-pr-comments`: The thread states now use the field names of the GitHub MCP response, `is_resolved` and `is_outdated`.
-- `review-loop`: Phase 6 has a path for a failure outside the fixed code. The place of the cycle report now depends on `--rounds`.
+- `review-loop`: After a failed build or test run, Phase 7 commits the fixes first. Then Phase 6 runs the failing command on the commit before the fixes. If it passes there, the loop tries one more fix. Else the loop stops with `stop-blocked` and the evidence. `engineering-discipline` Rule 1 names this check as an exception. The place of the cycle report now depends on `--rounds`.
 - `audit-team`: The roles now run as `general-purpose` agents with a read-only brief.
-- `feature-pipeline`: Stages 1 and 2 return `QUESTIONS`, and the master agent asks the user. The master agent writes `review-diff.patch` against `origin/<base-branch>`, and saves the reply of the reviewer as `review.md`. A failed output check asks the reviewer for a new reply, not a new file. The security review also diffs against `origin/<base-branch>`. If its fetch fails, it writes the error to `security-review.md`. The text of the arguments follows the Autonomy core for the Fable rule, and every stage prompt gets the pipeline-discipline block. The RED step now proves that a passing test can fail, with a temporary wrong value. The run deletes `review-feedback.md` after each re-entry run. With `--skip=review`, `review.md` is optional.
+- `feature-pipeline`: Stages 1 and 2 return `QUESTIONS`. The master agent asks the user. With `--autonomous`, it picks the recommended answers, and lists them under "Decisions for your review". The master agent writes `review-diff.patch` against `origin/<base-branch>`, and saves the reply of the reviewer as `review.md`. A failed output check asks the reviewer for a new reply, not a new file. The security review also diffs against `origin/<base-branch>`. If its fetch fails, it writes the error to `security-review.md`, and the master agent stops and reports the error without a rerun. The text of the arguments follows the Autonomy core for the Fable rule, and every stage prompt gets the pipeline-discipline block. The RED step now proves that a passing test can fail, with a temporary wrong value. The run deletes `review-feedback.md` after each re-entry run. With `--skip=review`, `review.md` is optional.
 - `process-pr-comments`: Bucket B now covers pushed history and commits that the run did not make, with an exception for deep fixes. Ordered rules replace "strictest action" for combined tags.
 - `subagent-orchestration`: The Post-edit gate now covers only the edited paths, compared with the Pre-flight state.
-- `audit-personal-conventions`: The skill creates the pull request with GitHub MCP tools only, never with the `gh` CLI. A skill that it authors and that grows past 500 lines is split, with the conditional parts in separate files.
-- `task-composer`: The agent passes the approved issue type after a `list_issue_types` check.
+- `audit-personal-conventions`: The skill creates the pull request with the GitHub MCP tools. If they are missing, or an MCP call fails with a connection or authentication error, it uses `gh pr create`. `github-mcp-conventions` names this step as the one exception to Rule 5. A call that fails because of a wrong parameter is fixed, and does not fall back. If `gh` is also missing or fails, the skill reports the PR text for a manual PR. A skill that it authors and that grows past 500 lines is split. The authoring reference lists the split options: step references, scripts, agent files, `context: fork`, and an orchestrator skill.
+- `task-composer`: The agent passes the approved issue type after a `list_issue_types` check. If the repository does not have the type, the agent sets each existing label that fits the issue, a label for the type included. It never creates a label.
 - `pr-composer`: The agent has a fallback chain for the base branch. If the chain finds none, it asks in the final reply.
 - `trim-artifacts`: The reviewer brief now has `{PLAN_PATH}` and the "in other file" test.
 - The descriptions of `subagent-orchestration`, `process-pr-comments`, `audit-personal-conventions`, and `engineering-discipline` are now below the limit of 1,024 characters.
@@ -53,12 +53,12 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `create-external-client`: The client no longer logs the whole request object.
 - `model-mapping`: `SKILL.md` is now under 500 lines. The duplicate example is removed.
 - `dotnet-conventions`: The manual mapping example in `mappers.md` has its TODO and its parameter. The AAA example in `testing.md` builds the SUT with a helper named for its role.
-- `create-tests`: The example in "Test Structure" builds the SUT with a helper named for its role. The usage examples in `generators.md` and `mock-builders.md` now follow the test rules. The test cases of the examples call private `Generate` helpers, not the generators. The controller example sets up `ExternalServicesMock` in a named method. `repository-tests.md` uses one generic test class shape.
+- `create-tests`: The example in "Test Structure" builds the SUT with a helper named for its role. The usage examples in `generators.md` and `mock-builders.md` now follow the test rules. The test cases of the examples call private `Generate` helpers, not the generators. Rule 3 names `ExternalServicesMock` of Web API tests as the one exception to the no-post-setup rule. `repository-tests.md` uses one generic test class shape.
 
 ### Fixed in gop-pipeline
 
 - `gop-test`: The agent runs long tests in the background and polls an exit file. This is the long-run exception of `dotnet-build-test` Rule 3 in `dev-essentials`.
-- `gop-validate-compliance`, `gop-validate-security`, and `gop-validate-performance`: Removed a blast-radius step that the agents did not use.
+- `gop-validate-compliance`, `gop-validate-security`, and `gop-validate-performance`: The blast radius of each agent now feeds a new lens. Security checks whether untrusted input reaches the changed code through a caller. Performance checks whether a caller calls the changed code in a loop or on a hot path. Compliance checks whether the callers follow a changed contract as the plan or a skill requires.
 - `gop-work`: The lookup of a merged pull request in the shared "Autonomy" section now uses the head `owner:branch` and the state `all`.
 - `gop-work`: The `--interactive` routing now defines a partial dismissal and a repeated finding. A finding that the user dismissed does not make the status `BLOCKED` in a later cycle.
 
