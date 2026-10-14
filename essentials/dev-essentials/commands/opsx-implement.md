@@ -103,7 +103,7 @@ These rules apply in all modes:
    Run this step after the selected phases. If the run stops because of a blocker, run it before the stop. Follow the `/save-context` command logic with `--change "<name>"`, plus `--interactive` or `--autonomous` for a run that has it.
    - If `--context <path>` was given, save to that path. Else save to `Notes/Results/<change-name>-research.md`.
    - Include: what was done, decisions made, issues found, what's next.
-   - This includes `save-context`'s next-session continuation prompt, emitted after Step 7's summary below.
+   - If the user asks for a continuation prompt in this run, print it after the summary of Step 7. Else print no continuation prompt for the next session.
 
 7. **Output results**
 

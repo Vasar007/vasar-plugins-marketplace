@@ -11,6 +11,38 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 3.0.0 and dotnet-backend-dev 1.3.0 in release [3.0.0] - 2026-10-14
+
+This release makes the continuation prompt of `save-context` opt-in (issue #23). It also moves the .NET test tools from `dev-essentials` to `dotnet-backend-dev` (issue #24).
+
+### Added in dotnet-backend-dev
+
+- The command `/dotnet-backend-dev:write-tests` and the agent `dotnet-backend-dev:test-engineer`. Both moved from `dev-essentials` and work as before. They use the skill `create-tests` of the same plugin.
+
+### Changed in dotnet-backend-dev
+
+- `test-engineer`: If the agent cannot load `create-tests`, it now stops and reports the error. Before, it told the user to install `dotnet-backend-dev`.
+- `test-engineer`: The agent now reads the `create-tests` examples from `${CLAUDE_PLUGIN_ROOT}/skills/create-tests/examples/` first. The search of the plugin cache stays as a fallback.
+- The plugin description now names the `write-tests` command and the `test-engineer` agent.
+
+### Changed in dev-essentials
+
+- `save-context`: The next-session continuation prompt is now opt-in. The new flag `--continuation-prompt` prints it. A request in words also prints it. A run without a request cleans up the context files (Step 5) and prints no prompt. The flag `--no-cleanup` still skips the cleanup.
+- `research-implement-review-report` and `implement-task`: The report phase now runs `save-context` as the last step of the run. The call passes no flag, also not `--plan` or the mode flag of the run. So `save-context` runs in its default mode, also in a run with `--autonomous`. Its cleanup keeps every file of the run, except a finished `_`-prefixed progress file, because the branch is not merged yet. Before it deletes a file of an older session, it asks the user. On a yes, the run deletes the listed files in the same session. `save-context` prints no continuation prompt, unless the user asks for one in the run.
+- `implement` and `opsx-implement`: The commands no longer print the continuation prompt of `save-context` by default. If the user asks for it in the run, they print it after their summary.
+- The plugin description no longer names a test agent.
+
+### Removed in dev-essentials
+
+- `save-context`: Removed the flag `--no-continuation-prompt`. The prompt is now off by default.
+- Removed the command `write-tests` and the agent `test-engineer`. They moved to `dotnet-backend-dev`.
+
+### Breaking changes in dev-essentials
+
+- `/dev-essentials:write-tests` no longer exists. Install `dotnet-backend-dev` and run `/dotnet-backend-dev:write-tests`.
+- The agent type `dev-essentials:test-engineer` no longer exists. Dispatch `dotnet-backend-dev:test-engineer`.
+- `save-context` no longer accepts `--no-continuation-prompt`, and it prints no continuation prompt by default. To get the prompt, pass `--continuation-prompt`.
+
 ## dev-essentials 2.5.0 and dotnet-backend-dev 1.2.3 in release [2.5.0] - 2026-10-14
 
 This release applies the design decisions from the lint sweep (issue #11).
@@ -160,11 +192,11 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `github-mcp-conventions` Rule 1: Without `--interactive`, a workflow that documents it (`bug-hunt`) can take `owner/repo` from the `origin` remote. It must report the value as taken from the remote.
 - `subagent-orchestration`: A workflow that runs with its default autonomy uses Opus instead of a question about Fable. The run-format agreement can come from no objection.
 - `subagent-orchestration`: Rule 5 now allows `SendMessage` to your own subagent by its agent ID. Use it to resume the subagent after a stop, or to correct it on the same task. The rule still forbids `name`, `team_name`, shared task lists, and messages between subagents. Rule 3 and the anti-patterns now say the same.
-- `subagent-orchestration`: Replaced the section "Trust but verify" with three tiers. The orchestrator checks cheap facts, and an agent checks the content. Only before a high-risk action, the orchestrator re-reads the lines that the action depends on. The "Check scope" part of "Run format agreement" now points to these tiers.
+- `subagent-orchestration`: Replaced the section `Trust but verify` with three tiers. The orchestrator checks cheap facts, and an agent checks the content. Only before a high-risk action, the orchestrator re-reads the lines that the action depends on. The "Check scope" part of "Run format agreement" now points to these tiers.
 - `process-pr-comments` and `audit-personal-conventions`: Replaced the claim that a subagent cannot get a follow-up message. The Claude Code docs show that `SendMessage` can resume a subagent.
-- `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7.
+- `save-context`: `Confirm to user` is now Step 6, and the next-session continuation prompt is now Step 7.
 - `research-implement-review-report` and `implement-task`: The final report no longer ends with the next-session continuation prompt of `save-context`. The commands print the report only.
-- `task-composer`: If the user ran a calling skill with `autonomous`, that skill can confirm `mode: create` for the user.
+- `task-composer`: If the user ran a calling skill with `autonomous`, that skill can approve `mode: create` for the user.
 
 ### Removed in dev-essentials
 
@@ -337,7 +369,7 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the initial marketplace layout with three plugins:
   - `dev-essentials` has four composer agents (PR, Task, Test, Docs), ten workflow commands, and seven cross-stack skills. The skills cover markdown, XML docs, git worktrees, PR review comments, feature pipeline, general conventions, and `create-documentation`.
   - `dotnet-backend-dev` has fifteen .NET, Clean Architecture, DDD, EF Core, OpenAPI, and Mapperly skills. It also has a backend conventions hub with nine topic references. The topics are controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing.
-  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: plan, implement, build, test, validate, commit. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
+  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: `plan`, `implement`, `build`, `test`, `validate`, `commit`. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
 - Added the repository artifacts:
   - A README with install instructions and an authoring reference
   - An MIT LICENSE
@@ -346,7 +378,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.0...v2.4.1
