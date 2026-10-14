@@ -1,6 +1,6 @@
 ---
 name: add-configuration-option
-description: Add configuration options classes with validation and DI registration. Use when adding configurable settings, environment-specific options, or service configuration in any .NET service. Triggers on requests like "add configuration", "add options", "add setting", "configurable value".
+description: Add configuration options classes with validation and DI registration. Use when adding configurable values, environment-specific options, or service configuration in any .NET service. Triggers on requests like "add configuration", "add options", "add setting", "configurable value".
 ---
 
 # Add Configuration Option
@@ -9,7 +9,7 @@ Add configuration options in your service configuration project with FluentValid
 
 ## Architecture
 
-```mermaid
+```text
 Options Class (mutable config model with init/set)
     ↓ validated by
 Validator (FluentValidation)
@@ -33,13 +33,13 @@ src/{ServiceName}.Configuration/
 
 **CRITICAL**:
 
-- Properties MUST have `{ get; set; }` (preferred) or `{ get; init; }` — NOT just `{ get; }`.
+- Properties MUST have `{ get; set; }` (preferred) or `{ get; init; }`, NOT just `{ get; }`.
 - Prefer `{ get; set; }` to allow customizing options via ASP.NET's `.Configure()` method.
 
 ### Validation Flow
 
 1. Model is created and bound from configuration
-2. DataAnnotations attributes (`[Required]`, `[Range]`, etc.) are validated
+2. DataAnnotations attributes (for example, `[Required]` and `[Range]`) are validated
 3. `Validate()` method is called for complex validation logic
 
 ```csharp
@@ -80,13 +80,13 @@ public sealed record {Feature}Options : IValidatableObject
     public Boolean IsEnabled { get; set; } = true;
 
     /// <summary>
-    /// Gets the computed maximum items per region.
+    /// Gets the computed maximum items per order.
     /// </summary>
     /// <remarks>
     /// Computed properties derive values from other options. Use expression-bodied members
     /// with no setter — they are NOT bound from configuration.
     /// </remarks>
-    public Int32 MaxItemsPerRegion => MaxRetries * TimeoutSeconds;
+    public Int32 MaxItemsPerOrder => MaxRetries * TimeoutSeconds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="{Feature}Options"/> class.
@@ -144,7 +144,7 @@ Use `ValidationErrorBuilder.Default` with `CreateValueRequiredMessage()` for con
 
 ### Cascade Mode
 
-Use `.Cascade(CascadeMode.Stop)` to prevent invalid validation calls when earlier rules fail:
+Use `.Cascade(CascadeMode.Stop)` on rule chains. If an earlier rule fails, the later rules of the chain do not run:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -226,8 +226,8 @@ internal static class ExtensionMethodsHostApplicationBuilder
         builder.ConfigureOptionsAndEnableValidation<{Feature}Options>();
 
         // Existing registrations
-        builder.ConfigureOptionsAndEnableValidation<DeploymentOptions>();
-        builder.ConfigureOptionsAndEnableValidation<AppServicesOptions>();
+        builder.ConfigureOptionsAndEnableValidation<BillingOptions>();
+        builder.ConfigureOptionsAndEnableValidation<ShippingOptions>();
         // ...
     }
 }
@@ -252,11 +252,11 @@ internal static class ExtensionMethodsHostApplicationBuilder
 }
 ```
 
-**NOTE**: These are **project-wide defaults**. Crucial options for deployment must be overridden via Helm.
+**NOTE**: These are **project-wide defaults**. Your deployment system (for example, Helm) must override the important options.
 
 ### Deployment Configuration (Environment-Specific)
 
-**CRITICAL**: Crucial configuration options MUST be exposed in your deployment system (Helm/Kustomize/Terraform, etc.) for CI/CD.
+**CRITICAL**: Important configuration options MUST be exposed in your deployment system (for example, Helm, Kustomize, or Terraform) for CI/CD.
 
 #### 1. Add to deployment values
 
@@ -269,11 +269,11 @@ tenant:
     {Feature}Options__IsEnabled:
 ```
 
-**NOTE**: Use double underscore `__` for nested configuration (ASP.NET Core convention).
+**NOTE**: Use `__` between the levels of a nested configuration key (ASP.NET Core convention).
 
 #### 2. Update deployment validation (if applicable)
 
-Add validation checks for required values:
+Add validation for the required values:
 
 ```bash
 if [ -n "$FEATURE_OPTIONS_ENDPOINT_URL" ]; then
@@ -297,15 +297,15 @@ fi
 
 ASP.NET Core configuration sources (highest to lowest priority):
 
-1. **Environment variables** (set by Helm deployment)
+1. **Environment variables** (set by the deployment system, for example Helm)
 2. **appsettings.{Environment}.json** (environment-specific)
 3. **appsettings.json** (project defaults)
 
-Helm-provided environment variables **override** appsettings.json values.
+Environment variables from the deployment system **override** appsettings.json values.
 
 ## Using Options in Code
 
-**TIP**: Use a computed property (e.g., `Options => _options.Value`) as a shortcut instead of repeatedly accessing `.Value` or `.CurrentValue` throughout your code. This improves readability and reduces repetition.
+**TIP**: Use a computed property (for example, `Options => _options.Value`) as a shortcut instead of repeatedly accessing `.Value` or `.CurrentValue` throughout your code. This improves readability and reduces repetition.
 
 ### Via IOptions\<T\> (singleton, read once at startup)
 
@@ -471,18 +471,18 @@ Create configuration options tests following project conventions.
 - [ ] Options class inherits `IValidatableObject` with `Validate()` method
 - [ ] Properties use `{ get; set; }` (preferred) or `{ get; init; }`
 - [ ] Properties have sensible defaults
-- [ ] `[Required]`, `[Range]`, etc. attributes on properties as needed
+- [ ] `[Required]`, `[Range]`, and other attributes on properties as needed
 - [ ] FluentValidation validator using `ValidationErrorBuilder.Default.CreateValueRequiredMessage()`
 - [ ] `ClassLevelCascadeMode = CascadeMode.Stop` set in validator
 - [ ] Rule chains use `.Cascade(CascadeMode.Stop)` to prevent invalid validation calls
 - [ ] Nested options use `.SetValidator(new NestedOptionsValidator())`
 - [ ] Registration added to `Configure{ServiceName}OptionsAndEnableValidation()`
 - [ ] appsettings.json section added (project defaults)
-- [ ] Crucial settings exposed in `helm/values.yaml`
-- [ ] Validation checks added to `helm/deploy.sh` for required values
+- [ ] Important options exposed in the deployment values (for Helm, `helm/values.yaml`)
+- [ ] Validation of required values added to the deployment script (for Helm, `helm/deploy.sh`)
 - [ ] XML documentation on class and properties
 
 ## Related Skills
 
-- [create-tests](../create-tests/SKILL.md) - Testing configuration options and validation
-- `dev-essentials:create-documentation` - Documenting configuration in project documentation
+- [create-tests](../create-tests/SKILL.md): Testing configuration options and validation
+- `dev-essentials:create-documentation`: Documenting configuration in project documentation

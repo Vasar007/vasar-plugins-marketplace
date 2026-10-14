@@ -9,7 +9,7 @@ Create EF Core entities, mappers, and repositories in your infrastructure projec
 
 ## Architecture Overview
 
-```mermaid
+```text
 Domain Model (sealed record)
     ↓ Mapper
 Entity (mutable record for EF)
@@ -100,15 +100,15 @@ Create a mapper to convert between domain models and EF entities.
 - Required attributes and configuration
 - `ToEntity`, `ToDomain`, `UpdateEntity` methods
 - `[UseMapper]` pattern for injecting other mappers
-- Full examples (SessionMapper, ApplianceMapper)
+- Full examples
 
 ## Step 4: Repository Interface (Application layer)
 
-**IMPORTANT**: Repository interfaces should extend `IRepository<TEntity, TKey>` (or `IRepository<TEntity, TKey1, TKey2>` for composite keys) from `MyApp.Framework.Application.Abstractions.Repositories` NuGet package.
+**IMPORTANT**: Repository interfaces must extend `IRepository<TEntity, TKey>` (or `IRepository<TEntity, TKey1, TKey2>` for composite keys) from `MyApp.Framework.Application.Abstractions.Repositories` NuGet package.
 
 **Why?** `IRepository<>` provides common CRUD methods and XML documentation to avoid duplication:
 
-- `FindByPrimaryKeyAsync` - Gets entity by ID (returns null if not found)
+- `FindByPrimaryKeyAsync` - Gets entity by ID (returns null for an unknown ID)
 - `GetAllAsync` - Gets all entities
 - `AddAsync` - Adds new entity
 - `UpdateAsync` - Updates existing entity
@@ -118,18 +118,18 @@ Create a mapper to convert between domain models and EF entities.
 
 ```csharp
 // Single-key repository
-public interface IApplianceRepository : IRepository<Appliance, ApplianceId>
+public interface IOrderRepository : IRepository<Order, OrderId>
 {
     // Add custom query methods beyond base CRUD
-    Task<Appliance?> FindByComputeInstanceIdAsync(ComputeInstanceId instanceId, CancellationToken cancellationToken = default);
-    Task<AppliancesPage> GetAllByQueryAsync(ApplianceQuery query, CancellationToken cancellationToken = default);
+    Task<Order?> FindByInvoiceIdAsync(InvoiceId invoiceId, CancellationToken cancellationToken = default);
+    Task<OrdersPage> GetAllByQueryAsync(OrderQuery query, CancellationToken cancellationToken = default);
 }
 
 // Composite-key repository
-public interface IRdsInstanceDeploymentResultRepository : IRepository<RdsAuroraServerlessV2ClusterDeploymentResult, DeploymentId, RdsDbClusterId>
+public interface IShipmentItemRepository : IRepository<ShipmentItem, ShipmentId, ProductId>
 {
     // Add custom query methods
-    Task<ModelsPage<RdsAuroraServerlessV2ClusterDeploymentResult>> GetAllByQueryAsync(RdsInstanceDeploymentResultQuery query, CancellationToken cancellationToken = default);
+    Task<ModelsPage<ShipmentItem>> GetAllByQueryAsync(ShipmentItemQuery query, CancellationToken cancellationToken = default);
 }
 ```
 
@@ -160,11 +160,11 @@ Register the repository standalone in `PersistenceDependencyInjection.cs`:
 serviceCollection.AddScoped<I{EntityName}Repository, {EntityName}Repository>();
 ```
 
-The mapper is created internally by the repository (`new {EntityName}Mapper()`) — no separate DI registration needed.
+The repository creates the mapper internally (`new {EntityName}Mapper()`). The mapper needs no separate DI registration.
 
 ## Step 6: Application Service (Optional)
 
-Application services are only needed when orchestrating across multiple repositories or external clients. For simple CRUD, the repository is sufficient — inject it directly into callers.
+Create an application service only for one of the cases below. For simple CRUD, inject the repository directly into callers.
 
 **When to create a service:**
 
@@ -190,18 +190,18 @@ public sealed class {Entity}Service : I{Entity}Service
 }
 ```
 
-Note: Repositories call `SaveChangesAsync` internally — callers (including services) must NOT call it.
+Note: Repositories call `SaveChangesAsync` internally. Callers, including services, must NOT call it.
 
 ## Key Rules
 
-1. **Entities are mutable records** - use `{ get; set; }` for updateable properties
+1. **Entities are mutable records**: use `{ get; set; }` for updateable properties
 2. **Use `required` modifier** on properties that must be set
-3. **Collections use `ICollection<T>` with `new List<T>()`** - NOT collection expressions
+3. **Collections use `ICollection<T>` with `new List<T>()`**, NOT collection expressions
 4. **Mappers use Riok.Mapperly** with `[Mapper]` attribute
 5. **Repository interfaces in Application**, implementations in Infrastructure
 6. **Mappers instantiated internally** by repositories via `new TMapper()`
 7. **Repositories registered standalone** in `PersistenceDependencyInjection.cs` as `AddScoped<IRepo, Repo>()`
-8. **Repositories call SaveChangesAsync internally** — callers must NOT call it
+8. **Repositories call SaveChangesAsync internally**. Callers must NOT call it.
 
 ## Tests
 
@@ -209,7 +209,7 @@ Create tests for EF entities, mappers, repositories, and services:
 
 **Repository (Integration Tests)**: Test CRUD operations against in-memory/SQLite/Cosmos emulator databases.
 
-**Mapper (Unit Tests)**: Test domain↔entity conversions when custom logic exists.
+**Mapper (Unit Tests)**: Test the domain↔entity conversions of a mapper that has custom logic.
 
 **Service (Unit Tests)**: Test business logic, validation, and orchestration with mocked repositories.
 
