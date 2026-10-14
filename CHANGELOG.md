@@ -192,11 +192,11 @@ This release fixes the skill bugs that the lint sweep found (issue #12).
 - `github-mcp-conventions` Rule 1: Without `--interactive`, a workflow that documents it (`bug-hunt`) can take `owner/repo` from the `origin` remote. It must report the value as taken from the remote.
 - `subagent-orchestration`: A workflow that runs with its default autonomy uses Opus instead of a question about Fable. The run-format agreement can come from no objection.
 - `subagent-orchestration`: Rule 5 now allows `SendMessage` to your own subagent by its agent ID. Use it to resume the subagent after a stop, or to correct it on the same task. The rule still forbids `name`, `team_name`, shared task lists, and messages between subagents. Rule 3 and the anti-patterns now say the same.
-- `subagent-orchestration`: Replaced the section "Trust but verify" with three tiers. The orchestrator checks cheap facts, and an agent checks the content. Only before a high-risk action, the orchestrator re-reads the lines that the action depends on. The "Check scope" part of "Run format agreement" now points to these tiers.
+- `subagent-orchestration`: Replaced the section `Trust but verify` with three tiers. The orchestrator checks cheap facts, and an agent checks the content. Only before a high-risk action, the orchestrator re-reads the lines that the action depends on. The "Check scope" part of "Run format agreement" now points to these tiers.
 - `process-pr-comments` and `audit-personal-conventions`: Replaced the claim that a subagent cannot get a follow-up message. The Claude Code docs show that `SendMessage` can resume a subagent.
-- `save-context`: "Confirm to user" is now Step 6, and the next-session continuation prompt is now Step 7.
+- `save-context`: `Confirm to user` is now Step 6, and the next-session continuation prompt is now Step 7.
 - `research-implement-review-report` and `implement-task`: The final report no longer ends with the next-session continuation prompt of `save-context`. The commands print the report only.
-- `task-composer`: If the user ran a calling skill with `autonomous`, that skill can confirm `mode: create` for the user.
+- `task-composer`: If the user ran a calling skill with `autonomous`, that skill can approve `mode: create` for the user.
 
 ### Removed in dev-essentials
 
@@ -369,7 +369,7 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the initial marketplace layout with three plugins:
   - `dev-essentials` has four composer agents (PR, Task, Test, Docs), ten workflow commands, and seven cross-stack skills. The skills cover markdown, XML docs, git worktrees, PR review comments, feature pipeline, general conventions, and `create-documentation`.
   - `dotnet-backend-dev` has fifteen .NET, Clean Architecture, DDD, EF Core, OpenAPI, and Mapperly skills. It also has a backend conventions hub with nine topic references. The topics are controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing.
-  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: plan, implement, build, test, validate, commit. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
+  - `gop-pipeline` is the Git Operations Pipeline workflow. The stages run in this order: `plan`, `implement`, `build`, `test`, `validate`, `commit`. It has five parallel validator subagents for correctness, reuse, security, compliance, and performance. It also has build, test, and commit agents.
 - Added the repository artifacts:
   - A README with install instructions and an authoring reference
   - An MIT LICENSE
