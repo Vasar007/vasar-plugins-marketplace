@@ -1,6 +1,6 @@
 # Script results
 
-Step 7 uses this file to read the result of `scripts/trim_report.py`. Run the script with `--help` for all flags.
+Step 7 and the light path use this file to write the flags of `scripts/trim_report.py` and to read its result. Run the script with `--help` for all flags.
 
 - Examples of a usage error (exit code 2) are a bad flag, an unreadable path, an absolute `--glob` and a backup inside the workspace.
 - A regex that matches nothing in the backup is a failure.

@@ -96,7 +96,7 @@ Also settle the byte targets (defaults are in [references/cut-rules.md](referenc
 ### 2. Back up the workspace
 
 Before the first edit, copy the whole workspace to a location outside it, for example with `cp -a WORKSPACE BACKUP`.
-The script refuses a `--before` path that equals, contains, or sits inside the `--after` path. It cannot find a stray copy that you do not pass to it, or a backup inside the workspace in the subfolder form. Keep every copy outside the workspace, because a copy inside it can hide a loss.
+The script refuses a `--before` path that equals, contains, or sits inside the `--after` path. It cannot find a stray copy that you do not pass to it, or a backup inside the workspace in the subfolder form. Keep every copy outside the workspace.
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
@@ -129,7 +129,7 @@ Before any deletion, show the user these lists:
 
 1. The files to delete, with a one-line reason each.
 2. Files or records that the user approved for deletion before the pass, to show the real scope.
-3. The protected items that the plan withdraws as tombstones, each with its file and its `--allow-changed` regex.
+3. The protected items that the plan withdraws as tombstones, each with its file and its `--allow-changed` regex (see step 7).
 
 Under the lists, add one line that reminds the user of the path of the backup.
 
@@ -158,7 +158,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after 
   --allow-changed '^notes/decisions\.md:## Decision 3\b' --target-percent 60
 ```
 
-Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error. Before you act on the result, read [references/script-results.md](references/script-results.md). Look at each AMBIGUOUS line by hand.
+Exit code 0 means pass. Exit code 1 means an integrity failure. Exit code 2 means a usage error. Before you write the `--glob` and `--allow-changed` flags, read [references/script-results.md](references/script-results.md). Read it again before you act on the result. Look at each AMBIGUOUS line by hand.
 
 If the project has a Markdown linter or another formatter, run it too. Accept no new error types.
 
