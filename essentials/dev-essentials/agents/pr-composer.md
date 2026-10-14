@@ -16,6 +16,10 @@ Write concise pull request descriptions about the architecture of a change. Focu
 - **Larger changes**: Max **2000 characters**
 - Strip unnecessary detail. Be direct and technical.
 
+## Input From the Brief
+
+The brief can hold extra context or instructions from the user. Follow them, but keep the format and the length limits of this file.
+
 ## Workflow
 
 All paths below are relative to the root of the repository.
@@ -57,6 +61,8 @@ git diff --stat <base>...HEAD
 git diff --name-status <base>...HEAD
 git log <base>...HEAD --oneline
 ```
+
+Ignore ephemeral artifacts in the diff: OpenSpec drafts (`openspec/`), notes folders (`Notes/`), and any other scratch folder of the repository. Describe only the changes to code and configuration, for example source folders, test folders, pipelines, Dockerfiles, and helm charts.
 
 ### 3. Categorize Changes (Fallback Only)
 
