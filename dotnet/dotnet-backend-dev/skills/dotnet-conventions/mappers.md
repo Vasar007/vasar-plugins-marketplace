@@ -2,7 +2,7 @@
 
 ## ALWAYS Use Riok.Mapperly
 
-Do NOT use AutoMapper, hand-written `.Select()` projections, or manual mapping when Mapperly can handle it. Only fall back to manual mapping when Mapperly attributes become too complex (many errors, constructor mismatches).
+If Mapperly can handle a mapping, do NOT use AutoMapper, hand-written `.Select()` projections, or manual mapping. If the Mapperly attributes become too complex (many errors, constructor mismatches), fall back to manual mapping. Use manual mapping only in this case.
 
 ## Required Attributes — Every Mapper
 
@@ -22,12 +22,12 @@ From the .NET backend framework (`MyApp.Framework.Infrastructure.External.Shared
 
 ## Converter Types by Location
 
-| Usage                | Class Style                                        | Location                                                             |
-|----------------------|----------------------------------------------------|----------------------------------------------------------------------|
-| REST API             | `internal static partial class`                    | `WebApi/Converters/{Feature}/`                                       |
-| External API Clients | `public static partial class`                      | `Infrastructure/External/ApiClients/{Service}/{Feature}/Converters/` |
-| EF/Persistence       | `public sealed partial class` (non-static, for DI) | `Infrastructure/Persistence/{Feature}/Entities/`                     |
-| Internal Services    | `internal static partial class`                    | `Application/{Feature}/Converters/`                                  |
+| Usage | Class Style | Location |
+| --- | --- | --- |
+| REST API | `internal static partial class` | `WebApi/Converters/{Feature}/` |
+| External API Clients | `public static partial class` | `Infrastructure/External/ApiClients/{Service}/{Feature}/Converters/` |
+| EF/Persistence | `public sealed partial class` (non-static, created by the repository) | `Infrastructure/Persistence/{Feature}/Entities/` |
+| Internal Services | `internal static partial class` | `Application/{Feature}/Converters/` |
 
 ## EF Entity Mappers — Non-Static
 
@@ -60,11 +60,11 @@ When one mapper needs another non-static mapper:
 
 ```csharp
 [UseMapper]
-private readonly ApplianceUserCredentialsMapper _credentialsMapper;
+private readonly CustomerPaymentMethodMapper _paymentMethodMapper;
 
-public ApplianceMapper(ApplianceUserCredentialsMapper credentialsMapper)
+public CustomerMapper(CustomerPaymentMethodMapper paymentMethodMapper)
 {
-    _credentialsMapper = credentialsMapper.ThrowIfNull();
+    _paymentMethodMapper = paymentMethodMapper.ThrowIfNull();
 }
 ```
 
@@ -74,11 +74,11 @@ public ApplianceMapper(ApplianceUserCredentialsMapper credentialsMapper)
 - **Responses** (Domain → REST): `{Entity}RestResponsesConverter`
 - **External service**: `{ServicePrefix}{Feature}RequestsConverter` / `...ResponsesConverter`
 
-Example service prefixes used in converter class names (illustrative — substitute your own): `Ds` (Deployment), `Ids` (Infrastructure Deployment), `Sms` (Storage Management), `Dcs` (Data Collector).
+Example service prefixes in converter class names (use your own): `Oms` (Order Management), `Ps` (Payment), `Inv` (Inventory), and `Cds` (Customer Directory).
 
 ## Project-Local DomainWrappersConverter
 
-Each service may keep its own `DomainWrappersConverter` (typically under `Infrastructure/External/ApiClients/Shared/Converters/`) for project-specific wrapper conversions: `ToDomainMaintenanceWindowId`, `ToDomainManagementRegionId`, etc.
+Each service can keep its own `DomainWrappersConverter` (typically under `Infrastructure/External/ApiClients/Shared/Converters/`) for project-specific wrapper conversions, for example `ToDomainOrderId` and `ToDomainShippingMethodId`.
 
 Use it alongside the framework one:
 
@@ -89,10 +89,10 @@ Use it alongside the framework one:
 
 ## Common Attributes
 
-- `[MapperIgnoreSource(nameof(...))]` — skip source property
-- `[MapperIgnoreTarget(nameof(...))]` — skip target property
-- `[MapProperty(source, target)]` — map different property names
-- `[MapProperty(source, target, Use = nameof(Method))]` — custom transform
+- `[MapperIgnoreSource(nameof(...))]`: skips a source property
+- `[MapperIgnoreTarget(nameof(...))]`: skips a target property
+- `[MapProperty(source, target)]`: maps properties that have different names
+- `[MapProperty(source, target, Use = nameof(Method))]`: maps a property with a custom transform
 
 ## Manual Mapping Fallback
 

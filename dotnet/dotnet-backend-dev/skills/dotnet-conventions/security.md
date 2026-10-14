@@ -60,6 +60,6 @@ await _sessionLogRepository.CreateInformationAsync(sessionId,
 
 ## When in Doubt
 
-Ask the user whether specific data is sensitive. Context matters — some identifiers that seem sensitive may be safe in this domain.
+Ask the user whether specific data is sensitive. Context matters. Some identifiers that seem sensitive can be safe in this domain.
 
 Use the `handle-sensitive-data` skill for full guidance.

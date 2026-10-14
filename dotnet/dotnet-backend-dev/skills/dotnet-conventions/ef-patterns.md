@@ -2,7 +2,7 @@
 
 ## Cosmos DB Container
 
-All entities in a .NET backend service typically use a single Cosmos container named after the service. Its name constant lives in a `DbStorages` static class in the Infrastructure/Persistence/Configuration folder.
+All entities in a .NET backend service typically use a single Cosmos container named after the service. Its name constant lives in a `DbStorages` static class in the `Infrastructure/Persistence/Configuration` folder.
 
 Example (one .NET backend service):
 
@@ -36,19 +36,19 @@ internal sealed class XxxEntityConfiguration : IEntityTypeConfiguration<XxxEntit
 
 ## DbContext
 
-The service's EF context lives in `Infrastructure/Persistence/` and is named after the service (e.g. `{Service}DbContext`).
+The service's EF context lives in `Infrastructure/Persistence/` and is named after the service (for example, `{Service}DbContext`).
 
 - Every entity needs an explicit `DbSet<T>` expression-bodied property: `public DbSet<XxxEntity> Xxxs => Set<XxxEntity>();`
-- Model config: `modelBuilder.OnAppModelCreating<{Service}DbContext>()` (.NET backend framework auto-discovers entity configs).
+- Model configuration: `modelBuilder.OnAppModelCreating<{Service}DbContext>()`. The .NET backend framework finds the entity configurations automatically.
 
 ## Repository Pattern
 
 - Interfaces in the Application layer extend `IRepository<TEntity, TKey>` (or dual-key variant) from the framework.
 - Implementations in the Infrastructure layer.
-- Repositories are injected directly via constructor — do **not** use `IUnitOfWork`.
-- Repositories call `SaveChangesAsync` internally after every mutation — callers must NOT call it.
-- Repositories create mappers internally via `new TMapper()` — do **not** use `IEntityDomainMappingService`.
-- Use Find + Update pattern — no direct `UpsertAsync`.
+- Repositories are injected directly through the constructor. Do **not** use `IUnitOfWork`.
+- Repositories call `SaveChangesAsync` internally after every mutation. Callers must NOT call it.
+- Repositories create mappers internally with `new TMapper()`. Do **not** use `IEntityDomainMappingService`.
+- Use the Find + Update pattern. Do not call `UpsertAsync` directly.
 
 ## RegionId Storage — Two Patterns
 
@@ -62,16 +62,16 @@ When adding new entities with region, follow the pattern of the closest existing
 1. Create the mapper class (instantiated internally by the repository via `new TMapper()`).
 2. Register the repository standalone in the persistence DI extensions (commonly `PersistenceDependencyInjection.cs`) as `AddScoped<IRepo, Repo>()`.
 3. Add `DbSet<T>` to the service's DbContext.
-4. Register the application service in the Application DI extensions (scoped, if needed).
+4. If the feature needs an application service, register it as scoped in the Application DI extensions.
 
 ## External API Clients
 
 Located in `Infrastructure/External/ApiClients/{Service}/{Feature}/`.
 
-- Inherit from a service-specific base class (e.g., `InfrastructureDeploymentServiceClientBase`).
-- Return external-service DTOs directly — conversion to domain models happens in Application services.
+- Inherit from a service-specific base class (for example, `OrderManagementServiceClientBase`).
+- Return external-service DTOs directly. Application services convert them to domain models.
 - Structured logging: `[{ServiceName}] {Action} {Entity}: {Parameters}`.
-- Example service prefixes used in class names (illustrative — substitute your own): `Ids` (Infrastructure Deployment), `Ds` (Deployment), `Sms` (Storage Management), `Dcs` (Data Collector).
+- Example service prefixes in class names (use your own): `Oms` (Order Management), `Ps` (Payment), `Inv` (Inventory), and `Cds` (Customer Directory).
 
 ## Multiple DB Providers
 
@@ -79,18 +79,10 @@ EF Core runs against Cosmos DB (production), SQLite, or in-memory (tests). Provi
 
 ## Cosmos-Specific Gotcha: Multi-Column `ORDER BY` Needs a Composite Index
 
-**Scoped to EF Core's Cosmos DB provider specifically** — not a universal EF Core rule.
+**This rule is for the Cosmos DB provider of EF Core only.** It is not a general EF Core rule.
 
-`.OrderBy(x).ThenBy(y)` translates to a multi-column `ORDER BY c["x"], c["y"]`. Against
-the real Cosmos DB provider, this fails (or behaves incorrectly) unless the container's
-indexing policy defines a matching composite index; a single-column `OrderBy` is fine
-(the default range index covers it).
+`.OrderBy(x).ThenBy(y)` translates to a multi-column `ORDER BY c["x"], c["y"]`. If the indexing policy of the container has no matching composite index, this query fails or behaves incorrectly against the real Cosmos DB provider. A single-column `OrderBy` works, because the default range index covers it.
 
-This is **invisible when testing against the InMemory or SQLite providers** — they sort
-client-side and never exercise Cosmos's indexing-policy requirement. The failure only
-surfaces against the real Cosmos emulator or a live account.
+Tests against the InMemory or SQLite providers **do not show this failure**. These providers sort on the client and never use the indexing policy of Cosmos. The failure shows only against the real Cosmos emulator or a live account.
 
-Practical implication: any repository that supports multi-column ordering needs its
-composite-index requirements documented and tested against the Cosmos emulator
-specifically — a green run on the fast in-memory/SQLite test double is not sufficient
-proof the query works.
+So, for each repository that supports multi-column ordering, document its composite-index requirements and test them against the Cosmos emulator. A green run on the in-memory or SQLite test double does not prove that the query works.

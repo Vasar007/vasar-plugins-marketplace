@@ -7,30 +7,30 @@
 | `ILogger<T>`            | Developers / Ops      | Runtime log files              | Diagnostic, flow tracing, debugging |
 | `ISessionLogRepository` | End users (portal UI) | Database (session log entries) | Business milestones, audit trail    |
 
-Use **both** in orchestration services — `ILogger` for internal flow, `ISessionLogRepository` for user-visible progress.
+Use **both** in orchestration services: `ILogger` for the internal flow, and `ISessionLogRepository` for the progress that users see.
 
 ## ILogger Patterns
 
 ### Log Levels
 
-- **LogInformation** — Business milestones, state changes, success events.
-- **LogWarning** — Degraded states, skipped operations, fallbacks, timeouts.
-- **LogDebug** — Low-level decisions, quota checks, plan updates, polling iterations.
-- **LogError** — Exceptions caught at service level (rare; usually propagated up).
+- **LogInformation**: business milestones, state changes, success events.
+- **LogWarning**: degraded states, skipped operations, fallbacks, timeouts.
+- **LogDebug**: low-level decisions, quota checks, plan updates, polling iterations.
+- **LogError**: exceptions caught at the service level. This is rare, because exceptions usually propagate up.
 
 ### Structured Logging (Mandatory)
 
-Use **named placeholders** — never composite formatting or string interpolation:
+Use **named placeholders**. Never use composite formatting or string interpolation:
 
 ```csharp
 // CORRECT — structured
-_logger.LogInformation("Deploying resources for tenant {TenantId} ({TenantName}).", tenantId, tenantName);
+_logger.LogInformation("Onboarding store {StoreId} ({StoreName}).", storeId, storeName);
 
 // WRONG — interpolation (loses structured data)
-_logger.LogInformation($"Deploying resources for tenant {tenantId}.");
+_logger.LogInformation($"Onboarding store {storeId}.");
 
 // WRONG — composite formatting
-_logger.LogInformation("Deploying resources for tenant {0}.", tenantId);
+_logger.LogInformation("Onboarding store {0}.", storeId);
 ```
 
 ### Event IDs
@@ -39,17 +39,17 @@ Each service owns a `{Service}LogEvents` static class (by convention under `Doma
 
 ```csharp
 _logger.LogInformation(
-    {Service}LogEvents.ProvisionedResourceDeletionStarted,
-    "Deleting {ResourceDescription} [{DeploymentId}] for session [{SessionId}].",
-    resourceDescription, deploymentId, session.Id);
+    {Service}LogEvents.OrderShipmentStarted,
+    "Shipping {OrderDescription} [{OrderId}] for session [{SessionId}].",
+    orderDescription, orderId, session.Id);
 ```
 
-Use an existing event ID where one fits; only add a new one for a genuinely new milestone.
+If an existing event ID fits, use it. Add a new event ID only for a new milestone.
 
 ### Placeholder Naming Conventions
 
-- Use **PascalCase**: `{TenantId}`, `{ResourceId}`, `{SessionId}`, `{Count}`, `{Status}`.
-- Wrap IDs in **brackets** in the message template: `[{SessionId}]`, `[{DeploymentId}]`.
+- Use **PascalCase**: `{StoreId}`, `{OrderId}`, `{SessionId}`, `{Count}`, `{Status}`.
+- Wrap IDs in **brackets** in the message template: `[{SessionId}]`, `[{OrderId}]`.
 
 ## ISessionLogRepository Patterns
 
@@ -70,13 +70,13 @@ All user-facing session log messages MUST come from the service's `StringResourc
 ```csharp
 await _sessionLogRepository.CreateInformationAsync(
     session.Id,
-    StringResources.RegionSyncReceivedCountMessage.SafeFormat(response.TotalCount),
+    StringResources.CatalogSyncReceivedCountMessage.SafeFormat(response.TotalCount),
     cancellationToken: cancellationToken);
 ```
 
 ### Error Details
 
-Pass exception details via the `details` parameter — never include raw exceptions in the `message`:
+Pass exception details in the `details` parameter. Never put raw exceptions in the `message`:
 
 ```csharp
 await _sessionLogRepository.CreateErrorAsync(
@@ -93,14 +93,14 @@ Orchestration services typically log to both channels at each milestone:
 ```csharp
 // ILogger — internal diagnostic
 _logger.LogInformation(
-    {Service}LogEvents.ProvisionedResourceDeletionStarted,
-    "Deleting {ResourceDescription} [{DeploymentId}] via the infrastructure deployment service for session [{SessionId}].",
-    resourceDescription, deploymentId, session.Id);
+    {Service}LogEvents.OrderShipmentStarted,
+    "Shipping {OrderDescription} [{OrderId}] through the shipping service for session [{SessionId}].",
+    orderDescription, orderId, session.Id);
 
 // ISessionLogRepository — user-visible progress
 await _sessionLogRepository.CreateInformationAsync(
     session.Id,
-    StringResources.ProvisionedResourceDeletionStartedMessage.SafeFormat(resourceDescription, deploymentId),
+    StringResources.OrderShipmentStartedMessage.SafeFormat(orderDescription, orderId),
     cancellationToken: cancellationToken);
 ```
 

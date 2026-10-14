@@ -7,15 +7,6 @@ description: Create model mapping converters using Riok.Mapperly with proper att
 
 Create compile-time safe model converters using Riok.Mapperly source generators.
 
-## What is Riok.Mapperly?
-
-Riok.Mapperly is a compile-time source generator that creates type-safe mapping code:
-
-- **Zero runtime reflection** - all mapping code generated at compile time
-- **Type-safe** - compile errors for invalid mappings
-- **High performance** - direct property assignments
-- **Explicit control** - attributes for custom mapping rules
-
 ## File Location
 
 Place converters near their usage:
@@ -64,17 +55,11 @@ internal static partial class {Feature}Converter
 - `EnumMappingStrategy.ByName` - Maps enums by name (not numeric value)
 - `EnumMappingIgnoreCase = true` - Case-insensitive enum matching
 
-**Why required:**
-
-- Ensures enums map correctly even with different casing conventions
-- Prevents subtle bugs from enum value mismatches
-- Works across different naming conventions (PascalCase, camelCase, snake_case)
-
 ## Reusing Other Converters
 
 ### SharedDomainWrappersConverter (Common)
 
-Use when converting SDK domain wrappers (Guid, String, DateTime, etc.):
+Use it for SDK domain wrappers, for example Guid, String, and DateTime wrappers:
 
 ```csharp
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
@@ -107,7 +92,7 @@ internal static partial class ComplexConverter
 
 ### Ignoring Source Properties
 
-Use when source has properties that shouldn't be mapped:
+Use it for source properties that must not be mapped:
 
 ```csharp
 [MapperIgnoreSource(nameof(Source.PropertyName))]
@@ -117,10 +102,10 @@ public static partial Target ToTarget(Source source);
 **Example:**
 
 ```csharp
-[MapperIgnoreSource(nameof(Appliance.Region))]
-[MapperIgnoreSource(nameof(Appliance.DefaultUserCredentials))]
-[MapperIgnoreSource(nameof(Appliance.Certificate))]
-public static partial RestAppliance ToRestAppliance(Appliance appliance);
+[MapperIgnoreSource(nameof(Customer.HomeStore))]
+[MapperIgnoreSource(nameof(Customer.DefaultPaymentMethod))]
+[MapperIgnoreSource(nameof(Customer.MembershipCard))]
+public static partial RestCustomer ToRestCustomer(Customer customer);
 ```
 
 ### Custom Property Mapping
@@ -135,8 +120,8 @@ public static partial Target ToTarget(Source source);
 **Example:**
 
 ```csharp
-[MapProperty(nameof(Appliance.Id), nameof(RestAppliance.ApplianceId))]
-public static partial RestAppliance ToRestAppliance(Appliance appliance);
+[MapProperty(nameof(Customer.Id), nameof(RestCustomer.CustomerId))]
+public static partial RestCustomer ToRestCustomer(Customer customer);
 ```
 
 ### Custom Mapping Method
@@ -156,11 +141,13 @@ private static TargetVersion ConvertVersion(SourceVersion version)
 **Example:**
 
 ```csharp
-[MapProperty(nameof(Appliance.Version), nameof(RestAppliance.Version), Use = nameof(ToRestProductVersion))]
-public static partial RestAppliance ToRestAppliance(Appliance appliance);
+[MapProperty(nameof(Customer.Tier), nameof(RestCustomer.Tier), Use = nameof(ToRestLoyaltyTier))]
+public static partial RestCustomer ToRestCustomer(Customer customer);
 
-public static RestProductVersion ToRestProductVersion(ApplianceVersion version) 
-    => version.ToProductVersion().ToRestProductVersion();
+public static RestLoyaltyTier ToRestLoyaltyTier(CustomerTier tier)
+{
+    return tier.ToLoyaltyTier().ToRestLoyaltyTier();
+}
 ```
 
 ### Nested Property Mapping
@@ -175,7 +162,7 @@ public static partial Target ToTarget(Source source);
 **Example:**
 
 ```csharp
-[MapProperty(nameof(Request.TenantDetails.TenantName), nameof(RestRequest.TenantName))]
+[MapProperty(nameof(Request.StoreDetails.StoreName), nameof(RestRequest.StoreName))]
 public static partial RestRequest ToRestRequest(Request request);
 ```
 
@@ -187,7 +174,7 @@ public static partial RestRequest ToRestRequest(Request request);
 
 - Multiple complex nested property transformations
 - Many `[MapperIgnore*]` attributes needed
-- Constructor parameters don't match properties
+- Constructor parameters do not match properties
 - Complex conditional logic required
 - Riok.Mapperly generates compilation errors that are hard to resolve
 
@@ -217,33 +204,33 @@ private static {Type} TransformProperty2({Source} source)
 
 **Key points:**
 
-- Leave a `TODO` comment (or regular comment if TODO raises errors) indicating future refactoring opportunity
+- Leave a `TODO` comment that marks the mapping for a later refactoring. If a `TODO` comment raises errors, use a regular comment.
 - Manual mapping is **acceptable and preferred** over complex attribute gymnastics
-- Developer should revisit later when they have time or when mapping requirements simplify
+- A developer can revisit the mapping later, after the requirements become simpler or as time allows.
 - Keep manual mapping methods clean and well-structured
 
 ### Example: Complex Manual Mapping
 
 ```csharp
-public Appliance ToDomainAppliance(
-    ApplianceEntity entity,
-    ComputeInstance computeInstance,
-    DeployableRegion region)
+public Customer ToDomainCustomer(
+    CustomerEntity entity,
+    LoyaltyAccount loyaltyAccount,
+    Store homeStore)
 {
     // Manual mapping: constructor requires additional parameters not in entity
     // TODO: Evaluate if partial auto-generation is possible with custom property mappings
     entity.ThrowIfNull();
-    computeInstance.ThrowIfNull();
-    region.ThrowIfNull();
+    loyaltyAccount.ThrowIfNull();
+    homeStore.ThrowIfNull();
 
-    return new Appliance(
-        id: entity.Id.ToDomainApplianceId(),
-        computeInstance: computeInstance,  // External parameter
-        region: region,      // External parameter
-        defaultUserCredentials: _applianceUserCredentialsMapper.ToDomainUserCredentials(entity.DefaultUserCredentials),
-        certificate: ToDomainApplianceCertificate(entity.Certificate),
-        version: _applianceVersionMapper.ToDomainApplianceVersion(entity.Version),
-        deploymentResources: ToDomainApplianceResourceIds(entity.DeploymentResources)
+    return new Customer(
+        id: entity.Id.ToDomainCustomerId(),
+        loyaltyAccount: loyaltyAccount,  // External parameter
+        homeStore: homeStore,      // External parameter
+        defaultPaymentMethod: _customerPaymentMethodMapper.ToDomainPaymentMethod(entity.DefaultPaymentMethod),
+        membershipCard: ToDomainCustomerMembershipCard(entity.MembershipCard),
+        tier: _customerTierMapper.ToDomainCustomerTier(entity.Tier),
+        orderIds: ToDomainCustomerOrderIds(entity.OrderIds)
     );
 }
 ```
@@ -274,16 +261,16 @@ internal static partial class {Entity}RestResponsesConverter
 Name after the service:
 
 ```csharp
-// Deployment Service
-internal static partial class Ds{Feature}RequestsConverter
+// Order Management Service
+internal static partial class Oms{Feature}RequestsConverter
 {
-    public static partial RestDs.{Request} ToRest{Request}({DomainRequest} request);
+    public static partial RestOms.{Request} ToRest{Request}({DomainRequest} request);
 }
 
-// Infrastructure Deployment Service
-internal static partial class Ids{Feature}ResponsesConverter
+// Payment Service
+internal static partial class Ps{Feature}ResponsesConverter
 {
-    public static partial {DomainResponse} ToDomain{Response}(RestIds.{Response} response);
+    public static partial {DomainResponse} ToDomain{Response}(RestPs.{Response} response);
 }
 ```
 
@@ -316,30 +303,30 @@ public sealed partial class {Entity}Mapper
 - `{Entity}Mapper` naming convention
 - Three core methods: `ToEntity`, `ToDomain`, `UpdateEntity`
 - `UpdateEntity` ignores immutable properties (IDs, timestamps)
-- No separate DI registration — repositories create mappers in their constructor
+- No separate DI registration. Repositories create mappers in their constructor
 
-## Real-World Examples
+## Full Examples
 
 ### REST API Response Converter
 
 ```csharp
 using Riok.Mapperly.Abstractions;
-using MyApp.Domain.Workload.Tenants;
+using MyApp.Domain.Sales.Stores;
 using MyApp.WebApi.AutoGenerated;
 using MyApp.Framework.Infrastructure.External.Shared.Converters;
 
-namespace MyApp.WebApi.Converters.Workload.Tenants;
+namespace MyApp.WebApi.Converters.Sales.Stores;
 
 /// <summary>
-/// Converts domain tenant models to REST responses.
+/// Converts domain store models to REST responses.
 /// </summary>
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
 [UseStaticMapper(typeof(SharedDomainWrappersConverter))]
-internal static partial class TenantRestResponsesConverter
+internal static partial class StoreRestResponsesConverter
 {
-    public static partial Rest.Tenant ToRestTenant(this Tenant tenant);
+    public static partial Rest.Store ToRestStore(this Store store);
     
-    public static partial Rest.TenantsPage ToRestTenantsPage(this TenantsPage page);
+    public static partial Rest.StoresPage ToRestStoresPage(this StoresPage page);
 }
 ```
 
@@ -347,25 +334,25 @@ internal static partial class TenantRestResponsesConverter
 
 ```csharp
 using Riok.Mapperly.Abstractions;
-using MyApp.Domain.Workload.Tenants.Update;
+using MyApp.Domain.Sales.Stores.Update;
 using MyApp.Framework.Infrastructure.External.Shared.Converters;
 
-using RestDs = MyApp.DeploymentService.Client.AutoGenerated;
+using RestOms = MyApp.OrderManagementService.Client.AutoGenerated;
 
-namespace MyApp.Infrastructure.External.ApiClients.DeploymentService.Workload.Tenants.Converters;
+namespace MyApp.Infrastructure.External.ApiClients.OrderManagementService.Sales.Stores.Converters;
 
 /// <summary>
-/// Converts tenant update requests to deployment-service API format.
+/// Converts store update requests to the API format of the order management service.
 /// </summary>
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
 [UseStaticMapper(typeof(SharedDomainWrappersConverter))]
-public static partial class DsTenantsRequestsConverter
+public static partial class OmsStoresRequestsConverter
 {
-    [MapProperty(nameof(TenantUpdateRequest.TenantDetails.TenantName), nameof(RestDs.TenantUpdateSpec.TenantName))]
-    public static partial RestDs.TenantUpdateSpec ToRestUpdateSpec(TenantUpdateRequest request);
+    [MapProperty(nameof(StoreUpdateRequest.StoreDetails.StoreName), nameof(RestOms.StoreUpdateSpec.StoreName))]
+    public static partial RestOms.StoreUpdateSpec ToRestUpdateSpec(StoreUpdateRequest request);
     
-    [MapperIgnoreSource(nameof(TenantUpdateIamRolesRequest.TenantId))]
-    public static partial RestDs.IamRolesUpdateSpec ToRestIamRolesUpdateSpec(TenantUpdateIamRolesRequest request);
+    [MapperIgnoreSource(nameof(StoreUpdateManagersRequest.StoreId))]
+    public static partial RestOms.ManagersUpdateSpec ToRestManagersUpdateSpec(StoreUpdateManagersRequest request);
 }
 ```
 
@@ -418,7 +405,7 @@ public sealed partial class SessionMapper
 
 **Key patterns:**
 
-- Non-static class (EF mappers are registered in DI)
+- Non-static class. The repository creates it with `new SessionMapper()`. It has no DI registration.
 - `UpdateEntity{Name}()` method for updating tracked entities
 - `[MapperIgnoreSource]` + `[MapperIgnoreTarget]` to skip immutable/primary key properties
 - Maps domain models, entities, and enum wrappers
@@ -429,72 +416,72 @@ public sealed partial class SessionMapper
 
 ```csharp
 using Riok.Mapperly.Abstractions;
-using MyApp.Domain.Appliances;
-using MyApp.Sdk.Domain.Compute;
-using MyApp.Sdk.Domain.Regions.Deployment;
+using MyApp.Domain.Customers;
+using MyApp.Domain.Loyalty;
+using MyApp.Domain.Stores;
 using MyApp.Framework.Assertions;
 using MyApp.Framework.Infrastructure.External.Shared.Converters;
 
-namespace MyApp.Infrastructure.Persistence.Appliances.Entities;
+namespace MyApp.Infrastructure.Persistence.Customers.Entities;
 
 /// <summary>
-/// Maps appliances between domain and EF entities.
+/// Maps customers between domain and EF entities.
 /// </summary>
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
 [UseStaticMapper(typeof(SharedDomainWrappersConverter))]
-public sealed partial class ApplianceMapper : IApplianceEntityMapper<Appliance, ApplianceEntity>
+public sealed partial class CustomerMapper : ICustomerEntityMapper<Customer, CustomerEntity>
 {
     [UseMapper]
-    private readonly ApplianceUserCredentialsMapper _applianceUserCredentialsMapper;
+    private readonly CustomerPaymentMethodMapper _customerPaymentMethodMapper;
 
     [UseMapper]
-    private readonly ApplianceVersionMapper _applianceVersionMapper;
+    private readonly CustomerTierMapper _customerTierMapper;
 
-    public ApplianceMapper(
-        ApplianceUserCredentialsMapper applianceUserCredentialsMapper,
-        ApplianceVersionMapper applianceVersionMapper)
+    public CustomerMapper(
+        CustomerPaymentMethodMapper customerPaymentMethodMapper,
+        CustomerTierMapper customerTierMapper)
     {
-        _applianceUserCredentialsMapper = applianceUserCredentialsMapper.ThrowIfNull();
-        _applianceVersionMapper = applianceVersionMapper.ThrowIfNull();
+        _customerPaymentMethodMapper = customerPaymentMethodMapper.ThrowIfNull();
+        _customerTierMapper = customerTierMapper.ThrowIfNull();
     }
 
-    [MapperIgnoreSource(nameof(Appliance.ComputeInstance))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.ComputeInstanceId))]
-    [MapperIgnoreSource(nameof(Appliance.Region))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.RegionId))]
-    public partial ApplianceEntity ToEntityAppliance(Appliance appliance);
+    [MapperIgnoreSource(nameof(Customer.LoyaltyAccount))]
+    [MapperIgnoreTarget(nameof(CustomerEntity.LoyaltyAccountId))]
+    [MapperIgnoreSource(nameof(Customer.HomeStore))]
+    [MapperIgnoreTarget(nameof(CustomerEntity.HomeStoreId))]
+    public partial CustomerEntity ToEntityCustomer(Customer customer);
 
-    public Appliance ToDomainAppliance(
-        ApplianceEntity entity,
-        ComputeInstance computeInstance,
-        DeployableRegion region)
+    public Customer ToDomainCustomer(
+        CustomerEntity entity,
+        LoyaltyAccount loyaltyAccount,
+        Store homeStore)
     {
         // Manual mapping when automatic generation isn't suitable
         entity.ThrowIfNull();
-        computeInstance.ThrowIfNull();
-        region.ThrowIfNull();
+        loyaltyAccount.ThrowIfNull();
+        homeStore.ThrowIfNull();
 
-        return new Appliance(
-            id: entity.Id.ToDomainApplianceId(),
-            computeInstance: computeInstance,
-            region: region,
-            defaultUserCredentials: _applianceUserCredentialsMapper.ToDomainUserCredentials(entity.DefaultUserCredentials),
-            certificate: ToDomainApplianceCertificate(entity.Certificate),
-            version: _applianceVersionMapper.ToDomainApplianceVersion(entity.Version),
-            deploymentResources: ToDomainApplianceResourceIds(entity.DeploymentResources)
+        return new Customer(
+            id: entity.Id.ToDomainCustomerId(),
+            loyaltyAccount: loyaltyAccount,
+            homeStore: homeStore,
+            defaultPaymentMethod: _customerPaymentMethodMapper.ToDomainPaymentMethod(entity.DefaultPaymentMethod),
+            membershipCard: ToDomainCustomerMembershipCard(entity.MembershipCard),
+            tier: _customerTierMapper.ToDomainCustomerTier(entity.Tier),
+            orderIds: ToDomainCustomerOrderIds(entity.OrderIds)
         );
     }
 
-    [MapperIgnoreSource(nameof(Appliance.Id))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.Id))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.ComputeInstanceId))]
-    [MapperIgnoreSource(nameof(Appliance.ComputeInstance))]
-    [MapperIgnoreTarget(nameof(ApplianceEntity.RegionId))]
-    [MapperIgnoreSource(nameof(Appliance.Region))]
-    public partial void UpdateEntityAppliance(Appliance appliance, ApplianceEntity entity);
+    [MapperIgnoreSource(nameof(Customer.Id))]
+    [MapperIgnoreTarget(nameof(CustomerEntity.Id))]
+    [MapperIgnoreTarget(nameof(CustomerEntity.LoyaltyAccountId))]
+    [MapperIgnoreSource(nameof(Customer.LoyaltyAccount))]
+    [MapperIgnoreTarget(nameof(CustomerEntity.HomeStoreId))]
+    [MapperIgnoreSource(nameof(Customer.HomeStore))]
+    public partial void UpdateEntityCustomer(Customer customer, CustomerEntity entity);
 
-    public partial ApplianceCertificateEntity ToEntityApplianceCertificate(ApplianceCertificate certificate);
-    public partial ApplianceCertificate ToDomainApplianceCertificate(ApplianceCertificateEntity entity);
+    public partial CustomerMembershipCardEntity ToEntityCustomerMembershipCard(CustomerMembershipCard membershipCard);
+    public partial CustomerMembershipCard ToDomainCustomerMembershipCard(CustomerMembershipCardEntity entity);
 }
 ```
 
@@ -503,25 +490,25 @@ public sealed partial class ApplianceMapper : IApplianceEntityMapper<Appliance, 
 - `[UseMapper]` attribute on fields for injecting non-static mappers
 - Constructor receives mapper dependencies
 - Mix of auto-generated partial methods and manual implementations
-- Manual method when constructor parameters differ from properties
+- A manual method for a constructor whose parameters differ from the properties
 
 ## Tests
 
 Always create unit tests for converters.
 
-**See the [create-tests](../create-tests/SKILL.md) skill for complete unit and integration testing guidance.**
+**See the [create-tests](../create-tests/SKILL.md) skill for complete unit and integration testing guidance**.
 
 ## Checklist
 
-- [ ] Converter is `static partial class` (for REST/External API) OR `sealed partial class` (for EF/DI)
+- [ ] Converter is `static partial class` (for REST/External API) OR `sealed partial class` (for EF and other non-static mappers)
 - [ ] `[Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]` attribute
-- [ ] `[UseStaticMapper(typeof(SharedDomainWrappersConverter))]` if converting SDK wrappers
+- [ ] For SDK wrapper conversions: `[UseStaticMapper(typeof(SharedDomainWrappersConverter))]`
 - [ ] `[UseMapper]` fields + constructor for non-static mapper dependencies (if needed)
 - [ ] XML documentation on converter class
 - [ ] XML documentation on public mapping methods
 - [ ] Method signatures are `public static partial` (static) OR `public partial` (non-static)
 - [ ] Custom mapping methods are private (if needed) OR manual public methods
-- [ ] `[MapperIgnoreSource]` / `[MapperIgnoreTarget]` for properties that shouldn't be mapped
+- [ ] `[MapperIgnoreSource]` / `[MapperIgnoreTarget]` for properties that must not be mapped
 - [ ] `[MapProperty]` for property name differences or transformations
 - [ ] `UpdateEntity{Name}()` method for EF tracked entity updates (if applicable)
 - [ ] Converter file name matches class name
