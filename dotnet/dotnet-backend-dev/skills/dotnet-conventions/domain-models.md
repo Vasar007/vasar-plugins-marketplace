@@ -79,9 +79,9 @@ public readonly record struct ShippingMethodId : IStringWrapper<ShippingMethodId
 }
 ```
 
-### RegionId — From SDK
+### Wrappers From a Shared SDK
 
-`MyApp.Sdk.Domain.Regions.RegionId` comes from the shared infrastructure SDK and is **not** redefined per project. To convert a string from an external-client DTO, use `RegionId.FromValue("us-east-1")` or the `.ToDomainRegionId()` extension.
+A wrapper type that a shared SDK already defines is **not** redefined per project. Example: `MyApp.Sdk.Domain.Geography.CountryCode`. To convert a string from an external-client DTO, use `CountryCode.FromValue("US")` or the `.ToDomainCountryCode()` extension.
 
 ## Domain Exceptions
 

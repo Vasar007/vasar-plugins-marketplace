@@ -22,7 +22,7 @@ Guidelines for securely handling sensitive information in code to prevent accide
 - Non-secret metadata: Usernames (without passwords), instance IDs, timestamps
 - System state: Status codes, operation types, version numbers
 
-**IMPORTANT**: Always ask the user whether specific data is sensitive. Context matters. Some identifiers that seem sensitive can be safe to log in your domain.
+If the lists above do not settle whether specific data is sensitive, ask the user. Context matters. Some identifiers that seem sensitive can be safe to log in your domain.
 
 ## The Golden Rule
 
@@ -237,9 +237,9 @@ public override String ToString()
 }
 ```
 
-## Discussion with Developers
+## Questions for the User
 
-**Before you implement**, always ask the user about these points:
+If you are not sure whether data is sensitive, ask the user about these points before you implement:
 
 1. **What data is sensitive in your domain?**
    - Some GUIDs/IDs can be public identifiers (safe)
@@ -320,7 +320,7 @@ dict[creds1] = "session-id";  // Safe, internal hashing
 ## Security Review Checklist
 
 - [ ] Identified all sensitive properties in model/wrapper
-- [ ] Discussed with team whether data is truly sensitive
+- [ ] Asked the user about each item of data that the lists did not clearly classify
 - [ ] `ToString()` uses `DefaultErasedPlaceholder` for sensitive fields
 - [ ] `Equals()` compares sensitive data correctly (safe)
 - [ ] `GetHashCode()` includes sensitive data in hash (safe)
