@@ -97,7 +97,7 @@ public sealed class CustomersControllerTests : WebApiBaseTest
     [Test]
     public async Task GetCustomersAsync_ReturnsOk_WhenNoCustomersFound()
     {
-        // Arrange - empty database (cleared in SetUp)
+        // Arrange - empty database (cleared in SetUp).
 
         // Act.
         var actualPage = await _customersClient.GetCustomersAsync(
