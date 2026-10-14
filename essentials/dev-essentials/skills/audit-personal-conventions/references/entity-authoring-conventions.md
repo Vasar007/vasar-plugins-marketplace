@@ -44,14 +44,12 @@ Claude reads the `description` of a skill to decide whether to use the skill. Wr
   - **Anti-patterns**: named wrong approaches that the rule prevents.
 - **Closing cross-references**: a table of related skills and entities, with the reason that this entity depends on or complements each one.
 
-## References vs. examples — conditional need, not line count
+## References vs. examples — conditional need and the 500-line limit
 
-Split content out into `references/*.md` or `examples/*.md` only for a part that applies conditionally: to only one of several invocation branches, target types, or flag combinations. Do not split because `SKILL.md` crossed some line-count threshold.
+Split content out into `references/*.md` or `examples/*.md` in two cases:
 
-Two data points from this marketplace, in opposite directions:
-
-- Some single-file skills with no subfolder run to about 500 lines or more. Every part of their content applies to every invocation.
-- A skill of only about 150 lines can still justify a `references/` split. The condition: a large part of its content applies to only one of several branches. Examples are one target type out of eight, or one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
+1. A part applies conditionally: to only one of several invocation branches, target types, or flag combinations. A short `SKILL.md` does not change this. Example: a skill of only about 150 lines can need a `references/` split. A large part of it applies to one target type out of eight, or to one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
+2. `SKILL.md` grows past 500 lines. The Claude Code docs say: "Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files." After a compaction, Claude Code also keeps only the first 5,000 tokens of an invoked skill. So keep the rules for every invocation in `SKILL.md`, near the top. Move the detailed material to reference files: long tables, templates, worked examples, and the procedure of one phase. In `SKILL.md`, say which file to read, and when.
 
 ## Author-commit-pairing discipline
 

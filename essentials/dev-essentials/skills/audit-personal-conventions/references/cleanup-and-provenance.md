@@ -163,11 +163,10 @@ Process the repos one after the other, in ascending order of absolute path. The 
    ```
 
 6. **Push gate**. See 9c.8.
-7. **PR creation**, host-detected from `git config --get remote.origin.url`:
-   - GitHub pattern + `gh` / GitHub MCP tooling available → use that, following
-     `dev-essentials:github-mcp-conventions` (owner/repo passed verbatim on every call, per that
-     skill's Rule 1 and Rule 2).
-   - Any other host, or no matching tool: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
+7. **PR creation**. Find the host from `git config --get remote.origin.url`:
+   - A GitHub remote, and the GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo, and name that source in the report, as the exception of Rule 1 allows. With `--interactive`, show both values in the push gate of 9c.8, so that the `yes` of the user also approves them. Never use the `gh` CLI or a REST call (Rule 5).
+   - A GitHub remote, but no GitHub MCP tools: do not use `gh`. Use the manual path below. If the next run must create the PR, tell the user in the report to reconnect the GitHub MCP server with `/mcp`.
+   - Any other host: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
 
 ### 9c.5 — Pointer template
 
