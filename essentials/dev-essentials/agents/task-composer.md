@@ -86,8 +86,8 @@ Call `mcp__plugin_github_github__issue_write` with `method: "create"` and:
 - `repo`: user-supplied repo, verbatim
 - `title`: from user or draft H1
 - `body`: full content in Markdown (H2 sections, bullets) **without** the H1 title (GitHub renders its own title field)
-- `labels`: the labels that the user gave, and each other label that fits the issue. Do this for every issue, with a type or without one. Pass only labels that exist in the repository (see "Labels" below). Without labels, leave it out.
-- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out. Say so in the report of Step 3. Then the labels also get the label with the name of the type (see "Labels" below).
+- `labels`: the labels that the user gave, and each other label that fits the issue. Do this for every issue, with a type or without one. Pass only labels that exist in the repository (see the label steps below). Without labels, leave it out.
+- `type`: the issue type that the user gave or approved, for example `Bug` or `Task`. Without a type, leave it out. Before the create call, call `mcp__plugin_github_github__list_issue_types` with the `owner` and the `repo`. If the list has the type, pass it with the spelling of the list. If the call fails, or the list does not have the type, leave `type` out. Say so in the report of Step 3. Then the labels also get the label with the name of the type (see the label steps below).
 
   Never create a label. Before the create call, choose the labels:
 

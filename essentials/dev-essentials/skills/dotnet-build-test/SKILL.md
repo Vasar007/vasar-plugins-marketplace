@@ -5,7 +5,7 @@ description: "How to build and test .NET solutions reliably. `dotnet build` is a
 
 # .NET Build & Test Conventions
 
-## Rule 1 — `dotnet build` is the authority; LSP is not
+## Rule 1: `dotnet build` is the authority; LSP is not
 
 A plain, incremental `dotnet build` is the authoritative compiler signal. LSP and IDE diagnostics are a hint, NOT an authority. Do not claim a regression from LSP alone. Run a fresh `dotnet build` first.
 
@@ -39,7 +39,7 @@ dotnet build <path-to-solution>.sln -c Debug 2>&1 | grep -E "(CS[0-9]+|Build suc
 
 The filter keeps the compiler errors (`CS####`), the build result lines, and the warning and error counts. It drops the per-project "Started" and "Done Building" lines. The filter needs a POSIX shell with `grep` and `head`. On Windows, run it in Git Bash.
 
-## Rule 2 — Avoid `dotnet build --no-incremental` for verification
+## Rule 2: Avoid `dotnet build --no-incremental` for verification
 
 `--no-incremental` triggers a full clean rebuild with external codegen or formatting targets, for example a `<codegen>.targets` file that runs `dotnet format`. These targets resolve the SDK from the PATH of the calling environment. If the system has a newer SDK than the version that `global.json` pins, they fail with errors like these:
 
