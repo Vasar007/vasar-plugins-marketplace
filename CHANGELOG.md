@@ -16,7 +16,7 @@ No changes yet.
 ### Changed in dev-essentials
 
 - All text in the changed skills, commands, and agents now follows plain-English rules. This means short sentences, active voice, one word for one meaning, and no filler. The workflow rules are the same. The notes below name what moved and where.
-- `subagent-orchestration`: Moved the three worked examples to the new file `references/worked-examples.md`. Rule 3 now lists the current parameters of the `Agent` tool.
+- `subagent-orchestration`: Moved the three worked examples to the new file `references/worked-examples.md`. Rule 3 no longer lists the parameters of the `Agent` tool, because the list was out of date. It still says that the tool has no `run_in_background` parameter.
 - `review-loop`: Moved the `audit-team` adapter, which few runs need, to the new file `references/audit-team-adapter.md`. Moved the Full format into the reviewer brief file. The thread sections now exist once. The rules for the whole run now come before the late sections.
 - `process-pr-comments`: Moved three procedures to the new files `references/commit-push-resolve.md`, `references/committed-fix-state.md`, and `references/deep-fix.md`. The briefs now name the skill files that a subagent must read.
 - `feature-pipeline`: Moved four procedures to the new files `references/setup.md`, `references/checkpoint-protocol.md`, `references/commit-conventions.md`, and `references/cleanup.md`. The stage files and the artifact template now use the same rules for lint and for a failing test.
@@ -48,7 +48,7 @@ No changes yet.
 - `dotnet-conventions`, `handle-sensitive-data`, and `model-mapping`: The text now follows plain-English rules. Removed a repeated section and a stale claim from `dotnet-conventions`.
 - `add-migration`: Moved the common patterns to the new file `references/common-patterns.md`.
 - `add-configuration-option`, `create-controller`, `create-ef-entity`, and `update-swagger-spec`: Shortened the text and replaced `mermaid` fences that held no diagram.
-- `create-tests`: Removed the repeated example files from `SKILL.md`. The seven enforced gates now apply to every test class, and the text says so.
+- `create-tests`: Removed the code and the lists in `SKILL.md` that repeat the example files. Added a checklist of the seven enforced gates. The gates apply to every test class, and the text now says so.
 - `create-domain-model`, `create-exception`, `create-primitive-wrapper`, `create-string-resource`, and `add-session-logging`: The text now follows plain-English rules, and the examples use neutral business nouns and full method bodies.
 
 ### Fixed in dotnet-backend-dev
@@ -60,7 +60,7 @@ No changes yet.
 ### Changed in gop-pipeline
 
 - `gop-work`: Moved the routing for `--interactive` to the new file `references/interactive-routing.md`. The text now follows plain-English rules.
-- The eight `gop-` agents: The text now follows plain-English rules. The validators now say how they read staged, unstaged, and new files.
+- The eight `gop-` agents: The text now follows plain-English rules. The five validators now run `git diff HEAD`, so they read both the staged and the unstaged changes.
 
 ### Fixed in gop-pipeline
 

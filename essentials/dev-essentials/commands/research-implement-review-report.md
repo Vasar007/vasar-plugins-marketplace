@@ -137,7 +137,7 @@ Record each finding that the user and the orchestrating session agree to defer, 
 
 ### Phase 4 — Report
 
-Write the handoff document by the logic of `dev-essentials:save-context`. Pass `--plan=<path from Phase 1>`, `--no-continuation-prompt`, and `--interactive` or `--autonomous` for a run that has it. Write `Notes/Results/<slug>-report.md`. If the repo documents its own convention, use it. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
+Write the handoff document by the logic of `dev-essentials:save-context`. Pass the path `Notes/Results/<slug>-report.md` as its path argument. Also pass `--plan=<path from Phase 1>`, `--no-continuation-prompt`, and `--interactive` or `--autonomous` for a run that has it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
 
 - **Overview**: what this run covered, the branch, the worktree, and the date.
 - **What Was Done**: for each phase, the research findings, the plan, each implemented task, and the outcome of each review round.
@@ -158,7 +158,7 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 ### Single-commit mode (`--commit-mode=single`)
 
 - Before Phase 2 starts, record the SHA of `HEAD`.
-- Run Phase 2 and Phase 3 as described above, with the normal round commits of the review loop. Do not suppress them with `--dry-run` or `--no-verify-fix`. Both flags also skip the fix itself, and this mode does not want that.
+- Run Phase 2 and Phase 3 as described above, with the normal round commits of the review loop. Do not suppress them with `--dry-run` or `--no-verify-fix`. Both flags also skip the fix itself.
 - After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit: `git reset --soft <recorded-SHA>`, then one commit. Its message sums up the implementation and the fixes of each review round, for example `Task X — <summary> (implement + N review rounds)`.
 - **The squash-base safety stop**. If a commit from outside this run landed on `HEAD` (for example an unrelated concurrent commit), **stop and ask the user** before the soft reset. Do not squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the unexpected commit.
 - A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This command does not coordinate it for the caller.

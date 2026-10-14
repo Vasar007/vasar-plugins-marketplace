@@ -223,6 +223,6 @@ Create tests for EF entities, mappers, repositories, and services:
 - [ ] Repository interface extends `IRepository<>` in Application layer
 - [ ] Repository implementation in Infrastructure layer (creates mapper internally via `new TMapper()`)
 - [ ] Repository registered standalone in `PersistenceDependencyInjection.cs` as `AddScoped<IRepo, Repo>()`
-- [ ] Application service interface and implementation (if needed for orchestration)
+- [ ] Application service interface and implementation (only for a case in the Step 6 list)
 - [ ] Service registered in DI (if applicable)
 - [ ] DbSet added to {ServiceName}DbContext
