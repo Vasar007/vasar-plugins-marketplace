@@ -102,7 +102,7 @@ Subagents run in the background by default. A task notification arrives when eac
 
 **Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied"). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief.
 
-Cases that do not change:
+Other cases:
 
 - **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. The one exception is a long test run in a subagent, under Rule 3 of `dev-essentials:dotnet-build-test`. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
 - **`SendMessage` is not a dispatch.** Use it only to resume or correct a subagent that you dispatched for the same task (see Rule 5). For new work, make a fresh, unnamed `Agent` call.

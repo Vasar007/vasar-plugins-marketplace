@@ -81,7 +81,7 @@ public readonly record struct ShippingMethodId : IStringWrapper<ShippingMethodId
 
 ### Wrappers From a Shared SDK
 
-A wrapper type that a shared SDK already defines is **not** redefined per project. Example: `MyApp.Sdk.Domain.Geography.CountryCode`. To convert a string from an external-client DTO, use `CountryCode.FromValue("US")` or the `.ToDomainCountryCode()` extension.
+A wrapper type that a shared SDK already defines is **not** redefined per project. Example: `MyApp.Sdk.Domain.Geography.CountryCode`. To convert a string from an external-client DTO, use `CountryCode.FromValue("US")`. In a mapper, use the `.ToDomainCountryCode()` extension of `SharedDomainWrappersConverter` (see [mappers.md](mappers.md)).
 
 ## Domain Exceptions
 

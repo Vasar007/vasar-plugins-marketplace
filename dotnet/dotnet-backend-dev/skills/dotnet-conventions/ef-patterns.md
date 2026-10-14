@@ -55,7 +55,7 @@ The service's EF context lives in `Infrastructure/Persistence/` and is named aft
 An entity can refer to a value that another model owns. Store the reference in one of two ways:
 
 1. **A reference to an entity of this service**: store the `Guid` key of that entity as a foreign key, and configure it with `HasForeignKey`. Example: `Guid HomeStoreId` as the foreign key to `StoreEntity`.
-2. **A value that an external system gives as a string** (for example a country code): store the `String` directly. In the mapper, convert it to the domain wrapper with the converter extension of that wrapper, for example `.ToDomainCountryCode()`.
+2. **A value that an external system gives as a string** (for example a country code): store the `String` directly. In the mapper, convert it to the domain wrapper through `SharedDomainWrappersConverter` (see [mappers.md](mappers.md)), for example with `.ToDomainCountryCode()`.
 
 When you add a new entity with such a reference, follow the pattern of the closest existing entity in the repo.
 
