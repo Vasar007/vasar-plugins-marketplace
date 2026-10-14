@@ -22,13 +22,14 @@ This release makes the continuation prompt of `save-context` opt-in (issue #23).
 ### Changed in dotnet-backend-dev
 
 - `test-engineer`: If the agent cannot load `create-tests`, it now stops and reports the error. Before, it told the user to install `dotnet-backend-dev`.
+- `test-engineer`: The agent now reads the `create-tests` examples from `${CLAUDE_PLUGIN_ROOT}/skills/create-tests/examples/` first. The search of the plugin cache stays as a fallback.
 - The plugin description now names the `write-tests` command and the `test-engineer` agent.
 
 ### Changed in dev-essentials
 
 - `save-context`: The next-session continuation prompt is now opt-in. The new flag `--continuation-prompt` prints it. A request in words also prints it. A run without a request cleans up the context files (Step 5) and prints no prompt. The flag `--no-cleanup` still skips the cleanup.
-- `research-implement-review-report` and `implement-task`: The report phase now runs `save-context` with its defaults, as the last step of the run. So the `save-context` cleanup now runs at the end of the run. The cleanup keeps the plan of the run. `save-context` prints no continuation prompt.
-- `implement` and `opsx-implement`: The commands no longer print the continuation prompt of `save-context`. They print their summary only.
+- `research-implement-review-report` and `implement-task`: The report phase now runs `save-context` as the last step of the run. The call passes no flag, also not `--plan` or the mode flag of the run. So `save-context` runs in its default mode, also in a run with `--autonomous`. Its cleanup keeps every file of the run, because the pull request is not merged yet. Before it deletes a file of an older session, it asks the user. `save-context` prints no continuation prompt, unless the user asks for one in the run.
+- `implement` and `opsx-implement`: The commands no longer print the continuation prompt of `save-context` by default. If the user asks for it in the run, they print it after their summary.
 - The plugin description no longer names a test agent.
 
 ### Removed in dev-essentials

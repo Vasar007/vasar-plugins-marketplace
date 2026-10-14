@@ -154,7 +154,7 @@ Skip this phase only with `--no-simplify`. `/simplify` is an external skill that
 
 ### Phase 5 — Report and stop
 
-Return control to **Phase 4 (Report)** of RIRR. It writes the report through `dev-essentials:save-context`, as the last step of the run. The call passes no prompt or cleanup flag, so the `save-context` cleanup runs and `save-context` prints no continuation prompt. Do not assume the default path `<--notes-dir>/Results/<slug>-report.md`. Take the path from the message in which that phase names it. Add to the report:
+Return control to **Phase 4 (Report)** of RIRR. It writes the report through `dev-essentials:save-context`, as the last step of the run. The call passes no flag, so `save-context` runs in its default mode. Its cleanup keeps every file of this run, also the Phase 2 context document. Before it deletes a file of an older session, it asks the user. It prints no continuation prompt. Do not assume the default path `<--notes-dir>/Results/<slug>-report.md`. Take the path from the message in which that phase names it. Add to the report:
 
 - The Phase 2 sweep: the items read, the pattern that they set, how the implementation followed it, each conflict and its resolution, and the path of the context document.
 - The Phase 4 pass: ran or skipped, what it changed, its commit subject, and the real output of the build and tests after it.
@@ -162,6 +162,6 @@ Return control to **Phase 4 (Report)** of RIRR. It writes the report through `de
 - The absolute worktree path and the branch name.
 - Each gate that this run or RIRR passed without a stop.
 
-Print the report only, with no continuation prompt for the next session.
+Print the report only. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
 **Do not push.** Wait for the review of the user. Push only with `--push` in this invocation, and only after the report.
