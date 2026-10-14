@@ -84,12 +84,13 @@ If GitHub MCP tools are missing or misbehave, never use `gh pr comment`, `curl`,
 - If the session has no `mcp__plugin_github_github__*` tools, ask the user to reconnect with `/mcp`, and wait.
 - If a tool returns an unexpected error, diagnose the call. The usual causes are a missing `owner` or `repo`, a wrong type for `pullNumber`, or a permissions gap. Do not use the `gh` CLI or `curl` as a fallback.
 - `dev-essentials:subagent-orchestration` Rule 4 has the same rule for subagents. If MCP is missing in a subagent, the subagent reports the error upward and does not fall back to REST either.
+- One named exception: Phase 9c.4 step 7 of `dev-essentials:audit-personal-conventions` creates a PR with `gh pr create`. If the session has no GitHub MCP tools, or an MCP call fails with a connection error or an authentication error, the step uses `gh`. The exception covers only that step. It does not cover an MCP call that fails because of a wrong parameter.
 
 **Anti-patterns**:
 
 - "MCP returned an error, so I post with `gh pr comment` directly." No. Fix the MCP call.
 - "The MCP tool does not work, so I write a shell script with `curl` and the GitHub REST API." No. Ask the user to fix `/mcp`.
-- "Just a quick `gh pr view`, because MCP is slow." No exceptions.
+- "Just a quick `gh pr view`, because MCP is slow." No. A slow MCP call is never a reason to use `gh`.
 
 ## Rule 6 — After a create call echoes a relationship, re-read to confirm it landed
 

@@ -26,9 +26,9 @@ For each class to test:
 
 The `skills` field of this agent preloads the `create-tests` skill (from the `dotnet-backend-dev` plugin) into your context. Its example table maps each test type to the exact shape that the test must have. **Before you write ANY code**, read the example file that the table names for the test type. Do not guess from memory. The example set of the skill is the source of truth.
 
-The skill links its example files with paths relative to its own folder (`examples/...`), not to the repository. The folder is in the plugin installation, so a search of the repository does not find it. If your context does not name that folder, invoke `dotnet-backend-dev:create-tests` once with the Skill tool. Its output names the base folder of the skill. Read each example file as `<base folder>/examples/<file name>`.
+If the `create-tests` content is not in your context, invoke `dotnet-backend-dev:create-tests` with the Skill tool. If that call fails, the `dotnet-backend-dev` plugin is not installed. Stop, and tell the user to install that plugin first.
 
-If the `create-tests` content is not in your context, the `dotnet-backend-dev` plugin is not installed. Stop, and tell the user to install that plugin first.
+The example files do not load with the skill, from the preload or from a Skill tool call. The skill links them with paths relative to its own folder (`examples/...`). That folder is in the plugin cache, not in the repository, so a search of the repository does not find it. After the skill is loaded, find the folder with Glob. Use the pattern `plugins/cache/*/dotnet-backend-dev/*/skills/create-tests/examples/*.md` under the Claude home folder. This is the folder in the `CLAUDE_CONFIG_DIR` environment variable. If that variable is not set, it is `<home>/.claude`. If the pattern finds more than one version folder, use the highest version. Read each example file from that folder.
 
 ### 3. Look at the Test Infrastructure
 

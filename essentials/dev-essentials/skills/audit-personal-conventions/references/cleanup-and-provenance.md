@@ -163,10 +163,12 @@ Process the repos one after the other, in ascending order of absolute path. The 
    ```
 
 6. **Push gate**. See 9c.8.
-7. **PR creation**. Find the host from `git config --get remote.origin.url`:
-   - A GitHub remote, and the GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo, and name that source in the report, as the exception of Rule 1 allows. With `--interactive`, show both values in the push gate of 9c.8, so that the `yes` of the user also approves them. Never use the `gh` CLI or a REST call (Rule 5).
-   - A GitHub remote, but no GitHub MCP tools: do not use `gh`. Use the manual path below. If the next run must create the PR, tell the user in the report to reconnect the GitHub MCP server with `/mcp`.
-   - Any other host: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
+7. **PR creation**. Find the host from `git config --get remote.origin.url`. For a GitHub remote, take the first option that applies:
+   1. The GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo, and name that source in the report, as the exception of Rule 1 allows. With `--interactive`, show both values in the push gate of 9c.8, so that the `yes` of the user also approves them. If an MCP call fails because of a wrong parameter, fix the call as Rule 5 says. Do not go to option 2.
+   2. The GitHub MCP tools are not available, and `gh auth status` succeeds: create the PR with `gh pr create --repo <owner>/<repo> --base <default-branch> --head <branch> --title "<title>" --body-file <file>`. If the MCP tools are missing from the session, or an MCP call fails with a connection error or an authentication error, count the MCP tools as not available. Take `owner` and `repo` as in option 1, and the default branch from step 1. Write the body to a temporary file outside the repo. Report the PR URL that `gh` prints. This is a named exception to Rule 5 of `dev-essentials:github-mcp-conventions`. It holds only for this step. Use no other `gh` command in this skill.
+   3. Neither is available, or `gh` fails: use the manual path below. In the report, say that the GitHub MCP tools and an authenticated `gh` were both unusable.
+
+   For any other host, use the manual path: report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
 
 ### 9c.5 — Pointer template
 

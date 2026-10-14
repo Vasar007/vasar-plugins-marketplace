@@ -305,26 +305,14 @@ await builder.SaveChangesAsync();
 
 ## External Service Mocking
 
-Configure external service responses with named setup methods of `ExternalServicesMock`. The NSubstitute setup stays inside `ForTests/Mocks/ExternalServicesMock.cs`. A test case calls the method. It never calls `.Returns()`, `.Throws()`, or `.ThrowsAsync()` itself (rule 3 of [SKILL.md](../SKILL.md)). If a test needs a new behavior, add a method to `ExternalServicesMock`:
-
-```csharp
-// ForTests/Mocks/ExternalServicesMock.cs
-public void SetupLoyaltyMemberLookupFailure(Exception exception)
-{
-    exception.ThrowIfNull();
-
-    LoyaltyClient
-        .GetMemberAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-        .ThrowsAsync(exception);
-}
-```
+Configure external service responses on `ExternalServicesMock` in the test case. This is the one exception to the no-post-setup rule (rule 3 of [SKILL.md](../SKILL.md)). `WebApiBaseTest` injects this mock into the ASP.NET pipeline, where it intercepts the calls of the running app to external services. So the test case sets up the behavior that it needs after the setup:
 
 ```csharp
 [Test]
 public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGateway()
 {
     // Arrange.
-    ExternalServicesMock.SetupLoyaltyMemberLookupFailure(new HttpRequestException("loyalty service unavailable"));
+    ExternalServicesMock.LoyaltyClient.GetMemberAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("loyalty service unavailable"));
 
     var request = CreateTestRegistrationRequest();
 
@@ -348,4 +336,4 @@ public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGate
 
 5. **Generators**: Use test generators for creating valid request data
 
-6. **External mocks**: Configure external service behavior through the named setup methods of `ExternalServicesMock`, never in a test case
+6. **External mocks**: Configure external service behavior on `ExternalServicesMock` in the test case. This is the one exception to the no-post-setup rule.
