@@ -25,7 +25,13 @@ You will receive:
 
 1. **Load context**: read the plan file at `plan_file_path`. Run `git diff HEAD` to get the full diff of the staged and unstaged changes. Note the `change_summary`, `deviations_from_plan`, and `unresolved_concerns` from the implementation output.
 
-2. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
+2. **Build a change graph**: for each file in `modified_files`, use Grep and Read to identify:
+   - Every caller of the modified, added, or removed methods and functions (search the repo for the method names)
+   - Every class or interface that the modified code implements or extends, and every type that inherits from it
+   - Every file that imports or references the modified files
+   This set is the "blast radius": the code that these changes can affect. Record it for use in Phase 2.
+
+3. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
 
 ## Phase 2: Compliance Analysis
 
@@ -69,6 +75,13 @@ For each item in `unresolved_concerns`:
 ### E. Stale Guidance (informational)
 
 - If the diff invalidates a statement in a project `CLAUDE.md`, flag a WARNING. Suggest an update of the guidance file in the same change or in a follow-up. Examples: the diff removes a component that `CLAUDE.md` tells future sessions is available, or changes a path that `CLAUDE.md` hardcodes.
+
+### F. Callers in the Blast Radius
+
+Use the blast radius from Phase 1 step 2. Check the callers only against a stated requirement: the plan, a loaded skill, or a `CLAUDE.md` or `REVIEW.md` rule. The correctness specialist checks whether the callers still compile and work.
+- The diff can change a contract: a public signature, a configuration key, a request or response shape, or a message format. If so, list the callers and implementors in the blast radius that the plan says to update. A listed caller that the diff does not update is CRITICAL, as a missing plan item of lens A.
+- A loaded skill can require an artifact for each consumer of a changed contract. Examples: a regenerated client, a spec update, or a documentation entry. If so, find out whether the diff has that artifact for each consumer in the blast radius. A missing artifact is CRITICAL, as in lens B.
+- Take each folder of a caller in the blast radius. Read the `CLAUDE.md` and `REVIEW.md` files on its path from the repo root, as lens C says. If a caller now breaks a rule because of the diff, flag a WARNING, and quote the rule.
 
 Do NOT flag: correctness logic bugs, security issues, performance issues, style preferences, or duplication. Those belong to other specialists. Only flag compliance issues: the gap between what the implementation was *required to do* (by plan, skill, or guidance) and what it *actually does*.
 

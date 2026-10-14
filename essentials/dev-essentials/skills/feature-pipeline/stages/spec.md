@@ -71,7 +71,7 @@ Common causes of low confidence at this stage:
 - The existing code pattern is inconsistent, and you need guidance on which one to follow.
 - The scope boundary is unclear for a specific edge case.
 
-If your confidence is **below 0.9**, you need answers from the user. You cannot ask the user yourself, because a subagent has no `AskUserQuestion` tool. So do not write `spec.md` or `test-plan.md`. End the run with a final reply that starts with the line `QUESTIONS:`, and stop. Give each question a number. Be specific, and offer options with your recommendation. The master agent asks the user, and then runs this stage again. The new prompt has a `<clarifications>` block with each question and its answer. Treat these answers as facts from the user, and rate your confidence again. If it is still below 0.9, return follow-up questions in the same way.
+If your confidence is **below 0.9**, you need answers to your questions. You cannot ask the user yourself, because a subagent has no `AskUserQuestion` tool. So do not write `spec.md` or `test-plan.md`. End the run with a final reply that starts with the line `QUESTIONS:`, and stop. Give each question a number. Be specific, and offer options with your recommendation. The master agent gets the answers, and then runs this stage again. The new prompt has a `<clarifications>` block with each question and its answer. Treat these answers as facts, and rate your confidence again. If it is still below 0.9, return follow-up questions in the same way.
 
 Rules:
 

@@ -260,9 +260,20 @@ Find the commands in this order, exactly:
 If the build or the tests fail:
 
 - Report the failures honestly. Do not call them "pre-existing".
-- A failure can be in a file that the fix pass changed, or in code that uses what the fix pass changed. Treat such a failure as a regression. Go back to Phase 5 for that finding, and try one more fix.
-- Phase 5 can fail to resolve the regression after that one more try: the fixer reports REJECT or PARTIAL, and the build still does not pass. Then end the loop with `stop-blocked`, put the regression in the deferred list of Phase 9, and report to the user.
-- Any other failure is outside the code that this loop fixes. Do not fix it in this loop, because the fix is outside the review target. Phase 7 still commits the fixes of this cycle. Then end the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
+- With `--no-verify-fix`, no fix pass ran, and the failure is in the existing code. Do not fix it in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
+- After a fix pass, do not decide from file names or from a read of the code whether the fix pass caused the failure. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
+
+**Failure check** (after the Phase 7 commit of this cycle):
+
+1. Create a temporary worktree at the commit before the fix commit of this cycle, in a folder outside the repository: `git worktree add --detach <temp-folder> <fix-commit>^`.
+2. In that worktree, run the build or test command that failed. If the test tool can run only the failing tests, run only those.
+3. After step 2, remove the worktree with `git worktree remove --force <temp-folder>`. Remove it whether step 2 passes or fails.
+4. Act on the result:
+   - The command passes in the worktree: the fixes of this cycle broke the build or the tests. Treat the failure as a regression. Go back to Phase 5 with the failure and the diff of the fix commit, and try one more fix. Commit that fix (Phase 7), and run Phase 6 again. If the fixer reports REJECT or PARTIAL, or the failure stays, end the loop with `stop-blocked`. Put the regression in the deferred list of Phase 9, and report to the user.
+   - The command fails in the worktree with the same error: the failure is also in the code before the fixes of this cycle. Do not fix it in this loop, because the fix is outside the review target. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message. Add the evidence: the command, and the SHA of the commit where it also fails. The user decides how to fix it (`dev-essentials:engineering-discipline` Rule 1).
+   - Any other result, for example another error, or a command that cannot run in the worktree: end the loop with `stop-blocked`. In the Phase 9 summary, list the failure and the output of both runs.
+
+The check only picks the next step. It never excuses a failure. Each path ends with a fix or with a report to the user.
 
 ### Phase 7 — Commit fixes
 
@@ -281,6 +292,7 @@ Review round <N>: Fix <short summary of issues fixed>
 Rules:
 
 - **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. It does not turn off this phase.
+- **Commit also after a failed Phase 6**. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
 - **Never push by default**. The push is a decision of the user. The user can explicitly allow a push, for example "you can push after each fix commit".
 
 ### Phase 8 — Repeat or stop

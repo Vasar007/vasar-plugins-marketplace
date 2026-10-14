@@ -136,7 +136,7 @@ Before you launch a stage, do these steps in order:
    </pipeline-discipline>
 
    <clarifications>
-   {each question of the stage, and the answer of the user}
+   {each question of the stage, and its answer}
    </clarifications>
 
    <commit-conventions>
@@ -162,8 +162,9 @@ The master agent writes `review-feedback.md` before it runs `implementation` aga
 Stages 1 and 2 can end with a final reply that starts with the line `QUESTIONS:`. Such a run writes no file. A subagent has no `AskUserQuestion` tool, so the stage returns its questions to you. Then do these steps:
 
 1. Do not run the output check, and do not update the checkpoint.
-2. Ask the user the questions with `AskUserQuestion`, at most 4 questions in each call. Do this in every mode, because the stage cannot continue without the answers (see "Autonomy").
-3. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and the answer of the user, also from the earlier rounds of the same stage.
+2. Without `--autonomous`, ask the user the questions with `AskUserQuestion`, at most 4 questions in each call.
+3. With `--autonomous`, do not ask. For each question, take the option that the stage recommends. If a question has no recommended option, decide it as "Autonomy" says for a critical decision. List each answer that you picked in the final report under "Decisions for your review". This step overrides the rule of "Autonomy" that a question that blocks the work stops the run in every mode.
+4. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and its answer, also from the earlier rounds of the same stage.
 
 ## Output Validation
 
@@ -177,7 +178,7 @@ After each stage, and before you update the checkpoint, check the files that the
 | `review.md` | `## Blocking Issues`, `## Warnings`, `## Suggestions`, `## Summary` |
 | `security-review.md` | `## Blocking Issues`, `## Warnings`, `## Summary` |
 
-1. Read the file after the stage is done.
+1. Read the file after the stage is done. If `security-review.md` holds only one line that starts with `FETCH FAILED:`, the security stage failed to fetch the base branch. Do not check the headings, and do not run the stage again, because a rerun meets the same error. Stop the pipeline, and report that line to the user.
 2. Find each required heading. The match ignores case.
 3. If a heading is missing, log the missing headings. Run the same stage again with this feedback: "Your output is missing required sections: [list]. Rewrite the file with all required sections." The `review` stage writes no file. For that stage, use this feedback: "Your reply is missing required sections: [list]. Return your full reply again with all required sections." Then save the new reply over `review.md`, and check it again.
 4. Allow 1 retry for the structure. If the file fails again, stop the pipeline, and report the malformed output to the user.
