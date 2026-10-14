@@ -554,7 +554,7 @@ modelBuilder.Entity<MyNewEntity>()
 - [ ] Tested idempotency (running twice)
 - [ ] Tested invalid/malformed data handling
 - [ ] Tested with production data (where available)
-- [ ] Made sure that legacy data is removed (if applicable)
+- [ ] Tested the removal of legacy data (if applicable)
 - [ ] Added XML documentation to migration class
 - [ ] Reviewed for performance (batch processing for large datasets)
 

@@ -284,7 +284,7 @@ dotnet build
 
 **IMPORTANT**: Controllers implement auto-generated interfaces.
 
-Create controller in `src/{ProjectName}.WebApi/Controllers/`. The sketch below shows only the link to the generated interface. Take the class name, the base class, and the try-catch rule from [create-controller](../create-controller/SKILL.md):
+Create controller in `src/{ProjectName}.WebApi/Controllers/`. The sketch below shows only the link to the generated interface. Write the class itself with [create-controller](../create-controller/SKILL.md). That skill gives the class name, the access modifier, the base class, the `Rest` alias, and the try-catch rule:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
