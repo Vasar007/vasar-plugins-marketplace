@@ -2,8 +2,6 @@
 description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. The plan is approved automatically by default, and needs a sign-off of the user with --interactive. Needs no OpenSpec change (unlike opsx-implement and feature-pipeline), and does not stop before the review (unlike implement).
 argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive] [--autonomous]
 ---
-<!-- markdownlint-disable MD013 -->
-
 # Research → Implement → Review-Loop → Report
 
 ## Division of labor in this command family
