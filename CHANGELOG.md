@@ -19,7 +19,7 @@ This release adds tests for the scripts of the skills and lint checks for the `.
 
 - The folder `tests/` with tests for `check_report.py` (`bug-hunt`) and `trim_report.py` (`trim-artifacts`). It also has a simple-english lint test and a markdownlint test for every tracked `.md` file of the repository. Run `python3 -m unittest discover -s tests -v` from the repository root. Claude Code does not copy this folder into the plugin cache.
 - The file `.markdownlint.jsonc` with the markdownlint rules for the `.md` files of the repository.
-- A GitHub Actions workflow that runs the tests on each pull request and on each push to `main`.
+- A GitHub Actions workflow that runs the tests on each pull request and on each push to `main`. It uses the latest release of the simple-english linter.
 
 ### Changed in the repository
 
@@ -28,6 +28,8 @@ This release adds tests for the scripts of the skills and lint checks for the `.
 ### Fixed in dev-essentials
 
 - The Markdown of 10 files now passes markdownlint. The changes add blank lines around lists and code blocks, give each code block a language, and replace emphasis that worked as a heading. `create-documentation` no longer turns the line-length rule back on.
+- `create-documentation`: the configuration, migration, and REST API templates no longer hold inline markdownlint comments, so the documents that an agent writes from them have none either. The configuration template keeps its lines under 80 characters, and its two links are each on one line again.
+- `implement-batch`, `implement-task`, and `research-implement-review-report`: removed an inline markdownlint comment that the repository configuration already covers.
 - `process-pr-comments`, `subagent-orchestration`, and `write-markdown`: shorter sentences and plainer words in four lines. The meaning did not change.
 
 ### Fixed in dotnet-backend-dev
