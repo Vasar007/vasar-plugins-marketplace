@@ -2,8 +2,6 @@
 
 Use this template to document a database migration. See `dotnet-backend-dev:add-migration`.
 
-<!-- markdownlint-disable MD040 -->
-
 ````markdown
 # {ProjectName} - {Migration Name} Migration
 
@@ -197,5 +195,3 @@ The migration runs automatically when the service starts.
 4. Contact support with migration logs
 
 ````
-
-<!-- markdownlint-enable MD040 -->
