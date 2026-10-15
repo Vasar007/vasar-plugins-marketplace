@@ -1,4 +1,4 @@
-"""Runs the simple-english linter on every tracked .md file of the plugins.
+"""Runs the simple-english linter on every tracked .md file of the repository.
 
 The linter is evals/ste_lint.py of the simple-english plugin. The test looks for
 it in this order:
@@ -11,8 +11,8 @@ it in this order:
 If no linter is found, the test skips. In CI it fails.
 
 The test fails on each hit that simple-english-baseline.json does not list.
-A baseline entry matches by file, rule, and text, not by line, so that a
-line shift does not break it.
+It also fails on each baseline entry that has no hit. A baseline entry matches
+by file, rule, and text, not by line, so that a line shift does not break it.
 """
 import json
 import os
@@ -21,7 +21,7 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from support import REPO, load_module, plugin_markdown_files, tool_missing
+from support import REPO, load_module, tool_missing, tracked_markdown_files
 
 BASELINE = Path(__file__).resolve().parent / "simple-english-baseline.json"
 CACHE = Path("plugins/cache/simple-english/simple-english")
@@ -83,7 +83,7 @@ class PrepareTests(unittest.TestCase):
 
 
 class SimpleEnglishLintTest(unittest.TestCase):
-    def test_no_new_hits(self):
+    def test_hits_match_the_baseline(self):
         root = find_linter_root()
         if root is None or not (root / "evals" / "ste_lint.py").is_file():
             tool_missing(self, "simple-english linter not found. Set SIMPLE_ENGLISH_DIR to the root of a "
@@ -94,7 +94,7 @@ class SimpleEnglishLintTest(unittest.TestCase):
         allowed = Counter(key(e["file"], e["rule"], e["text"]) for e in baseline["entries"])
 
         new = []
-        for file in plugin_markdown_files():
+        for file in tracked_markdown_files():
             text = (REPO / file).read_text(encoding="utf-8")
             for hit in lint.lint_detail(prepare(text), "descriptive"):
                 k = key(file, hit["category"], hit["text"])
@@ -103,19 +103,23 @@ class SimpleEnglishLintTest(unittest.TestCase):
                 else:
                     new.append((file, hit))
 
-        stale = [k for k, n in allowed.items() if n > 0]
-        for file, rule, text in stale:
-            print(f"NOTE: baseline entry without a hit: {file}: {rule}: {text}")
+        stale = [k for k, n in allowed.items() for _ in range(n)]
+        problems = []
         if new:
             lines = [f"{f}:{h['line']}: {h['category']}: {' '.join(h['text'].split())}" for f, h in new]
             entries = [json.dumps({"file": f, "rule": h["category"], "text": " ".join(h["text"].split()),
                                    "reason": "TODO"}, ensure_ascii=False) for f, h in new]
+            problems.append(f"New simple-english hits: {len(new)}\n" + "\n".join(lines)
+                            + "\nFix each hit. Only for a valid exception, add an entry with a reason to "
+                            + BASELINE.name + ":\n" + ",\n".join(entries))
+        if stale:
+            lines = [f"{f}: {r}: {t}" for f, r, t in stale]
+            problems.append(f"Baseline entries without a hit: {len(stale)}\n" + "\n".join(lines)
+                            + "\nRemove each entry from " + BASELINE.name + ".")
+        if problems:
             note = "" if version == baseline["version"] else (
                 f"\nThe baseline is for simple-english {baseline['version']}. This run used {version}.")
-            self.fail(f"{len(new)} new simple-english hits (linter {version} at {root}):\n"
-                      + "\n".join(lines)
-                      + "\nFix each hit. Only for a valid exception, add an entry with a reason to "
-                      + BASELINE.name + ":\n" + ",\n".join(entries) + note)
+            self.fail(f"simple-english linter {version} at {root}:\n" + "\n\n".join(problems) + note)
 
 
 if __name__ == "__main__":
