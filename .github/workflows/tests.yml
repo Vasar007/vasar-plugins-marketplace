@@ -23,9 +23,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=$(gh release view --repo AminBlg/SimpleEnglish --json tagName --jq .tagName)
-          if [ -z "$tag" ]; then
-            echo "::error::No release found for AminBlg/SimpleEnglish."
+          if ! tag=$(gh release view --repo AminBlg/SimpleEnglish --json tagName --jq .tagName) || [ -z "$tag" ]; then
+            echo "::error::Cannot get the latest release of AminBlg/SimpleEnglish."
             exit 1
           fi
           echo "Using SimpleEnglish release $tag"
