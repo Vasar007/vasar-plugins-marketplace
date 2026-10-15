@@ -17,11 +17,24 @@ jobs:
         with:
           persist-credentials: false
 
-      # The simple-english linter at tag v2.1.1. The baseline in tests/ is for this version.
+      # Take the latest release of the simple-english linter, not a pinned commit.
+      - name: Find the latest SimpleEnglish release
+        id: linter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view --repo AminBlg/SimpleEnglish --json tagName --jq .tagName)
+          if [ -z "$tag" ]; then
+            echo "::error::No release found for AminBlg/SimpleEnglish."
+            exit 1
+          fi
+          echo "Using SimpleEnglish release $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v7
         with:
           repository: AminBlg/SimpleEnglish
-          ref: 32ea2d3f4404bfbff162c1861e5ae4f1bcc628b3
+          ref: ${{ steps.linter.outputs.tag }}
           path: .simple-english
           persist-credentials: false
 
