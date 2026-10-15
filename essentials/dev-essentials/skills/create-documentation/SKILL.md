@@ -77,6 +77,8 @@ Each template is in its own file. Before you write a document of one of these ty
 | REST API endpoints | [templates/rest-api.md](templates/rest-api.md) | `dotnet-backend-dev:update-swagger-spec` |
 | Database migrations | [templates/migration.md](templates/migration.md) | `dotnet-backend-dev:add-migration` |
 
+A hint for tables: a filled-in table row can pass the line-length limit of the target repo (markdownlint MD013, 80 characters by default). If a cell holds a long description, you can move the description into a sentence under the table. If the content needs a wide table, a wide table is fine.
+
 ## Documentation Checklist
 
 Before you submit documentation:

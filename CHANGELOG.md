@@ -28,7 +28,7 @@ This release adds tests for the scripts of the skills and lint checks for the `.
 ### Fixed in dev-essentials
 
 - The Markdown of 10 files now passes markdownlint. The changes add blank lines around lists and code blocks, give each code block a language, and replace emphasis that worked as a heading. `create-documentation` no longer turns the line-length rule back on.
-- `create-documentation`: the configuration, migration, and REST API templates no longer hold inline markdownlint comments, so the documents that an agent writes from them have none either. Two links of the configuration template were split over two lines and did not render as links. Each link is now on one line and renders.
+- `create-documentation`: the configuration, migration, and REST API templates no longer hold inline markdownlint comments, so the documents that an agent writes from them have none either. Two links of the configuration template were split over two lines and did not render as links. Each link is now on one line and renders. The skill also has a hint for a table row that passes the line-length limit of the target repo.
 - `implement-batch`, `implement-task`, and `research-implement-review-report`: removed an inline markdownlint comment that the repository configuration already covers.
 - `process-pr-comments`, `subagent-orchestration`, and `write-markdown`: shorter sentences and plainer words in four lines. The meaning did not change.
 
