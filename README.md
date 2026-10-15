@@ -83,7 +83,7 @@ vasar-plugins-marketplace/
 ├── .github/
 │   └── workflows/
 │       └── tests.yml           # Runs the tests in CI
-├── .markdownlint.jsonc         # markdownlint rules for the plugin files
+├── .markdownlint.jsonc         # markdownlint rules for the .md files
 ├── essentials/
 │   └── dev-essentials/
 │       ├── .claude-plugin/
@@ -172,8 +172,10 @@ python3 -m unittest discover -s tests -v
 The command runs these parts:
 
 - The tests of `check_report.py` (skill `bug-hunt`) and `trim_report.py` (skill `trim-artifacts`).
-- The simple-english linter on every tracked `.md` file of the plugins. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception.
-- markdownlint on all `.md` files in the plugin folders, also on files that git does not track yet. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+- The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test.
+- markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+
+The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
 
 The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
 

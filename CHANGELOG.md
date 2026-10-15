@@ -13,13 +13,17 @@ No changes yet.
 
 ## dev-essentials 3.0.1, dotnet-backend-dev 1.3.1, and gop-pipeline 1.2.1 in release [3.0.1] - 2026-10-15
 
-This release adds tests for the scripts of the skills and lint checks for the plugin files (issues #25 and #28). The plugin changes fix the Markdown and the words that the new checks found.
+This release adds tests for the scripts of the skills and lint checks for the `.md` files of the repository (issues #25 and #28). The plugin changes fix the Markdown and the words that the new checks found.
 
 ### Added in the repository
 
-- The folder `tests/` with tests for `check_report.py` (`bug-hunt`) and `trim_report.py` (`trim-artifacts`). It also has a simple-english lint test and a markdownlint test for every `.md` file of the plugins. Run `python3 -m unittest discover -s tests -v` from the repository root. Claude Code does not copy this folder into the plugin cache.
-- The file `.markdownlint.jsonc` with the markdownlint rules for the plugin files.
+- The folder `tests/` with tests for `check_report.py` (`bug-hunt`) and `trim_report.py` (`trim-artifacts`). It also has a simple-english lint test and a markdownlint test for every tracked `.md` file of the repository. Run `python3 -m unittest discover -s tests -v` from the repository root. Claude Code does not copy this folder into the plugin cache.
+- The file `.markdownlint.jsonc` with the markdownlint rules for the `.md` files of the repository.
 - A GitHub Actions workflow that runs the tests on each pull request and on each push to `main`.
+
+### Changed in the repository
+
+- `CLAUDE.md`: shorter sentences and plainer words, so that the file passes the simple-english test. The rules did not change.
 
 ### Fixed in dev-essentials
 

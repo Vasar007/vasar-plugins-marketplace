@@ -1,8 +1,9 @@
-// markdownlint rules for the plugin files. The base is the configuration that
-// the write-markdown skill recommends. Each other change names its reason.
+// markdownlint rules for the .md files of this repository. The base is the
+// configuration that the write-markdown skill recommends. Each other change
+// names its reason.
 {
   "default": true,
-  // Skill and prompt files keep one paragraph on one line.
+  // Skill, prompt, and doc files keep one paragraph on one line.
   "MD013": false,
   "MD024": { "siblings_only": true },
   // Stage prompt files have a file title and a prompt title. Review examples
