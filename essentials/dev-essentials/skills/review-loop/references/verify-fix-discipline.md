@@ -82,13 +82,13 @@ The fixer never reports "ready for build verification" on a state that it knows 
 
 For each finding, add one line to the full report of the cycle. This line is the content of the field "Verification source" in the section "Details per item" of the Full format:
 
-```
+```text
 F<n> [APPLY|PARTIAL|REJECT] — <one-sentence reasoning citing primary source>
 ```
 
 Examples:
 
-```
+```text
 F1 [APPLY] — Null-check gap confirmed by reading GetSession callers at SessionManager.cs:142; fix is bounded to that method.
 F2 [PARTIAL] — Logic bug verified; helper-extraction refactor is out of scope for this triage; extraction deferred.
 F3 [REJECT] — Field `skills` not found in any installed plugin's plugin.json schema; cannot verify this field exists.
@@ -100,7 +100,7 @@ F3 [REJECT] — Field `skills` not found in any installed plugin's plugin.json s
 
 Sometimes the fixer classifies a finding as REJECT, but the reviewer stated it with high confidence. Then the report of the fixer includes this line:
 
-```
+```text
 REJECTED with reason: <one sentence>; reviewer's claim does not verify against <primary source consulted>.
 ```
 

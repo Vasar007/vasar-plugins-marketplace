@@ -44,7 +44,7 @@ To turn on `--interactive` or `--autonomous`, the user writes the flag in the re
 
 In every mode, first detect the repository root:
 
-```
+```bash
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
@@ -58,7 +58,8 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
    - Write the plan to the plan file in `.claude/plans/` (Plan Mode gives the path). Include: context, files to modify, implementation steps, design decisions, risks and assumptions, **and the mandatory artifacts of the matching skills** (tests, subagent delegations, configuration changes).
    - Review the plan against the request of the user.
 3. After the plan is final, add the overview of the post-implementation pipeline to the plan, or show it to the user:
-   ```
+
+   ```markdown
    ## Post-implementation pipeline (automated)
    After implementation, the following stages run automatically:
    1. **Building** — builds affected projects, falls back to full solution
@@ -66,6 +67,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
    3. **Validation** — reviews changes for completeness and quality
    4. **Commit & Push**: commits all changes. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
    ```
+
 4. Call **`ExitPlanMode`** to leave Plan Mode. This asks the user to approve the plan.
 5. Record the plan file path for the later phases. If the user asks for changes instead of an approval, enter Plan Mode again and revise the plan.
 
@@ -90,8 +92,8 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 ### Phase 3: Testing (conditional)
 
 12. Find out whether testing is relevant:
-   - For each modified `.cs` file from Phase 1, walk up to the nearest `.csproj`. Look for a sibling or centralized test project (common patterns: `**/<AssemblyName>.Tests/`, `**/<AssemblyName>.Test/`, `tests/<AssemblyName>.Tests/`, `test/<AssemblyName>.Test/`). This is only a quick probe. The full search runs in the `gop-test` subagent.
-   - If no modified component has a test project, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`. The test subagent returns the same value in this case.
+    - For each modified `.cs` file from Phase 1, walk up to the nearest `.csproj`. Look for a sibling or centralized test project (common patterns: `**/<AssemblyName>.Tests/`, `**/<AssemblyName>.Test/`, `tests/<AssemblyName>.Tests/`, `test/<AssemblyName>.Test/`). This is only a quick probe. The full search runs in the `gop-test` subagent.
+    - If no modified component has a test project, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`. The test subagent returns the same value in this case.
 13. If tests are relevant, launch a **gop-pipeline:gop-test** subagent, injecting:
     - `modified_files`: from Phase 1
     - `change_summary`: from Phase 1

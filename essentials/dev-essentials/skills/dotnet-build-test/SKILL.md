@@ -43,7 +43,7 @@ The filter keeps the compiler errors (`CS####`), the build result lines, and the
 
 `--no-incremental` triggers a full clean rebuild with external codegen or formatting targets, for example a `<codegen>.targets` file that runs `dotnet format`. These targets resolve the SDK from the PATH of the calling environment. If the system has a newer SDK than the version that `global.json` pins, they fail with errors like these:
 
-```
+```text
 error MSB4062: The "CheckIfPackageReferenceShouldBeFrameworkReference" task could not be loaded
 ... Could not load file or assembly 'System.Runtime, Version=10.0.0.0, ...
 ```

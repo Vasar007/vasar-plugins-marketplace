@@ -526,10 +526,10 @@ modelBuilder.Entity<MyNewEntity>()
 ### Migration Fails in Production
 
 1. Check logs for exception details
-2. Verify idempotency - can it be safely retried?
+2. Find out whether the migration is idempotent (safe to run again)
 3. If data is corrupted, manually fix via Cosmos DB Data Explorer
 4. Deploy fixed migration
-5. Consider adding skip logic if partial data was migrated
+5. If the migration wrote only part of the data and is not idempotent, add logic that skips the items that it already migrated
 
 ### Performance Issues (Large Datasets)
 

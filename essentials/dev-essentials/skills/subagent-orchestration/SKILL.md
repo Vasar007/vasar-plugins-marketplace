@@ -94,7 +94,7 @@ Anti-pattern: "let me preload the PR metadata so the subagent's prompt is richer
 
 ## Rule 3 — Dispatch independent work as several `Agent` calls in one message
 
-Subagents run in the background by default. A task notification arrives when each subagent completes. Do not poll, sleep, or call a "check progress" tool while you wait. The notification is the signal.
+Subagents run in the background by default. When a subagent completes, a task notification arrives. Do not poll, sleep, or call a "check progress" tool while you wait. The notification is the signal.
 
 **Parallel dispatch.** To run independent work at the same time, make several `Agent` calls in ONE assistant message. All subagents start together, and each one sends its own notification.
 

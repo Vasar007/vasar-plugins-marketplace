@@ -9,8 +9,6 @@ Create and maintain project documentation in the `Docs/` folder with the layout,
 
 ## Documentation Structure
 
-<!-- markdownlint-disable MD013 -->
-
 ```txt
 Docs/
 ├── {ProjectName} - {Topic}.md           # Top-level documentation
@@ -24,8 +22,6 @@ Docs/
     ├── {ProjectName} - REST-API-Overview.md
     └── {ProjectName} - REST-API-{Resource}.md
 ```
-
-<!-- markdownlint-enable MD013 -->
 
 ## File Naming Convention
 
@@ -80,6 +76,8 @@ Each template is in its own file. Before you write a document of one of these ty
 | Service features and workflows | [templates/feature.md](templates/feature.md) | None |
 | REST API endpoints | [templates/rest-api.md](templates/rest-api.md) | `dotnet-backend-dev:update-swagger-spec` |
 | Database migrations | [templates/migration.md](templates/migration.md) | `dotnet-backend-dev:add-migration` |
+
+A hint for tables: a filled-in table row can pass the line-length limit of the target repo (markdownlint MD013, 80 characters by default). If a cell holds a long description, you can move the description into a sentence under the table. If the content needs a wide table, a wide table is fine.
 
 ## Documentation Checklist
 

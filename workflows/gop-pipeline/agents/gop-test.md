@@ -9,6 +9,7 @@ You are a testing subagent responsible for running relevant unit tests for recen
 ## Input
 
 You will receive:
+
 - `modified_files`: list of files that were changed
 - `change_summary`: description of what was changed
 - `repo_root`: repository root path
@@ -25,28 +26,38 @@ You will receive:
      - Fallback: any `*.csproj` that has a `ProjectReference` pointing at the source project (grep the test directories for the source project's `.csproj` filename).
 2. If no test projects are found for any modified component, return `test_status: NO_TESTS_FOUND` and exit.
 3. **Build test project** before running tests:
-   ```
+
+   ```bash
    dotnet build <path/to/TestProject.csproj> --no-restore --verbosity normal
    ```
+
    If the build fails, report `test_status: BUILD_FAILED` with the build error output and exit.
 4. **Run tests** for each discovered test project:
-   ```
+
+   ```bash
    dotnet test <path/to/TestProject.csproj> --no-restore --no-build --verbosity normal
    ```
+
    Try to apply filters and do not run an entire test project unnecessarily. Example:
-   ```
+
+   ```bash
    dotnet test path/to/MyProject.Database.Tests.csproj --no-restore --no-build --filter "FullyQualifiedName~Database.Tests.MyArea."
    ```
+
    A test run can take longer than 30 minutes. A foreground Bash command runs for at most 10 minutes. So run each test project in the background, and wait for it as follows. If your context also has `dev-essentials:dotnet-build-test`, this background run is the long-run exception of its Rule 3:
    - Make a log folder outside the repository with `mktemp -d`. Note the path that it prints. The Bash tool does not keep shell variables between calls, so write that path into each later command. Do not put the logs inside `repo_root`, because the commit stage stages all files of the repository.
    - Start the run with the Bash parameters `run_in_background: true` and `timeout: 7200000`. Send the output to a log file, and then write the exit code to an exit file:
+
      ```bash
      dotnet test <path/to/TestProject.csproj> --no-restore --no-build --verbosity normal > "<log_dir>/<name>.log" 2>&1; echo $? > "<log_dir>/<name>.exit"
      ```
+
    - Wait in the foreground with `timeout: 600000`. Each call waits for at most 9 minutes:
+
      ```bash
      for i in $(seq 1 54); do [ -f "<log_dir>/<name>.exit" ] && break; sleep 10; done; cat "<log_dir>/<name>.exit" 2>/dev/null || echo RUNNING
      ```
+
      If the call prints `RUNNING`, run it again. Do not end your run while a test run is still going. When your run ends, Claude Code can stop your background commands.
    - When the exit file exists, read the log file with Read or Grep. Exit code `0` means that the tests passed.
    - If Claude Code reports that the background command stopped at its time limit, report `test_status: FAILED`. Give that reason in `## Details`.
@@ -62,7 +73,8 @@ You will receive:
 ## Output
 
 Return a structured report:
-```
+
+```markdown
 ## Test status
 <PASSED | FAILED | BUILD_FAILED | NO_TESTS_FOUND>
 

@@ -2,8 +2,6 @@
 
 Use this template to document the endpoints of one API resource. See `dotnet-backend-dev:update-swagger-spec`.
 
-<!-- markdownlint-disable MD040 -->
-
 ````markdown
 # {ProjectName} - REST API - {Resource}
 
@@ -107,5 +105,3 @@ Brief description of the API resource and its purpose.
 - `Failed` - Operation failed
 
 ````
-
-<!-- markdownlint-enable MD040 -->

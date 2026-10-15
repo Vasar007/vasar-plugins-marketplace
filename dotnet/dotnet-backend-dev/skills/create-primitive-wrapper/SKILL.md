@@ -16,7 +16,7 @@ Primitive wrappers are `readonly record struct` implementing wrapper interfaces 
 - `IStringWrapper<T>` for string-based IDs
 - `IGuidWrapper<T>` for GUID-based IDs  
 - `IInt32Wrapper<T>` for integer-based IDs
-- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`, etc.
+- `IInt64Wrapper<T>`, `IDecimalWrapper<T>`, `IDateTimeWrapper<T>`, and others
 
 **If no matching interface exists, no interface is needed.** Implement the pattern without an interface.
 

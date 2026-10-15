@@ -51,6 +51,7 @@ You need:
 If the user did not give the branch ref, STOP and ask. With `--interactive`, also ask for the description:
 
 > To create a worktree I need:
+>
 > 1. The full branch ref (for example `feature/tasks/1370383-add-feature`)
 > 2. A short description of the task (only for the approval prompt)
 
@@ -154,12 +155,14 @@ mkdir -p <worktree-path>/Notes
 Locate the first `.sln` file under the worktree root using your shell:
 
 **PowerShell:**
+
 ```powershell
 Get-ChildItem -Path <full-worktree-path> -Filter *.sln -Recurse |
     Select-Object -First 1 -ExpandProperty FullName
 ```
 
 **bash (macOS / Linux / Git Bash):**
+
 ```bash
 find <full-worktree-path> -name '*.sln' -type f | head -1
 ```
@@ -281,7 +284,7 @@ Worktrees with open or undiscoverable PRs must NOT be removed.
 
 ### Step 3: Show list and ask for confirmation
 
-```
+```text
 Found the following merged-PR worktrees eligible for removal:
   - .claude/worktrees/feature/tasks/1370383-foo  (branch: feature/tasks/1370383-foo)
 

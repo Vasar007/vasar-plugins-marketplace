@@ -11,6 +11,35 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 3.0.1, dotnet-backend-dev 1.3.1, and gop-pipeline 1.2.1 in release [3.0.1] - 2026-10-15
+
+This release adds tests for the scripts of the skills and lint checks for the `.md` files of the repository (issues #25 and #28). The plugin changes fix the Markdown and the words that the new checks found.
+
+### Added in the repository
+
+- The folder `tests/` with tests for `check_report.py` (`bug-hunt`) and `trim_report.py` (`trim-artifacts`). It also has a simple-english lint test and a markdownlint test for every tracked `.md` file of the repository. Run `python3 -m unittest discover -s tests -v` from the repository root. Claude Code does not copy this folder into the plugin cache.
+- The file `.markdownlint.jsonc` with the markdownlint rules for the `.md` files of the repository.
+- A GitHub Actions workflow that runs the tests on each pull request and on each push to `main`. It uses the latest release of the simple-english linter.
+
+### Changed in the repository
+
+- `CLAUDE.md`: shorter sentences and plainer words, so that the file passes the simple-english test. The rules did not change.
+
+### Fixed in dev-essentials
+
+- The Markdown of 10 files now passes markdownlint. The changes add blank lines around lists and code blocks, give each code block a language, and replace emphasis that worked as a heading. `create-documentation` no longer turns the line-length rule back on.
+- `create-documentation`: the configuration, migration, and REST API templates no longer hold inline markdownlint comments, so the documents that an agent writes from them have none either. Two links of the configuration template were split over two lines and did not render as links. Each link is now on one line and renders. The skill also has a hint for a table row that passes the line-length limit of the target repo.
+- `implement-batch`, `implement-task`, and `research-implement-review-report`: removed an inline markdownlint comment that the repository configuration already covers.
+- `process-pr-comments`, `subagent-orchestration`, and `write-markdown`: shorter sentences and plainer words in four lines. The meaning did not change.
+
+### Fixed in dotnet-backend-dev
+
+- `add-migration`: two steps for a failed migration use plainer words. `create-primitive-wrapper` and the wrapper example of `create-tests` no longer use "etc.".
+
+### Fixed in gop-pipeline
+
+- The Markdown of 11 files now passes markdownlint. In `gop-work`, the two sub-steps of step 12 are now nested under the step.
+
 ## dev-essentials 3.0.0 and dotnet-backend-dev 1.3.0 in release [3.0.0] - 2026-10-14
 
 This release makes the continuation prompt of `save-context` opt-in (issue #23). It also moves the .NET test tools from `dev-essentials` to `dotnet-backend-dev` (issue #24).
@@ -378,7 +407,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.4.1...v2.4.2

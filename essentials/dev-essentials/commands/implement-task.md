@@ -2,7 +2,6 @@
 description: Work one task end-to-end through research-implement-review-report. First sweep the extra context that the user brings (PR or issue links to fetch, or plain free-text notes). After the review loop, run a mandatory /simplify pass and land it as a separate commit on top. Never pushes.
 argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--interactive] [--autonomous]
 ---
-<!-- markdownlint-disable MD013 -->
 
 # Implement Task (context sweep → full cycle → simplify commit)
 

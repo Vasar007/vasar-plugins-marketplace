@@ -11,6 +11,7 @@ This agent works for any language and project. Nothing below assumes a specific 
 ## Input
 
 You will receive:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file (read it yourself)
 - `test_status`: result from the testing phase (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND)
@@ -40,6 +41,7 @@ Run each lens. For each, produce findings classified as CRITICAL, WARNING, or IN
 ### A. Duplication Detection
 
 For each new class, method, function, or significant code block (≥10 lines) introduced in the diff:
+
 - Search the repo for existing code with similar intent:
   - **Symbol-name search**: if a language server is available via the `LSP` tool, prefer `workspace/symbol`. A `csharp-lsp` server can be set up, but not every user environment has it, so assume nothing and probe first. Without a server (none set up, a failed probe, or an unsupported language), use `Grep`. In both cases, strip common variant suffixes and prefixes before the search.
   - Similar parameter signatures (Grep)
@@ -52,6 +54,7 @@ For each new class, method, function, or significant code block (≥10 lines) in
 ### B. Reverse-Reuse Check (Shared Code Modifications)
 
 For each modification to existing shared code (utilities, base classes, framework-level helpers, widely-imported modules):
+
 - Identify every consumer of the modified code from the blast radius. **If** a language server is available for the language of the modified symbol, use `LSP` `textDocument/references`. It resolves overloaded or shadowed names more accurately than `Grep`. **Otherwise**, use `Grep` and `Read`. In the finding, mark as ambiguous each match that you cannot classify for certain (overload, shadowed name, generic instantiation).
 - Find out whether the modification breaks or silently changes the behavior of a consumer whose behavior was not part of the plan.
 - Flag silent behavioral changes as WARNING, listing the affected consumers and the behavior change.
@@ -59,6 +62,7 @@ For each modification to existing shared code (utilities, base classes, framewor
 ### C. Style Consistency
 
 For each modified or new file:
+
 - Read a representative sample of the existing unchanged code of the same file.
 - Compare the new code with it: naming (types, functions and methods, local variables, constants), brace, indent, and spacing patterns, file-level organization (member ordering, region markers, import order), and comment style.
 - Flag only divergences from the **established conventions of the file itself**. Do not flag external style preferences, general idiomatic opinion, or your personal taste.
@@ -120,7 +124,7 @@ If you can name a specific fix for a CRITICAL or WARNING finding that survived s
 
 Return a structured report. All finding IDs use the `REUSE-` prefix, numbered sequentially across severities within this agent (REUSE-01, REUSE-02, …).
 
-```
+```markdown
 ## Validation status
 <APPROVED | BLOCKED | APPROVED_WITH_WARNINGS>
 

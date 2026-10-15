@@ -8,6 +8,9 @@ desktop.ini
 .vscode/
 *.sublime-*
 
+# Python
+__pycache__/
+
 # Claude Code local state
 CLAUDE.local.md
 .claude/settings.local.json

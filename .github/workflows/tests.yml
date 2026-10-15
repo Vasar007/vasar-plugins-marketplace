@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Take the latest release of the simple-english linter, not a pinned commit.
+      - name: Find the latest SimpleEnglish release
+        id: linter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! tag=$(gh release view --repo AminBlg/SimpleEnglish --json tagName --jq .tagName) || [ -z "$tag" ]; then
+            echo "::error::Cannot get the latest release of AminBlg/SimpleEnglish."
+            exit 1
+          fi
+          echo "Using SimpleEnglish release $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: AminBlg/SimpleEnglish
+          ref: ${{ steps.linter.outputs.tag }}
+          path: .simple-english
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Run the tests and the linters
+        env:
+          SIMPLE_ENGLISH_DIR: ${{ github.workspace }}/.simple-english
+        run: python3 -m unittest discover -s tests -v

@@ -18,7 +18,7 @@ Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`
 
 `target=spec`: read the file in full, and brief the reviewer for a spec review.
 
-```
+```text
 Resolved: openspec/changes/2026-05-08-add-tenant-quotas/proposal.md (spec target)
 Reading full file... 412 lines loaded.
 ```
@@ -59,7 +59,7 @@ Review made by `claude-opus-4-7`
 
 ## Phase 4 — Triage
 
-```
+```text
 Round 1 findings:
   Blocker:  1  (will fix; 1 blocking)
   Critical: 1  (will fix; 1 blocking)
@@ -85,19 +85,19 @@ Target file: `openspec/changes/2026-05-08-add-tenant-quotas/proposal.md`. In a s
 
 **#1: APPLY**. Verification source: `openspec/changes/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
 
-```
+```text
 Edit: proposal.md §4 — 3 paragraphs rewritten with explicit window definition.
 ```
 
 **#2: APPLY**. Verification source: the contradiction is plain from §3 and §7. The correct semantics (consume at admission, and failures count) match the existing `resource-limits` spec ("admit-then-count, no reclaim on failure"). The fixer deleted the decrement sentence of §7. It added a sentence that ties the decrement to the admission of §3. The sentence says that failed requests consume quota and get no refund.
 
-```
+```text
 Edit: proposal.md §7 — deleted conflicting sentence; added clarification.
 ```
 
 **#3: APPLY**. Verification source: `CLAUDE.md` §"HTTP Error Path Convention". Every error path must give the status, the body, the log level, and the event. The fixer added the subsection "Quota exceeded" to §5: HTTP 429, `{ "error": "quota_exceeded", "retryAfterSeconds": <N> }`, a WARN log, and no event.
 
-```
+```text
 Edit: proposal.md §5 — added "Quota exceeded" subsection.
 ```
 
@@ -107,13 +107,13 @@ Edit: proposal.md §5 — added "Quota exceeded" subsection.
 
 `target=spec`: the target is not code. No `*.sln` or other build manifest applies.
 
-```
+```text
 Spec target detected — build/test step skipped (non-code artifact).
 ```
 
 The spec validation still applies, because `CLAUDE.md` documents `openspec validate <change-name>`:
 
-```
+```text
 openspec validate 2026-05-08-add-tenant-quotas
 ✓ Schema valid
 ✓ All required sections present
@@ -126,7 +126,7 @@ The validation passed.
 
 ## Phase 7 — Commit
 
-```
+```bash
 git add openspec/changes/2026-05-08-add-tenant-quotas/proposal.md
 git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, missing quota-exceeded error path"
 ```
@@ -143,7 +143,7 @@ git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, 
 
 ## Phase 9 — Final summary (printed to chat — single cycle, no `--save-reports`)
 
-```
+```markdown
 ## Review Loop Complete
 
 Rounds: 1 of 1 max

@@ -11,6 +11,7 @@ This agent works for any language and project. Nothing below assumes a specific 
 ## Input
 
 You will receive:
+
 - `task_description`: the user's original request
 - `plan_file_path`: path to the plan file (read it yourself)
 - `test_status`: result from the testing phase (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND)
@@ -40,15 +41,18 @@ Run each lens. For each, produce findings classified as CRITICAL, WARNING, or IN
 ### A. Completeness vs Plan
 
 Compare the plan against the diff:
+
 - Flag any planned item not reflected in the diff (missing implementation).
 - Flag any `deviations_from_plan` that weaken the original intent.
 
 For each changed method, function, or class, read its full implementation (not just the diff hunk) and trace the business logic path:
+
 - What triggers this code (callers, event handlers, API endpoints, scheduled jobs)?
 - What does it call downstream (services, repositories, external systems)?
 - What side effects does it produce (state changes, messages, file writes)?
 
 Find out whether the change is semantically complete. Flag each of these gaps:
+
 - Half-updated logic: a new condition that not all branches handle.
 - Callers that still pass old arguments or expect old return types.
 - New enum values, status codes, or configuration keys without handling in a `switch`, `match`, or `if` block.
@@ -59,6 +63,7 @@ If `unresolved_concerns` is not "None", investigate each concern by reading rele
 ### B. Breaking Change Detection
 
 Use the blast radius from Phase 1 step 2:
+
 - For each modified public method, property, or interface member, find out whether all callers and implementors in the blast radius are still compatible: argument types, argument count, return types, null handling, exception contracts.
 - For modified configuration schemas, serialization contracts, or API request and response shapes, find out whether they stay backward compatible or all consumers are updated.
 - For renamed or removed members: **if a language server is available for the language of the symbol**, use `LSP` `textDocument/references` for the exact set of references. If `LSP` is not available, or the earlier probe failed, run a thorough Grep across the repo. Then read each match to tell overloaded names apart.
@@ -68,6 +73,7 @@ Use the blast radius from Phase 1 step 2:
 ### C. Logic, Concurrency, and Resources
 
 Focus the review on the highest-risk changes: complex logic, data-persistence paths, and concurrent or async code. Look for:
+
 - Logic errors in conditionals, loops, boundary conditions, and edge cases within complex methods.
 - Resource leaks: opened streams, connections, handles, or contexts that are not closed or disposed in all code paths (including exception paths).
 - Concurrency issues in multi-threaded or async code: race conditions, deadlocks, missing locks, non-thread-safe collections, mishandled cancellation, and fire-and-forget tasks without error handling.
@@ -122,7 +128,7 @@ If you can name a specific fix for a CRITICAL or WARNING finding that survived s
 
 Return a structured report. All finding IDs use the `CORR-` prefix, numbered sequentially across severities within this agent (CORR-01, CORR-02, …).
 
-```
+```markdown
 ## Validation status
 <APPROVED | BLOCKED | APPROVED_WITH_WARNINGS>
 
