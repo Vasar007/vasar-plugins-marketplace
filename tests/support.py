@@ -13,10 +13,10 @@ IN_CI = os.environ.get("CI") == "true"
 
 
 def tracked_markdown_files():
-    """The tracked .md files of the repository, as paths relative to the repository root."""
+    """The tracked .md files that are in the work tree, as paths relative to the repository root."""
     out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", "*.md"],
                          capture_output=True, text=True, check=True).stdout
-    return sorted(p for p in out.split("\0") if p)
+    return sorted(p for p in out.split("\0") if p and (REPO / p).is_file())
 
 
 def load_module(name, path):
