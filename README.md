@@ -1,5 +1,7 @@
 # vasar-plugins-marketplace
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
+
 This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplace. It holds composer agents, workflow commands, and generic developer skills. It also holds a .NET backend toolkit and a full Git Operations Pipeline (GOP) workflow.
 
 > This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
