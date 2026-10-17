@@ -15,7 +15,7 @@ Domain Model (sealed record)
     ↓ Mapper
 Entity (mutable record for EF)
     ↓ Repository
-Cosmos DB
+Database (for example, Cosmos DB)
 ```
 
 ## Files to Create
@@ -64,6 +64,8 @@ public sealed record {EntityName}Entity
 ```
 
 ## Step 2: Entity Configuration
+
+The example uses the Cosmos DB provider of EF Core (`ToContainer`, `HasPartitionKey`). For another database provider, use the storage configuration that the provider needs.
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -198,7 +200,7 @@ Note: Repositories call `SaveChangesAsync` internally. Callers, including servic
 1. **Entities are mutable records**: use `{ get; set; }` for updateable properties
 2. **Use `required` modifier** on properties that must be set
 3. **Collections use `ICollection<T>` with `new List<T>()`**, NOT collection expressions
-4. **Mappers use Riok.Mapperly** with `[Mapper]` attribute
+4. **Mappers use the mapping library** (for example, Riok.Mapperly with the `[Mapper]` attribute)
 5. **Repository interfaces in Application**, implementations in Infrastructure
 6. **Mappers instantiated internally** by repositories via `new TMapper()`
 7. **Repositories registered standalone** in `PersistenceDependencyInjection.cs` as `AddScoped<IRepo, Repo>()`
@@ -208,7 +210,7 @@ Note: Repositories call `SaveChangesAsync` internally. Callers, including servic
 
 Create tests for EF entities, mappers, repositories, and services:
 
-**Repository (Integration Tests)**: Test CRUD operations against in-memory/SQLite/Cosmos emulator databases.
+**Repository (Integration Tests)**: Test CRUD operations against the test database providers of the project (for example, the EF Core in-memory provider, SQLite, or the Cosmos DB emulator).
 
 **Mapper (Unit Tests)**: Test the domain↔entity conversions of a mapper that has custom logic.
 

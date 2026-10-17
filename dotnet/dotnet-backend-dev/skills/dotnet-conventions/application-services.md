@@ -13,7 +13,7 @@ Application/
     Repositories/
       I{Entity}Repository.cs    (repository interface)
     Converters/
-      {Entity}Converter.cs      (Mapperly converters)
+      {Entity}Converter.cs      (mapping-library converters)
 ```
 
 ## Service Class Pattern

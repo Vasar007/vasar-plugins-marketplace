@@ -10,7 +10,7 @@ Apply these rules all session. They are not a list for the end of the task.
 
 ## Rule 1 — Own every red signal in your session
 
-A red signal is a failure from an automated tool: a failing test, `openspec validate`, markdownlint, a compile error, or a warning treated as an error. If you see a red signal, it is yours to fix at once.
+A red signal is a failure from an automated tool: a failing test, a spec validator (for example, `openspec validate`), a linter (for example, markdownlint), a compile error, or a warning treated as an error. If you see a red signal, it is yours to fix at once.
 
 Do not say "pre-existing failure", "not caused by my change", "already failing before I touched this", or anything with the same meaning. Do not look in `git log` to find out whether the failure predates your work. Work in the area makes the failure yours. This also holds for a failure across the whole codebase, for example a format issue that many specs share. "Everyone has it" is not a reason to skip it.
 
@@ -46,7 +46,7 @@ How to apply:
 
 ## Rule 3 — No pipeline-internal artifacts in shipped code, docs, or commit messages
 
-Production source files, shipped tests, shipped docs (`Docs/`, `openspec/specs/`), commit messages, PR titles, and PR descriptions must not reference any pipeline-internal artifact:
+Production source files, shipped tests, shipped docs, commit messages, PR titles, and PR descriptions must not reference any pipeline-internal artifact. Shipped docs are, for example, `Docs/`, or the specs of the spec framework, such as `openspec/specs/`. The pipeline-internal artifacts are:
 
 - `Notes/Tasks/<id>/...` paths (a gitignored work folder)
 - Section anchors of a spec or a test plan, such as `§7d`, `§3.5`, `Q5`, or `Resolved Question #5`

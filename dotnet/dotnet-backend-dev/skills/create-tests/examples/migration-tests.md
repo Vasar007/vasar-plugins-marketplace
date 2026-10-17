@@ -2,6 +2,8 @@
 
 Testing patterns for database and product migrations using Framework migration system.
 
+The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
+
 ## Overview
 
 Migration tests verify:
@@ -17,11 +19,11 @@ Migration tests verify:
 
 ### TestDbContextFactory Requirement
 
-Migration tests MUST use `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]` because:
+Migration tests MUST run through the `TestDbContextFactory_DiSafeCases` fixture source (for example, `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]` in NUnit) because:
 
 - DbContext comes from DI container (via `IMigrationContext`)
 - Migration engine retrieves services from `IServiceProvider`
-- Must test against InMemory, SQLite, and the document-database provider
+- Must test against each test database provider of the project (for example, InMemory, SQLite, and a document database)
 
 ```csharp
 [TestFixture]
@@ -618,7 +620,7 @@ private static JsonString SerializeToJsonString<TValue>(TValue? value)
 - [ ] Partial migration (some records succeed, others fail)
 - [ ] Legacy data removal (if applicable)
 - [ ] Production data testing (if available)
-- [ ] All database providers (InMemory, SQLite, document database via TestFixtureSource)
+- [ ] All test database providers through the fixture source (for example, InMemory, SQLite, and a document database)
 
 ## Common Assertions
 

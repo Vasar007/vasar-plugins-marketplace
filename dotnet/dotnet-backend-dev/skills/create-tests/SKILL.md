@@ -6,7 +6,14 @@ when_to_use: Use it for "create tests", "unit tests", "test this class", or "wri
 
 # Create Tests
 
-Create .NET unit and integration tests in `tests/` or `src/Tests/`. The tests use NUnit, FluentAssertions, NSubstitute through AutoFixture, and the base classes below.
+Create .NET unit and integration tests in `tests/` or `src/Tests/`. The tests use the base classes below and these libraries of the project:
+
+- The test framework (for example, NUnit) runs the tests and gives the test and fixture attributes.
+- The assertion library (for example, FluentAssertions) gives the assertions.
+- The mocking library (for example, NSubstitute) makes the mocks.
+- The test data library (for example, AutoFixture) makes the test data and gives the mocks to the Test Mock Builders through a fixture.
+
+The rules name each library by its role. The code examples here and in [examples/](examples/) use NUnit, FluentAssertions, and NSubstitute through AutoFixture. With another library, use its equivalent attributes and calls.
 
 ## Test Project Structure
 
@@ -25,7 +32,7 @@ tests/ (or src/Tests/)
 | Base class | Use for | Type |
 | --- | --- | --- |
 | `BaseTest` | Basic tests without mocks | Unit |
-| `BaseMockTest` | Tests that need mocks through AutoFixture | Unit |
+| `BaseMockTest` | Tests that need mocks through the test data library | Unit |
 | `BaseEqualityMemberTests<T>` | Domain models with `IEquatable<T>` and `IEqualityOperators` | Unit |
 | `BaseExceptionTests<T>` | Custom exception classes | Unit |
 | `BaseValidatableObjectTests` | Validation of configuration options | Unit |
@@ -54,10 +61,10 @@ tests/ (or src/Tests/)
 | Controller or API endpoint | [controller-tests.md](examples/controller-tests.md) |
 | Database or product migration | [migration-tests.md](examples/migration-tests.md) |
 | Constructor null-argument tests | [constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md) |
-| Method null-argument tests, async lambdas, SUT names, helper order, `Arg.Any<T>()` or `default`, `ThrowIfNull()`, block bodies | [enforced-gates.md](examples/enforced-gates.md) |
+| Method null-argument tests, async lambdas, SUT names, helper order, argument matchers (for example, NSubstitute `Arg.Any<T>()`) or `default`, `ThrowIfNull()`, block bodies | [enforced-gates.md](examples/enforced-gates.md) |
 | Scenario or end-to-end integration test | [scenario-tests.md](examples/scenario-tests.md) |
 
-The seven gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. One exception: Gate 1 applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests. See "Enforced gates" in the checklist below.
+The seven gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. Two exceptions apply. If the mocking library is not NSubstitute, Gate 5 does not apply. Gate 1 applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests. See "Enforced gates" in the checklist below.
 
 If no example matches your case, look for a similar test class in the test projects of the repository. They are usually under `tests/`, `src/Tests/`, `Sources/Tests/`, or `Tests/`. Follow the pattern of that class. Never guess the API of a base class. Read it first.
 
@@ -80,9 +87,9 @@ Never stage `Directory.Build.props`, `Directory.Packages.props`, or `global.json
 
 ### General Rules
 
-- **Use FluentAssertions** (`Should()`) instead of NUnit `Assert.*`. Use `Assert` only for an assertion that FluentAssertions does not have.
+- **Use the assertion library** (for example, FluentAssertions `Should()`) instead of the assertions of the test framework (for example, NUnit `Assert.*`). Use the assertions of the test framework only for an assertion that the assertion library does not have.
 - **Use System type names** instead of C# aliases: `String` not `string`, `Int32` not `int`, `Boolean` not `bool`, and so on.
-- **Use `var` for delegates** in tests that assert `Throw` or `NotThrow`, for example `var act = () => service.DoSomething();`.
+- **Use `var` for delegates** in tests that assert that a call throws or does not throw (for example, FluentAssertions `Throw` or `NotThrow`). Example: `var act = () => service.DoSomething();`.
 - **Reuse values.** Compare against the expected variable, not a repeated literal:
 
 ```csharp
@@ -159,9 +166,9 @@ public sealed class {ClassName}Tests : {BaseClass}
 
 ### Parallelization
 
-**`[Parallelizable(ParallelScope.Fixtures)]`** applies to most test fixtures.
+**Run most test fixtures in parallel** (for example, with `[Parallelizable(ParallelScope.Fixtures)]` in NUnit).
 
-**Use `[NonParallelizable]`** in these cases:
+**Turn off parallel runs** (for example, with `[NonParallelizable]` in NUnit) in these cases:
 
 - The test changes shared database state that conflicts with parallel tests.
 - The test needs exclusive access to an external resource, for example a local database emulator.
@@ -231,7 +238,7 @@ private IMyRepository CreateMyRepository(Item[] items)
 
 1. **Exactly one `Create{Mock}` method for each mock dependency**, with no overloads. The one method wraps the builder and takes parameters for the items and the configuration that the mock needs. All test cases in the class share it.
 2. **Exactly one `Generate{Model}` method for each test data type in the test class**, with no overloads. The one method wraps the generator call.
-3. **No post-setup on returned mocks.** After `Create{Mock}` returns, the mock is **fully configured**. Never add `.Returns()`, `.ReturnsForAnyArgs()`, or any other NSubstitute setup on the result in the test case. If you need a new behavior, **extend the Test Mock Builder** with a new method or option. Then expose it through the parameters of the `Create{Mock}` helper. One exception: `ExternalServicesMock` of `WebApiBaseTest` in Web API tests. The base test injects this mock into the ASP.NET pipeline, where it intercepts the calls of the running app to external services. So a test case can set up its behavior after the setup, as `examples/controller-tests.md` shows.
+3. **No post-setup on returned mocks.** After `Create{Mock}` returns, the mock is **fully configured**. Never add a setup of the mocking library on the result in the test case. Examples are `.Returns()`, `.ReturnsForAnyArgs()`, and any other NSubstitute setup. If you need a new behavior, **extend the Test Mock Builder** with a new method or option. Then expose it through the parameters of the `Create{Mock}` helper. One exception: `ExternalServicesMock` of `WebApiBaseTest` in Web API tests. The base test injects this mock into the ASP.NET pipeline, where it intercepts the calls of the running app to external services. So a test case can set up its behavior after the setup, as `examples/controller-tests.md` shows.
 4. **The single `Create{Mock}` helper takes optional parameters and applies them with `.ApplyIf`**. Rule 1 ("exactly one helper for each dependency, no overloads") does NOT mean that the helper has no optional parameters. The single helper takes an **optional nullable parameter** (`Foo? p = null`) for each setting that a test case needs. It applies each one with an `.ApplyIf(condition, b => b.WithFoo(p!))` call in the fluent chain of the builder. **Never** use an `if` block with a separate `builder` variable. **Never** use a bare `??` fallback inside a `.With(...)` call. Two test cases that need different `Create{Mock}` inputs call the **same single** method with different named-argument values. A test class never has a second `CreateMyRepository` for the same dependency. `Generate{Model}` helpers follow the looser `Generate*` column in the table below: plain optional parameters with defaults are allowed, and `.ApplyIf` is not required.
 
    | Location | `Create*` | `Generate*` |
@@ -292,7 +299,7 @@ private void AssertModelEquals(MyModel expected, MyModel actual)
 
 ### STRICT PROHIBITION: No Direct Mock Creation
 
-**NEVER** create mocks of interfaces directly in test fixtures or test cases. **ALL** of these are **FORBIDDEN**:
+**NEVER** create mocks of interfaces directly in test fixtures or test cases. The code below shows the direct calls of NSubstitute and AutoFixture. **ALL** of these are **FORBIDDEN**, and so are the equivalent calls of another mocking library or test data library:
 
 ```csharp
 // ❌ FORBIDDEN - Substitute.For
@@ -320,7 +327,7 @@ var repository = TestMyRepositoryBuilder.CreateWithoutSetup(Fixture);
 
 This rule applies to **every** interface dependency, also to a mock with one method, a one-time setup, or no configuration at all. If a `Test{Interface}Builder` does not exist yet, **create it first** in `Tests.Common/Helpers/Mocks/{Feature}/`.
 
-**Inside a `Test{Interface}Builder`:** get the substitute with `_fixture.Create<IInterface>()`, NOT with `Substitute.For<IInterface>()`. The NSubstitute customization of AutoFixture makes an equivalent mock, works with the rest of the fixture configuration, and matches the other builders of the repository. Use `Substitute.For<T>` only in the rare case where AutoFixture cannot make the substitute. Examples are a sealed concrete type or a generic constraint that AutoFixture refuses. Then add a one-line comment that says why. Do NOT silently change `_fixture.Create<…>()` to `Substitute.For<T>` as a "fix".
+**Inside a `Test{Interface}Builder`:** this rule is for NSubstitute through AutoFixture. Get the substitute with `_fixture.Create<IInterface>()`, NOT with `Substitute.For<IInterface>()`. The NSubstitute customization of AutoFixture makes an equivalent mock, works with the rest of the fixture configuration, and matches the other builders of the repository. With another mocking library or test data library, get the mock the way that the other builders of the repository do. Use `Substitute.For<T>` only in the rare case where AutoFixture cannot make the substitute. Examples are a sealed concrete type or a generic constraint that AutoFixture refuses. Then add a one-line comment that says why. Do NOT silently change `_fixture.Create<…>()` to `Substitute.For<T>` as a "fix".
 
 **No post-setup:** a mock that a builder or a `Create{Mock}` helper returns is **fully configured** (rule 3 above).
 
@@ -336,10 +343,10 @@ Builders that already exist:
 
 Each service or hosted service with more than one constructor dependency MUST have exactly **two** constructor tests:
 
-1. **Positive:** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls `CreateServiceWithAllArguments(...)` with a valid value for each dependency. It asserts `act.Should().NotThrow()`.
-2. **Negative:** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` is a single `[Test]` with a **`foreach` over a `List<Action>`**. Each entry calls `CreateServiceWithAllArguments(...)` with valid positional arguments, except exactly one dependency that gets `null!`. The test asserts `act.Should().Throw<ArgumentNullException>()` in each iteration.
+1. **Positive:** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls `CreateServiceWithAllArguments(...)` with a valid value for each dependency. It asserts that the call does not throw (for example, `act.Should().NotThrow()`).
+2. **Negative:** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` is a single test method with a **`foreach` over a `List<Action>`**. Each entry calls `CreateServiceWithAllArguments(...)` with valid positional arguments, except exactly one dependency that gets `null!`. In each iteration, the test asserts that the call throws `ArgumentNullException` (for example, `act.Should().Throw<ArgumentNullException>()`).
 
-`CreateServiceWithAllArguments` goes at the end of the file, inside `#region Helper Methods`. Each constructor parameter is **required and positional: no `= null` default and no `??` fallback**. The boolean-stripes pattern (`[TestCase(true, false, ...)]`) is FORBIDDEN.
+`CreateServiceWithAllArguments` goes at the end of the file, inside `#region Helper Methods`. Each constructor parameter is **required and positional: no `= null` default and no `??` fallback**. The boolean-stripes pattern (parameterized test cases with one boolean for each dependency, for example `[TestCase(true, false, ...)]` in NUnit) is FORBIDDEN.
 
 Read [examples/constructor-null-arg-tests.md](examples/constructor-null-arg-tests.md) before you write these tests. It has the canonical example, the reason for required positional parameters, the rule for `static` and instance helpers, and the forbidden boolean-stripes pattern.
 
@@ -354,7 +361,7 @@ See [examples/repository-tests.md](examples/repository-tests.md) for the fixture
 
 ## String Validation Pattern
 
-Use `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` for null, empty, and whitespace validation of a `String` parameter. The test takes a `String? invalidValue` parameter and asserts `Throw<ArgumentException>()`.
+Use the `StringNullOrWhiteSpace_TestCases` test-case source for null, empty, and whitespace validation of a `String` parameter (for example, `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` in NUnit). The test takes a `String? invalidValue` parameter and asserts that the call throws `ArgumentException` (for example, `Throw<ArgumentException>()`).
 
 ## Scenario Tests (WebApi.Tests/Scenarios/)
 
@@ -362,9 +369,9 @@ Scenario tests run **real end-to-end orchestration**. They MUST NOT contain any 
 
 **Forbidden in scenario tests:**
 
-- `IFixture`, `AutoFixture`, or any `Fixture.*` call
-- `Substitute.For<T>()`
-- `Fixture.Create<IInterface>()` or `Fixture.Freeze<IInterface>()`
+- The test data library (for example, `IFixture`, `AutoFixture`, or any `Fixture.*` call)
+- Any mock of the mocking library (for example, `Substitute.For<T>()`)
+- An interface mock from the test data library (for example, `Fixture.Create<IInterface>()` or `Fixture.Freeze<IInterface>()`)
 - Test Mock Builders (`Test{Interface}Builder`)
 - Mocks inside stubs
 
@@ -378,7 +385,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 - [ ] **Read the matching example file in examples/ BEFORE you write any code**
 - [ ] The test class inherits the correct base class
-- [ ] `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` attributes (unless the fixture is non-parallelizable)
+- [ ] The fixture attributes of the test framework (for example, `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` in NUnit), unless the fixture is non-parallelizable
 - [ ] All tests use the `// Arrange.` `// Act.` `// Assert.` comments, or a combined form with `&`, such as `// Act & Assert.` or `// Arrange, Act & Assert.` (see "Test Structure")
 - [ ] Props files (`Directory.Build.props`, `Directory.Packages.props`, `global.json`) are NOT staged, unless the user named them explicitly
 
@@ -388,25 +395,25 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 - [ ] Gate 2: no `async () => await x` around a single expression
 - [ ] Gate 3: the SUT variable and its helper use the role noun of the class (`processor`, `CreateProcessor`), never `sut`
 - [ ] Gate 4: helper methods come last, in one `#region Helper Methods`
-- [ ] Gate 5: `Arg.Any<T>()` for arguments, and `default` only for a record struct that throws `AmbiguousArgumentsException`
+- [ ] Gate 5 (if the mocking library is NSubstitute): `Arg.Any<T>()` for arguments, and `default` only for a record struct that throws `AmbiguousArgumentsException`
 - [ ] Gate 6: `obj.ThrowIfNull()`, not `ArgumentNullException.ThrowIfNull(obj)`
 - [ ] Gate 7: block bodies for methods, no expression-bodied methods
 
 ### Unit / integration tests (non-scenario)
 
 - [ ] Test data comes from test model generators, not inline object creation
-- [ ] Every interface mock comes from a Test Mock Builder. No `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()` in test cases. A builder gets its substitute with `_fixture.Create<IInterface>()`.
+- [ ] Every interface mock comes from a Test Mock Builder. No direct mock of the mocking library or the test data library in test cases (for example, `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()`). With NSubstitute through AutoFixture, a builder gets its substitute with `_fixture.Create<IInterface>()`.
 - [ ] Test cases call builders and generators only through private `Create{Mock}` and `Generate{Model}` helpers, and add no setup to a returned mock
 - [ ] The helpers follow rules 1 to 7 of [Private Helper Methods](#private-helper-methods-mandatory-indirection), with `CreateServiceWithAllArguments` as the one required-positional exception
-- [ ] Constructor tests use the `foreach` over `List<Action>` pattern, with NO boolean-stripes `[TestCase(true,false,...)]`
+- [ ] Constructor tests use the `foreach` over `List<Action>` pattern, with NO boolean-stripes test cases (for example, `[TestCase(true,false,...)]` in NUnit)
 - [ ] Constructor tests for validation
 - [ ] `ToString` test for domain models
 - [ ] `StringNullOrWhiteSpace_TestCases` for string validation
 - [ ] The test class extends the base class of its kind from [Base Classes Overview](#base-classes-overview). Domain models with `IEquatable<T>` and `IEqualityOperators` **MUST** extend `BaseEqualityMemberTests<T>` (override `CreateUniqueValue`, and optionally `GetValueMutatorsForInequality` or `GetValueMutatorsForEquality`).
-- [ ] Migration tests use `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]`
+- [ ] Migration tests run for each test database provider through the `TestDbContextFactory_DiSafeCases` fixture source (for example, `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]` in NUnit)
 - [ ] Migration tests cover an empty database, the happy path, idempotency, and invalid data
 
 ### Scenario tests (`WebApi.Tests/Scenarios/`)
 
-- [ ] The test follows every rule of [Scenario Tests](#scenario-tests-webapitestsscenarios): no `Fixture.*`, no `Substitute.For<T>()`, no Test Mock Builders, and no mocks inside stubs
-- [ ] Data comes from raw constructors **or** generator classes, never from `IFixture` or AutoFixture
+- [ ] The test follows every rule of [Scenario Tests](#scenario-tests-webapitestsscenarios): no test data library (`Fixture.*`), no mocking library (`Substitute.For<T>()`), no Test Mock Builders, and no mocks inside stubs
+- [ ] Data comes from raw constructors **or** generator classes, never from the test data library (for example, `IFixture` or AutoFixture)

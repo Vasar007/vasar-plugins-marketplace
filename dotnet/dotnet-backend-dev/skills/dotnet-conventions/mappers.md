@@ -1,8 +1,10 @@
-# Riok.Mapperly Mapper & Converter Patterns
+# Mapper and Converter Patterns
 
-## ALWAYS Use Riok.Mapperly
+## ALWAYS Use the Mapping Library
 
-If Mapperly can handle a mapping, do NOT use AutoMapper, hand-written `.Select()` projections, or manual mapping. If the Mapperly attributes become too complex (many errors, constructor mismatches), fall back to manual mapping. Use manual mapping only in this case.
+Generate converters with the mapping library (for example, Riok.Mapperly). The examples in this file use Riok.Mapperly attributes. Another mapping library uses its own equivalent attributes or calls.
+
+If the mapping library can handle a mapping, do NOT use a second mapping library (for example, AutoMapper), hand-written `.Select()` projections, or manual mapping. If the mapping configuration becomes too complex (many errors, constructor mismatches), fall back to manual mapping. Use manual mapping only in this case.
 
 ## Required Attributes — Every Mapper
 
@@ -10,7 +12,7 @@ If Mapperly can handle a mapping, do NOT use AutoMapper, hand-written `.Select()
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
 ```
 
-This is MANDATORY on every converter/mapper. Ensures enums map by name, case-insensitive.
+This attribute is the Riok.Mapperly form of a MANDATORY rule: every converter or mapper maps enums by name, case-insensitive. Another mapping library uses its own setting for the same rule.
 
 ## SharedDomainWrappersConverter
 
@@ -96,7 +98,7 @@ Use it alongside the framework one:
 
 ## Manual Mapping Fallback
 
-If Mapperly generates too many errors, use manual mapping with a TODO comment:
+If the mapping library generates too many errors, use manual mapping with a TODO comment:
 
 ```csharp
 public XxxModel ToDomainXxx(XxxEntity entity, XxxExternalValue externalParam)

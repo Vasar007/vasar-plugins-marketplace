@@ -35,7 +35,7 @@ public interface IDatabaseMigration : IMigration
 
 - Adding new fields to entities
 - Transforming existing data (for example, splitting or combining fields)
-- Reading all documents, modifying them, and saving back (Cosmos DB pattern)
+- Reading all documents, modifying them, and saving back (document database pattern, for example Cosmos DB)
 - Schema-specific changes (for example, SQLite-only or Cosmos-only migrations)
 
 **Execution order**: Database migrations run **before** product migrations.
@@ -370,9 +370,9 @@ public async Task ExecuteAsync(IMigrationContext context, CancellationToken canc
 }
 ```
 
-#### Cosmos DB Pattern (Read-Transform-Write)
+#### Document Database Pattern (Read-Transform-Write)
 
-For Cosmos DB, migrations typically follow this pattern:
+If the database is a document database (for example, Cosmos DB), migrations typically follow this pattern:
 
 ```csharp
 // Read all documents of a type
@@ -388,11 +388,11 @@ foreach (var entity in entities)
     dbContext.Entry(entity).State = EntityState.Modified;
 }
 
-// Write back to Cosmos DB
+// Write back to the database
 await dbContext.SaveChangesAsync(cancellationToken);
 ```
 
-**Why this pattern?** Cosmos DB does not enforce a schema, so you must:
+**Why this pattern?** A document database (for example, Cosmos DB) does not enforce a schema, so you must:
 
 1. Read existing documents
 2. Transform them in memory (add/remove/modify properties)
@@ -400,11 +400,13 @@ await dbContext.SaveChangesAsync(cancellationToken);
 
 For grouping records, JSON parsing, progress logs, removal of legacy data, and batch processing, read [references/common-patterns.md](references/common-patterns.md).
 
-### 6. Add Container Configuration (Cosmos DB)
+### 6. Register New Entity Types in the DbContext
 
-If migration adds new entity types, configure container in `{ServiceName}DbContext`:
+If the migration adds new entity types, register each new type in `{ServiceName}DbContext`. Each new type needs a `DbSet` property, with every database provider. A document database also needs the container configuration.
 
 **File**: `src/{ProjectName}.Infrastructure/Persistence/{ServiceName}DbContext.cs`
+
+**Container configuration** (document database only). The example uses the Cosmos DB provider of EF Core:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -423,7 +425,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 }
 ```
 
-**DbSet property**:
+**DbSet property** (every database provider):
 
 ```csharp
 public DbSet<NewEntity> NewEntities => Set<NewEntity>();
@@ -439,7 +441,7 @@ Create tests for the migration that cover data transformation, idempotency, and 
 
 **See [create-tests](../create-tests/SKILL.md) skill, specifically [examples/migration-tests.md](../create-tests/examples/migration-tests.md) for:**
 
-- Test fixture structure with `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]`
+- Test fixture structure that runs each test against each database provider (for the test framework NUnit, `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]`)
 - Essential test scenarios (empty database, happy path, idempotency, invalid data, multiple records)
 - Production data testing patterns
 - Helper methods (SetupServiceProvider, CreateMigrationContext, CreateMigration)
@@ -464,6 +466,8 @@ services.AddSingleton<IDatabaseMigration, EmbedLineItemsInOrderSummaryMigration>
 ```
 
 ## Cosmos DB Specific Considerations
+
+If the project does not use Cosmos DB, skip this section.
 
 ### Partition Key Cannot Change
 
@@ -528,7 +532,7 @@ modelBuilder.Entity<MyNewEntity>()
 
 1. Check logs for exception details
 2. Find out whether the migration is idempotent (safe to run again)
-3. If data is corrupted, manually fix via Cosmos DB Data Explorer
+3. If data is corrupted, fix it manually with the data tool of the database (for example, Cosmos DB Data Explorer)
 4. Deploy fixed migration
 5. If the migration wrote only part of the data and is not idempotent, add logic that skips the items that it already migrated
 
@@ -548,8 +552,9 @@ modelBuilder.Entity<MyNewEntity>()
 - [ ] Implemented idempotent ExecuteAsync logic
 - [ ] Added logging for start, progress, and completion
 - [ ] Handled CancellationToken properly
-- [ ] For new entity types, added container configuration to DbContext
-- [ ] Created test class with [TestFixtureSource] for all database providers
+- [ ] For new entity types, added a `DbSet` property to DbContext
+- [ ] For new entity types on a document database, added container configuration to DbContext
+- [ ] Created a test class that runs against each database provider (NUnit: `[TestFixtureSource]`)
 - [ ] Tested empty database scenario
 - [ ] Tested happy path (successful migration)
 - [ ] Tested idempotency (running twice)
@@ -561,7 +566,7 @@ modelBuilder.Entity<MyNewEntity>()
 
 ## Related Skills
 
-- [create-tests](../create-tests/SKILL.md): Testing patterns for migrations (BaseMockTest, TestFixtureSource)
+- [create-tests](../create-tests/SKILL.md): Testing patterns for migrations (BaseMockTest, a test fixture for each database provider)
 - [create-ef-entity](../create-ef-entity/SKILL.md): Creating entities and repositories
 - `dev-essentials:generate-xml-docs`: XML documentation standards
 - `dev-essentials:create-documentation`: Documenting migrations in Docs/Migrations/

@@ -1,8 +1,8 @@
 # EF Core & Infrastructure Patterns
 
-## Cosmos DB Container
+## Document Database Container
 
-All entities in a .NET backend service typically use a single Cosmos container named after the service. Its name constant lives in a `DbStorages` static class in the `Infrastructure/Persistence/Configuration` folder.
+If the production database is not a document database, skip this section. In a document database (for example, Cosmos DB), all entities of a .NET backend service typically use one container. The container has the name of the service. Its name constant lives in a `DbStorages` static class in the `Infrastructure/Persistence/Configuration` folder.
 
 Example (one .NET backend service):
 
@@ -22,7 +22,7 @@ internal sealed class XxxEntityConfiguration : IEntityTypeConfiguration<XxxEntit
 {
     public void Configure(EntityTypeBuilder<XxxEntity> builder)
     {
-        builder.ToContainer(DbStorages.{ServiceContainerConstant});
+        builder.ToContainer(DbStorages.{ServiceContainerConstant}); // document database provider only (for example, Cosmos DB)
         builder.ToTable("TableName");
         builder.HasUniversalKey(e => e.Id);          // primary key (framework extension)
         builder.HasAlternateKey(e => e.SomeOtherKey); // optional
@@ -30,8 +30,7 @@ internal sealed class XxxEntityConfiguration : IEntityTypeConfiguration<XxxEntit
 }
 ```
 
-- No navigation properties (NoSQL best practice).
-- Foreign keys stored as `Guid`, not navigation refs.
+- If the database is a document database, do not use navigation properties. Store foreign keys as `Guid` values, not as navigation refs.
 - Owned entities use `[Owned]` attribute + `builder.OwnsOne()` / `builder.OwnsMany()`.
 
 ## DbContext
@@ -77,11 +76,11 @@ Located in `Infrastructure/External/ApiClients/{Service}/{Feature}/`.
 
 ## Multiple DB Providers
 
-EF Core runs against Cosmos DB (production), SQLite, or in-memory (tests). Provider selected via configuration/build constants. Migrations must handle all providers or specify `TargetProvider`.
+EF Core runs against the production database provider and one or more test database providers. For example, it can use Cosmos DB in production, and SQLite or the EF Core in-memory provider in tests. Provider selected via configuration/build constants. Migrations must handle all providers or specify `TargetProvider`.
 
 ## Cosmos-Specific Gotcha: Multi-Column `ORDER BY` Needs a Composite Index
 
-**This rule is for the Cosmos DB provider of EF Core only.** It is not a general EF Core rule.
+**This rule is for the Cosmos DB provider of EF Core only.** It is not a general EF Core rule. If the project uses another database provider, skip this section.
 
 `.OrderBy(x).ThenBy(y)` translates to a multi-column `ORDER BY c["x"], c["y"]`. If the indexing policy of the container has no matching composite index, this query fails or behaves incorrectly against the real Cosmos DB provider. A single-column `OrderBy` works, because the default range index covers it.
 

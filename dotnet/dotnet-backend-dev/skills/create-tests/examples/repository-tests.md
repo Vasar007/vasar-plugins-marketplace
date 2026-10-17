@@ -2,6 +2,8 @@
 
 Use repository base classes for integration tests that verify CRUD operations against a real database (a document-database emulator or in-memory).
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Classes
 
 | Class                                                                       | Use For                 | Location             |
@@ -231,9 +233,9 @@ public sealed class MarketShipmentRepositoryTests<TTestDbContextFactory>
 
 ## Parallelization
 
-Most repository tests can run in parallel (`[Parallelizable(ParallelScope.Fixtures)]`).
+Most repository tests can run in parallel (for example, with `[Parallelizable(ParallelScope.Fixtures)]` in NUnit).
 
-**Use `[NonParallelizable]`** for tests that:
+**Turn off parallel runs** (for example, with `[NonParallelizable]` in NUnit) for tests that:
 
 - Test unique constraint violations (concurrent inserts can interfere)
 - Modify shared state that other tests read
@@ -269,4 +271,4 @@ For `TwoKeysTest`, also tests:
 
 4. **Private helpers**: Extract `CreateAndSaveModelAsync()` pattern for reuse
 
-5. **NonParallelizable for conflicts**: mark tests that can interfere with parallel runs
+5. **No parallel runs for conflicts**: turn off parallel runs for tests that can interfere with other tests

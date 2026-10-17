@@ -4,9 +4,9 @@ description: Create converters between REST, domain, external API, and EF models
 when_to_use: Use it for "create converter", "add mapper", "map models", or "convert between types".
 ---
 
-# Create Riok.Mapperly Converter
+# Create a Model Converter
 
-Create compile-time safe model converters using Riok.Mapperly source generators.
+Create compile-time safe model converters with the mapping library (for example, Riok.Mapperly). The examples in this skill use Riok.Mapperly attributes. Another mapping library uses its own equivalent attributes or calls.
 
 ## File Location
 
@@ -47,7 +47,7 @@ internal static partial class {Feature}Converter
 
 ### Mapper Attribute (ALWAYS Required)
 
-**ALWAYS use these settings on every converter:**
+**ALWAYS map enums by name, case-insensitive, in every converter.** With Riok.Mapperly, use these settings on every converter:
 
 ```csharp
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
@@ -169,15 +169,15 @@ public static partial RestRequest ToRestRequest(Request request);
 
 ## When to Use Manual Mapping
 
-**IMPORTANT**: If model mapping becomes too complex and generates many Riok.Mapperly errors, prefer manual mapping over fighting with attributes.
+**IMPORTANT**: If model mapping becomes too complex and the mapping library generates many errors, prefer manual mapping over fighting with attributes.
 
 ### Signs You Should Use Manual Mapping
 
 - Multiple complex nested property transformations
-- Many `[MapperIgnore*]` attributes needed
+- Many ignore attributes needed (for example, `[MapperIgnore*]` in Riok.Mapperly)
 - Constructor parameters do not match properties
 - Complex conditional logic required
-- Riok.Mapperly generates compilation errors that are hard to resolve
+- The mapping library generates compilation errors that are hard to resolve
 
 ### Manual Mapping Pattern
 
@@ -282,6 +282,8 @@ public sealed partial class {Entity}Mapper
 - No separate DI registration. Repositories create mappers in their constructor
 
 ## Full Examples
+
+These examples use Riok.Mapperly.
 
 ### REST API Response Converter
 
@@ -478,15 +480,15 @@ Always create unit tests for converters.
 ## Checklist
 
 - [ ] Converter is `static partial class` (for REST/External API) OR `sealed partial class` (for EF and other non-static mappers)
-- [ ] `[Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]` attribute
-- [ ] For SDK wrapper conversions: `[UseStaticMapper(typeof(SharedDomainWrappersConverter))]`
-- [ ] `[UseMapper]` fields + constructor for non-static mapper dependencies (if needed)
+- [ ] Enums map by name, case-insensitive (Riok.Mapperly: `[Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]`)
+- [ ] For SDK wrapper conversions: reuse `SharedDomainWrappersConverter` (Riok.Mapperly: `[UseStaticMapper(typeof(SharedDomainWrappersConverter))]`)
+- [ ] If a mapper needs non-static mapper dependencies, add constructor parameters for them (Riok.Mapperly: `[UseMapper]` fields)
 - [ ] XML documentation on converter class
 - [ ] XML documentation on public mapping methods
 - [ ] Method signatures are `public static partial` (static) OR `public partial` (non-static)
 - [ ] Custom mapping methods are private (if needed) OR manual public methods
-- [ ] `[MapperIgnoreSource]` / `[MapperIgnoreTarget]` for properties that must not be mapped
-- [ ] `[MapProperty]` for property name differences or transformations
+- [ ] Properties that must not be mapped are ignored (Riok.Mapperly: `[MapperIgnoreSource]` / `[MapperIgnoreTarget]`)
+- [ ] Explicit property mappings for name differences or transformations (Riok.Mapperly: `[MapProperty]`)
 - [ ] `UpdateEntity{Name}()` method for EF tracked entity updates (if applicable)
 - [ ] Converter file name matches class name
 - [ ] Appropriate namespace for usage location

@@ -1,13 +1,15 @@
 # Constructor Null-Argument Tests
 
-For a service or hosted service with more than one constructor dependency, null-argument coverage uses exactly **two** tests: one positive and one negative. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe `[TestCase]` parameters.
+For a service or hosted service with more than one constructor dependency, null-argument coverage uses exactly **two** tests: one positive and one negative. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe test cases (for example, `[TestCase]` parameters in NUnit).
+
+The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
 ## Pattern overview
 
 - **Test 1 (positive):** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls the SUT factory helper with a valid `Create{Mock}()` positional argument for each dependency. It asserts `act.Should().NotThrow()`.
 - **Test 2 (negative):** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` builds a `List<Action>`. Each lambda calls the SUT factory helper with valid positional `Create{Mock}()` arguments, EXCEPT exactly one dependency that gets `null!`. The test iterates with `foreach` and asserts `act.Should().Throw<ArgumentNullException>()` for each entry.
 - A private helper `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`) goes at the end of the file, inside `#region Helper Methods`. If all nested `Create*` helpers are static, make it `private static`. If any nested helper needs `Fixture` from `BaseMockTest`, make it an instance method. `CreateServiceWithAllArguments` must match the `static` choice of its callees. Each constructor parameter is **required and positional: no `= null` default and no `??` fallback of any kind**. This is the ONE helper in the test class that stays required and positional. Every other `Create{Mock}` helper takes optional parameters and applies them with `.ApplyIf(...)` (see [SKILL.md](../SKILL.md) rule 4).
-- The **boolean-stripes `[TestCase(true,false,...)]` pattern is banned**. See the anti-pattern section below.
+- The **boolean-stripes pattern is banned**: parameterized test cases with one boolean for each dependency (for example, `[TestCase(true,false,...)]` in NUnit). See the anti-pattern section below.
 
 ## Why the helper must be required-positional, not `dep ?? Create{Mock}()`
 
@@ -177,9 +179,9 @@ public void Constructor_ThrowsArgumentNullException_WhenDependencyIsNull(
 **Why it is bad:**
 
 - Each dependency needs its own boolean column in the parameter list.
-- A reorder, a rename, or a new constructor parameter forces an edit of the whole `[TestCase]` matrix.
+- A reorder, a rename, or a new constructor parameter forces an edit of the whole matrix of test cases. In NUnit, this matrix is the list of `[TestCase]` attributes.
 - The method signature carries N booleans that hide the intent. The reader must map each boolean position back to the parameter that it controls.
-- NUnit names the test cases by position unless a case has an explicit `TestName`. One typo, and the test name is wrong.
+- The test framework can name the test cases by position. For example, NUnit does so unless a case has an explicit `TestName`. One typo, and the test name is wrong.
 
 **Replace it with the `foreach` over `List<Action>` pattern of the canonical example above**. A new dependency is one line in the `actions` list, and a removed one is one deleted line.
 

@@ -34,6 +34,7 @@ public override String ToString()
 
 - `Equals()` and `GetHashCode()` CAN use sensitive data (internal, never logged).
 - `ToString()` MUST erase sensitive fields with the placeholder.
+- A serializer does not call `ToString()`. For JSON, see the `handle-sensitive-data` skill.
 
 ## Logging — NEVER Log Secrets
 

@@ -1,6 +1,6 @@
 # Example — Spec / Design Document Review
 
-A worked example of the review of an OpenSpec change document (`target=spec`). It shows how this differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the OpenSpec validator of the repository instead of a compiler.
+A worked example of the review of a spec change document (`target=spec`). In this example, the repository uses OpenSpec as its spec framework. It shows how this differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the OpenSpec validator of the repository instead of a compiler.
 
 ---
 

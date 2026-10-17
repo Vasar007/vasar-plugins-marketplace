@@ -2,6 +2,8 @@
 
 Use `BaseConfigurationBindingTests<T>` for testing that configuration options classes correctly bind from JSON and environment variables.
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Class
 
 Location: `MyApp.Framework.Tests.ForTests.BaseConfigurationBindingTests<T>`

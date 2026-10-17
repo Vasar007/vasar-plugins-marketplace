@@ -2,6 +2,8 @@
 
 Use `BaseValidatableObjectTests` for testing configuration option classes that implement `IValidatableObject`.
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Class
 
 Location: `MyApp.OnlyForTests.Basic.Validation.BaseValidatableObjectTests`
