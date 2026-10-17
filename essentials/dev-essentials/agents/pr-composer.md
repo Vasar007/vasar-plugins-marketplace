@@ -60,12 +60,12 @@ An artifact belongs to this branch in one of these cases:
 
 - The brief names it.
 - The branch diff adds or changes it.
-- Its file name or folder name holds the slug or an issue number of the branch. The number must stand alone, for example `123-plan.md` or `plan-123.md`, but not `1234-plan.md`.
+- Its file name or folder name holds the slug or an issue number of the branch as a whole part. A separator (`-`, `_`, `.`, `/`) or an end of the name comes before and after a whole part. For example, the number `123` matches `123-plan.md` and `plan-123.md`, but not `1234-plan.md`. The slug `ci` matches `ci-plan.md`, but not `decision-log.md`.
 
 Look for artifacts in this order. Use each one that belongs to this branch:
 
 1. **The brief**: each path and each issue text that the brief gives.
-2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. With OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
+2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. With OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch, even if no rule above matches it. Without a matching rule, this is a guess. Name the change as a guess in your final reply. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
 3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
 4. **Decision records**: ADR files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
@@ -77,7 +77,7 @@ Use the artifacts together with the diff:
 
 - The artifacts give the reason of the change and its intent.
 - The diff gives what changed. Describe only the changes that the diff holds.
-- If an artifact plans work that the diff does not hold, say so in the "Notes" section in one line.
+- If an artifact plans work that the diff does not hold, say so in the "Notes" section in one line. Do not do this for a change of the spec framework that belongs to this branch only by a guess.
 - If a change of the spec framework belongs to this branch, name its ID or its name in the PR.
 - Do not name the path of a plan file, a notes folder, or another scratch artifact in the PR description.
 

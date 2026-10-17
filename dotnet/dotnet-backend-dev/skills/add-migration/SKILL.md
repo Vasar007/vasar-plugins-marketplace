@@ -400,11 +400,13 @@ await dbContext.SaveChangesAsync(cancellationToken);
 
 For grouping records, JSON parsing, progress logs, removal of legacy data, and batch processing, read [references/common-patterns.md](references/common-patterns.md).
 
-### 6. Add Container Configuration (Document Database)
+### 6. Register New Entity Types in the DbContext
 
-If the migration adds new entity types and the database is a document database, configure the container in `{ServiceName}DbContext`. The example uses the Cosmos DB provider of EF Core:
+If the migration adds new entity types, register each new type in `{ServiceName}DbContext`. Each new type needs a `DbSet` property, with every database provider. A document database also needs the container configuration.
 
 **File**: `src/{ProjectName}.Infrastructure/Persistence/{ServiceName}DbContext.cs`
+
+**Container configuration** (document database only). The example uses the Cosmos DB provider of EF Core:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -423,7 +425,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 }
 ```
 
-**DbSet property**:
+**DbSet property** (every database provider):
 
 ```csharp
 public DbSet<NewEntity> NewEntities => Set<NewEntity>();
@@ -550,6 +552,7 @@ modelBuilder.Entity<MyNewEntity>()
 - [ ] Implemented idempotent ExecuteAsync logic
 - [ ] Added logging for start, progress, and completion
 - [ ] Handled CancellationToken properly
+- [ ] For new entity types, added a `DbSet` property to DbContext
 - [ ] For new entity types on a document database, added container configuration to DbContext
 - [ ] Created a test class that runs against each database provider (NUnit: `[TestFixtureSource]`)
 - [ ] Tested empty database scenario

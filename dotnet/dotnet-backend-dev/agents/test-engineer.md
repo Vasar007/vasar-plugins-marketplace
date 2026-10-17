@@ -37,7 +37,7 @@ If the user asks for tests directly, no brief exists. Then the target is the cla
 
 Skip a type that has no behavior to test, for example an interface, an enum, or generated code (`*.g.cs`, `*.Designer.cs`). Name each skipped type in the report, with the reason.
 
-If a module or an assembly has more than 20 classes, write no tests. Report the classes of the scope, grouped by folder, and stop. The command then splits the target into smaller modules.
+If a module or an assembly has more than 20 classes, write no tests. List the classes of the scope, grouped by folder, in the `Too large` line of the report, and stop. The command then splits the classes into class targets of at most 20 classes.
 
 Do the steps of the "Core Workflow" for each class, one class after another.
 
@@ -116,6 +116,7 @@ Builders and generators created: <paths, or none>
 Tests: <N> new, <N> changed, <N> fixed
 Test run: <command> -> <N> passed, <N> failed, <N> skipped
 Skipped classes: <class: reason, or none>
+Too large: <the classes of the scope, grouped by folder, or none>
 Open questions: <questions for the user, or none>
 ```
 

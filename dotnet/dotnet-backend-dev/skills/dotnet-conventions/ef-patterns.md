@@ -2,7 +2,7 @@
 
 ## Document Database Container
 
-Assume the production database is a document database (for example, Cosmos DB). Then all entities in a .NET backend service typically use a single container named after the service. If it is not, skip this section. Its name constant lives in a `DbStorages` static class in the `Infrastructure/Persistence/Configuration` folder.
+If the production database is not a document database, skip this section. In a document database (for example, Cosmos DB), all entities of a .NET backend service typically use one container. The container has the name of the service. Its name constant lives in a `DbStorages` static class in the `Infrastructure/Persistence/Configuration` folder.
 
 Example (one .NET backend service):
 
@@ -30,8 +30,7 @@ internal sealed class XxxEntityConfiguration : IEntityTypeConfiguration<XxxEntit
 }
 ```
 
-- If the database is a document database, do not use navigation properties.
-- Foreign keys stored as `Guid`, not navigation refs.
+- If the database is a document database, do not use navigation properties. Store foreign keys as `Guid` values, not as navigation refs.
 - Owned entities use `[Owned]` attribute + `builder.OwnsOne()` / `builder.OwnsMany()`.
 
 ## DbContext

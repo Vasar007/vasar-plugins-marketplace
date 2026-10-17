@@ -1,6 +1,6 @@
 # Enforced Gates
 
-This file holds seven more conventions that this skill enforces. Gates 2 to 7 apply to every test class. Gate 1 applies only to the test classes that its section names. The gates add to the patterns in [SKILL.md](../SKILL.md) and in the other files of this folder. Real corrections on shipped code support each gate. Each gate gives the rule and an example. Some gates also give a grep self-check to run before you finish.
+This file holds seven more conventions that this skill enforces. Gates 2, 3, 4, 6, and 7 apply to every test class. If the mocking library is not NSubstitute, Gate 5 does not apply. Gate 1 applies only to the test classes that its section names. The gates add to the patterns in [SKILL.md](../SKILL.md) and in the other files of this folder. Real corrections on shipped code support each gate. Each gate gives the rule and an example. Some gates also give a grep self-check to run before you finish.
 
 The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 

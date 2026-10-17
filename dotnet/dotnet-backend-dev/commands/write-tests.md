@@ -76,7 +76,12 @@ Write, refactor, or extend tests for one or more targets. The `dotnet-backend-de
 
    The agent does not ask the user. It puts each question in its report. If a report has a question, ask the user with the **AskUserQuestion tool**. Then send the answer to that agent with `SendMessage` and its agent ID. If `SendMessage` fails, dispatch the agent again with the answer in the brief.
 
-   A module or an assembly with more than 20 classes is too large for one agent. Its agent writes no tests. It reports the classes of the scope, grouped by folder. Make one module target from each folder, and go back to step 3 with the new targets.
+   A module or an assembly with more than 20 classes is too large for one agent. Its agent writes no tests. It lists the classes of the scope, grouped by folder, in the `Too large` line of its report. Split this list into class targets:
+
+   - Put the classes into groups of at most 20 classes. If the classes of one folder fit into one group, keep them together.
+   - Each group is a merged class target with its list of classes. No class is in two groups. Each group keeps the mode of the large target.
+   - Dispatch the groups with step 4. Do not go back to step 3, because step 3 merges the groups into the large target again.
+   - If an agent of a group reports `Too large` again, or a `Too large` line has no classes, do not split again. Ask the user with the **AskUserQuestion tool** how to split the target.
 
 6. **Check the combined result**
 

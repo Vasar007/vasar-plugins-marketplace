@@ -22,7 +22,7 @@ Create a pull request description for the current branch. The `dev-essentials:pr
 
 2. **Show the result**
 
-   When the agent completes, show the user the PR description and the path of the file that the agent saved. If the agent asks a question, for example about the base branch, ask the user. Then dispatch the agent again with the answer in the brief.
+   When the agent completes, show the user the PR description and the path of the file that the agent saved. Also show the artifacts that the agent used, each guess that it names, and each issue number that had no text in the brief. If the agent asks a question, for example about the base branch, ask the user. Then dispatch the agent again with the answer in the brief.
 
 ## Guardrails
 

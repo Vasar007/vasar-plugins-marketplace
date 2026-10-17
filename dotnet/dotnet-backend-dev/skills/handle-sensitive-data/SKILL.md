@@ -234,9 +234,11 @@ var json = JsonSerializer.Serialize(new
 
 A team that keeps the Domain layer free of serializer attributes can skip `[JsonConverter]` on the type. It can add the converter to `JsonSerializerOptions.Converters` at the composition root instead.
 
+When the serializer reads JSON, the converter also applies. So each read of JSON that holds the wrapper type fails with the exception of `Read()`. Examples are the request model of an API, an inbound message, and a file that the code reads with `System.Text.Json`. In an inbound model, take the secret in a plain `String` property. Map the value to the wrapper type right after the read. Do not log or serialize the inbound model.
+
 ### Models with a Secret in a Plain String
 
-If a model holds a secret in a plain `String` property, for example `UserCredentials.Password`, put `[JsonIgnore]` on the property. The serializer then leaves out the property. A better fix is a wrapper type for the secret with a converter as above.
+If a model holds a secret in a plain `String` property, for example `UserCredentials.Password`, put `[JsonIgnore]` on the property. The serializer then leaves out the property. Do not put `[JsonIgnore]` on the secret of an inbound model. `[JsonIgnore]` also stops the read, so the model gets no secret. A better fix is a wrapper type for the secret with a converter as above.
 
 If you cannot change the type, for example a generated model, add a modifier to `DefaultJsonTypeInfoResolver.Modifiers` in the serializer options. The modifier removes the property from `JsonTypeInfo.Properties`.
 
@@ -251,7 +253,11 @@ If you cannot change the type, for example a generated model, add a modifier to 
 
 A mask breaks the round trip. If a cache or a message must give the value back, do not serialize the wrapper type. Map it to a storage model that holds the encrypted value in a `String` property. Use the encryption API of the project, for example the ASP.NET Core Data Protection API (`IDataProtector.Protect()` and `IDataProtector.Unprotect()`). If you do not know which encryption API or secret store the project uses, ask the user.
 
-Some logging libraries build a structure from the properties of an object and do not use the converter. An example is the `@` operator of Serilog. Do not pass an object with sensitive data to such a call. By default, the `[LogProperties]` attribute of the .NET logging extensions calls `ToString()` on each property, so a wrapper type keeps its placeholder.
+Some logging libraries build a structure from the properties of an object and do not use the converter. An example is the `@` operator of Serilog. Do not pass an object with sensitive data to such a call. The `[LogProperties]` attribute of the .NET logging extensions logs each public property of an object. By default, it calls `ToString()` on each property, so a property of a wrapper type keeps its placeholder. Three cases still log the raw value:
+
+- A plain `String` property logs its value as it is. Put `[LogPropertyIgnore]` on the property, or use a wrapper type.
+- `[LogProperties]` on a parameter of a wrapper type logs the public `Value` property of the wrapper. Do not put `[LogProperties]` on a wrapper type.
+- With `Transitive = true`, the attribute expands the properties of nested objects. Then it can log the `Value` property of a wrapper type. Keep the default `Transitive = false` for an object that holds a secret.
 
 ## Never Log Sensitive Data
 
@@ -417,7 +423,8 @@ dict[creds1] = "session-id";  // Safe, internal hashing
 - [ ] Asked the user about each item of data that the lists did not clearly classify
 - [ ] `ToString()` uses `DefaultErasedPlaceholder` for sensitive fields
 - [ ] Each wrapper type with a secret has a JSON converter that writes `DefaultErasedPlaceholder`
-- [ ] Each plain `String` property with a secret has `[JsonIgnore]`
+- [ ] Each plain `String` property with a secret has `[JsonIgnore]`, except in an inbound model
+- [ ] Each inbound model takes a secret as a plain `String` and maps it to the wrapper type right after the read
 - [ ] API response models have no field for sensitive data
 - [ ] Caches and messages hold encrypted values or references, never raw values
 - [ ] `Equals()` compares sensitive data correctly (safe)
