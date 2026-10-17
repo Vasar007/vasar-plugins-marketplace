@@ -238,7 +238,7 @@ When the serializer reads JSON, the converter also applies. So each read of JSON
 
 ### Models with a Secret in a Plain String
 
-If a model holds a secret in a plain `String` property, for example `UserCredentials.Password`, put `[JsonIgnore]` on the property. The serializer then leaves out the property. Do not put `[JsonIgnore]` on the secret of an inbound model. `[JsonIgnore]` also stops the read, so the model gets no secret. A better fix is a wrapper type for the secret with a converter as above.
+If a model holds a secret in a plain `String` property, for example `UserCredentials.Password`, put `[JsonIgnore]` on the property. The serializer then leaves out the property. Do not put `[JsonIgnore]` on the secret of an inbound model. `[JsonIgnore]` also stops the read, so the model gets no secret. On .NET 10 and later, `[JsonIgnore(Condition = JsonIgnoreCondition.WhenWriting)]` is an exception: it leaves the property out of the output and still reads it. A better fix is a wrapper type for the secret with a converter as above.
 
 If you cannot change the type, for example a generated model, add a modifier to `DefaultJsonTypeInfoResolver.Modifiers` in the serializer options. The modifier removes the property from `JsonTypeInfo.Properties`.
 

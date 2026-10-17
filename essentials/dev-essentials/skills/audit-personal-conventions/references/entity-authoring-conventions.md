@@ -67,7 +67,10 @@ Item 5 of the description recipe asks for a general term in place of a replaceab
 - "for example, X", as in "the mocking library (for example, NSubstitute)".
 - A bracket with the tool as its label, as in "(FluentValidation: `.SetValidator()`)".
 - A section or a code block that says that it shows X, as in "The example uses the Cosmos DB provider of EF Core".
-- A section for one tool only that starts with a condition. An example is "If the project does not use Cosmos DB, skip this section".
+- A section or a paragraph for one tool that starts with a condition or a scope sentence. Examples are "If the project does not use Cosmos DB, skip this section" and "This gate is for NSubstitute as the mocking library".
+- A sentence, a list item, or a bracket that starts with the tool as a condition: "With X,", "For X,", or "In X,", also in lower case. Examples are "With OpenSpec, run `openspec list`" and "(for NSwag, the `NSwagGeneration` item group)".
+
+A label can come before a marked form, as in "**Fixture.Inject**: In AutoFixture, replace the default mock".
 
 Item 5 also asks for one general term for each role. The table lists the general term of each role that the files use now. If a new role needs a term, add a row.
 
@@ -79,10 +82,11 @@ Item 5 also asks for one general term for each role. The table lists the general
 | Makes test data through a fixture | the test data library | AutoFixture |
 | Generates converters between models | the mapping library | Riok.Mapperly |
 | Runs the rules for the values of an options class | the validation library | FluentValidation |
-| Generates code from the OpenAPI spec in the build | the OpenAPI code generator, or the code generator | NSwag |
+| Generates code from the OpenAPI spec in the build | the OpenAPI code generator (short form after its first use in a file: the code generator) | NSwag |
 | Lints the OpenAPI spec | the OpenAPI linter | Spectral |
 | Stores the entities as documents | a document database | Cosmos DB |
 | Connects EF Core to a database | the database provider | Cosmos DB, SQLite, the EF Core in-memory provider |
+| Shows and edits the data in a database by hand | the data tool of the database | Cosmos DB Data Explorer |
 | Sets the environment values of a deployment | the deployment system | Helm |
 | Runs a spec-first change workflow | the spec framework | OpenSpec |
 | Tracks issues and tasks | the task provider | GitHub Issues, Jira |
