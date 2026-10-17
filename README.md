@@ -83,12 +83,9 @@ After a new release, run these commands in a Claude Code session:
 /reload-plugins
 ```
 
-The first command refreshes the marketplace and gets the new plugin versions. The second command loads the new versions into the running session. If you do not run `/reload-plugins`, the next session loads the new versions. If a plugin stays at the old version, run `claude plugin update <plugin>@vasar-plugins-marketplace` in your shell.
+The first command refreshes the marketplace and gets the new plugin versions. The second command loads the new versions into the running session. If you do not run `/reload-plugins`, the next session loads the new versions. If a plugin stays at the old version, run `claude plugin update <plugin>@vasar-plugins-marketplace` in your shell. A running session then needs `/reload-plugins` to load the new version.
 
-Claude Code can also update the plugins automatically. For this marketplace, automatic updates are off by default. You can turn them on in one of two ways:
-
-- Run `/plugin`, open the "Marketplaces" tab, select `vasar-plugins-marketplace`, and select "Enable auto-update".
-- Add `"autoUpdate": true` next to `source` in the `extraKnownMarketplaces` entry of the marketplace.
+Claude Code can also update the plugins automatically. For this marketplace, automatic updates are off by default. To turn them on in a session, run `/plugin`, open the "Marketplaces" tab, select `vasar-plugins-marketplace`, and select "Enable auto-update". To turn them on in the configuration, add `"autoUpdate": true` next to `source` in the `extraKnownMarketplaces` entry of the marketplace.
 
 This is the `.claude/settings.local.json` configuration with automatic updates:
 
@@ -106,7 +103,7 @@ This is the `.claude/settings.local.json` configuration with automatic updates:
 }
 ```
 
-With automatic updates, Claude Code refreshes the marketplace in the background after the session starts. It updates the plugins on disk, but the running session keeps the old versions. To load the new versions, run `/reload-plugins` or start a new session.
+With automatic updates, Claude Code refreshes the marketplace in the background some minutes after your first message in a session. It updates the plugins on disk, but the running session keeps the old versions. To load the new versions, run `/reload-plugins` or start a new session.
 
 The background update does not ask for credentials. The repository is private, so the update works only with a stored git credential or with an SSH key in `ssh-agent`. The pages [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) and [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) give the details.
 
@@ -131,7 +128,7 @@ Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `
 
 ### Rules for `plugin.json`
 
-Keep `plugin.json` to metadata only: `$schema`, `name`, `version`, `description`, `author`, `repository`, and `keywords`. Do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
+Keep `plugin.json` to metadata only: `$schema`, `name`, `version`, `description`, `author`, `repository`, and `keywords`. Copy the values of `$schema`, `author`, and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
 
 ### Validating
 
