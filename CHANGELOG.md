@@ -22,6 +22,7 @@ This release shortens the descriptions that Claude Code loads into every session
 ### Changed in the repository
 
 - `.claude-plugin/marketplace.json` and `README.md`: the descriptions of the marketplace and of each plugin state the general purpose in one or two sentences. They no longer list skills.
+- `tests/simple-english-baseline.json`: removes the two entries that the old descriptions needed, and adds one for the description of `subagent-orchestration`.
 
 ### Changed in dev-essentials
 

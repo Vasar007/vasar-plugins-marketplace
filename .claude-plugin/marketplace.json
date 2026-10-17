@@ -9,7 +9,7 @@
     {
       "name": "dev-essentials",
       "source": "./essentials/dev-essentials",
-      "description": "Stack-neutral workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order."
+      "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order."
     },
     {
       "name": "dotnet-backend-dev",
