@@ -1,12 +1,14 @@
 # Test Mock Builders
 
-Use Test Mock Builders for every interface mock, instead of inline `Fixture.Freeze<T>()` setup.
+Use Test Mock Builders for every interface mock, instead of an inline setup with the test data library (for example, `Fixture.Freeze<T>()` in AutoFixture).
+
+The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
 ## When to Use Mock Builders
 
 **ALWAYS.** Mock Builders are **mandatory** for every interface mock, with no exceptions.
 
-`Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, and `Fixture.Create<IInterface>()` are **strictly forbidden** in test fixtures and test cases. If a builder does not exist for the interface you need, create one first in `Tests.Common/Helpers/Mocks/{Feature}/`.
+A direct mock from the mocking library or the test data library is **strictly forbidden** in test fixtures and test cases. Examples are `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, and `Fixture.Create<IInterface>()`. If a builder does not exist for the interface you need, create one first in `Tests.Common/Helpers/Mocks/{Feature}/`.
 
 ## Mock Builder Structure
 
@@ -213,7 +215,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 ## Key Points
 
-1. **Mandatory for ALL interface mocks**: never `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>`
+1. **Mandatory for ALL interface mocks**: never a direct mock from the mocking library or the test data library (for example, `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>`)
 
 2. **Fluent API**: Use builder pattern with method chaining: `.AddItem(x).AddItem(y).Build()`
 
@@ -223,6 +225,6 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 5. **Use generators**: Create test data with `{Model}Generator.Instance`
 
-6. **Fixture.Inject**: Replace AutoFixture's default mock with configured builder result
+6. **Fixture.Inject**: In AutoFixture, replace the default mock of the fixture with the configured builder result
 
 7. **Never call builders or generators directly in test cases**: always wrap them in private `Create{Mock}` or `Generate{Model}` helper methods

@@ -2,6 +2,8 @@
 
 Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators.
 
+The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
+
 ## Generator Pattern
 
 Location: `Tests.Common/Helpers/Generators/{Feature}/`

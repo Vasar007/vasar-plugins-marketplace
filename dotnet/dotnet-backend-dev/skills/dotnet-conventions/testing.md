@@ -2,17 +2,21 @@
 
 ## Framework & Libraries
 
-- **NUnit 3** test framework.
-- **FluentAssertions** (`Should()`). Prefer it over NUnit `Assert.*`.
-- **NSubstitute** for mocking. NEVER use `Substitute.For<T>()` directly (see below).
-- **AutoFixture** for test data. NEVER use `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()` directly.
+The tests use these libraries of the project. The rules name each library by its role.
+
+- **The test framework** (for example, NUnit 3) runs the tests and gives the test and fixture attributes.
+- **The assertion library** (for example, FluentAssertions with `Should()`). Prefer it over the assertions of the test framework (for example, NUnit `Assert.*`).
+- **The mocking library** (for example, NSubstitute). NEVER create a mock with it directly, for example with `Substitute.For<T>()` (see below).
+- **The test data library** (for example, AutoFixture). NEVER get an interface mock from it directly, for example with `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`.
+
+The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
 ## Base Classes
 
 | Base Class                         | Use For                                            |
 |------------------------------------|----------------------------------------------------|
 | `BaseTest`                         | Basic tests without mocking                        |
-| `BaseMockTest`                     | Tests needing mocks via AutoFixture                |
+| `BaseMockTest`                     | Tests needing mocks via the test data library      |
 | `BaseEqualityMemberTests<T>`       | Domain models with IEquatable + IEqualityOperators |
 | `BaseExceptionTests<T>`            | Custom exception classes                           |
 | `BaseValidatableObjectTests`       | Configuration options validation                   |
@@ -134,6 +138,6 @@ Use `{Service}InMemoryDbOptions` for in-memory EF tests instead of mocking `DbCo
 
 - Use **System type names**: `String`, `Int32`, `Boolean` (not `string`, `int`, `bool`).
 - Use `var` for delegate variables: `var act = () => service.DoSomething();`
-- Reuse expected variables. Compare with `actual.Should().Be(expected)`, not with repeated literals.
-- Use `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` for null/empty/whitespace validation.
-- Use `[NonParallelizable]` only for a test that needs exclusive access to a database or an external resource.
+- Reuse expected variables. Compare with the assertion library (for example, `actual.Should().Be(expected)`), not with repeated literals.
+- Use the `StringNullOrWhiteSpace_TestCases` test-case source for null/empty/whitespace validation (for example, `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` in NUnit).
+- Turn off parallel runs (for example, with `[NonParallelizable]` in NUnit) only for a test that needs exclusive access to a database or an external resource.

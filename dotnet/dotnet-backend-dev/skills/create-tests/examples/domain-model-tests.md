@@ -4,6 +4,8 @@ Use `BaseEqualityMemberTests<T>` for **all** domain models implementing `IEquata
 
 **MANDATORY:** The test class of a model that implements these interfaces MUST inherit from `BaseEqualityMemberTests<T>`. Do NOT inherit from `BaseTest` or `BaseMockTest` for such models.
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Class
 
 Location: `MyApp.OnlyForTests.Basic.Equality.BaseEqualityMemberTests<T>`
@@ -318,7 +320,7 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
 
 5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do NOT override it
 
-6. **Additional tests**: add constructor, `ToString`, and method behavior tests as `[Test]` methods next to the automatic equality tests
+6. **Additional tests**: add constructor, `ToString`, and method behavior tests as test methods next to the automatic equality tests
 
 7. **Private helpers**: make all generator and factory calls through private methods, with the same rules as in [SKILL.md](../SKILL.md)
 

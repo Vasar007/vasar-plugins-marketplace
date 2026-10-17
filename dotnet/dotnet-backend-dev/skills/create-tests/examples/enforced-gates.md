@@ -2,6 +2,8 @@
 
 This file holds seven more conventions that this skill enforces. Gates 2 to 7 apply to every test class. Gate 1 applies only to the test classes that its section names. The gates add to the patterns in [SKILL.md](../SKILL.md) and in the other files of this folder. Real corrections on shipped code support each gate. Each gate gives the rule and an example. Some gates also give a grep self-check to run before you finish.
 
+The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
+
 ## Gate 1 — Method-level null-arg coverage (not just constructors)
 
 **Why:** The constructor null-argument pattern (see [constructor-null-arg-tests.md](constructor-null-arg-tests.md)) also applies to every **public method** of the SUT, not only to constructors. Separate tests for each parameter (`MethodAsync_ShouldThrow_WhenOrderIdIsNull`, `MethodAsync_ShouldThrow_WhenCustomerDetailsIsNull`, and so on) make the fixture large. They spread the null-argument tests of one method over several test names. Then it is hard to see at a glance that each required parameter has a null test. The merged `foreach` form keeps all of them in one place. A new required parameter adds ONE line to the list, not a new test.
@@ -35,9 +37,9 @@ public async Task ProcessAsync_ShouldThrowArgumentNullException_ForEachRequiredA
 Rules:
 
 - ONE merged `foreach` test for each public method in each fixture. NEVER separate `WhenXIsNull` tests for each parameter.
-- **General principle: group the null-argument tests of required parameters by the expected exception type, not by an ad hoc list of parameter types**. Different guard clauses throw different exceptions. `ThrowIfNull()` throws `ArgumentNullException`. `ThrowIfNullOrWhiteSpace()` (for `String`) throws `ArgumentException` (the assertion split of Gate 6). One `foreach` test can assert only one exception type in its `Should().ThrowAsync<T>()` call. So each exception-type group gets its own merged `foreach` test. The exclusions below follow from this rule. They are not a separate ad hoc list:
+- **General principle: group the null-argument tests of required parameters by the expected exception type, not by an ad hoc list of parameter types**. Different guard clauses throw different exceptions. `ThrowIfNull()` throws `ArgumentNullException`. `ThrowIfNullOrWhiteSpace()` (for `String`) throws `ArgumentException` (the assertion split of Gate 6). One `foreach` test can assert only one exception type in its assertion (for example, `Should().ThrowAsync<T>()`). So each exception-type group gets its own merged `foreach` test. The exclusions below follow from this rule. They are not a separate ad hoc list:
   - `CancellationToken`, value types, and reference types that are nullable by design: fully excluded. `null` is a legal value for them, not a guard violation, so no exception exists to group by.
-  - Required `String` parameters: `ThrowIfNullOrWhiteSpace()` guards them and throws `ArgumentException`, not `ArgumentNullException`. So they belong to a different group than the merged `ArgumentNullException` `foreach` test. Give each one its own `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` test instead of the `foreach`.
+  - Required `String` parameters: `ThrowIfNullOrWhiteSpace()` guards them and throws `ArgumentException`, not `ArgumentNullException`. So they belong to a different group than the merged `ArgumentNullException` `foreach` test. Give each one its own test with the `StringNullOrWhiteSpace_TestCases` test-case source (for example, `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` in NUnit) instead of the `foreach`.
   - A method with both `String` and other required reference parameters: write the `foreach` `ArgumentNullException` test for the parameters that are not `String` (one group). Write a separate `StringNullOrWhiteSpace_TestCases` test for each `String` parameter (the `ArgumentException` group).
 - If a method has NO required reference parameters, write no `foreach` test for it. Do not create an empty list.
 - Put the test in the `#region <Method> Tests` block, next to the other behavior tests of the method. Gate 4 gives the order of the fixture body.
@@ -93,7 +95,7 @@ Fixture body order, top to bottom:
 3. `#region <PublicMethod1> Tests`, `#region <PublicMethod2> Tests`, and so on: one region for each public method. Each region holds the behavior tests of that method, and its null-argument `foreach` test where Gate 1 applies.
 4. ALL helper methods last, inside one `#region Helper Methods`. They are private. The exception is a helper of a base fixture that a derived fixture must call: make it `protected` (see the inheritance pair rule below).
 
-**Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class ONLY. A derived class contains ONLY `[Test]` methods and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.
+**Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class ONLY. A derived class contains ONLY test methods (for example, `[Test]` methods in NUnit) and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.
 
 ```csharp
 // ✅ CORRECT — base owns all helpers; CreateRequest is protected because the derived
@@ -124,6 +126,8 @@ public sealed class OrderRequestTests : OrderRequestBaseTests
 ```
 
 ## Gate 5 — NSubstitute `Arg.Any<T>()` vs `default`
+
+This gate is for NSubstitute as the mocking library. Another mocking library has its own argument matchers. Then use them by the rules of that library.
 
 **Why:** The C# compiler generates value equality for record structs. NSubstitute resolves `Arg.Any<TRecordStruct>()` at call time. Then the matcher can collide with an ordinary argument value that equals the `default` of the type, and NSubstitute throws `NSubstitute.Exceptions.AmbiguousArgumentsException`. If you pass `default` directly (no matcher), the collision does not happen. But that is a narrow workaround. It does not allow `default` for every argument.
 

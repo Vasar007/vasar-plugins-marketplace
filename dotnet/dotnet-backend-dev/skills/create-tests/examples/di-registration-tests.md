@@ -2,11 +2,13 @@
 
 Use `BaseDependencyInjectionTests` for verifying that services are correctly registered in the DI container.
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Class
 
 Location: `<Project>.Tests.Common.ForTests.BaseDependencyInjectionTests` (one for each service: use the Tests.Common namespace of your repository)
 
-Inherits from: `BaseMockTest` (provides `Fixture` for mocking)
+Inherits from: `BaseMockTest` (provides the `Fixture` of the test data library for mocking)
 
 ## Available Helper Methods
 

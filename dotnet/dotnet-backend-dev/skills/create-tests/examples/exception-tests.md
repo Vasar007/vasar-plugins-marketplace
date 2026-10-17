@@ -2,6 +2,8 @@
 
 Use `BaseExceptionTests<T>` for testing custom exception classes to ensure they follow standard exception patterns.
 
+The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
+
 ## Base Class
 
 Location: `MyApp.Framework.Tests.ForTests.BaseExceptionTests<T>`

@@ -74,10 +74,10 @@ Before you write tests:
 Follow ALL conventions of the `create-tests` skill:
 
 - Correct base class inheritance.
-- `[TestFixture]` + `[Parallelizable(ParallelScope.Fixtures)]`.
+- The fixture attributes of the test framework (for example, `[TestFixture]` + `[Parallelizable(ParallelScope.Fixtures)]` in NUnit).
 - `// Arrange.` `// Act.` `// Assert.` comments (with periods). Combined sections join the names with `&`, for example `// Act & Assert.` or `// Arrange, Act & Assert.`.
 - Private helper methods for ALL builder/generator calls.
-- NO `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()`.
+- NO direct mock creation with the mocking library (for example, NSubstitute `Substitute.For<T>()`) or the test data library (for example, AutoFixture `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`).
 - Test Mock Builders for every interface dependency.
 - Generators for all test data.
 - Constructor null-check tests.
@@ -125,7 +125,7 @@ Do not put the test code or the full test output in the report.
 
 - Do NOT write tests before you read the matching example of the `create-tests` skill.
 - Do NOT call builders/generators directly in test methods.
-- Do NOT add `.Returns()` on mocks after a builder returns them.
+- Do NOT add a setup of the mocking library (for example, `.Returns()` in NSubstitute) on mocks after a builder returns them.
 - Do NOT skip constructor null-check tests.
 - Do NOT create inline test data. Use generators.
 - Do NOT guess base class APIs. Read the skill examples or search the existing tests.

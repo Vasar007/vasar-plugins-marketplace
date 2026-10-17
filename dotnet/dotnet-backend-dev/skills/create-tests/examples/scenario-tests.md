@@ -2,6 +2,8 @@
 
 Scenario tests live in `{ProjectName}.WebApi.Tests/Scenarios/`. They run **real end-to-end orchestration** across all application layers. They are very different from unit tests that use mock builders. Do not use mock-builder patterns here.
 
+The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
+
 ## What scenario tests are for
 
 A scenario test starts at the HTTP layer, or at a top-level application service. It runs the full call chain through application services, domain logic, and infrastructure. Only the true external boundary is a stub. The goal is to catch the integration bugs that mocks hide: null returns, missing mappings, a wrong orchestration order, and drift between the contracts of the layers.
@@ -14,10 +16,10 @@ These are **strictly forbidden** in `WebApi.Tests/Scenarios/` and in any similar
 
 | Forbidden | Why |
 | --- | --- |
-| `IFixture` / `AutoFixture` | Construction through the fixture hides missing registrations and errors in the object graph |
-| `Substitute.For<T>()` | It replaces real services with stubs that return defaults, and so it hides failures |
-| `Fixture.Create<IInterface>()` | Same problem as `Substitute.For<T>()`: it makes a silent NSubstitute mock |
-| `Fixture.Freeze<IInterface>()` | Same problem |
+| The test data library (for example, `IFixture` / `AutoFixture`) | Construction through the fixture hides missing registrations and errors in the object graph |
+| Any mock of the mocking library (for example, `Substitute.For<T>()`) | It replaces real services with stubs that return defaults, and so it hides failures |
+| An interface from the test data library (for example, `Fixture.Create<IInterface>()`) | Same problem as a mock of the mocking library: it makes a silent mock (for example, an NSubstitute mock) |
+| A frozen interface from the test data library (for example, `Fixture.Freeze<IInterface>()`) | Same problem |
 | Test Mock Builders (`Test*Builder`) | Builders are for unit tests. They do not build a real dependency graph |
 | Mocks inside stubs | A stub that sends its calls to a mock has no purpose |
 
@@ -27,7 +29,7 @@ These are **strictly forbidden** in `WebApi.Tests/Scenarios/` and in any similar
 
 Naming convention: `Stub{DependencyName}`, for example `StubExternalPaymentGateway`.
 
-A stub is a concrete class that implements the interface with in-memory state that the test seeds. It contains no NSubstitute code.
+A stub is a concrete class that implements the interface with in-memory state that the test seeds. It contains no code of the mocking library (for example, NSubstitute).
 
 ```csharp
 // ✅ CORRECT — leaf stub, no mocks inside
@@ -47,7 +49,7 @@ public sealed class StubExternalPaymentGateway : IExternalPaymentGateway
 }
 ```
 
-Raw data (domain objects, configuration records, primitive values) comes directly from constructors or generator classes, NOT from `IFixture`.
+Raw data (domain objects, configuration records, primitive values) comes directly from constructors or generator classes, NOT from the test data library (for example, `IFixture`).
 
 ## Worked example
 
@@ -168,6 +170,6 @@ public sealed class BadStubExternalPaymentGateway : IExternalPaymentGateway
 | What to do | How |
 | --- | --- |
 | Stub a leaf external dependency | Write a `Stub{Name}` class with in-memory state |
-| Provide test data | Use real constructors or generator classes, no `IFixture` |
+| Provide test data | Use real constructors or generator classes, no test data library (for example, `IFixture`) |
 | Run intermediate services (auth, orchestration) | Leave them as real implementations. Do NOT mock them. |
-| Configure the stub | Call seeding methods (`AddPayment(...)`) in `[SetUp]` |
+| Configure the stub | Call seeding methods (`AddPayment(...)`) in the per-test setup method (for example, `[SetUp]` in NUnit) |
