@@ -1,6 +1,6 @@
 ---
 name: handle-sensitive-data
-description: Keep credentials, secrets, and PII out of logs and out of the string and serialized forms of objects in .NET code.
+description: Keep credentials, secrets, and PII out of logs and out of the string form of objects in .NET code.
 when_to_use: Use it for "handle credentials", "sensitive information", "secure data", or "password handling".
 ---
 
