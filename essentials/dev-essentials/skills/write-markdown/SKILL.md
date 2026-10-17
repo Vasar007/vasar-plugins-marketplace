@@ -10,9 +10,9 @@ Create and maintain Markdown files that pass markdownlint validation with zero w
 
 ## Tooling Setup
 
-### VS Code Extension
+### Editor Extension
 
-Install the [vscode-markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) extension:
+If the editor (for example, VS Code) has a markdownlint extension, install it. For VS Code, install the [vscode-markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) extension:
 
 ```bash
 code --install-extension DavidAnson.vscode-markdownlint
@@ -306,9 +306,9 @@ These rules can be fixed automatically with `markdownlint --fix`:
 - MD034, MD037-MD039 (URLs, emphasis, code spans)
 - MD047, MD049, MD050 (newlines, emphasis style)
 
-## VS Code Settings
+## Editor Settings
 
-Add to `.vscode/settings.json` for consistent behavior:
+Set up the editor to lint Markdown as you type and to fix the warnings on save. For VS Code, add this to `.vscode/settings.json`:
 
 ```json
 {

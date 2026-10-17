@@ -48,17 +48,21 @@ Every script must include comment-based help at the top:
 
 ## Error Handling
 
-- Wrap AWS/Azure API calls in `try/catch`.
+- Wrap the API calls of the cloud provider (for example, AWS or Azure) in `try/catch`.
 - Handle API throttling with exponential backoff or built-in retry.
 - Provide meaningful error context (what was being attempted, which resource).
 
-## AWS Conventions
+## Cloud Provider Examples
+
+The two sections below are examples for AWS and Azure. For another cloud provider, follow the same rules with its own CLI: no embedded credentials, and JSON output.
+
+### AWS Conventions
 
 - Use named profiles (`-ProfileName`) rather than hardcoded credentials.
 - Support multiple regions where applicable.
 - Use `aws` CLI v2 with `--output json` for parseable output.
 
-## Azure Conventions
+### Azure Conventions
 
 - Use `az` CLI with `--output json`.
 - Authenticate with `az login`. Never embed credentials.

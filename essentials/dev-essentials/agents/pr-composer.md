@@ -44,7 +44,7 @@ git diff --name-status <base>...HEAD
 git log <base>...HEAD --oneline
 ```
 
-Ignore ephemeral artifacts in the diff: OpenSpec drafts (`openspec/`), notes folders (`Notes/`), and any other scratch folder of the repository. Describe only the changes to code and configuration, for example source folders, test folders, pipelines, Dockerfiles, and helm charts. Step 2 can read these artifacts for the reason of the change. They are still not components of the PR.
+Ignore ephemeral artifacts in the diff: drafts of the spec framework (for example, `openspec/` of OpenSpec), notes folders (`Notes/`), and any other scratch folder of the repository. Describe only the changes to code and configuration, for example source folders, test folders, pipelines, Dockerfiles, and helm charts. Step 2 can read these artifacts for the reason of the change. They are still not components of the PR.
 
 ### 2. Find the Spec or Plan of the Branch
 
@@ -65,7 +65,7 @@ An artifact belongs to this branch in one of these cases:
 Look for artifacts in this order. Use each one that belongs to this branch:
 
 1. **The brief**: each path and each issue text that the brief gives.
-2. **OpenSpec**: if the project uses OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
+2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. With OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
 3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
 4. **Decision records**: ADR files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
@@ -78,16 +78,16 @@ Use the artifacts together with the diff:
 - The artifacts give the reason of the change and its intent.
 - The diff gives what changed. Describe only the changes that the diff holds.
 - If an artifact plans work that the diff does not hold, say so in the "Notes" section in one line.
-- If an OpenSpec change belongs to this branch, name its ID or its name in the PR.
+- If a change of the spec framework belongs to this branch, name its ID or its name in the PR.
 - Do not name the path of a plan file, a notes folder, or another scratch artifact in the PR description.
 
 ### 3. Categorize Changes
 
 Group files by purpose, with the folder layout of the project. Common groups:
 
-- **Core logic** (Domain/Application/WebApi code)
-- **Tests** (`*.Tests/` projects)
-- **Configuration** (appsettings, Dockerfile, helm charts)
+- **Core logic** (for example, Domain/Application/WebApi code)
+- **Tests** (for example, `*.Tests/` projects)
+- **Configuration** (for example, appsettings, a Dockerfile, or helm charts)
 - **Infrastructure** (pipelines, IaC, deployment scripts)
 - **Documentation** (`Docs/`, README, CLAUDE.md)
 

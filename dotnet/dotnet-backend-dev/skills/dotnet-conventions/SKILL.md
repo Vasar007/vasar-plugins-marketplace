@@ -10,15 +10,15 @@ Reference set for .NET Clean Architecture backends. Each file covers one topic a
 
 | Topic | File | Load when |
 |---|---|---|
-| API controllers / WebApi / NSwag | `api-controllers.md` | Writing or reviewing a WebApi controller or the swagger spec |
+| API controllers / WebApi / the OpenAPI code generator (for example, NSwag) | `api-controllers.md` | Writing or reviewing a WebApi controller or the OpenAPI spec |
 | Application services / CQRS / background work | `application-services.md` | Writing services in the Application layer |
-| Configuration / Options / FluentValidation | `configuration.md` | Adding/editing options classes |
+| Configuration / Options / the validation library (for example, FluentValidation) | `configuration.md` | Adding/editing options classes |
 | Domain models / DDD / sealed records / wrappers | `domain-models.md` | Working in the Domain layer |
 | EF Core / repository / entity configuration | `ef-patterns.md` | Touching Infrastructure/Persistence |
 | Logging / ILogger / session logs | `logging.md` | Adding log calls |
-| Object mappers / Riok.Mapperly / converters | `mappers.md` | Creating or editing mappers |
+| Object mappers / the mapping library (for example, Riok.Mapperly) / converters | `mappers.md` | Creating or editing mappers |
 | Security / sensitive data / ToString | `security.md` | Any code touching credentials, tokens, or private keys |
-| Testing / NUnit / mock builders / generators | `testing.md` | Writing or reviewing tests |
+| Testing / the test framework (for example, NUnit) / mock builders / generators | `testing.md` | Writing or reviewing tests |
 
 ## Project-specific details
 

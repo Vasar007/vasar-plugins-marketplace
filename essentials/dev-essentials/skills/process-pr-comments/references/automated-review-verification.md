@@ -52,7 +52,7 @@ Automated review tools commonly misfire on:
 
 - Null checks before a member that the compiler already guarantees as non-null. Examples: a member after `Guard.Against.Null`, or a primary-constructor parameter with a non-null reference type.
 - Async/await patterns already handled by a framework abstraction.
-- Configuration access on options objects that FluentValidation rules already guard.
+- Configuration access on options objects that the rules of the validation library (for example, FluentValidation) already guard.
 - "Possible exception" on paths already wrapped by a global exception handler or middleware.
 - "Magic number" or "hardcoded string" comments on a value with a clear meaning, where a named constant does not help the reader.
 

@@ -30,7 +30,7 @@ Claude reads the `description` of a skill to decide whether to use the skill. Cl
 2. Put the two to four strongest trigger phrases, in quotes, that a user can type. For a skill or a command, put them in `when_to_use`. Start it with "Use it", or with the condition that triggers the entity. For an agent, put them at the end of `description`.
 3. Keep `description` and `when_to_use` together at 800 characters or fewer. Aim for 250 to 500 characters.
 4. Keep the facts that change what the user expects from a run. Examples are a stop before a push or a post, a new GitHub issue, and a named exception to a rule. Word each fact in general terms.
-5. If the entity exists for a library, a product, a type, a method, or a file, name it. Examples are .NET, EF Core, OpenAPI as a format, git for a git skill, and markdownlint for a skill about Markdown warnings. In all other cases, use a general term, for example "the generated client" and not the name of the code generator. Other projects use other tools and other names.
+5. If the entity exists for a library, a product, a type, a method, or a file, name it. Examples are .NET, EF Core, OpenAPI as a format, git for a git skill, and markdownlint for a skill about Markdown warnings. In all other cases, use a general term, for example "the generated client" and not the name of the code generator. Other projects use other tools and other names. This rule also applies to the body and to the `keywords` of `plugin.json`. A body names a replaceable tool only as a marked example: "for example, X", or a section or a code block that says that it shows X. Only a plugin that exists for a tool can use the name of that tool as a keyword. Use one general term for each role in all files of the marketplace. At its first use in a file, give an example with it, for example "the mocking library (for example, NSubstitute)".
 6. Leave out the internal mechanics of the entity. Examples are tag names, report IDs, phase or bucket names, rule numbers, counts of reference files, and internal file names. Put them, and the other sub-topics and scenarios, in the body. A hub skill can name its topics in one sentence.
 7. If only one skill dispatches an agent, say so in the description of the agent.
 
@@ -58,6 +58,7 @@ when_to_use: "Use it for 'add a feature flag', 'promote this flag to 100%', or '
   - **How to apply**: the concrete mechanics.
   - **Anti-patterns**: named wrong approaches that the rule prevents.
 - **Closing cross-references**: a table of related skills and entities, with the reason that this entity depends on or complements each one.
+- **Tool names**: item 5 of the description recipe also applies to the body. Keep the concrete guidance for the library of an example, and mark it as an example.
 
 ## References vs. examples: conditional need and the 500-line limit
 

@@ -151,9 +151,9 @@ git -C <worktree-path> branch --unset-upstream
 mkdir -p <worktree-path>/Notes
 ```
 
-### Step 7: Find solution file and report
+### Step 7: Find the solution or project file and report
 
-Locate the first `.sln` file under the worktree root using your shell:
+Locate the first solution or project file under the worktree root with your shell. The commands below show the .NET case: the first `.sln` file. For another stack, search for its own solution or project file instead.
 
 **PowerShell:**
 
@@ -173,7 +173,7 @@ Report to the user:
 - Worktree path (absolute)
 - Branch name
 - Base branch
-- Open commands:
+- Open commands for the editor (for example, VS Code or Rider):
 
 ```powershell
 # VS Code
