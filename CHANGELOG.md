@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ### Added in the repository
 
-- `README.md`: a line of badges under the title. The MIT license badge links to `LICENSE`. The Claude Code plugin marketplace badge links to the documentation of plugin marketplaces. Both are static badges, so they show while the repository is private (issue #32).
+- `README.md`: a line of badges under the title (issue #32). The tests badge shows the result of the `Tests` workflow on `main` and links to the workflow runs. The latest release badge links to the latest GitHub release. The MIT license badge links to `LICENSE`. The Claude Code plugin marketplace badge links to the documentation of plugin marketplaces. The latest release badge reads the GitHub API through shields.io, so it can show an error while the repository is private.
 
 ## dev-essentials 3.0.1, dotnet-backend-dev 1.3.1, and gop-pipeline 1.2.1 in release [3.0.1] - 2026-10-15
 
