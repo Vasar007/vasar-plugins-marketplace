@@ -12,7 +12,7 @@ This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplac
 |---|---|---|
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. |
-| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits and pushes it. |
+| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval. |
 
 ## Installing the marketplace
 

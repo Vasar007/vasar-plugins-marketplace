@@ -22,17 +22,19 @@ The Claude Code skill frontmatter supports several optional fields beyond `name`
 
 **`name` must equal the directory name, exactly**. The history of this marketplace had a real bug: the frontmatter `name` of a skill differed from the name of its directory. Make sure that each authored or edited skill keeps this invariant. It is a hard rule, not an edge case.
 
-## The 3-part description recipe
+## The description recipe
 
-Claude reads the `description` of a skill to decide whether to use the skill. Write it in three parts:
+Claude reads the `description` of a skill to decide whether to use the skill. Claude Code loads the descriptions of all skills, commands, and agents into every session. The skill listing has a budget of 1% of the context window. If the listing is over the budget, Claude Code drops the descriptions of the skills that you use least. Claude Code also cuts the `description` and `when_to_use` text of one skill at 1,536 characters. So keep each description short:
 
-1. **What it covers and its use cases**: a plain statement of the job of the skill.
-2. **Explicit coverage enumeration**: the specific sub-topics, flags, or scenarios that it handles, each one named, not left implicit.
-3. **A "Triggers on requests like..." clause**: several concrete phrases in quotes that a user can type. They give Claude literal strings to match.
+1. Put the main use case first, in one plain sentence.
+2. Add the two to four strongest trigger phrases, in quotes, that a user can type.
+3. Keep `description` and `when_to_use` together at 800 characters or fewer. Aim for 250 to 500 characters.
+4. Put the sub-topics, flags, and scenarios in the body, not in the description.
+5. If only one skill dispatches an agent, say so in the description of the agent.
 
 **Made-up example** of the shape (not a real skill in this marketplace):
 
-> "Manage the rollout stages of feature flags for a web service. Covers how to create a new flag, promote a flag from canary to full rollout, and retire a flag after full rollout. Handles the update of the environment configuration file, the changelog entry of the flag owner, and the Slack notification that goes with a promotion. Triggers on requests like 'add a feature flag', 'promote this flag to 100%', 'retire the flag for X', or 'roll back this flag'."
+> "Manage the rollout stages of feature flags for a web service. Use it for 'add a feature flag', 'promote this flag to 100%', or 'retire the flag for X'.
 
 ## Body structure
 

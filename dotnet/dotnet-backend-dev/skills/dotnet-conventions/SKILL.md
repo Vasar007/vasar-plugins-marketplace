@@ -1,6 +1,6 @@
 ---
 name: dotnet-conventions
-description: Hub of .NET backend conventions (Clean Architecture, DDD, EF Core, NSwag, Riok.Mapperly, NUnit). When you write or review .NET backend code, load it. It indexes one reference file for each topic.
+description: Hub of .NET backend conventions (Clean Architecture, DDD, EF Core, NSwag, Riok.Mapperly, NUnit). When you write or review .NET backend code, load it. It indexes one reference file for each topic. The topics are API controllers, application services, configuration and options, domain models, EF Core persistence, logging, object mappers, security, and testing.
 ---
 
 # .NET Backend Conventions

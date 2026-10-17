@@ -28,6 +28,7 @@ This release shortens the descriptions that Claude Code loads into every session
 
 - Shorter descriptions for the skills, commands, and agents. `audit-personal-conventions` also has a shorter `when_to_use`. The three bug-hunt agents still say that only the `bug-hunt` skill dispatches them.
 - The plugin description states the general purpose and lists no skills.
+- `audit-personal-conventions`: the description recipe in `references/entity-authoring-conventions.md` follows the new short style. A new description puts the main use case first and has a few trigger phrases. The details go in the body.
 
 ### Changed in dotnet-backend-dev
 
