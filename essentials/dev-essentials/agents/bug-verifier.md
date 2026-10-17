@@ -1,6 +1,6 @@
 ---
 name: bug-verifier
-description: Tries to refute a range of BH-NN findings in a bug hunt report and sets one verdict for each. Dispatched only by the bug-hunt skill with a brief.
+description: Tries to refute a range of BH-NN findings in a bug hunt report and sets one verdict for each. Dispatched only by the bug-hunt skill.
 tools: [Read, Grep, Glob, Bash, Write, Edit, Skill, WebFetch, WebSearch]
 model: opus
 effort: xhigh

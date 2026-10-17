@@ -1,5 +1,5 @@
 ---
-description: Merges the Claude Code project folders of git worktrees back into the main project folder of their repo. These folders are in the projects/ folder under the Claude config root. It moves the sessions, merges the memory files, and deletes the empty worktree folders. By default, it only writes a dry-run report. With --apply, it shows the exact deletion list and acts only after an explicit yes. It skips folders with recent activity and excluded folders, and it never overwrites a memory file.
+description: Merges the Claude Code project folders of git worktrees back into the main project folder of their repo. It moves the sessions, merges the memory files, and deletes the empty folders. Dry run by default. With --apply, it acts only after an explicit yes.
 argument-hint: "[<main-project-folder-or-repo-keyword> ...] [--exclude=<substring>[,<substring>...]] [--apply]"
 ---
 

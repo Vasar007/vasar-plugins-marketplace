@@ -1,5 +1,5 @@
 ---
-description: "Review a GitHub PR end-to-end and report on it: fetch the metadata and the diff, and evaluate them against the conventions of the repo. Render an HTML review artifact, and optionally post the findings as new PR review comments."
+description: "Review a GitHub PR and report on it, with no code edits: evaluate the diff against the repo conventions, render an HTML review artifact, and optionally post the findings as PR review comments."
 argument-hint: "<pr-url> [--mode=html-only|post-all|post-<N>|post-<N>-<M>] [--orchestrate] | --multi <url1> <url2> ... [--orchestrate]"
 ---
 
