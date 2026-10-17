@@ -1,6 +1,6 @@
 ---
 name: git-sync
-description: Git sync rules for rebase, merge, and staging. Use `git rebase --onto` after a base rewrite, use `git merge --no-ff` on the branch of another author, check the branch state before a review or a PR, and stage explicit paths only. Use it for "rebase the branch", "sync with master", "the base was rewritten", or "bring branch up to date", and before any `git rebase`, `git pull --rebase`, or `git merge` on a long-lived branch.
+description: Git sync rules for rebase, merge, and staging. Use `git rebase --onto` after a base rewrite, and `git merge --no-ff` on the branch of another author. Check the branch state before a review or a PR, and stage explicit paths only. Triggers include "rebase the branch", "sync with master", "the base was rewritten", and "bring branch up to date". Also use it before any `git rebase`, `git pull --rebase`, or `git merge` on a long-lived branch.
 ---
 
 # Git Sync Conventions

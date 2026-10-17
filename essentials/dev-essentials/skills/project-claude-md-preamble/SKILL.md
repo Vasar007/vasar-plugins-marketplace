@@ -1,6 +1,6 @@
 ---
 name: project-claude-md-preamble
-description: Keeps one copy of the preamble of a repo in the root CLAUDE.md or AGENTS.md, and makes nested instructions files point at it instead of a copy. Use it to write a root CLAUDE.md or AGENTS.md, to add a nested instructions file, or to audit a repo for preamble drift. Triggers include "create a CLAUDE.md for this repo" and "audit our CLAUDE.md files for drift".
+description: Keeps one copy of the preamble of a repo in the root CLAUDE.md or AGENTS.md. It also makes nested instructions files point at it instead of a copy. Use it to write a root CLAUDE.md or AGENTS.md, to add a nested instructions file, or to audit a repo for preamble drift. Triggers include "create a CLAUDE.md for this repo" and "audit our CLAUDE.md files for drift".
 ---
 
 # Project CLAUDE.md Preamble

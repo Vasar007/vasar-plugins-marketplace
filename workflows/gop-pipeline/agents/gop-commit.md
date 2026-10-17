@@ -1,5 +1,5 @@
 ---
-description: Commit stage of the GOP pipeline. Commits the working-tree changes without CLAUDE.md and plan files, and pushes them when told to. Dispatched only by the `gop-work` skill, not user-triggered.
+description: Commit stage of the GOP pipeline. Commits the working-tree changes without CLAUDE.md and plan files. If told to, it pushes them. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob]
 ---

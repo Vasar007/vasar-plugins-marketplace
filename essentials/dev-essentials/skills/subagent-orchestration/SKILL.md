@@ -1,6 +1,6 @@
 ---
 name: subagent-orchestration
-description: "How the main agent dispatches work in long, multi-step tasks, and which model each dispatch uses. Use it in multi-stage workflows such as feature-pipeline, review-loop, or PR-comment processing, and to choose between a subagent and inline work. It has seven dispatch rules and the model matrix. Triggers on 'orchestrate this', 'dispatch a subagent', or 'handle this multi-stage task'."
+description: "How the main agent dispatches work in long, multi-step tasks, and which model each dispatch uses. Use it in multi-stage workflows such as feature-pipeline, review-loop, or PR-comment processing, and to choose between a subagent and inline work. It has seven dispatch rules and the model matrix. Triggers: 'orchestrate this', 'dispatch a subagent', 'handle this multi-stage task'."
 ---
 
 # Subagent Orchestration

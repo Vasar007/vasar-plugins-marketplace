@@ -1,5 +1,5 @@
 ---
-description: Audit the artifacts of an OpenSpec change before implementation
+description: Audit the artifacts of an OpenSpec change before implementation.
 ---
 
 Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and missing context before implementation.

@@ -1,6 +1,6 @@
 ---
 name: github-mcp-conventions
-description: "Rules for GitHub MCP tool calls (`mcp__plugin_github_github__*`) in PR and issue work. Never infer `owner` or `repo`, pass both on every call, paginate to the end, edit or delete no comment through MCP, and never fall back to the `gh` CLI or REST. Apply it in any session that calls these tools, for example to read PRs, post review comments, or create issues."
+description: "Rules for GitHub MCP tool calls (`mcp__plugin_github_github__*`) in PR and issue work. Never infer `owner` or `repo`, and pass both on every call. Paginate to the end, and edit or delete no comment through MCP. Never fall back to the `gh` CLI or REST. Apply it in any session that calls these tools. Examples: read PRs, post review comments, or create issues."
 ---
 
 # GitHub MCP Conventions

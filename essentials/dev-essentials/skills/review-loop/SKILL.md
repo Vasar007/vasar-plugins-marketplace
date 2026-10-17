@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: "Iterative multi-agent review loop for a branch, a PR, a diff, a spec, a class, a method, or any file. Each cycle dispatches a reviewer, triages the findings on their merits, lets a fixer prove each finding before it edits, and re-reviews only the fix diff. Use it for 'run a review loop', 'review the PR', 'review this branch', 'review the spec', or '/review-loop'."
+description: "Iterative multi-agent review loop for a branch, a PR, a diff, a spec, a class, a method, or any file. Each cycle dispatches a reviewer and triages the findings on their merits. A fixer proves each finding before it edits, and the reviewer re-reviews only the fix diff. Use it for 'run a review loop', 'review the PR', 'review this branch', 'review the spec', or '/review-loop'."
 ---
 
 # Review Loop

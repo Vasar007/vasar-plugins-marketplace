@@ -1,6 +1,6 @@
 ---
 name: docs-composer
-description: Compose concise guide documentation, for example a how-to guide or a feature doc, as a local Markdown draft. Publish it through a documentation MCP server, such as Confluence or Notion, only when the user explicitly says "publish".
+description: Compose concise guide documentation, for example a how-to guide or a feature doc, as a local Markdown draft. When the user explicitly says "publish", publish it through a documentation MCP server, such as Confluence or Notion. Do not publish it otherwise.
 ---
 
 # Docs Composer Agent

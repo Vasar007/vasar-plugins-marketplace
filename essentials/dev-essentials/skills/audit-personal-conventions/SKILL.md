@@ -1,6 +1,6 @@
 ---
 name: audit-personal-conventions
-description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills) and decide which rules to promote into a marketplace plugin. It classifies each rule, shows a triage for approval, authors the approved entities, runs a review loop, and bumps the plugin version."
+description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills). Decide which rules to promote into a marketplace plugin. It classifies each rule, shows a triage for approval, authors the approved entities, runs a review loop, and bumps the plugin version."
 when_to_use: "Use it for 'audit my memory', 'promote my memory to skills', or 'which of my rules belong in the marketplace'. Do not use it to turn one named rule into a skill."
 ---
 

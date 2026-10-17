@@ -1,6 +1,6 @@
 ---
 name: dotnet-build-test
-description: "Build and test rules for .NET solutions. A plain `dotnet build` is the authority, not LSP or IDE diagnostics. Avoid `--no-incremental`, and run builds and tests in the foreground. Use it before any build or test command in a .NET repo, and for 'build the solution', 'run the tests', 'check for compile errors', or 'the LSP says X is broken'."
+description: "Build and test rules for .NET solutions. A plain `dotnet build` is the authority, not LSP or IDE diagnostics. Avoid `--no-incremental`, and run builds and tests in the foreground. Triggers: 'build the solution', 'run the tests', 'check for compile errors', or 'the LSP says X is broken'. Use it before any build or test command in a .NET repo."
 ---
 
 # .NET Build & Test Conventions
