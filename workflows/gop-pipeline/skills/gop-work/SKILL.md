@@ -1,6 +1,6 @@
 ---
 name: gop-work
-description: Full GOP (Git Operations Pipeline) workflow that plans, implements, builds, tests, reviews, commits, and pushes a task. Use ONLY on an explicit request of the user to work in GOP mode, at the start of the task. In the default mode, the push waits for the approval of the user. With --autonomous, the run pushes without a question.
+description: Full GOP (Git Operations Pipeline) workflow that plans, implements, builds, tests, reviews, commits, and pushes a task. Use ONLY when the user explicitly asks for GOP mode at the start of a task.
 ---
 
 # GOP Work

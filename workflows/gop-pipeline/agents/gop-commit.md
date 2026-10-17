@@ -1,5 +1,5 @@
 ---
-description: Finalization stage of the GOP pipeline (the `gop-work` skill). Stages and commits the current working-tree changes, and for `push` set to `yes` also pushes them. It leaves out `CLAUDE.md` and plan files, and works the same way in a regular clone and in a git worktree. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Commit stage of the GOP pipeline. Commits the working-tree changes without CLAUDE.md and plan files, and pushes them when told to. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob]
 ---

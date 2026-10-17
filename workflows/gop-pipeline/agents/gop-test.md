@@ -1,5 +1,5 @@
 ---
-description: Testing stage of the GOP pipeline (the `gop-work` skill). Maps modified files to their test projects, then builds and runs only the relevant tests, self-healing failures in test code within a bounded retry budget. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Test stage of the GOP pipeline. Runs only the .NET tests of the changed projects and fixes failures in test code. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Edit, Bash, Glob, Grep]
 ---
