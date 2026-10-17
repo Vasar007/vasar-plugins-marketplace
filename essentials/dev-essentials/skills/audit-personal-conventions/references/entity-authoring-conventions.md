@@ -29,12 +29,13 @@ Claude reads the `description` of a skill to decide whether to use the skill. Cl
 1. Put the main use case first, in one plain sentence.
 2. Add the two to four strongest trigger phrases, in quotes, that a user can type.
 3. Keep `description` and `when_to_use` together at 800 characters or fewer. Aim for 250 to 500 characters.
-4. Put the sub-topics, flags, and scenarios in the body, not in the description.
-5. If only one skill dispatches an agent, say so in the description of the agent.
+4. Keep the facts that change what the user expects from a run. Examples are a stop before a push or a post, a new GitHub issue, and a named exception to a rule.
+5. Put the other sub-topics, flags, and scenarios in the body, not in the description. A hub skill can name its topics in one sentence.
+6. If only one skill dispatches an agent, say so in the description of the agent.
 
 **Made-up example** of the shape (not a real skill in this marketplace):
 
-> "Manage the rollout stages of feature flags for a web service. Use it for 'add a feature flag', 'promote this flag to 100%', or 'retire the flag for X'.
+> "Manage the rollout stages of feature flags for a web service. Use it for 'add a feature flag', 'promote this flag to 100%', or 'retire the flag for X'."
 
 ## Body structure
 

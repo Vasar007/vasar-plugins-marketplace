@@ -21,14 +21,14 @@ This release shortens the descriptions that Claude Code loads into every session
 
 ### Changed in the repository
 
-- `.claude-plugin/marketplace.json` and `README.md`: the descriptions of the marketplace and of each plugin state the general purpose in one or two sentences. They no longer list skills.
+- `.claude-plugin/marketplace.json` and `README.md`: the descriptions of the marketplace and of each plugin state the general purpose in one to three sentences. They no longer list skills.
 - `tests/simple-english-baseline.json`: removes the two entries that the old descriptions needed, and adds one for the description of `subagent-orchestration`.
 
 ### Changed in dev-essentials
 
 - Shorter descriptions for the skills, commands, and agents. `audit-personal-conventions` also has a shorter `when_to_use`. The three bug-hunt agents still say that only the `bug-hunt` skill dispatches them.
 - The plugin description states the general purpose and lists no skills.
-- `audit-personal-conventions`: the description recipe in `references/entity-authoring-conventions.md` follows the new short style. A new description puts the main use case first and has a few trigger phrases. The details go in the body.
+- `audit-personal-conventions`: the description recipe in `references/entity-authoring-conventions.md` follows the new short style. A new description puts the main use case first and has a few trigger phrases. It keeps the facts that change what the user expects, for example a stop before a push. The other details go in the body.
 
 ### Changed in dotnet-backend-dev
 

@@ -1,6 +1,6 @@
 ---
 name: process-pr-comments
-description: "Process the review comments of a GitHub pull request as its author. It classifies each open thread by review tag or automated-review header. It fixes what the comment or the code settles, and drafts replies that need a human decision. [OutOfScope] comments become GitHub issues. It commits each fix. Without 'autonomous', the one push per cycle waits for the go-ahead of the user. Triggers: 'process PR comments', 'address review comments', 'respond to reviewers', 'monitor PR for new comments'. Also use it for a PR URL with a request to act on it."
+description: "Process the review comments of a GitHub pull request as its author. It classifies each open thread by review tag or automated-review header. It fixes what the comment or the code settles, and drafts replies that need a human decision. If an [OutOfScope] comment asks for tracking, it opens a GitHub issue. It commits each fix. Without 'autonomous', each new issue and the one push per cycle wait for the go-ahead of the user. Triggers: 'process PR comments', 'address review comments', 'respond to reviewers', 'monitor PR for new comments'. Also use it for a PR URL with a request to act on it."
 ---
 
 # Process PR Review Comments
