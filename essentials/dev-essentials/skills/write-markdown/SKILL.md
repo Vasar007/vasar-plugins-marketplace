@@ -1,6 +1,6 @@
 ---
 name: write-markdown
-description: Create Markdown files without lint warnings using markdownlint conventions for documentation. Use when creating or updating any .md file in the project. Triggers on requests like "create markdown", "write documentation", "update readme", "fix markdown warnings".
+description: Write Markdown files with no markdownlint warnings. Use it to create or update any `.md` file, or for "fix markdown warnings".
 ---
 
 # Write Markdown

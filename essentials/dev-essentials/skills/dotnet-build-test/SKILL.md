@@ -1,6 +1,6 @@
 ---
 name: dotnet-build-test
-description: "How to build and test .NET solutions reliably. `dotnet build` is authoritative. LSP and IDE diagnostics go stale after rebases and are not authoritative. Avoid `dotnet build --no-incremental` for a routine build: it can trigger external codegen targets and produce thousands of MSB4062 errors that drown the real signal. Run tests and builds in the foreground only. If the user explicitly asks for it, use `run_in_background: true`. A subagent can use it for a test run over 10 minutes (Rule 3). Triggers on phrases like 'build the solution', 'run dotnet build', 'run the tests', or 'test this'. Also on 'verify the change', 'check for compile errors', 'check for regressions', or 'the LSP says X is broken'. Also triggers before any build or test command in a .NET repo."
+description: "Build and test rules for .NET solutions. A plain `dotnet build` is the authority, not LSP or IDE diagnostics. Avoid `--no-incremental`, and run builds and tests in the foreground. Use it before any build or test command in a .NET repo, and for 'build the solution', 'run the tests', 'check for compile errors', or 'the LSP says X is broken'."
 ---
 
 # .NET Build & Test Conventions

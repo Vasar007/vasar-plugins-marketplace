@@ -1,14 +1,10 @@
 ---
 name: trim-artifacts
 description: >-
-  Trim pass for text artifacts: notes, plans, research, state and handoff files,
-  agent memory, logs and task lists. It removes history, review records, process residue,
-  duplication and stale snapshots. It protects the user's decisions, identifiers, needed
-  facts with their sources, and uncertainty markers. Use it for "trim", "compact",
-  "prune", "shrink", "clean up notes", "shrink context files" or "this memory is bloated".
-  Also use it for "remove history from docs", "cut the changelog noise" or "the context
-  costs too many tokens". Use it to rewrite a context or handoff file that has grown a
-  log. Do not use it to simplify source code. Code cleanup belongs to /simplify.
+  Trim pass for text artifacts such as notes, plans, handoff files, agent memory, and logs.
+  It removes history, process residue, and duplication, and keeps decisions, ids, needed
+  facts, and uncertainty markers. Use it for "trim", "compact", "clean up notes", or "this
+  memory is bloated". Do not use it for source code. Use /simplify for that.
 ---
 
 # Trim artifacts

@@ -1,6 +1,6 @@
 ---
 name: github-mcp-conventions
-description: "Conventions for calling GitHub MCP tools (`mcp__plugin_github_github__*`) for PR and issue work. Covers the never-infer-owner/repo rule (always pass user-supplied values verbatim) and the rule to pass `owner` and `repo` on every GitHub MCP call. Also covers pagination discipline (bounded page size, stop on a partial page), and no comment edit or comment delete through MCP. Also covers the no-REST-fallback rule (ask the user to reconnect with /mcp, never fall back to the gh CLI or curl). Apply whenever GitHub MCP tools are used for PR review, issue management, or repository operations. Examples: read PRs, post review comments, create issues, list branches, or fetch file contents. Triggers on any session that calls `mcp__plugin_github_github__*` tools."
+description: "Rules for GitHub MCP tool calls (`mcp__plugin_github_github__*`) in PR and issue work. Never infer `owner` or `repo`, pass both on every call, paginate to the end, edit or delete no comment through MCP, and never fall back to the `gh` CLI or REST. Apply it in any session that calls these tools, for example to read PRs, post review comments, or create issues."
 ---
 
 # GitHub MCP Conventions

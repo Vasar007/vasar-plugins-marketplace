@@ -1,6 +1,6 @@
 ---
 name: process-pr-comments
-description: "Process the review comments of a GitHub pull request (PR) as the PR author. It skips resolved and outdated threads. It classifies each comment by review tag ([ToFix], [Optional], [Suggestion], [Question], [ToDiscuss], [Performance], [OutOfScope], [Note], [PX], [Repetition]) or by an automated-review header. It implements the fixes that the comment or the code settles. It tests each automated-review finding against the code, and drafts the replies that need a human decision. [OutOfScope] items become issues. Each fix gets a local commit. One push per cycle waits for the go-ahead of the user unless 'autonomous' is set. Then it resolves the fixed threads. 'loop' polls for new comments. 'deep-fix' sends one thread through /research-implement-review-report. Triggers on 'process PR comments', 'work through review feedback', or 'handle GitHub PR comments'. Also on 'respond to reviewers', 'address review comments', or 'monitor PR for new comments'. Also on a GitHub PR URL with a request to act on it."
+description: "Process the review comments of a GitHub pull request as its author. It classifies each open thread by review tag or automated-review header, fixes what the comment or the code settles, drafts replies that need a human decision, commits each fix, and pushes once per cycle after the go-ahead of the user. Use it for 'process PR comments', 'address review comments', 'respond to reviewers', 'monitor PR for new comments', or a PR URL with a request to act on it."
 ---
 
 # Process PR Review Comments

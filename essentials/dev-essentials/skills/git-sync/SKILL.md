@@ -1,6 +1,6 @@
 ---
 name: git-sync
-description: Git sync mechanics. When to rebase, when to merge, how to look at branch state before reviews and PRs, and how to stage files. Covers the `git rebase --onto <new-base> <old-base-tip>` pattern with a fix recipe for corrupted subjects, and the `git merge --no-ff` rule for branches that the user does not own. Also covers the pre-review branch-state verification checklist and explicit-path staging (never `git add -A` or `git add .`). Triggers on requests like "rebase the branch", "sync with master", "the base was rewritten", or "fix conflicts after merge". Also on "review this branch", "compose PR", or "bring branch up to date". Also triggers any time the agent is about to invoke `git rebase` / `git pull --rebase` / `git merge` on a long-lived branch.
+description: Git sync rules for rebase, merge, and staging. Use `git rebase --onto` after a base rewrite, use `git merge --no-ff` on the branch of another author, check the branch state before a review or a PR, and stage explicit paths only. Use it for "rebase the branch", "sync with master", "the base was rewritten", or "bring branch up to date", and before any `git rebase`, `git pull --rebase`, or `git merge` on a long-lived branch.
 ---
 
 # Git Sync Conventions

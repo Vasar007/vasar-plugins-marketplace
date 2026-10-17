@@ -1,7 +1,7 @@
 ---
 name: audit-personal-conventions
-description: "Audit accumulated personal Claude Code conventions and decide which rules deserve to become a reusable marketplace entity. Sources: memory files, the global CLAUDE.md, the CLAUDE.md files of each repo (with @-imports and scope overrides), and personal commands, agents, and skills. Classifies each rule as project-local, personal taste, promotable (universal or scoped), a fix for an already-shipped skill, or stale. Uses cross-source corroboration and an on-disk-manifest already-promoted check. Presents the full triage and its approval gate. Then authors the approved entities, runs a review loop, and bumps the version of each affected plugin once. On request, updates CLAUDE.md files and memory indexes to point at the promotion."
-when_to_use: "If the user wants to audit personal rules or promote them into a plugin, use this skill. Trigger phrases: 'audit my memory', 'what in my memory can become a skill', 'promote my memory to skills'. More trigger phrases: 'review my CLAUDE.md rules for promotion', 'which of my rules belong in the marketplace', 'clean up my project memory'. Also use it in any session that weighs personal rules for a plugin."
+description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills) and decide which rules to promote into a marketplace plugin. It classifies each rule, shows a triage for approval, authors the approved entities, runs a review loop, and bumps the plugin version."
+when_to_use: "Use it for 'audit my memory', 'promote my memory to skills', or 'which of my rules belong in the marketplace'. Do not use it to turn one named rule into a skill."
 ---
 
 # Audit Personal Conventions

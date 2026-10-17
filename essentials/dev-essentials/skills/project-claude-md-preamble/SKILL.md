@@ -1,6 +1,6 @@
 ---
 name: project-claude-md-preamble
-description: Prevents preamble drift between the root instructions file of a repo (CLAUDE.md or AGENTS.md) and nested per-directory instructions files. Gives a generic, stack-neutral checklist of the section types that a root preamble commonly needs, without their content. Enforces the one-copy rule. A repo holds exactly one copy of its preamble. A nested instructions file points at the root preamble instead of a copy of its text. Use it to write a new root CLAUDE.md or AGENTS.md, or to add a nested instructions file under a subfolder or subproject. Also use it to audit a repo for preamble drift or duplication. Triggers on requests like "create a CLAUDE.md for this repo", "add a nested instructions file for this subfolder", or "audit our CLAUDE.md files for drift". Also on "why do our instructions files disagree", "does this subproject need its own copy of the preamble", or "reconcile CLAUDE.md across this repo".
+description: Keeps one copy of the preamble of a repo in the root CLAUDE.md or AGENTS.md, and makes nested instructions files point at it instead of a copy. Use it to write a root CLAUDE.md or AGENTS.md, to add a nested instructions file, or to audit a repo for preamble drift. Triggers include "create a CLAUDE.md for this repo" and "audit our CLAUDE.md files for drift".
 ---
 
 # Project CLAUDE.md Preamble
