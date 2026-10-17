@@ -1,6 +1,7 @@
 ---
 name: create-controller
-description: Implement a .NET WebAPI controller from the NSwag-generated interface of a spec-first OpenAPI definition. Use for requests like "create controller", "add endpoint", or "add API method".
+description: Implement a .NET WebAPI controller from the generated interface of a spec-first OpenAPI definition.
+when_to_use: Use it for "create controller", "add endpoint", or "add API method".
 ---
 
 # Create Controller Implementation

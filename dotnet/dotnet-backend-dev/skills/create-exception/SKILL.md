@@ -1,6 +1,7 @@
 ---
 name: create-exception
-description: Create a custom .NET exception class with the three standard constructors and optional factory methods. Use for requests like "create exception", "add custom exception", or "new exception class".
+description: Create a custom .NET exception class with the three standard constructors and optional factory methods.
+when_to_use: Use it for "create exception", "add custom exception", or "new exception class".
 ---
 
 # Create Custom Exception

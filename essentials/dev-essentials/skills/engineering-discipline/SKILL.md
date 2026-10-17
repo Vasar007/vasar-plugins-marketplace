@@ -1,6 +1,7 @@
 ---
 name: engineering-discipline
-description: "Seven rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, and finish the refactor direction of the user. Apply it in any session that writes, reviews, or commits code. Examples: 'implement this spec', 'fix tests', or 'process PR comments'."
+description: "Seven rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, and finish the refactor direction of the user."
+when_to_use: "Use it in any session that writes, reviews, or commits code. Examples: 'implement this spec', 'fix tests', or 'process PR comments'."
 ---
 
 # Engineering Discipline

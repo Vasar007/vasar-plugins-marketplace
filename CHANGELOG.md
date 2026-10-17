@@ -22,22 +22,26 @@ This release shortens the descriptions that Claude Code loads into every session
 ### Changed in the repository
 
 - `.claude-plugin/marketplace.json` and `README.md`: the descriptions of the marketplace and of each plugin state the general purpose in one to three sentences. They no longer list skills.
-- `tests/simple-english-baseline.json`: removes the two entries that the old descriptions needed, and adds one for the description of `subagent-orchestration`.
+- `tests/simple-english-baseline.json`: removes the two entries that the old descriptions needed.
 
 ### Changed in dev-essentials
 
 - Shorter descriptions for the skills, commands, and agents. `audit-personal-conventions` also has a shorter `when_to_use`. The three bug-hunt agents still say that only the `bug-hunt` skill dispatches them.
+- The trigger phrases of each skill move from `description` to a new `when_to_use` field, so `description` says what the skill does. The agents keep their trigger phrases in `description`, because the frontmatter of an agent has no `when_to_use` field. `feature-pipeline` gets no `when_to_use`, because Claude Code does not load its description.
+- If an entity does not exist for a library, a product, or a file, its description does not name it. The descriptions also leave out the internal mechanics. For example, `pr-composer` no longer names OpenSpec, and `process-pr-comments` no longer names its review tags.
+- `implement-task` and `implement-batch`: the description says that the command pushes only with `--push`. The old text said that it never pushes.
 - The plugin description states the general purpose and lists no skills.
-- `audit-personal-conventions`: the description recipe in `references/entity-authoring-conventions.md` follows the new short style. A new description puts the main use case first and has a few trigger phrases. It keeps the facts that change what the user expects, for example a stop before a push. The other details go in the body.
+- `audit-personal-conventions`: the description recipe in `references/entity-authoring-conventions.md` follows the new short style. A new description puts the main use case first and has a few trigger phrases. It keeps the facts that change what the user expects, for example a stop before a push. The other details go in the body. The recipe also asks for general terms in place of the names of tools and types that a project can replace. It asks to leave out internal mechanics. It also says which entities get `when_to_use`. Skills and commands get it, and agents do not.
 
 ### Changed in dotnet-backend-dev
 
-- Shorter descriptions for the 15 skills and the `test-engineer` agent.
+- Shorter descriptions for the 15 skills and the `test-engineer` agent. The trigger phrases of each skill move to a new `when_to_use` field.
+- The descriptions use general terms in place of the names that a project can replace. Examples are the code generator, the mapping library, the test libraries, and the validation library. Other examples are the database product, the session log type, and the resource file name. EF Core and OpenAPI stay.
 - The plugin description states the general purpose and lists no skills.
 
 ### Changed in gop-pipeline
 
-- Shorter descriptions for the `gop-work` skill and its 8 agents. Each agent still says that only `gop-work` dispatches it.
+- Shorter descriptions for the `gop-work` skill and its 8 agents. Each agent still says that only `gop-work` dispatches it. `gop-work` moves its trigger condition to a new `when_to_use` field.
 - The plugin description states the general purpose and lists no skills.
 
 ## dev-essentials 3.0.1, dotnet-backend-dev 1.3.1, and gop-pipeline 1.2.1 in release [3.0.1] - 2026-10-15

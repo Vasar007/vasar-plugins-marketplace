@@ -1,6 +1,7 @@
 ---
 name: create-tests
-description: Write or change .NET unit and integration tests with NUnit, FluentAssertions, and the mock builders and generators of the project. Use for requests like "create tests", "unit tests", "test this class", or "write tests for".
+description: Write or change .NET unit and integration tests with the test framework, the assertion library, and the mock builders and generators of the project.
+when_to_use: Use it for "create tests", "unit tests", "test this class", or "write tests for".
 ---
 
 # Create Tests

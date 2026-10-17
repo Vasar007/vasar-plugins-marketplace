@@ -1,6 +1,7 @@
 ---
 name: write-markdown
-description: Write Markdown files with no markdownlint warnings. Use it to create or update any `.md` file, or for "update readme" or "fix markdown warnings".
+description: Write Markdown files with no markdownlint warnings.
+when_to_use: Use it to create or update any `.md` file, and for "update readme" or "fix markdown warnings".
 ---
 
 # Write Markdown

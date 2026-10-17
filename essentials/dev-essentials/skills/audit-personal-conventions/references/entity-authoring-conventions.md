@@ -14,11 +14,11 @@ The three shapes grow in different ways. Pick the shape that the approved rules 
 
 **Concrete precedent**. The history of this marketplace deleted the commands `/review-loop` and `/review-pr` in favor of the single skill `dev-essentials:review-loop`. Those commands outgrew the one-shot linear-script shape. They had phases, flags, and enough depth for reference files, which a single-file command cannot hold cleanly. The deletion is also the concrete MAJOR case of a version bump, because it removed existing invocation paths (`/review-loop`, `/review-pr`).
 
-## Frontmatter: this skill's own template sticks to `name` and `description`
+## Frontmatter: this skill's own template sticks to `name`, `description`, and `when_to_use`
 
 The Claude Code skill frontmatter supports several optional fields beyond `name` and `description`. Examples are `allowed-tools`, `model`, `context`, `disable-model-invocation`, and `argument-hint`. The official Claude Code skills documentation has the full list. `dev-essentials:feature-pipeline` sets `argument-hint` and `disable-model-invocation`. Do not claim that skill frontmatter allows only two fields, or that an optional field is a schema error. It is not.
 
-**By convention, the entity that this skill authors in Phase 6 uses only `name` and `description`**. The rules that this skill promotes are description-triggered procedures. They are not procedures that the user invokes by hand or that need restricted tools. If the authored entity needs the specific behavior of an optional field, add that field, for example `disable-model-invocation: true` for a workflow with side effects. Never add an optional field by default.
+**By convention, the entity that this skill authors in Phase 6 uses only `name`, `description`, and `when_to_use`**. An agent gets no `when_to_use` (see the recipe below). The rules that this skill promotes are description-triggered procedures. They are not procedures that the user invokes by hand or that need restricted tools. If the authored entity needs the specific behavior of another optional field, add that field, for example `disable-model-invocation: true` for a workflow with side effects. Never add an optional field by default.
 
 **`name` must equal the directory name, exactly**. The history of this marketplace had a real bug: the frontmatter `name` of a skill differed from the name of its directory. Make sure that each authored or edited skill keeps this invariant. It is a hard rule, not an edge case.
 
@@ -26,16 +26,28 @@ The Claude Code skill frontmatter supports several optional fields beyond `name`
 
 Claude reads the `description` of a skill to decide whether to use the skill. Claude Code loads the descriptions of all skills, commands, and agents into every session. The skill listing has a budget of 1% of the context window. If the listing is over the budget, Claude Code drops the descriptions of the skills that you use least. Claude Code also cuts the `description` and `when_to_use` text of one skill at 1,536 characters. So keep each description short:
 
-1. Put the main use case first, in one plain sentence.
-2. Add the two to four strongest trigger phrases, in quotes, that a user can type.
+1. Put the main use case first, in one plain sentence. `description` says what the entity does.
+2. Put the two to four strongest trigger phrases, in quotes, that a user can type. For a skill or a command, put them in `when_to_use`. Start it with "Use it", or with the condition that triggers the entity. For an agent, put them at the end of `description`.
 3. Keep `description` and `when_to_use` together at 800 characters or fewer. Aim for 250 to 500 characters.
-4. Keep the facts that change what the user expects from a run. Examples are a stop before a push or a post, a new GitHub issue, and a named exception to a rule.
-5. Put the other sub-topics, flags, and scenarios in the body, not in the description. A hub skill can name its topics in one sentence.
-6. If only one skill dispatches an agent, say so in the description of the agent.
+4. Keep the facts that change what the user expects from a run. Examples are a stop before a push or a post, a new GitHub issue, and a named exception to a rule. Word each fact in general terms.
+5. If the entity exists for a library, a product, a type, a method, or a file, name it. Examples are .NET, EF Core, OpenAPI as a format, git for a git skill, and markdownlint for a skill about Markdown warnings. In all other cases, use a general term, for example "the generated client" and not the name of the code generator. Other projects use other tools and other names.
+6. Leave out the internal mechanics of the entity. Examples are tag names, report IDs, phase or bucket names, rule numbers, counts of reference files, and internal file names. Put them, and the other sub-topics and scenarios, in the body. A hub skill can name its topics in one sentence.
+7. If only one skill dispatches an agent, say so in the description of the agent.
 
 **Made-up example** of the shape (not a real skill in this marketplace):
 
-> "Manage the rollout stages of feature flags for a web service. Use it for 'add a feature flag', 'promote this flag to 100%', or 'retire the flag for X'."
+```yaml
+description: "Manage the rollout stages of feature flags for a web service."
+when_to_use: "Use it for 'add a feature flag', 'promote this flag to 100%', or 'retire the flag for X'."
+```
+
+### When `when_to_use` helps
+
+`when_to_use` holds the trigger phrases and the example requests. Claude Code appends it to `description` in the skill listing. Both fields count toward the same cap of 1,536 characters, so the split saves no characters. Its value is structure. `description` says what the entity does. `when_to_use` names the requests that trigger it.
+
+- Skill or command: put the trigger phrases and a "Do not use it for X" line in `when_to_use`. A command accepts the same frontmatter fields as a skill, except `name` and `paths`.
+- Agent: do not add `when_to_use`. The frontmatter of an agent has no such field, and Claude Code ignores an unknown field without a warning. Put the trigger phrases in `description`.
+- Skill with `disable-model-invocation: true`: do not add `when_to_use`. Claude Code does not load the description of such a skill into the context, so the field has no effect.
 
 ## Body structure
 

@@ -1,6 +1,7 @@
 ---
 name: create-external-client
-description: Wrap the NSwag-generated client of an external service in a .NET client class with structured logging and DI. Use for requests like "create client wrapper", "add API client", "integrate with service", or "call external service".
+description: Wrap the generated client of an external service in a .NET client class with structured logging and DI.
+when_to_use: Use it for "create client wrapper", "add API client", "integrate with service", or "call external service".
 ---
 
 # Create External Client Wrapper

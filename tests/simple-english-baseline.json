@@ -132,12 +132,6 @@
       "rule": "banned_modal",
       "text": "should",
       "reason": "Quoted literal text: an example of a bad argument (\"so the fix should be Z\"). The words must stay as they are."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/subagent-orchestration/SKILL.md",
-      "rule": "sentence_over_limit",
-      "text": "'orchestrate this', 'dispatch a subagent', 'handle this multi-stage task'.\" --- …",
-      "reason": "Quoted literal text: the trigger phrases end the double-quoted description. The closing YAML quote hides the sentence end, so the linter joins the phrases with the first sentence of the body."
     }
   ]
 }

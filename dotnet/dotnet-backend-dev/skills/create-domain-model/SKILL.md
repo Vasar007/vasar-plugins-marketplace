@@ -1,6 +1,7 @@
 ---
 name: create-domain-model
-description: Create a .NET domain model as a sealed record with validation and equality members. Use for requests like "create domain model", "add domain record", or "new entity in Domain layer".
+description: Create a .NET domain model as a sealed record with validation and equality members.
+when_to_use: Use it for "create domain model", "add domain record", or "new entity in Domain layer".
 ---
 
 # Create Domain Model

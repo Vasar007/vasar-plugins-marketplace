@@ -1,5 +1,5 @@
 ---
-description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks. Never pushes.
+description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks. Pushes only with --push.
 argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--push] [--interactive] [--autonomous]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: general-conventions
-description: Conventions for Markdown documentation and PowerShell scripts. Load it to write or review a `.md` or `.ps1` file. It points to one reference file for each kind.
+description: Conventions for Markdown documentation and PowerShell scripts.
+when_to_use: Use it to write or review a `.md` or `.ps1` file.
 ---
 
 # General Conventions

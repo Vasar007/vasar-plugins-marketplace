@@ -1,10 +1,12 @@
 ---
 name: trim-artifacts
 description: >-
-  Trim pass for text artifacts such as notes, plans, handoff files, agent memory, and logs.
-  It removes history, process residue, and duplication, and keeps decisions, ids, needed
-  facts, and uncertainty markers. Use it for "trim", "compact", "clean up notes", or "this
-  memory is bloated". Do not use it for source code. Use /simplify for that.
+  Trim pass for text artifacts such as notes, plans, handoff files, agent
+  memory, and logs. It removes history, process residue, and duplication, and
+  keeps decisions, ids, needed facts, and uncertainty markers.
+when_to_use: >-
+  Use it for "trim", "compact", "clean up notes", or "this memory is bloated".
+  Do not use it for source code. Use /simplify for that.
 ---
 
 # Trim artifacts

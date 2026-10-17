@@ -1,6 +1,7 @@
 ---
 name: generate-xml-docs
-description: Generate XML documentation comments for C# types, members, and parameters. If XML docs are missing, use it. Triggers include "add XML docs", "document this class", and "add XML comments".
+description: Generate XML documentation comments for C# types, members, and parameters.
+when_to_use: Use it for missing XML docs, and for "add XML docs", "document this class", or "add XML comments".
 ---
 
 # Generate XML Documentation

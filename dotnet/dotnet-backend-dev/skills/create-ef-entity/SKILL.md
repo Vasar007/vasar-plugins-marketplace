@@ -1,6 +1,7 @@
 ---
 name: create-ef-entity
-description: Create an EF Core entity with its configuration, Mapperly mapper, and repository. Use for requests like "create entity", "persist to database", "add repository", or "EF mapping".
+description: Create an EF Core entity with its configuration, model mapper, and repository.
+when_to_use: Use it for "create entity", "persist to database", "add repository", or "EF mapping".
 ---
 
 # Create EF Entity

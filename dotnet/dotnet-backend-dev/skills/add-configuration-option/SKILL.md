@@ -1,6 +1,7 @@
 ---
 name: add-configuration-option
-description: Add a .NET options class with FluentValidation and DI registration. Use for requests like "add configuration", "add options", "add setting", or "configurable value".
+description: Add a .NET options class with validation and DI registration.
+when_to_use: Use it for "add configuration", "add options", "add setting", or "configurable value".
 ---
 
 # Add Configuration Option

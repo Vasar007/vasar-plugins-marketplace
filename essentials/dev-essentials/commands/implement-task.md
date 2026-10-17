@@ -1,5 +1,5 @@
 ---
-description: Work one task end-to-end through research-implement-review-report. Sweep the extra context first (PR or issue links, notes), and add a /simplify commit at the end. Never pushes.
+description: Work one task end-to-end with research, a plan, the implementation, a review, and a report. Sweep the extra context first (PR or issue links, notes), and add a /simplify commit at the end. Pushes only with --push.
 argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--interactive] [--autonomous]
 ---
 

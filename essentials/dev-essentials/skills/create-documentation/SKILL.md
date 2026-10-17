@@ -1,6 +1,7 @@
 ---
 name: create-documentation
-description: Create or update project documentation files in Markdown by the project conventions. Use it to document features, configuration options, REST APIs, or database migrations. Use it for "create documentation", "document a feature", or "write docs".
+description: Create or update project documentation files in Markdown by the project conventions, for example for features, configuration options, REST APIs, or database migrations.
+when_to_use: Use it for "create documentation", "document a feature", or "write docs".
 ---
 
 # Create Documentation

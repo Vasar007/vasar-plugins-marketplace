@@ -1,6 +1,7 @@
 ---
 name: create-primitive-wrapper
-description: Create a strongly-typed .NET primitive wrapper (an ID or a value object) as a readonly record struct. Use for requests like "create ID type", "add wrapper type", or "strongly-typed identifier".
+description: Create a strongly-typed .NET primitive wrapper (an ID or a value object) as a readonly record struct.
+when_to_use: Use it for "create ID type", "add wrapper type", or "strongly-typed identifier".
 ---
 
 # Create Primitive Wrapper

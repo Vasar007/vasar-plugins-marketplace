@@ -1,7 +1,9 @@
 ---
 name: bug-report-auditor
 description: >-
-  Does the final consistency pass over a verified bug hunt report: fields, Summary, counts, links, and plain English. Dispatched only by the bug-hunt skill.
+  Does the final consistency pass over a verified bug hunt report: fields,
+  summary, counts, links, and plain English. Dispatched only by the bug-hunt
+  skill.
 tools: [Read, Grep, Glob, Bash, Write, Edit, Skill]
 model: opus
 effort: xhigh

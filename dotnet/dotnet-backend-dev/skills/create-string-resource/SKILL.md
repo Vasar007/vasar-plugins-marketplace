@@ -1,6 +1,7 @@
 ---
 name: create-string-resource
-description: Add a StringResources.resx entry with the [TBD] prefix for a user-facing .NET string. Use for requests like "add string resource", "user-facing message", "session log message", or "localized string".
+description: Add a user-facing .NET string to the .resx string resource file of the project, with the [TBD] prefix.
+when_to_use: Use it for "add string resource", "user-facing message", "session log message", or "localized string".
 ---
 
 # Create String Resource

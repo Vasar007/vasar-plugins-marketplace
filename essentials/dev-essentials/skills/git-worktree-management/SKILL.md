@@ -1,6 +1,7 @@
 ---
 name: git-worktree-management
-description: Creates, lists, and removes git worktrees at `<repo-root>/.claude/worktrees/<full-branch-ref>/`, one folder for each task. Use it for "create worktree", "list worktrees", "remove worktree", or "clean up worktrees".
+description: Creates, lists, and removes git worktrees at `<repo-root>/.claude/worktrees/<full-branch-ref>/`, one folder for each task.
+when_to_use: Use it for "create worktree", "list worktrees", "remove worktree", or "clean up worktrees".
 ---
 
 # Git Worktree Management Skill
