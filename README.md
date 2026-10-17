@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
 
-This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplace. Its plugins help with everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.
+This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace. Its plugins help with everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.
 
 > This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
 
@@ -24,7 +24,7 @@ To add the marketplace with a command, run:
 /plugin marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
 ```
 
-> The repository is private. Before Claude Code can clone it, configure a GitHub credential helper locally. You can use the SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git` instead.
+> The repository is private. Before Claude Code can clone it, configure a GitHub credential helper locally. You can use the SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git` instead. For the requirements of each method, see [Add a private marketplace](https://code.claude.com/docs/en/plugins/install#add-a-private-marketplace).
 
 To add the marketplace in `.claude/settings.local.json`, use this configuration:
 
@@ -72,94 +72,74 @@ To enable specific plugins for a project automatically, extend the same `.claude
 
 After you edit the configuration or install a plugin, run `/reload-plugins`. This loads the changes without a restart.
 
+## Updating the plugins
+
+A push to `main` does not change the plugins that you installed. Claude Code compares the `version` in the `plugin.json` of a plugin with the version of the installed copy. If the two versions are the same, the installed copy stays. For the rules of a new version, see [Versioning Policy](./CLAUDE.md#versioning-policy).
+
+After a new release, run these commands in a Claude Code session:
+
+```text
+/plugin marketplace update vasar-plugins-marketplace
+/reload-plugins
+```
+
+The first command refreshes the marketplace and gets the new plugin versions. The second command loads the new versions into the running session. If you do not run `/reload-plugins`, the next session loads the new versions. If a plugin stays at the old version, run `claude plugin update <plugin>@vasar-plugins-marketplace` in your shell. A running session then needs `/reload-plugins` to load the new version.
+
+Claude Code can also update the plugins automatically. For this marketplace, automatic updates are off by default. To turn them on in a session, run `/plugin`, open the "Marketplaces" tab, select `vasar-plugins-marketplace`, and select "Enable auto-update". To turn them on in the configuration, add `"autoUpdate": true` next to `source` in the `extraKnownMarketplaces` entry of the marketplace.
+
+This is the `.claude/settings.local.json` configuration with automatic updates:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "vasar-plugins-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Vasar007/vasar-plugins-marketplace"
+      },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+With automatic updates, Claude Code refreshes the marketplace in the background some minutes after your first message in a session. It updates the plugins on disk, but the running session keeps the old versions. To load the new versions, run `/reload-plugins` or start a new session.
+
+The background update does not ask for credentials. The repository is private, so the update works only with a stored git credential or with an SSH key in `ssh-agent`. The pages [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) and [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) give the details.
+
 ## Authoring reference
 
-Only readers who modify this marketplace or add new plugins need this section.
+Only readers who modify this marketplace or add new plugins need this section. The official documentation describes the files of a marketplace and of a plugin. This section gives only the rules of this repository.
 
 ### Folder structure
 
-```text
-vasar-plugins-marketplace/
-├── .claude-plugin/
-│   └── marketplace.json        # Lists every plugin in this marketplace
-├── .github/
-│   └── workflows/
-│       └── tests.yml           # Runs the tests in CI
-├── .markdownlint.jsonc         # markdownlint rules for the .md files
-├── essentials/
-│   └── dev-essentials/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── agents/
-│       ├── commands/
-│       └── skills/
-├── dotnet/
-│   └── dotnet-backend-dev/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── agents/
-│       ├── commands/
-│       └── skills/
-├── workflows/
-│   └── gop-pipeline/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── agents/
-│       └── skills/
-└── tests/                      # Repository tests, not part of a plugin
-```
+Each plugin is in the folder `<group>/<plugin>/`, for example `essentials/dev-essentials/`. The manifest of the plugin is `.claude-plugin/plugin.json`. The components are in the default folders `skills/`, `agents/`, and `commands/`. For the default layout of a plugin, see [Standard layout](https://code.claude.com/docs/en/plugins/manifest-reference#standard-layout).
 
-### `marketplace.json` schema
+These items at the repository root are not part of a plugin:
 
-```json
-{
-  "name": "vasar-plugins-marketplace",
-  "description": "One-line summary shown in /plugin Discover tab",
-  "owner": { "name": "Vasily Vasilyev", "email": "vasar007@gmail.com" },
-  "plugins": [
-    {
-      "name": "my-plugin",
-      "source": "./<group>/<plugin>",
-      "description": "One-line summary shown when picking the plugin"
-    }
-  ]
-}
-```
+- `.claude-plugin/marketplace.json` lists every plugin of the marketplace.
+- `.github/workflows/tests.yml` runs the tests in CI.
+- `.markdownlint.jsonc` holds the markdownlint rules for the `.md` files.
+- `tests/` holds the tests of the repository.
 
-A `source` path must start with `./`. It must resolve to a directory that contains `.claude-plugin/plugin.json`. Do not set `version` here. The version lives only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)).
+### Rules for `marketplace.json`
 
-### `plugin.json` schema
+Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `name`, `source`, and `description`. The `source` path has the form `./<group>/<plugin>`. It must start with `./`. It must point to a folder that contains `.claude-plugin/plugin.json`. Do not set `version` here. The version is only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)). For all fields of the file, see the [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference).
 
-```json
-{
-  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "What this plugin covers",
-  "author": { "name": "Vasily Vasilyev", "email": "vasar007@gmail.com" },
-  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
-  "keywords": ["topic", "another-topic"]
-}
-```
+### Rules for `plugin.json`
 
-Keep `plugin.json` to metadata only. Claude Code discovers components automatically at the documented default locations: `skills/<name>/SKILL.md`, `agents/<name>.md`, and `commands/<name>.md`.
-
-The plugins in this marketplace do not set the fields `skills`, `agents`, or `commands`. The [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference) gives these rules for the fields:
-
-- `skills` accepts a directory or an array of directories. The listed directories load together with the default `skills/` folder.
-- `commands` accepts a file, a directory, an array of paths, or an object map. It replaces the default `commands/` folder.
-- `agents` accepts only `.md` files, one or an array. It does not accept a directory. It replaces the default `agents/` folder.
-
-Each path is relative to the plugin root and must start with `./`. If you add one of these fields, run the validator (see [Validating](#validating)).
+Keep `plugin.json` to metadata only: `$schema`, `name`, `version`, `description`, `author`, `repository`, and `keywords`. Copy the values of `$schema`, `author`, and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
 
 ### Validating
 
-Before you push changes, run the bundled CLI validator:
+Before you push changes, run the validator from the repository root:
 
 ```text
 claude plugin validate .                       # validates marketplace.json
-claude plugin validate ./<group>/<plugin>      # validates a single plugin manifest
+claude plugin validate ./<group>/<plugin>      # validates one plugin and its components
 ```
+
+Run the second command for each plugin that you changed. The run on the repository root does not read the skill, agent, and command files of the plugins. For the flags and the exit codes, see [`plugin validate`](https://code.claude.com/docs/en/plugins/cli-reference#plugin-validate).
 
 ### Testing
 
@@ -195,6 +175,10 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the changes in each release.
 
 ## References
 
-- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces): the `marketplace.json` schema, source types, and version resolution.
-- [Plugin manifest reference](https://code.claude.com/docs/en/plugins-reference): the `plugin.json` schema, component layout, and environment variables.
-- [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins): install workflows and the `extraKnownMarketplaces` and `enabledPlugins` configuration.
+- [Install and manage plugins](https://code.claude.com/docs/en/plugins/install): install scopes, private marketplaces, and updates.
+- [Create a marketplace](https://code.claude.com/docs/en/plugins/create-marketplace): plugin entries, plugin sources, and validation.
+- [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference): all fields of `marketplace.json`.
+- [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference): all fields of `plugin.json` and the standard layout of a plugin.
+- [Plugin loading reference](https://code.claude.com/docs/en/plugins/loading): the plugin cache, the version of a plugin, and automatic updates.
+- [Plugin commands reference](https://code.claude.com/docs/en/plugins/cli-reference): the `claude plugin` commands, `/plugin`, and `/reload-plugins`.
+- [Configuration reference](https://code.claude.com/docs/en/settings-reference#extraknownmarketplaces): the configuration keys `extraKnownMarketplaces` and `enabledPlugins`.
