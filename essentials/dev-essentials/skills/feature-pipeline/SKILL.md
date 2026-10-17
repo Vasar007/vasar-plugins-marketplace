@@ -1,6 +1,6 @@
 ---
 name: feature-pipeline
-description: Runs a tracked task from a task provider end-to-end in an isolated git worktree. Each stage (requirements, spec, implementation, tests, docs, reviews, and the PR) runs in its own subagent. Use it to implement a tracked task or TASK-123, or to develop a feature end-to-end. Also for "run the feature pipeline", "run feature-pipeline", or "start the task pipeline for TASK-123".
+description: Runs a tracked task from a task provider end-to-end in an isolated git worktree, with one subagent for each stage from requirements to the PR. Use it for "run the feature pipeline" or "implement TASK-123 end-to-end".
 argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive] [--autonomous]
 disable-model-invocation: true
 ---

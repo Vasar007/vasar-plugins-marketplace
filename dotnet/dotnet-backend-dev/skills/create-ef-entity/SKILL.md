@@ -1,6 +1,7 @@
 ---
 name: create-ef-entity
-description: Create EF Core entity with mapper and repository for database persistence. Use when persisting domain models in any EF Core project. Triggers on requests like "create entity", "persist to database", "add repository", "EF mapping".
+description: Create an EF Core entity with its configuration, model mapper, and repository.
+when_to_use: Use it for "create entity", "persist to database", "add repository", or "EF mapping".
 ---
 
 # Create EF Entity

@@ -1,6 +1,7 @@
 ---
 name: add-migration
-description: EF Core migrations and container configuration for Cosmos DB, for database schema changes and product upgrades. Use when adding database migrations, modifying entity schemas, or implementing product upgrade operations. Triggers on requests like "add migration", "database migration", "schema change", "data transformation", "product upgrade".
+description: Add an EF Core database migration or a product upgrade migration, with the storage configuration that the database provider needs.
+when_to_use: Use it for "add migration", "schema change", "data transformation", or "product upgrade".
 ---
 
 # Add Migration

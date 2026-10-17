@@ -1,5 +1,5 @@
 ---
-description: Implement tasks from a plan file (no OpenSpec dependency)
+description: Implement tasks from a plan file (no spec-framework dependency)
 ---
 
 Implement tasks from a plan or task list file.

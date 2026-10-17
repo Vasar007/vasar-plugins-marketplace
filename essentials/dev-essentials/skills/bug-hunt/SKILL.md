@@ -1,12 +1,14 @@
 ---
 name: bug-hunt
 description: >-
-  Read-only bug hunt over a whole repository. It finds new potential bugs area by area, has
-  other agents try to refute each one, and saves one verified bug report. It skips bugs that
-  notes files or GitHub issues already describe, and it never creates issues. Use it for "bug
-  hunt", "hunt for bugs", or "find new bugs in this project". Also use it for "find potential bugs
-  in every area", "audit the codebase for bugs", or "write a verified bug report". Do not use it
-  to review one diff or one pull request. Use review-loop or code-review for that.
+  Read-only bug hunt over a whole repository. It finds new potential bugs area
+  by area, verifies each one, and saves one bug report. A bug that a notes file
+  or a GitHub issue already describes is not a new finding. The hunt never
+  writes to GitHub.
+when_to_use: >-
+  Use it for "bug hunt", "find new bugs in this project", or "audit the codebase
+  for bugs". Do not use it to review one diff or one pull request. Use
+  review-loop for that.
 argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--interactive] [--autonomous]"
 ---
 

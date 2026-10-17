@@ -1,5 +1,5 @@
 ---
-description: "Security validator in the parallel validation stage of the GOP pipeline (the `gop-work` skill). Inspects the change for vulnerabilities: hardcoded secrets, injection sinks, authN/authZ gaps, crypto misuse, insecure transport or defaults, and risky new dependencies. Emits `SEC-` findings mapped to CWE/OWASP categories. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered."
+description: "Security validator of the GOP pipeline. Looks for secrets, injection, auth gaps, weak crypto, and risky dependencies. Dispatched only by the `gop-work` skill, not user-triggered."
 model: opus
 tools: [Read, Bash, Glob, Grep, WebSearch]
 ---

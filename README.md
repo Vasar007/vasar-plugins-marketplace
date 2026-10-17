@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
 
-This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplace. It holds composer agents, workflow commands, and generic developer skills. It also holds a .NET backend toolkit and a full Git Operations Pipeline (GOP) workflow.
+This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplace. Its plugins help with everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.
 
 > This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
 
@@ -10,9 +10,9 @@ This is a personal [Claude Code](https://docs.claude.com/claude-code) marketplac
 
 | Plugin | Group | Purpose |
 |---|---|---|
-| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Composer agents (PR, Task, Docs), bug-hunt agents (hunter, verifier, auditor), and generic workflow commands. Cross-stack skills for markdown, XML docs, worktrees, PR review, feature pipeline, general conventions, personal-convention auditing, artifact trimming, and verified bug hunting. |
-| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | .NET, Clean Architecture, DDD, EF Core, and OpenAPI skills. The `write-tests` command and the `test-engineer` agent for .NET tests. A hub of backend conventions for controllers, services, configuration, domain models, EF patterns, logging, mappers, security, and testing. |
-| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A pipeline with specialist validator subagents. The stages run in this order: plan, implement, build, test, validate, commit. The validate stage runs in parallel for correctness, reuse, security, compliance, and performance. |
+| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
+| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. |
+| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval. |
 
 ## Installing the marketplace
 

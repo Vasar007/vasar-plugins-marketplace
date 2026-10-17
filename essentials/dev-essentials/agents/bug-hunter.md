@@ -1,6 +1,6 @@
 ---
 name: bug-hunter
-description: Searches one area of a project for new potential bugs and writes them as BH-NN entries in a bug hunt report. Dispatched only by the bug-hunt skill with a brief.
+description: Searches one area of a project for new bugs and writes them as entries in a bug hunt report. Dispatched only by the bug-hunt skill.
 tools: [Read, Grep, Glob, Bash, Write, Edit, Skill, WebFetch, WebSearch]
 model: opus
 effort: xhigh

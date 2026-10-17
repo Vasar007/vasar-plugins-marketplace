@@ -1,6 +1,7 @@
 ---
 name: update-swagger-spec
-description: Add or modify an OpenAPI spec with [TBD] descriptions and the NSwag regeneration workflow, for API-first development. Use when adding REST endpoints, modifying API contracts, or updating OpenAPI documentation. Triggers on requests like "update swagger", "add API endpoint", "modify OpenAPI spec", "add REST operation".
+description: Add or change an OpenAPI spec with [TBD] descriptions, then run a build to regenerate the API code.
+when_to_use: Use it for "update swagger", "add API endpoint", "modify OpenAPI spec", or "add REST operation".
 ---
 
 # Update Swagger Spec

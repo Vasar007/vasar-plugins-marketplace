@@ -1,5 +1,5 @@
 ---
-description: Reuse and style validator in the parallel validation stage of the GOP pipeline (the `gop-work` skill). Looks for new code that duplicates existing helpers instead of reusing them, and for silent behavior changes in shared code. Also looks for premature abstraction, and for divergences from the established conventions of each file. Emits `REUSE-` findings. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Reuse and style validator of the GOP pipeline. Looks for duplicated helpers, silent changes to shared code, and breaks from the conventions of a file. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Bash, Glob, Grep, WebSearch, LSP]
 ---

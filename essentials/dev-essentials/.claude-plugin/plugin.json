@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dev-essentials",
-  "version": "3.0.1",
-  "description": "Cross-stack composer agents (PR, Task, Docs), bug-hunt agents (hunter, verifier, auditor), workflow commands, and generic skills (feature pipeline, markdown, XML docs, git worktrees, PR review comments, general conventions, personal-convention auditing, artifact trimming, verified bug hunting).",
+  "version": "3.0.2",
+  "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order.",
   "author": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"

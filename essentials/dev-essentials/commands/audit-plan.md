@@ -1,5 +1,5 @@
 ---
-description: Deep verification of a design plan before implementation
+description: Audit a design plan file or folder before implementation.
 ---
 
 Audit a design plan (file or folder) for issues, ambiguities, and missing context before implementation.

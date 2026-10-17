@@ -1,6 +1,6 @@
 {
   "name": "vasar-plugins-marketplace",
-  "description": "Personal Claude Code marketplace — composer agents, generic dev skills, a stack-neutral .NET backend toolkit, and the Git Operations Pipeline workflow.",
+  "description": "Personal Claude Code plugins for everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.",
   "owner": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"
@@ -9,17 +9,17 @@
     {
       "name": "dev-essentials",
       "source": "./essentials/dev-essentials",
-      "description": "Cross-stack composer agents (PR, Task, Docs), bug-hunt agents (hunter, verifier, auditor), workflow commands, and generic skills (feature pipeline, markdown, XML docs, git worktrees, PR review comments, general conventions, personal-convention auditing, artifact trimming, verified bug hunting)."
+      "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order."
     },
     {
       "name": "dotnet-backend-dev",
       "source": "./dotnet/dotnet-backend-dev",
-      "description": ".NET backend dev skills (Clean Architecture + DDD + EF Core + OpenAPI/NSwag + Mapperly), a write-tests command and a test-engineer agent, plus a backend conventions hub (controllers, services, configuration, domain models, EF patterns, logging, mappers, security, testing)."
+      "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions."
     },
     {
       "name": "gop-pipeline",
       "source": "./workflows/gop-pipeline",
-      "description": "Git Operations Pipeline — opinionated plan → implement → build → test → validate (correctness/reuse/security/compliance/performance, parallel) → commit workflow with specialist subagents."
+      "description": "A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval."
     }
   ]
 }

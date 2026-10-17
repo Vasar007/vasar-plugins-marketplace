@@ -1,6 +1,7 @@
 ---
 name: handle-sensitive-data
-description: Guidelines for handling sensitive information in code (credentials, secrets, PII) following security best practices. Use when implementing ToString(), logging, or working with authentication/security data. Triggers on requests like "handle credentials", "secure data", "sensitive information", "password handling".
+description: Keep credentials, secrets, and PII out of logs and out of the string form of objects in .NET code.
+when_to_use: Use it for "handle credentials", "sensitive information", "secure data", or "password handling".
 ---
 
 # Handle Sensitive Data

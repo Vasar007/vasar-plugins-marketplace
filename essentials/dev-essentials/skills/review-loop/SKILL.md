@@ -1,6 +1,7 @@
 ---
 name: review-loop
-description: "Iterative multi-agent review loop for anything reviewable: branch diffs, PR diffs, spec files, single classes or methods, or any file. Each cycle dispatches a reviewer (or reviewers in parallel) and triages the findings on their merits, not on severity labels alone. A fixer subagent then classifies every finding as APPLY, PARTIAL, or REJECT before it edits code. The next cycle re-reviews only the fix diff, until the diff is clean or the round limit is reached. The skill ships its own default configuration, so callers do not need a CLAUDE.md for it: 2 cycles, one Opus reviewer, one Sonnet fixer with Opus planning each fix, a commit per cycle, and nothing auto-deferred by severity label. Triggers on requests like 'run a review loop', 'review the PR', 'review this branch', 'review these changes', 'do a code review', '/review-loop', or '/review-pr'. Also triggers on 'review this file', 'review the spec', 'full review pass', 'iterative review', and 'multi-agent review'."
+description: "Iterative multi-agent review loop for a branch, a PR, a diff, a spec, a class, a method, or any file. Each cycle reviews, triages the findings on their merits, fixes only the proven findings, and reviews the fixes again."
+when_to_use: "Use it for 'run a review loop', 'review the PR', 'review this branch', 'review the spec', or '/review-loop'."
 ---
 
 # Review Loop

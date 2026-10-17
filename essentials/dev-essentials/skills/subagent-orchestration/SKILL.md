@@ -1,6 +1,7 @@
 ---
 name: subagent-orchestration
-description: How the main agent dispatches work in long, multi-step, or complex tasks, and which model each dispatch uses. Use it in multi-stage workflows (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks). Also use it to choose between a subagent dispatch and inline work in the middle of such a workflow. Seven rules. (1) Orchestrate, and delegate even small research. (2) Pass user context word for word. (3) Dispatch independent work as several Agent calls in one message. (4) Give high-volume MCP work to subagents. (5) Use no named teammates. (6) Give each write-capable dispatch the absolute worktree path. (7) Never dispatch a pass-through delegator. It ships the model matrix (Sonnet default, Haiku mechanical-only, Opus planning and review, Fable exceptional-only). Triggers on requests like "orchestrate this", "dispatch a subagent", "run the pipeline", or "process PR comments". Also triggers on "review the branch", "audit the change", or "handle this multi-stage task".
+description: "How the main agent dispatches work in long, multi-step tasks, and which model each dispatch uses."
+when_to_use: "Use it for 'orchestrate this', 'dispatch a subagent', or 'handle this multi-stage task'. Use it also in feature-pipeline, review-loop, or PR-comment processing, and to choose between a subagent and inline work. It applies to every multi-stage workflow."
 ---
 
 # Subagent Orchestration

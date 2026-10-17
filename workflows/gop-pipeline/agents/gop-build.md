@@ -1,5 +1,5 @@
 ---
-description: Build stage of the GOP pipeline (the `gop-work` skill). Makes sure that the code compiles after the implementation. It builds the affected projects first, and builds the full solution for a change to shared infrastructure. It fixes small build breaks itself, with a limited number of retries. Dispatched internally by `gop-work` via `subagent_type`, not user-triggered.
+description: Build stage of the GOP pipeline. Builds the affected .NET projects and fixes small build breaks. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Edit, Bash, Glob, Grep]
 ---

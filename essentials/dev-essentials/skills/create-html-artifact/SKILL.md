@@ -1,6 +1,7 @@
 ---
 name: create-html-artifact
-description: "Create a self-contained HTML artifact that the user reviews in a browser instead of raw Markdown. Examples are an implementation-plan view, a PR or code review, a comparison report, and a status dashboard. The artifact uses inline CSS, mermaid diagrams, syntax-highlighted code snippets, mockups, and findings or AC tables with links to detail sections. Use it to render something as HTML, or to make a plan or a review 'easy to read'. Also use it to produce mockups or a data-flow diagram, or to save a visual report or artifact to a folder. Triggers: 'HTML artifact', 'html report', 'render as HTML', 'make this easier to review', 'mockups'. More triggers: 'data flow diagram', 'AC grid', 'visual plan', 'save an artifact'."
+description: "Create a self-contained HTML file that the user reviews in a browser instead of raw Markdown. Examples are a plan view, a PR review, a comparison report, or a status dashboard. It uses inline CSS, diagrams, highlighted code, and mockups."
+when_to_use: "Use it for 'HTML artifact', 'html report', 'render as HTML', 'make this easier to review', or 'mockups'. Do not use it for a hosted Artifact page."
 ---
 
 # Create HTML Artifact

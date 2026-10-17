@@ -14,12 +14,6 @@
       "reason": "Settled text: the scope of Gate 1 is a user decision from the lint sweep (PR #29)."
     },
     {
-      "file": "dotnet/dotnet-backend-dev/skills/dotnet-conventions/SKILL.md",
-      "rule": "trailing_condition",
-      "text": "Load when writing or reviewing .NET backend code (Clean Architecture with DDD, E…",
-      "reason": "Frontmatter: the description says when to load the skill, as the plugin docs ask. The linter reads \"Load when ...\" as a trailing condition."
-    },
-    {
       "file": "essentials/dev-essentials/agents/bug-hunter.md",
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
@@ -114,12 +108,6 @@
       "rule": "synonym_rotation",
       "text": "confirmed (check-verify)",
       "reason": "Settled term: the verdict `Confirmed` and the marker \"Not confirmed:\". The file uses it on purpose."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/dotnet-build-test/SKILL.md",
-      "rule": "synonym_rotation",
-      "text": "check (check-verify)",
-      "reason": "Quoted literal text: the trigger phrases 'verify the change' and 'check for compile errors' in the description. The words must stay as they are."
     },
     {
       "file": "essentials/dev-essentials/skills/feature-pipeline/references/setup.md",

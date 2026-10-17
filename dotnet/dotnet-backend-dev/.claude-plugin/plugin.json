@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dotnet-backend-dev",
-  "version": "1.3.1",
-  "description": ".NET backend development skills (Clean Architecture + DDD + EF Core + OpenAPI/NSwag + Mapperly), a write-tests command and a test-engineer agent for .NET tests, plus a backend conventions hub covering controllers, application services, configuration, domain models, EF patterns, logging, mappers, security, and testing.",
+  "version": "1.3.2",
+  "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions.",
   "author": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"

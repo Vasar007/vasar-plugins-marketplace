@@ -1,6 +1,7 @@
 ---
 name: engineering-discipline
-description: "Seven engineering rules against the urge to defer, dismiss, or decide alone. (a) Own every red signal (tests, lint, compile) in the session, and never call it pre-existing. (b) Make no critical decision alone (DI dependency, public signature, weaker contract, relaxed test assertion) that the spec or plan does not cover. (c) Never reference pipeline-internal artifacts (for example Notes/Tasks/...) from shipped code, docs, or commit messages. (d) Never silence a red signal with try/catch. (e) Never claim `verified` or `confirmed` without solid proof, and never pad a report with fake blockers. (f) Report overblown or analyzer-dodging code first, not after a green-build summary. (g) Complete the refactor direction of the user, and keep a 'refactor only' scope. Apply it in any session that writes, reviews, or commits code. Triggers on requests like 'implement this spec', 'apply plan', or 'fix tests'. Also on 'process PR comments', 'write feature code', or 'run feature pipeline'."
+description: "Seven rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, and finish the refactor direction of the user."
+when_to_use: "Use it in any session that writes, reviews, or commits code. Examples: 'implement this spec', 'fix tests', or 'process PR comments'."
 ---
 
 # Engineering Discipline

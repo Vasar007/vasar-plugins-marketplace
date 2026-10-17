@@ -1,6 +1,7 @@
 ---
 name: general-conventions
-description: Conventions for Markdown documentation and PowerShell scripts in the project repository. Load it to write or review either kind of file. It indexes two reference files, one for markdownlint-clean Markdown authoring and one for PowerShell script structure, output, and error handling conventions.
+description: Conventions for Markdown documentation and PowerShell scripts.
+when_to_use: Use it to write or review a `.md` or `.ps1` file.
 ---
 
 # General Conventions

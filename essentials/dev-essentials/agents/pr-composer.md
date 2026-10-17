@@ -1,6 +1,6 @@
 ---
 name: pr-composer
-description: Compose a concise architectural pull request (PR) description from the git diff against the base branch. If an active OpenSpec change proposal exists, the agent uses it instead of the diff. Use it for a request for a PR description, a PR summary, or to "compose a PR" for the current branch.
+description: Compose a concise architectural pull request (PR) description from the git diff against the base branch, or from an active spec change. Use it for a request for a PR description, a PR summary, or to "compose a PR".
 tools: [Bash, Read, Write, Edit, Grep, Glob]
 ---
 
