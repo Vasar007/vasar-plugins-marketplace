@@ -9,7 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-No changes yet.
+### Changed in the repository
+
+- `README.md` (issue #42): a new section "Updating the plugins" says how to get a new release. You run `/plugin marketplace update vasar-plugins-marketplace` and then `/reload-plugins`. The section also says how automatic updates work and how to turn them on for this marketplace.
+- `README.md` (issue #42): the "Authoring reference" no longer repeats the official documentation. The sections about the folder structure, `marketplace.json`, `plugin.json`, and validation keep only the rules of this repository. They link to the documentation for the rest. The links in the intro and in "References" go to the current pages of the Claude Code documentation.
 
 ## dev-essentials 3.1.0 and dotnet-backend-dev 1.4.0 in release [3.1.0] - 2026-10-17
 
