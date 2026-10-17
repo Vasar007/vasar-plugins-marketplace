@@ -6,14 +6,14 @@ when_to_use: Use it for "add configuration", "add options", "add setting", or "c
 
 # Add Configuration Option
 
-Add configuration options in your service configuration project with FluentValidation validators.
+Add configuration options in your service configuration project with validators of the validation library (for example, FluentValidation). The examples use FluentValidation. Another validation library uses its own validator base class and rule calls.
 
 ## Architecture
 
 ```text
 Options Class (mutable config model with init/set)
     ↓ validated by
-Validator (FluentValidation)
+Validator (validation library)
     ↓ registered in
 DI Container (IOptions<T> / IOptionsSnapshot<T> / IOptionsMonitor<T>)
     ↓ bound from
@@ -139,7 +139,7 @@ public sealed record {Feature}Options : IValidatableObject
 }
 ```
 
-## Step 2: FluentValidation Validator
+## Step 2: Validator
 
 Use `ValidationErrorBuilder.Default` with `CreateValueRequiredMessage()` for consistent error messages.
 
@@ -234,7 +234,7 @@ internal static class ExtensionMethodsHostApplicationBuilder
 }
 ```
 
-**NOTE**: The `ConfigureOptionsAndEnableValidation<T>()` extension handles binding, FluentValidation, and startup validation automatically.
+**NOTE**: The `ConfigureOptionsAndEnableValidation<T>()` extension handles binding, the validator of the validation library, and startup validation automatically.
 
 ## Step 4: Configuration Sources
 
@@ -473,10 +473,10 @@ Create configuration options tests following project conventions.
 - [ ] Properties use `{ get; set; }` (preferred) or `{ get; init; }`
 - [ ] Properties have sensible defaults
 - [ ] `[Required]`, `[Range]`, and other attributes on properties as needed
-- [ ] FluentValidation validator using `ValidationErrorBuilder.Default.CreateValueRequiredMessage()`
-- [ ] `ClassLevelCascadeMode = CascadeMode.Stop` set in validator
-- [ ] Rule chains use `.Cascade(CascadeMode.Stop)` to prevent invalid validation calls
-- [ ] Nested options use `.SetValidator(new NestedOptionsValidator())`
+- [ ] Validator of the validation library using `ValidationErrorBuilder.Default.CreateValueRequiredMessage()`
+- [ ] Validator stops at the first failed rule (FluentValidation: `ClassLevelCascadeMode = CascadeMode.Stop`)
+- [ ] Rule chains stop at the first failed rule to prevent invalid validation calls (FluentValidation: `.Cascade(CascadeMode.Stop)`)
+- [ ] Nested options use the child-validator call (FluentValidation: `.SetValidator(new NestedOptionsValidator())`)
 - [ ] Registration added to `Configure{ServiceName}OptionsAndEnableValidation()`
 - [ ] appsettings.json section added (project defaults)
 - [ ] Important options exposed in the deployment values (for Helm, `helm/values.yaml`)

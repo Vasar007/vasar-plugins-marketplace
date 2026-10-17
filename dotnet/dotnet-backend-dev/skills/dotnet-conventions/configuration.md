@@ -7,7 +7,7 @@ Configuration/
   Options/
     {Domain}/
       {Name}Options.cs                 (sealed record, IValidatableObject)
-      {Name}OptionsValidator.cs        (FluentValidation, AbstractValidator<T>)
+      {Name}OptionsValidator.cs        (validator, for example FluentValidation AbstractValidator<T>)
 ```
 
 Domain subfolders are project-specific, for example `Shipping/`, `Services/`, `Sales/`, and `Logging/`. Nest deeper for sub-features as the project already does.
@@ -48,10 +48,12 @@ Key requirements:
 - `sealed record` implementing `IValidatableObject`.
 - Properties use `{ get; set; }` with sensible defaults.
 - Parameterless constructor (required for configuration binding).
-- `Validate()` delegates to the FluentValidation validator.
-- Uses `result.ToSystemValidationResultCollection()` to bridge FluentValidation to DataAnnotations.
+- `Validate()` delegates to the validator class of the validation library (for example, FluentValidation).
+- Uses `result.ToSystemValidationResultCollection()` to bridge the validation library to DataAnnotations.
 
 ## Validator Pattern
+
+This example uses FluentValidation. Another validation library uses its own validator base class and rule calls.
 
 ```csharp
 public sealed class {Name}OptionsValidator : AbstractValidator<{Name}Options>
@@ -86,7 +88,7 @@ Root options compose child options via properties initialized with `new()`:
 public NestedOptions Child { get; set; } = new();
 ```
 
-Validators cascade. The root validator uses `.SetValidator()` for each nested child.
+Validators cascade. The root validator calls the child validator for each nested child (FluentValidation: `.SetValidator()`).
 
 ## Computed Properties
 
@@ -123,6 +125,6 @@ var options = _shippingOptions.CurrentValue;
 ## Adding a New Options Class
 
 1. Create `{Name}Options.cs`: a sealed record that implements `IValidatableObject` and has defaults.
-2. Create `{Name}OptionsValidator.cs`: an `AbstractValidator` with rules.
+2. Create `{Name}OptionsValidator.cs`: a validator class of the validation library with rules (FluentValidation: `AbstractValidator<T>`).
 3. If the options class is top-level, register it in the host-builder extension method of the project (for example, `ConfigureXxxOptionsAndEnableValidation`).
-4. If the options class is nested, add it as a property of the parent options class. Validate it with `.SetValidator()` in the parent validator.
+4. If the options class is nested, add it as a property of the parent options class. Validate it with the child-validator call in the parent validator (FluentValidation: `.SetValidator()`).

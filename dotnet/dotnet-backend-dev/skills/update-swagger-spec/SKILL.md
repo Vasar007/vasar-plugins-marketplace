@@ -4,7 +4,7 @@ description: Add or change an OpenAPI spec with [TBD] descriptions, then run a b
 when_to_use: Use it for "update swagger", "add API endpoint", "modify OpenAPI spec", or "add REST operation".
 ---
 
-# Update Swagger Spec
+# Update the OpenAPI Spec
 
 Add or modify OpenAPI specification files with required [TBD] prefix for all user-facing content, following API-first development approach.
 
@@ -12,13 +12,13 @@ Add or modify OpenAPI specification files with required [TBD] prefix for all use
 
 ### Primary API Specification
 
-**Primary spec**: `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json` (or `swagger.yml`)
+**Primary spec**: the OpenAPI spec of the WebApi project, for example `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json` (or `swagger.yml`)
 
 This is the **source of truth** for the REST API. All controller interfaces and REST models are auto-generated from this spec.
 
 ### External Service Clients
 
-**External service clients**: `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
+**External service clients**: the OpenAPI spec of each client project, for example `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
 
 Used to generate client code for calling external service endpoints.
 
@@ -148,15 +148,15 @@ This applies to:
 }
 ```
 
-## NSwag Auto-Generation Workflow
+## Code Generation Workflow
 
 ### How Auto-Generation Works
 
-This project uses **MSBuild-integrated NSwag generation**: the build auto-generates the code. You must **NEVER** call `nswag`, `NSwagExe`, or any NSwag tool directly. The build handles everything.
+The build runs the OpenAPI code generator (for example, NSwag through MSBuild) and auto-generates the code. You must **NEVER** run the code generator directly. For NSwag, do not call `nswag`, `NSwagExe`, or any other NSwag tool. The build handles everything.
 
-#### Discovering NSwag Configuration
+#### Discovering the Generator Configuration
 
-Before working with code generation, read the `.csproj` file and find the `NSwagGeneration` MSBuild item group:
+Before working with code generation, read the `.csproj` file and find the configuration of the code generator. The example below is for NSwag. It uses the `NSwagGeneration` MSBuild item group:
 
 ```xml
 <!-- Configure NSwag code generation. -->
@@ -184,7 +184,7 @@ This tells you:
 
 ### When Regeneration Happens
 
-The build runs the generation. After you change `swagger.json`, build the project:
+The build runs the generation. After you change the OpenAPI spec, build the project:
 
 ```bash
 dotnet build
@@ -194,15 +194,15 @@ dotnet build
 
 **CRITICAL**: If you build the project and the auto-generated files are not updated:
 
-1. **STOP**. Do NOT attempt to run NSwag manually.
-2. **STOP**. Do NOT call `nswag run`, `$(NSwagExe_Net80)`, or any NSwag command.
+1. **STOP**. Do NOT attempt to run the code generator manually.
+2. **STOP**. Do NOT call any command of the code generator (for NSwag, `nswag run` or `$(NSwagExe_Net80)`).
 3. **ASK the user** to perform the regeneration manually (for example, with Visual Studio Rebuild or other tooling).
 
 ## Step-by-Step Workflow
 
-### 1. Modify swagger.json
+### 1. Modify the OpenAPI Spec
 
-Edit `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`:
+Edit the primary spec (for example, `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`):
 
 ```json
 {
@@ -279,7 +279,7 @@ Build the solution to trigger auto-generation:
 dotnet build
 ```
 
-**IMPORTANT**: Do NOT run NSwag manually. The build handles code generation automatically via the `NSwagGeneration` MSBuild configuration. If the build does not update auto-generated files, stop and ask the user to regenerate.
+**IMPORTANT**: Do NOT run the code generator manually. The build handles code generation automatically (for NSwag, through the `NSwagGeneration` MSBuild configuration). If the build does not update auto-generated files, stop and ask the user to regenerate.
 
 ### 4. Implement Controller
 
@@ -329,7 +329,7 @@ Look for:
 
 ### 6. Create Tests
 
-Use generated client in integration tests:
+Use generated client in integration tests. The example uses NUnit (`[Test]`) and FluentAssertions (`.Should()`). Another test framework or assertion library uses its own equivalents:
 
 ```csharp
 [Test]
@@ -456,11 +456,11 @@ Always include standard error responses:
 }
 ```
 
-## External Service Clients (swagger.yml)
+## External Service Clients (OpenAPI YAML)
 
 For external services (for example, a customer-portal API), use YAML format:
 
-**File**: `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
+**File**: for example, `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
 
 ```yaml
 openapi: 3.0.1
@@ -494,27 +494,27 @@ paths:
 ### Generated Code Not Updated
 
 1. Build the project: `dotnet build`
-2. Read the MSBuild output for NSwag errors
-3. Read the `.csproj`. Find out whether the `NSwagGeneration` item group exists and whether its paths are correct.
+2. Read the MSBuild output for errors of the code generator
+3. Read the `.csproj`. Find out whether the configuration of the code generator (for NSwag, the `NSwagGeneration` item group) exists and whether its paths are correct.
 4. If the build does not regenerate the files, **STOP and ask the user** to regenerate them manually
 
-**CRITICAL**: Do NOT run NSwag commands directly. Do NOT attempt `nswag run`, `$(NSwagExe_Net80)`, or any manual NSwag invocation.
+**CRITICAL**: Do NOT run the commands of the code generator directly. For NSwag, do NOT attempt `nswag run`, `$(NSwagExe_Net80)`, or any other manual NSwag invocation.
 
 ### Controller Interface Signature Mismatch
 
 If the controller implementation does not match the generated interface:
 
 1. Build project to regenerate
-2. Find out whether the parameter names and types in swagger.json match C# conventions
+2. Find out whether the parameter names and types in the OpenAPI spec match C# conventions
 3. Find out whether each operationId is unique
 
 ## Checklist
 
-- [ ] Modified `swagger.json` or `swagger.yml` with [TBD] prefix on all new/changed descriptions
+- [ ] Modified the OpenAPI spec with [TBD] prefix on all new/changed descriptions
 - [ ] Added/updated operation summaries and descriptions
 - [ ] Defined schema models in `components/schemas`
 - [ ] Added standard error responses (400, 404, 500)
-- [ ] Rebuilt solution to trigger NSwag auto-generation
+- [ ] Rebuilt solution to trigger the code generation
 - [ ] Generated code in `AutoGenerated/ControllersAndModels.Generated.cs` reviewed
 - [ ] Test client code in `AutoGenerated/ClientAndModels.Generated.cs` reviewed
 - [ ] Implemented controller interface (see create-controller skill)
