@@ -1,6 +1,6 @@
 ---
 name: add-session-logging
-description: Add user-visible session log milestones for long-running workflows. Use when orchestration flows need progress updates (portal/UI). Triggers on requests like "add session log", "portal milestone", "user progress", "track session progress".
+description: Add user-visible session log milestones to long-running .NET workflows with ISessionLogRepository. Use for requests like "add session log", "portal milestone", or "track session progress".
 ---
 
 # Add Session Logging

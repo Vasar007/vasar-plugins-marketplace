@@ -1,6 +1,6 @@
 ---
 name: create-string-resource
-description: Add StringResources.resx entries for user-facing strings with [TBD] prefix for localization. Use when adding session log messages, exception messages, or API responses that users will see. Triggers on requests like "add string resource", "user-facing message", "session log message", "localized string".
+description: Add a StringResources.resx entry with the [TBD] prefix for a user-facing .NET string. Use for requests like "add string resource", "user-facing message", "session log message", or "localized string".
 ---
 
 # Create String Resource

@@ -1,6 +1,6 @@
 ---
 name: test-engineer
-description: Write, refactor, or extend .NET unit and integration tests with the strict testing conventions of the project. Uses the preloaded `create-tests` skill for the matching example, and the existing base classes, mock builders, and generators of the repo. Use when the user asks to write, refactor, or add tests for a specific class.
+description: Write, refactor, or extend .NET unit and integration tests with the conventions of the preloaded `create-tests` skill. Use when the user asks for tests for a specific class.
 tools: [Read, Write, Edit, Bash, Grep, Glob, Skill]
 skills:
   - dotnet-backend-dev:create-tests

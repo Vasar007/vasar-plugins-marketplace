@@ -1,6 +1,6 @@
 ---
 name: create-external-client
-description: Create external service client wrappers with structured logging, XML documentation, and proper DI patterns. Use when integrating with external microservices or APIs. Triggers on requests like "create client wrapper", "add API client", "integrate with service", "call external service".
+description: Wrap the NSwag-generated client of an external service in a .NET client class with structured logging and DI. Use for requests like "create client wrapper", "add API client", "integrate with service", or "call external service".
 ---
 
 # Create External Client Wrapper

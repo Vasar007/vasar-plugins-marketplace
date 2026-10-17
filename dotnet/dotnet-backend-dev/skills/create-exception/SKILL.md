@@ -1,6 +1,6 @@
 ---
 name: create-exception
-description: Create custom exception classes with standard constructors and optional factory methods. Use when implementing domain-specific exceptions in any .NET project. Triggers on requests like "create exception", "add custom exception", "new exception class", "implement exception type".
+description: Create a custom .NET exception class with the three standard constructors and optional factory methods. Use for requests like "create exception", "add custom exception", or "new exception class".
 ---
 
 # Create Custom Exception

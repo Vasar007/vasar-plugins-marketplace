@@ -1,6 +1,6 @@
 ---
 name: model-mapping
-description: Create model mapping converters using Riok.Mapperly with proper attributes and patterns. Use when converting between REST/Domain models, External API models, or any other model transformations. Triggers on requests like "create converter", "add mapper", "map models", "convert between types".
+description: Create Riok.Mapperly converters between REST, domain, external API, and EF models in .NET. Use for requests like "create converter", "add mapper", "map models", or "convert between types".
 ---
 
 # Create Riok.Mapperly Converter
