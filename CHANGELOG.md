@@ -11,6 +11,35 @@ The other numbers in a heading are plugin versions.
 
 No changes yet.
 
+## dev-essentials 3.1.0 and dotnet-backend-dev 1.4.0 in release [3.1.0] - 2026-10-17
+
+This release closes the gaps between the descriptions and the bodies that remained after release 3.0.2 (issue #36). It makes `pr-composer` read the spec or the plan of a branch (issue #40). It makes `/write-tests` dispatch the `test-engineer` agent (issue #37). It adds a serialization rule to `handle-sensitive-data` (issue #39). It replaces the names of replaceable tools in the bodies with general terms (issue #38).
+
+### Added in dev-essentials
+
+- `pr-composer`: a step that finds the spec or planning artifact of the branch (issue #40). The agent looks at four sources. The first is the brief. The second is the active changes of the spec framework. The third is plan and design files in the plan folders and notes folders. The fourth is decision records that the diff adds or changes. An artifact belongs to the branch in three cases. The brief names it, the diff adds or changes it, or its name holds the slug or an issue number of the branch. The agent uses the artifacts for the reason of the change. It names each artifact that it used, with its path, in its final reply. It does not fetch an issue from a remote system.
+
+### Changed in dev-essentials
+
+- `pr-composer` (issue #40): the agent now always reads the git diff first. Before, an active OpenSpec change was the only source for the PR description, and the agent skipped the diff. Now the agent reads the diff together with the artifacts. The diff gives what changed. The artifacts give the reason. If an artifact plans work that the diff does not hold, the agent says so in the "Notes" section. A change of the spec framework must belong to the branch. If exactly one active change exists, it counts as the change of the branch. The description of the agent and the description of `/compose-pr` follow the new behavior.
+- `compose-pr` (issue #40): the brief for the agent now holds each spec, plan, or design document that the user named, as a path. It also holds the text of each linked issue or task that the user gave, word for word. The command does not fetch an issue.
+- The bodies use general terms in place of tools that a project can replace (issue #38). A body names such a tool only as a marked example, for example "the mapping library (for example, Riok.Mapperly)". This applies to `general-conventions/powershell.md`, where AWS and Azure are now examples of a cloud provider. It also applies to the other skills and references that named a replaceable tool.
+- `audit-personal-conventions` (issue #38): `references/entity-authoring-conventions.md` extends the rule for general terms to the body and to the `keywords` of `plugin.json`. Only a plugin that exists for a tool can use its name as a keyword. The file asks for one general term for each role in all files of the marketplace. It asks for an example at the first use of the term in a file.
+- `keywords` of `plugin.json` (issue #38): `openspec` becomes `spec-driven`.
+- `implement-task`, `implement-batch`, and `research-implement-review-report` (issue #38): the line about `feature-pipeline` was wrong. It said that the pipeline is for an OpenSpec change. Now it says that the pipeline runs a tracked task from the task provider end-to-end in an isolated git worktree.
+
+### Added in dotnet-backend-dev
+
+- `handle-sensitive-data`: a section about serialized output (issue #39). A serializer does not call `ToString()`, so the placeholder did not protect the JSON form of a secret. The section has three parts. The first is an example of a `System.Text.Json` converter that writes the placeholder. The second is a rule for secrets in plain `String` properties. The third is a table that says what to do for logs, API responses, caches, and messages. The checklist and the questions of the skill cover the new rule.
+
+### Changed in dotnet-backend-dev
+
+- `/write-tests` (issue #37): the command no longer writes tests in the main session. It parses the targets, merges the targets that overlap, and dispatches one `test-engineer` agent for each target. A target is a class, a module (a folder or a namespace), or an assembly (a project). Independent targets run in parallel, at most four at the same time. The command checks the combined result and shows one merged report.
+- `test-engineer` (issue #37): the agent handles class, module, and assembly targets. It reads a brief from the command and returns a short report in a fixed format. A module or an assembly with more than 20 classes gets no tests. The agent reports the classes and the command splits the target.
+- `handle-sensitive-data` (issue #39): the description and `when_to_use` name the serialized form. `dotnet-conventions/security.md` gets a line that points to the skill for JSON.
+- The bodies use general terms in place of tools that a project can replace (issue #38). Examples are the code generator, the OpenAPI linter, the mapping library, and the validation library. Other examples are the document database, the test framework, the assertion library, the mocking library, and the test data library. The concrete tools stay as marked examples. This applies to the skills, the examples of `create-tests`, `dotnet-conventions`, and the `test-engineer` agent.
+- `keywords` of `plugin.json` (issue #38): `nswag` becomes `code-generation`, and `mapperly` becomes `object-mapping`.
+
 ## dev-essentials 3.0.2, dotnet-backend-dev 1.3.2, and gop-pipeline 1.2.2 in release [3.0.2] - 2026-10-17
 
 This release shortens the descriptions that Claude Code loads into every session (issue #33). The skill listing has a budget of 1% of the context window. If the listing is over the budget, Claude Code drops the descriptions of the skills that you use least. Without its description, Claude cannot match a skill to a request. Each new description puts the main use case first and keeps the strongest trigger phrases. The details stay in the body of each file. The release also adds status badges to the README (issue #32).
@@ -440,7 +469,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v2.5.0...v3.0.0
