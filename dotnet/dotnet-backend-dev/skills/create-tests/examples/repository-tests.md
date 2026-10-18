@@ -15,9 +15,11 @@ The code examples in this file use NUnit and FluentAssertions. With another test
 
 ```csharp
 // Use TestDbContextFactory_AllCases for repository tests (manual DbContext)
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 
 // Use TestDbContextFactory_DiSafeCases when DbContext comes from DI
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 ```
 
@@ -25,6 +27,7 @@ The class shapes for the two factories:
 
 ```csharp
 // Manual DbContext creation (most common)
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 public sealed class MyRepositoryTests<TTestDbContextFactory>
     : BaseRepositoryWithOneKeyTest<TTestDbContextFactory, ...>
@@ -36,6 +39,7 @@ public sealed class MyRepositoryTests<TTestDbContextFactory>
 }
 
 // DI-managed DbContext
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 public sealed class MyServiceIntegrationTests<TTestDbContextFactory> : BaseMockTest
     where TTestDbContextFactory : ITestDbContextFactory, new()
@@ -87,6 +91,7 @@ using MyApp.Tests.Common.Helpers.Generators.Sales.Customers;
 
 namespace MyApp.Infrastructure.Tests.Persistence.Sales.Customers;
 
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
 public sealed class CustomerRepositoryTests<TTestDbContextFactory>
@@ -191,6 +196,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
 ## Complete Example - Two Keys Repository
 
 ```csharp
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
 public sealed class MarketShipmentRepositoryTests<TTestDbContextFactory>

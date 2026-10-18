@@ -385,7 +385,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 - [ ] **Read the matching example file in examples/ BEFORE you write any code**
 - [ ] The test class inherits the correct base class
-- [ ] The fixture attributes of the test framework (for example, `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` in NUnit), unless the fixture is non-parallelizable
+- [ ] The fixture attributes of the test framework (for example, `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` in NUnit), unless the fixture is non-parallelizable. Every test class has `[TestFixture]`, also a generic test class that has `[TestFixtureSource]`
 - [ ] All tests use the `// Arrange.` `// Act.` `// Assert.` comments, or a combined form with `&`, such as `// Act & Assert.` or `// Arrange, Act & Assert.` (see "Test Structure")
 - [ ] Props files (`Directory.Build.props`, `Directory.Packages.props`, `global.json`) are NOT staged, unless the user named them explicitly
 

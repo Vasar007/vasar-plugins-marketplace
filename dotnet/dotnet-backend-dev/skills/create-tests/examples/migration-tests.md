@@ -26,6 +26,7 @@ Migration tests MUST run through the `TestDbContextFactory_DiSafeCases` fixture 
 - Must test against each test database provider of the project (for example, InMemory, SQLite, and a document database)
 
 ```csharp
+[TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 public sealed class EmbedLineItemsInOrderSummaryMigrationTests<TTestDbContextFactory> : BaseMockTest

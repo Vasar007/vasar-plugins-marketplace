@@ -485,8 +485,6 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         result.Should().NotBe(0);
     }
 
-    // ============ Private helpers ============
-
     // CreateMigrationId(String) is a Create method of MigrationGenerator.
     // Add it to the generator if it is missing (see "Create methods" in generators.md).
     private MigrationId CreateMigrationId(String value)

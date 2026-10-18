@@ -238,6 +238,8 @@ public void Validate_WithNullNestedOptions_ReturnsValidationError()
 }
 
 // Create separate test class for nested options
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public sealed class NestedOptionsTests : BaseValidatableObjectTests
 {
     // Test nested options independently

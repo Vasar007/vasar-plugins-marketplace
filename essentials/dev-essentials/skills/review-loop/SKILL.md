@@ -387,7 +387,7 @@ The Full format of the reviewer report is in `references/reviewer-briefs.md`, be
 | `references/triage-matrix.md` | Phase 4: the severity scale, the action for each severity, and the `blocking` flag. |
 | `references/verify-fix-discipline.md` | Phase 5: the playbook of the fixer. Read it before the fixer dispatch, and give its path to the fixer. |
 | `examples/branch-review.md` | A full review of a feature branch, with both report formats filled in with real numbers. |
-| `examples/spec-review.md` | A review of a spec change document (the example uses OpenSpec), with the spec brief, the `audit-team` adapter, and the findings. |
+| `examples/spec-review.md` | A review of a spec change document of any spec framework. The example uses an OpenSpec change as one case. It shows the `audit-team` adapter and the findings. |
 | `dev-essentials:engineering-discipline` | Rule 1 (own every red signal) drives the build and test run of Phase 6. Rule 2 (no critical decision alone) drives the REJECT of a signature change that the triage did not allow, in Phase 5. Rule 5 (no claim without proof) drives the primary-source rule of the reviewer and the fixer. |
 | `dev-essentials:subagent-orchestration` | Rule 3 for the reviewer dispatch of Phase 3 and the fixer dispatch of Phase 5. Independent `Agent` calls go in one message. "Model selection" for Fable. `Trust but verify` and "Run format agreement" for the run format. |
 | `dev-essentials:github-mcp-conventions` | For `target=pr <id>`: how to call `pull_request_read` with explicit `owner` and `repo`, and how to paginate (Rule 3). |

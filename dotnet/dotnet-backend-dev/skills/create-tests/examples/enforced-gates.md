@@ -102,6 +102,8 @@ The other example files leave out the regions for brevity. Gate 4 still applies 
 ```csharp
 // ✅ CORRECT — base owns all helpers; CreateRequest is protected because the derived
 // fixture below calls it directly (private would not compile there — CS0122).
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public abstract class OrderRequestBaseTests : BaseMockTest
 {
     #region Constructor Tests
@@ -113,6 +115,8 @@ public abstract class OrderRequestBaseTests : BaseMockTest
     #endregion
 }
 
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public sealed class OrderRequestTests : OrderRequestBaseTests
 {
     public OrderRequestTests()

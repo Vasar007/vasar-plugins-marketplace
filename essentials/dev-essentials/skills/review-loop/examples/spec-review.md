@@ -1,13 +1,15 @@
 # Example — Spec / Design Document Review
 
-A worked example of the review of a spec change document (`target=spec`). In this example, the repository uses OpenSpec as its spec framework. It shows how this differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the OpenSpec validator of the repository instead of a compiler.
+A worked example of the review of a spec change document (`target=spec`). The document can come from any spec framework. A spec change can be a folder, for example an OpenSpec change at `openspec/changes/<name>/`, or a single file in another framework. This example uses an OpenSpec change at `openspec/changes/add-tenant-quotas/`. Its paths, its validator command, and its precedent spec are those of OpenSpec. With another framework, use the change path and the validator of that framework. The flow stays the same.
+
+The example shows how a spec review differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the validator of the spec framework of the repository (here, `openspec validate`) instead of a compiler. OpenSpec keeps an active change in `openspec/changes/<name>/` and moves a completed change to `openspec/archive/<timestamp>-<name>/`.
 
 ---
 
 ## Invocation
 
 ```text
-/review-loop target=spec openspec/changes/2026-05-08-add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --interactive
+/review-loop target=spec openspec/changes/add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --interactive
 ```
 
 Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`, `--fixer=general-purpose` (the default), and `--skip=medium,low,nit` (explicit, because the default is `none`). `--interactive` is set, so that this example shows the stop at the triage.
@@ -19,7 +21,7 @@ Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`
 `target=spec`: read the file in full, and brief the reviewer for a spec review.
 
 ```text
-Resolved: openspec/changes/2026-05-08-add-tenant-quotas/proposal.md (spec target)
+Resolved: openspec/changes/add-tenant-quotas/proposal.md (spec target)
 Reading full file... 412 lines loaded.
 ```
 
@@ -27,7 +29,7 @@ Reading full file... 412 lines loaded.
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team openspec/changes/2026-05-08-add-tenant-quotas/proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
+`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team openspec/changes/add-tenant-quotas/proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
 
 ---
 
@@ -73,11 +75,11 @@ The skill waits for the acknowledgment. The user replies "proceed".
 
 ## Phase 5 — Verify-then-fix
 
-Target file: `openspec/changes/2026-05-08-add-tenant-quotas/proposal.md`. In a spec review, a fix is an edit of the spec, not a change of code.
+Target file: `openspec/changes/add-tenant-quotas/proposal.md`. In a spec review, a fix is an edit of the spec, not a change of code.
 
 **Step 5a**. `/audit-team` returns no fix plan. So a new dispatch on `--reviewer-model` plans the fix of #1 to #3, as the adapter says. The fixer works from that plan.
 
-**#1: APPLY**. Verification source: `openspec/changes/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
+**#1: APPLY**. Verification source: `openspec/archive/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
 
 ```text
 Edit: proposal.md §4 — 3 paragraphs rewritten with explicit window definition.
@@ -105,10 +107,10 @@ Edit: proposal.md §5 — added "Quota exceeded" subsection.
 Spec target detected — build/test step skipped (non-code artifact).
 ```
 
-The spec validation still applies, because `CLAUDE.md` documents `openspec validate <change-name>`:
+The spec validation still applies, because `CLAUDE.md` documents a validator for the spec framework (here, `openspec validate <change-name>`):
 
 ```text
-openspec validate 2026-05-08-add-tenant-quotas
+openspec validate add-tenant-quotas
 ✓ Schema valid
 ✓ All required sections present
 ✓ No broken internal references
@@ -121,7 +123,7 @@ The validation passed.
 ## Phase 7 — Commit
 
 ```bash
-git add openspec/changes/2026-05-08-add-tenant-quotas/proposal.md
+git add openspec/changes/add-tenant-quotas/proposal.md
 git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, missing quota-exceeded error path"
 ```
 
@@ -143,10 +145,10 @@ git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, 
 Rounds: 1 of 1 max
 Build: skipped (spec target — no compile command)
 Tests: not run
-Spec validation: passing (openspec validate 2026-05-08-add-tenant-quotas)
+Spec validation: passing (openspec validate add-tenant-quotas)
 Stop verdict: stop-max-rounds
 
-### Round 1 (spec: openspec/changes/2026-05-08-add-tenant-quotas/proposal.md)
+### Round 1 (spec: openspec/changes/add-tenant-quotas/proposal.md)
   Found:    1 Blocker, 1 Critical, 1 High, 1 Medium, 0 Low, 0 Nit
   Fixed:    3 (APPLY=3, PARTIAL=0, REJECT=0)
   Deferred: 1 (per --skip medium / merit triage)
@@ -163,7 +165,7 @@ Stop verdict: stop-max-rounds
 
 ## Description
 
-An OpenSpec change proposal that adds a quota for each tenant, enforced by a sliding-window rate limiter. 412 lines. It covers the algorithm, the error handling, and the API contract. This cycle fixed three spec-correctness issues.
+A spec change proposal (here, an OpenSpec change) that adds a quota for each tenant, enforced by a sliding-window rate limiter. 412 lines. It covers the algorithm, the error handling, and the API contract. This cycle fixed three spec-correctness issues.
 
 ## Summary table
 
@@ -181,7 +183,7 @@ An OpenSpec change proposal that adds a quota for each tenant, enforced by a sli
 - **Problem**: §4 says "within a sliding window", but gives no window size, reset semantics, or rule for an arrival at a boundary. Three implementers can build three incompatible counters.
 - **Impact**: a correct implementation is impossible without a guess about the window semantics.
 - **Recommendation**: give the window size (60 s, fixed) and the reset trigger (the window boundary). Also give the boundary rule: a request counts against the window that it arrives in.
-- **Verification source**: `openspec/changes/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
+- **Verification source**: `openspec/archive/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
 
 ### 2 §3 vs §7 contradiction on decrement timing
 
