@@ -1,7 +1,6 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dotnet-backend-dev",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions.",
   "author": {
     "name": "Vasily Vasilyev",
