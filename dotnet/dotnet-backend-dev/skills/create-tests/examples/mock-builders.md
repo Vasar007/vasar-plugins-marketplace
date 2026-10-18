@@ -197,8 +197,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         result.Should().BeNull();
     }
 
-    // --- Private helper methods (mandatory indirection) ---
-
+    // Tests call the generator only through this helper, never directly.
     private ICustomerAccount GenerateAccount(Int32 usageCount = 0)
     {
         return _generator.GenerateCustomerAccount(usageCount: usageCount);

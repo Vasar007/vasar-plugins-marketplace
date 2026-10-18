@@ -164,8 +164,6 @@ public sealed class CustomersControllerTests : WebApiBaseTest
         sessionLink.SessionId.Should().NotBeEmpty();
     }
 
-    // ============ Private helpers ============
-
     private TestCustomerRepository CreateTestCustomerRepository(AsyncServiceScope scope)
     {
         return new TestCustomerRepository(scope.ServiceProvider);

@@ -166,8 +166,6 @@ public sealed class ShopOptionsTests : BaseValidatableObjectTests
         );
     }
 
-    // ============ Helper methods ============
-
     private static ShopOptions CreateDefaultOptions()
     {
         return new ShopOptions();

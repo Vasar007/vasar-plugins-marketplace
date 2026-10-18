@@ -172,8 +172,6 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
         result!.CustomerName.Should().Be(updatedName);
     }
 
-    // ============ Private helpers ============
-
     private async Task<Customer> CreateAndSaveModelAsync(ICustomerRepository repository)
     {
         var model = await CreateModelAsync();

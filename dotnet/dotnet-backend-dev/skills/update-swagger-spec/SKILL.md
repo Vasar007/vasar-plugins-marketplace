@@ -93,6 +93,16 @@ This applies to:
                 }
               }
             }
+          },
+          "500": {
+            "description": "[TBD] Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }

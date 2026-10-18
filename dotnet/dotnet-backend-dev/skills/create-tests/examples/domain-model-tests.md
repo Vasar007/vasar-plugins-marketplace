@@ -148,8 +148,6 @@ public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments
 
     // NOTE: Do NOT override GetValueMutatorsForEquality — only needed when some fields are excluded from equality
 
-    // --- Private helpers ---
-
     private StoreShipments CreateStoreShipments(
         ShipmentId outboundShipmentId,
         ShipmentId returnShipmentId,
@@ -266,8 +264,6 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
         stringRepresentation.Should().Contain(customer.CustomerId.ToString());
         // ... check all properties
     }
-
-    // --- Private helpers ---
 
     private CustomerId GenerateCustomerId()
     {

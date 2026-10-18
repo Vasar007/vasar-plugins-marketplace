@@ -284,8 +284,6 @@ public sealed class WebApiDependencyInjectionTests : BaseDependencyInjectionTest
         act.Should().Throw<ArgumentNullException>();
     }
 
-    // ============ Private helpers ============
-
     private static void RegisterServices(ServiceCollection serviceCollection)
     {
         serviceCollection.AddLogging();

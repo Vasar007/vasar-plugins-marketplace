@@ -171,8 +171,6 @@ public sealed class MarketServiceTests : BaseMockTest
         results.Should().Contain(market1);
     }
 
-    // ============ Private helpers ============
-
     private Market GenerateMarket(MarketId? marketId = null)
     {
         // ✅ Create for a specific value, Generate when any valid value works

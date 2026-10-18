@@ -2,7 +2,7 @@
 
 A worked example of the review of a spec change document (`target=spec`). The document can come from any spec framework. A spec change can be a folder, for example an OpenSpec change at `openspec/changes/<name>/`, or a single file in another framework. This example uses an OpenSpec change at `openspec/changes/add-tenant-quotas/`. Its paths, its validator command, and its precedent spec are those of OpenSpec. With another framework, use the change path and the validator of that framework. The flow stays the same.
 
-The example shows how a spec review differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the validator of the spec framework of the repository (here, `openspec validate`) instead of a compiler. OpenSpec keeps an active change in `openspec/changes/<name>/` and moves a completed change to `openspec/archive/<timestamp>-<name>/`.
+The example shows how a spec review differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the validator of the spec framework of the repository (here, `openspec validate`) instead of a compiler. OpenSpec keeps an active change in `openspec/changes/<name>/` and moves a completed change to `openspec/changes/archive/<YYYY-MM-DD>-<name>/`.
 
 ---
 
@@ -79,7 +79,7 @@ Target file: `openspec/changes/add-tenant-quotas/proposal.md`. In a spec review,
 
 **Step 5a**. `/audit-team` returns no fix plan. So a new dispatch on `--reviewer-model` plans the fix of #1 to #3, as the adapter says. The fixer works from that plan.
 
-**#1: APPLY**. Verification source: `openspec/archive/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
+**#1: APPLY**. Verification source: `openspec/changes/archive/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
 
 ```text
 Edit: proposal.md §4 — 3 paragraphs rewritten with explicit window definition.
@@ -183,7 +183,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 - **Problem**: §4 says "within a sliding window", but gives no window size, reset semantics, or rule for an arrival at a boundary. Three implementers can build three incompatible counters.
 - **Impact**: a correct implementation is impossible without a guess about the window semantics.
 - **Recommendation**: give the window size (60 s, fixed) and the reset trigger (the window boundary). Also give the boundary rule: a request counts against the window that it arrives in.
-- **Verification source**: `openspec/archive/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
+- **Verification source**: `openspec/changes/archive/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
 
 ### 2 §3 vs §7 contradiction on decrement timing
 
