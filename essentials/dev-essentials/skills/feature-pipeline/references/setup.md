@@ -100,9 +100,9 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
 
      > I will create a worktree with the following settings:
      >
-     > - **Path:** `<repo-root>/.claude/worktrees/<branch-name>/`
-     > - **Branch:** `<branch-name>` (new / existing local / existing remote)
-     > - **Base:** `<base-branch-from-project-context>`
+     > - Path: `<repo-root>/.claude/worktrees/<branch-name>/`
+     > - Branch: `<branch-name>` (new / existing local / existing remote)
+     > - Base: `<base-branch-from-project-context>`
      >
      > Starting the pipeline authorises this worktree creation. Continuing…
 

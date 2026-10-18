@@ -13,6 +13,8 @@ If no linter is found, the test skips. In CI it fails.
 The test fails on each hit that simple-english-baseline.json does not list.
 It also fails on each baseline entry that has no hit. A baseline entry matches
 by file, rule, and text, not by line, so that a line shift does not break it.
+The value of an argument-hint line in the frontmatter and the closing "---"
+of the frontmatter are not prose, so the test does not lint them.
 """
 import json
 import os
@@ -28,6 +30,7 @@ CACHE = Path("plugins/cache/simple-english/simple-english")
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 TABLE_RULE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
+ARGUMENT_HINT = re.compile(r"^argument-hint:")
 
 
 def find_linter_root():
@@ -41,15 +44,24 @@ def find_linter_root():
 
 
 def prepare(text):
-    """Blank fenced blocks and flatten table rows, one output line per input line.
+    """Blank the parts that are not prose, and flatten table rows, one output line per input line.
 
-    ste_lint pairs only triple-backtick fences, and it removes the newlines of a
+    The parts are fenced blocks, the value of an argument-hint line, and the
+    closing "---" of the frontmatter. ste_lint pairs only triple-backtick fences, and it removes the newlines of a
     fence or a table, so its line numbers drift. This keeps them exact.
     """
     out, fence = [], None
-    for line in text.split("\n"):
+    lines = text.split("\n")
+    frontmatter = bool(lines) and lines[0].strip() == "---"
+    for i, line in enumerate(lines):
         m = FENCE.match(line)
-        if fence:
+        if frontmatter:
+            if i > 0 and line.strip() == "---":
+                frontmatter = False
+                out.append("")
+            else:
+                out.append("argument-hint:" if ARGUMENT_HINT.match(line) else line)
+        elif fence:
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and line.strip() == m.group(1):
                 fence = None
             out.append("")
@@ -76,6 +88,13 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(len(out), len(text.split("\n")))
         self.assertEqual(out[2:5], ["", "", ""])
         self.assertEqual(out[6], "You should go.")
+
+    def test_argument_hint_in_the_frontmatter_is_blanked(self):
+        text = "---\ndescription: Do it.\nargument-hint: <task> [--a] [--b]\n---\n\nargument-hint: stays.\n"
+        out = prepare(text).split("\n")
+        self.assertEqual(len(out), len(text.split("\n")))
+        self.assertEqual(out[1:4], ["description: Do it.", "argument-hint:", ""])
+        self.assertEqual(out[5], "argument-hint: stays.")
 
     def test_line_that_starts_with_a_code_span_is_not_a_fence(self):
         text = "1. Run it:\n\n     ``` `x` ``` is code.\n\nYou should go.\n"

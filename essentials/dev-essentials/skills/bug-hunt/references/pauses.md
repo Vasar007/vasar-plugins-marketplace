@@ -22,7 +22,7 @@ Earlier runs, for planning only: one hunter took about 25 to 60 minutes and 300k
 ## At a pause point
 
 1. Run the structure check of the step, as at any step boundary.
-2. Update the session progress file. Write the pause into `## NEXT`, for example: "Paused after 3.3. Do not continue until the user says so, or until resume job <ID> fires at 17:01. Then run 3.4."
+2. Update the session progress file. Write the pause into `## NEXT`, for example: "Paused after 3.3. Do not continue until the user says so, or until resume job `<ID>` fires at 17:01. Then run 3.4."
 3. Write one status line in chat, and end the turn.
 
 A restarted session reads `## NEXT` and waits. It does not continue on its own.

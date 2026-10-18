@@ -320,7 +320,7 @@ This flag lets the skill delete the personal entity files in scope itself. Its g
 
    For a file that this run promoted or E-fixed, ask this question, unchanged.
 
-   > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
+   > Has the `<target-marketplace-name>` PR for this run been merged to its default branch? And are
    > you ready to delete the personal file(s) it supersedes? (yes / not yet)
 
    For an already-shipped, F-stale file, the publication is already proven. The existence check of Precondition A and the coverage grep of Precondition C at the same ref prove it. So "has the PR for this run been merged" has no referent. Ask a readiness question instead. On this branch, `v<plugin-version>` is the published `plugin.json` version at `origin/<default-branch>`. It is for display only, because this branch has no promotion version of this run to use as a floor in a check. Ask this question.
