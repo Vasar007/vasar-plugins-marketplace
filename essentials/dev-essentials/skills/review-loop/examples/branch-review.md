@@ -267,7 +267,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 - **Problem**: `TenantQueryServiceTests.cs` has no coverage for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38`. The service leaves validation to the repository layer: it passes the bounds to the repository, and the repository does the guard. So the finding is about missing test coverage, not about a missing runtime guard.
 - **Impact**: inputs at the edges have no test coverage, so a regression in the guard behavior goes unnoticed.
 - **Recommendation**: add tests with `foreach` over a `List<Action>` that assert `ArgumentOutOfRangeException` for `pageSize=0` and `offset=-1`.
-- **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. `dotnet-backend-dev:create-tests` documents this pattern for constructor guards and over a `List<Func<Task>>` for method guards. It has no rule for range guards, so the fixer followed the existing guard tests of `TenantRepositoryTests` and did not adopt the `[TestCase]` direction. The finding itself, the missing coverage, is fully resolved.
+- **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. `dotnet-backend-dev:create-tests` documents `foreach` over a `List<Action>` for constructor guards and over a `List<Func<Task>>` for method guards. It has no rule for range guards, so the fixer followed the existing guard tests of `TenantRepositoryTests` and did not adopt the `[TestCase]` direction. The finding itself, the missing coverage, is fully resolved.
 
 ### 3 High — IServiceScopeFactory injection claimed as DI anti-pattern
 

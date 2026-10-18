@@ -61,7 +61,7 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
    - `ThrowIfValueIsOutOfRange()` for numeric constraints
    - Add XML docs with `<exception>` tags
 
-5. **Keep the generated `Equals`, `GetHashCode`, and `ToString` of the record**, unless a case in [domain-models.md](../dotnet-conventions/domain-models.md) ("When to override") applies. The generated equality compares strings with ordinal, case-sensitive rules. If a model needs another comparison, override `Equals` and `GetHashCode` explicitly. If a case applies, override `Equals` and `GetHashCode` together with the same field set and comparers, and build `ToString()` with `StringBuilder`.
+5. **Keep the generated `Equals`, `GetHashCode`, and `ToString` of the record**, unless a case in [domain-models.md](../dotnet-conventions/domain-models.md) ("When to override") applies. The generated equality compares strings with ordinal, case-sensitive rules. If a model needs another comparison, that is the "explicitly asks" case of `domain-models.md`, and you override `Equals` and `GetHashCode` explicitly. If a case applies, override `Equals` and `GetHashCode` together with the same field set and comparers, and build `ToString()` with `StringBuilder`.
 
 6. **Create unit tests** extending `BaseEqualityMemberTests<T>` (see create-tests skill)
 

@@ -100,13 +100,13 @@ Parse the flags. Resolve the Claude config root with the path resolution rule ab
 
 **Non-resume runs** (no `--resume=<path>`): if the user gave `--marketplace=`, use it. Else, auto-detect the current working tree by its `.claude-plugin/marketplace.json`. If neither resolves, STOP and ask.
 
-**`--resume=<path>` runs**: load the TODO file first. Then resolve the marketplace root with the first of these steps that applies:
+**`--resume=<path>` runs**: load the TODO file first. If the TODO has no `Marketplace remote` field, STOP and ask, on every path below. Precondition A (9c.2, step 8) compares the remote with that field, and the compare always fails for an empty field. Then resolve the marketplace root with the first of these steps that applies:
 
 0. If the TODO has no `Marketplace root` field (an old TODO file), resolve as in a non-resume run: `--marketplace=`, else auto-detect in the current working tree. If neither resolves, STOP and ask.
 1. If `--marketplace=` is given, and `git -C <supplied> config --get remote.origin.url` matches the persisted `Marketplace remote`, use the given path. It is the same repo in another clone location. Show the match.
 2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, STOP and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
 3. If the persisted `Marketplace root` exists on disk, use it. Precondition A in 9c.2 still checks its remote again.
-4. If `--marketplace=` is given and the TODO has no `Marketplace remote`, STOP and ask. Precondition A (9c.2) compares the remote with that field, and the compare always fails for an empty field. If the given clone has no `origin` remote, STOP and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
+4. If the given clone has no `origin` remote, STOP and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
 5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. On a resume run, never fall back to auto-detect in the current working directory.
 
 Before you build the project set, read `references/source-inventory.md`. Build the project set from `--projects` with its decode-and-probe procedure and its worktree-sibling collapse. Before you read any source file, show the resolved scope to the user:
@@ -114,7 +114,7 @@ Before you build the project set, read `references/source-inventory.md`. Build t
 - The scope tokens.
 - The project count, the worktree-collapse count, and the encoded names that did not resolve.
 - The marketplace path and name.
-- The source of the marketplace root: persisted-unchanged, explicit-override-remote-matched, override-with-warning, or user-supplied-after-ask.
+- The source of the marketplace root: persisted-unchanged, explicit-override-remote-matched, or user-supplied-after-ask.
 - The target plugin, or "none".
 
 ### Phase 1 — Inventory (read-only)
