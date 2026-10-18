@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `.gitattributes`: new file. GitHub counts the `.md` files in the language statistics, so the main language of the repository is Markdown, not Python (issue #52).
+
 ## dev-essentials 3.2.2 and dotnet-backend-dev 1.4.2 in release [3.2.2] - 2026-10-18
 
 This release reviews each lint exception of the repository (issue #49). Text rewrites and a fix in the lint test remove 14 of the 23 entries of the simple-english baseline. The 9 entries that stay name the reason that no rewrite can remove them. Two markdownlint rule changes go away.
