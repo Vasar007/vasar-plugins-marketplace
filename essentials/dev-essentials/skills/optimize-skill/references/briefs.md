@@ -112,6 +112,7 @@ Follow its executor section. Each "Decision:" line under an item wins over the i
    Keep the line endings of each file. Create new files with the Write tool. Change the help
    text of a script, not its code. If an item is PARTIAL or REJECT, or its Decision line picks
    an alternative, adjust the commit message and the CHANGELOG line to match, and report it.
+   Delete only the files that the plan or a Decision line names for deletion.
 3. Run every pointer grep of the executor section. Compare each result with its expected
    result.
 4. Report the SKILL.md word count and character count with wc -c -w.
@@ -174,6 +175,7 @@ report is {REVIEW_REPORT}. Fix only these findings:
 
 1. Edit existing files with the Edit tool, not with sed -i or a script that rewrites a file.
    Keep the line endings of each file. Change the help text of a script, not its code.
+   Delete only the files that an accepted finding names for deletion.
 2. Run the pointer greps of the executor section in {AUDIT_REPORT} again.
 3. Report the SKILL.md word count and character count with wc -c -w.
 4. Run the validators of the executor section in {AUDIT_REPORT}, and its test command if it

@@ -70,7 +70,7 @@ These rules apply in all modes:
 - If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
-By default, the run decides each open item (step 2) and each disputed finding (step 6) itself, as `--autonomous` does. This replaces the rule above that asks about a critical decision without `--autonomous`. The run lists them under "Decisions for your review". With `--interactive`, it asks the user. The run never pushes and never posts. It stops and asks before it deletes a file that it did not create. An earlier approval of the user or `--autonomous` removes that stop.
+By default, the run decides each open item (step 2) and each disputed finding (step 6) itself, as `--autonomous` does. This replaces the rule above that asks about a critical decision without `--autonomous`. The run lists them under "Decisions for your review". With `--interactive`, it asks the user. The run never pushes and never posts. It stops and asks before it deletes a file that this run or its agents did not create. An earlier approval of the user or `--autonomous` removes that stop.
 
 ## Rules for the whole run
 
@@ -149,7 +149,7 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 4. Record the base commit and the branch: `git -C "<repo>" rev-parse HEAD` and `git -C "<repo>" rev-parse --abbrev-ref HEAD`. Run `git -C "<repo>" status --porcelain -- "<target files>"`. If the output lists a target file, stop and ask.
 5. Build the Settled list from the request, the `--settled` file, and the source of truth. Each line names the decision and its source.
 6. Find the earlier audits and plans of the target in the report folder and in the source of truth. The auditor must not repeat or undo their items.
-7. Look for `simple-english:simple-english` in the list of available skills.
+7. Look for `simple-english:simple-english` in the list of available skills. If it is not installed, make sure that the fallback file of rule 6 exists. If it does not, stop and ask.
 8. Write the scope in chat: the target files with their sizes (`wc -c -w`), the report folder, the base commit, and the branch. Also write the Settled list, the earlier audits, and the models. With `--interactive`, wait for the user's OK. Else continue.
 
 ### Step 1. Audit and plan
@@ -168,8 +168,9 @@ changed on purpose" list. If a part is missing, send the auditor the list of gap
 2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
 3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. With `--interactive`, ask the user instead.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
-5. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
-6. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
+5. If an item deletes a file that this run did not create, ask the user before step 3. If the user approved that deletion earlier or the run has `--autonomous`, do not ask.
+6. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
+7. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
 
 ### Step 3. Apply
 

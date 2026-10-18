@@ -20,7 +20,7 @@ Guideline set 2, `claude-md-management:claude-md-improver`: its `SKILL.md`, `ref
 
 History: the earlier audit `<notes>/earlier-audit.md` (D-01 to D-14, applied in an earlier commit). No item below repeats or undoes a D item. O-02 keeps the D-11 resume list and moves it. O-05 keeps the D-07 progress-file text.
 
-Token figures are estimates: characters divided by 4. Not confirmed: exact token counts. I did not run a tokenizer. Where I looked: `wc -c` and `wc -w` on the files, and on draft files in the session scratchpad.
+Token figures are estimates: characters divided by 4. Not proven: exact token counts. I did not run a tokenizer. Where I looked: `wc -c` and `wc -w` on the files, and on draft files in the session scratchpad.
 
 ## Summary
 
@@ -49,7 +49,7 @@ No Frontmatter item. The skill `description` is 526 characters and starts with t
 | After the plan, whole file | ~2,950 | ~17,935 | ~4,480 |
 | After the plan, body without frontmatter | ~2,830 | ~16,800 | ~4,200 |
 
-The "after" values come from a full draft of the new file in the session scratchpad. They are estimates. Not confirmed: whether the re-attached part after compaction counts the frontmatter. The whole file is under 5,000 tokens at 4 characters for each token. If the real ratio is 3.6 characters for each token, the whole file is ~4,980 tokens and the body is ~4,670 tokens.
+The "after" values come from a full draft of the new file in the session scratchpad. They are estimates. Not proven: whether the re-attached part after compaction counts the frontmatter. The whole file is under 5,000 tokens at 4 characters for each token. If the real ratio is 3.6 characters for each token, the whole file is ~4,980 tokens and the body is ~4,670 tokens.
 
 Why the size matters here: a default run has 5 hunters that each take 25 to 60 minutes (`pauses.md:20`). The orchestrator context compacts in most runs. Today, Claude Code keeps the first ~20,000 characters of `SKILL.md`. That cut falls inside step 4. So the run loses steps 5, 6, and 7 and "Failure handling" at the time it needs them. After the plan, every step survives compaction.
 
@@ -213,7 +213,7 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
 - Guideline: claude-md-improver Actionability. simple-english rule 8 (one word, one meaning in a document).
 - Problem: Rule 5 says "At the end, delete only the paths that you recorded". Then, two sentences later, it says "Delete your temporary files at the end." The recorded paths are the paths outside the work folder. A reader can take "only" to cover the work folder too and keep its temporary files. Failure scenario: a verifier keeps the build output in its work folder. The structure check prints a WARN line for files left in work folders, and the reply says that it did not delete them. No data is lost, because step 6 deletes the scratch folder. The cost is a WARN and a confused report.
 - Estimated saving: None.
-- Fix plan: In both files, replace "At the end, delete only the paths that you recorded". The new text is "At the end, delete these recorded paths, and nothing else outside your work folder."
+- Fix plan: In both files, replace "At the end, delete only the paths that you recorded". The new text is "At the end, delete these recorded paths, and nothing else outside your work folder".
 - Risk: None.
 
 ## Executor section
