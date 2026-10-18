@@ -19,7 +19,7 @@ other sources.
 ## What to look for
 
 - A `SKILL.md` over 5,000 tokens. Claude Code keeps only the first 5,000 tokens of an invoked skill after compaction. Move the text of one step into a reference file, and read that file at that step.
-- The same rule in several files. Give it one home and pointers. But an agent file stays self-sufficient, because the agent does not see the skill.
+- The same rule in several files. Give it one home and pointers. But an agent file stays self-sufficient, because the agent does not see the skill. No item edits a `CLAUDE.md` file.
 - A rule that an agent cannot break anyway, for example a rule against a tool that the agent does not have.
 - Text that restates what the model does without the text.
 - Text that two readers follow in two ways. Give the failure scenario: two readers, two actions.
@@ -70,6 +70,6 @@ The executor section has these parts:
 
 - Order of edits: create new files first. Then edit each file from the bottom up, so that the line numbers of the plan stay valid.
 - Pointer greps: one command for each moved block and each new link, with the expected result in a comment. Include a test that every reference link resolves. Include a test that no pointer to a removed section is left. Include the `wc -c -w` of `SKILL.md` with the expected size.
-- Validators and line ends: `claude plugin validate` for the marketplace and for the plugin, and `git ls-files --eol` for the changed files. No file can show `w/mixed`.
+- Validators and line ends: `claude plugin validate` for the marketplace and for the plugin, only for a target in a plugin (else "none"). Also the test command that the repository documents (README or CLAUDE.md), or "none". Also `git ls-files --eol` for the changed files. No file can show `w/mixed`.
 - CHANGELOG and version: the line and the version bump that the rules of the repository ask for, or "none".
 - Commit: one commit with an explicit pathspec and the full message. The message follows the rules of the repository.

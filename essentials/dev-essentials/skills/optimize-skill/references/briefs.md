@@ -11,9 +11,11 @@ full. If `{RESUME_NOTE}` or `{DEFECTS}` is empty, leave out its line.
 | --- | --- |
 | `{SKILL_DIR}` | Absolute path of this skill folder (`${CLAUDE_SKILL_DIR}`) |
 | `{REPO}` | Absolute path of the repository that holds the target |
-| `{TARGET}` | The name of the target skill |
+| `{TARGET}` | The folder name of the target skill (no colon) |
+| `{ROLE}` | The role of the agent: `auditor`, `applier`, `reviewer`, or `review-fixer` |
 | `{TARGET_FILES}` | Absolute paths of the target files, one on each line |
 | `{BASE_SHA}` | The full SHA of the base commit from step 0 |
+| `{BRANCH}` | The branch from step 0 |
 | `{APPLY_SHA}` | The full SHA of the step-3 commit |
 | `{REPORT_DIR}` | Absolute path of the report folder |
 | `{AUDIT_REPORT}` | `{REPORT_DIR}/optimization-audit-{TARGET}.md`. If the file exists, add the date: `optimization-audit-{TARGET}-<YYYY-MM-DD>.md`. |
@@ -52,8 +54,10 @@ An earlier agent of this role stopped. Read your progress file first and continu
 Common rules, pasted into every brief:
 
 ```text
-Do this work yourself. Do not dispatch subagents. Keep a progress file at
-{REPORT_DIR}/_optimize-skill-progress-<role>.md with a STATUS line, a checklist, a ## Log,
+Do this work yourself. Do not dispatch subagents. Never edit a CLAUDE.md file. Before the
+first write, make sure that git -C "{REPO}" rev-parse --abbrev-ref HEAD prints {BRANCH}. If it
+does not, stop and reply. Keep a progress file at
+{REPORT_DIR}/_optimize-skill-progress-{ROLE}.md with a STATUS line, a checklist, a ## Log,
 and a ## NEXT with the single next action. Update it after each step. Delete it as your last
 action. Mark every claim that you did not confirm with "Not confirmed:" and say where you
 looked. Never change a decision on this Settled list:
@@ -106,14 +110,17 @@ Follow its executor section. Each "Decision:" line under an item wins over the i
    before the first edit.
 2. Edit existing files with the Edit tool, not with sed -i or a script that rewrites a file.
    Keep the line endings of each file. Create new files with the Write tool. Change the help
-   text of a script, not its code.
+   text of a script, not its code. If an item is PARTIAL or REJECT, adjust the commit message
+   and the CHANGELOG line to match the classes, and report the change.
 3. Run every pointer grep of the executor section. Compare each result with its expected
    result.
 4. Report the SKILL.md word count and character count with wc -c -w.
-5. Run the validators of the executor section. Run git ls-files --eol on the changed files
-   after git add. No file can show w/mixed.
-6. Make one local commit with an explicit pathspec and the message of the executor section.
-   Follow the commit rules of the repository. Do not push. Then run git status --short.
+5. Run the validators of the executor section, and its test command if it names one. Run
+   git -C "{REPO}" ls-files --eol on the changed files after git -C "{REPO}" add. No file
+   can show w/mixed.
+6. Make one local commit with git -C "{REPO}" commit, an explicit pathspec, and the message of
+   the executor section. Follow the commit rules of the repository. Do not push. Then run
+   git -C "{REPO}" status --short.
 
 <common rules>
 {PLAIN_ENGLISH}
@@ -121,8 +128,8 @@ Follow its executor section. Each "Decision:" line under an item wins over the i
 {DEFECTS}
 
 Reply with the class of each item and the reason for each PARTIAL and REJECT, the output of
-each pointer grep, the word and character counts, the validator output, the commit SHA, and
-the git status output.
+each pointer grep, the word and character counts, the validator output, the test output, the
+commit SHA, and the git status output.
 ```
 
 ## Behavior reviewer brief
@@ -169,10 +176,12 @@ report is {REVIEW_REPORT}. Fix only these findings:
    Keep the line endings of each file. Change the help text of a script, not its code.
 2. Run the pointer greps of the executor section in {AUDIT_REPORT} again.
 3. Report the SKILL.md word count and character count with wc -c -w.
-4. Run the validators of the executor section in {AUDIT_REPORT}. Run git ls-files --eol on
-   the changed files after git add. No file can show w/mixed.
-5. Make one local commit with an explicit pathspec. The message names the finding IDs.
-   Follow the commit rules of the repository. Do not push. Then run git status --short.
+4. Run the validators of the executor section in {AUDIT_REPORT}, and its test command if it
+   names one. Run git -C "{REPO}" ls-files --eol on the changed files after
+   git -C "{REPO}" add. No file can show w/mixed.
+5. Make one local commit with git -C "{REPO}" commit and an explicit pathspec. The message
+   names the finding IDs. Follow the commit rules of the repository. Do not push. Then run
+   git -C "{REPO}" status --short.
 
 <common rules>
 {PLAIN_ENGLISH}
@@ -180,5 +189,5 @@ report is {REVIEW_REPORT}. Fix only these findings:
 {DEFECTS}
 
 Reply with the fix for each finding, the pointer grep output, the word and character counts,
-the validator output, the commit SHA, and the git status output.
+the validator output, the test output, the commit SHA, and the git status output.
 ```

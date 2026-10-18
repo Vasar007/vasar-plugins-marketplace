@@ -113,6 +113,18 @@ All report text and all new skill text follow the skill `simple-english:simple-e
 - Every dispatch is a single unnamed `Agent` call with `subagent_type: "general-purpose"`.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 
+### 8. Failures
+
+If an agent stops or a fact test fails, send the agent the resume note or the defects with
+`SendMessage`. If that fails, dispatch the role again with the same brief and `{RESUME_NOTE}`
+or `{DEFECTS}`. If the repair fails again, stop the run, keep all files, and report the failure
+under "Blocked on me".
+
+### 9. Shell
+
+The commands in this skill need a POSIX shell, git, and the `claude` CLI. On Windows, run them
+with the Bash tool (Git Bash), not with PowerShell.
+
 ## Agents and dispatches
 
 | Step | Role | Model | Writes |
@@ -130,9 +142,9 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 ### Step 0. Scope and the Settled list
 
 1. Resolve the target folder. It must be inside a git repository, not in a plugin cache. If it is not, stop and ask for the source folder.
-2. List the target files. For each `subagent_type` of the form `plugin:agent` in the target, add the agent file `agents/<agent>.md` of that plugin.
-3. Resolve the report folder. Do not guess it. Make sure that git does not track it: `git -C "<repo>" check-ignore -q "<report-dir>"` succeeds, or the folder is outside the repository.
-4. Record the base commit: `git -C "<repo>" rev-parse HEAD`. Run `git -C "<repo>" status --porcelain -- "<target files>"`. If the output lists a target file, stop and ask.
+2. List the target files. For each `subagent_type` of the form `plugin:agent` in the target, add the agent file `agents/<agent>.md` of that plugin. If the target is outside a plugin, take its agent files from `.claude/agents/` of the project.
+3. Resolve the report folder. Do not guess it. Make sure that git does not track it: `git -C "<repo>" check-ignore -q "<report-dir>/"` succeeds, or the folder is outside the repository. If neither holds, stop and ask.
+4. Record the base commit and the branch: `git -C "<repo>" rev-parse HEAD` and `git -C "<repo>" rev-parse --abbrev-ref HEAD`. Run `git -C "<repo>" status --porcelain -- "<target files>"`. If the output lists a target file, stop and ask.
 5. Build the Settled list from the request, the `--settled` file, and the source of truth. Each line names the decision and its source.
 6. Find the earlier audits and plans of the target in the report folder and in the source of truth. The auditor must not repeat or undo their items.
 7. Look for `simple-english:simple-english` in the list of available skills.
@@ -146,25 +158,32 @@ and writes the audit report in the form of
 
 When the auditor replies, make sure that the report exists and that each item has every field
 of the format. Also make sure that the report ends with the executor section and the "Not
-changed on purpose" list. If a part is missing, send the auditor the list of gaps with `SendMessage`.
+changed on purpose" list. If a part is missing, send the auditor the list of gaps (rule 8).
+
+Then run `git -C "<repo>" status --porcelain -- "<executor paths>"` on every path that the
+executor section names, for example the CHANGELOG or the manifest. If the output lists a path,
+stop and ask, because the pathspec commit takes the whole file.
 
 ### Step 2. Decide the open items
 
 1. List the open items.
-2. Decide each one from the source of truth (rule 3). Write the decision and its source under the item, as a line that starts with "Decision:".
-3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, keep the current behavior and list the item under "Decisions for your review" in the final report.
+2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. This includes an item that the user answers or that the autonomous choice decides. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
+3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, follow the Autonomy rule: choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. List the item under "Decisions for your review" in the final report.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
+5. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
+6. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
 
 ### Step 3. Apply
 
 Dispatch the applier with the applier brief. When it replies, do these fact tests yourself:
 
-- The commit exists, and `git show --stat <commit>` lists only the target files, the new reference files, and the CHANGELOG or manifest lines that the executor section names.
+- The commit exists, and `git -C "<repo>" show --stat <commit>` lists only the target files, the new reference files, and the CHANGELOG or manifest lines that the executor section names.
+- The base commit is the parent of the commit: `git -C "<repo>" rev-list --count <base>..HEAD` prints 1.
 - The reply has a class (APPLY, PARTIAL, or REJECT) for each item, and a reason for each PARTIAL and REJECT.
-- The reply has the output of every pointer grep, the `SKILL.md` word count, and the validator output.
+- The reply has the output of every pointer grep, the `SKILL.md` word count, and the validator output. If the executor section names a test command, the reply also has its output.
 - `git -C "<repo>" status --short` shows no other changed target file.
 
-If a fact test fails, send the applier the list of defects with `SendMessage`. Do not judge the
+If a fact test fails, send the applier the list of defects (rule 8). Do not judge the
 content of the edits. The behavior review does that.
 
 ### Step 4. Prepare the review
@@ -179,10 +198,10 @@ review report.
 
 ### Step 6. Fix the review findings
 
-1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3).
+1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3). With `--interactive`, show the triage and wait for the user's OK. Else continue.
 2. If no finding is accepted, skip the dispatch.
 3. Else dispatch the review fixer with the accepted findings. It makes the second commit.
-4. Do the fact tests of step 3 again for this commit. In place of a class for each item, the reply gives a fix for each accepted finding.
+4. Do the fact tests of step 3 again for this commit, with the step-3 commit in place of the base commit. In place of a class for each item, the reply gives a fix for each accepted finding.
 
 ### Step 7. Final report
 
