@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.2.0 in release [3.2.0] - 2026-10-18
+
+This release adds the skill `optimize-skill` (issue #26). It turns the pipeline that optimized `bug-hunt` and the other skills of this marketplace into a skill.
+
+### Added in dev-essentials
+
+- `optimize-skill`: a skill that optimizes one skill for tokens and clarity and keeps its behavior. An auditor (Opus by default) reads the skill docs, the best practices for skills, and the criteria of `claude-md-improver`. It writes an audit report with a fix plan for each item. The orchestrator decides the open items from the decisions of the user, not from the taste of the auditor. By default, it decides them without a stop and lists them for review. With `--interactive`, it asks. An applier (Sonnet by default) classifies each item APPLY, PARTIAL, or REJECT, applies the plan, and makes one local commit. A reviewer (Opus by default) then tests whether the skill still behaves the same. A fixer (Sonnet by default) applies the accepted findings in a second commit. The run never pushes. If `simple-english` is not installed, the run uses the plain-English fallback rules of `bug-hunt`.
+- `optimize-skill`: the reference files `audit-report-format.md` and `briefs.md`, and the worked example `examples/bug-hunt-audit.md`, an abridged copy of a real audit of `bug-hunt`.
+- `plugin.json`: the keyword `skill-optimization`.
+
+### Changed in the repository
+
+- `tests/simple-english-baseline.json`: one entry for the worked example, which quotes the settled terms of `bug-hunt`.
+
 ## dev-essentials 3.1.1, dotnet-backend-dev 1.4.1, and gop-pipeline 1.2.3 in release [3.1.1] - 2026-10-18
 
 When claude.ai synced the marketplace, it showed 5 warnings. This release removes them (issue #44). The release also adds the update steps to the README and cuts the text that repeated the documentation (issue #42).
@@ -495,7 +509,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.1...v3.0.2
