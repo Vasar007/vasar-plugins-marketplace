@@ -3,8 +3,9 @@ name: optimize-skill
 description: >-
   Optimize one Claude Code skill for tokens and clarity without a change in
   behavior. An Opus agent audits the skill and plans each fix. A Sonnet agent
-  applies the plan in one local commit. An Opus agent reviews whether the skill
-  still behaves the same. The run never pushes.
+  applies the plan in a local commit. An Opus agent reviews whether the skill
+  still behaves the same, and a Sonnet agent fixes what it finds in a second
+  local commit. The run never pushes.
 when_to_use: >-
   Use it for "optimize this skill", "cut the tokens of this skill", or "audit
   this skill against the skill docs". Do not use it to review a code change.
@@ -29,7 +30,7 @@ orchestrator decides open items from the source of truth, not from the taste of 
 - Item: one planned change in the audit report, with an ID such as `O-01`.
 - Settled list: the decisions of the user that the run must not change.
 - Source of truth: the files that record decisions of the user. Examples are memory files, `CLAUDE.md` files, earlier plans and audits, the CHANGELOG, and commit messages.
-- Open item: an item that offers a choice, or that changes behavior on purpose.
+- Open item: an item whose fix plan or risk offers a choice, or that changes behavior on purpose. Step 2 decides it.
 - Pointer grep: a `grep` command that proves that a moved text has one home and that every link to it resolves.
 - Behavior review: the step-5 review with one goal, "did the optimization keep behavior".
 - Progress file: a `_`-prefixed file where an agent records its steps, so that a new agent can resume after a crash.
@@ -94,30 +95,22 @@ not decide it, it is a critical decision (see "Autonomy").
 
 ### 4. Commits stay local
 
-The run makes at most two local commits: one at step 3 and one at step 6. Each commit names
-its files with an explicit pathspec. Follow the commit rules of the repository. Never push.
-Never edit a `CLAUDE.md` file.
+The run makes at most two local commits: one at step 3 and one at step 6. Never push. Never
+edit a `CLAUDE.md` file.
 
-### 5. Edits keep the file form
-
-Edit existing files with the Edit tool, not with `sed -i` or a script that rewrites the file.
-Keep the line endings of each file. Change the help text of a script, not its code.
-
-### 6. Mark what is not confirmed
+### 5. Mark what is not confirmed
 
 Every claim that an agent did not confirm starts with "Not confirmed:" and says where the
-agent looked. Token counts are estimates (characters divided by 4) unless a tokenizer ran.
+agent looked.
 
-### 7. Plain English
+### 6. Plain English
 
-All report text and all new skill text follow the skill `simple-english:simple-english`. If
-it is installed, every brief tells the agent to load it with the Skill tool. If it is not
-installed, every brief says to write short sentences in active voice with simple tenses.
+All report text and all new skill text follow the skill `simple-english:simple-english`.
 
-### 8. Dispatch
+### 7. Dispatch
 
 - Pass `model` on every dispatch. The user's explicit choice of a model always wins.
-- Every dispatch is a single unnamed `Agent` call with `subagent_type: "general-purpose"`. Every brief says "do this work yourself, do not dispatch subagents".
+- Every dispatch is a single unnamed `Agent` call with `subagent_type: "general-purpose"`.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
 
 ## Agents and dispatches
@@ -149,8 +142,7 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 
 Dispatch the auditor with the auditor brief. The auditor reads the guideline sources itself
 and writes the audit report in the form of
-[references/audit-report-format.md](references/audit-report-format.md). For a full worked
-report, see [examples/bug-hunt-audit.md](examples/bug-hunt-audit.md).
+[references/audit-report-format.md](references/audit-report-format.md).
 
 When the auditor replies, make sure that the report exists and that each item has every field
 of the format. Also make sure that the report ends with the executor section and the "Not
@@ -158,7 +150,7 @@ changed on purpose" list. If a part is missing, send the auditor the list of gap
 
 ### Step 2. Decide the open items
 
-1. List the open items: each item whose risk names an alternative, and each item that changes behavior on purpose.
+1. List the open items.
 2. Decide each one from the source of truth (rule 3). Write the decision and its source under the item, as a line that starts with "Decision:".
 3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, keep the current behavior and list the item under "Decisions for your review" in the final report.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
@@ -183,15 +175,14 @@ applier rejected an item that step 2 decided, add the item and the reason to the
 ### Step 5. Behavior review
 
 Dispatch the behavior reviewer with the reviewer brief. It runs one cycle and writes the
-review report. Each finding gives the file and line, why it is wrong, and how to show that it
-fails.
+review report.
 
 ### Step 6. Fix the review findings
 
 1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3).
 2. If no finding is accepted, skip the dispatch.
 3. Else dispatch the review fixer with the accepted findings. It makes the second commit.
-4. Do the fact tests of step 3 again for this commit.
+4. Do the fact tests of step 3 again for this commit. In place of a class for each item, the reply gives a fix for each accepted finding.
 
 ### Step 7. Final report
 

@@ -11,7 +11,7 @@ it uses:
 
 - The skill docs of Claude Code: <https://code.claude.com/docs/en/skills>. Use the sections on the listing budget, the types of content, and the lifecycle after compaction. Also use the troubleshooting advice and the section on supporting files.
 - The best practices for skills: <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>.
-- The criteria of the skill `claude-md-management:claude-md-improver`: its `references/quality-criteria.md` and `references/update-guidelines.md`. Apply the criteria to the skill files. Never run the write steps of that skill. Never change a `CLAUDE.md` file.
+- The criteria of the skill `claude-md-management:claude-md-improver`: its `references/quality-criteria.md` and `references/update-guidelines.md`. If the plugin is not installed, read the two files in the public repository: <https://github.com/anthropics/claude-plugins-official/tree/main/plugins/claude-md-management/skills/claude-md-improver/references>. Apply the criteria to the skill files. Never run the write steps of that skill. Never change a `CLAUDE.md` file.
 
 If a source cannot be read, the report says so in its Sources section, and the audit uses the
 other sources.
@@ -41,7 +41,7 @@ other sources.
 Write the sections in this order.
 
 1. Title and target: the target files and the base commit. Say that the audit changes no file.
-2. Sources: each source with its URL or path, the date of the reading, and the quoted passages. Also the earlier audits, and the statement that no item repeats or undoes one of their items. Also the method of the token estimates.
+2. Sources: each source with its URL or path, the date of the reading, and the quoted passages. Also the earlier audits, and the statement that no item repeats or undoes one of their items. Also the method of the token estimates: characters divided by 4, unless a tokenizer ran.
 3. Summary: a table with ID, title, category, and estimated saving. Then the `SKILL.md` size now and after the plan, in words, characters, and estimated tokens. Then why the size matters for this target.
 4. Items: one `### O-NN: <title>` section for each item, in the form below.
 5. Executor section: the order of the edits, the pointer greps, the validators and the line-ending rule, the CHANGELOG line, and the commit.

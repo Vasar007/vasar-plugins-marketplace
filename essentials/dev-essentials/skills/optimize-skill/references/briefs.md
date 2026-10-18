@@ -72,7 +72,9 @@ Target files:
 Repository: {REPO} at commit {BASE_SHA}. Read the help text of each script, not its code.
 
 1. Read {SKILL_DIR}/references/audit-report-format.md. It gives the guideline sources, what to
-   look for, the categories, the report sections, and the item form.
+   look for, the categories, the report sections, and the item form. Then read
+   {SKILL_DIR}/examples/bug-hunt-audit.md as the model of the report form. It is an audit of
+   a different skill.
 2. Read each guideline source yourself, and quote the passages that you use.
 3. Read the earlier audits and plans: {EARLIER_AUDITS}. Do not repeat or undo their items.
 4. Read every target file in full. Measure SKILL.md with wc -c -w.
@@ -164,10 +166,12 @@ report is {REVIEW_REPORT}. Fix only these findings:
 {FINDINGS}
 
 1. Edit existing files with the Edit tool, not with sed -i or a script that rewrites a file.
-   Keep the line endings of each file.
+   Keep the line endings of each file. Change the help text of a script, not its code.
 2. Run the pointer greps of the executor section in {AUDIT_REPORT} again.
-3. Run claude plugin validate for the marketplace and for the plugin.
-4. Make one local commit with an explicit pathspec. The message names the finding IDs.
+3. Report the SKILL.md word count and character count with wc -c -w.
+4. Run the validators of the executor section in {AUDIT_REPORT}. Run git ls-files --eol on
+   the changed files after git add. No file can show w/mixed.
+5. Make one local commit with an explicit pathspec. The message names the finding IDs.
    Follow the commit rules of the repository. Do not push. Then run git status --short.
 
 <common rules>
@@ -175,6 +179,6 @@ report is {REVIEW_REPORT}. Fix only these findings:
 {RESUME_NOTE}
 {DEFECTS}
 
-Reply with the fix for each finding, the pointer grep output, the validator output, the commit
-SHA, and the git status output.
+Reply with the fix for each finding, the pointer grep output, the word and character counts,
+the validator output, the commit SHA, and the git status output.
 ```
