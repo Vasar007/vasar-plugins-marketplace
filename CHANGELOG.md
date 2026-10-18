@@ -16,11 +16,11 @@ Many skills and commands have options that set a model, for example `--reviewer-
 ### Changed in dev-essentials
 
 - `review-loop` (issue #47): the phases, the audit-team adapter, and the examples name `--reviewer-model` and `--fixer-model` instead of Opus and Sonnet. The option table keeps the defaults.
-- `bug-hunt` (issue #47): a missing model of any role blocks the run, not only a missing Fable. The helper briefs no longer repeat the models of the dispatch table.
-- `process-pr-comments` (issue #47): the intro, `references/thread-state-schema.md`, and `references/deep-fix.md` no longer name the models of the stages. The dispatch table is their one home.
+- `bug-hunt` (issue #47): if the model of the hunter, the verifier, or the auditor is not available, step 0 asks a question. Before, only a missing Fable gave this question. The helper briefs no longer repeat the models of the dispatch table.
+- `process-pr-comments` (issue #47): the intro, the note under the dispatch table, `references/thread-state-schema.md`, and `references/deep-fix.md` no longer name the models of the stages. The dispatch table is their one home.
 - `implement-batch` and `research-implement-review-report` (issue #47): the steps name the role, for example "planner" or "implementer". The "Models" line is the one home of the models.
 - `audit-personal-conventions` (issue #47): the example of session review-loop defaults and the walkthrough no longer name models.
-- `audit-personal-conventions`, `git-worktree-management`, `implement`, `opsx-implement`, `process-pr-comments`, `save-context`, and `trim-artifacts` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. These workflows never pick Fable on their own. The rule stays in the workflows that can pick Fable, and its one home is "Model selection" in `subagent-orchestration`.
+- `audit-personal-conventions`, `git-worktree-management`, `implement`, `opsx-implement`, `process-pr-comments`, and `save-context` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. These workflows never pick Fable on their own. The rule stays in the workflows that can pick Fable, and its one home is "Model selection" in `subagent-orchestration`.
 
 ### Changed in gop-pipeline
 

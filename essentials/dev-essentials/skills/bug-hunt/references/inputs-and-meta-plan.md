@@ -66,7 +66,7 @@ Ask a question in these cases:
 - The report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file, and no resume applies. A new run then writes into the files of the old run.
 - The run context file or the final summary file exists, and no resume applies. Offer to reuse the context file, or to use the dated names `bug-hunt-context-<YYYY-MM-DD>.md` and `bug-hunt-final-summary-<YYYY-MM-DD>.md`.
 - The base branch is unknown. With `--interactive`, also: the GitHub repository is not approved.
-- The model of a role is not available, or a plugin agent type for the hunter, verifier, or auditor is not available.
+- The model or the plugin agent type of the hunter, the verifier, or the auditor is not available.
 - There is no known-issue source.
 
 ## Session progress file
