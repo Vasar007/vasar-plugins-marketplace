@@ -205,9 +205,8 @@ The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to dat
 - If `requirements` or `spec` runs again, clear both task-comment checkpoints, so that both comments post fresh summaries.
 - If a code, test, docs, review, or security stage runs again after Task Comment #2 was posted, clear only the checkpoint of Task Comment #2.
 - If Step 3 or a later stage will run and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
-- If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, post Task Comment #2 first.
+- If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, show Human Approve #2 first, also on a resume. "Autonomy" says how the gate works in the mode of this invocation. Then post Task Comment #2. If the field is set, run neither.
 - If Step 4 or a later stage will run and `buildGate.result` is not `pass` or `pass-after-retry`, run the Build Gate first.
-- If Step 9 will run, show Human Approve #2 first (as "Autonomy" says for the mode of this invocation), also on a resume. Then post Task Comment #2.
 - When you remove a stage from `completed`, remove its `stageStartSha` entry in the same write.
 
 ## Orchestration

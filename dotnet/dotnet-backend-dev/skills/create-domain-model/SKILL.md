@@ -44,6 +44,7 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
 
    ```csharp
    using System.ComponentModel.DataAnnotations;
+   using System.Numerics; // Only with the IEqualityOperators fallback.
    using System.Text; // Only when you override ToString.
    using MyApp.Framework.Assertions;
    using MyApp.Framework.Basic;

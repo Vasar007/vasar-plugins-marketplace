@@ -100,9 +100,9 @@ Parse the flags. Resolve the Claude config root with the path resolution rule ab
 
 **Non-resume runs** (no `--resume=<path>`): if the user gave `--marketplace=`, use it. Else, auto-detect the current working tree by its `.claude-plugin/marketplace.json`. If neither resolves, STOP and ask.
 
-**`--resume=<path>` runs**: load the TODO file first. If the TODO has no `Marketplace remote` field, STOP and ask, on every path below. Precondition A (9c.2, step 8) compares the remote with that field, and the compare always fails for an empty field. Then resolve the marketplace root with the first of these steps that applies:
+**`--resume=<path>` runs**: load the TODO file first. If the TODO has no `Marketplace remote` field, STOP, on every path below. Ask the user for the remote URL of the marketplace that the TODO was written for. Use the answer as the persisted `Marketplace remote` for this run, and write it into the TODO. If the user cannot name the URL, the TODO needs a new full run. Precondition A (9c.2, step 8) compares the remote with that field, and the compare always fails for an empty field. Then resolve the marketplace root with the first of these steps that applies:
 
-0. If the TODO has no `Marketplace root` field (an old TODO file), resolve as in a non-resume run: `--marketplace=`, else auto-detect in the current working tree. If neither resolves, STOP and ask.
+0. If the TODO has no `Marketplace root` field (an old TODO file), resolve as in a non-resume run: `--marketplace=`, else auto-detect in the current working tree. If neither resolves, STOP and ask. An old TODO has no `Marketplace remote` either, so the user gave it above. Then make sure that the remote of the resolved root matches that remote, as in step 1. If the remotes clearly differ, STOP and ask.
 1. If `--marketplace=` is given, and `git -C <supplied> config --get remote.origin.url` matches the persisted `Marketplace remote`, use the given path. It is the same repo in another clone location. Show the match.
 2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, STOP and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
 3. If the persisted `Marketplace root` exists on disk, use it. Precondition A in 9c.2 still checks its remote again.
