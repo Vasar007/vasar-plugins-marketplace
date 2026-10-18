@@ -15,13 +15,13 @@ This release adds the skill `optimize-skill` (issue #26). It turns the pipeline 
 
 ### Added in dev-essentials
 
-- `optimize-skill`: a skill that optimizes one skill for tokens and clarity and keeps its behavior. An Opus auditor reads the skill docs, the best practices for skills, and the criteria of `claude-md-improver`. It writes an audit report with a fix plan for each item. The orchestrator decides the open items from the decisions of the user, not from the taste of the auditor. A Sonnet applier classifies each item APPLY, PARTIAL, or REJECT, applies the plan, and makes one local commit. An Opus reviewer then tests whether the skill still behaves the same, and a Sonnet fixer applies the accepted findings in a second commit. The run never pushes.
+- `optimize-skill`: a skill that optimizes one skill for tokens and clarity and keeps its behavior. An Opus auditor reads the skill docs, the best practices for skills, and the criteria of `claude-md-improver`. It writes an audit report with a fix plan for each item. The orchestrator decides the open items from the decisions of the user, not from the taste of the auditor. By default, it decides them without a stop and lists them for review. With `--interactive`, it asks. A Sonnet applier classifies each item APPLY, PARTIAL, or REJECT, applies the plan, and makes one local commit. An Opus reviewer then tests whether the skill still behaves the same, and a Sonnet fixer applies the accepted findings in a second commit. The run never pushes. If `simple-english` is not installed, the run uses the plain-English fallback rules of `bug-hunt`.
 - `optimize-skill`: the reference files `audit-report-format.md` and `briefs.md`, and the worked example `examples/bug-hunt-audit.md`, an abridged copy of a real audit of `bug-hunt`.
 - `plugin.json`: the keyword `skill-optimization`.
 
 ### Changed in the repository
 
-- `tests/simple-english-baseline.json`: entries for the new skill. Most of them are quoted text in the worked example.
+- `tests/simple-english-baseline.json`: one entry for the worked example, which quotes the settled terms of `bug-hunt`.
 
 ## dev-essentials 3.1.1, dotnet-backend-dev 1.4.1, and gop-pipeline 1.2.3 in release [3.1.1] - 2026-10-18
 

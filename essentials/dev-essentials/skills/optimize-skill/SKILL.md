@@ -1,11 +1,9 @@
 ---
 name: optimize-skill
 description: >-
-  Optimize one Claude Code skill for tokens and clarity without a change in
-  behavior. An Opus agent audits the skill and plans each fix. A Sonnet agent
-  applies the plan in a local commit. An Opus agent reviews whether the skill
-  still behaves the same, and a Sonnet agent fixes what it finds in a second
-  local commit. The run never pushes.
+  Optimize one Claude Code skill for tokens and clarity, and keep its
+  behavior. The run audits the skill, applies the plan in local commits, and
+  makes sure that the skill still behaves the same. It never pushes.
 when_to_use: >-
   Use it for "optimize this skill", "cut the tokens of this skill", or "audit
   this skill against the skill docs". Do not use it to review a code change.
@@ -46,8 +44,8 @@ orchestrator decides open items from the source of truth, not from the taste of 
 | `--applier-model` | `sonnet` | The model of the applier |
 | `--reviewer-model` | `opus` | The model of the behavior reviewer |
 | `--review-fixer-model` | `sonnet` | The model of the review fixer |
-| `--interactive` | off | Stop at every decision gate. See "Autonomy". |
-| `--autonomous` | off | Stop at no gate. See "Autonomy". |
+| `--interactive` | off | Stop at every decision gate, and ask about each open item and each disputed finding. Without it, the run decides them itself. See "Autonomy". |
+| `--autonomous` | off | Do not stop at any gate. This includes the stop before a deletion that the user did not approve. The run still stops for a question that blocks the work. See "Autonomy". |
 
 ## Autonomy
 
@@ -68,10 +66,11 @@ These rules apply in all modes:
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
-- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
 - An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
 - If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
+
+By default, the run decides each open item (step 2) and each disputed finding (step 6) itself, as `--autonomous` does. This replaces the rule above that asks about a critical decision without `--autonomous`. The run lists them under "Decisions for your review". With `--interactive`, it asks the user. The run never pushes and never posts. It stops and asks before it deletes a file that it did not create. An earlier approval of the user or `--autonomous` removes that stop.
 
 ## Rules for the whole run
 
@@ -91,21 +90,24 @@ rejects an item that breaks it. The reviewer reports each change to it as a find
 
 At step 2 and step 6, decide each open item and each disputed finding from the source of
 truth. The taste of the auditor or the reviewer is not a reason. If the source of truth does
-not decide it, it is a critical decision (see "Autonomy").
+not decide it, it is a critical decision. "Autonomy" says who decides it.
 
 ### 4. Commits stay local
 
 The run makes at most two local commits: one at step 3 and one at step 6. Never push. Never
 edit a `CLAUDE.md` file.
 
-### 5. Mark what is not confirmed
+### 5. Mark what is not proven
 
-Every claim that an agent did not confirm starts with "Not confirmed:" and says where the
+Every claim that an agent did not prove starts with "Not proven:" and says where the
 agent looked.
 
 ### 6. Plain English
 
-All report text and all new skill text follow the skill `simple-english:simple-english`.
+All report text and all new skill text follow the skill `simple-english:simple-english`. If it
+is not installed, they follow the fallback rules of the skill `bug-hunt` in this plugin:
+`${CLAUDE_SKILL_DIR}/../bug-hunt/references/plain-english-fallback.md`. The final report says
+that the fallback was used.
 
 ### 7. Dispatch
 
@@ -164,7 +166,7 @@ changed on purpose" list. If a part is missing, send the auditor the list of gap
 
 1. List the open items.
 2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
-3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report.
+3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. With `--interactive`, ask the user instead.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
 5. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
 6. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
@@ -206,7 +208,7 @@ review report.
 Write one report in chat, in the language of the user's request. If the instructions of the
 user define an end-of-run report format, use it. Else use these three sections, in this order:
 
-1. Blocked on me: the critical decisions that wait for the user, and any failed fact test. If there are none, write "Nothing".
+1. Blocked on me: the questions that wait for the user, and any failed fact test. If there are none, write "Nothing".
 2. Changed: the two commits with their files, the audit report, the review report, and the `SKILL.md` size before and after (words and characters). Say that the run did not push.
 3. Found: the item counts by class, the rejected items with their reasons, the accepted and rejected review findings, and the lists that "Autonomy" asks for.
 

@@ -40,8 +40,8 @@ and follow its document rules. Do not reword text that the plan copies unchanged
 If simple-english is not installed, use this plain-English block:
 
 ```text
-Write short sentences in active voice with simple tenses. Use one word for one meaning. Do not
-reword text that the plan copies unchanged.
+Before you write any text, read {SKILL_DIR}/../bug-hunt/references/plain-english-fallback.md
+and follow its rules. Do not reword text that the plan copies unchanged.
 ```
 
 Resume note:
@@ -59,7 +59,7 @@ first write, make sure that git -C "{REPO}" rev-parse --abbrev-ref HEAD prints {
 does not, stop and reply. Keep a progress file at
 {REPORT_DIR}/_optimize-skill-progress-{ROLE}.md with a STATUS line, a checklist, a ## Log,
 and a ## NEXT with the single next action. Update it after each step. Delete it as your last
-action. Mark every claim that you did not confirm with "Not confirmed:" and say where you
+action. Mark every claim that you did not prove with "Not proven:" and say where you
 looked. Never change a decision on this Settled list:
 {SETTLED}
 ```

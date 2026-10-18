@@ -16,7 +16,7 @@ Guideline set 1, skill-doctor and the official skill authoring guidance. I read 
 - Supporting files: <https://code.claude.com/docs/en/skills> ("Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files").
 - Best practices: <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>. Used: "Concise is key" ("Does this paragraph justify its token cost?") and "Pattern 3: Conditional details". Also used: "Avoid deeply nested references" (one level deep from `SKILL.md`), "Use consistent terminology", and "Name files descriptively". Also used: the Tip under "Conditional workflow pattern" ("consider pushing them into separate files and tell Claude to read the appropriate file").
 
-Guideline set 2, `claude-md-management:claude-md-improver`: its `SKILL.md`, `references/quality-criteria.md`, and `references/update-guidelines.md` in the plugin cache. Criteria used: Conciseness ("Each line adds value", "No redundancy"), Actionability ("Steps are concrete"), Currency, the red flag "Duplicate info across multiple ... files", and the core principle "The context window is precious - every line must earn its place". I did not run its write steps. I did not change any `CLAUDE.md`.
+Guideline set 2, `claude-md-management:claude-md-improver`: its `SKILL.md`, `references/quality-criteria.md`, and `references/update-guidelines.md` in the plugin cache. Criteria used: Conciseness ("Each line adds value", "No redundancy"), Actionability ("Steps are concrete"), Currency, the red flag "Duplicate info across multiple ... files", and the core principle that every line in the context window must earn its place. I did not run its write steps. I did not change any `CLAUDE.md`.
 
 History: the earlier audit `<notes>/earlier-audit.md` (D-01 to D-14, applied in an earlier commit). No item below repeats or undoes a D item. O-02 keeps the D-11 resume list and moves it. O-05 keeps the D-07 progress-file text.
 
@@ -60,8 +60,13 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
 ### O-02: Resume check and failure handling load on every run
 
 - Category: Tokens
-- File:Line(s): `SKILL.md:186-201` (Pause points, Resume check), `:311-317` (Failure handling), `:138-139` (rule 6, "The resume check in this file"), `:149` (rule 7, "the restore case in 'Failure handling'"). `references/pauses.md:36-47` (job prompt).
-- Guideline: best practices, "Pattern 3: Conditional details" ("Claude reads REDLINING.md or OOXML.md only when the user needs those features"). skills#types-of-skill-content ("every line is a recurring token cost").
+- File:Line(s):
+  - `SKILL.md:186-201` (Pause points, Resume check)
+  - `SKILL.md:311-317` (Failure handling)
+  - `SKILL.md:138-139` (rule 6, "The resume check in this file")
+  - `SKILL.md:149` (rule 7, "the restore case in 'Failure handling'")
+  - `references/pauses.md:36-47` (job prompt)
+- Guideline: best practices, "Pattern 3: Conditional details". Its example loads a file such as REDLINING.md only for a user who needs that feature. skills#types-of-skill-content ("every line is a recurring token cost").
 - Problem: The resume check (1,735 characters) and "Failure handling" (1,071 characters) apply only after a crash, a restart, a pause, or a failed check. On a normal run, nobody needs them, but they cost tokens for the whole run. "Failure handling" is the last section, so after compaction it is the first text that Claude Code drops. Rule 6 also says "The resume check in this file". "This file" can mean the progress file, which the same sentence names, or `SKILL.md`.
 - Estimated saving: ~2,380 characters, ~600 tokens of `SKILL.md` on every run. The new file is ~2,800 characters, read only on a resume or a failure.
 - Fix plan:
@@ -139,7 +144,7 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
 - Category: Needless
 - File:Line(s): `SKILL.md:213` (step 0, part 4)
 - Guideline: skills#types-of-skill-content ("State what to do rather than narrating how or why"). Best practices, "Avoid time-sensitive information". claude-md-improver: "Verbose explanations". D-08 removed a similar version note.
-- Problem: Part 4 ends with "Not confirmed: the behavior on versions older than v2.1.292 (looked up in the sub-agents docs page, which gives only the minimum version of the per-call parameter)." This is an author's research note. It gives the orchestrator no action, and the version number goes stale. If the `effort` parameter is missing, the sentence before it already tells the orchestrator what to say.
+- Problem: Part 4 ends with a "Not confirmed:" note about the behavior on versions older than v2.1.292. The note says that the author looked in the sub-agents docs page. That page gives only the minimum version of the per-call parameter. This is an author's research note. It gives the orchestrator no action, and the version number goes stale. If the `effort` parameter is missing, the sentence before it already tells the orchestrator what to say.
 - Estimated saving: ~180 characters, ~45 tokens.
 - Fix plan: Leave the sentence out of the new file for part 4. The O-01 file text already does this.
 - Risk: None.
@@ -147,12 +152,12 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
 ### O-08: The lint-hook paragraph goes into every brief
 
 - Category: Tokens
-- File:Line(s): `references/agent-briefs.md:81-91` (plain-English block, when simple-english is installed), `references/report-format.md:196-200` ("Words"), `agents/bug-report-auditor.md:56` (checklist point 13)
+- File:Line(s): `references/agent-briefs.md:81-91` (the installed plain-English block), `references/report-format.md:196-200` ("Words"), `agents/bug-report-auditor.md:56` (checklist point 13)
 - Guideline: claude-md-improver red flag "Duplicate info across multiple ... files" and "every line must earn its place". The reasoning of D-03 (the orchestrator writes every brief as output, and every brief stays in its context).
 - Problem: The installed plain-English block has 11 lines (~594 characters) about the lint hook. The orchestrator pastes it into the collector brief and into each hunter, verifier, and auditor brief. A default run has 8 copies (1 collector, 5 hunters, 1 verifier, 1 auditor), plus one for each resume or repair. The text is the same in each copy. The hunters, verifiers, and auditor all read `report-format.md` first, and its "Words" section already talks about the lint hook. The block also tells the auditor "Fix only the hits in your own lines". Auditor checklist point 13 says "Fix the document-wide hits of the lint hook that other agents left". The auditor reads both.
 - Estimated saving: ~594 characters for each dispatch, ~4,750 characters (~1,190 tokens) of orchestrator context and output for each default run. The agents read the same text in `report-format.md`, so their input does not change.
 - Fix plan:
-  1. In `agent-briefs.md`, replace the code block under "### Plain-English block, when simple-english is installed" (lines 76-92) with:
+  1. In `agent-briefs.md`, replace the code block under the heading of the installed plain-English block (lines 76-92) with:
 
      ```text
      Before you write any report text, load the skill simple-english:simple-english with the
@@ -198,7 +203,7 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
      | Verifier part that ends at `BH-N` | `python3 -I "$C" report --report "$R" --scratch "$S" --areas-done <number of areas> --stage verify --verified-to N`, with the number only (`--verified-to 20` for `BH-20`) |
      ```
 
-  2. In `check_report.py:21-22`, in the module docstring, replace "--verified-to set to the last ID of the part" with "--verified-to set to the number of the last ID of the part, for example 20 for BH-20". Change only the docstring. Do not change code.
+  2. In the module docstring of `check_report.py:21-22`, replace "--verified-to set to the last ID of the part". The new text is "--verified-to set to the number of the last ID of the part, for example 20 for BH-20". Change only the docstring. Do not change code.
 - Risk: None. The script behavior stays the same.
 
 ### O-11: "Delete only the paths that you recorded" reads as "delete nothing else"
@@ -206,9 +211,9 @@ O-01 and O-02 move text. The orchestrator reads a moved file at the step that ne
 - Category: Unclear
 - File:Line(s): `agents/bug-hunter.md:26` (read-only rule 5), `agents/bug-verifier.md:25` (read-only rule 5)
 - Guideline: claude-md-improver Actionability. simple-english rule 8 (one word, one meaning in a document).
-- Problem: Rule 5 says "At the end, delete only the paths that you recorded." Two sentences later it says "Delete your temporary files at the end." The recorded paths are the paths outside the work folder. A reader can take "only" to cover the work folder too and keep its temporary files. Failure scenario: a verifier keeps the build output in its work folder. The structure check prints a WARN line for files left in work folders, and the reply says that it did not delete them. No data is lost, because step 6 deletes the scratch folder. The cost is a WARN and a confused report.
+- Problem: Rule 5 says "At the end, delete only the paths that you recorded". Then, two sentences later, it says "Delete your temporary files at the end." The recorded paths are the paths outside the work folder. A reader can take "only" to cover the work folder too and keep its temporary files. Failure scenario: a verifier keeps the build output in its work folder. The structure check prints a WARN line for files left in work folders, and the reply says that it did not delete them. No data is lost, because step 6 deletes the scratch folder. The cost is a WARN and a confused report.
 - Estimated saving: None.
-- Fix plan: In both files, replace "At the end, delete only the paths that you recorded." with "At the end, delete these recorded paths, and nothing else outside your work folder."
+- Fix plan: In both files, replace "At the end, delete only the paths that you recorded". The new text is "At the end, delete these recorded paths, and nothing else outside your work folder."
 - Risk: None.
 
 ## Executor section
