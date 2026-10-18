@@ -16,6 +16,10 @@ Run `/audit-team <path> [agent-count] [model]`. `<path>` is the target path that
 - `[model]`: the resolved `--reviewer-model` (Opus by default), so that the reviewer model really applies. **Exception**: leave the argument out for `--reviewer-model inherit`, and for an `--audit-team-args` value that already names a model. Then the "current model" default of `/audit-team` applies.
 - A value of the user for `[agent-count]` or `[model]` in `--audit-team-args` always wins over a value that this skill fills in.
 
+## Phase 3
+
+`/audit-team` builds its own role prompts. Phase 3 builds no reviewer brief for it and passes nothing but the arguments above. The Output and Conclusion mappings below turn its report into the Full format.
+
 ## Output mapping
 
 `/audit-team` returns 3 buckets, and this skill triages 6 severities. Map `Blockers` to **Blocker**, `Warnings` to **High**, and `Suggestions` to **Low**. Next to each mapped severity, record the bucket that it came from. Then Phase 4 can see that it was not a native grade of six levels.
@@ -34,7 +38,7 @@ The report of `/audit-team` has no section "Must fix before merge / Acceptable r
 
 Use the **agreement matrix** of `/audit-team` as the signal from several roles. A finding that several roles flag goes up. **Order of the rules**: an agreement of several roles raises a finding by one bucket only (Suggestion to Warning, Warning to Blocker). It never skips past Warnings, or Needs discussion, in one step. So a `Suggestion` that several roles flag goes to Needs discussion, not to Must fix. Only a `Warning` (or higher) that several roles flag goes to Must fix.
 
-**This built bucket only informs the written report**. It does not decide on its own whether a finding goes to Phase 5 or to the discussion addendum. The `blocking` decision of Phase 4, by severity and by merit, decides that. A `Warning` that maps to High gets `blocking: true` by default, which means "will fix", like any other High. The Conclusion bucket that this mapping gave it does not change that. `examples/spec-review.md` shows this. There, a High from a Warning goes under "Must fix before merge" in the built Conclusion, not under "Needs discussion". The severity default of Phase 4 decided the outcome.
+**This built bucket only informs the written report**. It does not decide on its own whether a finding goes to Phase 5 or to the discussion addendum. The `blocking` decision of Phase 4, by severity and by merit, decides that. A `Warning` that maps to High gets `blocking: true` by default, which means "will fix", like any other High. The Conclusion bucket that this mapping gave it does not change that. `examples/spec-review.md` shows this. There, #3 (a single-role `Warning`) maps to High and gets `blocking: true` by the severity default of Phase 4, so the fixer fixes it, although the built Conclusion puts it under Needs discussion.
 
 ## Phase 5, step 5a
 

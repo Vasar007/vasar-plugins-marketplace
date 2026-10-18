@@ -18,8 +18,9 @@ You will receive:
 > Assumes a .NET solution. The exact build command and project layout vary by repo. Find them, and do not hard-code paths.
 
 1. **Determine build scope**:
-   - For each modified `.cs` file, walk up from the file to the nearest `.csproj`. That is the affected project.
+   - For each modified file, walk up from the file to the nearest `.csproj`. That is an affected project. A modified `.csproj` is itself affected.
    - The modified files can touch shared infrastructure, for example `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`, central package management, or projects that many others reference. In that case, plan a full solution build.
+   - If the list of affected projects is empty and no shared infrastructure changed, build the solution.
    - Locate the solution file. Use the `*.sln` nearest to the repo root. If there are several, use the one that includes the affected projects.
 2. **Build single project(s) first** (skip this step for a change to shared infrastructure):
 

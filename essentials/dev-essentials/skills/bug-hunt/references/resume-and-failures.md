@@ -18,6 +18,6 @@ The orchestrator reads this file in three cases: the report folder holds `_bug-h
 ## Failure handling
 
 - If an agent stops on a usage limit or crashes, restore it as point 5 of the resume check says.
-- If a structure check fails, dispatch one repair agent of the same role. Give it the same brief and the repair note with the list of defects. If the check fails again, stop the run. Keep all files, and report the defects under "Blocked on me".
+- If a structure check fails after a hunter, a verifier, or the auditor, dispatch one repair agent of the same role. Give it the same brief and the repair note with the list of defects. If the check of step 1 or step 6 fails, dispatch that helper again with the same brief and no note. If the check of step 2 fails, fix the skeleton yourself. If a check fails again, stop the run. Keep all files, and report the defects under "Blocked on me".
 - If the collector cannot reach GitHub: without `--interactive`, continue with the notes files only, and write this limit into the Scope section. With `--interactive`, ask the user what to do. The user can reconnect the GitHub MCP server with `/mcp`, or continue with the notes files only. Do not fall back to another GitHub client.
 - If an agent reports a blocker, such as a missing snapshot, fix the cause with the right helper. Then dispatch the agent again.

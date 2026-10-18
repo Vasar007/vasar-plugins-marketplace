@@ -76,7 +76,7 @@ Never block on `[Optional]`. Never push back hard. Principle 5 of `review-princi
 
 ### `[Question]`
 
-The reviewer wants an explanation. A wrong public answer under the identity of the author can mislead reviewers. So without `autonomous`, never post a `[Question]` reply without an explicit go-ahead of a human. With `autonomous`, post the answer directly, in the same draft format (Bucket A2).
+The reviewer wants an explanation. A wrong public answer under the identity of the author can mislead reviewers. So without `autonomous`, never post a `[Question]` reply without an explicit go-ahead of a human. With `autonomous`, post the answer directly as an `**[AI]**` reply, with the same content as the draft format (a claim, the reasoning, and a citation), and without the draft-pending line (Bucket A2).
 
 - Read the related code before you answer. Do not build the answer from the comment alone.
 - Draft format: a claim, the reasoning, and a citation (file and line range, an existing test, or linked documentation).
@@ -106,7 +106,7 @@ Decision tree:
 Issue flow:
 
 1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a short brief: the comment text, the file and the line, the reason that it is out of scope, and each priority hint from other tags. Task Composer drafts the title and the description in chat. It writes no file and makes no GitHub call yet.
-2. Ask the user to approve the title and the type. With `autonomous`, skip this step: take the fields from the draft, and name them in the cycle log (Bucket A2).
+2. Ask the user to approve the title and the type. With `autonomous`, skip this step: take the title from the draft. If the reviewer or the user named a type, pass it. Else pass no type, and Task Composer leaves `type` out. Name the fields in the cycle log (Bucket A2).
 3. After the approval of the user, or with `autonomous`, invoke Task Composer again with `mode: create`, the approved fields, `owner`, and `repo`. Task Composer requires `owner` and `repo`. Pass them word for word, and never infer them (`dev-essentials:github-mcp-conventions` Rule 1). Task Composer creates the issue. If the brief gives a parent, Task Composer links the issue to it. Then it reads the issue back, and returns its ID and its URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which approves `mode: create`.
 4. Use ONLY the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 

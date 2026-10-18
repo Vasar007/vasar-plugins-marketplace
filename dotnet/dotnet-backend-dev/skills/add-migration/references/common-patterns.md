@@ -75,6 +75,7 @@ var totalBatches = (totalRecords + batchSize - 1) / batchSize;
 for (var batchIndex = 0; batchIndex < totalBatches; ++batchIndex)
 {
     var batch = await dbContext.LegacyRecords
+        .OrderBy(r => r.Id)
         .Skip(batchIndex * batchSize)
         .Take(batchSize)
         .ToListAsync(cancellationToken);
@@ -84,5 +85,26 @@ for (var batchIndex = 0; batchIndex < totalBatches; ++batchIndex)
     await dbContext.SaveChangesAsync(cancellationToken);
     
     _logger.LogInformation("Processed batch {Current}/{Total}.", batchIndex + 1, totalBatches);
+}
+```
+
+If the batch removes or changes the records that the query filters on, do not use `Skip`. The next page would skip records that the migration did not process. Take the next batch from the start instead:
+
+```csharp
+var batch = await dbContext.LegacyRecords
+    .OrderBy(r => r.Id)
+    .Take(batchSize)
+    .ToListAsync(cancellationToken);
+
+while (batch.Count > 0)
+{
+    // Process batch, and remove or change the records so that the query no longer returns them...
+
+    await dbContext.SaveChangesAsync(cancellationToken);
+
+    batch = await dbContext.LegacyRecords
+        .OrderBy(r => r.Id)
+        .Take(batchSize)
+        .ToListAsync(cancellationToken);
 }
 ```

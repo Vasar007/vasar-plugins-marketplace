@@ -109,24 +109,24 @@ Then, for each plan, run `dev-essentials:review-loop` with `target=spec <plan pa
 
 Collect the open decisions of all N plans, and each finding that a plan-review fixer did not resolve with confidence. If the list is empty, start Step 3 without a stop. Else, without `--autonomous`, ask the user all of them in one batch before Step 3. With `--autonomous`, decide each one as "Autonomy" says, write the decision into its plan, and start Step 3. Do not carry ambiguity into the implementation. The plan-review loops run without the routine triage stop. "Review-loop configuration" says which findings still reach the user.
 
-**Step 2 makes exactly one commit, before Step 3 starts.** The planners commit nothing. The N plan-review loops run one at a time and commit per cycle. When every plan is reviewed and every open question is answered or decided, squash all Step 2 commits into one:
+**Step 2 makes exactly one commit, before Step 3 starts.** The planners commit nothing. When the planners return, and before the first plan-review loop, stage the N plan files by explicit path, and commit them: `git -C "<worktree>" commit -m "Plans for <N> tasks"`. The N plan-review loops run one at a time and commit per cycle. When every plan is reviewed and every open question is answered or decided, stage the N plan files again by explicit path (a decision can change a plan after the loops). Then squash all Step 2 commits into one:
 
 ```bash
 git -C "<worktree>" reset --soft <BATCH_BASE_SHA>
 git -C "<worktree>" commit -m "Plans for <N> tasks (<N> plan reviews)"
 ```
 
-The squash-base safety stop of Step 3.6 applies. If Step 2 made no commit, there is nothing to squash. Say so, and make no empty commit. The squash of task 1 takes in this one commit (Step 3.1).
+The squash-base safety stop of Step 3.6 applies. The squash of task 1 takes in this one commit (Step 3.1).
 
 ### Step 3 — Per-task cycle (repeat for each of the N tasks, sequentially)
 
 For task `i`:
 
-1. **Record the base SHA of the task.** For task 1, `TASK_BASE_SHA[1] = BATCH_BASE_SHA` from Step 1, **not** a new `rev-parse`. So the Step 3.6 squash of task 1 also takes in the plans commit. For tasks 2 to N, `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
+1. **Record the base SHA of the task.** For task 1, `TASK_BASE_SHA[1] = BATCH_BASE_SHA` from Step 1, **not** a new `rev-parse`. So the Step 3.6 squash of task 1 also takes in the plans commit. For tasks 2 to N, `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`. Also record `REVIEW_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`. For task 1, this is the Step 2 plans commit, so the review of task 1 does not see the plans.
 2. **Implement.** Dispatch a **Sonnet** subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
 4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: the source and test changes of this task, and only the plan file of this task (`<plan-dir>/<this-task-slug>-plan.md`). Never stage the plan file of another task, also a dirty one.
-5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
+5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <REVIEW_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
 6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`:
 
    ```bash

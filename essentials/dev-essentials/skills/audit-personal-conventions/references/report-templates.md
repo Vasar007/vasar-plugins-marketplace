@@ -134,6 +134,19 @@ Manual TODOs:
 | # | Disposition | Rule | Why not now |
 |---|---|---|---|
 
+## Gates passed without a stop
+
+| Gate | Default taken | Saved to |
+|---|---|---|
+
+## Actions taken under --autonomous
+
+- <deletion / push / PR / post>, or "none"
+
+## Decisions for your review
+
+- <decision and why>, or "none"
+
 ## Commits
 
 <sha> <subject>   (local only — nothing pushed unless a Phase 9c push-gate said yes)

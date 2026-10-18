@@ -86,8 +86,8 @@ public sealed class TestCustomerAccountRepositoryBuilder
             .Returns(FindByPrimaryKeyInternal);
 
         // FindByAlternateKeyAsync - lookup by alternate key
-        repository.FindByAlternateKeyAsync(default, Arg.Any<CancellationToken>())
-            .ReturnsForAnyArgs(FindByAlternateKeyInternal);
+        repository.FindByAlternateKeyAsync(Arg.Any<AccountId>(), Arg.Any<CancellationToken>())
+            .Returns(FindByAlternateKeyInternal);
 
         // GetAllAsync - return all items
         repository.GetAllAsync(Arg.Any<CancellationToken>())

@@ -26,7 +26,7 @@ For a new entity `{EntityName}`, create:
 2. `src/{ProjectName}.Infrastructure/Persistence/{Feature}/Entities/{EntityName}EntityConfiguration.cs` - EF configuration
 3. `src/{ProjectName}.Infrastructure/Persistence/{Feature}/Entities/{EntityName}Mapper.cs` - Domain↔Entity mapper
 4. `src/{ProjectName}.Infrastructure/Persistence/{Feature}/{EntityName}Repository.cs` - Repository implementation
-5. `src/{ProjectName}.Application/Persistence/I{EntityName}Repository.cs` - Repository interface
+5. `src/{ProjectName}.Application/{Feature}/Repositories/I{EntityName}Repository.cs` - Repository interface
 
 ## Step 1: Entity Class
 
@@ -65,7 +65,7 @@ public sealed record {EntityName}Entity
 
 ## Step 2: Entity Configuration
 
-The example uses the Cosmos DB provider of EF Core (`ToContainer`, `HasPartitionKey`). For another database provider, use the storage configuration that the provider needs.
+The example uses the Cosmos DB provider of EF Core (`ToContainer`). For another database provider, use the storage configuration that the provider needs.
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -82,10 +82,9 @@ internal sealed class {EntityName}EntityConfiguration : IEntityTypeConfiguration
 {
     public void Configure(EntityTypeBuilder<{EntityName}Entity> builder)
     {
-        builder.ToContainer("{ContainerName}");
+        builder.ToContainer(DbStorages.{ServiceContainerConstant}); // document database provider only
         builder.ToTable("{LogicalTableName}"); // Logical table name for the entity
-        builder.HasPartitionKey(e => e.PartitionKey);
-        builder.HasKey(e => e.Id);
+        builder.HasUniversalKey(e => e.Id); // primary key (framework extension)
 
         // Configure owned types for embedded objects
         builder.OwnsMany(e => e.Items);
@@ -155,6 +154,10 @@ public interface I{EntityName}Repository : IRepository<{DomainModel}, {IdType}>
 }
 ```
 
+## Step 4b: Repository Implementation (Infrastructure layer)
+
+Implement `I{EntityName}Repository` in `{EntityName}Repository`. Follow the "Repository Pattern" section of [ef-patterns.md](../dotnet-conventions/ef-patterns.md). Create the mapper in the constructor with `new {EntityName}Mapper()`. Use Find + Update instead of `UpsertAsync`. Call `SaveChangesAsync` inside each mutation.
+
 ## Step 5: Register Repository in DI
 
 Register the repository standalone in `PersistenceDependencyInjection.cs`:
@@ -164,6 +167,14 @@ serviceCollection.AddScoped<I{EntityName}Repository, {EntityName}Repository>();
 ```
 
 The repository creates the mapper internally (`new {EntityName}Mapper()`). The mapper needs no separate DI registration.
+
+## Step 5b: Add the DbSet
+
+Add this property to `{ServiceName}DbContext`:
+
+```csharp
+public DbSet<{EntityName}Entity> {EntityName}s => Set<{EntityName}Entity>();
+```
 
 ## Step 6: Application Service (Optional)
 
@@ -221,7 +232,7 @@ Create tests for EF entities, mappers, repositories, and services:
 ## Checklist
 
 - [ ] Entity class with `required` properties
-- [ ] EntityConfiguration with container/partition key
+- [ ] EntityConfiguration with the service container (document database only) and the key
 - [ ] Mapper with ToEntity, ToDomain, UpdateEntity methods (see [model-mapping](../model-mapping/SKILL.md))
 - [ ] Repository interface extends `IRepository<>` in Application layer
 - [ ] Repository implementation in Infrastructure layer (creates mapper internally via `new TMapper()`)

@@ -93,11 +93,11 @@ Never run tests with `run_in_background: true` or an equivalent. Run tests in th
 
 ### Exception: a long test run in a subagent
 
-A foreground Bash command runs for at most 10 minutes by default. At its timeout, Claude Code moves the command to the background. A subagent must report the test result in the same run, so it cannot wait for a notification. Also, at the end of the run of a foreground subagent, its commands stop. If a subagent must report a test run that can take longer than 10 minutes, it does these steps:
+A foreground Bash command times out after 2 minutes by default. The `timeout` parameter raises this to at most 10 minutes (`600000`). At its timeout, Claude Code moves the command to the background. A subagent must report the test result in the same run, so it cannot wait for a notification. Also, at the end of the run of a foreground subagent, its commands stop. If a subagent must report a test run that can take longer than 10 minutes, it does these steps:
 
 1. Make a log folder outside the repository with `mktemp -d`.
 2. Start the run with `run_in_background: true` and a `timeout` that covers the run, at most 2 hours (`7200000`). Without a `timeout`, an unattended session stops a background command after 30 minutes. Send the output to a log file in that folder. Then write the exit code to an exit file in the same folder.
-3. Wait in foreground calls of less than 10 minutes each. Each call looks for the exit file in a loop with a short `sleep`. Do not end the run of the subagent before the exit file exists, unless step 5 applies.
+3. Wait in foreground calls. Give each call a `timeout` of at most `600000`, and make its loop exit before that time (for example, a bounded number of short `sleep` turns). Each call looks for the exit file in that loop. Do not end the run of the subagent before the exit file exists, unless step 5 applies.
 4. When the exit file exists, read the log file. Report the result from the exit code and the log only.
 5. If Claude Code reports that the background command stopped at its time limit, the exit file does not come. Stop the wait, report the test run as failed, and give that reason.
 

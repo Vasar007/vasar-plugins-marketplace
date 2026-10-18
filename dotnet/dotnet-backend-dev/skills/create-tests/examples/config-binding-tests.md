@@ -308,7 +308,8 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
     [Test]
     public void Bind_VersionSeeding_WithPartialNestedObject_ThrowsInvalidOperationException()
     {
-        // Arrange - VersionInfo has a required FailbackVersionLabel, so binding with partial properties fails.
+        // Arrange.
+        // VersionInfo has a required FailbackVersionLabel, so binding with partial properties fails.
         var json = """
             {
                 "MigrationOptions": {
@@ -320,7 +321,9 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
             }
             """;
 
-        // Act & Assert - Configuration binding requires all constructor parameters.
+        // Act & Assert.
+
+        // Configuration binding requires all constructor parameters.
         var act = BindOptionsFromJsonAction(json);
 
         VerifyMissingConfigParameterException(act, "failbackVersionLabel");
@@ -359,7 +362,9 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
         // Act.
         var options = BindOptionsFromJson(json);
 
-        // Assert - All basic properties.
+        // Assert.
+
+        // All basic properties.
         options.EnableMigrationEngine.Should().BeTrue();
         options.Timeout.Should().Be(TimeSpan.FromMinutes(15));
         options.FailOnError.Should().BeFalse();
@@ -368,7 +373,9 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
         options.UseReflectionDiscovery.Should().BeTrue();
         options.EnableVersionSeeding.Should().BeTrue();
 
-        // Assert - VersionInfo properties.
+        // Assert.
+
+        // VersionInfo properties.
         options.SeedDatabaseVersion.Should().NotBeNull();
         options.SeedDatabaseVersion!.Version.Should().Be(new Version("2.5.0.0"));
         options.SeedDatabaseVersion.FailbackVersionLabel.Should().Be("2.5.0");
@@ -385,7 +392,8 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
     [Test]
     public void Bind_EnvironmentVariables_BindsBooleanProperties()
     {
-        // Arrange - Simulates environment variable binding using key-value pairs.
+        // Arrange.
+        // Simulates environment variable binding using key-value pairs.
         var keyValuePairs = new[]
         {
             new KeyValuePair<String, String?>("MigrationOptions:EnableMigrationEngine", "true"),
@@ -405,7 +413,8 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
     [Test]
     public void Bind_EnvironmentVariables_BindsNestedObjects()
     {
-        // Arrange - Uses colon notation for nested properties.
+        // Arrange.
+        // Uses colon notation for nested properties.
         var keyValuePairs = new[]
         {
             new KeyValuePair<String, String?>("MigrationOptions:EnableVersionSeeding", "true"),
@@ -531,7 +540,8 @@ public void Bind_NestedObject_WithMissingRequiredParameter_Throws()
 [Test]
 public void Bind_EnvironmentVariables_BindsProperties()
 {
-    // Arrange - Uses colon notation for nested properties.
+    // Arrange.
+    // Uses colon notation for nested properties.
     var keyValuePairs = new[]
     {
         new KeyValuePair<String, String?>("MyOptions:IsEnabled", "true"),

@@ -96,7 +96,7 @@ Return the final outcome as your final output:
 - The commit that you created
 - Whether the branch was pushed
 - Whether a PR was created
-- The PR URL, where one exists
+- The PR URL, number, owner, and repository, where a PR exists
 
 ## Rules
 

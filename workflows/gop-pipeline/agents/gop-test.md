@@ -28,7 +28,7 @@ You will receive:
 3. **Build test project** before running tests:
 
    ```bash
-   dotnet build <path/to/TestProject.csproj> --no-restore --verbosity normal
+   dotnet build <path/to/TestProject.csproj> --verbosity normal
    ```
 
    If the build fails, report `test_status: BUILD_FAILED` with the build error output and exit.

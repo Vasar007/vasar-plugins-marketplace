@@ -88,14 +88,14 @@ public sealed class OrderProcessingScenarioTests : ScenarioBaseTest // project-s
     public async Task PlaceOrder_WithValidRequest_StoresOrderAndEmitsEvent()
     {
         // Arrange.
-        var paymentId = new PaymentId(Guid.NewGuid());
+        var paymentId = PaymentId.CreateNew();
         var payment = new Payment(amount: 100m, currency: "USD");
         _paymentGateway.AddPayment(paymentId, payment);
 
         var request = new PlaceOrderRequest(
             paymentId: paymentId,
-            userId: new UserId(Guid.NewGuid()),
-            name: new OrderName("my-order"));
+            userId: UserId.CreateNew(),
+            name: OrderName.FromValue("my-order"));
 
         // Act.
         var response = await Client.PostAsJsonAsync("/api/v1/orders", request);

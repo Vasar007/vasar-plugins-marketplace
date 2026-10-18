@@ -52,7 +52,7 @@ If the archive of step 2 did not run yet, run it before each worktree removal. T
 
 If the eligibility test fails, leave the worktree on disk, and skip the removal.
 
-If the removal can run, remove the worktree by `{WORKTREE_PATH}` (the absolute path from Step 0, sub-step 6), not by a hardcoded relative path. Run `git worktree remove {WORKTREE_PATH}`, then make sure with `git worktree list` that it is gone. If the removal fails with "Permission denied", do NOT assume an IDE file lock. Go through the ordered diagnosis of Workflow C of `dev-essentials:git-worktree-management` before you report to the user: a shell CWD parked in the worktree, then Windows long paths, then the leaf-first walkup. **Never force-remove.**
+If the removal can run, remove the worktree by `{WORKTREE_PATH}` (the absolute path from Step 0, sub-step 6), not by a hardcoded relative path. Run `git worktree remove {WORKTREE_PATH}`, then make sure with `git worktree list` that it is gone. If the removal fails with "Permission denied", do NOT assume an IDE file lock. Go through the ordered diagnosis of Workflow C of `dev-essentials:git-worktree-management` before you report to the user: a shell CWD parked in the worktree, then Windows long paths, then the leaf-first walkup. **Never run `git worktree remove --force`, and never force past a refusal for uncommitted changes.** The folder deletions of the diagnosis are allowed after `git worktree remove` succeeded.
 
 The keep-until-merged rule has its main text in the "Lifecycle Rule" section of `dev-essentials:git-worktree-management`.
 

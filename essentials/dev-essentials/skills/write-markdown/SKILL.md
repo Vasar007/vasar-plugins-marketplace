@@ -10,6 +10,8 @@ Create and maintain Markdown files that pass markdownlint validation with zero w
 
 ## Tooling Setup
 
+These are setup notes for the user. Do not install tools or create or change configuration files (`.markdownlint.json`, `.vscode/settings.json`) unless the user asks. Use the existing markdownlint configuration of the repo. If `markdownlint` is not installed, tell the user, and check the rules by hand.
+
 ### Editor Extension
 
 If the editor (for example, VS Code) has a markdownlint extension, install it. For VS Code, install the [vscode-markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) extension:
@@ -258,7 +260,7 @@ Content with inline HTML that requires disabling the rule.
 
 ## Configuration File
 
-Create `.markdownlint.json` in the project root, so that every run uses the same rules:
+If the user asks for a configuration and the repo has none, create `.markdownlint.json` in the project root, so that every run uses the same rules:
 
 ```json
 {

@@ -27,6 +27,8 @@ The master agent (you) runs 10 stages, each in its own subagent with a fresh con
 
 Every stage also gets the task context (`task-context.md`, injected). Stages 6, 7, and 8 run in parallel.
 
+The skill folder is `${CLAUDE_SKILL_DIR}`. The starter context file is `${CLAUDE_SKILL_DIR}/project-context.template.md`.
+
 Run order:
 
 1. Step 0: setup
@@ -45,7 +47,8 @@ Stages 5 and 7 need the external plugins `code-simplifier` and `feature-dev`. In
 
 ## Arguments
 
-- `$ARGUMENTS[0]`: the task ID, for example `TASK-123`. Required.
+- Arguments of this run: `$ARGUMENTS`
+- The first argument (`$ARGUMENTS[0]`): the task ID, for example `TASK-123`. Required.
 - `--dry-run`: make the plan only. Create no worktree and no branch, write no file, and run no stage.
 - `--no-worktree`: create no worktree. Work on the current branch in the current working directory.
 - `--start-from=<stage>`: resume the pipeline at the named stage.
@@ -120,7 +123,7 @@ Before you launch a stage, do these steps in order:
 1. Make sure that each file in the "Reads" column of the Overview table exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages. One exception: if `--skip` removed the `review` stage from the plan, `review.md` is not required. Launch the stage without it.
 2. Resolve the model. If this invocation has a `--model-override` entry for this stage, use it. Else use the entry of this stage in `models` of `pipeline-state.json`, from an earlier run. Else use the default model of the Overview table. Write the result into `models` (`{"<stage>": "<model>"}`). If an override of this invocation replaces a recorded entry, log the change. Pass the model in the `model` parameter of the `Agent` tool.
 3. For a commit-capable stage, write the output of `git rev-parse HEAD` into `stageStartSha` (`{"<stage>": "<sha>"}`). This records the branch tip at the start of the stage. A later resume uses it to find out whether HEAD moved while the stage was incomplete.
-4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages.
+4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages.
 
    ```md
    <project-context>
@@ -135,6 +138,10 @@ Before you launch a stage, do these steps in order:
    {the text of Safeguards 1, 2, and 3 from "Pipeline Discipline", word for word}
    </pipeline-discipline>
 
+   <worktree>
+   The project root is `{WORKTREE_PATH}`. Run every git command as `git -C "{WORKTREE_PATH}" ...`. Start every other shell command (build, test, lint, coverage, migration, push, PR) with `cd "{WORKTREE_PATH}" && `, because `cd` does not persist between Bash calls. Use absolute paths under `{WORKTREE_PATH}` for each Read, Edit, and Write.
+   </worktree>
+
    <clarifications>
    {each question of the stage, and its answer}
    </clarifications>
@@ -146,7 +153,7 @@ Before you launch a stage, do these steps in order:
    {text of the stage file}
    ```
 
-5. Replace the four placeholders in the composed prompt:
+5. Replace the four placeholders in the composed prompt, also in the `<worktree>` block:
    - `{TASK_ID}`: the task ID.
    - `{WORKTREE_PATH}`: the absolute path of the project root. This is the worktree path, or the current working directory with `--no-worktree`.
    - `{ARTIFACTS_DIR}`: the repository-relative folder for the pipeline artifacts, for example `tasks` or `Notes/Tasks`.
@@ -154,6 +161,8 @@ Before you launch a stage, do these steps in order:
 6. Make sure that no placeholder is left as a literal string in the composed prompt. `{CADENCE_LINE}` must also be gone. If one is left, stop, and name the placeholder and the stage.
 
 After each stage, run the output check (see "Output Validation"). Then update the checkpoint (see "Checkpoints").
+
+Read the final reply of each stage before the output check. A stage can report a STOP, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy"): ask the user in every mode, then run the stage again or stop.
 
 The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file. This includes a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
 
@@ -174,7 +183,7 @@ After each stage, and before you update the checkpoint, check the files that the
 | --- | --- |
 | `requirements.md` | `## 1. Task Summary`, `## 2. Scope`, `## 3. Acceptance Criteria`, `## 4. Technical Constraints`, `## 5. Open Questions & Recommendations`, `## 6. Risks & Considerations` |
 | `spec.md` | `## 1. Resolved Questions`, `## 2. Architecture Overview`, `## 3. Implementation Steps`, `## 4. Execution Order`, `## 6. Edge Cases & Error Handling` |
-| `test-plan.md` | `## 1. Test Strategy Overview`, `## 2. Test Cases`, `## 3. Tests for Existing Code`, `## 4. Coverage Expectations` |
+| `test-plan.md` | `## 1. Test Strategy Overview`, `## 2. Test Cases`, `## 3. Tests for Existing Code (regression)`, `## 4. Coverage Expectations` |
 | `review.md` | `## Blocking Issues`, `## Warnings`, `## Suggestions`, `## Summary` |
 | `security-review.md` | `## Blocking Issues`, `## Warnings`, `## Summary` |
 
@@ -197,6 +206,9 @@ The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to dat
 - If a code, test, docs, review, or security stage runs again after Task Comment #2 was posted, clear only the checkpoint of Task Comment #2.
 - If Step 3 or a later stage will run and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
 - If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, post Task Comment #2 first.
+- If Step 4 or a later stage will run and `buildGate.result` is not `pass` or `pass-after-retry`, run the Build Gate first.
+- If Step 9 will run, show Human Approve #2 first (as "Autonomy" says for the mode of this invocation), also on a resume. Then post Task Comment #2.
+- When you remove a stage from `completed`, remove its `stageStartSha` entry in the same write.
 
 ## Orchestration
 
@@ -259,7 +271,7 @@ Launch the stage `implementation`.
 
 The master agent runs this gate itself, without a subagent.
 
-1. Run the build command from the project context, for example the `dotnet build ...` line under Commands.
+1. Run the build command from the project context in the `{WORKTREE_PATH}` folder, for example the `dotnet build ...` line under Commands.
 2. If the build succeeds, update the checkpoint, and continue with Step 4.
 3. If the build fails:
    - Write the first 50 error lines of the build output to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`, with an instruction to fix the compilation only: no new features and no refactoring.
@@ -305,12 +317,13 @@ If the reviews have blocking issues, run a fix round in these cases:
 
 Fix round steps:
 
-1. Write the blocking issues of both reviews to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`. Then run the implementation stage again with this feedback (up to 1 retry).
-2. Remove these stages from `completed` in `pipeline-state.json`: `test-coverage`, `simplifier`, `docs`, `review`, `security-review`, and `finalization`. In the same write, set `"autoFixRound": true`. A missing key means `false`.
-3. Run Step 4 (Test Coverage) again.
-4. Run Step 5 (Code Simplifier) again.
-5. Run Steps 6, 7, and 8 again, in parallel.
-6. Go back to Human Approve #2 with the fresh review files. Show the gate even with open blocking issues.
+1. Remove these stages from `completed` in `pipeline-state.json`: `implementation`, `test-coverage`, `simplifier`, `docs`, `review`, `security-review`, and `finalization`. In the same write, set `"autoFixRound": true`. A missing key means `false`.
+2. Write the blocking issues of both reviews to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`. Then run the implementation stage again with this feedback (up to 1 retry).
+3. Run the Build Gate.
+4. Run Step 4 (Test Coverage) again.
+5. Run Step 5 (Code Simplifier) again.
+6. Run Steps 6, 7, and 8 again, in parallel.
+7. Go back to Human Approve #2 with the fresh review files. Show the gate even with open blocking issues.
 
 If the user approves, continue.
 

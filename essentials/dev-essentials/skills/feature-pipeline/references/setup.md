@@ -18,7 +18,7 @@ Before any task lookup or worktree creation, resolve a project-context document.
 2. The repository `CLAUDE.md` (fallback). Take what you can from `<repo-root>/CLAUDE.md`. Project Overview gives Repository. Build Commands gives Commands. Architecture and General Working Rules give Key Conventions.
 3. The user. For each required field that neither source gave, ask one question with the `AskUserQuestion` tool.
 
-This plugin ships a starter file at `${CLAUDE_PLUGIN_ROOT}/skills/feature-pipeline/project-context.template.md`. For a one-time setup, copy it to `<repo-root>/.claude/feature-pipeline-context.md`, and fill in the placeholders.
+This plugin ships a starter file, `project-context.template.md`, in the skill folder (the path that `SKILL.md` names). For a one-time setup, copy it to `<repo-root>/.claude/feature-pipeline-context.md`, and fill in the placeholders.
 
 Required fields. Resolve them before the rest of Step 0, from the file, from `CLAUDE.md`, or from the answers of the user:
 
@@ -76,7 +76,7 @@ If the MCP server cannot give the required capabilities, stop at once. If the MC
 
 With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no branch, runs no Pre-build command, and writes no file. Sub-steps 6, 7, 10, 11, and 12 say what to do instead. Sub-step 15 reports the result.
 
-1. Parse `$ARGUMENTS`. The task ID is `$ARGUMENTS[0]`. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, and `--autonomous`.
+1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). The task ID is the first argument. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, and `--autonomous`.
 2. Resolve the project context with the three sources above (explicit file, then `CLAUDE.md`, then questions to the user). Make sure that every required field has a value.
 3. Look at the MCP tools with the prefix from the project context. Pick the methods that give the required provider capabilities.
 4. Fetch the task details and the task comments through the MCP server.
@@ -106,7 +106,7 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
      >
      > Starting the pipeline authorises this worktree creation. Continuing…
 
-     Then run Workflow A of `dev-essentials:git-worktree-management` **in pipeline mode**. Pass the resolved path and branch explicitly. Say that the user already approved the worktree with the start of the pipeline. So the approval prompt of Workflow A Step 3 is already answered and must not block. Workflow A does the full bootstrap. It fetches the base branch. It runs `git worktree add` with the right case (A, B, or C) for a new branch, a local branch, or a remote-only branch. It unsets the upstream (`git branch --unset-upstream`), copies `.claude/settings.local.json` into the worktree, and creates `Notes/`. Do NOT do these steps inline. Run Workflow A, so that the full bootstrap runs every time. An ad hoc creation skips two of its steps: `--unset-upstream` and `mkdir -p Notes/`.
+     Then run Workflow A of `dev-essentials:git-worktree-management` **in pipeline mode**. Pass the resolved path, the branch, and the base branch from the project context explicitly. Say that Workflow A Step 2 must use this base branch, not `origin/HEAD`. Say also that the user already approved the worktree with the start of the pipeline. So the approval prompt of Workflow A Step 3 is already answered and must not block. Workflow A does the full bootstrap. It fetches the base branch. It runs `git worktree add` with the right case (A, B, or C) for a new branch, a local branch, or a remote-only branch. It unsets the upstream (`git branch --unset-upstream`), copies `.claude/settings.local.json` into the worktree, and creates `Notes/`. Do NOT do these steps inline. Run Workflow A, so that the full bootstrap runs every time. An ad hoc creation skips two of its steps: `--unset-upstream` and `mkdir -p Notes/`.
 
    After this sub-step, in both modes, every later file operation and every subagent prompt MUST use `{WORKTREE_PATH}` as the project root.
 7. If the project context has a Pre-build command, run it in the `{WORKTREE_PATH}` folder. If it fails, stop at once, because the build fails without it. With `--dry-run`, do not run it. Name it in the plan.
@@ -162,13 +162,15 @@ Before you say that the pipeline is ready for a new repository, make sure of the
 
 Static checks (run them from the root of the consumer repository):
 
+`<skill-folder>` is the skill folder that `SKILL.md` names.
+
 ```bash
 # Explicit context file (if present)
 cat .claude/feature-pipeline-context.md
 
 # Find any leaked project-specific tokens in the installed plugin's stage prompts
-rg --no-heading --line-number '<repo-specific-token-1>|<repo-specific-token-2>|<repo-specific-command>' "$CLAUDE_PLUGIN_ROOT/skills/feature-pipeline/stages"
+rg --no-heading --line-number '<repo-specific-token-1>|<repo-specific-token-2>|<repo-specific-command>' "<skill-folder>/stages"
 
 # List remaining placeholders in the SKILL file and stages
-rg --no-heading --line-number '\{[A-Z0-9_]+\}' "$CLAUDE_PLUGIN_ROOT/skills/feature-pipeline"
+rg --no-heading --line-number '\{[A-Z0-9_]+\}' "<skill-folder>"
 ```

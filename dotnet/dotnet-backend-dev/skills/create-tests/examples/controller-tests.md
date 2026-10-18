@@ -99,7 +99,8 @@ public sealed class CustomersControllerTests : WebApiBaseTest
     [Test]
     public async Task GetCustomersAsync_ReturnsOk_WhenNoCustomersFound()
     {
-        // Arrange - empty database (cleared in SetUp).
+        // Arrange.
+        // empty database (cleared in SetUp).
 
         // Act.
         var actualPage = await _customersClient.GetCustomersAsync(
@@ -175,14 +176,9 @@ public sealed class CustomersControllerTests : WebApiBaseTest
         return _customerGenerator.GenerateCustomerId();
     }
 
-    private static Rest.CustomerRegistrationRequest CreateTestRegistrationRequest()
+    private Rest.CustomerRegistrationRequest CreateTestRegistrationRequest()
     {
-        return new Rest.CustomerRegistrationRequest
-        {
-            Name = "test-customer",
-            CountryCode = "US",
-            StoreId = Guid.NewGuid(),
-        };
+        return _customerGenerator.GenerateRegistrationRequest();
     }
 }
 ```
@@ -285,6 +281,9 @@ await act.CustomShould().ContainBadRequest(expectedMessage);
 
 // Check for Conflict
 await act.CustomShould().ContainConflictError(expectedMessage);
+
+// Check for ServiceUnavailable (503) with specific message
+await act.CustomShould().ContainServiceUnavailableError(expectedMessage);
 ```
 
 ## Test Data Setup
@@ -311,7 +310,7 @@ Configure external service responses on `ExternalServicesMock` in the test case.
 
 ```csharp
 [Test]
-public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGateway()
+public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsServiceUnavailable()
 {
     // Arrange.
     ExternalServicesMock.LoyaltyClient.GetMemberAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("loyalty service unavailable"));
@@ -322,7 +321,7 @@ public async Task RegisterCustomer_WhenLoyaltyServiceReturnsError_ReturnsBadGate
     var act = () => _customersClient.RegisterCustomerAsync(request);
 
     // Assert.
-    await act.CustomShould().ContainBadGatewayError("loyalty service");
+    await act.CustomShould().ContainServiceUnavailableError("loyalty service");
 }
 ```
 

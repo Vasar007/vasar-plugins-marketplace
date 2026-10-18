@@ -116,7 +116,7 @@ The planner reads every file of its batch and writes one plan per batch. Use [re
 - Cross-file fixes for every reference that a deletion or a move breaks, and corrected counts.
 - Each tombstone with its file and a regex for `PATH:FIRST_LINE` (see step 7).
 
-The planner proves each anchor with a script. Then it makes two copies of the batch in a scratch folder, an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
+The planner proves each anchor with a script. Then it makes two copies of every file that the glob matches in the workspace, not only of its batch, in a scratch folder, an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
 Keep plans and scratch copies outside the workspace, so that the pass does not measure or trim them.
 
 Measure bytes, not lines. Joining lines is not a cut, because the bytes stay. Remove words instead. If a file stays above its target, the plan says why.

@@ -24,7 +24,7 @@ You will receive:
 
 ## Phase 1: Context Gathering
 
-1. **Load context**: read the plan file at `plan_file_path`. Run `git diff HEAD` to get the full diff of the staged and unstaged changes. Note the `change_summary`, `deviations_from_plan`, and `unresolved_concerns` from the implementation output.
+1. **Load context**: read the plan file at `plan_file_path`. Run `git diff HEAD` for the changes to tracked files, and `git ls-files --others --exclude-standard` for new files. Read each new file in full, and treat all of its content as added lines. Together, these are "the diff" in the rest of this file. Note the `change_summary`, `deviations_from_plan`, and `unresolved_concerns` from the implementation output.
 
 2. **Build a change graph**: for each file in `modified_files`, use Grep and Read to identify:
    - Every caller of the modified, added, or removed methods and functions (search the repo for the method names)

@@ -17,16 +17,16 @@ You will receive:
 
 ## Steps
 
-1. Change to the repo root directory: `cd <repo_root>`
-2. Run `git status` to find uncommitted changes (staged, unstaged, untracked).
+1. Run every git command of this file as `git -C <repo_root> ...`. A `cd` does not persist between Bash calls.
+2. Run `git -C <repo_root> status` to find uncommitted changes (staged, unstaged, untracked).
 3. If there are no changes at all, report "No changes to commit" and exit.
 4. Stage all changes EXCEPT CLAUDE.md files and plan files:
-   - Run `git add -A` to stage everything.
-   - Run `git reset HEAD -- "**/CLAUDE.md" "CLAUDE.md"` to unstage any CLAUDE.md files.
-   - Run `git reset HEAD -- ".claude/plans/*"` to unstage any plan files.
-5. Run `git diff --cached --stat` to see what is staged after the exclusions.
+   - Run `git -C <repo_root> add -A` to stage everything.
+   - Run `git -C <repo_root> reset -q HEAD -- ":(top,glob)**/CLAUDE.md" ":(top)CLAUDE.md"` to unstage any CLAUDE.md files.
+   - Run `git -C <repo_root> reset -q HEAD -- ":(top).claude/plans/"` to unstage any plan files.
+5. Run `git -C <repo_root> diff --cached --stat` to see what is staged after the exclusions.
    - If nothing is staged, report "No committable changes (only CLAUDE.md/plan files)" and exit.
-6. Run `git log --oneline -3` to see the style of the recent commits.
+6. Run `git -C <repo_root> log --oneline -3` to see the style of the recent commits.
 7. Create a commit with a concise message describing the staged changes.
    Use a HEREDOC for the commit message. If `warning_note` is not `None`, add its text to the message body as a separate paragraph, word for word.
    Keep the git user of the repository as the author and the committer. Do not pass `--author`, and do not change `user.name` or `user.email`. If `commit_trailer` is not `None`, end the message with its text, word for word. Else add no trailer and no other line that names Claude or Claude Code.

@@ -46,7 +46,7 @@ When the user requests documentation on a topic:
 
 **If the user does not EXPLICITLY say "publish", do NOT publish.**
 
-Get these values from the user. If a required value is missing, ask for it:
+Get these values from the user. If a required value is missing, stop, and put the question in your final reply, so that the caller asks the user:
 
 - Target platform, for example Confluence cloud, Confluence self-hosted, or Notion (required).
 - Page title or name (required).

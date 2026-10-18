@@ -8,8 +8,6 @@ Use this template to document the endpoints of one API resource. See `dotnet-bac
 - [List {Resources}](#list-resources)
 - [Get {Resource} by ID](#get-resource-by-id)
 - [Create {Resource}](#create-resource)
-- [Update {Resource}](#update-resource)
-- [Delete {Resource}](#delete-resource)
 - [Models and Responses](#models-and-responses)
 
 Brief description of the API resource and its purpose.

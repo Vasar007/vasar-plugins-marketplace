@@ -81,7 +81,7 @@ These rules apply in all modes:
    - Announce which task is being worked on.
    - **Follow existing patterns** in the codebase. Read the related files before you write new code.
    - **If unclear about something, ask the user**. Do NOT improvise. With `--autonomous`, decide as "Autonomy" says.
-   - Use the skills that fit the change type, for example `create-domain-model` and `create-tests`.
+   - Use the skills that fit the change type and the stack, for example `dotnet-backend-dev:create-domain-model` and `dotnet-backend-dev:create-tests` in a .NET repo with that plugin.
    - Mark each task complete in the plan file as you finish it: `- [ ]` → `- [x]`
 
 5. **Commit changes** (if `--commit` or `--commit-push`)

@@ -124,7 +124,7 @@ git status or any command that writes.
    area or to the excluded list.
 4. Exclude vendored third-party code, generated files, binary assets, and documentation that
    holds no code. Give a reason for each excluded path.
-5. Propose an order: shared libraries and core logic first, then the areas that use them,
+5. Propose an order and number the areas in it: shared libraries and core logic first, then the areas that use them,
    then build, installer, and CI. Later hunters can then use the notes of earlier ones.
 
 Reply in at most 40 lines: a table with number, name, slug, paths, file count, size in KB,

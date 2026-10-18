@@ -402,28 +402,11 @@ For grouping records, JSON parsing, progress logs, removal of legacy data, and b
 
 ### 6. Register New Entity Types in the DbContext
 
-If the migration adds new entity types, register each new type in `{ServiceName}DbContext`. Each new type needs a `DbSet` property, with every database provider. A document database also needs the container configuration.
+If the migration adds new entity types, register each new type in `{ServiceName}DbContext`. Each new type needs a `DbSet` property, with every database provider. A document database also needs an entity configuration that sets the container.
 
 **File**: `src/{ProjectName}.Infrastructure/Persistence/{ServiceName}DbContext.cs`
 
-**Container configuration** (document database only). The example uses the Cosmos DB provider of EF Core:
-
-```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    base.OnModelCreating(modelBuilder);
-
-    // Existing containers...
-
-    // New container for migration
-    modelBuilder.Entity<NewEntity>()
-        .ToContainer("NewEntities")
-        .HasPartitionKey(e => e.PartitionKey);
-
-    modelBuilder.Entity<NewEntity>()
-        .HasKey(e => e.Id);
-}
-```
+**Container configuration** (document database only). Give each new entity type an `IEntityTypeConfiguration<T>` as in Step 2 of [create-ef-entity](../create-ef-entity/SKILL.md). It uses the service container from `DbStorages` (see [ef-patterns.md](../dotnet-conventions/ef-patterns.md)).
 
 **DbSet property** (every database provider):
 
@@ -490,7 +473,7 @@ Cosmos DB does not enforce a schema, so:
 
 ### Container Configuration
 
-When adding new containers, configure in `OnModelCreating`:
+Use this section only when the partition key of an entity changes. It creates a separate container on purpose. The example uses the Cosmos DB provider of EF Core:
 
 ```csharp
 modelBuilder.Entity<MyNewEntity>()
@@ -553,7 +536,7 @@ modelBuilder.Entity<MyNewEntity>()
 - [ ] Added logging for start, progress, and completion
 - [ ] Handled CancellationToken properly
 - [ ] For new entity types, added a `DbSet` property to DbContext
-- [ ] For new entity types on a document database, added container configuration to DbContext
+- [ ] For new entity types on a document database, added an entity configuration that sets the service container
 - [ ] Created a test class that runs against each database provider (NUnit: `[TestFixtureSource]`)
 - [ ] Tested empty database scenario
 - [ ] Tested happy path (successful migration)

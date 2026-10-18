@@ -27,19 +27,13 @@ Reading full file... 412 lines loaded.
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
+`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team openspec/changes/2026-05-08-add-tenant-quotas/proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
 
 ---
 
 ## Phase 3 — Round 1 review
 
-The reviewer brief (from the section `spec <path>` of `references/reviewer-briefs.md`, in short form for this example):
-
-> You are reviewing a **specification or design document**, not code. Read it as a skeptical implementer who must build exactly what it says, nothing more and nothing less. Your job is to find gaps, ambiguities, and contradictions before anyone writes an implementation.
->
-> **Focus areas (in priority order):** Ambiguity, Undefined behavior, Missing error paths, Contradictions, Coverage gaps, Deferred decisions, Docs quality.
->
-> **Not in scope:** code quality, and whether an implementation matches this spec.
+`/audit-team` uses its own role prompts (see the adapter). The `spec` brief of `references/reviewer-briefs.md` is not passed.
 
 `audit-team` returns four findings. The adapter of Phase 2 maps them from the buckets Blockers, Warnings, and Suggestions:
 
@@ -212,9 +206,9 @@ An OpenSpec change proposal that adds a quota for each tenant, enforced by a sli
 
 ## Conclusion
 
-- **Must fix before merge**: #1, #2, #3
+- **Must fix before merge**: #1, #2
 - **Acceptable risks**: none
-- **Needs discussion**: #4 (the author makes the normative intent for the enforcement layer clear)
+- **Needs discussion**: #3 (Warning bucket, fixed this cycle as a High), #4 (the author makes the normative intent for the enforcement layer clear)
 
 ## Final verdict
 

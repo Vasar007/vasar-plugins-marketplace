@@ -130,14 +130,14 @@ Writing rules:
 
 ### 6. Save PR Description
 
-- Save the description as `Notes/PRs/PR-<branch-name-or-timestamp>.md`. If the `Notes/PRs/` folder does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
+- Save the description as `Notes/PRs/PR-<branch>.md`. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the `Notes/PRs/` folder does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
 - The file must be valid Markdown with the `.md` extension.
 - Tell the user the file path, and show the PR description for a quick review.
 - Name each artifact that you used in your final reply, with its path.
 
-## When to Ask for Help
+## When to Stop and Ask
 
-Ask the user in these cases:
+Stop, and put the question in your final reply, so that the caller asks the user, in these cases:
 
 - The agent cannot find the base branch (step 1).
 - The git diff shows **no changes** (stale branch).

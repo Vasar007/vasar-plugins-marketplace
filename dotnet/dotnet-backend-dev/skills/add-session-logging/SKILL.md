@@ -137,11 +137,12 @@ public async Task OnboardStoreAsync(
             request.StoreName
         );
 
-        // Session log (portal users - no exception text)
-        await _sessionLogRepository.CreateInformationAsync(
+        // Session log (portal users - a user-friendly message, the details in the details parameter)
+        await _sessionLogRepository.CreateErrorAsync(
             sessionId,
             StringResources.StoreOnboardingFailedMessage,
-            cancellationToken: cancellationToken
+            details: ex.ToString(),
+            CancellationToken.None
         );
 
         throw;
@@ -251,7 +252,7 @@ var message = StringResources.StoreCreatedMessage.SafeFormat(
 
 ### 3. Error Messages
 
-Session log errors must be user-friendly. Do not write a stack trace or the exception text (`ex.Message`) into a session log. Write the exception to `ILogger`:
+The `message` of a session log entry must be user-friendly: never put a stack trace or `ex.Message` in it. Pass `ex.ToString()` in the `details` parameter of `CreateErrorAsync`, as [logging.md](../dotnet-conventions/logging.md) shows. Write the exception to `ILogger` too:
 
 ```csharp
 // ✅ Good - user-friendly

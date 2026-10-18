@@ -104,6 +104,8 @@ Keep a task list with one entry for each phase (Research & Plan, Implement, Revi
 
 With `--skip-research`, skip this phase.
 
+If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that plan file as the plan of this run. Skip steps 2 to 4, and start Phase 2.
+
 1. Resolve each `--context=<path>` (the flag is repeatable). Without one, derive a context file as `dev-essentials:implement` does: from a plan-file argument, or from the auto-memory folder as a last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every research brief.
 2. Dispatch one or more **Opus** research subagents. They work from the real code, not from assumptions. They find out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. Pass the scope and context of the user verbatim into each brief. If the task splits in a natural way, dispatch several research subagents at the same time. For example: one on the production code path, one on the test coverage, and one on a permission or contract question.
 3. Dispatch an **Opus** planning subagent (the same dispatch as step 2, or a later one). It turns the research into a concrete plan: ordered tasks or phases, the exact files of each, and the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).

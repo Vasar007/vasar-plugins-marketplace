@@ -179,6 +179,7 @@ public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Optio
             .NotEmpty()
             .WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.EndpointUrl));
 
+        // Only if the options class has nested options (see "Example Options Class" below)
         // For nested options, use SetValidator
         RuleFor(x => x.NestedOptions).Cascade(CascadeMode.Stop)
             .NotNull().WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.NestedOptions))
@@ -244,7 +245,7 @@ internal static class ExtensionMethodsHostApplicationBuilder
 
 ```json
 {
-  "{Feature}": {
+  "{Feature}Options": {
     "TimeoutSeconds": 30,
     "MaxRetries": 3,
     "EndpointUrl": "https://api.example.com",
@@ -252,6 +253,8 @@ internal static class ExtensionMethodsHostApplicationBuilder
   }
 }
 ```
+
+The section name is the name of the options class. It is the same name that `ConfigureOptionsAndEnableValidation<T>()` binds.
 
 **NOTE**: These are **project-wide defaults**. Your deployment system (for example, Helm) must override the important options.
 
@@ -274,7 +277,7 @@ tenant:
 
 #### 2. Update deployment validation (if applicable)
 
-Add validation for the required values:
+Add validation for the required values. In this example, the deployment system maps the key `{Feature}Options__EndpointUrl` to the shell variable `FEATURE_OPTIONS_ENDPOINT_URL`. Use the variable names that your deployment system creates.
 
 ```bash
 if [ -n "$FEATURE_OPTIONS_ENDPOINT_URL" ]; then
@@ -308,6 +311,31 @@ Environment variables from the deployment system **override** appsettings.json v
 
 **TIP**: Use a computed property (for example, `Options => _options.Value`) as a shortcut instead of repeatedly accessing `.Value` or `.CurrentValue` throughout your code. This improves readability and reduces repetition.
 
+Inject `IOptionsMonitor<T>` (see [configuration.md](../dotnet-conventions/configuration.md)). Use `IOptions<T>` or `IOptionsSnapshot<T>` only where the existing code of the repository already does.
+
+### Via IOptionsMonitor\<T\> (singleton, change notifications)
+
+```csharp
+public sealed class MyService
+{
+    private readonly IOptionsMonitor<{Feature}Options> _options;
+
+    private {Feature}Options Options => _options.CurrentValue;
+
+    public MyService(
+        IOptionsMonitor<{Feature}Options> options)
+    {
+        _options = options.ThrowIfNull();
+    }
+
+    public void DoWork()
+    {
+        // Always gets current value
+        var timeout = Options.TimeoutSeconds;
+    }
+}
+```
+
 ### Via IOptions\<T\> (singleton, read once at startup)
 
 ```csharp
@@ -318,7 +346,7 @@ public sealed class MyService
     public MyService(
         IOptions<{Feature}Options> options)
     {
-        _options = options.Value;
+        _options = options.ThrowIfNull().Value;
     }
 }
 ```
@@ -341,29 +369,6 @@ public sealed class MyService
     public void DoWork()
     {
         // Gets current value for this scope/request
-        var timeout = Options.TimeoutSeconds;
-    }
-}
-```
-
-### Via IOptionsMonitor\<T\> (singleton, change notifications)
-
-```csharp
-public sealed class MyService
-{
-    private readonly IOptionsMonitor<{Feature}Options> _options;
-
-    private {Feature}Options Options => _options.CurrentValue;
-
-    public MyService(
-        IOptionsMonitor<{Feature}Options> options)
-    {
-        _options = options.ThrowIfNull();
-    }
-
-    public void DoWork()
-    {
-        // Always gets current value
         var timeout = Options.TimeoutSeconds;
     }
 }

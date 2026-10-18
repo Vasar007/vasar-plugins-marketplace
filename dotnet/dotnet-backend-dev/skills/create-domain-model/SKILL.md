@@ -10,7 +10,7 @@ Create domain models in your domain project (for example, `src/{ProjectName}.Dom
 
 ## Structure
 
-Domain models are `sealed record` types that implement `IStaticEquatable<T>`. This marker interface comes from the internal framework of the project. If your project does not have it, use `IEquatable<T>` instead:
+Domain models are `sealed record` types that implement `IStaticEquatable<T>`. This marker interface comes from the internal framework of the project. If your project does not have it, use `IEquatable<T>, IEqualityOperators<T, T, Boolean>` instead:
 
 ```csharp
 public sealed record {ModelName} : IStaticEquatable<{ModelName}>
@@ -28,13 +28,13 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
         // Validation
     }
 
-    // 4. Equals override (required for collections/computed properties)
+    // 4. Equals override (only when a case of domain-models.md applies)
     public Boolean Equals({ModelName}? other) { ... }
 
-    // 5. GetHashCode override
+    // 5. GetHashCode override (only when a case of domain-models.md applies)
     public override Int32 GetHashCode() { ... }
 
-    // 6. ToString override with StringBuilder
+    // 6. ToString override with StringBuilder (only when a case of domain-models.md applies)
     public override String ToString() { ... }
 }
 ```
@@ -47,7 +47,7 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
 
    ```csharp
    using System.ComponentModel.DataAnnotations;
-   using System.Text;
+   using System.Text; // Only when you override ToString.
    using MyApp.Framework.Assertions;
    using MyApp.Framework.Basic;
    ```
@@ -64,23 +64,9 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
    - `ThrowIfValueIsOutOfRange()` for numeric constraints
    - Add XML docs with `<exception>` tags
 
-5. **Override Equals**. If the model has collections or computed properties, this override is REQUIRED:
-   - Use only identity fields for comparison
-   - Handle null and reference equality first
-   - Use `DefaultStringComparer` for string comparisons. Choose the comparer that the domain needs:
-     - `StringComparer.OrdinalIgnoreCase` for case-insensitive (most common)
-     - `StringComparer.Ordinal` for case-sensitive comparison (a domain that requires an exact match)
+5. **Keep the generated `Equals`, `GetHashCode`, and `ToString` of the record**, unless a case in [domain-models.md](../dotnet-conventions/domain-models.md) ("When to override") applies. If a case applies, override `Equals` and `GetHashCode` together with the same field set and comparers, and build `ToString()` with `StringBuilder`.
 
-6. **Override GetHashCode**:
-   - Use `HashCode.Combine()` with same fields as Equals
-   - Use `DefaultStringComparer.GetHashCode()` for strings (must match Equals comparer)
-
-7. **Override ToString**:
-   - Use `StringBuilder` with initial capacity
-   - Include ALL properties for debugging
-   - Format: `{TypeName} { Prop1 = val1, Prop2 = val2 }`
-
-8. **Create unit tests** extending `BaseEqualityMemberTests<T>` (see create-tests skill)
+6. **Create unit tests** extending `BaseEqualityMemberTests<T>` (see create-tests skill)
 
 ## Example
 
@@ -88,7 +74,6 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
 // Copyright (c) Vasily Vasilyev
 
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 using {ProjectNamespace}.Common.Assertions;
 using {ProjectNamespace}.Common;
 
@@ -99,8 +84,6 @@ namespace {ProjectNamespace}.Domain.{Feature};
 /// </summary>
 public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 {
-    private static StringComparer DefaultStringComparer => StringComparer.OrdinalIgnoreCase;
-
     /// <summary>
     /// The type of the cancelled item.
     /// </summary>
@@ -131,34 +114,6 @@ public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
         ItemType = itemType.ThrowIfUndefined();
         ItemId = itemId.ThrowIfNullOrWhiteSpace();
     }
-
-    public Boolean Equals(CancelledOrderItem? other)
-    {
-        if (other is null)
-            return false;
-        if (ReferenceEquals(this, other))
-            return true;
-
-        return ItemType == other.ItemType
-            && DefaultStringComparer.Equals(ItemId, other.ItemId);
-    }
-
-    public override Int32 GetHashCode()
-    {
-        return HashCode.Combine(ItemType, DefaultStringComparer.GetHashCode(ItemId));
-    }
-
-    public override String ToString()
-    {
-        var sb = new StringBuilder(capacity: 128)
-            .Append(nameof(CancelledOrderItem))
-            .Append(" {")
-            .Append(" ItemType = ").Append(ItemType)
-            .Append(", ItemId = ").Append(ItemId)
-            .Append(" }");
-
-        return sb.ToString();
-    }
 }
 ```
 
@@ -166,9 +121,8 @@ public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 
 - Constructor parameters must validate ALL inputs
 - Use `ThrowIfNull()` not null-coalescing for explicit errors
-- Equals must use ONLY identity fields (not computed properties)
-- GetHashCode must match Equals field usage
-- ToString must include ALL fields for debugging
+- If you override `Equals`, `GetHashCode` must use the same field set
+- If you override `ToString`, it must include ALL fields for debugging
 
 ## Sensitive Information
 

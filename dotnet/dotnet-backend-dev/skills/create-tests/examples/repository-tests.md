@@ -133,21 +133,16 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
     public async Task AddAsync_OnDuplicateKey_ShouldThrow()
     {
         // Arrange.
-        var repository = CreateRepository();
+        var repository = CreateRepository(DbContext);
         var model = await CreateModelAsync();
 
         await repository.AddAsync(model);
-        await DbContext.SaveChangesAsync();
 
         // Create duplicate with same ID
         var duplicate = GenerateCustomer() with { CustomerId = model.CustomerId };
 
         // Act.
-        var act = async () =>
-        {
-            await repository.AddAsync(duplicate);
-            await DbContext.SaveChangesAsync();
-        };
+        var act = () => repository.AddAsync(duplicate);
 
         // Assert.
         await act.Should().ThrowAsync<DbUpdateException>();
@@ -157,7 +152,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
     public async Task UpdateAsync_ShouldModifyExistingEntity()
     {
         // Arrange.
-        var repository = CreateRepository();
+        var repository = CreateRepository(DbContext);
         var model = await CreateAndSaveModelAsync(repository);
 
         var updatedName = GenerateCustomerName();
@@ -165,7 +160,6 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
 
         // Act.
         await repository.UpdateAsync(updatedModel);
-        await DbContext.SaveChangesAsync();
 
         // Assert.
         var result = await repository.FindByPrimaryKeyAsync(model.CustomerId);
@@ -179,7 +173,6 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
     {
         var model = await CreateModelAsync();
         await repository.AddAsync(model);
-        await DbContext.SaveChangesAsync();
         return model;
     }
 

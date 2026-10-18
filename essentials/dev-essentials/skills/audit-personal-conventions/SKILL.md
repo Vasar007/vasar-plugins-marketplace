@@ -107,8 +107,8 @@ Parse the flags. Resolve the Claude config root with the path resolution rule ab
 1. If `--marketplace=` is given, and `git -C <supplied> config --get remote.origin.url` matches the persisted `Marketplace remote`, use the given path. It is the same repo in another clone location. Show the match.
 2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, STOP and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
 3. If the persisted `Marketplace root` exists on disk, use it. Precondition A in 9c.2 still checks its remote again.
-4. If `--marketplace=` is given and the remote check is inconclusive, use the given path. Warn the user that the run was not able to compare the remotes. A remote check is inconclusive in two cases: the given clone has no remote, or the TODO has no `Marketplace remote`.
-5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the check is inconclusive, accept the path with the warning of step 4. On a resume run, never fall back to auto-detect in the current working directory.
+4. If `--marketplace=` is given and the remote check is inconclusive, use the given path. Warn the user that the run was not able to compare the remotes. A remote check is inconclusive when the TODO has no `Marketplace remote`. If the given clone has no `origin` remote, STOP and ask for a clone that has one, because Precondition A needs `origin` to fetch the default branch.
+5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. If the check is inconclusive, accept the path with the warning of step 4. On a resume run, never fall back to auto-detect in the current working directory.
 
 Before you build the project set, read `references/source-inventory.md`. Build the project set from `--projects` with its decode-and-probe procedure and its worktree-sibling collapse. Before you read any source file, show the resolved scope to the user:
 
@@ -135,7 +135,7 @@ Follow `references/source-inventory.md`, which you read in Phase 0:
 Write one record for each RULE, not for each file. One CLAUDE.md or memory file often mixes categories, so a classification per file gets the mixed cases wrong. Each record has these fields:
 
 - A normalized one-line statement of the rule.
-- A `source: <path>:<line>` citation. The review-findings commits of Phase 6 use the same format for their numbered findings (`F1`/`F2`/`F3`, see `references/entity-authoring-conventions.md`). With it, an authoring commit can trace a generalized rule back to its origin.
+- A `source: <path>:<line>` citation. The Phase 10 report uses the same format for the numbered review findings (`F1`/`F2`/`F3`, see `references/entity-authoring-conventions.md`). With it, an authoring commit can trace a generalized rule back to its origin.
 - The source class: memory, global CLAUDE.md, project CLAUDE.md, or personal entity.
 - Each inheritance or scope qualifier from Phase 1, for example a nested CLAUDE.md that narrows or negates a parent rule.
 
@@ -201,7 +201,7 @@ Do not add a second bump in the middle of the run. An earlier ad-hoc promotion i
 
 **Restart notice for new entities**. A C-universal or D-scoped promotion authors a new skill, command, or agent. If this run did that, the Phase 10 report must tell the user to restart Claude Code fully. An E-fix-shipped edit does not need the notice. The Phase 10 template in `references/report-templates.md` has the text of the notice.
 
-After the version bump, record the new HEAD SHA of the target marketplace repo, as in Phase 6: `git -C <marketplace-root> rev-parse HEAD`. Call it `<this-run-marketplace-head-sha>`. It is the tip after the bump, so the ancestor check of Precondition A (9c.2) covers every commit of this run: the "Add X" commits, the review-findings commits, and the version-bump commit.
+After the version bump, record the new HEAD SHA of the target marketplace repo, as in Phase 6: `git -C <marketplace-root> rev-parse HEAD`. Call it `<this-run-marketplace-head-sha>`. It is the tip after the bump, so the ancestor check of Precondition A (9c.2) covers every commit of this run: the "Add X" commits, the review-round commits, and the version-bump commit.
 
 ### Phase 9 — Source-side cleanup
 
@@ -217,6 +217,7 @@ With `--autonomous`, no gate of Phase 9 stops. This covers the 9a stub question,
 
 - A **fully promoted** file: `stub` replaces the body with a one-line pointer. `annotate` puts a pointer above the body and keeps the body. `none` touches nothing for that item: no stub, no annotation, and no `MEMORY.md` index bullet for it. List it as a manual TODO. The other items of the run that use `stub` or `annotate` still get their index bullets.
 - A **partially promoted** file: never stub it. Annotate only the promoted section, and keep the rest of the file as it is.
+- An approved **F** item in a memory file or a `MEMORY.md` index: remove only the stale line or reference (with `--cleanup-mode=annotate`, annotate it). It falls under the same once-per-run question as `stub`. An F or E source in the global CLAUDE.md goes through 9b, one in a project CLAUDE.md through 9c, and a personal entity through 9d.
 
 Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. With `--autonomous`, list them in the report, and write without the question. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 
@@ -258,7 +259,7 @@ Read sections 9c.0 to 9c.9 of `references/cleanup-and-provenance.md` before any 
 Read the 9d section of `references/cleanup-and-provenance.md` before 9d. 9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in two cases:
 
 - An entity that this run promoted or E-fixed (Phase 6) fully supersedes the file.
-- Phase 3 classified the file **F-stale**, because an already-shipped entity supersedes it. F-stale for another reason does not count.
+- Phase 3 classified the file **F-stale**, because an already-shipped entity supersedes it. F-stale for another reason does not count. The F item must be approved at Phase 5. A deferred or rejected F item stays report-only.
 
 By default, 9d deletes and edits nothing. It lists each superseded file in the "Manual TODOs" list of the Phase 10 report, with a suggested action and the way to resume.
 
