@@ -110,14 +110,14 @@ Follow its executor section. Each "Decision:" line under an item wins over the i
    before the first edit.
 2. Edit existing files with the Edit tool, not with sed -i or a script that rewrites a file.
    Keep the line endings of each file. Create new files with the Write tool. Change the help
-   text of a script, not its code. If an item is PARTIAL or REJECT, adjust the commit message
-   and the CHANGELOG line to match the classes, and report the change.
+   text of a script, not its code. If an item is PARTIAL or REJECT, or its Decision line picks
+   an alternative, adjust the commit message and the CHANGELOG line to match, and report it.
 3. Run every pointer grep of the executor section. Compare each result with its expected
    result.
 4. Report the SKILL.md word count and character count with wc -c -w.
 5. Run the validators of the executor section, and its test command if it names one. Run
    git -C "{REPO}" ls-files --eol on the changed files after git -C "{REPO}" add. No file
-   can show w/mixed.
+   can show w/mixed. Commit only after the validators and the tests pass.
 6. Make one local commit with git -C "{REPO}" commit, an explicit pathspec, and the message of
    the executor section. Follow the commit rules of the repository. Do not push. Then run
    git -C "{REPO}" status --short.
@@ -178,7 +178,8 @@ report is {REVIEW_REPORT}. Fix only these findings:
 3. Report the SKILL.md word count and character count with wc -c -w.
 4. Run the validators of the executor section in {AUDIT_REPORT}, and its test command if it
    names one. Run git -C "{REPO}" ls-files --eol on the changed files after
-   git -C "{REPO}" add. No file can show w/mixed.
+   git -C "{REPO}" add. No file can show w/mixed. Commit only after the validators and the
+   tests pass.
 5. Make one local commit with git -C "{REPO}" commit and an explicit pathspec. The message
    names the finding IDs. Follow the commit rules of the repository. Do not push. Then run
    git -C "{REPO}" status --short.

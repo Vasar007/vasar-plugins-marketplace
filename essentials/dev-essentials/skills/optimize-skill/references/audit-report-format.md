@@ -71,5 +71,5 @@ The executor section has these parts:
 - Order of edits: create new files first. Then edit each file from the bottom up, so that the line numbers of the plan stay valid.
 - Pointer greps: one command for each moved block and each new link, with the expected result in a comment. Include a test that every reference link resolves. Include a test that no pointer to a removed section is left. Include the `wc -c -w` of `SKILL.md` with the expected size.
 - Validators and line ends: `claude plugin validate` for the marketplace and for the plugin, only for a target in a plugin (else "none"). Also the test command that the repository documents (README or CLAUDE.md), or "none". Also `git ls-files --eol` for the changed files. No file can show `w/mixed`.
-- CHANGELOG and version: the line and the version bump that the rules of the repository ask for, or "none".
+- CHANGELOG and version: the line and the version bump that the rules of the repository ask for, or "none". Also each test-data line that a move needs, for example a lint baseline entry, or "none".
 - Commit: one commit with an explicit pathspec and the full message. The message follows the rules of the repository.

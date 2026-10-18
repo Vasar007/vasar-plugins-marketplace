@@ -148,7 +148,7 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 5. Build the Settled list from the request, the `--settled` file, and the source of truth. Each line names the decision and its source.
 6. Find the earlier audits and plans of the target in the report folder and in the source of truth. The auditor must not repeat or undo their items.
 7. Look for `simple-english:simple-english` in the list of available skills.
-8. Write the scope in chat: the target files with their sizes (`wc -c -w`), the report folder, the base commit, the Settled list, the earlier audits, and the models. With `--interactive`, wait for the user's OK. Else continue.
+8. Write the scope in chat: the target files with their sizes (`wc -c -w`), the report folder, the base commit, and the branch. Also write the Settled list, the earlier audits, and the models. With `--interactive`, wait for the user's OK. Else continue.
 
 ### Step 1. Audit and plan
 
@@ -160,27 +160,25 @@ When the auditor replies, make sure that the report exists and that each item ha
 of the format. Also make sure that the report ends with the executor section and the "Not
 changed on purpose" list. If a part is missing, send the auditor the list of gaps (rule 8).
 
-Then run `git -C "<repo>" status --porcelain -- "<executor paths>"` on every path that the
-executor section names, for example the CHANGELOG or the manifest. If the output lists a path,
-stop and ask, because the pathspec commit takes the whole file.
-
 ### Step 2. Decide the open items
 
 1. List the open items.
-2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. This includes an item that the user answers or that the autonomous choice decides. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
-3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, follow the Autonomy rule: choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. List the item under "Decisions for your review" in the final report.
+2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
+3. If the source of truth does not decide an item, it is a critical decision. Without `--autonomous`, ask the user. With `--autonomous`, choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
 5. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
 6. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
 
 ### Step 3. Apply
 
+Just before the dispatch, run `git -C "<repo>" status --porcelain -- "<target files>" "<executor paths>"`. The executor paths are the other files that the executor section names, for example the CHANGELOG. If the output lists a path, stop and ask, because the pathspec commit takes the whole file.
+
 Dispatch the applier with the applier brief. When it replies, do these fact tests yourself:
 
-- The commit exists, and `git -C "<repo>" show --stat <commit>` lists only the target files, the new reference files, and the CHANGELOG or manifest lines that the executor section names.
-- The base commit is the parent of the commit: `git -C "<repo>" rev-list --count <base>..HEAD` prints 1.
+- The commit exists. `git -C "<repo>" show --stat <commit>` lists only the target files, the new reference files, and the other files that the executor section names.
+- The base commit is the parent of the commit, and the commit is HEAD: `git -C "<repo>" rev-parse <commit>^ HEAD` prints the base SHA and then the commit SHA.
 - The reply has a class (APPLY, PARTIAL, or REJECT) for each item, and a reason for each PARTIAL and REJECT.
-- The reply has the output of every pointer grep, the `SKILL.md` word count, and the validator output. If the executor section names a test command, the reply also has its output.
+- The reply has the output of every pointer grep, the `SKILL.md` word count, and the validator output. If the executor section names a test command, the reply also has its output. The validators and the tests pass.
 - `git -C "<repo>" status --short` shows no other changed target file.
 
 If a fact test fails, send the applier the list of defects (rule 8). Do not judge the
