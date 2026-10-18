@@ -54,7 +54,7 @@ Fixer:     general-purpose
 
 ## Phase 3 — Round 1 review
 
-The skill dispatches two reviewer subagents in parallel: both `Agent` calls go in one message, with no `run_in_background`. Both run on Opus, the default `--reviewer-model`. Each prompt holds the Common Rules, the Full format, and the `branch` brief of `references/reviewer-briefs.md`. In the brief, `<BASE>` is `main`, and the round is Round 1.
+The skill dispatches two reviewer subagents in parallel: both `Agent` calls go in one message, with no `run_in_background`. Both run on the model of `--reviewer-model`. Each prompt holds the Common Rules, the Full format, and the `branch` brief of `references/reviewer-briefs.md`. In the brief, `<BASE>` is `main`, and the round is Round 1.
 
 Reviewer A (`feature-dev:code-reviewer`) reports 4 findings. Reviewer B (`general-purpose`) reports 3 findings. After the merge of duplicates, 2 findings of B are the same as findings of A.
 
@@ -94,7 +94,7 @@ The user replies: `ok proceed`
 
 ## Phase 5 — Verify-then-fix
 
-**Step 5a: the reviewer plans**. The skill dispatches the same Opus reviewer subagent that reported the findings again. It proposes a fix plan for each finding that can get a fix, based on existing patterns:
+**Step 5a: the reviewer plans**. The skill dispatches the same reviewer subagent that reported the findings again. It proposes a fix plan for each finding that can get a fix, based on existing patterns:
 
 - F1: apply `.Skip().Take()` before `.ToListAsync()`, as the sibling `ExternalResourceRepository.cs` does.
 - F2: add negative tests with `foreach` over a `List<Action>`, as the convention for constructor null-argument tests does.
@@ -163,7 +163,7 @@ tests for pageSize=0 and negative offset."
 
 Rounds used: 1. Maximum rounds: 2. The fixer applied edits in this cycle, so the loop continues.
 
-The re-review in Round 2 covers only the 2 files that the fix commit changed. The re-review uses one `general-purpose` agent on Opus, as Phase 8 of `SKILL.md` says. The reviewer setup of the run (`dual`) applies only to Round 1.
+The re-review in Round 2 covers only the 2 files that the fix commit changed. The re-review uses one `general-purpose` agent on `--reviewer-model`, as Phase 8 of `SKILL.md` says. The reviewer setup of the run (`dual`) applies only to Round 1.
 
 The re-review brief is the `branch` brief of `references/reviewer-briefs.md`, with the scope narrowed to the fix diff and the round set to 2.
 

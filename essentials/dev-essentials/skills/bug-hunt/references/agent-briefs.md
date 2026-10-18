@@ -104,7 +104,7 @@ Repair note: the structure check found these defects in your part of the report:
 content.
 ```
 
-## Scoping helper (step 0, general-purpose, sonnet)
+## Scoping helper (step 0, general-purpose)
 
 ```text
 You propose how to split a project into areas for a bug hunt. Do not create or change any
@@ -133,7 +133,7 @@ the bug types that are likely there, what is out of scope, and extra context, fo
 what the tree does not show.
 ```
 
-## Setup helper (step 1, general-purpose, haiku)
+## Setup helper (step 1, general-purpose)
 
 ```text
 You export the snapshots of a bug hunt into a scratch folder. Use the Bash tool for all
@@ -169,7 +169,7 @@ Reply in at most 12 lines: the snapshot paths, the file counts and the git count
 commit SHA of a cloned base, every error, and every limit that you found.
 ```
 
-## Known-issues collector (step 1, general-purpose, sonnet)
+## Known-issues collector (step 1, general-purpose)
 
 ```text
 You collect the known bugs of a project into one digest file. Do this work yourself. Do not
@@ -274,7 +274,7 @@ rules in your agent file. If you have no agent file with read-only rules, stop a
 {REPAIR_NOTE}
 ```
 
-## Cleanup helper (step 6, general-purpose, haiku)
+## Cleanup helper (step 6, general-purpose)
 
 ```text
 You delete the temporary files of a finished bug hunt. Do this work yourself. Do not

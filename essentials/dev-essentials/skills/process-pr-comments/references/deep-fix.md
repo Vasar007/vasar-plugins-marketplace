@@ -52,7 +52,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 9. Expect back: the squash SHA, the stop verdict of the review loop, the round count, and the list of deferred findings. The stop verdict is `stop-clean`, `stop-max-rounds`, or `stop-blocked`.
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 
-**Reply and resolve, by stop verdict**. Stage 3b is a one-shot Sonnet GitHub dispatch (Rule 4). It posts the reply and the resolve after Stage 3 reports its squash SHA, its stop verdict, and its round count:
+**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It posts the reply and the resolve after Stage 3 reports its squash SHA, its stop verdict, and its round count:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |

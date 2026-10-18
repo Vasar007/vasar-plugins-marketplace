@@ -65,7 +65,7 @@ These rules apply in all modes:
 Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
 
 - **Delegate almost everything.** The orchestrating session only resolves the arguments, dispatches, does the git bookkeeping (commits, squashes, SHA records), and talks to the user. It does not read source files, write code, or review diffs. Each brief asks for a short structured report (verdicts, `file:line` anchors, commands and results), never pasted diffs or file dumps.
-- **Models**: Opus plans and reviews, and Sonnet implements and fixes. Haiku can do a mechanical extraction, such as the list of sub-issues. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
+- **Models**: Opus plans and reviews, and Sonnet implements and fixes. This line is the one home of these models, and the steps below name only the role. Haiku can do a mechanical extraction, such as the list of sub-issues. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - **Parallel where safe, sequential where not.** All N tasks share one worktree. Two dispatches can run at the same time only under two rules. Each one writes its own path. Neither one runs a git command that changes the worktree, the index, or the history. Such commands are `add`, `commit`, `checkout`, `reset`, and branch operations, but not `log`, `show`, or `diff`.
   - The Step 2 planners qualify. Each one writes only its own `<--plan-dir>/<task-slug>-plan.md`, and uses git only to read (for example for `file:line` anchors). Dispatch them in parallel, and write both rules into every planner brief.
   - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and they commit. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops (they commit) and the Step 4 final loop.
@@ -103,7 +103,7 @@ Then record `BATCH_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 
 ### Step 2 — Plan every task
 
-Dispatch **Opus** planners in parallel, one for each task. Each one writes `<--plan-dir>/<task-slug>-plan.md` inside the worktree. A plan holds the scope of the task, the files that it touches, and the patterns that it must follow (with `file:line` anchors). It also holds its verification commands and each open decision. An open decision is a critical decision that the task, the code, and the documentation do not settle (`dev-essentials:engineering-discipline` Rule 2).
+Dispatch planners in parallel, one for each task. Each one writes `<--plan-dir>/<task-slug>-plan.md` inside the worktree. A plan holds the scope of the task, the files that it touches, and the patterns that it must follow (with `file:line` anchors). It also holds its verification commands and each open decision. An open decision is a critical decision that the task, the code, and the documentation do not settle (`dev-essentials:engineering-discipline` Rule 2).
 
 Then, for each plan, run `dev-essentials:review-loop` with `target=spec <plan path>`, and fix the plan as the loop decides, with the options of "Review-loop configuration".
 
@@ -123,7 +123,7 @@ The squash-base safety stop of Step 3.6 applies. If Step 2 made no commit, there
 For task `i`:
 
 1. **Record the base SHA of the task.** For task 1, `TASK_BASE_SHA[1] = BATCH_BASE_SHA` from Step 1, **not** a new `rev-parse`. So the Step 3.6 squash of task 1 also takes in the plans commit. For tasks 2 to N, `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
-2. **Implement.** Dispatch a **Sonnet** subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
+2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
 4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: the source and test changes of this task, and only the plan file of this task (`<plan-dir>/<this-task-slug>-plan.md`). Never stage the plan file of another task, also a dirty one.
 5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.

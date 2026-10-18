@@ -179,7 +179,7 @@ The "Apply review findings" commit (see Phase 7) follows once review completes.
 
 ## Phase 7 — Review loop
 
-`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2 --interactive`, run on the two authored or edited files. The range is a two-dot range from the `<pre-authoring-sha>` of Phase 6, not a branch-base `main...HEAD` diff. The call adds `--interactive`, because this run has it (Phase 7). The configured defaults of this session (Opus reviewer, Sonnet fixer) applied, because this session had them. Round 1: 1 Medium finding (a missing anti-pattern example in Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
+`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2 --interactive`, run on the two authored or edited files. The range is a two-dot range from the `<pre-authoring-sha>` of Phase 6, not a branch-base `main...HEAD` diff. The call adds `--interactive`, because this run has it (Phase 7). The configured review-loop defaults of this session applied, because this session had them. Round 1: 1 Medium finding (a missing anti-pattern example in Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
 
 Commit:
 
