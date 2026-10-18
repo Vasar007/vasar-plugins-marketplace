@@ -52,7 +52,7 @@ markdownlint --config .markdownlint.json "README.md"
 Before you commit a Markdown file:
 
 1. Run auto-fix: `markdownlint --fix "path/to/file.md"`
-2. Validate: `markdownlint "path/to/file.md"`
+2. Check: `markdownlint "path/to/file.md"`
 3. If the exit code is `0`, review the changes and commit.
 
 ## Essential Rules to Follow
@@ -260,7 +260,7 @@ Content with inline HTML that requires disabling the rule.
 
 ## Configuration File
 
-If the user asks for a configuration and the repo has none, create `.markdownlint.json` in the project root, so that every run uses the same rules:
+If the user asks for a configuration and the repo has none, create `.markdownlint.json` in the project root. Then every run uses the same rules:
 
 ```json
 {

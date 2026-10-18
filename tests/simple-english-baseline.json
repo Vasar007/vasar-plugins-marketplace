@@ -14,6 +14,12 @@
       "reason": "Settled text: the scope of Gate 1 is a user decision from the lint sweep (PR #29)."
     },
     {
+      "file": "dotnet/dotnet-backend-dev/skills/update-swagger-spec/SKILL.md",
+      "rule": "em_dash",
+      "text": "-",
+      "reason": "Quoted text: the hyphen is part of the heading name \"Success Case - Resource Exists\" in controller-tests.md."
+    },
+    {
       "file": "essentials/dev-essentials/agents/bug-hunter.md",
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
@@ -84,6 +90,12 @@
       "rule": "sentence_over_limit",
       "text": "> Has the CODESPAN PR for this run been merged to its default branch, and are …",
       "reason": "Quoted literal text: the gate question that the skill asks the user. The words must stay as they are."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/audit-personal-conventions/references/cleanup-and-provenance.md",
+      "rule": "slop_word",
+      "text": "Load-bearing",
+      "reason": "Quoted field name: `Load-bearing terms` is the name of a TODO field that other files cite."
     },
     {
       "file": "essentials/dev-essentials/skills/bug-hunt/SKILL.md",

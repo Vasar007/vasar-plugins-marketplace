@@ -61,7 +61,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 | `stop-max-rounds` | Yes | Green | The "Implemented fix" template, plus an explicit line on the open work | No. It stays open with `openFindingsMarker: true`. |
 | `stop-blocked` | Yes, red (the commits of the arc stay on the unpushed tip) | Red | Nothing by default. STOP and ask the user. | No |
 
-After the push of the cycle lands, the orchestrating session runs the resolve step of `commit-push-resolve.md` § "Resolve threads and report" for every fixed thread of the cycle, the `deep-fix` thread included. It does this in one more one-shot GitHub dispatch (Rule 4).
+After the push of the cycle lands, the orchestrating session runs the resolve step of `commit-push-resolve.md` § "Resolve threads and report". It does this for every fixed thread of the cycle, the `deep-fix` thread included. It does this in one more one-shot GitHub dispatch (Rule 4).
 
 `stop-clean` reply:
 

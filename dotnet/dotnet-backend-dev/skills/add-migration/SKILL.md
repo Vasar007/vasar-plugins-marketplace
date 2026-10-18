@@ -473,7 +473,7 @@ Cosmos DB does not enforce a schema, so:
 
 ### Container Configuration
 
-Use this section only when the partition key of an entity changes. It creates a separate container on purpose. The example uses the Cosmos DB provider of EF Core:
+If the partition key of an entity changes, use this section. It creates a separate container on purpose. The example uses the Cosmos DB provider of EF Core:
 
 ```csharp
 modelBuilder.Entity<MyNewEntity>()

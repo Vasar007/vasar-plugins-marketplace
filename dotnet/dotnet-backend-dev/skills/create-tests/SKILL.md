@@ -341,7 +341,7 @@ Builders that already exist:
 
 ## Constructor Null-Argument Tests
 
-Each service or hosted service with one or more constructor dependencies MUST have exactly **two** constructor tests (with one dependency, the `actions` list has one entry):
+Each service or hosted service with one or more constructor dependencies MUST have exactly **two** constructor tests. With one dependency, the `actions` list has one entry:
 
 1. **Positive:** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls `CreateServiceWithAllArguments(...)` with a valid value for each dependency. It asserts that the call does not throw (for example, `act.Should().NotThrow()`).
 2. **Negative:** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` is a single test method with a **`foreach` over a `List<Action>`**. Each entry calls `CreateServiceWithAllArguments(...)` with valid positional arguments, except exactly one dependency that gets `null!`. In each iteration, the test asserts that the call throws `ArgumentNullException` (for example, `act.Should().Throw<ArgumentNullException>()`).

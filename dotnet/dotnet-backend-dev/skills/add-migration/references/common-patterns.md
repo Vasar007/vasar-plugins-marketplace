@@ -88,7 +88,7 @@ for (var batchIndex = 0; batchIndex < totalBatches; ++batchIndex)
 }
 ```
 
-If the batch removes or changes the records that the query filters on, do not use `Skip`. The next page would skip records that the migration did not process. Take the next batch from the start instead:
+If the batch removes or changes the records that the query filters on, do not use `Skip`. The next page will skip records that the migration did not process. Take the next batch from the start instead:
 
 ```csharp
 var batch = await dbContext.LegacyRecords

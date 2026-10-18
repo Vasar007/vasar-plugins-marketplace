@@ -76,7 +76,7 @@ Never block on `[Optional]`. Never push back hard. Principle 5 of `review-princi
 
 ### `[Question]`
 
-The reviewer wants an explanation. A wrong public answer under the identity of the author can mislead reviewers. So without `autonomous`, never post a `[Question]` reply without an explicit go-ahead of a human. With `autonomous`, post the answer directly as an `**[AI]**` reply, with the same content as the draft format (a claim, the reasoning, and a citation), and without the draft-pending line (Bucket A2).
+The reviewer wants an explanation. A wrong public answer under the identity of the author can mislead reviewers. So without `autonomous`, never post a `[Question]` reply without an explicit go-ahead of a human. With `autonomous`, post the answer directly as an `**[AI]**` reply (Bucket A2). Give it the same content as the draft format: a claim, the reasoning, and a citation. Leave out the draft-pending line.
 
 - Read the related code before you answer. Do not build the answer from the comment alone.
 - Draft format: a claim, the reasoning, and a citation (file and line range, an existing test, or linked documentation).

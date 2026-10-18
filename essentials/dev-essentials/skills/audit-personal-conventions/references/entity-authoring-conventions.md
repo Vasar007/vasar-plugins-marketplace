@@ -111,7 +111,7 @@ Split content out into `references/*.md` or `examples/*.md` in two cases:
 Ship an authored or edited entity as at least two commits:
 
 1. An **"Add X"** (or "Edit X") commit with the initial content of the entity.
-2. The review-fix commits of Phase 7. The review loop makes them, one `Review round <N>: Fix ...` commit for each round. Do not rewrite or amend them. Keep the `F1`/`F2` numbering and the `source: <file>:<line>` citation of each finding in the Phase 10 report ("Review loop" section), not in a commit message.
+2. The review-fix commits of Phase 7. The review loop makes them, one `Review round <N>: Fix ...` commit for each round. Do not rewrite or amend them. Keep the `F1`/`F2` numbering and the `source: <file>:<line>` citation of each finding in the "Review loop" section of the Phase 10 report. Do not put them in a commit message.
 
 Phase 2 uses the same `source:` citation format for rule extraction. Use the citation for the review and the fixes of this session. With it, the fixer and the reviewer can trace a generalized rule back to its exact file and line while the run is live. Do not present it as a stable, permanent commit-message convention. The cited file often lives in the personal `<claude-root>` configuration of the user, outside any repo (a memory file, a global CLAUDE.md). A future reader of the git history of the shipped repo cannot resolve it.
 

@@ -109,7 +109,7 @@ Then, for each plan, run `dev-essentials:review-loop` with `target=spec <plan pa
 
 Collect the open decisions of all N plans, and each finding that a plan-review fixer did not resolve with confidence. If the list is empty, start Step 3 without a stop. Else, without `--autonomous`, ask the user all of them in one batch before Step 3. With `--autonomous`, decide each one as "Autonomy" says, write the decision into its plan, and start Step 3. Do not carry ambiguity into the implementation. The plan-review loops run without the routine triage stop. "Review-loop configuration" says which findings still reach the user.
 
-**Step 2 makes exactly one commit, before Step 3 starts.** The planners commit nothing. When the planners return, and before the first plan-review loop, stage the N plan files by explicit path, and commit them: `git -C "<worktree>" commit -m "Plans for <N> tasks"`. The N plan-review loops run one at a time and commit per cycle. When every plan is reviewed and every open question is answered or decided, stage the N plan files again by explicit path (a decision can change a plan after the loops). Then squash all Step 2 commits into one:
+**Step 2 makes exactly one commit, before Step 3 starts.** The planners commit nothing. When the planners return, and before the first plan-review loop, stage the N plan files by explicit path, and commit them: `git -C "<worktree>" commit -m "Plans for <N> tasks"`. The N plan-review loops run one at a time and commit per cycle. When every plan is reviewed and every open question is answered or decided, stage the N plan files again by explicit path. A decision can change a plan after the loops. Then squash all Step 2 commits into one:
 
 ```bash
 git -C "<worktree>" reset --soft <BATCH_BASE_SHA>
