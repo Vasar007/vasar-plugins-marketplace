@@ -128,6 +128,72 @@
       "reason": "MoSCoW priority label (Must, Should, Could, Won't). The label is a fixed name."
     },
     {
+      "file": "essentials/dev-essentials/skills/optimize-skill/SKILL.md",
+      "rule": "synonym_rotation",
+      "text": "confirm (check-verify)",
+      "reason": "Settled terms: the marker \"Not confirmed:\" and the word `checks` in the shared Autonomy block. The file uses both on purpose."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "em_dash",
+      "text": "-",
+      "reason": "Quoted literal text: the hyphen is in a quote from the criteria of claude-md-improver."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "synonym_rotation",
+      "text": "check (check-verify)",
+      "reason": "Quoted example: the worked example copies a real audit report. It uses the settled terms `structure check`, `Resume check`, and \"Not confirmed:\"."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "sentence_over_limit",
+      "text": "CODESPAN (Pause points, Resume check), CODESPAN (Failure handling), CODESPAN…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "trailing_condition",
+      "text": "Conditional details\" (\"Claude reads REDLINING.md or OOXML.md only when the user …",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "sentence_over_limit",
+      "text": "the behavior on versions older than v2.1.292 (looked up in the sub-agents docs p…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "trailing_condition",
+      "text": "CODESPAN (plain-English block, when simple-english is installed), CODESPAN (\"…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "trailing_condition",
+      "text": "In CODESPAN , replace the code block under \"### Plain-English block, when simpl…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "sentence_over_limit",
+      "text": "In CODESPAN , in the module docstring, replace \"--verified-to set to the last I…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "sentence_over_limit",
+      "text": "Rule 5 says \"At the end, delete only the paths that you recorded.\" Two sentences…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "sentence_over_limit",
+      "text": "In both files, replace \"At the end, delete only the paths that you recorded.\" wi…",
+      "reason": "Quoted example: the worked example copies a real audit report. The hit is in quoted source text or in a field list of an item."
+    },
+    {
       "file": "essentials/dev-essentials/skills/review-loop/references/verify-fix-discipline.md",
       "rule": "banned_modal",
       "text": "should",
