@@ -20,7 +20,7 @@ For the full markdownlint rules, the suppression patterns, and the `markdownlint
 Wrap a frontmatter value (`description:`, `argument-hint:`, and others) in double quotes in two cases:
 
 - The value starts with a YAML indicator character: `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@`, or backtick.
-- The value contains an unquoted `: ` (colon-space) sequence.
+- The value contains an unquoted colon followed by a space.
 
 Such a value can break YAML parsing, and the failure is silent. The parser drops the whole frontmatter block and shows no visible error. The command or the skill then loads with no `description` and no `argument-hint`.
 

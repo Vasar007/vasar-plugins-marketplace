@@ -37,7 +37,7 @@ Before you apply a fix, or a part of a fix, cite one of these sources:
 These do NOT count:
 
 - Pattern matching from training data ("this is typically how X is done").
-- An analogy of structure with no reading of the source ("this looks like Y, so the fix should be Z").
+- An analogy of structure with no reading of the source ("this looks like Y, so the fix is Z").
 - A claim about a category of Claude Code primitives, such as agents, skills, or frontmatter keys. Without a reading of the real schema or of a known working plugin, it does not count.
 
 ---

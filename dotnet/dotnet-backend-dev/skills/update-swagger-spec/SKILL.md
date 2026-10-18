@@ -329,7 +329,7 @@ Look for:
 
 ### 6. Create Tests
 
-Use the generated client in integration tests. The test adds a store to the database first. The reason is that the database is empty after the clean-up of each test. See the "Success Case - Resource Exists" section of [controller-tests.md](../create-tests/examples/controller-tests.md). The example uses NUnit (`[Test]`) and FluentAssertions (`.Should()`). Another test framework or assertion library uses its own equivalents:
+Use the generated client in integration tests. The test adds a store to the database first. The reason is that the database is empty after the clean-up of each test. See the success case for an existing resource in [controller-tests.md](../create-tests/examples/controller-tests.md). The example uses NUnit (`[Test]`) and FluentAssertions (`.Should()`). Another test framework or assertion library uses its own equivalents:
 
 ```csharp
 [Test]

@@ -12,12 +12,9 @@
   // Step numbers continue across headings, and other text points to a step
   // by its number.
   "MD029": false,
-  // The other elements are placeholders in angle brackets, for example <ID>.
-  "MD033": {
-    "allowed_elements": ["details", "summary", "br", "add", "command", "id", "role", "time"]
-  },
-  // Some code spans hold a literal text that starts with a space.
-  "MD038": false,
+  "MD033": { "allowed_elements": ["details", "summary", "br"] },
+  // Command, agent, and stage prompt files start with frontmatter and the
+  // prompt text, not with a heading.
   "MD041": false,
   // The write-markdown conventions set no table column style.
   "MD060": false

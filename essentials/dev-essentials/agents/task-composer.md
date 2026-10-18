@@ -27,7 +27,7 @@ Every invocation operates in one of three modes:
 **Trigger phrases:**
 
 - `draft`: "draft a task description", "write a task draft", "compose a task", or any unqualified request ("write a task", "update", "edit", "fix"). **`draft` is the default. `response` requires an explicit opt-in.** "Preview", "just show me", and similar phrases still route to `draft`. `draft` already shows a brief preview after it writes the file.
-- `response`: "give me the description text", "return the description in chat", or "no file, just the text". Also "show me the task description directly", "preview without saving", or "don't write a file".
+- `response`: "give me the description text", "return the description in chat", or "no file, just the text". Also "show me the task description directly", "preview without saving", or "do not write a file".
 - `create`: "publish", "create a GitHub issue", "add to GitHub", "create the issue".
 
 ## Task Documentation Structure

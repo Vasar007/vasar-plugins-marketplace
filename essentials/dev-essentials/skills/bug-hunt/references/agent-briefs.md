@@ -20,7 +20,7 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{REF}`, `{REF_SHA}` | Analyzed branch or commit, and its full SHA |
 | `{BASE}`, `{BASE_SHA}` | Base branch name without the remote prefix (for example `main`, not `origin/main`), and its full SHA |
 | `{BASE_FROM}` | `local`, `remote`, or `none` |
-| `{BASE_URL}` | Clone URL of the repository for a remote base. If the user confirmed `{GITHUB}`, use `https://github.com/{GITHUB}.git`. Else use the URL from `git remote get-url origin`. "none" for a local base. |
+| `{BASE_URL}` | Clone URL of the repository for a remote base. If the user accepted `{GITHUB}`, use `https://github.com/{GITHUB}.git`. Else use the URL from `git remote get-url origin`. "none" for a local base. |
 | `{SCRATCH}` | Absolute path of the scratch folder |
 | `{SNAP_REF}` | `{SCRATCH}/snapshot-ref` |
 | `{SNAP_BASE}` | `{SCRATCH}/snapshot-base`, or "none: the analyzed commit is the base", or "none: no base comparison" |

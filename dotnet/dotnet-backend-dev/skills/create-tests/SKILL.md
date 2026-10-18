@@ -391,7 +391,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 ### Enforced gates (details in [enforced-gates.md](examples/enforced-gates.md))
 
-- [ ] Gate 1 (only for a test class that calls the methods of the SUT directly, never for controller tests through the HTTP client or for scenario tests): each public method with a required reference parameter has ONE `foreach` null-argument test. A required `String` parameter gets its own `StringNullOrWhiteSpace_TestCases` test instead.
+- [ ] Gate 1: each public method with a required reference parameter has ONE `foreach` null-argument test. A required `String` parameter gets its own `StringNullOrWhiteSpace_TestCases` test instead. The gate applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests.
 - [ ] Gate 2: no `async () => await x` around a single expression
 - [ ] Gate 3: the SUT variable and its helper use the role noun of the class (`processor`, `CreateProcessor`), never `sut`
 - [ ] Gate 4: helper methods come last, in one `#region Helper Methods`

@@ -174,7 +174,7 @@ If an approval covers only part of a cluster, and the other members are deferred
 
 Before you dispatch an authoring subagent, record the HEAD SHA of the target marketplace repo: `git -C <marketplace-root> rev-parse HEAD`. Call it `<pre-authoring-sha>`. Phase 7 uses it to limit the review loop to the authoring commits of this run.
 
-Read `references/entity-authoring-conventions.md`, and follow it. It covers the entity kind, the frontmatter, the description, the body structure, the references split, the load-bearing terms, and the commits.
+Read `references/entity-authoring-conventions.md`, and follow it. It covers the entity kind, the frontmatter, the description, the body structure, the references split, the `Load-bearing terms`, and the commits.
 
 **No version bump happens in this phase.** Phase 8 does the version bumps after the shape is final.
 

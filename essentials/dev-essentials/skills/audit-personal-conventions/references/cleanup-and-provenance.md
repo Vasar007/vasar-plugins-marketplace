@@ -109,7 +109,7 @@ Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning
 | **B: repo B can load the plugin** | Grep the tracked `.claude/settings.json` of repo B, or its own CLAUDE.md "Prerequisites" section, or both. Look for the target marketplace name and the owning plugin, registered or enabled. | Skip this repo. Report that the plugin needs a separate prerequisite PR in that repo, out of scope for a docs-only cleanup. Defer it (9c.7). |
 | **C: the pointer is not orphaned** | `Load-bearing terms` is a comma-separated list (9c.7). Match each term as a **fixed string**, never as a regex. Terms can hold `.`, `[`, `*`, or a leading `-`. Run one grep for each term, at the same ref that Precondition A resolved and fetched: `git -C <marketplace-root> grep -n -F -e '<term>' origin/<default-branch> -- <entity-path>`. **Every** term must match. Quote one matching line for each term for the later push-gate display. | Skip this repo. Defer it (9c.7). |
 
-Phase 6 picks the terms that each rule needs. The rule for them is in the section "Load-bearing terms" of `references/entity-authoring-conventions.md`. Precondition C and step 1 of 9d read the terms from the run state and from the TODO entry (9c.7).
+Phase 6 picks the terms that each rule needs. The rule for them is in the section `Load-bearing terms` of `references/entity-authoring-conventions.md`. Precondition C and step 1 of 9d read the terms from the run state and from the TODO entry (9c.7).
 
 #### Precondition A
 
@@ -322,7 +322,7 @@ This flag lets the skill delete the personal entity files in scope itself. Its g
 
    For a file that this run promoted or E-fixed, ask this question, unchanged.
 
-   > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
+   > Has the `<target-marketplace-name>` PR for this run been merged to its default branch? And are
    > you ready to delete the personal file(s) it supersedes? (yes / not yet)
 
    For an already-shipped, F-stale file, the publication is already proven. The existence check of Precondition A and the coverage grep of Precondition C at the same ref prove it. So "has the PR for this run been merged" has no referent. Ask a readiness question instead. On this branch, `v<plugin-version>` is the published `plugin.json` version at `origin/<default-branch>`. It is for display only, because this branch has no promotion version of this run to use as a floor in a check. Ask this question.

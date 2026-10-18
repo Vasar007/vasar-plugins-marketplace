@@ -9,7 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.2.2, dotnet-backend-dev 1.4.2, and gop-pipeline 1.2.5 in release [3.2.2] - 2026-10-18
+### Changed in the repository
+
+- `.gitattributes`: new file. GitHub counts the `.md` files in the language statistics, so the main language of the repository is Markdown, not Python (issue #52).
+
+## dev-essentials 3.2.3, dotnet-backend-dev 1.4.3, and gop-pipeline 1.2.5 in release [3.2.3] - 2026-10-18
 
 Some instructions in the skills, agents, and commands were wrong or misleading. Some told Claude to do a thing that cannot work, for example to ask the user from a subagent. Some contradicted another file, and some code examples did not compile or did the wrong thing. This release fixes them (issue #48). Each fix below says what was wrong and what the text says now. Where a fix changes behavior on purpose, the bullet says so.
 
@@ -57,9 +61,27 @@ Some instructions in the skills, agents, and commands were wrong or misleading. 
 - `gop-validate-compliance`, `gop-validate-correctness`, `gop-validate-performance`, `gop-validate-reuse`, and `gop-validate-security` (issue #48): `git diff HEAD` does not show new untracked files. The validators now also list the untracked files with `git ls-files --others --exclude-standard`, and read each one in full. Behavior change: validators now review new files, which they missed before.
 - `gop-work` (issue #48): the quick probe for a test project is gone. Behavior change: if any `.cs` or `.csproj` file changed, Phase 3 now runs, and `gop-test` does the search. In interactive mode, after the second re-run, the options "accept" and "dismiss" are gone. A `BLOCKED` result stops the pipeline. A result with warnings offers only to proceed or to stop for a manual fix. The implement stage now also runs `git status --short`, so new files show in the scope.
 
+## dev-essentials 3.2.2 and dotnet-backend-dev 1.4.2 in release [3.2.2] - 2026-10-18
+
+This release reviews each lint exception of the repository (issue #49). Text rewrites and a fix in the lint test remove 14 of the 23 entries of the simple-english baseline. The 9 entries that stay name the reason that no rewrite can remove them. Two markdownlint rule changes go away.
+
 ### Changed in the repository
 
-- `tests/simple-english-baseline.json` (issue #48): three entries for quoted names in the changed skills. Two entries are for the field name `Load-bearing terms`, in two files. One entry is for the heading `Success Case - Resource Exists`.
+- `tests/simple-english-baseline.json`: 9 entries instead of 23. The reason of each entry that stays names the settled name, the file path, or the quoted source that keeps the hit.
+- `tests/test_simple_english.py`: the test does not lint the value of an `argument-hint` line or the closing `---` of the frontmatter, because they are not prose. Before, the hint and the first sentence of the body counted as one long sentence.
+- `.markdownlint.jsonc`: `MD038` is on again. `MD033` allows only the elements of the `write-markdown` base configuration. `MD041` names its reason.
+
+### Fixed in dev-essentials
+
+- `merge-worktree-projects`: the text uses "approval" for the answer of the user and keeps "check" for the safety checks. The report line for a skipped folder is now "skipped (recent activity). Make sure that it is safe to merge."
+- `bug-hunt`: placeholders such as `<ID>` in the notes are code spans. The "Result:" text of a verifier is a code span with no space at the start. The text says to add a space before it.
+- `audit-personal-conventions`: the gate question before the delete is two short questions.
+- `feature-pipeline`: the worktree announcement has no bold labels, and the project context template uses placeholders that markdownlint does not read as HTML.
+- `general-conventions`, `review-loop`, and `task-composer`: plain words in a YAML rule, in an example of a bad argument, and in a trigger phrase.
+
+### Fixed in dotnet-backend-dev
+
+- `create-tests`: the checklist item for Gate 1 states the gate first and its scope in two short sentences. The scope does not change.
 
 ## dev-essentials 3.2.1 and gop-pipeline 1.2.4 in release [3.2.1] - 2026-10-18
 
@@ -578,7 +600,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...HEAD
+[3.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...v3.2.3
 [3.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...v3.2.0

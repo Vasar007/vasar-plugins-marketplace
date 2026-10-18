@@ -11,7 +11,7 @@ Claude Code keeps one project folder for each working folder. The project folder
 
 A git worktree has a different path than the main checkout of its repo, usually `<repo-root>/.claude/worktrees/<branch>/...` (see `dev-essentials:git-worktree-management`). So each worktree that you worked in gets its **own separate project folder**, although it belongs to the same repo. Over time, the sessions and the memory of one repo spread across these folders.
 
-This command merges those worktree folders back into the one main project folder. It does this for each project that `$ARGUMENTS` names. If `$ARGUMENTS` names no project, it does this for **every** project that has worktree folders. Then it deletes the empty worktree folders. **By default, this is a dry-run report only**. Nothing is written or deleted before two things happen: `--apply` is passed, and the user explicitly confirms the exact deletion list. See "Modes and safety gate" below.
+This command merges those worktree folders back into the one main project folder. It does this for each project that `$ARGUMENTS` names. If `$ARGUMENTS` names no project, it does this for **every** project that has worktree folders. Then it deletes the empty worktree folders. **By default, this is a dry-run report only**. Nothing is written or deleted before two things happen: `--apply` is passed, and the user explicitly approves the exact deletion list. See "Modes and safety gate" below.
 
 ## What this touches
 
@@ -24,12 +24,12 @@ This command merges those worktree folders back into the one main project folder
 - **No main folder name.** Then process **all** projects. Each folder in `projects/` whose name does NOT contain `--claude-worktrees-` or `--worktrees-` is a candidate main folder. Run Steps 1 to 6 for each candidate that has at least one worktree sibling. Skip a candidate with no sibling silently. Do not report a no-op for every unrelated project.
 - **`--exclude=<substring>[,<substring>...]` (optional).** Folder names or substrings to skip for this run, for example because sessions are active there. The flag applies both to a single project and to "process all". Leave an excluded folder completely untouched. Do not even inspect it for collisions. Name it as skipped in the final report.
 - **Free text**. The user can name a folder to skip in free text instead of the flag. Example: "do not touch X, there are active sessions there". Treat that like `--exclude=X`. In the same way, a free-text instruction to run the merge (for example "yes, go ahead and merge them") counts as `--apply`.
-- **`--apply` (optional, off by default).** Without it, the command always runs as a dry run. Steps 1 to 3 (discovery, safety check, collision check) run in full. Steps 4 and 5 only *compute* the plan for the merge and the deletions. No file is moved, merged, or deleted. With `--apply`, the command computes and shows the same plan. Then the user must pass the explicit confirmation gate below before Steps 4 and 5 run.
+- **`--apply` (optional, off by default).** Without it, the command always runs as a dry run. Steps 1 to 3 (discovery, safety check, collision check) run in full. Steps 4 and 5 only *compute* the plan for the merge and the deletions. No file is moved, merged, or deleted. With `--apply`, the command computes and shows the same plan. Then the user must pass the explicit approval gate below before Steps 4 and 5 run.
 
 ## Modes and safety gate
 
 - **Default (no `--apply`): dry run.** Run every step below exactly as written. But Steps 4 and 5 only *compute* their result, and they make no write and no deletion. The result names the rename map and the memory files that an applied run creates, appends to, or skips. It also names the top-level entries that the run moves, and the folders that end up empty and that it deletes. Start the report of Step 6 with `DRY RUN — no files were moved, merged, or deleted.` End the report with "Re-run with `--apply` to execute this exact plan."
-- **`--apply`: execute, after confirmation.** Run Steps 1 to 3 as usual. They only read, in every mode. Then compute the plan of Steps 4 and 5 exactly as the dry run does. Before you write or delete anything, show the user that plan and one explicit line: "About to delete: `<folder>`, `<folder>`, …". If every pair was skipped or STOPped, the line is "Nothing to delete". Ask for confirmation with the **AskUserQuestion** tool (proceed with exactly this plan: yes/no). On any answer other than an explicit "yes", stop with nothing changed. Steps 4 and 5 run only after an explicit "yes". Then Step 6 reports the real result.
+- **`--apply`: execute, after approval.** Run Steps 1 to 3 as usual. They only read, in every mode. Then compute the plan of Steps 4 and 5 exactly as the dry run does. Before you write or delete anything, show the user that plan and one explicit line: "About to delete: `<folder>`, `<folder>`, …". If every pair was skipped or STOPped, the line is "Nothing to delete". Ask for approval with the **AskUserQuestion** tool (proceed with exactly this plan: yes/no). On any answer other than an explicit "yes", stop with nothing changed. Steps 4 and 5 run only after an explicit "yes". Then Step 6 reports the real result.
 
 ## Step 1 — Discover the merge group for each main folder
 
@@ -44,9 +44,9 @@ Do this for each resolved main folder name `M`. In "process all" mode, that is e
 
 For each remaining `(M, W)` pair:
 
-- Look at the modification time of every file and folder inside `W`. Go into subfolders too, so that subagent transcripts count. If anything changed in about the last 2 hours, treat `W` as **possibly active**, and do not merge it. List it in the report as "skipped — recent activity, confirm it's safe to merge", and ask explicitly before you try it again.
+- Look at the modification time of every file and folder inside `W`. Go into subfolders too, so that subagent transcripts count. If anything changed in about the last 2 hours, treat `W` as **possibly active**, and do not merge it. List it in the report as "skipped (recent activity). Make sure that it is safe to merge.", and ask explicitly before you try it again.
 - Also treat the folder of the **currently running session** as active. Never merge or delete it, even for an argument that matches it.
-- Treat every other pair as safe to merge without more confirmation. Do not ask for permission for each folder. Report what you did afterward.
+- Treat every other pair as safe to merge without more approval. Do not ask for permission for each folder. Report what you did afterward.
 
 ## Step 3 — Collision check (per pair, before moving anything)
 
@@ -102,11 +102,11 @@ Give these facts for each main project:
 - Each pair that Step 2 skipped for recent activity.
 - Each excluded folder.
 
-Say clearly whether this was a **dry run** (nothing changed, see "Modes and safety gate") or an **applied** run (the run executed the confirmed plan). Keep the report short. It is a routine maintenance report.
+Say clearly whether this was a **dry run** (nothing changed, see "Modes and safety gate") or an **applied** run (the run executed the approved plan). Keep the report short. It is a routine maintenance report.
 
 ## Hard rules
 
-- Never write or delete anything without both of these: `--apply`, and an explicit "yes" at the deletion-list confirmation of "Modes and safety gate". The default is always a dry run.
+- Never write or delete anything without both of these: `--apply`, and an explicit "yes" at the deletion-list approval of "Modes and safety gate". The default is always a dry run.
 - Never touch a folder that `--exclude=` matches, or that a "do not touch, active sessions" note names.
 - Never delete a folder that is not fully empty after the migration.
 - Never overwrite an existing file in the main folder. Merge or rename instead, and flag it.
