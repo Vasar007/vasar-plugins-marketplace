@@ -9,13 +9,9 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-### Changed in the repository
-
-- `.gitattributes`: new file. GitHub counts the `.md` files in the language statistics, so the main language of the repository is Markdown, not Python (issue #52).
-
 ## dev-essentials 3.2.3, dotnet-backend-dev 1.4.3, and gop-pipeline 1.2.5 in release [3.2.3] - 2026-10-18
 
-Some instructions in the skills, agents, and commands were wrong or misleading. Some told Claude to do a thing that cannot work, for example to ask the user from a subagent. Some contradicted another file, and some code examples did not compile or did the wrong thing. This release fixes them (issue #48). Each fix below says what was wrong and what the text says now. Where a fix changes behavior on purpose, the bullet says so.
+Some instructions in the skills, agents, and commands were wrong or misleading. Some told Claude to do a thing that cannot work, for example to ask the user from a subagent. Some contradicted another file, and some code examples did not compile or did the wrong thing. This release fixes them (issue #48). Each fix below says what was wrong and what the text says now. Where a fix changes behavior on purpose, the bullet says so. The release also ships the `.gitattributes` file of issue #52, which had no release before.
 
 ### Fixed in dev-essentials
 
@@ -60,6 +56,10 @@ Some instructions in the skills, agents, and commands were wrong or misleading. 
 - `gop-test` (issue #48): the test build used `--no-restore`, which failed on a project that was not restored. The flag is gone. A modified `.csproj` file now counts as a source project.
 - `gop-validate-compliance`, `gop-validate-correctness`, `gop-validate-performance`, `gop-validate-reuse`, and `gop-validate-security` (issue #48): `git diff HEAD` does not show new untracked files. The validators now also list the untracked files with `git ls-files --others --exclude-standard`, and read each one in full. Behavior change: validators now review new files, which they missed before.
 - `gop-work` (issue #48): the quick probe for a test project is gone. Behavior change: if any `.cs` or `.csproj` file changed, Phase 3 now runs, and `gop-test` does the search. In interactive mode, after the second re-run, the options "accept" and "dismiss" are gone. A `BLOCKED` result stops the pipeline. A result with warnings offers only to proceed or to stop for a manual fix. The implement stage now also runs `git status --short`, so new files show in the scope.
+
+### Changed in the repository
+
+- `.gitattributes`: new file. GitHub counts the `.md` files in the language statistics, so the main language of the repository is Markdown, not Python (issue #52).
 
 ## dev-essentials 3.2.2 and dotnet-backend-dev 1.4.2 in release [3.2.2] - 2026-10-18
 
