@@ -118,6 +118,7 @@ Each plugin is in the folder `<group>/<plugin>/`, for example `essentials/dev-es
 These items at the repository root are not part of a plugin:
 
 - `.claude-plugin/marketplace.json` lists every plugin of the marketplace.
+- `.gitattributes` makes GitHub count the `.md` files in the language statistics of the repository.
 - `.github/workflows/tests.yml` runs the tests in CI.
 - `.markdownlint.jsonc` holds the markdownlint rules for the `.md` files.
 - `tests/` holds the tests of the repository.
