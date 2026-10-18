@@ -104,7 +104,7 @@ Keep a task list with one entry for each phase (Research & Plan, Implement, Revi
 
 With `--skip-research`, skip this phase.
 
-If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that plan file as the plan of this run. Skip steps 2 to 4, and start Phase 2.
+If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that plan file as the plan of this run. Skip steps 2 and 3, and do not save a new plan in step 4. Still apply the sign-off and the open-decision bullets of step 4 to that plan file, then start Phase 2.
 
 1. Resolve each `--context=<path>` (the flag is repeatable). Without one, derive a context file as `dev-essentials:implement` does: from a plan-file argument, or from the auto-memory folder as a last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every research brief.
 2. Dispatch one or more research subagents. They work from the real code, not from assumptions. They find out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. Pass the scope and context of the user verbatim into each brief. If the task splits in a natural way, dispatch several research subagents at the same time. For example: one on the production code path, one on the test coverage, and one on a permission or contract question.
@@ -159,7 +159,8 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 ### Single-commit mode (`--commit-mode=single`)
 
 - Before Phase 2 starts, record the SHA of `HEAD`.
-- Run Phase 2 and Phase 3 as described above, with the normal round commits of the review loop. Do not suppress them with `--dry-run` or `--no-verify-fix`. Both flags also skip the fix itself.
+- Run Phase 2 and Phase 3 as described above. Commit the Phase 2 output before Phase 3 starts, as in per-phase mode. Phase 3 keeps the normal round commits of the review loop. Do not suppress them with `--dry-run` or `--no-verify-fix`. Both flags also skip the fix itself.
 - After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit: `git reset --soft <recorded-SHA>`, then one commit. Its message sums up the implementation and the fixes of each review round, for example `Task X — <summary> (implement + N review rounds)`.
+- **The `stop-blocked` exception**. If the review loop ends with `stop-blocked`, do not squash. Keep the round commits as they are, so that the caller can inspect the red state, and report the verdict.
 - **The squash-base safety stop**. If a commit from outside this run landed on `HEAD` (for example an unrelated concurrent commit), **stop and ask the user** before the soft reset. Do not squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the unexpected commit.
 - A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This command does not coordinate it for the caller.

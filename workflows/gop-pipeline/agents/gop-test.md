@@ -19,7 +19,7 @@ You will receive:
 > Assumes a .NET solution. Test layouts vary by repo. Discover them with Glob, and do not hard-code paths.
 
 1. **Map modified files to test projects**:
-   - For each modified `.cs` file, walk up to the nearest `.csproj` (the **source project**) and extract its assembly name (for example `App.Core` from `App.Core.csproj`).
+   - For each modified `.cs` file, walk up to the nearest `.csproj` (the **source project**) and extract its assembly name (for example `App.Core` from `App.Core.csproj`). A modified `.csproj` file is itself a source project.
    - Search for matching test projects using common patterns. Use Glob to discover, then keep only the ones that exist:
      - Sibling: `**/<AssemblyName>.Tests/<AssemblyName>.Tests.csproj`, `**/<AssemblyName>.Test/<AssemblyName>.Test.csproj`
      - Centralized: `tests/<AssemblyName>.Tests/...`, `test/<AssemblyName>.Test/...`, `Test/<AssemblyName>.Tests/...`

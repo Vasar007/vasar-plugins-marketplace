@@ -119,7 +119,9 @@ that the fallback was used.
 
 If an agent stops or a fact test fails, send the agent the resume note or the defects with
 `SendMessage`. If that fails, dispatch the role again with the same brief and `{RESUME_NOTE}`
-or `{DEFECTS}`. If the repair fails again, stop the run, keep all files, and report the failure
+or `{DEFECTS}`. If a fact test failed after a commit, the repair changes that commit with
+`git commit --amend`. It never adds a second commit for the same step. Then do the fact tests
+again. If the repair fails again, stop the run, keep all files, and report the failure
 under "Blocked on me".
 
 ### 9. Shell

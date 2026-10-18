@@ -98,6 +98,12 @@
       "reason": "Quoted field name: `Load-bearing terms` is the name of a TODO field that other files cite."
     },
     {
+      "file": "essentials/dev-essentials/skills/audit-personal-conventions/SKILL.md",
+      "rule": "slop_word",
+      "text": "load-bearing",
+      "reason": "Field name: `Load-bearing terms` is the name of a TODO field and of a section that the skill cites."
+    },
+    {
       "file": "essentials/dev-essentials/skills/bug-hunt/SKILL.md",
       "rule": "sentence_over_limit",
       "text": "\"<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|r…",

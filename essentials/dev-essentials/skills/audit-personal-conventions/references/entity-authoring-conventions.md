@@ -106,12 +106,16 @@ Split content out into `references/*.md` or `examples/*.md` in two cases:
    - `context: fork` with `agent`: these two frontmatter fields run the whole skill in a subagent of the named type. Use them only for a skill with an explicit task. The docs warn that a skill with guidelines only gives the subagent "no actionable prompt".
    - An orchestrator skill: split the workflow into smaller skills, and keep one skill that invokes each of them with the Skill tool, in order.
 
+## Load-bearing terms
+
+Before you author the entities, pick the terms for each promoted rule. Pick them also for each superseded personal file of 9d. Pick one to three short phrases that the authored or shipped entity must hold for the rule to stay covered. Take them from the rule text of Phase 2, as the entity words it. Examples are a flag name, a field name, or the key phrase of the rule. Record them in the run state, and copy them into the TODO entry (9c.7). Precondition C and step 1 of 9d read them from there.
+
 ## Author-commit-pairing discipline
 
-Ship an authored or edited entity as at least two commits:
+When the review loop fixes something, ship an authored or edited entity as an "Add X" commit plus the review-fix commits:
 
 1. An **"Add X"** (or "Edit X") commit with the initial content of the entity.
-2. The review-fix commits of Phase 7. The review loop makes them, one `Review round <N>: Fix ...` commit for each round. Do not rewrite or amend them. Keep the `F1`/`F2` numbering and the `source: <file>:<line>` citation of each finding in the "Review loop" section of the Phase 10 report. Do not put them in a commit message.
+2. The review-fix commits of Phase 7. A round that fixes nothing makes none. The review loop makes one `Review round <N>: Fix ...` commit for each round that fixes something. Do not rewrite or amend them. Keep the `F1`/`F2` numbering and the `source: <file>:<line>` citation of each finding in the "Review loop" section of the Phase 10 report. Do not put them in a commit message.
 
 Phase 2 uses the same `source:` citation format for rule extraction. Use the citation for the review and the fixes of this session. With it, the fixer and the reviewer can trace a generalized rule back to its exact file and line while the run is live. Do not present it as a stable, permanent commit-message convention. The cited file often lives in the personal `<claude-root>` configuration of the user, outside any repo (a memory file, a global CLAUDE.md). A future reader of the git history of the shipped repo cannot resolve it.
 

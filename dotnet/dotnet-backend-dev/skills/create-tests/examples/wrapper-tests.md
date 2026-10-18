@@ -174,11 +174,6 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         return _generator.GenerateMigrationId();
     }
 
-    private MigrationId CreateMigrationId(String value)
-    {
-        return _generator.CreateMigrationId(value);
-    }
-
     // Additional tests for IComparable implementation
 
     [Test]
@@ -488,6 +483,15 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
 
         // Assert.
         result.Should().NotBe(0);
+    }
+
+    // ============ Private helpers ============
+
+    // CreateMigrationId(String) is a Create method of MigrationGenerator.
+    // Add it to the generator if it is missing (see "Create methods" in generators.md).
+    private MigrationId CreateMigrationId(String value)
+    {
+        return _generator.CreateMigrationId(value);
     }
 }
 ```

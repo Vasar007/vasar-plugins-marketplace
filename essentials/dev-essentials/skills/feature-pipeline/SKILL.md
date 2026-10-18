@@ -131,7 +131,7 @@ Before you launch a stage, do these steps in order:
    </project-context>
 
    <task-context>
-   {contents of {ARTIFACTS_DIR}/<task-id>/task-context.md}
+   {contents of {ARTIFACTS_DIR}/{TASK_ID}/task-context.md}
    </task-context>
 
    <pipeline-discipline>

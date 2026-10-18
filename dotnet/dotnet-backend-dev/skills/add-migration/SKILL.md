@@ -404,11 +404,9 @@ For grouping records, JSON parsing, progress logs, removal of legacy data, and b
 
 If the migration adds new entity types, register each new type in `{ServiceName}DbContext`. Each new type needs a `DbSet` property, with every database provider. A document database also needs an entity configuration that sets the container.
 
-**File**: `src/{ProjectName}.Infrastructure/Persistence/{ServiceName}DbContext.cs`
-
 **Container configuration** (document database only). Give each new entity type an `IEntityTypeConfiguration<T>` as in Step 2 of [create-ef-entity](../create-ef-entity/SKILL.md). It uses the service container from `DbStorages` (see [ef-patterns.md](../dotnet-conventions/ef-patterns.md)).
 
-**DbSet property** (every database provider):
+**DbSet property** (every database provider), in `src/{ProjectName}.Infrastructure/Persistence/{ServiceName}DbContext.cs`:
 
 ```csharp
 public DbSet<NewEntity> NewEntities => Set<NewEntity>();

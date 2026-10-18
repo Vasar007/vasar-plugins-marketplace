@@ -2,7 +2,7 @@
 
 `gop-work` reads this file at step 19, in a run with `--interactive`. The aggregated report of step 18 is the input.
 
-After the second re-run (see the cycle limit in the Rules of `SKILL.md`), do not offer the accept options.
+After the second re-run (see the cycle limit in the Rules of `SKILL.md`), do not offer the accept options or the dismiss option. If `validation_status` is BLOCKED, stop the pipeline and escalate to the user, as the Rules of `SKILL.md` say. If it is APPROVED_WITH_WARNINGS, offer only two options: proceed to the commit, or stop for a manual fix.
 
 **IF `validation_status` is APPROVED:**
 

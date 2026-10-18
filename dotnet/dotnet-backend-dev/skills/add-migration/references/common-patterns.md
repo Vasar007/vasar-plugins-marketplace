@@ -88,21 +88,27 @@ for (var batchIndex = 0; batchIndex < totalBatches; ++batchIndex)
 }
 ```
 
-If the batch removes or changes the records that the query filters on, do not use `Skip`. The next page will skip records that the migration did not process. Take the next batch from the start instead:
+If the batch removes or changes the records that the query filters on, do not use `Skip`. The next page will skip records that the migration did not process. Page by key instead. Each query takes the records after the last key that the migration processed. The migration can skip a record, for example because its data is invalid. Paging by key also works then. A skipped record must not stay in the result, or the loop never ends.
 
 ```csharp
+var lastId = 0L;
+
 var batch = await dbContext.LegacyRecords
+    .Where(r => r.Id > lastId)
     .OrderBy(r => r.Id)
     .Take(batchSize)
     .ToListAsync(cancellationToken);
 
 while (batch.Count > 0)
 {
-    // Process batch, and remove or change the records so that the query no longer returns them...
+    // Process batch. Remove, change, or skip the records.
 
     await dbContext.SaveChangesAsync(cancellationToken);
 
+    lastId = batch[^1].Id;
+
     batch = await dbContext.LegacyRecords
+        .Where(r => r.Id > lastId)
         .OrderBy(r => r.Id)
         .Take(batchSize)
         .ToListAsync(cancellationToken);

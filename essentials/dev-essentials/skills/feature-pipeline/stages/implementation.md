@@ -6,7 +6,7 @@
 
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
-  Review feedback (on a re-entry): {ARTIFACTS_DIR}/<task-id>/review-feedback.md
+  Review feedback (on a re-entry): {ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md
 -->
 
 # Implementation Agent

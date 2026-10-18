@@ -99,7 +99,7 @@ Wait for an explicit yes. Do not continue without it.
 git -C <repo-root> check-ignore -v .claude/worktrees/placeholder
 ```
 
-If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git rev-parse --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
+If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git -C <repo-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 
@@ -139,7 +139,9 @@ Run all three sub-steps immediately after `git worktree add`, before dispatching
 # 1. Unset upstream tracking — prevents "git branch -vv" hiding local commits
 #    behind the base branch and stops accidental push/pull to the wrong target
 git -C <worktree-path> branch --unset-upstream
-#    This holds for Cases A, B, and C. Push with an explicit "origin <branch-ref>".
+#    In Case B the local branch may have no upstream. Then the command exits with 128
+#    ("has no upstream information"). That is harmless: go on to the next sub-step.
+#    Push with an explicit "origin <branch-ref>".
 
 # 2. Copy gitignored Claude Code config from master worktree so subagents
 #    inherit the same allow-list, hooks, and permissions without re-prompting

@@ -116,6 +116,9 @@ shipped), append this line — per Phase 8's restart notice:
 
 <rounds> · findings by severity · APPLY/PARTIAL/REJECT counts · final verdict
 
+F<n> [<verdict>] — <finding and fix>
+source: <path>:<line>
+
 ## Version
 
 <plugin> <old> -> <new> (<MAJOR|MINOR|PATCH>) — one bump, <reason>

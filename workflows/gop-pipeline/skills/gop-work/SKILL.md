@@ -94,7 +94,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 12. Find out whether testing is relevant:
     - If no modified file is a `.cs` file or a `.csproj` file, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`.
     - Else, launch `gop-test`. It does the full test-project search. If it finds no test project, it returns `NO_TESTS_FOUND`.
-13. If tests are relevant, launch a **gop-pipeline:gop-test** subagent, injecting:
+13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent, injecting:
     - `modified_files`: from Phase 1
     - `change_summary`: from Phase 1
     - `repo_root`: the detected repository root

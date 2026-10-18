@@ -322,7 +322,6 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
             """;
 
         // Act & Assert.
-
         // Configuration binding requires all constructor parameters.
         var act = BindOptionsFromJsonAction(json);
 
@@ -363,7 +362,6 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
         var options = BindOptionsFromJson(json);
 
         // Assert.
-
         // All basic properties.
         options.EnableMigrationEngine.Should().BeTrue();
         options.Timeout.Should().Be(TimeSpan.FromMinutes(15));
@@ -372,8 +370,6 @@ public sealed class MigrationOptionsConfigurationBindingTests : BaseConfiguratio
         options.SkipProductMigrations.Should().BeFalse();
         options.UseReflectionDiscovery.Should().BeTrue();
         options.EnableVersionSeeding.Should().BeTrue();
-
-        // Assert.
 
         // VersionInfo properties.
         options.SeedDatabaseVersion.Should().NotBeNull();

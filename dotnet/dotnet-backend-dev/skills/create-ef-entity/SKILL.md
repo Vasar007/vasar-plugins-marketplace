@@ -72,6 +72,8 @@ The example uses the Cosmos DB provider of EF Core (`ToContainer`). For another 
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using {ProjectNamespace}.Infrastructure.Persistence.Configuration; // DbStorages
+using {FrameworkNamespace}; // HasUniversalKey (framework extension)
 
 namespace {ProjectNamespace}.Infrastructure.Persistence.{Feature}.Entities;
 

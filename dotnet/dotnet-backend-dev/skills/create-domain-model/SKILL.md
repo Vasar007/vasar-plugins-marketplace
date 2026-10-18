@@ -15,26 +15,23 @@ Domain models are `sealed record` types that implement `IStaticEquatable<T>`. Th
 ```csharp
 public sealed record {ModelName} : IStaticEquatable<{ModelName}>
 {
-    // 1. Static comparers (if needed for string properties)
-    private static StringComparer DefaultStringComparer => StringComparer.OrdinalIgnoreCase;
-
-    // 2. Properties with [Required] and XML docs
+    // 1. Properties with [Required] and XML docs
     [Required]
     public {Type} {Property} { get; init; }
 
-    // 3. Constructor with validation
+    // 2. Constructor with validation
     public {ModelName}({parameters})
     {
         // Validation
     }
 
-    // 4. Equals override (only when a case of domain-models.md applies)
+    // 3. Equals override (only when a case of domain-models.md applies)
     public Boolean Equals({ModelName}? other) { ... }
 
-    // 5. GetHashCode override (only when a case of domain-models.md applies)
+    // 4. GetHashCode override (only when a case of domain-models.md applies)
     public override Int32 GetHashCode() { ... }
 
-    // 6. ToString override with StringBuilder (only when a case of domain-models.md applies)
+    // 5. ToString override with StringBuilder (only when a case of domain-models.md applies)
     public override String ToString() { ... }
 }
 ```
@@ -64,7 +61,7 @@ public sealed record {ModelName} : IStaticEquatable<{ModelName}>
    - `ThrowIfValueIsOutOfRange()` for numeric constraints
    - Add XML docs with `<exception>` tags
 
-5. **Keep the generated `Equals`, `GetHashCode`, and `ToString` of the record**, unless a case in [domain-models.md](../dotnet-conventions/domain-models.md) ("When to override") applies. If a case applies, override `Equals` and `GetHashCode` together with the same field set and comparers, and build `ToString()` with `StringBuilder`.
+5. **Keep the generated `Equals`, `GetHashCode`, and `ToString` of the record**, unless a case in [domain-models.md](../dotnet-conventions/domain-models.md) ("When to override") applies. The generated equality compares strings with ordinal, case-sensitive rules. If a model needs another comparison, override `Equals` and `GetHashCode` explicitly. If a case applies, override `Equals` and `GetHashCode` together with the same field set and comparers, and build `ToString()` with `StringBuilder`.
 
 6. **Create unit tests** extending `BaseEqualityMemberTests<T>` (see create-tests skill)
 

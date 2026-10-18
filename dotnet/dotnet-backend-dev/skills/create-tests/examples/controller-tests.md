@@ -176,6 +176,8 @@ public sealed class CustomersControllerTests : WebApiBaseTest
         return _customerGenerator.GenerateCustomerId();
     }
 
+    // GenerateRegistrationRequest() is a Generate method of CustomerGenerator.
+    // Add it to the generator of the test project that references the WebApi types (see "Generate methods" in generators.md).
     private Rest.CustomerRegistrationRequest CreateTestRegistrationRequest()
     {
         return _customerGenerator.GenerateRegistrationRequest();

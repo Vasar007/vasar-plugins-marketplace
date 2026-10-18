@@ -106,8 +106,8 @@ Parse the flags. Resolve the Claude config root with the path resolution rule ab
 1. If `--marketplace=` is given, and `git -C <supplied> config --get remote.origin.url` matches the persisted `Marketplace remote`, use the given path. It is the same repo in another clone location. Show the match.
 2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, STOP and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
 3. If the persisted `Marketplace root` exists on disk, use it. Precondition A in 9c.2 still checks its remote again.
-4. If `--marketplace=` is given and the remote check is inconclusive, use the given path. Warn the user that the run was not able to compare the remotes. If the TODO has no `Marketplace remote`, the remote check is inconclusive. If the given clone has no `origin` remote, STOP and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
-5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. If the check is inconclusive, accept the path with the warning of step 4. On a resume run, never fall back to auto-detect in the current working directory.
+4. If `--marketplace=` is given and the TODO has no `Marketplace remote`, STOP and ask. Precondition A (9c.2) compares the remote with that field, and the compare always fails for an empty field. If the given clone has no `origin` remote, STOP and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
+5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. On a resume run, never fall back to auto-detect in the current working directory.
 
 Before you build the project set, read `references/source-inventory.md`. Build the project set from `--projects` with its decode-and-probe procedure and its worktree-sibling collapse. Before you read any source file, show the resolved scope to the user:
 
@@ -174,7 +174,7 @@ If an approval covers only part of a cluster, and the other members are deferred
 
 Before you dispatch an authoring subagent, record the HEAD SHA of the target marketplace repo: `git -C <marketplace-root> rev-parse HEAD`. Call it `<pre-authoring-sha>`. Phase 7 uses it to limit the review loop to the authoring commits of this run.
 
-Read `references/entity-authoring-conventions.md`, and follow it. It covers the entity kind, the frontmatter, the description, the body structure, the references split, and the commits.
+Read `references/entity-authoring-conventions.md`, and follow it. It covers the entity kind, the frontmatter, the description, the body structure, the references split, the load-bearing terms, and the commits.
 
 **No version bump happens in this phase.** Phase 8 does the version bumps after the shape is final.
 
@@ -216,7 +216,7 @@ With `--autonomous`, no gate of Phase 9 stops. This covers the 9a stub question,
 
 - A **fully promoted** file: `stub` replaces the body with a one-line pointer. `annotate` puts a pointer above the body and keeps the body. `none` touches nothing for that item: no stub, no annotation, and no `MEMORY.md` index bullet for it. List it as a manual TODO. The other items of the run that use `stub` or `annotate` still get their index bullets.
 - A **partially promoted** file: never stub it. Annotate only the promoted section, and keep the rest of the file as it is.
-- An approved **F** item in a memory file or a `MEMORY.md` index: remove only the stale line or reference (with `--cleanup-mode=annotate`, annotate it). It falls under the same once-per-run question as `stub`. An F or E source in the global CLAUDE.md goes through 9b, one in a project CLAUDE.md through 9c, and a personal entity through 9d.
+- An approved **F** item in a memory file or a `MEMORY.md` index: remove only the stale line or reference (with `--cleanup-mode=annotate`, annotate it). It falls under the same once-per-run question as `stub`. An E source in the global CLAUDE.md goes through 9b, one in a project CLAUDE.md through 9c, and a personal entity through 9d. An F item in a CLAUDE.md has no promotion, so 9b and 9c cannot process it. Keep it report-only: list it in the "Manual TODOs" of the report.
 
 Without `--interactive`, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. With `--autonomous`, list them in the report, and write without the question. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 

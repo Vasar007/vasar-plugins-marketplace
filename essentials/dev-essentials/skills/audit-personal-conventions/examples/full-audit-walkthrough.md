@@ -350,6 +350,20 @@ Manual TODOs:
 | 10 | D-scoped | RepoBeta test-container reset | Deferred pending destination confirmation |
 | 13 | C-universal | Never log a raw auth token, even at Debug level | Deferred — held back this run pending a dedicated authoring pass |
 
+## Gates passed without a stop
+
+| Gate | Default taken | Saved to |
+| --- | --- | --- |
+| none | not applicable, because the run was not autonomous | not applicable |
+
+## Actions taken under --autonomous
+
+- none
+
+## Decisions for your review
+
+- none
+
 ## Commits
 
 <sha1> Add retry-backoff-policy skill
