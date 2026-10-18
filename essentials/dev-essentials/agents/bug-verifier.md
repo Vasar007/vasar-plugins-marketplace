@@ -61,8 +61,8 @@ Read the run context file and `references/report-format.md` in the skill folder 
 9. If the verdict is Rejected, move the whole entry, with its ID, to "Appendix: rejected findings". Leave no stub in the area section.
 
 Then follow each open note in your brief. Apply rule 2 to each defect that you find. Add
-` Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.` at the end of the
-note line.
+a space and `Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.` at the end
+of the note line.
 
 If your brief says that you are the last part, write the Summary section for all findings in
 the report. Use the format in `references/report-format.md`. The counts must add up.

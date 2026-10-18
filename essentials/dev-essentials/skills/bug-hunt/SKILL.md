@@ -113,7 +113,7 @@ work is not finished.
 The orchestrator keeps `_bug-hunt-session-progress.md` with the same sections. It updates the file at
 each step boundary and after each agent reply. It records the agent ID of each dispatch, and
 each pause with its resume job. After each dispatch, it writes this into `## NEXT`: "Waiting
-for agent <ID> (<role>), dispatched <time>. If the agent runs, do not dispatch this role
+for agent `<ID>` (`<role>`), dispatched `<time>`. If the agent runs, do not dispatch this role
 again." If two agents run at the same time, the note names each one. Edit progress files and
 the report with the Edit tool, not with a script that rewrites the file.
 

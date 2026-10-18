@@ -21,14 +21,14 @@
 
 ## Commands
 
-- **Pre-build** (optional, runs before the build gate): <command or empty>
+- **Pre-build** (optional, runs before the build gate): <command, or empty>
 - **Build:** <for example `dotnet build ./Sources/MyService.sln -c Debug`>
 - **Test:** <for example `dotnet test ./Sources/Tests/MyService.Tests/MyService.Tests.csproj`>
 - **File-scoped test** (optional): <command that runs one test file, or empty>
-- **Coverage** (optional): <command or empty>
+- **Coverage** (optional): <command, or empty>
 - **Lint (optional):** <for example `dotnet format --verify-no-changes`>
-- **Lint fix** (optional): <command or empty>
-- **Migration** (optional): <command or empty>
+- **Lint fix** (optional): <command, or empty>
+- **Migration** (optional): <command, or empty>
 - **Push:** <for example `git push -u origin HEAD`>
 - **PR creation:** <for example `mcp__plugin_github_github__create_pull_request` or `gh pr create`>
 
@@ -53,7 +53,7 @@
 <!-- Short bullets. Anything that the pipeline agents must know and that is NOT already in CLAUDE.md. -->
 - <for example "All PRs must reference the tracking issue URL in the PR body">
 - <for example "Commit messages use the format `#<task-id> - <summary>`">
-- <add more as needed>
+- <more conventions, as needed>
 
 ## Artifacts Directory
 

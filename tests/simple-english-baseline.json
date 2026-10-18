@@ -5,139 +5,55 @@
       "file": "dotnet/dotnet-backend-dev/skills/create-tests/SKILL.md",
       "rule": "synonym_rotation",
       "text": "config (config-settings)",
-      "reason": "Identifier outside backticks: the file name `config-options-tests.md` in the link text."
-    },
-    {
-      "file": "dotnet/dotnet-backend-dev/skills/create-tests/SKILL.md",
-      "rule": "sentence_over_limit",
-      "text": "[ ] Gate 1 (only for a test class that calls the methods of the SUT directly, ne…",
-      "reason": "Settled text: the scope of Gate 1 is a user decision from the lint sweep (PR #29)."
+      "reason": "File path: the link target `examples/config-options-tests.md` holds the word `config`. The path is a file name, and the text uses `configuration` for the concept."
     },
     {
       "file": "essentials/dev-essentials/agents/bug-hunter.md",
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
-      "reason": "Settled term: `structure check`. The file uses it on purpose."
+      "reason": "Two settled names of the bug-hunt skill: the marker \"Not confirmed:\" and the step \"structure check\", which `references/structure-checks.md` and `scripts/check_report.py` carry. A rename of either one changes the whole skill."
     },
     {
       "file": "essentials/dev-essentials/agents/bug-report-auditor.md",
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
-      "reason": "Settled term: `structure check`. The file uses it on purpose."
+      "reason": "Two settled names of the bug-hunt skill: the marker \"Not confirmed:\" and the step \"structure check\", which `references/structure-checks.md` and `scripts/check_report.py` carry. A rename of either one changes the whole skill."
     },
     {
       "file": "essentials/dev-essentials/agents/bug-verifier.md",
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
-      "reason": "Settled term: `structure check`. The file uses it on purpose."
-    },
-    {
-      "file": "essentials/dev-essentials/agents/task-composer.md",
-      "rule": "contraction",
-      "text": "don't",
-      "reason": "Quoted literal text: the trigger phrase \"don't write a file\". The words must stay as they are."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/implement-batch.md",
-      "rule": "sentence_over_limit",
-      "text": "<parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--wo…",
-      "reason": "Frontmatter: the linter joins the YAML lines into one sentence. The long argument-hint lists the flags of the command."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/implement-task.md",
-      "rule": "sentence_over_limit",
-      "text": "<issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>…",
-      "reason": "Frontmatter: the linter joins the YAML lines into one sentence. The long argument-hint lists the flags of the command."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/merge-worktree-projects.md",
-      "rule": "synonym_rotation",
-      "text": "confirms (check-verify)",
-      "reason": "Identifier outside backticks: `checkout` counts as the stem `check`. The verb `confirms` names the approval of the user."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/merge-worktree-projects.md",
-      "rule": "contraction",
-      "text": "it's",
-      "reason": "Quoted literal text: the report line \"skipped — recent activity, confirm it's safe to merge\". The words must stay as they are."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/merge-worktree-projects.md",
-      "rule": "em_dash",
-      "text": "—",
-      "reason": "Quoted literal text: the report line \"skipped — recent activity, confirm it's safe to merge\". The words must stay as they are."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/research-implement-review-report.md",
-      "rule": "sentence_over_limit",
-      "text": "<task description, plan file path, or issue reference> [--base=<branch>] [--bran…",
-      "reason": "Frontmatter: the linter joins the YAML lines into one sentence. The long argument-hint lists the flags of the command."
-    },
-    {
-      "file": "essentials/dev-essentials/commands/save-context.md",
-      "rule": "sentence_over_limit",
-      "text": "\"[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--…",
-      "reason": "Frontmatter: the linter joins the YAML lines into one sentence. The long argument-hint lists the flags of the command."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/audit-personal-conventions/references/cleanup-and-provenance.md",
-      "rule": "sentence_over_limit",
-      "text": "> Has the CODESPAN PR for this run been merged to its default branch, and are …",
-      "reason": "Quoted literal text: the gate question that the skill asks the user. The words must stay as they are."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/bug-hunt/SKILL.md",
-      "rule": "sentence_over_limit",
-      "text": "\"<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|r…",
-      "reason": "Frontmatter: the linter joins the YAML lines into one sentence. The long argument-hint lists the flags of the command."
+      "reason": "Two settled names of the bug-hunt skill: the marker \"Not confirmed:\" and the step \"structure check\", which `references/structure-checks.md` and `scripts/check_report.py` carry. A rename of either one changes the whole skill."
     },
     {
       "file": "essentials/dev-essentials/skills/bug-hunt/SKILL.md",
       "rule": "synonym_rotation",
       "text": "confirm (check-verify)",
-      "reason": "Settled term: the marker \"Not confirmed:\" next to `structure check`. The file uses it on purpose."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/bug-hunt/references/agent-briefs.md",
-      "rule": "synonym_rotation",
-      "text": "check (check-verify)",
-      "reason": "Settled term: `structure check`. The file uses it on purpose."
+      "reason": "Two settled names of the bug-hunt skill: the marker \"Not confirmed:\" and the step \"structure check\", which `references/structure-checks.md` and `scripts/check_report.py` carry. A rename of either one changes the whole skill."
     },
     {
       "file": "essentials/dev-essentials/skills/bug-hunt/references/report-format.md",
       "rule": "synonym_rotation",
       "text": "confirmed (check-verify)",
-      "reason": "Settled term: the verdict `Confirmed` and the marker \"Not confirmed:\". The file uses it on purpose."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/feature-pipeline/references/setup.md",
-      "rule": "sentence_over_limit",
-      "text": "> > - **Path:** CODESPAN > - **Branch:** CODESPAN (new / existing …",
-      "reason": "Quoted literal text: the worktree announcement that the pipeline shows to the user. The words must stay as they are."
+      "reason": "Two settled names of the bug-hunt skill: the marker \"Not confirmed:\" and the step \"structure check\", which `references/structure-checks.md` and `scripts/check_report.py` carry. A rename of either one changes the whole skill."
     },
     {
       "file": "essentials/dev-essentials/skills/feature-pipeline/stages/requirements.md",
       "rule": "banned_modal",
       "text": "Should",
-      "reason": "MoSCoW priority label (Must, Should, Could, Won't). The label is a fixed name."
+      "reason": "MoSCoW priority label (Must, Should, Could, Won't). The MoSCoW method defines these names, so no other word can replace the label."
     },
     {
       "file": "essentials/dev-essentials/skills/feature-pipeline/stages/requirements.md",
       "rule": "banned_modal",
       "text": "Could",
-      "reason": "MoSCoW priority label (Must, Should, Could, Won't). The label is a fixed name."
+      "reason": "MoSCoW priority label (Must, Should, Could, Won't). The MoSCoW method defines these names, so no other word can replace the label."
     },
     {
       "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
       "rule": "synonym_rotation",
       "text": "confirmed (check-verify)",
-      "reason": "Quoted example: the worked example copies a real audit report. It quotes the settled terms of bug-hunt, for example the marker \"Not confirmed:\"."
-    },
-    {
-      "file": "essentials/dev-essentials/skills/review-loop/references/verify-fix-discipline.md",
-      "rule": "banned_modal",
-      "text": "should",
-      "reason": "Quoted literal text: an example of a bad argument (\"so the fix should be Z\"). The words must stay as they are."
+      "reason": "Quoted example: the file copies a real audit report of bug-hunt. The report quotes the section name \"Resume check\" and the marker \"Not confirmed:\" of that skill."
     }
   ]
 }

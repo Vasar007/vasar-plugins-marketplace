@@ -9,6 +9,28 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.2.1 and dotnet-backend-dev 1.4.2 in release [3.2.1] - 2026-10-18
+
+This release reviews each lint exception of the repository (issue #49). Text rewrites and a fix in the lint test remove 14 of the 23 entries of the simple-english baseline. The 9 entries that stay name the reason that no rewrite can remove them. Two markdownlint rule changes go away.
+
+### Changed in the repository
+
+- `tests/simple-english-baseline.json`: 9 entries instead of 23. The reason of each entry that stays names the settled name, the file path, or the quoted source that keeps the hit.
+- `tests/test_simple_english.py`: the test does not lint the value of an `argument-hint` line or the closing `---` of the frontmatter, because they are not prose. Before, the hint and the first sentence of the body counted as one long sentence.
+- `.markdownlint.jsonc`: `MD038` is on again. `MD033` allows only the elements of the `write-markdown` base configuration. `MD041` names its reason.
+
+### Fixed in dev-essentials
+
+- `merge-worktree-projects`: the text uses "approval" for the answer of the user and keeps "check" for the safety checks. The report line for a skipped folder is now "skipped (recent activity). Make sure that it is safe to merge."
+- `bug-hunt`: placeholders such as `<ID>` in the notes are code spans. The "Result:" text of a verifier is a code span with no space at the start. The text says to add a space before it.
+- `audit-personal-conventions`: the gate question before the delete is two short questions.
+- `feature-pipeline`: the worktree announcement has no bold labels, and the project context template uses placeholders that markdownlint does not read as HTML.
+- `general-conventions`, `review-loop`, and `task-composer`: plain words in a YAML rule, in an example of a bad argument, and in a trigger phrase.
+
+### Fixed in dotnet-backend-dev
+
+- `create-tests`: the checklist item for Gate 1 states the gate first and its scope in two short sentences. The scope does not change.
+
 ## dev-essentials 3.2.0 in release [3.2.0] - 2026-10-18
 
 This release adds the skill `optimize-skill` (issue #26). It turns the pipeline that optimized `bug-hunt` and the other skills of this marketplace into a skill.
@@ -509,7 +531,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...HEAD
+[3.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...v3.1.0

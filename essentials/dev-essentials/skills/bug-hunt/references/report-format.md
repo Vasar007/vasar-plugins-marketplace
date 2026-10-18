@@ -49,8 +49,8 @@ subsections "New details for known issues" and "Notes for other areas" must alwa
 
 A hunter follows a lead for an area that was already searched itself (hunter rule, Method
 step 10). A note for such an area that is still open after the last hunter is an open note.
-A verifier follows it and then adds ` Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.` at the
-end of the note line.
+A verifier follows it and then adds a space and `Result: <BH-NN, New details for BH-NN, or no bug, with the reason>.`
+at the end of the note line.
 
 ## Finding entry
 
