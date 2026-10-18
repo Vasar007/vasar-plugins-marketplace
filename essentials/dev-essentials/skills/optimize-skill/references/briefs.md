@@ -121,7 +121,10 @@ Follow its executor section. Each "Decision:" line under an item wins over the i
    can show w/mixed. Commit only after the validators and the tests pass.
 6. Make one local commit with git -C "{REPO}" commit, an explicit pathspec, and the message of
    the executor section. Follow the commit rules of the repository. Do not push. Then run
-   git -C "{REPO}" status --short.
+   git -C "{REPO}" status --short. If {DEFECTS} names a commit SHA of this step,
+   fix the files, and change that commit with git -C "{REPO}" commit --amend and the same
+   pathspec. Do not make a second commit. If {DEFECTS} says that no commit of this step
+   exists, make the commit as above. Never amend any other commit.
 
 <common rules>
 {PLAIN_ENGLISH}
@@ -184,7 +187,10 @@ report is {REVIEW_REPORT}. Fix only these findings:
    tests pass.
 5. Make one local commit with git -C "{REPO}" commit and an explicit pathspec. The message
    names the finding IDs. Follow the commit rules of the repository. Do not push. Then run
-   git -C "{REPO}" status --short.
+   git -C "{REPO}" status --short. If {DEFECTS} names a commit SHA of this step,
+   fix the files, and change that commit with git -C "{REPO}" commit --amend and the same
+   pathspec. Do not make a second commit. If {DEFECTS} says that no commit of this step
+   exists, make the commit as above. Never amend any other commit.
 
 <common rules>
 {PLAIN_ENGLISH}

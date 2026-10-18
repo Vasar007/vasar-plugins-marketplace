@@ -52,7 +52,7 @@ The answer decides between B and C:
 
 ## Step 4 — `E` disposition and its marker phrase
 
-**E-fix-shipped never produces a new entity.** The fix always lands as an edit to the files of the existing shipped entity. Then Phase 9a prunes the source that reported the problem, because the corrected shipped entity now holds its content.
+**E-fix-shipped never produces a new entity.** The fix always lands as an edit to the files of the existing shipped entity. Then Phase 9 prunes the source that reported the problem. It uses 9a, 9b, 9c, or 9d, by the source type. The corrected shipped entity now holds the content of that source.
 
 The near-certain marker for E is text like **"stopgap until `<plugin>:<entity>` is updated"**. Some memory files and wrapper personal entities call themselves a temporary workaround for a known defect in a shipped entity. Such a file identifies itself as E. Do not accept the self-label or the stated delta as it stands. Read the current content of the shipped entity, and find out whether the defect is still there. Sometimes an unrelated change already fixed it. In that case, the disposition is F-stale (prune, nothing to fix), not E.
 

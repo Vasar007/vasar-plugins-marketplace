@@ -30,7 +30,7 @@ Key requirements:
 - `[Required]` on all required properties.
 - `{ get; init; }` pattern.
 - Constructor validates ALL inputs: `ThrowIfNull()`, `ThrowIfNullOrWhiteSpace()`, `ThrowIfUndefined()`.
-- `IStaticEquatable<T>` is a framework-internal marker interface used by the project's shared library (`MyApp.Framework.*`). If your project does not provide this interface, drop it or substitute `IEquatable<T>`. Records still provide `Equals`, `GetHashCode`, and `ToString` automatically.
+- `IStaticEquatable<T>` is a framework-internal marker interface used by the project's shared library (`MyApp.Framework.*`). If your project does not provide this interface, substitute `IEquatable<T>, IEqualityOperators<T, T, Boolean>`. Records still provide `Equals`, `GetHashCode`, and `ToString` automatically.
 
 ### When to override `Equals` / `GetHashCode` / `ToString`
 

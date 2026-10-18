@@ -29,6 +29,11 @@ own. This holds also for two copies that still match today. Two verbatim
 copies do not stay identical: if the rules change, one copy gets the edit, and
 the other does not.
 
+If the root has both `CLAUDE.md` and `AGENTS.md`, keep the preamble in
+`AGENTS.md` and make `CLAUDE.md` import it with a line `@AGENTS.md`. When
+both exist, Claude Code reads only `CLAUDE.md`. So a preamble in `AGENTS.md`
+without the import does not load. The import is not a second copy.
+
 ### Worked example
 
 Root `CLAUDE.md`:

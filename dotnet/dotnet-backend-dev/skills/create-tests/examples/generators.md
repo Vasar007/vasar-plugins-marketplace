@@ -1,6 +1,6 @@
 # Test Model Generators
 
-Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators.
+Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators. A test can need fixed values for its assertion, for example for a sort order. Pass these values to a generator `Create{Model}` method through a private helper of the test class.
 
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
@@ -170,8 +170,6 @@ public sealed class MarketServiceTests : BaseMockTest
         results.Should().HaveCount(3);
         results.Should().Contain(market1);
     }
-
-    // ============ Private helpers ============
 
     private Market GenerateMarket(MarketId? marketId = null)
     {

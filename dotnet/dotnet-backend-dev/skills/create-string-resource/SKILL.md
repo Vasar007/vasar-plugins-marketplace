@@ -232,7 +232,7 @@ The `[TBD]` prefix indicates:
   <value>[TBD] Store onboarding started.</value>
 </data>
 <data name="StoreOnboardingContextMessage" xml:space="preserve">
-  <value>[TBD] Onboarding context: store {0} ({1}), warehouse [{2}], plan result [{3}].</value>
+  <value>[TBD] Onboarding context: store [{0}] ({1}), warehouse [{2}], plan result [{3}].</value>
 </data>
 <data name="NotFoundStoreMessage" xml:space="preserve">
   <value>[TBD] Store with ID [{0}] was not found.</value>

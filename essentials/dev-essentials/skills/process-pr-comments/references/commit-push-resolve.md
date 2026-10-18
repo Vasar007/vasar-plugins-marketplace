@@ -1,6 +1,6 @@
 # Commit, reply, push, and resolve (Phase 4)
 
-Stage 2 runs these steps. On a `deep-fix` cycle, Stage 2 runs steps 1 to 4 only. The orchestrating session then owns the push, the resolve, and Phase 5 (see `deep-fix.md`).
+Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The orchestrating session runs it, after steps 1 to 4 of every thread, and then resumes Stage 2 for the resolve step. On a `deep-fix` cycle, Stage 2 runs steps 1 to 4 only. The orchestrating session then owns the push, the resolve, and Phase 5 (see `deep-fix.md`).
 
 Contents: the steps for each thread, the push, the resolve, carried-over threads, the reply templates, the `no-reply` split, and the threads to resolve.
 
@@ -37,7 +37,7 @@ Repeat steps 1 to 4 for every thread of the cycle before the push.
 
 ## Push, once per cycle
 
-Push after steps 1 to 4 ran for every thread of the cycle. The push needs an explicit go-ahead of the user in the current turn (see Rules in `SKILL.md`). The approval of an earlier cycle does not carry over. With `autonomous`, push as soon as every thread of the cycle is committed and replied to (with `no-reply`: committed).
+The orchestrating session pushes after steps 1 to 4 ran for every thread of the cycle. The push needs an explicit go-ahead of the user in the current turn (see Rules in `SKILL.md`). The approval of an earlier cycle does not carry over. With `autonomous`, push as soon as every thread of the cycle is committed and replied to (with `no-reply`: committed).
 
 - Run `git push` once for all commits of the cycle. This holds for one commit for each thread and for one `squash` commit: exactly one push per cycle.
 - Never force-push. Never push to a protected branch, or to any branch other than the PR source branch.

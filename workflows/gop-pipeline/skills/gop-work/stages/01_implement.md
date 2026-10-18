@@ -26,7 +26,7 @@ You have access to:
    If an assumption is false, note it as a deviation. If the intent is still clear, continue.
 5. **Implement changes** following the steps of the plan. If a loaded skill defines its own step-by-step workflow, follow that workflow. For the domain that it covers, the workflow of the skill takes precedence over the plan. Skills encode mandatory deliverables (tests, subagent delegations) that the plan can omit.
 6. Follow existing codebase patterns and conventions identified in the plan.
-7. After all changes are made, run `git diff --stat` to see the scope of the modifications.
+7. After all changes are made, run `git status --short` and `git diff --stat` to see the scope of the modifications, new files included.
 8. Compare the diff against **both** the file list of the plan **and** the completion checklist of every loaded skill. If a loaded skill lists a mandatory artifact that is missing from the diff, implement it before finishing.
 
 ## Output

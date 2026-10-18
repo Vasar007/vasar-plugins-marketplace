@@ -128,9 +128,12 @@ Singletons in `*.Tests.Common/Helpers/Generators/`:
 ## Database Integration Tests
 
 ```csharp
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]    // manual DbContext
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))] // DI DbContext
 ```
+
+A generic test class that has `[TestFixtureSource]` also has `[TestFixture]`.
 
 Use `{Service}InMemoryDbOptions` for in-memory EF tests instead of mocking `DbContext`.
 

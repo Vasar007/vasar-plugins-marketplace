@@ -174,7 +174,7 @@ public static {ExceptionName}Exception Create(
 
 ```csharp
 // In StringResources.resx
-[TBD] Missing output for {0}
+[TBD] Missing output for [{0}]
 
 // In exception class
 var message = StringResources.MissingOutputMessage.SafeFormat(entityInfo);

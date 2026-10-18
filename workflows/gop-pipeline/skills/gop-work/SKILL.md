@@ -92,9 +92,9 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 ### Phase 3: Testing (conditional)
 
 12. Find out whether testing is relevant:
-    - For each modified `.cs` file from Phase 1, walk up to the nearest `.csproj`. Look for a sibling or centralized test project (common patterns: `**/<AssemblyName>.Tests/`, `**/<AssemblyName>.Test/`, `tests/<AssemblyName>.Tests/`, `test/<AssemblyName>.Test/`). This is only a quick probe. The full search runs in the `gop-test` subagent.
-    - If no modified component has a test project, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`. The test subagent returns the same value in this case.
-13. If tests are relevant, launch a **gop-pipeline:gop-test** subagent, injecting:
+    - If no modified file is a `.cs` file or a `.csproj` file, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`.
+    - Else, launch `gop-test`. It does the full test-project search. If it finds no test project, it returns `NO_TESTS_FOUND`.
+13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent, injecting:
     - `modified_files`: from Phase 1
     - `change_summary`: from Phase 1
     - `repo_root`: the detected repository root
@@ -173,4 +173,4 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 - If any phase fails (test, build), stop the pipeline and report to the user.
 - With `--interactive`, only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline. Without it, step 19 decides. Other failures are hard stops.
 - After a re-run of Phase 1 with validator proposals, the full pipeline (Phases 1–4) runs again, with all five validators in parallel. Do not skip build, test, or any validator after a proposal-driven re-implementation.
-- Limit proposal re-run cycles to 2 iterations. After the second re-run, do not start a third one. If validation still finds CRITICAL issues, stop the pipeline and escalate to the user with the full history of aggregated findings. Else, without `--interactive`, proceed to Phase 5, and list the warnings that remain in the final report.
+- Limit proposal re-run cycles to 2 iterations. After the second re-run, do not start a third one. If validation still finds CRITICAL issues, stop the pipeline and escalate to the user with the full history of aggregated findings. Else proceed to Phase 5, and list the warnings that remain in the final report. With `--interactive`, first show the remaining warnings. Offer only two options: proceed to the commit, or stop for a manual fix.

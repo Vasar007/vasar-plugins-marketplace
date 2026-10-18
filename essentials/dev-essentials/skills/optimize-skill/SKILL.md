@@ -119,7 +119,14 @@ that the fallback was used.
 
 If an agent stops or a fact test fails, send the agent the resume note or the defects with
 `SendMessage`. If that fails, dispatch the role again with the same brief and `{RESUME_NOTE}`
-or `{DEFECTS}`. If the repair fails again, stop the run, keep all files, and report the failure
+or `{DEFECTS}`. Record the SHA of the commit from the reply of the agent. If the parent of that commit is
+the base commit of that step, it is the commit of the agent. If a fact test
+failed and that commit exists, the defects text must say: "Amend commit `<SHA>` with
+`git -C "<repo>" commit --amend` and the same pathspec. Do not make a second commit." This
+holds for the `SendMessage` repair and for the dispatch again. If the commit does not exist,
+for example because the fact test "The commit exists" failed, the defects text must say: "No
+commit of this step exists. Make the commit." Never amend the base commit of the user, and
+never amend the commit of another step. Then do the fact tests again. If the repair fails again, stop the run, keep all files, and report the failure
 under "Blocked on me".
 
 ### 9. Shell

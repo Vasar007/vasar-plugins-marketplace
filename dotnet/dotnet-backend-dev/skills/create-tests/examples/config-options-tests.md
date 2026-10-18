@@ -166,8 +166,6 @@ public sealed class ShopOptionsTests : BaseValidatableObjectTests
         );
     }
 
-    // ============ Helper methods ============
-
     private static ShopOptions CreateDefaultOptions()
     {
         return new ShopOptions();
@@ -238,6 +236,8 @@ public void Validate_WithNullNestedOptions_ReturnsValidationError()
 }
 
 // Create separate test class for nested options
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public sealed class NestedOptionsTests : BaseValidatableObjectTests
 {
     // Test nested options independently

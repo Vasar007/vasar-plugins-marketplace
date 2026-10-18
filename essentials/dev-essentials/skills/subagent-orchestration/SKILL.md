@@ -105,7 +105,7 @@ Subagents run in the background by default. When a subagent completes, a task no
 
 Other cases:
 
-- **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. The one exception is a long test run in a subagent, under Rule 3 of `dev-essentials:dotnet-build-test`. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
+- **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. Rule 3 of `dev-essentials:dotnet-build-test` names the two exceptions: an explicit request of the user, and a long test run in a subagent. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
 - **`SendMessage` is not a dispatch.** Use it only to resume or correct a subagent that you dispatched for the same task (see Rule 5). For new work, make a fresh, unnamed `Agent` call.
 
 ## Rule 4 — Delegate high-volume external-system MCP work to subagents by default

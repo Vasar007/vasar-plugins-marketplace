@@ -97,23 +97,22 @@ The user replies: `ok proceed`
 **Step 5a: the reviewer plans**. The skill dispatches the same reviewer subagent that reported the findings again. It proposes a fix plan for each finding that can get a fix, based on existing patterns:
 
 - F1: apply `.Skip().Take()` before `.ToListAsync()`, as the sibling `ExternalResourceRepository.cs` does.
-- F2: add negative tests with `foreach` over a `List<Action>`, as the convention for constructor null-argument tests does.
+- F2: add negative tests with `foreach` over a `List<Action>`, as `dotnet-backend-dev:create-tests` documents for null-argument guards.
 - F3: before any fix, compare the finding with the `IServiceScopeFactory` usage in `BaseWorker.cs`.
 
-**Step 5b: the fixer carries out the plan**. The fixer subagent (`general-purpose`) classifies all five findings before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
+**Step 5b: the fixer carries out the plan**. The fixer subagent (`general-purpose`) classifies the three findings that the triage cleared before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
 
 **F1 [APPLY]**. Proved: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then `.Skip().Take()` on the result in memory. A known working EF pattern in the sibling service (`ExternalResourceRepository.cs:54`) applies `.Skip().Take()` on the `IQueryable` before the query runs. The fix stays inside lines 87 to 93.
 
-**F2 [PARTIAL]**. The gap in the test shape is real: `TenantQueryServiceTests.cs` has no test for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38` to scope the fix. The service leaves the input guard to the repository layer, as other services in this codebase do. So the finding is about missing test coverage, not about a missing runtime guard. The reviewer suggested `[TestCase]` attribute tests. But `foreach` over a `List<Action>` is the documented convention for **constructor null-argument tests** (see the examples of `dotnet-backend-dev:create-tests`). Other negative tests, for example tests of string validation, can use `[TestCaseSource]`. The fixer wrote a `foreach` over a `List<Action>` test that asserts `ArgumentOutOfRangeException`, and rejected the `[TestCase]` form for this pattern.
+**F2 [PARTIAL]**. The gap in the test shape is real: `TenantQueryServiceTests.cs` has no test for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38` to scope the fix. The service leaves the input guard to the repository layer, as other services in this codebase do. So the finding is about missing test coverage, not about a missing runtime guard. The reviewer suggested `[TestCase]` attribute tests. But `dotnet-backend-dev:create-tests` documents `foreach` over a `List<Action>` for constructor guards and over a `List<Func<Task>>` for method guards. It has no rule for range guards. So the fixer followed the existing guard tests of `TenantRepositoryTests`, which is the working code of the repository. It wrote a `foreach` over a `List<Action>` test that asserts `ArgumentOutOfRangeException`. The `[TestCase]` form is the suggested direction of the reviewer, and the fixer did not adopt it. The finding itself, the missing coverage, is fully resolved.
 
 **F3 [REJECT]**. The reviewer claims that the injection of `IServiceScopeFactory` is a service-locator anti-pattern. The fixer read all of `TenantQueryService.cs`. The service uses `IServiceScopeFactory` to create a short-lived scope for each request. This is the documented pattern to use scoped services from a background-hosted context. `BaseWorker.cs:31` of `BackgroundJobService` uses the same injection of `IServiceScopeFactory`. The fixer rejects the finding, because the code is correct.
 
 ```text
 F1 [APPLY]   — In-memory slice confirmed at TenantRepository.cs:89; fix bounded to that method.
-F2 [PARTIAL] — Missing test coverage confirmed; [TestCase] boolean-stripes form rejected (the
-               foreach-over-List<Action> pattern is the convention for constructor null-arg tests
-               per create-tests skill examples; other negative tests may use [TestCaseSource]);
-               foreach test applied.
+F2 [PARTIAL] — Missing test coverage confirmed; finding resolved; [TestCase] direction not adopted (create-tests
+               documents foreach-over-List<Action> and List<Func<Task>> for null-arg guards; no rule for range guards;
+               existing TenantRepositoryTests guard tests followed); foreach test applied.
 F3 [REJECT]  — IServiceScopeFactory scope pattern verified correct via BackgroundJobService
                BaseWorker.cs:31; reviewer's claim does not verify against the source.
 ```
@@ -268,7 +267,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 - **Problem**: `TenantQueryServiceTests.cs` has no coverage for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38`. The service leaves validation to the repository layer: it passes the bounds to the repository, and the repository does the guard. So the finding is about missing test coverage, not about a missing runtime guard.
 - **Impact**: inputs at the edges have no test coverage, so a regression in the guard behavior goes unnoticed.
 - **Recommendation**: add tests with `foreach` over a `List<Action>` that assert `ArgumentOutOfRangeException` for `pageSize=0` and `offset=-1`.
-- **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. This is the documented convention for **constructor null-argument tests** (see the examples of `dotnet-backend-dev:create-tests`). Other negative tests, for example tests of string validation, can use `[TestCaseSource]`. The rule of `List<Action>` applies only to guard tests for null constructor arguments. The `[TestCase]` form is rejected for this pattern.
+- **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. `dotnet-backend-dev:create-tests` documents `foreach` over a `List<Action>` for constructor guards and over a `List<Func<Task>>` for method guards. It has no rule for range guards, so the fixer followed the existing guard tests of `TenantRepositoryTests` and did not adopt the `[TestCase]` direction. The finding itself, the missing coverage, is fully resolved.
 
 ### 3 High — IServiceScopeFactory injection claimed as DI anti-pattern
 

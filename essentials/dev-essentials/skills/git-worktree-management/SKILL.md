@@ -96,10 +96,10 @@ Wait for an explicit yes. Do not continue without it.
 ### Step 4: Verify `.claude/worktrees/` is gitignored
 
 ```bash
-git check-ignore -v .claude/worktrees/placeholder
+git -C <repo-root> check-ignore -v .claude/worktrees/placeholder
 ```
 
-If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git rev-parse --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
+If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git -C <repo-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 
@@ -128,7 +128,7 @@ Do not pass `-b` here. With `-b`, the command fails for an existing branch.
 
 ```bash
 git fetch origin <branch-ref>
-git worktree add --track -b <branch-ref> <path> origin/<branch-ref>
+git worktree add -b <branch-ref> <path> origin/<branch-ref>
 ```
 
 ### Step 6: Post-create bootstrap (mandatory — run every time)
@@ -139,10 +139,13 @@ Run all three sub-steps immediately after `git worktree add`, before dispatching
 # 1. Unset upstream tracking — prevents "git branch -vv" hiding local commits
 #    behind the base branch and stops accidental push/pull to the wrong target
 git -C <worktree-path> branch --unset-upstream
+#    In Case B the local branch may have no upstream. Then the command exits with 128
+#    ("has no upstream information"). That is harmless: go on to the next sub-step.
+#    Push with an explicit "origin <branch-ref>".
 
 # 2. Copy gitignored Claude Code config from master worktree so subagents
 #    inherit the same allow-list, hooks, and permissions without re-prompting
-[ -f .claude/settings.local.json ] && cp .claude/settings.local.json <worktree-path>/.claude/settings.local.json
+[ -f <repo-root>/.claude/settings.local.json ] && mkdir -p <worktree-path>/.claude && cp <repo-root>/.claude/settings.local.json <worktree-path>/.claude/settings.local.json
 # Note: inspect .gitignore for other .claude/... patterns (e.g., local CLAUDE.md
 # overrides, .claude/state/, plugin caches) and replicate each one the same way.
 
@@ -152,19 +155,19 @@ mkdir -p <worktree-path>/Notes
 
 ### Step 7: Find the solution or project file and report
 
-Locate the first solution or project file under the worktree root with your shell. The commands below show the .NET case: the first `.sln` file. For another stack, search for its own solution or project file instead.
+Locate the first solution or project file under the worktree root with your shell. The commands below show the .NET case: the first `.sln` or `.slnx` file. For another stack, search for its own solution or project file instead.
 
 **PowerShell:**
 
 ```powershell
-Get-ChildItem -Path <full-worktree-path> -Filter *.sln -Recurse |
+Get-ChildItem -Path <full-worktree-path> -Include *.sln,*.slnx -Recurse -File |
     Select-Object -First 1 -ExpandProperty FullName
 ```
 
 **bash (macOS / Linux / Git Bash):**
 
 ```bash
-find <full-worktree-path> -name '*.sln' -type f | head -1
+find <full-worktree-path> -type f \( -name '*.sln' -o -name '*.slnx' \) | head -1
 ```
 
 Report to the user:
@@ -246,7 +249,7 @@ git worktree list   # verify removal
 
 3. **Step 3: leaf-first manual walkup (the reliable fallback)**. Delete the deepest files and folders first, and work up to the worktree root, for example with repeated `rmdir` or `Remove-Item` calls. No single call then needs the full long path. So this step also works without Step 2.
 
-The worktree path comes from the branch ref. So keep branch-ref slugs short at creation time (see Workflow A), and Steps 2 and 3 are necessary less often.
+The worktree path is the full branch ref. If long paths cause this error often, suggest shorter branch names to the user. Never shorten the path or the ref yourself (Workflow A).
 
 Tell the user which step fixed the error. Do not force a removal past a real refusal for uncommitted changes.
 

@@ -1,6 +1,6 @@
 # Constructor Null-Argument Tests
 
-For a service or hosted service with more than one constructor dependency, null-argument coverage uses exactly **two** tests: one positive and one negative. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe test cases (for example, `[TestCase]` parameters in NUnit).
+For a service or hosted service with one or more constructor dependencies, null-argument coverage uses exactly **two** tests: one positive and one negative. With one dependency, the `List<Action>` has one entry. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe test cases (for example, `[TestCase]` parameters in NUnit).
 
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
@@ -51,8 +51,7 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
     [Test]
     public void Constructor_OnAllArgumentsProvided_CreatesInstance()
     {
-        // Arrange.
-        // Act.
+        // Arrange & Act.
         var act = () => CreateServiceWithAllArguments(
             CreateLogger(), CreateRepository(), CreateOrderService(),
             CreateEventPublisher(), CreateOptionsMonitor());
@@ -105,15 +104,13 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
         return new(logger, repository, orderService, eventPublisher, optionsMonitor);
     }
 
-    // static: TestLoggerBuilder.CreateWithoutSetup<T> accepts a fixture parameter that it ignores
-    // for no-setup loggers, so this helper needs no Fixture access.
-    private static ILogger<OrderProcessingService> CreateLogger()
-    {
-        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(null!);
-    }
-
     // non-static: these helpers need Fixture (from BaseMockTest) to construct their builders.
     // CreateServiceWithAllArguments is therefore also non-static (it calls these instance helpers).
+    private ILogger<OrderProcessingService> CreateLogger()
+    {
+        return TestLoggerBuilder.CreateWithoutSetup<OrderProcessingService>(Fixture);
+    }
+
     private IOrderRepository CreateRepository()
     {
         return TestOrderRepositoryBuilder.CreateWithoutSetup(Fixture);

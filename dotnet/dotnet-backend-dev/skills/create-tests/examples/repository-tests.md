@@ -15,9 +15,11 @@ The code examples in this file use NUnit and FluentAssertions. With another test
 
 ```csharp
 // Use TestDbContextFactory_AllCases for repository tests (manual DbContext)
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 
 // Use TestDbContextFactory_DiSafeCases when DbContext comes from DI
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 ```
 
@@ -25,6 +27,7 @@ The class shapes for the two factories:
 
 ```csharp
 // Manual DbContext creation (most common)
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 public sealed class MyRepositoryTests<TTestDbContextFactory>
     : BaseRepositoryWithOneKeyTest<TTestDbContextFactory, ...>
@@ -36,6 +39,7 @@ public sealed class MyRepositoryTests<TTestDbContextFactory>
 }
 
 // DI-managed DbContext
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]
 public sealed class MyServiceIntegrationTests<TTestDbContextFactory> : BaseMockTest
     where TTestDbContextFactory : ITestDbContextFactory, new()
@@ -87,6 +91,7 @@ using MyApp.Tests.Common.Helpers.Generators.Sales.Customers;
 
 namespace MyApp.Infrastructure.Tests.Persistence.Sales.Customers;
 
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
 public sealed class CustomerRepositoryTests<TTestDbContextFactory>
@@ -133,21 +138,16 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
     public async Task AddAsync_OnDuplicateKey_ShouldThrow()
     {
         // Arrange.
-        var repository = CreateRepository();
+        var repository = CreateRepository(DbContext);
         var model = await CreateModelAsync();
 
         await repository.AddAsync(model);
-        await DbContext.SaveChangesAsync();
 
         // Create duplicate with same ID
         var duplicate = GenerateCustomer() with { CustomerId = model.CustomerId };
 
         // Act.
-        var act = async () =>
-        {
-            await repository.AddAsync(duplicate);
-            await DbContext.SaveChangesAsync();
-        };
+        var act = () => repository.AddAsync(duplicate);
 
         // Assert.
         await act.Should().ThrowAsync<DbUpdateException>();
@@ -157,7 +157,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
     public async Task UpdateAsync_ShouldModifyExistingEntity()
     {
         // Arrange.
-        var repository = CreateRepository();
+        var repository = CreateRepository(DbContext);
         var model = await CreateAndSaveModelAsync(repository);
 
         var updatedName = GenerateCustomerName();
@@ -165,7 +165,6 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
 
         // Act.
         await repository.UpdateAsync(updatedModel);
-        await DbContext.SaveChangesAsync();
 
         // Assert.
         var result = await repository.FindByPrimaryKeyAsync(model.CustomerId);
@@ -173,13 +172,10 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
         result!.CustomerName.Should().Be(updatedName);
     }
 
-    // ============ Private helpers ============
-
     private async Task<Customer> CreateAndSaveModelAsync(ICustomerRepository repository)
     {
         var model = await CreateModelAsync();
         await repository.AddAsync(model);
-        await DbContext.SaveChangesAsync();
         return model;
     }
 
@@ -198,6 +194,7 @@ public sealed class CustomerRepositoryTests<TTestDbContextFactory>
 ## Complete Example - Two Keys Repository
 
 ```csharp
+[TestFixture]
 [TestFixtureSource(typeof(TestDbContextFactory_AllCases))]
 [Parallelizable(ParallelScope.Fixtures)]
 public sealed class MarketShipmentRepositoryTests<TTestDbContextFactory>

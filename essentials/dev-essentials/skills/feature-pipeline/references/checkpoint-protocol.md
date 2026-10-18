@@ -12,7 +12,7 @@ The master agent reads this file at Step 0 of `SKILL.md`. It has the schema of `
 
 ## Schema
 
-The master agent keeps `{ARTIFACTS_DIR}/{task-id}/pipeline-state.json` up to date during the whole run.
+The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to date during the whole run.
 
 ```json
 {
@@ -42,7 +42,7 @@ The master agent keeps `{ARTIFACTS_DIR}/{task-id}/pipeline-state.json` up to dat
 }
 ```
 
-All state files of a task are in `{ARTIFACTS_DIR}/{task-id}/`, for example `{ARTIFACTS_DIR}/task-123/`. So more than one task can use the same worktree without conflicts.
+All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ARTIFACTS_DIR}/TASK-123/`. So more than one task can use the same worktree without conflicts.
 
 ## Field notes
 
@@ -80,7 +80,7 @@ Do these checks on each write, and on each load at a resume:
 
 Checkpoints record whole stages only. `completed` holds stage names, with no progress inside a stage. So before you resume a commit-capable stage, find out whether it ran in part.
 
-The commit-capable stages are `implementation`, `test-coverage`, `simplifier`, `docs`, and `finalization`. For each of them that is NOT in `completed`, compare `git rev-parse HEAD` with the `stageStartSha` entry of that stage. If they differ, stop and report. Do not restart that stage from scratch. A restart can make duplicate or conflicting commits for work that is already committed. It can also start a Stage 9 that wrongly expects a clean tree.
+The commit-capable stages are `implementation`, `test-coverage`, `simplifier`, `docs`, and `finalization`. For each of them that is NOT in `completed` and has a `stageStartSha` entry, compare `git rev-parse HEAD` with the `stageStartSha` entry of that stage. If they differ, stop and report. Do not restart that stage from scratch. A restart can make duplicate or conflicting commits for work that is already committed. It can also start a Stage 9 that wrongly expects a clean tree.
 
 The check does not depend on `{COMMIT_MODE}`. It finds a `per-step` stage that stopped after some of its own commits. It also finds a Stage 9 in `finalization` mode that stopped after the commits of other stages landed. HEAD moved in both cases.
 

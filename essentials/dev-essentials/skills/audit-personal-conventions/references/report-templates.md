@@ -116,6 +116,9 @@ shipped), append this line — per Phase 8's restart notice:
 
 <rounds> · findings by severity · APPLY/PARTIAL/REJECT counts · final verdict
 
+F<n> [<verdict>] — <finding and fix>
+source: <path>:<line>
+
 ## Version
 
 <plugin> <old> -> <new> (<MAJOR|MINOR|PATCH>) — one bump, <reason>
@@ -133,6 +136,19 @@ Manual TODOs:
 
 | # | Disposition | Rule | Why not now |
 |---|---|---|---|
+
+## Gates passed without a stop
+
+| Gate | Default taken | Saved to |
+|---|---|---|
+
+## Actions taken under --autonomous
+
+- <deletion / push / PR / post>, or "none"
+
+## Decisions for your review
+
+- <decision and why>, or "none"
 
 ## Commits
 

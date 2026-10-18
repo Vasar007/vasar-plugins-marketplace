@@ -95,11 +95,15 @@ Fixture body order, top to bottom:
 3. `#region <PublicMethod1> Tests`, `#region <PublicMethod2> Tests`, and so on: one region for each public method. Each region holds the behavior tests of that method, and its null-argument `foreach` test where Gate 1 applies.
 4. ALL helper methods last, inside one `#region Helper Methods`. They are private. The exception is a helper of a base fixture that a derived fixture must call: make it `protected` (see the inheritance pair rule below).
 
+The other example files leave out the regions for brevity. Gate 4 still applies to every test class that you write.
+
 **Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class ONLY. A derived class contains ONLY test methods (for example, `[Test]` methods in NUnit) and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.
 
 ```csharp
 // ✅ CORRECT — base owns all helpers; CreateRequest is protected because the derived
 // fixture below calls it directly (private would not compile there — CS0122).
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public abstract class OrderRequestBaseTests : BaseMockTest
 {
     #region Constructor Tests
@@ -111,6 +115,8 @@ public abstract class OrderRequestBaseTests : BaseMockTest
     #endregion
 }
 
+[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public sealed class OrderRequestTests : OrderRequestBaseTests
 {
     public OrderRequestTests()

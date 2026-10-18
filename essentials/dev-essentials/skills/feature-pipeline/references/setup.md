@@ -18,7 +18,7 @@ Before any task lookup or worktree creation, resolve a project-context document.
 2. The repository `CLAUDE.md` (fallback). Take what you can from `<repo-root>/CLAUDE.md`. Project Overview gives Repository. Build Commands gives Commands. Architecture and General Working Rules give Key Conventions.
 3. The user. For each required field that neither source gave, ask one question with the `AskUserQuestion` tool.
 
-This plugin ships a starter file at `${CLAUDE_PLUGIN_ROOT}/skills/feature-pipeline/project-context.template.md`. For a one-time setup, copy it to `<repo-root>/.claude/feature-pipeline-context.md`, and fill in the placeholders.
+This plugin ships a starter file, `project-context.template.md`, in the skill folder (the path that `SKILL.md` names). For a one-time setup, copy it to `<repo-root>/.claude/feature-pipeline-context.md`, and fill in the placeholders.
 
 Required fields. Resolve them before the rest of Step 0, from the file, from `CLAUDE.md`, or from the answers of the user:
 
@@ -76,7 +76,7 @@ If the MCP server cannot give the required capabilities, stop at once. If the MC
 
 With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no branch, runs no Pre-build command, and writes no file. Sub-steps 6, 7, 10, 11, and 12 say what to do instead. Sub-step 15 reports the result.
 
-1. Parse `$ARGUMENTS`. The task ID is `$ARGUMENTS[0]`. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, and `--autonomous`.
+1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). The task ID is the first argument. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, and `--autonomous`.
 2. Resolve the project context with the three sources above (explicit file, then `CLAUDE.md`, then questions to the user). Make sure that every required field has a value.
 3. Look at the MCP tools with the prefix from the project context. Pick the methods that give the required provider capabilities.
 4. Fetch the task details and the task comments through the MCP server.
@@ -106,22 +106,22 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
      >
      > Starting the pipeline authorises this worktree creation. Continuing…
 
-     Then run Workflow A of `dev-essentials:git-worktree-management` **in pipeline mode**. Pass the resolved path and branch explicitly. Say that the user already approved the worktree with the start of the pipeline. So the approval prompt of Workflow A Step 3 is already answered and must not block. Workflow A does the full bootstrap. It fetches the base branch. It runs `git worktree add` with the right case (A, B, or C) for a new branch, a local branch, or a remote-only branch. It unsets the upstream (`git branch --unset-upstream`), copies `.claude/settings.local.json` into the worktree, and creates `Notes/`. Do NOT do these steps inline. Run Workflow A, so that the full bootstrap runs every time. An ad hoc creation skips two of its steps: `--unset-upstream` and `mkdir -p Notes/`.
+     Then run Workflow A of `dev-essentials:git-worktree-management` **in pipeline mode**. Pass the resolved path, the branch, and the base branch from the project context explicitly. Say that Workflow A Step 2 must use this base branch, not `origin/HEAD`. Say also that the user already approved the worktree with the start of the pipeline. So the approval prompt of Workflow A Step 3 is already answered and must not block. Workflow A does the full bootstrap. It fetches the base branch. It runs `git worktree add` with the right case (A, B, or C) for a new branch, a local branch, or a remote-only branch. It unsets the upstream (`git branch --unset-upstream`), copies `.claude/settings.local.json` into the worktree, and creates `Notes/`. Do NOT do these steps inline. Run Workflow A, so that the full bootstrap runs every time. An ad hoc creation skips two of its steps: `--unset-upstream` and `mkdir -p Notes/`.
 
    After this sub-step, in both modes, every later file operation and every subagent prompt MUST use `{WORKTREE_PATH}` as the project root.
 7. If the project context has a Pre-build command, run it in the `{WORKTREE_PATH}` folder. If it fails, stop at once, because the build fails without it. With `--dry-run`, do not run it. Name it in the plan.
 8. Search `{WORKTREE_PATH}` for files that mention the task ID. They are the doc candidates.
 9. Resolve `{ARTIFACTS_DIR}`. Use the Artifacts Directory value of the project context. If it has none, use `tasks`.
-10. Write `{ARTIFACTS_DIR}/<task-id>/task-context.md` with the task metadata, the branch name, and the doc candidates (see "Task context file" below). With `--dry-run`, do not write the file. Keep its content for the plan of sub-step 15.
-11. Read `{ARTIFACTS_DIR}/<task-id>/pipeline-state.json` in the worktree, or create it (see `references/checkpoint-protocol.md`). With `--dry-run`, never create the file. If it exists, read it. If the file exists, this run is a resume. Then run the interruption check of `references/checkpoint-protocol.md` right after the load. It runs before sub-step 12 can overwrite `commitMode`. With `--dry-run`, report the result of the check instead of a stop.
+10. Write `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` with the task metadata, the branch name, and the doc candidates (see "Task context file" below). With `--dry-run`, do not write the file. Keep its content for the plan of sub-step 15.
+11. Read `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` in the worktree, or create it (see `references/checkpoint-protocol.md`). With `--dry-run`, never create the file. If it exists, read it. If the file exists, this run is a resume. Then run the interruption check of `references/checkpoint-protocol.md` right after the load. It runs before sub-step 12 can overwrite `commitMode`. With `--dry-run`, report the result of the check instead of a stop.
 12. Resolve `{COMMIT_MODE}`. If this invocation has `--commit-mode`, use it. Else use the `commitMode` value of `pipeline-state.json` from an earlier run. Else use `finalization`. The precedence and the conflict rule are the same as for `--model-override`. A `--commit-mode` on a resume overwrites the recorded `commitMode`, and the resume logs the change. This holds also after a commit-capable stage ran in the old mode. **Exception:** the new value is `finalization`, the recorded value is `per-step`, and at least one commit-capable stage is already in `completed`. Then do NOT log and allow the overwrite. Stop instead, as the mode-change check of `references/checkpoint-protocol.md` says. If the exception does not apply, record the resolved value in `commitMode`. A later resume uses it, unless that invocation passes `--commit-mode` again. With `--dry-run`, report the result instead of a stop, and do not write `commitMode`.
-13. Prepare the prompt blocks. They are the resolved project context and `{ARTIFACTS_DIR}/<task-id>/task-context.md`. They are also the three safeguards of "Pipeline Discipline" in `SKILL.md`, and the `<commit-conventions>` block with its cadence line for `{COMMIT_MODE}` (`references/commit-conventions.md`). "Stage Launch" in `SKILL.md` says how each launch uses them.
+13. Prepare the prompt blocks. They are the resolved project context and `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md`. They are also the three safeguards of "Pipeline Discipline" in `SKILL.md`, and the `<commit-conventions>` block with its cadence line for `{COMMIT_MODE}` (`references/commit-conventions.md`). "Stage Launch" in `SKILL.md` says how each launch uses them.
 14. Each launch makes sure that no placeholder is left in its composed prompt ("Stage Launch" step 6 in `SKILL.md`).
 15. With `--dry-run`, announce the plan and the provider details. Also announce the branch name, the worktree path (existing or planned), and the Pre-build command that did not run. Also announce the resolved `{COMMIT_MODE}` and the two planned task comments. Then end the run without a stage.
 
 ## Task context file
 
-The master agent writes `{ARTIFACTS_DIR}/<task-id>/task-context.md` once, at sub-step 10, after it fetches the task details from the provider. Format:
+The master agent writes `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` once, at sub-step 10, after it fetches the task details from the provider. Format:
 
 ```markdown
 # Task Context
@@ -162,13 +162,15 @@ Before you say that the pipeline is ready for a new repository, make sure of the
 
 Static checks (run them from the root of the consumer repository):
 
+`<skill-folder>` is the skill folder that `SKILL.md` names.
+
 ```bash
 # Explicit context file (if present)
 cat .claude/feature-pipeline-context.md
 
 # Find any leaked project-specific tokens in the installed plugin's stage prompts
-rg --no-heading --line-number '<repo-specific-token-1>|<repo-specific-token-2>|<repo-specific-command>' "$CLAUDE_PLUGIN_ROOT/skills/feature-pipeline/stages"
+rg --no-heading --line-number '<repo-specific-token-1>|<repo-specific-token-2>|<repo-specific-command>' "<skill-folder>/stages"
 
 # List remaining placeholders in the SKILL file and stages
-rg --no-heading --line-number '\{[A-Z0-9_]+\}' "$CLAUDE_PLUGIN_ROOT/skills/feature-pipeline"
+rg --no-heading --line-number '\{[A-Z0-9_]+\}' "<skill-folder>"
 ```

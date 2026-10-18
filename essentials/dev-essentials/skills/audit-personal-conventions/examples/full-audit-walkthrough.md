@@ -173,7 +173,7 @@ Add retry-backoff-policy skill
 Fix example-markdown-fences fence-style example
 ```
 
-The "Apply review findings" commit (see Phase 7) follows once review completes.
+The review-round commit (see Phase 7) follows once review completes.
 
 ---
 
@@ -184,11 +184,7 @@ The "Apply review findings" commit (see Phase 7) follows once review completes.
 Commit:
 
 ```text
-Apply review findings
-
-F1 [APPLY] — Rule 2 missing anti-pattern example; added "logging the full stack trace on every
-retry attempt, not just the final failure" as the anti-pattern.
-source: <claude-root>/projects/<project>/memory/http-clients.md:14
+Review round 1: Fix missing anti-pattern example in Rule 2
 ```
 
 ---
@@ -322,6 +318,9 @@ all · 9 projects (2 worktree siblings collapsed) · target marketplace <target-
 
 2 rounds · 1 Medium (round 1, fixed) · APPLY=1 · stop-clean
 
+F1 [APPLY] — Rule 2 missing anti-pattern example; added "logging the full stack trace on every retry attempt, not just the final failure" as the anti-pattern.
+source: <claude-root>/projects/<project>/memory/http-clients.md:14
+
 ## Version
 
 dev-essentials 1.4.0 -> 1.5.0 (MINOR) — one bump, pure addition (one new skill, one additive fix)
@@ -351,11 +350,25 @@ Manual TODOs:
 | 10 | D-scoped | RepoBeta test-container reset | Deferred pending destination confirmation |
 | 13 | C-universal | Never log a raw auth token, even at Debug level | Deferred — held back this run pending a dedicated authoring pass |
 
+## Gates passed without a stop
+
+| Gate | Default taken | Saved to |
+| --- | --- | --- |
+| none | not applicable, because the run was not autonomous | not applicable |
+
+## Actions taken under --autonomous
+
+- none
+
+## Decisions for your review
+
+- none
+
 ## Commits
 
 <sha1> Add retry-backoff-policy skill
 <sha2> Fix example-markdown-fences fence-style example
-<sha3> Apply review findings
+<sha3> Review round 1: Fix missing anti-pattern example in Rule 2
 a3f9c2e Bump dev-essentials plugin to 1.5.0   (local only — nothing pushed unless a Phase 9c push-gate said yes)
 ```
 

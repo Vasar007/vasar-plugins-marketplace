@@ -19,17 +19,18 @@ Shared placeholders:
 | `{LINT_COMMAND}` | The project's Markdown linter or formatter, or "none" |
 | `{BATCH_FILES}` | Relative paths of the files in one batch |
 | `{PLAN_PATH}` | Where the planner writes the plan, outside the workspace. For the reviewer: the plan path of every batch |
-| `{SCRATCH}` | Scratch folder for the planner's `orig` and `target` copies |
+| `{SCRATCH}` | Scratch folder for the planner's `orig` and `target` copies, one folder for each batch |
 | `{APPROVED_DELETIONS}` | The deletion list that the user approved at the gate |
 | `{APPROVED_TOMBSTONES}` | The tombstone list that the user approved at the gate, or "none" |
 | `{REVIEW_PATH}` | Where the reviewer writes its findings |
 | `{FINDINGS}` | The review findings that the orchestrator accepted |
 | `{ROLE}` | planner, executor, reviewer or fixer |
+| `{BATCH_ID}` | Short id of the batch, for example `b1`. For the reviewer and the fixer: `all` |
 
 Every brief ends with the same crash-safety block:
 
 ```text
-Keep {PROGRESS_DIR}/_{ROLE}-progress.md up to date at every step. It has a STATUS line,
+Keep {PROGRESS_DIR}/_{ROLE}-{BATCH_ID}-progress.md up to date at every step. It has a STATUS line,
 a list of steps, an append-only "## Log", a "## Current draft" section, and a "## NEXT"
 section with the single next action. If the file exists at start, read it and continue
 from NEXT. Delete it as your last step, after your report is complete.
@@ -51,8 +52,8 @@ Targets in bytes: {TARGETS}
 3. Measure bytes, not lines. Joining lines is not a cut. Remove words.
 4. If a file stays above its target, write why in the plan.
 5. Prove every anchor and end quote with the anchor proof script. Each must match once.
-6. Copy the batch, with its relative paths, to {SCRATCH}/orig and {SCRATCH}/target.
-   Apply the plan to target.
+6. Copy every file that the glob matches in {WORKSPACE}, not only the batch, with its relative paths,
+   to {SCRATCH}/orig and {SCRATCH}/target. Apply the plan to target.
 7. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {SCRATCH}/orig
    --after {SCRATCH}/target {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
 8. If it fails, fix the plan and repeat until it passes.
@@ -90,6 +91,7 @@ You review a finished trim pass. Do not edit anything.
 Before state: {BACKUP}. After state: {WORKSPACE}. Protect-set: {PROTECT_SET}.
 Approved tombstones: {APPROVED_TOMBSTONES}
 Plans: {PLAN_PATH}
+Targets in bytes: {TARGETS}. Each plan names the profile of each file.
 
 1. Run python3 -I {SKILL_DIR}/scripts/trim_report.py --before {BACKUP} --after {WORKSPACE}
    {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}. Find out whether each ALLOWED

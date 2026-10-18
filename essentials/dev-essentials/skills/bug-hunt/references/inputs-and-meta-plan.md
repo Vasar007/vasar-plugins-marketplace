@@ -45,7 +45,7 @@ For the defaults, use only these light read-only calls:
 ## Parts of the meta-plan
 
 1. Inputs: a table with each value and where it came from (argument or default).
-2. Areas: a table with the number, name, paths, file count, size, and order.
+2. Areas: a table with the number, name, paths, file count, and size, in search order. Number the areas in the approved search order, so that area 1 is searched first. If the user changes the order, renumber the areas.
 3. Excluded paths, each with a reason, for example vendored or generated code.
 4. Agents: a table with the model and effort of each role. Say in one sentence how the Fable dispatches are approved (rule 7). If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files.
 5. Files: the report path, the run context file, the final summary file, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.

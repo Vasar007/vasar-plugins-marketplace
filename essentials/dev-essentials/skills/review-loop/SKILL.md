@@ -108,7 +108,7 @@ The value of `--rounds` decides where a cycle report goes. At the end of a cycle
 - `--save-reports` writes each report to a file. This includes a run with `--rounds 1`.
 - `--print-reports` prints each report in chat. This includes a run with `--rounds` 2 or more.
 - The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
-- If the run format applies (see "Run format"), the cycle reports and the Phase 9 summary go to files, as with `--save-reports`. If the user set `--print-reports`, that flag wins.
+- The run format (see "Run format") does not change these destinations. It changes only what chat shows. When a report goes to a file, chat gets one status line for it.
 
 ## Run format
 
@@ -117,7 +117,7 @@ The run format says what the orchestrator checks itself and how the run reports 
 After Phase 2, state the run format in a few lines. If Phase 1 has a scope hint, add it. Do not wait for an answer. If the calling workflow already stated the same run format in this session, do not state it again.
 
 - Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result, and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
-- Reporting: in chat, write at most one short status line for each cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue." The Brief format and the full cycle reports go to the cycle report files. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line.
+- Reporting: when a cycle report goes to a file, chat gets at most one short status line for that cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue". If a cycle report goes to chat, print it. The Brief format and the full cycle reports go where the "Report destination rules" say. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line.
 - Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage is also the agreement. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
 
 If the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The triage judgment of Phase 4, Phase 6, and the Role 4 reads of the large-target mode still run.
@@ -171,7 +171,7 @@ After Phase 2, state the run format (see "Run format"). Do not wait for an answe
 
 Before you write the reviewer brief or resolve `--reviewer-focus` tokens, read `references/reviewer-briefs.md`. It has the Common Rules, the Full format of the reviewer report, and one brief for each target type. It also has the valid `--reviewer-focus` tokens and the rule for unknown tokens.
 
-Build each reviewer prompt from these parts. The reviewer does not see this skill or its files.
+Build each reviewer prompt from these parts. For `audit-team`, build no prompt. See `references/audit-team-adapter.md` § "Phase 3". The reviewer does not see this skill or its files.
 
 1. The Common Rules and the Full format, word for word.
 2. The brief for the target type, with its placeholders filled in. Set Round N from the cycle counter of this skill.
@@ -197,10 +197,12 @@ Round <N> findings:
   Low:      <X>  (deferred — --skip low; <Y> blocking)
   Nit:      <X>  (deferred — --skip nit; <Y> blocking)
 
+A row with a merit deferral shows: (will fix <F>; deferred <D> on merit; <Y> blocking)
+
 Proceeding to verify+fix <F> issues. Deferring <D>.
 ```
 
-Apply `--skip` exactly. Each severity token in `--skip` is its own gate: `--skip medium,low` defers Medium and Low, but a Nit can still get a fix. With `--skip none` (the default), every severity row shows "(will fix)", and no "(deferred)" row appears. Without `--interactive`, write the triage into the cycle report, print its status line, and start Phase 5. With `--interactive`, print the triage, and **wait for the user to acknowledge it** before Phase 5. The acknowledgment is also the final agreement to the run format (see "Run format").
+Apply `--skip` exactly. Each severity token in `--skip` is its own gate: `--skip medium,low` defers Medium and Low, but a Nit can still get a fix. With `--skip none` (the default), no row shows a `--skip` deferral. If Phase 4 deferred a finding of that severity on its merits, the row shows a merit deferral count. Otherwise it shows none. Without `--interactive`, write the triage into the cycle report, print its status line, and start Phase 5. With `--interactive`, print the triage, and **wait for the user to acknowledge it** before Phase 5. The acknowledgment is also the final agreement to the run format (see "Run format").
 
 **Judge every finding on its merits, not on its label**. The default is `--skip none`, so that nothing is deferred unread. This does not mean that you fix everything without thought. For each finding, read the conclusion of the reviewer: the call **Must fix before merge**, **Acceptable risks**, or **Needs discussion** in the Conclusion section of the report. Do not triage on the severity label alone.
 
@@ -307,7 +309,7 @@ Decide whether to run another cycle. The decision follows fixed rules.
   - The re-review covers ONLY the files that the fix commit changed, not the full original target. This is on purpose: a re-review of the whole target mixes new findings with old deferred ones.
   - The re-review in Round N+1 always uses one `general-purpose` agent, for any `--reviewer` value. Dispatch it on `--reviewer-model`, so that the re-review has the same judgment as Round 1. The reviewer setup (`audit-team`, `dual`, `pair`, `quad`) applies to Round 1 only. The goal is the question "did the fix resolve the issue, with no new regression?", not a full architecture review.
 - **Stop** in every other case. Classify the stop verdict:
-  - **stop-clean**: BOTH conditions hold. (1) No unresolved finding in the re-review scope is `blocking: true` or has the severity Blocker, Critical, or High. (2) No such finding is in the deferred list of the whole run. This covers three kinds of deferral: by `--skip`, after a PARTIAL or REJECT verdict of the fixer, and by the merit judgment of Phase 4. Both halves of the test matter. `blocking: true` is the judgment of Phase 4 on each finding, so a flagged Medium, Low, or Nit blocks `stop-clean` exactly as a High does. The severity half reads the label, so an unflagged Blocker, Critical, or High can never clear the gate in silence. If either condition fails, use `stop-max-rounds` instead.
+  - **stop-clean**: BOTH conditions hold. (1) No unresolved finding in the re-review scope is `blocking: true` or has the severity Blocker, Critical, or High. (2) No such finding is in the deferred list of the whole run. This covers three kinds of deferral. The first is by `--skip`. The second is after the unproven part of a PARTIAL verdict of the fixer or a REJECT verdict whose reason is missing proof. The third is by the merit judgment of Phase 4. A REJECT that a primary source refutes (the code is shown to be correct) resolves the finding. It is not a deferral, and Phase 9 lists it under "Rejected findings". Both halves of the test matter. `blocking: true` is the judgment of Phase 4 on each finding, so a flagged Medium, Low, or Nit blocks `stop-clean` exactly as a High does. The severity half reads the label, so an unflagged Blocker, Critical, or High can never clear the gate in silence. If either condition fails, use `stop-max-rounds` instead.
   - **stop-max-rounds**: the `--rounds` limit came before a re-review pass found the run clean. It covers all four cases that prevent `stop-clean`. (a) Issues remain open in the re-review scope. (b) `--skip` deferred every finding. (c) The fixer fixed every finding, but no re-review round ran to prove it. (d) Merge-blocking work is still open somewhere in the run, although the rounds limit was not reached. That work is a deferred Blocker, Critical, or High, for example through `--skip critical` or `--skip high`. It is also any unresolved finding that Phase 4 marked `blocking: true`, at **any** severity label.
   - **stop-blocked**: the build or the tests fail, and this session cannot fix them. Escalate to the user.
 
@@ -385,7 +387,7 @@ The Full format of the reviewer report is in `references/reviewer-briefs.md`, be
 | `references/triage-matrix.md` | Phase 4: the severity scale, the action for each severity, and the `blocking` flag. |
 | `references/verify-fix-discipline.md` | Phase 5: the playbook of the fixer. Read it before the fixer dispatch, and give its path to the fixer. |
 | `examples/branch-review.md` | A full review of a feature branch, with both report formats filled in with real numbers. |
-| `examples/spec-review.md` | A review of a spec change document (the example uses OpenSpec), with the spec brief, the `audit-team` adapter, and the findings. |
+| `examples/spec-review.md` | A review of a spec change document of any spec framework. The example uses an OpenSpec change as one case. It shows the `audit-team` adapter and the findings. |
 | `dev-essentials:engineering-discipline` | Rule 1 (own every red signal) drives the build and test run of Phase 6. Rule 2 (no critical decision alone) drives the REJECT of a signature change that the triage did not allow, in Phase 5. Rule 5 (no claim without proof) drives the primary-source rule of the reviewer and the fixer. |
 | `dev-essentials:subagent-orchestration` | Rule 3 for the reviewer dispatch of Phase 3 and the fixer dispatch of Phase 5. Independent `Agent` calls go in one message. "Model selection" for Fable. `Trust but verify` and "Run format agreement" for the run format. |
 | `dev-essentials:github-mcp-conventions` | For `target=pr <id>`: how to call `pull_request_read` with explicit `owner` and `repo`, and how to paginate (Rule 3). |

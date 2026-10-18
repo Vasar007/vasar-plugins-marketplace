@@ -243,7 +243,7 @@ private IMyRepository CreateMyRepository(Item[] items)
 
    | Location | `Create*` | `Generate*` |
    | --- | --- | --- |
-   | Test class | Optional nullable parameters, applied with `.ApplyIf(...)` (except `CreateServiceWithAllArguments`) | Optional parameters with defaults are allowed |
+   | Test class | `Create{Mock}` (a helper that wraps a Test Mock Builder): optional nullable parameters, applied with `.ApplyIf(...)` (except `CreateServiceWithAllArguments`) | Optional parameters with defaults are allowed |
    | Generator class | Required parameters only | Optional parameters are allowed (nullable fallback) |
 
    ```csharp
@@ -274,7 +274,7 @@ private IMyRepository CreateMyRepository(Item[] items)
    }
    ```
 
-   **Exception: `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`).** This SUT-factory helper is only for the constructor null-argument tests. It is the ONE helper in a test class that stays **required and positional: no optional parameters and no `??` fallback of any kind**. Each negative-test lambda must pass `null!` for the argument under test. An optional parameter with a `??` fallback replaces that `null!` with a valid mock, and the test then proves nothing (see [Constructor Null-Argument Tests](#constructor-null-argument-tests)). This exception applies to **exactly one helper in each test class**. Every other `Create*` and `Generate*` helper in the class follows rule 4.
+   **Exception: `CreateServiceWithAllArguments` (or `Create{Sut}WithAllArguments`).** This SUT-factory helper is only for the constructor null-argument tests. It is the ONE helper in a test class that stays **required and positional: no optional parameters and no `??` fallback of any kind**. Each negative-test lambda must pass `null!` for the argument under test. An optional parameter with a `??` fallback replaces that `null!` with a valid mock, and the test then proves nothing (see [Constructor Null-Argument Tests](#constructor-null-argument-tests)). This exception applies to **exactly one helper in each test class**. Every other `Create{Mock}` and `Generate*` helper in the class follows rule 4. A test-class helper that wraps a generator `Create{Model}` method can take required parameters, like the generator method.
 
    In generator classes (`xxxGenerator.cs` under `Tests.Common/Helpers/Generators/...`), `Create*` takes required parameters only. `Generate*` can take nullable optional parameters with `null` defaults, which mean "fill with random values".
 
@@ -341,7 +341,7 @@ Builders that already exist:
 
 ## Constructor Null-Argument Tests
 
-Each service or hosted service with more than one constructor dependency MUST have exactly **two** constructor tests:
+Each service or hosted service with one or more constructor dependencies MUST have exactly **two** constructor tests. With one dependency, the `actions` list has one entry:
 
 1. **Positive:** `Constructor_OnAllArgumentsProvided_CreatesInstance` calls `CreateServiceWithAllArguments(...)` with a valid value for each dependency. It asserts that the call does not throw (for example, `act.Should().NotThrow()`).
 2. **Negative:** `Constructor_ThrowsArgumentNullException_WhenNullValueProvided` is a single test method with a **`foreach` over a `List<Action>`**. Each entry calls `CreateServiceWithAllArguments(...)` with valid positional arguments, except exactly one dependency that gets `null!`. In each iteration, the test asserts that the call throws `ArgumentNullException` (for example, `act.Should().Throw<ArgumentNullException>()`).
@@ -385,7 +385,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 - [ ] **Read the matching example file in examples/ BEFORE you write any code**
 - [ ] The test class inherits the correct base class
-- [ ] The fixture attributes of the test framework (for example, `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` in NUnit), unless the fixture is non-parallelizable
+- [ ] The fixture attributes of the test framework (for example, `[TestFixture]` and `[Parallelizable(ParallelScope.Fixtures)]` in NUnit), unless the fixture is non-parallelizable. Every test class has `[TestFixture]`, also a generic test class that has `[TestFixtureSource]`
 - [ ] All tests use the `// Arrange.` `// Act.` `// Assert.` comments, or a combined form with `&`, such as `// Act & Assert.` or `// Arrange, Act & Assert.` (see "Test Structure")
 - [ ] Props files (`Directory.Build.props`, `Directory.Packages.props`, `global.json`) are NOT staged, unless the user named them explicitly
 

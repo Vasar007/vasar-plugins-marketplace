@@ -180,7 +180,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Zero_For_Equal_MigrationIds()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -194,8 +194,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Negative_When_First_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = earlierId.CompareTo(laterId);
@@ -208,8 +208,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Returns_Positive_When_First_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = laterId.CompareTo(earlierId);
@@ -222,7 +222,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Returns_Positive_When_Object_Is_Null()
     {
         // Arrange.
-        var id = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id = CreateMigrationId("20250101_AddCustomerFields");
 
         // Act.
         var result = id.CompareTo(null);
@@ -235,8 +235,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Returns_Correct_Value_When_Object_Is_MigrationId()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
-        Object id2 = MigrationId.FromValue("20250102_AddUserFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
+        Object id2 = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = id1.CompareTo(id2);
@@ -249,7 +249,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void CompareTo_Object_Throws_When_Object_Is_Not_MigrationId()
     {
         // Arrange.
-        var id = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id = CreateMigrationId("20250101_AddCustomerFields");
         Object invalidObject = "not a MigrationId";
         var expectedMessage = StringResources.ObjectMustBeOfType.SafeFormat(nameof(MigrationId));
 
@@ -265,8 +265,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_True_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = earlierId < laterId;
@@ -279,8 +279,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_False_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = laterId < earlierId;
@@ -293,7 +293,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThan_Operator_Returns_False_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -307,8 +307,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThanOrEqual_Operator_Returns_True_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = earlierId <= laterId;
@@ -321,7 +321,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void LessThanOrEqual_Operator_Returns_True_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -335,8 +335,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_True_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = laterId > earlierId;
@@ -349,8 +349,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_False_When_Left_Is_Less()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = earlierId > laterId;
@@ -363,7 +363,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThan_Operator_Returns_False_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -377,8 +377,8 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThanOrEqual_Operator_Returns_True_When_Left_Is_Greater()
     {
         // Arrange.
-        var earlierId = MigrationId.FromValue("20250101_AddCustomerFields");
-        var laterId = MigrationId.FromValue("20250102_AddUserFields");
+        var earlierId = CreateMigrationId("20250101_AddCustomerFields");
+        var laterId = CreateMigrationId("20250102_AddUserFields");
 
         // Act.
         var result = laterId >= earlierId;
@@ -391,7 +391,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void GreaterThanOrEqual_Operator_Returns_True_When_Equal()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_AddCustomerFields");
         var id2 = MigrationId.FromValue(id1.Value);
 
         // Act.
@@ -407,20 +407,20 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         // Arrange.
         var ids = new List<MigrationId>
         {
-            MigrationId.FromValue("20250105_UpdateSchema"),
-            MigrationId.FromValue("20250101_AddCustomerFields"),
-            MigrationId.FromValue("20250103_AddUserFields"),
-            MigrationId.FromValue("20250102_AddIndexes"),
-            MigrationId.FromValue("20250104_RemoveObsoleteFields"),
+            CreateMigrationId("20250105_UpdateSchema"),
+            CreateMigrationId("20250101_AddCustomerFields"),
+            CreateMigrationId("20250103_AddUserFields"),
+            CreateMigrationId("20250102_AddIndexes"),
+            CreateMigrationId("20250104_RemoveObsoleteFields"),
         };
 
         var expected = new List<MigrationId>
         {
-            MigrationId.FromValue("20250101_AddCustomerFields"),
-            MigrationId.FromValue("20250102_AddIndexes"),
-            MigrationId.FromValue("20250103_AddUserFields"),
-            MigrationId.FromValue("20250104_RemoveObsoleteFields"),
-            MigrationId.FromValue("20250105_UpdateSchema"),
+            CreateMigrationId("20250101_AddCustomerFields"),
+            CreateMigrationId("20250102_AddIndexes"),
+            CreateMigrationId("20250103_AddUserFields"),
+            CreateMigrationId("20250104_RemoveObsoleteFields"),
+            CreateMigrationId("20250105_UpdateSchema"),
         };
 
         // Act.
@@ -436,16 +436,16 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
         // Arrange.
         var ids = new List<MigrationId>
         {
-            MigrationId.FromValue("20250101_ZUpdateSchema"),
-            MigrationId.FromValue("20250101_AddCustomerFields"),
-            MigrationId.FromValue("20250101_BAddUserFields"),
+            CreateMigrationId("20250101_ZUpdateSchema"),
+            CreateMigrationId("20250101_AddCustomerFields"),
+            CreateMigrationId("20250101_BAddUserFields"),
         };
 
         var expected = new List<MigrationId>
         {
-            MigrationId.FromValue("20250101_AddCustomerFields"),
-            MigrationId.FromValue("20250101_BAddUserFields"),
-            MigrationId.FromValue("20250101_ZUpdateSchema"),
+            CreateMigrationId("20250101_AddCustomerFields"),
+            CreateMigrationId("20250101_BAddUserFields"),
+            CreateMigrationId("20250101_ZUpdateSchema"),
         };
 
         // Act.
@@ -460,7 +460,7 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     {
         // Arrange.
         var emptyId = MigrationId.Empty;
-        var validId = MigrationId.FromValue("20250101_AddCustomerFields");
+        var validId = CreateMigrationId("20250101_AddCustomerFields");
 
         // Act.
         var result1 = emptyId.CompareTo(validId);
@@ -475,14 +475,21 @@ public sealed class MigrationIdTests : BaseStringWrapperTests<MigrationId>
     public void Comparison_Is_Case_Sensitive()
     {
         // Arrange.
-        var id1 = MigrationId.FromValue("20250101_addcustomerfields");
-        var id2 = MigrationId.FromValue("20250101_AddCustomerFields");
+        var id1 = CreateMigrationId("20250101_addcustomerfields");
+        var id2 = CreateMigrationId("20250101_AddCustomerFields");
 
         // Act.
         var result = id1.CompareTo(id2);
 
         // Assert.
         result.Should().NotBe(0);
+    }
+
+    // CreateMigrationId(String) is a Create method of MigrationGenerator.
+    // Add it to the generator if it is missing (see "Create methods" in generators.md).
+    private MigrationId CreateMigrationId(String value)
+    {
+        return _generator.CreateMigrationId(value);
     }
 }
 ```

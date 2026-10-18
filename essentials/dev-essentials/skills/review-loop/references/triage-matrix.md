@@ -68,7 +68,7 @@ An unresolved `blocking: true` finding forces `stop-max-rounds`, at any severity
 
 After all reviewer output is in, and before any fix, print the `Round <N> findings` block of Phase 4 in `SKILL.md`. That template is the canonical one, including the `(<Y> blocking)` count of each severity. Wait for the acknowledgment of the user only with `--interactive`.
 
-A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row whose severity is not in `--skip` shows `(will fix)`. With `--skip none`, every row shows `(will fix)`, and no deferred note appears.
+A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row whose severity is not in `--skip` shows `(will fix)`. With `--skip none`, no row shows a `--skip` deferral. If Phase 4 deferred a finding of that severity on its merits, the row shows `(will fix <F>; deferred <D> on merit)`.
 
 ---
 
@@ -81,7 +81,7 @@ A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row
 | `low,nit` | Blocker, Critical, High, Medium | Low, Nit |
 | `medium,low,nit` | Blocker, Critical, High | Medium, Low, Nit |
 | `critical,high,medium,low,nit` | Blocker only | Critical, High, Medium, Low, Nit |
-| `blocker` | Critical, High, Medium, Low, Nit | Blocker (deferred to a later cycle. Use this only to ship known-broken code on purpose.) |
+| `blocker` | Critical, High, Medium, Low, Nit | Blocker (deferred to the Phase 9 deferred list. No later cycle of this run fixes it. Use this only to ship known-broken code on purpose.) |
 
 Any subset of the six tokens is valid. Each token that the value leaves out can get a fix. Each token in the value is deferred. The rows above are examples, not the full set.
 

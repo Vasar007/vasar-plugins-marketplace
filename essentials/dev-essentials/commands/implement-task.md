@@ -112,7 +112,7 @@ Each brief contains:
 
 - The absolute worktree path, the base branch, the task text verbatim, and the context list verbatim, with each item marked as fetchable or free text.
 - **Read-only: do not edit, create, or delete any product file. Do not create, comment on, update, or vote on any PR, issue, or document. Write no file.**
-- Access (Rule 4): use the MCP or web-fetch tool of the host of the item. For GitHub, load `dev-essentials:github-mcp-conventions`. For a host without a fetch tool, ask the user. Never skip the item silently or fall back to raw REST calls. **Never fetch a free-text item.** Carry it through verbatim.
+- Access (Rule 4): use the MCP or web-fetch tool of the host of the item. For GitHub, load `dev-essentials:github-mcp-conventions`. For a host without a fetch tool, stop that item, and name it in the report as not fetched. The orchestrator then asks the user. Never skip the item silently or fall back to raw REST calls. **Never fetch a free-text item.** Carry it through verbatim.
 - The report, in the final message only, with two groups:
   - **Fetched references**, one section each: what it is, its author, its state (merged, active, or abandoned, and open or closed), and its intent in one paragraph. Then the files and types that it touched, with `file:line` anchors into the base branch, and the ones in the area of this task.
   - **Free-text notes**, each quoted verbatim, with no invented author, state, or files.
@@ -140,7 +140,7 @@ Skip this phase only with `--no-simplify`. `/simplify` is an external skill that
 
 1. Dispatch one subagent that runs `Skill(skill: "simplify")` (or `/simplify`) exactly once on `<RUN_BASE_SHA>..HEAD` in the worktree, and then does steps 2 to 4. Name the range in the call, because the skill defaults to "the changed code" and this run is already committed. One pass, not a loop.
 2. Tell the skill to look for complexity that this run added. Examples: a guard that no failure needs, an abstraction with one caller, logic that a helper already covers, useless indirection, or code at the wrong altitude.
-3. Scope: a simpler diff with the same behavior. Out of scope: code that this run did not change, and a change of behavior or of a public contract. Also out of scope: a deleted or weaker test, and a swallowed error path. If a cleanup needs one of these, **STOP and ask the user** (`dev-essentials:engineering-discipline` Rule 2). With `--autonomous`, keep the code and list the skipped cleanup in the report.
+3. Scope: a simpler diff with the same behavior. Out of scope: code that this run did not change, and a change of behavior or of a public contract. Also out of scope: a deleted or weaker test, and a swallowed error path. If a cleanup needs one of these, stop that cleanup. Put the question in your report, so that the caller asks the user (`dev-essentials:engineering-discipline` Rule 2). With `--autonomous`, keep the code and list the skipped cleanup in the report.
 4. Build and test again. A test that the cleanup breaks is a regression of this session (Rule 1 of the same skill). For .NET, follow `dev-essentials:dotnet-build-test`.
 5. Commit the cleanup as **a separate commit on top**. Stage explicit paths, never `git add -A` or `git add .`.
 

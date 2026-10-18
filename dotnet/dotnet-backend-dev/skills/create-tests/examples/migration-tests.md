@@ -341,13 +341,7 @@ public async Task ExecuteAsync_ShouldSkipRecord_WhenPlacedResultJsonIsInvalid()
     var session = await sessionRepository.AddSessionAsync(CreateSession());
     await sessionRepository.SaveChangesAsync();
 
-    var legacyRecord = new OrderEventLegacyEntity
-    {
-        Id = GenerateOrderEventId().Value,
-        SessionId = session.Id.Value,
-        ResultType = OrderEventTypeLegacyEntity.Placed,
-        Result = "{ invalid json }",
-    };
+    var legacyRecord = CreateLegacyPlacedRecordWithRawResult(session.Id, "{ invalid json }");
 
     await dbContext.OrderEventsLegacy.AddAsync(legacyRecord);
     await dbContext.SaveChangesAsync();
@@ -587,6 +581,19 @@ private OrderEventLegacyEntity CreateLegacyPlacedRecord(
         SessionId = sessionId.Value,
         ResultType = OrderEventTypeLegacyEntity.Placed,
         Result = SerializeToJsonString(placedResult).Value,
+    };
+}
+
+private OrderEventLegacyEntity CreateLegacyPlacedRecordWithRawResult(
+    SessionId sessionId,
+    String rawResult)
+{
+    return new OrderEventLegacyEntity
+    {
+        Id = GenerateOrderEventId().Value,
+        SessionId = sessionId.Value,
+        ResultType = OrderEventTypeLegacyEntity.Placed,
+        Result = rawResult,
     };
 }
 
