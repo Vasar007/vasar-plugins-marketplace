@@ -107,7 +107,7 @@ Each later cycle runs only the PR-status recheck of Phase 1 (see § "Session lif
 
 ## Stage 1 report — the Phase 2 → Phase 3 handoff
 
-This report is the contract between the two dispatches of `SKILL.md` § "Dispatch model". Stage 1 (Haiku, Phases 1 and 2) returns exactly this shape. Stage 2 (Sonnet, Phases 3 to 5) uses it as its ONLY source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
+This report is the contract between the two dispatches of `SKILL.md` § "Dispatch model". Stage 1 (Phases 1 and 2) returns exactly this shape. Stage 2 (Phases 3 to 5) uses it as its ONLY source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
 
 The report is not stored and not cached across cycles. Each cycle of a `/loop` run runs Stage 1 again from the start, because the thread state changes between cycles: new replies of reviewers, or a push that lands an earlier SHA. § "Committed-fix detection" follows the same rule.
 

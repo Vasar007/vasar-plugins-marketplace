@@ -53,7 +53,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 11. **Review scope**. Run the review loop of that command with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
-**Reply and resolve, by stop verdict**. Stage 3b is a one-shot Sonnet GitHub dispatch (Rule 4). It posts the reply after Stage 3 reports its squash SHA, its stop verdict, and its round count:
+**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It posts the reply after Stage 3 reports its squash SHA, its stop verdict, and its round count:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |

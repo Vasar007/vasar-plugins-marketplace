@@ -140,6 +140,12 @@
       "reason": "MoSCoW priority label (Must, Should, Could, Won't). The label is a fixed name."
     },
     {
+      "file": "essentials/dev-essentials/skills/optimize-skill/examples/bug-hunt-audit.md",
+      "rule": "synonym_rotation",
+      "text": "confirmed (check-verify)",
+      "reason": "Quoted example: the worked example copies a real audit report. It quotes the settled terms of bug-hunt, for example the marker \"Not confirmed:\"."
+    },
+    {
       "file": "essentials/dev-essentials/skills/review-loop/references/verify-fix-discipline.md",
       "rule": "banned_modal",
       "text": "should",

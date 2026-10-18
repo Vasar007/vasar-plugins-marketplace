@@ -65,7 +65,7 @@ These rules apply in all modes:
 
 Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this command adds these:
 
-- **Models**: research and planning (Phase 1) and review (Phase 3) use Opus. Implementation and fixes (Phase 2, and the fixer of Phase 3) use Sonnet. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
+- **Models**: research and planning (Phase 1) and review (Phase 3) use Opus. Implementation and fixes (Phase 2, and the fixer of Phase 3) use Sonnet. This line is the one home of these models, and the phases below name only the role. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
 
 ## Guardrails
@@ -107,8 +107,8 @@ With `--skip-research`, skip this phase.
 If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that plan file as the plan of this run. Skip steps 2 to 4, and start Phase 2.
 
 1. Resolve each `--context=<path>` (the flag is repeatable). Without one, derive a context file as `dev-essentials:implement` does: from a plan-file argument, or from the auto-memory folder as a last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every research brief.
-2. Dispatch one or more **Opus** research subagents. They work from the real code, not from assumptions. They find out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. Pass the scope and context of the user verbatim into each brief. If the task splits in a natural way, dispatch several research subagents at the same time. For example: one on the production code path, one on the test coverage, and one on a permission or contract question.
-3. Dispatch an **Opus** planning subagent (the same dispatch as step 2, or a later one). It turns the research into a concrete plan: ordered tasks or phases, the exact files of each, and the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).
+2. Dispatch one or more research subagents. They work from the real code, not from assumptions. They find out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. Pass the scope and context of the user verbatim into each brief. If the task splits in a natural way, dispatch several research subagents at the same time. For example: one on the production code path, one on the test coverage, and one on a permission or contract question.
+3. Dispatch a planning subagent (the same dispatch as step 2, or a later one). It turns the research into a concrete plan: ordered tasks or phases, the exact files of each, and the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).
 4. Save the plan to `Notes/Plans/<slug>-plan.md`, or to the location that the `CLAUDE.md` of the repo documents. This is the plan sign-off gate:
    - Without `--interactive`, report the plan path in one status line, and start Phase 2.
    - With `--interactive`, **show the plan to the user for sign-off before Phase 2 starts**. Resolve here each open question that the user raises.
@@ -122,7 +122,7 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
    - **Plan-shaped** (it has a task checklist): use it as it is.
    - **A research or handoff file without a checklist**: derive a task list from its content. Do not refuse the file.
    - **Several `--context` paths**: a plan-shaped file gives the task list, and the others are research context. Without a plan-shaped file, derive the task list from all of them.
-2. For each task or phase of the plan, dispatch a **Sonnet** subagent with the brief rules of `dev-essentials:implement` Step 4. Follow the existing patterns, ask and do not improvise, and use the skills that fit the change type (domain models, tests, controllers, configuration, and others).
+2. For each task or phase of the plan, dispatch an implementer subagent with the brief rules of `dev-essentials:implement` Step 4. Follow the existing patterns, ask and do not improvise, and use the skills that fit the change type (domain models, tests, controllers, configuration, and others).
 3. Mark each task done in the plan file as it completes (`- [ ]` → `- [x]`).
 4. Build and test after each task. For small and tightly coupled tasks, you can build and test once after all of them. Never leave a red signal for the review loop.
 5. For the commits of this phase, see "Commit cadence".

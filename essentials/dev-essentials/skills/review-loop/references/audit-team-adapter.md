@@ -13,7 +13,7 @@ Every other target resolves to a diff or a code symbol, not to a documentation p
 Run `/audit-team <path> [agent-count] [model]`. `<path>` is the target path that Phase 1 resolved. Then add the rest of `--audit-team-args` word for word.
 
 - `[agent-count]`: the value from `--audit-team-args`, or else the default of `/audit-team` (`5`). A positional argument cannot be skipped. So always fill this slot, also for a user who gave only a model. Example: `--audit-team-args "opus"` must produce `/audit-team <path> 5 opus`. It must never produce `/audit-team <path> opus`, because `/audit-team` reads that `opus` as `[agent-count]`.
-- `[model]`: the resolved `--reviewer-model` (Opus by default), so that the reviewer model really applies. **Exception**: leave the argument out for `--reviewer-model inherit`, and for an `--audit-team-args` value that already names a model. Then the "current model" default of `/audit-team` applies.
+- `[model]`: the resolved `--reviewer-model`, so that the reviewer model really applies. **Exception**: leave the argument out for `--reviewer-model inherit`, and for an `--audit-team-args` value that already names a model. Then the "current model" default of `/audit-team` applies.
 - A value of the user for `[agent-count]` or `[model]` in `--audit-team-args` always wins over a value that this skill fills in.
 
 ## Phase 3
