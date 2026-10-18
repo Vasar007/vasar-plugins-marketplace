@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.1.2 and gop-pipeline 1.2.4 in release [3.1.2] - 2026-10-18
+
+Many skills and commands have options that set a model, for example `--reviewer-model` and `--fixer-model`. Their text also named the default model of a role ("the Opus reviewer", "a Sonnet fixer"). If the user picked another model with the option, that text contradicted the run. The text now names the option or the role. The default model appears once, in the option table or the model line of the skill (issue #47).
+
+### Changed in dev-essentials
+
+- `review-loop` (issue #47): the phases, the audit-team adapter, and the examples name `--reviewer-model` and `--fixer-model` instead of Opus and Sonnet. The option table keeps the defaults.
+- `bug-hunt` (issue #47): a missing model of any role blocks the run, not only a missing Fable. The helper briefs no longer repeat the models of the dispatch table.
+- `process-pr-comments` (issue #47): the intro, `references/thread-state-schema.md`, and `references/deep-fix.md` no longer name the models of the stages. The dispatch table is their one home.
+- `implement-batch` and `research-implement-review-report` (issue #47): the steps name the role, for example "planner" or "implementer". The "Models" line is the one home of the models.
+- `audit-personal-conventions` (issue #47): the example of session review-loop defaults and the walkthrough no longer name models.
+- `audit-personal-conventions`, `git-worktree-management`, `implement`, `opsx-implement`, `process-pr-comments`, `save-context`, and `trim-artifacts` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. These workflows never pick Fable on their own. The rule stays in the workflows that can pick Fable, and its one home is "Model selection" in `subagent-orchestration`.
+
+### Changed in gop-pipeline
+
+- `gop-work` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. The workflow uses the fixed models of its agent table and never picks Fable.
+
 ## dev-essentials 3.1.1, dotnet-backend-dev 1.4.1, and gop-pipeline 1.2.3 in release [3.1.1] - 2026-10-18
 
 When claude.ai synced the marketplace, it showed 5 warnings. This release removes them (issue #44). The release also adds the update steps to the README and cuts the text that repeated the documentation (issue #42).
@@ -495,7 +512,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.2...HEAD
+[3.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...v3.1.2
 [3.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.1...v3.0.2

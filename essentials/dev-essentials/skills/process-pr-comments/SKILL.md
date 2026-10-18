@@ -12,7 +12,7 @@ The skill acts as the PR author. In each cycle, it skips the threads that GitHub
 
 Each fix gets a local commit at once. Its `**[AI]** Fixed` reply names the local commit SHA, before any push. The push is a separate step that comes once per cycle, after every reply. It needs the go-ahead of the user, unless `autonomous` is set (see Rules). After the push lands, the skill resolves each thread that it fixed with `pull_request_review_write` (`method: resolve_thread`).
 
-Each cycle runs as two subagent dispatches. Stage 1 (Haiku) fetches and classifies, and changes nothing. Stage 2 (Sonnet) acts. Only the orchestrating session talks to the user. Stage 2 returns its open questions. The orchestrating session asks the user, and then resumes the same Stage 2 agent with `SendMessage` (see "Dispatch model").
+Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and changes nothing. Stage 2 acts. Only the orchestrating session talks to the user. Stage 2 returns its open questions. The orchestrating session asks the user, and then resumes the same Stage 2 agent with `SendMessage` (see "Dispatch model").
 
 ## When NOT to use
 
@@ -66,7 +66,6 @@ These rules apply in all modes:
 - If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
-- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
 - An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
 - If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
