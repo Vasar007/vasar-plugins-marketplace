@@ -128,7 +128,7 @@ Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `
 
 ### Rules for `plugin.json`
 
-Keep `plugin.json` to metadata only: `$schema`, `name`, `version`, `description`, `author`, `repository`, and `keywords`. Copy the values of `$schema`, `author`, and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
+Keep `plugin.json` to metadata only: `name`, `version`, `description`, `author`, `repository`, and `keywords`. Do not set `$schema`. Claude Code accepts it, but the claude.ai sync strips it and shows a warning. Copy the values of `author` and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
 
 ### Validating
 

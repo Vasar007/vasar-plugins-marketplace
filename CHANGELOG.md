@@ -9,10 +9,33 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.1.1, dotnet-backend-dev 1.4.1, and gop-pipeline 1.2.3 in release [3.1.1] - 2026-10-18
+
+When claude.ai synced the marketplace, it showed 5 warnings. This release removes them (issue #44). The release also adds the update steps to the README and cuts the text that repeated the documentation (issue #42).
+
+### Added in the repository
+
+- `tests/test_claude_ai_sync.py` (issue #44): a test for two problems. If a `plugin.json` sets `$schema`, the test fails. If the `description` of a skill, an agent, or a command holds an angle bracket, the test also fails.
+
 ### Changed in the repository
 
 - `README.md` (issue #42): a new section "Updating the plugins" says how to get a new release. You run `/plugin marketplace update vasar-plugins-marketplace` and then `/reload-plugins`. The section also says how automatic updates work and how to turn them on for this marketplace.
 - `README.md` (issue #42): the "Authoring reference" no longer repeats the official documentation. The sections about the folder structure, `marketplace.json`, `plugin.json`, and validation keep only the rules of this repository. They link to the documentation for the rest. The links in the intro and in "References" go to the current pages of the Claude Code documentation.
+- `README.md` (issue #44): the rules for `plugin.json` no longer list `$schema`. They say not to set it, because the claude.ai sync strips it and shows a warning.
+
+### Fixed in dev-essentials
+
+- `plugin.json` (issue #44): removes `$schema`. Claude Code ignores the key, but the claude.ai sync strips it and shows a warning.
+- `git-worktree-management` (issue #44): the description no longer holds the path `<repo-root>/.claude/worktrees/<full-branch-ref>/`. claude.ai read the placeholders as XML tags and removed the angle brackets, so the path was broken on claude.ai. The description now names the `.claude/worktrees/` folder of the repo in words. The body keeps the full path.
+- `audit-personal-conventions` (issue #44): the description recipe in `references/entity-authoring-conventions.md` has a new item. A `description` must not hold angle brackets.
+
+### Fixed in dotnet-backend-dev
+
+- `plugin.json` (issue #44): removes `$schema`. Claude Code ignores the key, but the claude.ai sync strips it and shows a warning.
+
+### Fixed in gop-pipeline
+
+- `plugin.json` (issue #44): removes `$schema`. Claude Code ignores the key, but the claude.ai sync strips it and shows a warning.
 
 ## dev-essentials 3.1.0 and dotnet-backend-dev 1.4.0 in release [3.1.0] - 2026-10-17
 
@@ -472,7 +495,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.0.0...v3.0.1
