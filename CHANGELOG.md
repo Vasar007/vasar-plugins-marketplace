@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.2.1 and dotnet-backend-dev 1.4.2 in release [3.2.1] - 2026-10-18
+## dev-essentials 3.2.2 and dotnet-backend-dev 1.4.2 in release [3.2.2] - 2026-10-18
 
 This release reviews each lint exception of the repository (issue #49). Text rewrites and a fix in the lint test remove 14 of the 23 entries of the simple-english baseline. The 9 entries that stay name the reason that no rewrite can remove them. Two markdownlint rule changes go away.
 
@@ -30,6 +30,23 @@ This release reviews each lint exception of the repository (issue #49). Text rew
 ### Fixed in dotnet-backend-dev
 
 - `create-tests`: the checklist item for Gate 1 states the gate first and its scope in two short sentences. The scope does not change.
+
+## dev-essentials 3.2.1 and gop-pipeline 1.2.4 in release [3.2.1] - 2026-10-18
+
+Many skills and commands have options that set a model, for example `--reviewer-model` and `--fixer-model`. Their text also named the default model of a role ("the Opus reviewer", "a Sonnet fixer"). If the user picked another model with the option, that text contradicted the run. The text now names the option or the role. The default model appears once, in the option table or the model line of the skill (issue #47).
+
+### Changed in dev-essentials
+
+- `review-loop` (issue #47): the phases, the audit-team adapter, and the examples name `--reviewer-model` and `--fixer-model` instead of Opus and Sonnet. The option table keeps the defaults.
+- `bug-hunt` (issue #47): if the model of the hunter, the verifier, or the auditor is not available, step 0 asks a question. Before, only a missing Fable gave this question. The helper briefs no longer repeat the models of the dispatch table.
+- `process-pr-comments` (issue #47): the intro, the note under the dispatch table, `references/thread-state-schema.md`, and `references/deep-fix.md` no longer name the models of the stages. The dispatch table is their one home.
+- `implement-batch` and `research-implement-review-report` (issue #47): the steps name the role, for example "planner" or "implementer". The "Models" line is the one home of the models.
+- `audit-personal-conventions` (issue #47): the example of session review-loop defaults and the walkthrough no longer name models.
+- `audit-personal-conventions`, `git-worktree-management`, `implement`, `opsx-implement`, `process-pr-comments`, and `save-context` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. These workflows never pick Fable on their own. The rule stays in the workflows that can pick Fable, and its one home is "Model selection" in `subagent-orchestration`.
+
+### Changed in gop-pipeline
+
+- `gop-work` (issue #47): the "Autonomy" section no longer has the rule for a Fable dispatch. The workflow uses the fixed models of its agent table and never picks Fable.
 
 ## dev-essentials 3.2.0 in release [3.2.0] - 2026-10-18
 
@@ -531,7 +548,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...HEAD
+[3.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.1.0...v3.1.1
