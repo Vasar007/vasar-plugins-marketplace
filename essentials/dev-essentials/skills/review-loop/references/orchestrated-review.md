@@ -34,9 +34,11 @@ The orchestrator never reads the full diff or full files itself. It reads only t
 
 ## Role 1 — Target Explorer
 
-One subagent, dispatched alone, because its output decides the file assignment of Role 2. It builds a map of the target, not a review. The map holds facts only, each with `path:line` evidence. It makes no judgment, so the Area Explorers and the orchestrator do all the judging. The map has a **hard cap of 150 lines**. It does not return raw diff or file contents.
+One subagent, dispatched alone, because its output decides the file assignment of Role 2. It builds a map of the target, not a review. The map holds facts only, each with `path:line` evidence. It makes no judgment, so the Area Explorers and the orchestrator do all the judging. It does not return raw diff or file contents.
 
-Dispatch it as `general-purpose` with `model: "haiku"` and `effort: "low"`. It needs Bash for `git diff`, so it is not `dev-essentials:code-locator`, which has no Bash.
+The map lists each changed file once, inside Areas. The sections other than Areas have a cap of 150 lines in total. Areas has no cap and is never cut, so no file drops out of the review. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures. It never cuts Ranges or Areas. It records every cut under "Not mapped".
+
+Use the model and the effort of the Models paragraph above. It needs Bash for `git diff`, so it is not `dev-essentials:code-locator`, which has no Bash. This dispatch has no auto-compact window. This is an accepted trade-off, so the agent reads the diff in parts.
 
 Prompt template:
 
@@ -65,37 +67,51 @@ Hard rules:
 - Do not write severity, risk words, opinions, suggestions, or words like "looks wrong".
 - Do not rank files by importance. Do not guess the intent of a change.
 - If a fact needs a judgment to state, leave it out, or put it under "Not mapped".
-- Use `git diff --stat` and `git diff -U0` and Grep first. Read only the lines that you need.
+- Run `git diff --stat` first. Then run `git diff -U0` for one area or one file at a time, and use
+  Grep. Never run one `git diff -U0` for the whole target. Read only the lines that you need.
 - Do not copy diff text or file contents into the map. Write names, numbers, and `path:line`.
+  The one exception is a signature line in Signatures. Write each one as at most one line
+  (about 120 characters, cut with "..." if longer).
+- Skip lock files and generated files. List them by name only under Build and configuration.
 
 Tasks:
 1. <If target=pr: call `pull_request_read` per `dev-essentials:github-mcp-conventions` (explicit
    `owner` and `repo` on the call).>
-2. Run: git diff --stat <range>; git log --oneline <range>; git diff -U0 <range>.
+2. Run: git diff --stat <range>; git log --oneline <range>. Then run
+   git diff -U0 <range> -- <path> for one area or one file at a time.
 3. Use Grep to find the links between the changed files.
 
-Report the map in these sections, in this order, and NOTHING else (at most 150 lines):
+Report the map in these sections, in this order, and NOTHING else. Every section except Areas
+has a cap of 150 lines in total. If you must cut, cut Links first, then Symbols, then
+Signatures. Never cut Ranges or Areas. Record every cut under "Not mapped".
 1. Target: identity (branch, PR, or commit range), a one-line title if available, and the
    totals: files, +lines, -lines, commits.
 2. Ranges: the resolved **diff range** (for `git diff` and `git log`) AND the resolved **source
    tree-ish** (for `git show <tree-ish>:<path>`), each labeled. Area Explorers need the tree-ish,
    not the diff range, for Role 2 Step 1.
-3. Files: one line for each changed file: path, change kind (added, modified, deleted, renamed),
-   +lines, -lines.
+3. Areas: every changed file, each listed once: path, change kind (added, modified, deleted,
+   renamed), +lines, -lines. Group the files by top-level folder. While a group has more than
+   10 files or more than 800 changed lines, split it by the next folder level. A file in the
+   root folder goes in a group named "root". Group by path only, never by importance. One group
+   is one Area Explorer. Write each area as its name and its file lines, production files before
+   test files. The number of files in Areas must equal the total of files in Target.
 4. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
    function, method, or configuration key. For a docs file, it is a heading.
-5. Signatures: each changed public signature or exported name, old text and new text side by side.
+5. Signatures: each changed public signature or exported name, old line and new line side by side.
 6. Links: each changed file that calls, imports, or references a symbol that another changed file
    changes. Write "<file:line> uses <symbol> of <file:line>".
 7. Tests: each changed test file, and the source files whose symbols it references.
-8. Build and configuration: each changed manifest, configuration, migration, or build file.
-9. Areas: the changed files grouped by top-level folder or module, one group for each Area
-   Explorer. Group by path only, never by importance. Write each area as its name and its file
-   list, production files before test files.
-10. Prior iterations: any already-resolved review iteration or prior finding that the history or
-   the description of the target shows (so Area Explorers do not raise it again).
-11. Not mapped: what you could not read or resolve, and where you looked.
+8. Build and configuration: each changed manifest, configuration, migration, or build file, and
+   the lock files and generated files that you skipped.
+9. Prior iterations: the commits of the range whose subject starts with "Review round", and the
+   lines of the description of the target that mention a review. Copy them as they are. Do not
+   judge whether they are resolved.
+10. Not mapped: what you did not read or resolve, every cut that you made, and where you looked.
 ```
+
+## Check the map between Role 1 and Role 2
+
+The orchestrator does this step itself, with no subagent. It makes sure that the number of files in Areas equals the total number of files in Target. If the numbers differ, it gets the missing paths with `git diff --name-only <range>`. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. For each area, it copies the map facts of that area into the Role 2 prompt.
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
@@ -116,8 +132,12 @@ Files in your area:
 - <file2>  (test, +M lines)
 - …
 
-Step 1 — Read each file's contents from the source tree-ish (not just the diff hunks — cross-file
-consequences are invisible in isolation): `git show <tree-ish>:<path>` (or read the file directly
+Map facts for your area (from the Target Explorer, facts only):
+<The Symbols, Signatures, Tests, and Build and configuration lines of the files above. Add every
+Links line that touches one of these files, also a link from a file of another area.>
+
+Step 1 — Start from the changed symbol ranges in the map facts. Read each file's contents from
+the source tree-ish (not just the diff hunks — cross-file consequences are invisible in isolation): `git show <tree-ish>:<path>` (or read the file directly
 for non-diff targets). Do not pass the diff range here — `git show` needs a single tree-ish, not
 an `A...B` range.
 
