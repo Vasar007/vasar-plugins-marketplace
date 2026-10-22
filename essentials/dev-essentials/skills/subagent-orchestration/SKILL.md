@@ -32,11 +32,21 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 - **A plugin agent type can set its own model.** Its agent file sets `model`. A dispatch of that type can then leave out the `model` parameter. A `model` parameter in the call wins over the agent file. Leave out `model` for `dev-essentials:code-locator`, `dev-essentials:fact-gatherer`, and `dev-essentials:test-runner`.
 - **Only an agent file sets the auto-compact window.** The field is `autoCompactWindow`. The subagent compacts its context at that size. The docs show no `Agent` parameter for it. Haiku 5.5 costs five times more per token for a prompt over 100,000 tokens. A `general-purpose` dispatch with `model: haiku` has no such limit. So, to keep Haiku work under that price step, dispatch one of the three agent types above. Their files set `autoCompactWindow: 100000`.
 
+### The model of the orchestrating session
+
+The orchestrating session writes the briefs, checks the reports, and makes the decisions of the workflow. That is judgment, not mechanical work.
+
+- Run the orchestrating session on Opus or Sonnet, never on Haiku. The Haiku scope below does not cover judgment.
+- The user chooses this model at the start of the session, for example with `claude --model sonnet`. The session keeps it (see "How a model gets applied").
+- If the session runs on Haiku, say so to the user before the first dispatch. Suggest a new session on Sonnet or Opus.
+- On a Sonnet session, the fork exception of "Plan → execute split" does not apply, because a fork runs on Sonnet. Give a small, tightly coupled task to an Opus subagent with a full brief.
+- On a Sonnet session, give each critical decision that the workflow makes without the user to a short Opus subagent. An example is a run with `--autonomous`. `dev-essentials:engineering-discipline` Rule 2 defines a critical decision. The brief holds the options, the plan, and the facts from the code. The subagent returns its choice and the reason.
+
 ### Plan → execute split
 
 1. **Plan on Opus.** Dispatch an Opus subagent to build the plan. If the session already runs on Opus, this dispatch is not necessary. The plan names, for each task, the exact paths, the anchors (`path:line` and method names), and the key signatures. Then each executor reads only those places, and does not search again.
 2. **Execute on Sonnet.** The session gives the approved plan to separate Sonnet subagent sessions, and does not implement it in one place. That is Rule 1, applied to the tasks of a plan like any other work unit.
-3. **Exception: a fork for a small, tightly coupled task.** Some tasks are small and tightly coupled. Their right edit depends on details of the research that a brief does not carry well. If the session runs on Opus, you can give such a task to a fork. The fork runs on the model of the session. Its first request reuses the prompt cache of the session, and only its final report comes back. Use this exception rarely. The default stays: execute on Sonnet.
+3. **Exception: a fork for a small, tightly coupled task.** Some tasks are small and tightly coupled. Their right edit depends on details of the research that a brief does not carry well. If the session runs on Opus, you can give such a task to a fork. The fork runs on the model of the session. Its first request reuses the prompt cache of the session, and only its final report comes back. Use this exception rarely. The default stays: execute on Sonnet. For a Sonnet session, see "The model of the orchestrating session".
 
 ### Haiku scope (mechanical execution only)
 
@@ -146,17 +156,30 @@ Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an int
 
 Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
-The correct dispatch shape has these fields. Add `effort` only where the user or a skill asks for it. Leave out `model` for an agent type whose file sets it (see "How a model gets applied").
+The correct dispatch shape has these fields. Leave out `model` for an agent type whose file sets it (see "How a model gets applied").
 
 ```text
 Agent(
     subagent_type: "...",       # or a specific agent type
     model:         "...",       # per the model matrix
+    effort:        "...",       # only in the two cases below
     description:   "Short 3-5 word label",
     prompt:        "<complete, self-contained brief>"
 )
 # no name, no team_name
 ```
+
+Pass `effort` in two cases. First, the user or a skill names an effort level for the dispatch. Second, the session runs at a lower effort than the task needs. The docs say that an `effort` field or parameter overrides the effort of the session. They do not say which effort a subagent without either one gets.
+
+The effort of a subagent comes from one of these places:
+
+- An agent type with one role sets `effort` in its agent file, for example `dev-essentials:test-runner`. Its dispatch passes no `effort`. An `effort` parameter in the call wins over the agent file.
+- A general agent type, for example `general-purpose`, does different work in different steps. Its dispatch passes `effort` as a parameter.
+- A fork takes no `effort` parameter. The docs do not say which effort a fork gets.
+
+If the `Agent` tool has no `effort` parameter, leave it out. If an effort was set for a subagent, `/tasks` shows it.
+
+Do not set the effort of the session with the environment variable `CLAUDE_CODE_EFFORT_LEVEL`. It overrides the `effort` parameter and the agent file of every subagent. To set the effort of the session, use `/effort` or the `--effort` flag.
 
 Everything the subagent needs goes in `prompt`. The subagent starts in its own context window and does not see your conversation. So the brief must be fully self-contained (see "Brief quality matters more than brief count" below).
 

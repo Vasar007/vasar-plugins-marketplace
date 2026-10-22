@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.3.0 and gop-pipeline 1.2.6 in release [3.3.0] - 2026-10-22
 
-The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later. An older version loads the agents without the auto-compact limit.
+The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later. An older version loads the agents without the auto-compact limit. The workflows now also name an effort level for each role, so that a subagent does not depend on the effort of the session.
 
 ### Added in dev-essentials
 
@@ -21,12 +21,12 @@ The workflows now give the mechanical work to three new read-only Haiku agents: 
 
 ### Changed in dev-essentials
 
-- `subagent-orchestration` (issue #55): "Haiku scope" names the three agents and the rule that they return facts, not synthesis. The skill says that the built-in `Explore` runs on the model of the session, and that only an agent file sets the auto-compact window. A plan now names exact paths, anchors, and key signatures. A new, rarely used exception gives a small, tightly coupled task to a fork on an Opus session.
-- `research-implement-review-report` (issue #55): Phase 1 dispatches parallel fact gatherers, one narrow question each, and then a planner that reads their reports. A question that needs judgment goes whole to a researcher. Behavior change: after each task, the orchestrating session checks the build and the tests with `test-runner`. The "Models" line names every role.
-- `implement-batch` (issue #55): the "Models" line agrees with RIRR. Behavior change: Step 3 checks the build and the tests with `test-runner` before the commit.
+- `subagent-orchestration` (issue #55): "Haiku scope" names the three agents and the rule that they return facts, not synthesis. The skill says that the built-in `Explore` runs on the model of the session, and that only an agent file sets the auto-compact window. A plan now names exact paths, anchors, and key signatures. A new, rarely used exception gives a small, tightly coupled task to a fork on an Opus session. A new section says that the orchestrating session runs on Opus or Sonnet, never on Haiku. On a Sonnet session, a tightly coupled task and a critical decision without the user go to an Opus subagent. In Rule 5, a dispatch now passes `effort` in two cases: a skill or the user names a level, or the session effort is too low for the task. It says where the effort of a subagent comes from. It also warns against `CLAUDE_CODE_EFFORT_LEVEL`, because that variable overrides the effort of every subagent.
+- `research-implement-review-report` (issue #55): Phase 1 dispatches parallel fact gatherers, one narrow question each, and then a planner that reads their reports. A question that needs judgment goes whole to a researcher. Behavior change: after each task, the orchestrating session checks the build and the tests with `test-runner`. The "Models" line names every role. Behavior change: a new "Effort" line sets the effort of each research, planning, and implementation dispatch.
+- `implement-batch` (issue #55): the "Models" line agrees with RIRR. Behavior change: Step 3 checks the build and the tests with `test-runner` before the commit. Behavior change: a new "Effort" line, which agrees with RIRR, sets the effort of the planner and the implementer.
 - `implement-task` (issue #55): behavior change: the simplify pass gets a `test-runner` check before its commit.
 - `feature-pipeline` (issue #55): behavior change: the Build Gate gives the build to `test-runner`, and the master agent reads only its report.
-- `review-loop` (issue #55): behavior change: Phase 6 runs the build and the tests through `test-runner`. A reviewer can give a broad search to `code-locator`. In the orchestrated mode, the Area Explorers and the Finding Verifier run on `--reviewer-model`.
+- `review-loop` (issue #55): behavior change: Phase 6 runs the build and the tests through `test-runner`. A reviewer can give a broad search to `code-locator`. In the orchestrated mode, the Area Explorers and the Finding Verifier run on `--reviewer-model`. Behavior change: "Default configuration" now sets the effort. Each dispatch on the reviewer model passes `high`, and the fixer passes `medium`. The user can name another effort level for a run.
 - `help-review-pr` and `audit-team` (issue #55): a review can give a broad search to `code-locator`. `audit-team` does not use it for a role.
 
 ### Changed in gop-pipeline
