@@ -72,7 +72,7 @@ Hard rules:
 - Do not copy diff text or file contents into the map. Write names, numbers, and `path:line`.
   The one exception is a signature line in Signatures. Write each one as at most one line
   (about 120 characters, cut with "..." if longer).
-- Skip lock files and generated files. List them by name only under Build and configuration.
+- Skip lock files and generated files. Do not read their diff. List them by path only, in the Areas group named "skipped".
 
 Tasks:
 1. <If target=pr: call `pull_request_read` per `dev-essentials:github-mcp-conventions` (explicit
@@ -95,7 +95,8 @@ Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not m
    10 files or more than 800 changed lines, split it by the next folder level. A group with no
    next folder level stays one area. The files that sit directly in a split folder form a group
    under the name of that folder. A single file over the size limit is its own area. A file in
-   the root folder goes in a group named "root". Group by path only, never by importance. One
+   the root folder goes in a group named "root". The skipped lock files and generated files form
+   one group named "skipped", with the path of each file only. Group by path only, never by importance. One
    group is one Area Explorer. Write each area as its name and its file lines, production files
    before test files. The number of files in Areas must equal the total of files in Target.
 4. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
@@ -104,8 +105,7 @@ Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not m
 6. Links: each changed file that calls, imports, or references a symbol that another changed file
    changes. Write "<file:line> uses <symbol> of <file:line>".
 7. Tests: each changed test file, and the source files whose symbols it references.
-8. Build and configuration: each changed manifest, configuration, migration, or build file, and
-   the lock files and generated files that you skipped.
+8. Build and configuration: each changed manifest, configuration, migration, or build file.
 9. Prior iterations: the commits of the range whose subject starts with "Review round", and the
    lines of the description of the target that mention a review. Copy them as they are. Do not
    judge whether they are resolved.
@@ -114,7 +114,7 @@ Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not m
 
 ## Check the map between Role 1 and Role 2
 
-The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. For each area, it copies the map facts of that area into the Role 2 prompt.
+The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. The "skipped" group gets no Area Explorer. For each other area, it copies the map facts of that area into the Role 2 prompt.
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
@@ -138,6 +138,9 @@ Files in your area:
 Map facts for your area (from the Target Explorer, facts only):
 <The Symbols, Signatures, Tests, and Build and configuration lines of the files above. Add every
 Links line that touches one of these files, also a link from a file of another area.>
+
+Prior iterations (for context only, do not raise these again):
+<The Prior iterations lines of the map, unchanged.>
 
 Step 1 — Start from the changed symbol ranges in the map facts. Read each file's contents from
 the source tree-ish (not just the diff hunks — cross-file consequences are invisible in
