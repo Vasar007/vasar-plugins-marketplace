@@ -30,7 +30,7 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 - So **work for any model other than the model of the session must be delegated**. If the matrix, a skill, or the user asks for a model that the session does not run, that work becomes a subagent dispatch.
 - **`subagent_type: "fork"` ignores `model`**. A fork inherits the model of the parent. If a task needs a specific model, use an agent type that is not a fork.
 - **A plugin agent type can set its own model.** Its agent file sets `model`. A dispatch of that type can then leave out the `model` parameter. A `model` parameter in the call wins over the agent file. Leave out `model` for `dev-essentials:code-locator`, `dev-essentials:fact-gatherer`, and `dev-essentials:test-runner`.
-- **Only an agent file sets the auto-compact window.** The field is `autoCompactWindow`. The subagent compacts its context at that size. The `Agent` tool has no parameter for it. About 100,000 tokens is a good size for search and fact work. A larger context often costs more and adds noise. A `general-purpose` dispatch has no such limit. So, to keep this work small, dispatch one of the three agent types above. Their files set `autoCompactWindow: 100000`.
+- **Only an agent file sets the auto-compact window.** The field is `autoCompactWindow`. The subagent compacts its context at that size. The `Agent` tool has no parameter for it. About 100,000 tokens is a good size for search, fact, and build-check work. A larger context often costs more and adds noise. A `general-purpose` dispatch does not compact at this size. So, to keep the context of this work small, dispatch one of the three agent types above. Their files set `autoCompactWindow: 100000`.
 
 ### The model of the orchestrating session
 
