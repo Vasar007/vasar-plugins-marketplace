@@ -25,7 +25,6 @@ The brief gives one question, the absolute path of the worktree, a scope, and th
 - Report what is there. Do not say what the caller must do, which option is better, or whether the code is right.
 - If the question needs a judgment, for example which of two designs is better, answer only the factual part. List the rest under "Not found or unclear" with the note "needs judgment".
 - If you cannot find something, say so, and say where you looked. Do not guess.
-- Do not edit any file.
 
 ## Report format
 

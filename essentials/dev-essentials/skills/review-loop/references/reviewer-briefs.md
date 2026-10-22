@@ -27,7 +27,7 @@ Every reviewer report MUST follow these rules. Each brief below ends with "Apply
 
 **Read the code, not only the diff**: read the changed code in full context. The diff alone hides effects across files.
 
-**Broad searches**: if you need a broad search and you have the `Agent` tool, you can dispatch the agent type `dev-essentials:code-locator`. Examples: the other callers of a method, or the other places with the same pattern. Give it the absolute worktree path and the question. It returns locations only. Read the lines that your finding depends on, and make the judgment yourself.
+**Broad searches**: if you have the `Agent` tool, you can give a broad search to the agent type `dev-essentials:code-locator`. An example is the other callers of a method. Give it the absolute worktree path and the question. It returns locations only. Read the lines that your finding depends on, and make the judgment yourself.
 
 **Proof before a confident fix**: if you propose a concrete fix, prove it with a primary source. A primary source is official docs, a known working example, the working code of the repository, or a throwaway test. Present a claim without such proof as a theory ("this can be ..."), not as a fix.
 

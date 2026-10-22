@@ -34,11 +34,7 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 
 ### The model of the orchestrating session
 
-The orchestrating session writes the briefs, checks the reports, and makes the decisions of the workflow. That is judgment, not mechanical work.
-
-- Run the orchestrating session on Opus or Sonnet, never on Haiku. The Haiku scope below does not cover judgment.
-- The user chooses this model at the start of the session, for example with `claude --model sonnet`. The session keeps it (see "How a model gets applied").
-- If the session runs on Haiku, say so to the user before the first dispatch. Suggest a new session on Sonnet or Opus.
+- Run the orchestrating session on Opus or Sonnet, never on Haiku, because it makes the decisions of the workflow. If the session runs on Haiku, say so to the user before the first dispatch. Suggest a new session on Sonnet or Opus, for example with `claude --model sonnet`.
 - On a Sonnet session, the fork exception of "Plan → execute split" does not apply, because a fork runs on Sonnet. Give a small, tightly coupled task to an Opus subagent with a full brief.
 - On a Sonnet session, give each critical decision that the workflow makes without the user to a short Opus subagent. An example is a run with `--autonomous`. `dev-essentials:engineering-discipline` Rule 2 defines a critical decision. The brief holds the options, the plan, and the facts from the code. The subagent returns its choice and the reason.
 
@@ -46,19 +42,16 @@ The orchestrating session writes the briefs, checks the reports, and makes the d
 
 1. **Plan on Opus.** Dispatch an Opus subagent to build the plan. If the session already runs on Opus, this dispatch is not necessary. The plan names, for each task, the exact paths, the anchors (`path:line` and method names), and the key signatures. Then each executor reads only those places, and does not search again.
 2. **Execute on Sonnet.** The session gives the approved plan to separate Sonnet subagent sessions, and does not implement it in one place. That is Rule 1, applied to the tasks of a plan like any other work unit.
-3. **Exception: a fork for a small, tightly coupled task.** Some tasks are small and tightly coupled. Their right edit depends on details of the research that a brief does not carry well. If the session runs on Opus, you can give such a task to a fork. The fork runs on the model of the session. Its first request reuses the prompt cache of the session, and only its final report comes back. Use this exception rarely. The default stays: execute on Sonnet. For a Sonnet session, see "The model of the orchestrating session".
+3. **Exception: a fork for a small, tightly coupled task.** Some tasks are small and tightly coupled. Their right edit depends on details of the research that a brief does not carry well. If the session runs on Opus, you can give such a task to a fork. Use this exception rarely. The default stays: execute on Sonnet. For a Sonnet session, see "The model of the orchestrating session".
 
 ### Haiku scope (mechanical execution only)
 
 Haiku is not only for one-step lookups. Prefer Haiku over Sonnet for a short sequence of actions with **no synthesis of its own**. Every decision is already made, and the subagent only runs the steps.
 
-- **Haiku-eligible**: a push of a branch and a new PR, with a commit message and a PR description that are already written. A post of a comment that is already drafted. A new run of a known command, with a report of its output. An explicit 1-2-3 edit list. Also the work of these three plugin agent types, which return facts and no synthesis:
-  - `dev-essentials:code-locator`: a code search. It returns paths, line numbers, symbols, and short excerpts.
-  - `dev-essentials:fact-gatherer`: the facts for one narrow question, each with a `path:line` or a URL as evidence.
-  - `dev-essentials:test-runner`: a run of the build and test commands of the brief, with the verbatim result lines.
-- **Guardrail: the content must already be decided**. If the dispatch must first *produce* the content, the work is not mechanical. Examples: a summary comment that comes from reading and combining several days of work across several PRs, or a decision about which values are correct. Keep such work on Sonnet. If it is closer to planning or judgment, use Opus. Eligibility comes from content that is already decided, never from the tool that the dispatch calls. No blanket Haiku rule exists for PR creation or issue updates. The three agent types above follow this guardrail. A fact gatherer returns facts, not conclusions, and the planner does the synthesis. A question that needs judgment goes whole to an Opus subagent. Examples: an ambiguous behavior, a permission, a public contract, or a choice between designs.
+- **Haiku-eligible**: a push of a branch and a new PR, with a commit message and a PR description that are already written. A post of a comment that is already drafted. A new run of a known command, with a report of its output. An explicit 1-2-3 edit list. Also the work of three plugin agent types, which return facts and no synthesis: `dev-essentials:code-locator` (a code search), `dev-essentials:fact-gatherer` (the facts for one narrow question), and `dev-essentials:test-runner` (a build and test run).
+- **Guardrail: the content must already be decided**. If the dispatch must first *produce* the content, the work is not mechanical. Examples: a summary comment that comes from reading and combining several days of work across several PRs, or a decision about which values are correct. Keep such work on Sonnet. If it is closer to planning or judgment, use Opus. Eligibility comes from content that is already decided, never from the tool that the dispatch calls. No blanket Haiku rule exists for PR creation or issue updates. A question that needs judgment goes whole to an Opus subagent, not to a fact gatherer. Examples: an ambiguous behavior, a permission, a public contract, or a choice between designs.
 - **Worked contrast**: "push `<branch>` and create the PR from the description already composed above" goes to **Haiku**. "Summarize this task's work across 3 PRs and 4 days, then post it as the closeout comment" goes to **Sonnet**.
-- **Code search**: the built-in `Explore` agent runs on the model of the session. If the session runs on Fable, `Explore` runs on Opus, except on some cloud platforms where it stays on the model of the session. So `Explore` is not a cheap search. For a code search, the skills of this plugin dispatch `dev-essentials:code-locator`. Like `Explore`, the three agent types do not load the `CLAUDE.md` files of the project. So each brief restates the project rules that the agent needs.
+- **Code search**: the built-in `Explore` agent runs on the model of the session. So `Explore` is not a cheap search. For a code search, the skills of this plugin dispatch `dev-essentials:code-locator`. Like `Explore`, the three agent types do not load the `CLAUDE.md` files of the project. So each brief restates the project rules that the agent needs.
 - **One dispatch, one model**. If one dispatch both drafts and delivers, it stays on Sonnet. If the draft is already a separate, finished artifact, you can split the work into a Sonnet draft and a Haiku post. Never add a dispatch only to reach Haiku. The three agent types above are not such an extra dispatch. Each one does work that Rule 1 already sends to a subagent: a search, research, or a build and test check.
 
 ## Rule 1 — Orchestrate aggressively; delegate even small research
@@ -120,7 +113,7 @@ Subagents run in the background by default. When a subagent completes, a task no
 
 **Sequential dependency** (stage B needs the output of stage A): dispatch A, wait for the notification of A, and then dispatch B in a later message.
 
-**Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied"). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief. For the one implementation case that fits a fork, see the exception in "Plan → execute split".
+**Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied"). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief.
 
 Other cases:
 
@@ -169,15 +162,12 @@ Agent(
 # no name, no team_name
 ```
 
-Pass `effort` in two cases. First, the user or a skill names an effort level for the dispatch. Second, the session runs at a lower effort than the task needs. The docs say that an `effort` field or parameter overrides the effort of the session. They do not say which effort a subagent without either one gets.
+Pass `effort` in two cases. First, the user or a skill names an effort level for the dispatch. Second, the session runs at a lower effort than the task needs. This holds for a general agent type such as `general-purpose`. Two kinds of dispatch differ:
 
-The effort of a subagent comes from one of these places:
+- An agent type whose file sets `effort`, for example `dev-essentials:test-runner`, needs no `effort` parameter. A parameter in the call wins over the file.
+- A fork takes no `effort` parameter.
 
-- An agent type with one role sets `effort` in its agent file, for example `dev-essentials:test-runner`. Its dispatch passes no `effort`. An `effort` parameter in the call wins over the agent file.
-- A general agent type, for example `general-purpose`, does different work in different steps. Its dispatch passes `effort` as a parameter.
-- A fork takes no `effort` parameter. The docs do not say which effort a fork gets.
-
-If the `Agent` tool has no `effort` parameter, leave it out. If an effort was set for a subagent, `/tasks` shows it.
+If the `Agent` tool has no `effort` parameter, leave it out.
 
 Do not set the effort of the session with the environment variable `CLAUDE_CODE_EFFORT_LEVEL`. It overrides the `effort` parameter and the agent file of every subagent. To set the effort of the session, use `/effort` or the `--effort` flag.
 
@@ -190,7 +180,7 @@ Use `SendMessage` to your own subagent only for the same task, in two cases:
 
 Limits:
 
-- Record the agent ID of each dispatch that you can need to resume. The built-in `Explore` and `Plan` agents return no agent ID, so you cannot resume them. Other agent types, also the plugin agents of this plugin, return an agent ID.
+- Record the agent ID of each dispatch that you can need to resume. The built-in `Explore` and `Plan` agents return no agent ID, so you cannot resume them.
 - If the user stopped the agent in `/tasks`, Claude Code refuses the message. If `SendMessage` fails or finds no agent, dispatch a fresh subagent with the same brief and a note on what is already done.
 - For new or unrelated work, make a fresh, unnamed `Agent` call. Do not give it to an old subagent.
 

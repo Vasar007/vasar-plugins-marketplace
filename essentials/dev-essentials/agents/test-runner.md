@@ -25,7 +25,7 @@ The brief gives the absolute path of the worktree, the build command, and the te
 ## Rules
 
 - Run the commands exactly as the brief gives them. Add no flags, and remove none.
-- The shell folder does not stay the same between Bash calls. So start each Bash call with `cd "<worktree>" &&`, or use the folder option of the tool.
+- The shell folder does not stay the same between Bash calls. So start each Bash call with `cd "<worktree>" &&`.
 - Run each command in the foreground. Give each Bash call a `timeout` of at most `600000` (10 minutes).
 - If the brief says that a test run can take longer than 10 minutes, use the section "Long test runs" below.
 - Run no command that changes the repository, other than the commands of the brief. Do not run a git command that changes the worktree, the index, or the history.

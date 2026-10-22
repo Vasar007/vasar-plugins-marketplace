@@ -34,7 +34,7 @@ The orchestrator never reads the full diff or full files itself. It reads only t
 
 ## Role 1 — Target Explorer
 
-One subagent, dispatched alone, because its output decides the file assignment of Role 2. It builds a map of the target, not a review. The map holds facts only, each with `path:line` evidence. It makes no judgment, so the Area Explorers and the orchestrator do all the judging. It does not return raw diff or file contents.
+One subagent, dispatched alone, because its output decides the file assignment of Role 2. It returns a fact map with no judgment and no raw diff or file contents, as the template below says.
 
 The map lists each changed file once, inside Areas. The sections other than Areas have a cap of 150 lines in total. Areas has no cap and is never cut, so no file drops out of the review. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures. It never cuts Ranges or Areas. It records every cut under "Not mapped".
 
@@ -150,9 +150,7 @@ yourself.
 
 Step 3 — Apply this focus-area list:
 <FOCUS_LIST>
-The Target Explorer only mapped facts and judged nothing. You do all the judging for your area. This
-includes spotting a non-trivial design decision in the changes and checking it against the
-established convention.
+Also judge each non-trivial design decision in the changes against the established convention.
 
 Step 4 — Use this skill's severity scale exactly: `Blocker`, `Critical`, `High`, `Medium`, `Low`,
 `Nit` — do not invent your own scale. Use one type per finding from: `Bug`, `Reliability`, `Security`, `Performance`,
