@@ -9,16 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.3.1 in release [3.3.1] - 2026-10-22
+## dev-essentials 3.3.1 and gop-pipeline 1.3.1 in release [3.3.1] - 2026-10-22
 
 Some skill text named a versioned model or quoted the price step of one model. Other text cited the docs as the reason for a rule. This release follows up on issue #55. When a new model or a new docs page ships, such text goes out of date. The text now gives a reason that stays true, and names models only by family. No behavior changes.
 
 ### Fixed in dev-essentials
 
-- `subagent-orchestration` (issue #55): the auto-compact rule no longer names Haiku 5.5, its price step, or the docs. It now says that about 100,000 tokens is a good size for search, fact, and build-check work. The reason is that a larger context often costs more and adds noise.
+- `subagent-orchestration` (issue #55): the auto-compact rule no longer names Haiku 5.5, its price step, or the docs. It now says that about 100,000 tokens is a good size for search, fact, and build-check work. The reason is that a larger context often costs more and adds noise. The skill no longer says which model the built-in `Explore` agent runs on. It now says not to count on `Explore` for a cheap search, because its model can change between releases.
 - `review-loop` (issue #55): the examples name the reviewer model as `opus`, not as a versioned model ID.
 - `bug-hunt` (issue #55): `references/pauses.md` no longer says that its facts come from the docs.
 - `audit-personal-conventions` (issue #55): `references/entity-authoring-conventions.md` gives the reasons for the 500-line rule and the `context: fork` rule without a quote from the docs.
+
+### Fixed in gop-pipeline
+
+- `gop-work` (issue #55): the fallback to the built-in `Explore` agent no longer says which model `Explore` runs on.
 
 ## dev-essentials 3.3.0 and gop-pipeline 1.3.0 in release [3.3.0] - 2026-10-22
 

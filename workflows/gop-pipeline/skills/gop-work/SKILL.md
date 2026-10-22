@@ -48,7 +48,7 @@ In every mode, first detect the repository root:
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and Plan agents in read-only mode. For a code search, use the agent type `dev-essentials:code-locator`. If the session does not list it, use the built-in `Explore`, which runs on the model of the session. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
+Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and Plan agents in read-only mode. For a code search, use the agent type `dev-essentials:code-locator`. If the session does not list it, use the built-in `Explore`. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
 
 1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. With `--interactive`, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
 2. **In Plan Mode**, follow the built-in planning workflow:
