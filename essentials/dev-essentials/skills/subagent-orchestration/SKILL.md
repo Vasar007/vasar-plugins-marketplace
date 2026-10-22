@@ -155,14 +155,14 @@ The correct dispatch shape has these fields. Leave out `model` for an agent type
 Agent(
     subagent_type: "...",       # or a specific agent type
     model:         "...",       # per the model matrix
-    effort:        "...",       # only in the two cases below
+    effort:        "...",       # see the rules below
     description:   "Short 3-5 word label",
     prompt:        "<complete, self-contained brief>"
 )
 # no name, no team_name
 ```
 
-Pass `effort` in two cases. First, the user or a skill names an effort level for the dispatch. Second, the session runs at a lower effort than the task needs. This holds for a general agent type such as `general-purpose`. Two kinds of dispatch differ:
+Pass `effort` on each dispatch of a general agent type such as `general-purpose`. Use the level that the user or a skill names. If no one names a level, pass the level that the task needs. For any other agent type, pass `effort` in two cases: the user or a skill names a level, or the session runs at a lower effort than the task needs. Two kinds of dispatch differ:
 
 - An agent type whose file sets `effort`, for example `dev-essentials:test-runner`, needs no `effort` parameter. A parameter in the call wins over the file.
 - A fork takes no `effort` parameter.
