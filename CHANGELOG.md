@@ -9,6 +9,30 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.3.0 and gop-pipeline 1.2.6 in release [3.3.0] - 2026-10-22
+
+The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later. An older version loads the agents without the auto-compact limit.
+
+### Added in dev-essentials
+
+- `code-locator` (issue #55): a read-only code search agent. It returns paths, line numbers, symbols, and short excerpts.
+- `fact-gatherer` (issue #55): a read-only agent for one narrow question. It returns facts with a `path:line` or a URL as evidence, and no conclusions.
+- `test-runner` (issue #55): an agent that runs the build and test commands of a brief and reports the verbatim result lines. It never edits code. In a .NET repo, it follows `dotnet-build-test`.
+
+### Changed in dev-essentials
+
+- `subagent-orchestration` (issue #55): "Haiku scope" names the three agents and the rule that they return facts, not synthesis. The skill says that the built-in `Explore` runs on the model of the session, and that only an agent file sets the auto-compact window. A plan now names exact paths, anchors, and key signatures. A new, rarely used exception gives a small, tightly coupled task to a fork on an Opus session.
+- `research-implement-review-report` (issue #55): Phase 1 dispatches parallel fact gatherers, one narrow question each, and then a planner that reads their reports. A question that needs judgment goes whole to a researcher. Behavior change: after each task, the orchestrating session checks the build and the tests with `test-runner`. The "Models" line names every role.
+- `implement-batch` (issue #55): the "Models" line agrees with RIRR. Behavior change: Step 3 checks the build and the tests with `test-runner` before the commit.
+- `implement-task` (issue #55): behavior change: the simplify pass gets a `test-runner` check before its commit.
+- `feature-pipeline` (issue #55): behavior change: the Build Gate gives the build to `test-runner`, and the master agent reads only its report.
+- `review-loop` (issue #55): behavior change: Phase 6 runs the build and the tests through `test-runner`. A reviewer can give a broad search to `code-locator`. In the orchestrated mode, the Area Explorers and the Finding Verifier run on `--reviewer-model`.
+- `help-review-pr` and `audit-team` (issue #55): a review can give a broad search to `code-locator`. `audit-team` does not use it for a role.
+
+### Changed in gop-pipeline
+
+- `gop-work` (issue #55): if the session lists `dev-essentials:code-locator`, Phase 0 uses it for a code search. Else it uses the built-in `Explore`.
+
 ## dev-essentials 3.2.3, dotnet-backend-dev 1.4.3, and gop-pipeline 1.2.5 in release [3.2.3] - 2026-10-18
 
 Some instructions in the skills, agents, and commands were wrong or misleading. Some told Claude to do a thing that cannot work, for example to ask the user from a subagent. Some contradicted another file, and some code examples did not compile or did the wrong thing. This release fixes them (issue #48). Each fix below says what was wrong and what the text says now. Where a fix changes behavior on purpose, the bullet says so. The release also ships the `.gitattributes` file of issue #52, which had no release before.
@@ -600,7 +624,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...v3.3.0
 [3.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...v3.2.3
 [3.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.0...v3.2.1

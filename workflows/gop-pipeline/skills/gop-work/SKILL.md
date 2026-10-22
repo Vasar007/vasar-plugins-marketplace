@@ -48,12 +48,12 @@ In every mode, first detect the repository root:
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agents in read-only mode. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
+Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and Plan agents in read-only mode. For a code search, use the agent type `dev-essentials:code-locator`. If the session does not list it, use the built-in `Explore`, which runs on the model of the session. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
 
 1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. With `--interactive`, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
 2. **In Plan Mode**, follow the built-in planning workflow:
-   - Explore the codebase with Explore agents to understand the relevant code, patterns, and architecture.
-   - **Find the matching skills**: read the skill list in the system prompt. Identify every skill whose trigger description matches the task. Read the SKILL.md of each matching skill (with Explore agents or the Read tool). Note its mandatory deliverables, completion checklist, and subagent delegations. Put these requirements into the plan.
+   - Explore the codebase with code-search agents to understand the relevant code, patterns, and architecture. Use the code-search agent type of Phase 0.
+   - **Find the matching skills**: read the skill list in the system prompt. Identify every skill whose trigger description matches the task. Read the SKILL.md of each matching skill (with a code-search agent or the Read tool). Note its mandatory deliverables, completion checklist, and subagent delegations. Put these requirements into the plan.
    - Design the implementation approach with Plan agents.
    - Write the plan to the plan file in `.claude/plans/` (Plan Mode gives the path). Include: context, files to modify, implementation steps, design decisions, risks and assumptions, **and the mandatory artifacts of the matching skills** (tests, subagent delegations, configuration changes).
    - Review the plan against the request of the user.
@@ -153,7 +153,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch Explore and Plan agent
 
 | Order | Agent | Model | Phase | Purpose |
 |-------|-------|-------|-------|---------|
-| 0 | *(built-in Plan Mode with `--interactive`, else Explore and Plan agents)* | inherited | Planning | Create implementation plan |
+| 0 | *(built-in Plan Mode with `--interactive`, else code-search and Plan agents)* | inherited, and `haiku` for a code search with `dev-essentials:code-locator` | Planning | Create implementation plan |
 | 1 | `stages/01_implement.md` (inline) | inherited | Implementation | Execute the plan |
 | 2 | `gop-pipeline:gop-build` | sonnet | Building | Build affected projects |
 | 3 | `gop-pipeline:gop-test` | sonnet | Testing | Run relevant tests (conditional) |

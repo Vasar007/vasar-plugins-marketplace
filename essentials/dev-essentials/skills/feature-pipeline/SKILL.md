@@ -268,14 +268,14 @@ Launch the stage `implementation`.
 
 ### Build Gate (after Implementation)
 
-The master agent runs this gate itself, without a subagent.
+The master agent runs this gate. It gives the build to the agent type `dev-essentials:test-runner`, and reads only its report. The gate is not a stage, so `--model-override` does not apply to it.
 
-1. Run the build command from the project context in the `{WORKTREE_PATH}` folder, for example the `dotnet build ...` line under Commands.
-2. If the build succeeds, update the checkpoint, and continue with Step 4.
-3. If the build fails:
-   - Write the first 50 error lines of the build output to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`, with an instruction to fix the compilation only: no new features and no refactoring.
+1. Dispatch `dev-essentials:test-runner` with the absolute path `{WORKTREE_PATH}` and the words "build only". Also give it the build command from the project context, for example the `dotnet build ...` line under Commands.
+2. If the status is GREEN, update the checkpoint, and continue with Step 4.
+3. If the status is RED:
+   - Write the error lines of the report (at most 50) to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`, with an instruction to fix the compilation only: no new features and no refactoring.
    - Run the implementation stage again. It finds the feedback file.
-   - Run the build command again.
+   - Dispatch the test runner again with the same brief.
    - If the build fails after 2 attempts in total, stop the pipeline, and report the build errors to the user. Do not continue to `test-coverage` with broken code.
 4. Record the result of the gate (`pass`, `pass-after-retry`, or `fail`) in `buildGate` of `pipeline-state.json`.
 
