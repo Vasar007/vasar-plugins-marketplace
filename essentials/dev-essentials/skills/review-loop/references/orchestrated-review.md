@@ -36,9 +36,9 @@ The orchestrator never reads the full diff or full files itself. It reads only t
 
 One subagent, dispatched alone, because its output decides the file assignment of Role 2. It returns a fact map with no judgment and no raw diff or file contents, as the template below says.
 
-The map lists each changed file once, inside Areas. The sections other than Areas have a cap of 150 lines in total. Areas has no cap and is never cut, so no file drops out of the review. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures. It never cuts Ranges or Areas. It records every cut under "Not mapped".
+The map lists each changed file once, inside Areas. The sections other than Areas have a cap of 150 lines in total. Areas has no cap and is never cut, so no file drops out of the review. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures, then Tests. It never cuts Ranges or Areas. It records every cut under "Not mapped".
 
-Use the model and the effort of the Models paragraph above. It needs Bash for `git diff`, so it is not `dev-essentials:code-locator`, which has no Bash. This dispatch has no auto-compact window. This is an accepted trade-off, so the agent reads the diff in parts.
+Use the model and the effort of the Models paragraph above. It needs Bash for `git diff`, so it is not `dev-essentials:code-locator`, which has no Bash. The agent reads the diff in parts, because this dispatch has no auto-compact window. This is an accepted trade-off.
 
 Prompt template:
 
@@ -78,12 +78,13 @@ Tasks:
 1. <If target=pr: call `pull_request_read` per `dev-essentials:github-mcp-conventions` (explicit
    `owner` and `repo` on the call).>
 2. Run: git diff --stat <range>; git log --oneline <range>. Then run
-   git diff -U0 <range> -- <path> for one area or one file at a time.
+   git diff -U0 <range> -- <path> for one area or one file at a time. For a renamed file, pass
+   the old and the new path: git diff -U0 <range> -- <old> <new>. Then rename detection still works.
 3. Use Grep to find the links between the changed files.
 
 Report the map in these sections, in this order, and NOTHING else. Every section except Areas
 has a cap of 150 lines in total. If you must cut, cut Links first, then Symbols, then
-Signatures. Never cut Ranges or Areas. Record every cut under "Not mapped".
+Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not mapped".
 1. Target: identity (branch, PR, or commit range), a one-line title if available, and the
    totals: files, +lines, -lines, commits.
 2. Ranges: the resolved **diff range** (for `git diff` and `git log`) AND the resolved **source
@@ -91,10 +92,12 @@ Signatures. Never cut Ranges or Areas. Record every cut under "Not mapped".
    not the diff range, for Role 2 Step 1.
 3. Areas: every changed file, each listed once: path, change kind (added, modified, deleted,
    renamed), +lines, -lines. Group the files by top-level folder. While a group has more than
-   10 files or more than 800 changed lines, split it by the next folder level. A file in the
-   root folder goes in a group named "root". Group by path only, never by importance. One group
-   is one Area Explorer. Write each area as its name and its file lines, production files before
-   test files. The number of files in Areas must equal the total of files in Target.
+   10 files or more than 800 changed lines, split it by the next folder level. A group with no
+   next folder level stays one area. The files that sit directly in a split folder form a group
+   under the name of that folder. A single file over the size limit is its own area. A file in
+   the root folder goes in a group named "root". Group by path only, never by importance. One
+   group is one Area Explorer. Write each area as its name and its file lines, production files
+   before test files. The number of files in Areas must equal the total of files in Target.
 4. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
    function, method, or configuration key. For a docs file, it is a heading.
 5. Signatures: each changed public signature or exported name, old line and new line side by side.
@@ -111,7 +114,7 @@ Signatures. Never cut Ranges or Areas. Record every cut under "Not mapped".
 
 ## Check the map between Role 1 and Role 2
 
-The orchestrator does this step itself, with no subagent. It makes sure that the number of files in Areas equals the total number of files in Target. If the numbers differ, it gets the missing paths with `git diff --name-only <range>`. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. For each area, it copies the map facts of that area into the Role 2 prompt.
+The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. For each area, it copies the map facts of that area into the Role 2 prompt.
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
@@ -137,9 +140,9 @@ Map facts for your area (from the Target Explorer, facts only):
 Links line that touches one of these files, also a link from a file of another area.>
 
 Step 1 — Start from the changed symbol ranges in the map facts. Read each file's contents from
-the source tree-ish (not just the diff hunks — cross-file consequences are invisible in isolation): `git show <tree-ish>:<path>` (or read the file directly
-for non-diff targets). Do not pass the diff range here — `git show` needs a single tree-ish, not
-an `A...B` range.
+the source tree-ish (not just the diff hunks — cross-file consequences are invisible in
+isolation): `git show <tree-ish>:<path>` (or read the file directly for non-diff targets). Do not
+pass the diff range here — `git show` needs a single tree-ish, not an `A...B` range.
 
 Step 2 — For each new construct (class, wrapper, endpoint, converter, …), also read the most
 similar existing sibling elsewhere in the repo to anchor your judgement of whether this follows
