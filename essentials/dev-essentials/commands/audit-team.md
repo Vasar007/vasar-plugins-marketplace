@@ -35,7 +35,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
 2. **Launch the agent team**
 
-   For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore`. It only finds code, and it does not load the CLAUDE.md files of the repository.
+   For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore` or `dev-essentials:code-locator` for a role. They only find code, and they do not load the CLAUDE.md files of the repository.
 
    ```md
    You are reviewing the following artifacts/design as a **{role name}**.
@@ -55,7 +55,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
       - **Warnings** — could cause problems, should be addressed
       - **Suggestions** — would improve quality (only include if clearly valuable)
    4. For each finding: state which file/section, what the issue is, and a concrete suggestion.
-   5. Test each claim about the codebase against the real code. If you did not test a suggested fix against a primary source (official docs or a working example in the code), label it as a theory, not as a fix.
+   5. Test each claim about the codebase against the real code. If you did not test a suggested fix against a primary source (official docs or a working example in the code), label it as a theory, not as a fix. For a broad search, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you judge them.
    6. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
    7. Present your final findings with your role clearly stated at the top.
    ```

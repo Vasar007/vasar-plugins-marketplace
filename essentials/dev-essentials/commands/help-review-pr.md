@@ -56,7 +56,7 @@ Run this diff once for the production paths and once for the test paths, so that
 
 ## Phase 4 — Evaluate against conventions
 
-Apply the convention skills of Phase 1. Look for real deviations, not for style preferences.
+Apply the convention skills of Phase 1. Look for real deviations, not for style preferences. To find a sibling for a comparison in a large repo, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you make the comparison.
 
 The categories below are **examples, not a full list**. Adapt them to the conventions that the skills of the target repo define:
 
@@ -82,11 +82,12 @@ Recipe 2 links each row of the findings table (`<a href="#F-<anchor>">`) to the 
 
 For a large PR, delegate the phases that need much context (2 to 4) to subagents, and do not read everything inline. Follow the "Large-target orchestrated mode" of `dev-essentials:review-loop` (`references/orchestrated-review.md`):
 
-1. Role 1: a Target Explorer subagent writes a compact summary.
-2. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
-3. The density test between Role 2 and Role 3.
-4. Role 3: an optional Finding Verifier subagent.
-5. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
+1. Role 1: a Target Explorer subagent builds a fact map of the PR, with no judgment.
+2. The map comparison between Role 1 and Role 2.
+3. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
+4. The density test between Role 2 and Role 3.
+5. Role 3: an optional Finding Verifier subagent.
+6. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
 
 Read that reference file directly. This command does not copy its subagent prompts.
 

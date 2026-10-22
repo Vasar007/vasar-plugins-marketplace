@@ -129,7 +129,7 @@ Invoke `dev-essentials:research-implement-review-report`. Its Phases 0 to 3 run 
 - `--base=<Phase 0 base branch>`, the branch name, and the absolute worktree path, with this instruction: **its Phase 0 is only a verification step**. The worktree and the branch exist, so it must not create or derive a branch or a worktree.
 - `--commit-mode=<resolved>`, `--rounds=<N>`, and the mode flag of this run: `--interactive`, `--autonomous`, or none.
 - `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. Its `Notes/Plans/` and `Notes/Results/` move under it, as a convention of the repo that its Phase 1 and Phase 4 allow.
-- `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every Phase 1 research brief and into the "Findings" section of the plan.
+- `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every brief of its Phase 1 and into the "Findings" section of the plan.
 - **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then STOP and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
 
 When RIRR returns, record `SIMPLIFY_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
@@ -142,14 +142,15 @@ Skip this phase only with `--no-simplify`. `/simplify` is an external skill that
 2. Tell the skill to look for complexity that this run added. Examples: a guard that no failure needs, an abstraction with one caller, logic that a helper already covers, useless indirection, or code at the wrong altitude.
 3. Scope: a simpler diff with the same behavior. Out of scope: code that this run did not change, and a change of behavior or of a public contract. Also out of scope: a deleted or weaker test, and a swallowed error path. If a cleanup needs one of these, stop that cleanup. Put the question in your report, so that the caller asks the user (`dev-essentials:engineering-discipline` Rule 2). With `--autonomous`, keep the code and list the skipped cleanup in the report.
 4. Build and test again. A test that the cleanup breaks is a regression of this session (Rule 1 of the same skill). For .NET, follow `dev-essentials:dotnet-build-test`.
-5. Commit the cleanup as **a separate commit on top**. Stage explicit paths, never `git add -A` or `git add .`.
+5. When the subagent reports, dispatch `dev-essentials:test-runner` with the absolute worktree path and the build and test commands. Follow item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. It covers the test filter, a STOPPED status, and the comparison of the result with the report of the subagent. If they differ, or the status is not GREEN, resume the subagent with the report of the test runner. Do not commit before the status is GREEN.
+6. Commit the cleanup as **a separate commit on top**. Stage explicit paths, never `git add -A` or `git add .`.
 
    ```bash
    git -C "<worktree>" commit -m "<Issue ref> — simplify: <summary of cleanups>"
    ```
 
    In `single` mode, it goes on top of the squashed commit. **Never `--amend` into that commit, and never squash again.** The end state is two commits. In `per-phase` mode, it goes on top of the phase and review-round commits.
-6. A pass that changes nothing is valid. Make no empty commit and invent no cleanup. Report "simplify pass found nothing worth changing" and go on.
+7. A pass that changes nothing is valid. Make no empty commit and invent no cleanup. Report "simplify pass found nothing worth changing" and go on.
 
 ### Phase 5 — Report and stop
 
