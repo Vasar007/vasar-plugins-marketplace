@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.3.1 and gop-pipeline 1.3.1 in release [3.3.1] - 2026-10-22
+
+This release follows up on issue #55. Some skill text named a versioned model, or quoted the higher price that one model charges for a long prompt. Other text cited the docs as the reason for a rule. When a new model or a new docs page ships, such text goes out of date. The text now gives a reason that stays true, and names models only by family. No behavior changes.
+
+### Fixed in dev-essentials
+
+- `subagent-orchestration` (issue #55): the auto-compact rule no longer names Haiku 5.5, its price for a long prompt, or the docs. It now says that about 100,000 tokens is a good size for search, fact, and build-check work. The reason is that a larger context often costs more and adds noise. The skill no longer says which model the built-in `Explore` agent runs on. It now says not to count on `Explore` for a cheap search, because its model can change between releases.
+- `review-loop` (issue #55): the examples name the reviewer model as `opus`, not as a versioned model ID.
+- `bug-hunt` (issue #55): `references/pauses.md` no longer says that its facts come from the docs.
+- `audit-personal-conventions` (issue #55): `references/entity-authoring-conventions.md` gives the reasons for the 500-line rule and the `context: fork` rule without a quote from the docs.
+
+### Fixed in gop-pipeline
+
+- `gop-work` (issue #55): the Phase 0 text and the Stages table no longer say which model the built-in `Explore` and Plan agents run on.
+
 ## dev-essentials 3.3.0 and gop-pipeline 1.3.0 in release [3.3.0] - 2026-10-22
 
 The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later for `autoCompactWindow` and 2.1.271 or later for `omitClaudeMd`. An older version loads the agents without these fields. The per-call `effort` parameter of the Agent tool needs 2.1.292 or later. Three workflows now also name an effort level for each role: `research-implement-review-report`, `implement-batch`, and `review-loop`, so that a subagent does not depend on the effort of the session.
@@ -624,7 +639,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...HEAD
+[3.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...v3.3.0
 [3.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...v3.2.3
 [3.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.1...v3.2.2

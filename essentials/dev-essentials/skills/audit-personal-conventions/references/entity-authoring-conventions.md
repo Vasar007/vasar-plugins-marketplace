@@ -99,11 +99,11 @@ Item 5 also asks for one general term for each role. The table lists the general
 Split content out into `references/*.md` or `examples/*.md` in two cases:
 
 1. A part applies conditionally: to only one of several invocation branches, target types, or flag combinations. A short `SKILL.md` does not change this. Example: a skill of only about 150 lines can need a `references/` split. A large part of it applies to one target type out of eight, or to one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
-2. `SKILL.md` grows past 500 lines. The Claude Code docs say: "Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files." After a compaction, Claude Code also keeps only the first 5,000 tokens of an invoked skill. So keep the rules for every invocation in `SKILL.md`, near the top. Move the detailed material out with one or more of the options below. In `SKILL.md`, say which file to read or run, and when.
+2. `SKILL.md` grows past 500 lines. The whole `SKILL.md` loads into the context at each invocation, so a long file costs tokens and hides the important rules. After a compaction, Claude Code also keeps only the first 5,000 tokens of an invoked skill. So keep the rules for every invocation in `SKILL.md`, near the top. Move the detailed material out with one or more of the options below. In `SKILL.md`, say which file to read or run, and when.
    - Step references: move long tables, templates, worked examples, and the procedure of one step to `references/*.md`. The skill reads each file at the step that needs it.
    - Scripts: move a mechanical procedure into a script in `scripts/`. Claude Code runs the script, and the script text does not load into the context.
    - Agent files: move a role brief, for example of a reviewer or a fixer, into an agent file of the plugin (`agents/<name>.md`). The skill dispatches that agent. The brief loads only in the subagent, so the agent file must not depend on the text of the skill.
-   - `context: fork` with `agent`: these two frontmatter fields run the whole skill in a subagent of the named type. Use them only for a skill with an explicit task. The docs warn that a skill with guidelines only gives the subagent "no actionable prompt".
+   - `context: fork` with `agent`: these two frontmatter fields run the whole skill in a subagent of the named type. Use them only for a skill with an explicit task. A skill that has only guidelines gives the subagent no task to act on.
    - An orchestrator skill: split the workflow into smaller skills, and keep one skill that invokes each of them with the Skill tool, in order.
 
 ## Load-bearing terms
