@@ -9,9 +9,9 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.3.0 and gop-pipeline 1.2.6 in release [3.3.0] - 2026-10-22
+## dev-essentials 3.3.0 and gop-pipeline 1.3.0 in release [3.3.0] - 2026-10-22
 
-The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later. An older version loads the agents without the auto-compact limit. The workflows now also name an effort level for each role, so that a subagent does not depend on the effort of the session.
+The workflows now give the mechanical work to three new read-only Haiku agents: a code search, fact gathering, and a build and test check (issue #55). The planning, the review, and the implementation stay on their models. A built-in `Explore` search runs on the model of the session, so the workflows now use the new code search agent. The new agent fields need Claude Code 2.1.296 or later for `autoCompactWindow` and 2.1.271 or later for `omitClaudeMd`. An older version loads the agents without these fields. The per-call `effort` parameter of the Agent tool needs 2.1.292 or later. Three workflows now also name an effort level for each role: `research-implement-review-report`, `implement-batch`, and `review-loop`. So that a subagent does not depend on the effort of the session.
 
 ### Added in dev-essentials
 
@@ -26,7 +26,7 @@ The workflows now give the mechanical work to three new read-only Haiku agents: 
 - `implement-batch` (issue #55): the "Models" line agrees with RIRR. Behavior change: Step 3 checks the build and the tests with `test-runner` before the commit. Behavior change: a new "Effort" line, which agrees with RIRR, sets the effort of the planner and the implementer.
 - `implement-task` (issue #55): behavior change: the simplify pass gets a `test-runner` check before its commit.
 - `feature-pipeline` (issue #55): behavior change: the Build Gate gives the build to `test-runner`, and the master agent reads only its report.
-- `review-loop` (issue #55): behavior change: Phase 6 runs the build and the tests through `test-runner`. A reviewer can give a broad search to `code-locator`. In the orchestrated mode, the Area Explorers and the Finding Verifier run on `--reviewer-model`. Behavior change: "Default configuration" now sets the effort. Each dispatch on the reviewer model passes `high`, and the fixer passes `medium`. The user can name another effort level for a run.
+- `review-loop` (issue #55): behavior change: Phase 6 runs the build and the tests through `test-runner`. A reviewer can give a broad search to `code-locator`. Behavior change: in the orchestrated mode, the Area Explorers and the Finding Verifier run on `--reviewer-model`. Behavior change: "Default configuration" now sets the effort. Each dispatch on the reviewer model passes `high`, and the fixer passes `medium`. The user can name another effort level for a run.
 - `help-review-pr` and `audit-team` (issue #55): a review can give a broad search to `code-locator`. `audit-team` does not use it for a role.
 
 ### Changed in gop-pipeline

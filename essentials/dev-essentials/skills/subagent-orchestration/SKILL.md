@@ -74,7 +74,7 @@ Reason: subagents keep the main context small and run in parallel. An inline `Gr
 
 What inlines: a standalone single-step request, such as a one-line edit on a known path, a status check, or a file that the user just named. Also the orchestration verbs themselves: the brief for the next subagent, talking to the user, and a memory update.
 
-The orchestrator does not implement a small task itself either. If a small task needs the context of the session, use the fork exception of "Plan → execute split". A fork is still a dispatch.
+The orchestrator does not implement a small task of a plan itself either. If a small task needs the context of the session, use the fork exception of "Plan → execute split". A fork is still a dispatch.
 
 What delegates:
 
@@ -262,7 +262,7 @@ A 10-line brief that prevents one wrong dispatch is worth more than three 3-line
 
 Check a subagent report in three tiers:
 
-1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, dispatch a repair or a re-check. To check a build or test claim without filling the main context, dispatch `dev-essentials:test-runner` with the commands. Compare its verbatim result lines with the report.
+1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, dispatch a repair or a re-check. To check a build or test claim without filling the main context, dispatch `dev-essentials:test-runner` with the commands. Compare only the status, the error count, and the Failed, Passed, and Total counts with the report. Ignore the duration and the warning count, because they differ between runs.
 2. Content, by an agent: a verifier or reviewer agent checks whether a finding, a cited line, or a claimed behavior is true. If the workflow has no such agent and the next step depends on the content, dispatch one. Do not redo its work. Every re-read stays in the main context for the rest of the run.
 3. Spot-check, by the orchestrator, only before a high-risk action: a push, a deletion, a post to an outside system, or a recommendation that the user acts on. Re-read only the lines that the action depends on. If a subagent claimed a green build or green tests after a rebase, run them again (for .NET, see `dev-essentials:dotnet-build-test`).
 

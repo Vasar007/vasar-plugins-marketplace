@@ -1,6 +1,6 @@
 {
   "name": "gop-pipeline",
-  "version": "1.2.6",
+  "version": "1.3.0",
   "description": "A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval.",
   "author": {
     "name": "Vasily Vasilyev",
