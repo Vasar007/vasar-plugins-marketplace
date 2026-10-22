@@ -26,7 +26,7 @@ Four roles, in this order of dependency:
 3. **Finding Verifier** (optional, see the trigger below): one subagent. It re-reads the anchor of every finding before anyone trusts the finding.
 4. **Main-agent synthesis** (not a subagent): the orchestrator collects the results into the reviewer report format that Phase 3 always produces. Then Phase 4 continues with no change.
 
-Models: dispatch the Area Explorers and the Finding Verifier on `--reviewer-model`, because they judge code. A command with no `--reviewer-model` dispatches them on the model of the session. The Target Explorer keeps the model of the session. In `dev-essentials:review-loop`, also pass the reviewer effort of its "Default configuration" to the Area Explorers and the Finding Verifier.
+Models: dispatch the Area Explorers and the Finding Verifier on `--reviewer-model`, because they judge code. A command with no `--reviewer-model` dispatches them on the model of the session. The Target Explorer keeps the model of the session. In `dev-essentials:review-loop`, also pass `--reviewer-effort` to the Area Explorers and the Finding Verifier.
 
 The orchestrator never reads the full diff or full files itself. It reads only the summary of the Target Explorer and the structured findings of the Area Explorers. At the very end, it reads the lines that the remaining findings point to.
 
