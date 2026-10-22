@@ -153,7 +153,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
 
 | Order | Agent | Model | Phase | Purpose |
 |-------|-------|-------|-------|---------|
-| 0 | *(built-in Plan Mode with `--interactive`, else code-search and Plan agents)* | inherited, and `haiku` for a code search with `dev-essentials:code-locator` | Planning | Create implementation plan |
+| 0 | *(built-in Plan Mode with `--interactive`, else code-search and Plan agents)* | inherited for Plan Mode, `haiku` for `dev-essentials:code-locator`, and the default of each built-in agent for `Explore` and Plan agents | Planning | Create implementation plan |
 | 1 | `stages/01_implement.md` (inline) | inherited | Implementation | Execute the plan |
 | 2 | `gop-pipeline:gop-build` | sonnet | Building | Build affected projects |
 | 3 | `gop-pipeline:gop-test` | sonnet | Testing | Run relevant tests (conditional) |
