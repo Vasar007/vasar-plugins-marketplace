@@ -302,5 +302,5 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 ## Reviewer model
 
-Review made by `claude-opus-4-7`
-Review made by `claude-opus-4-7`
+Review made by `opus`
+Review made by `opus`

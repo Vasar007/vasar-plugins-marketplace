@@ -1,6 +1,6 @@
 # Pauses and scheduled resume
 
-If the run has pause points, a start time, or resume times, or if the user asks for a stop, the orchestrator reads this file. The facts about scheduled tasks come from the Claude Code docs: <https://code.claude.com/docs/en/scheduled-tasks>.
+If the run has pause points, a start time, or resume times, or if the user asks for a stop, the orchestrator reads this file.
 
 ## Pause points
 
@@ -50,7 +50,7 @@ A start time works the same way. At step 0 item 8 of `SKILL.md`, write the sessi
 
 The main session can reach its own usage limit while it waits for an agent. If the user gives the reset times, schedule a resume job for 1 to 3 minutes after each reset. The run then goes on without a wait for the user.
 
-Limits from the docs:
+Limits of scheduled jobs:
 
 - A job fires only while Claude Code runs and is idle. If the user closes the session, the job does not fire until `claude --resume` restores it.
 - A job fires between turns. If the session is busy, the job waits until the turn ends. A job can fire while a background agent runs. The prompt above then does nothing, because the progress file of the agent is recent. After a crash, the progress file stops changing, so after 30 minutes the job restores the agent as point 5 of the resume check says.

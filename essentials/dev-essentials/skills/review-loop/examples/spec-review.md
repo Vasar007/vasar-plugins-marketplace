@@ -49,7 +49,7 @@ Reading full file... 412 lines loaded.
 | 3 | High | Spec | §5 "Error Handling" | No HTTP status, body schema, log line, or event for a quota-exceeded case |
 | 4 | Medium | Spec | §2 "Overview" | The text `should typically be enforced at the gateway layer` is not normative, so the enforcement layer is not specified. |
 
-Review made by `claude-opus-4-7`
+Review made by `opus`
 
 ---
 
@@ -218,4 +218,4 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 ## Reviewer model
 
-Review made by `claude-opus-4-7`
+Review made by `opus`
