@@ -72,7 +72,7 @@ Hard rules:
 - Do not copy diff text or file contents into the map. Write names, numbers, and `path:line`.
   The one exception is a signature line in Signatures. Write each one as at most one line
   (about 120 characters, cut with "..." if longer).
-- Skip lock files and generated files. Do not read their diff. List them by path only, in the Areas group named "skipped".
+- Skip lock files and generated files. Do not read their diff. List them by path only, in the Areas group named "skipped". A file goes in "skipped" only in these three cases: its file name is a lock file name (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `poetry.lock`, `Gemfile.lock`, `composer.lock`, `packages.lock.json`, `go.sum`), or `.gitattributes` marks it `linguist-generated`, or its first lines carry an "auto-generated" or "do not edit" header. Any other file goes in a normal group.
 
 Tasks:
 1. <If target=pr: call `pull_request_read` per `dev-essentials:github-mcp-conventions` (explicit
@@ -96,7 +96,7 @@ Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not m
    next folder level stays one area. The files that sit directly in a split folder form a group
    under the name of that folder. A single file over the size limit is its own area. A file in
    the root folder goes in a group named "root". The skipped lock files and generated files form
-   one group named "skipped", with the path of each file only. Group by path only, never by importance. One
+   one group named "skipped", with the path of each file only. The "skipped" rule comes before all other group rules, and the group is never split. Group by path only, never by importance. One
    group is one Area Explorer. Write each area as its name and its file lines, production files
    before test files. The number of files in Areas must equal the total of files in Target.
 4. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
@@ -114,7 +114,7 @@ Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not m
 
 ## Check the map between Role 1 and Role 2
 
-The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. The "skipped" group gets no Area Explorer. For each other area, it copies the map facts of that area into the Role 2 prompt.
+The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. The "skipped" group gets no Area Explorer. The orchestrator reads the "skipped" paths and moves any path that is not clearly a lock file or a generated file into an area. For each other area, it copies the map facts of that area into the Role 2 prompt.
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
@@ -139,7 +139,7 @@ Map facts for your area (from the Target Explorer, facts only):
 <The Symbols, Signatures, Tests, and Build and configuration lines of the files above. Add every
 Links line that touches one of these files, also a link from a file of another area.>
 
-Prior iterations (for context only, do not raise these again):
+Prior iterations (for context only, do not raise these again unless the code regressed or the fix is incomplete):
 <The Prior iterations lines of the map, unchanged.>
 
 Step 1 — Start from the changed symbol ranges in the map facts. Read each file's contents from
