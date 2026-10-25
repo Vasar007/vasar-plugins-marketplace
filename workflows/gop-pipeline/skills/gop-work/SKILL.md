@@ -48,6 +48,13 @@ In every mode, first detect the repository root:
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
+Then, in every mode, test the branch and record the start state:
+
+- Find the default branch with `git -C <REPO_ROOT> symbolic-ref --quiet --short refs/remotes/origin/HEAD`. It prints, for example, `origin/main`, and the default branch is the name after `origin/`. If that ref does not exist, run `git -C <REPO_ROOT> ls-remote --symref origin HEAD`, and take the branch name from its `ref: refs/heads/<name>` line. If that also gives no name, treat a branch named `main` or `master` as the default branch.
+- If `git -C <REPO_ROOT> branch --show-current` prints nothing, the HEAD is detached, and a push of the commit fails later. Stop and ask the user for a branch.
+- If the current branch (`git -C <REPO_ROOT> branch --show-current`) is the default branch, do not commit on it. A commit there goes straight into the default branch, and the push of Phase 5 sends it to the remote. With `--autonomous`, create a branch with `git -C <REPO_ROOT> switch -c <branch>`. If your instructions or the repository give a rule for branch names, follow it. Else use `gop/<slug>`, where `<slug>` is a short kebab-case name of the task. In the default mode and with `--interactive`, stop and ask the user. The user gives a branch name, or an explicit yes to work on the default branch. For a branch name, create that branch with the same `switch -c` command.
+- Run `git -C <REPO_ROOT> status --porcelain`, and keep its paths as `start_changes`. Each line starts with two status letters and a space, and the path follows. For a rename (`old -> new`), keep both paths. A path in quotes is a path with special characters, so remove the quotes. These changes were in the working tree before the run, so Phase 5 does not commit them.
+
 Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and Plan agents in read-only mode. For a code search, use the agent type `dev-essentials:code-locator`. If the session does not list it, use the built-in `Explore`. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
 
 1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. With `--interactive`, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
@@ -65,7 +72,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
    1. **Building** — builds affected projects, falls back to full solution
    2. **Testing** — runs relevant unit tests (skipped if no test projects found)
    3. **Validation** — reviews changes for completeness and quality
-   4. **Commit & Push**: commits all changes. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
+   4. **Commit & Push**: commits the files of this run. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
    ```
 
 4. Call **`ExitPlanMode`** to leave Plan Mode. This asks the user to approve the plan.
@@ -79,7 +86,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
    - `plan_file_path`: path to the plan file from Phase 0
    - `repo_root`: the detected repository root
    - `validator_proposals`: (optional) list of accepted proposals from a previous validation cycle, or "None" on the first run
-8. After the implementation, record the six fields of the "Output" section of the stage file for the later phases. The fields are `modified_files`, `change_summary`, `deviations_from_plan`, `unresolved_concerns`, `applied_proposals`, and `rejected_proposals`.
+8. After the implementation, record the six fields of the "Output" section of the stage file for the later phases. The fields are `modified_files`, `change_summary`, `deviations_from_plan`, `unresolved_concerns`, `applied_proposals`, and `rejected_proposals`. `modified_files` lists only the files that Phase 1 created, changed, or deleted. If Phase 1 did not edit a path of `start_changes`, that path is not in it.
 
 ### Phase 2: Building
 
@@ -142,12 +149,13 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root`, `push`, `warning_note`, and `commit_trailer`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
+20. Collect the files of this run: each path of `modified_files` from every Phase 1 cycle, and each file that the `## Fixes applied` sections of `gop-build` and `gop-test` name. Do not add other paths from `git status`. A file that the user or a tool wrote during the run is not part of the run, and the commit must not take it. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root`, `files`, `push`, `warning_note`, and `commit_trailer`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
     - `repo_root`: the detected repository root
+    - `files`: the files of this run, relative to `repo_root`
     - `push`: `yes` or `no`
     - `warning_note`: if the user dismissed CRITICAL findings at step 19, the text `Validation override: the user dismissed these CRITICAL findings:` and one line for each dismissed finding (`[<ID>] <title>`). Else `None`.
     - `commit_trailer`: if your instructions for this session ask for a commit trailer, for example a `Co-Authored-By` line, that trailer text. Else `None`.
-21. Report the final result to the user: commit hash, push status, and any warnings from validation.
+21. Report the final result to the user: commit hash, push status, the "Not committed" list of `gop-commit`, and any warnings from validation.
 
 ## Stages
 

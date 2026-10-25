@@ -63,7 +63,7 @@ Return a structured report:
 <notable build warnings — or "None">
 
 ## Fixes applied
-<any code fixes made during self-healing — or "None">
+<the path of each file that you changed during self-healing, with a one-line note — or "None">
 ```
 
 ## Rules
