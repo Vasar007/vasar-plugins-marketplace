@@ -141,18 +141,7 @@ public sealed record {Feature}Options : IValidatableObject
 
 ## Step 2: Validator
 
-Give each rule a message from `ValidationErrorBuilder.Default`. Pick the method that matches the rule:
-
-| Rule | Message method |
-| --- | --- |
-| `NotNull`, or `NotEmpty` on a collection or another value | `CreateValueRequiredMessage` |
-| `NotEmpty` on a string | `CreateStringRequiredMessage` |
-| `GreaterThan(0)` | `CreateValueMustBePositiveMessage` |
-| `GreaterThanOrEqualTo(0)` | `CreateValueMustNotBeNegativeMessage` |
-| `Equal` | `CreateValueMatchWithExpectedMessage` |
-| `IsInEnum` | `CreateEnumValueMustBeDefinedMessage` |
-
-The builder has no method for a rule with two limits, for example `InclusiveBetween(1, 10)`. Such a rule keeps the default message of the validation library. Do not use `CreateValueRequiredMessage` for a range rule. The value of such a property is present but out of range, so a message that says that the value is required is wrong.
+Give each rule the message method of `ValidationErrorBuilder.Default` that matches the rule, for example `CreateValueMustBePositiveMessage` for `GreaterThan(0)`. Use `CreateValueRequiredMessage` only for a rule that requires a value, for example `NotNull`. A value that is out of range is present, so a message that says that the value is required is wrong.
 
 ### Cascade Mode
 
@@ -182,9 +171,9 @@ public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Optio
             .GreaterThan(0)
             .WithMessage(x => errorBuilder.CreateValueMustBePositiveMessage(x.TimeoutSeconds));
 
-        // The builder has no message for two limits, so this rule keeps the default message
         RuleFor(x => x.MaxRetries).Cascade(CascadeMode.Stop)
-            .InclusiveBetween(1, 10);
+            .GreaterThan(0)
+            .WithMessage(x => errorBuilder.CreateValueMustBePositiveMessage(x.MaxRetries));
 
         RuleFor(x => x.EndpointUrl).Cascade(CascadeMode.Stop)
             .NotEmpty()
