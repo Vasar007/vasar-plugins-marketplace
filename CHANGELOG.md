@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.6.2 and gop-pipeline 1.4.2 in release [3.6.2] - 2026-10-25
+
+The trigger cases of dotnet-backend-dev and gop-pipeline tested nothing (issue #67). Both plugins list `dev-essentials` in `dependencies`, and `claude plugin eval` loads only the plugin under test. So the eval session reported `dependency-unsatisfied` and did not load the plugin. A case can now load the dependency. No skill, agent, or command changes, so the plugins behave as before.
+
+### Fixed in dotnet-backend-dev
+
+- `evals/triggers/` (issue #67): each of the 10 trigger cases now sets `plugins: ["../../..", "../../../.deps/dev-essentials"]` in its `prompt.md`. The plugin and its dependency now load in the eval session. The cases load only through `tests/evals/compare_versions.py`, because the `.deps` folder exists only in the copy that the script makes.
+
+### Fixed in gop-pipeline
+
+- `evals/triggers/` (issue #67): the same fix for the 2 trigger cases.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py` (issue #67): the script now reads `dependencies` from the manifest of the plugin at each commit. It copies each dependency from the marketplace at the same commit into `.deps/<name>` of the plugin copy. An entry can be a name, `name@marketplace`, or an object with a name. A dependency that is not in the marketplace is an input error. A new `baseline` subcommand runs one suite at one commit and writes one result file with no comparison. It does not overwrite an existing result file.
+- `tests/evals/test_compare_versions.py` (issue #67): new tests for the dependency copy and the `baseline` subcommand. They call no model.
+- `README.md` (issue #67): the Evals section says that a plugin with dependencies must run through the script, and it shows the `baseline` command.
+
 ## dev-essentials 3.4.1, dotnet-backend-dev 1.6.1, and gop-pipeline 1.4.1 in release [3.6.1] - 2026-10-25
 
 This release adds the first eval tooling (issue #65). An eval runs test prompts and scores each run with graders. CI now runs `claude plugin validate` and a budget test for the always-on cost of each plugin. It also searches for lines that ask the model to write out its reasoning, and it checks that each changed plugin raises its version. A new script compares one eval suite at two commits. Each plugin gets trigger cases for the units whose descriptions share trigger words. A unit is a skill, an agent, or a command. No unit changes, so the plugins behave as before.
@@ -745,7 +763,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...HEAD
+[3.6.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...v3.5.0
