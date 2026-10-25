@@ -1,6 +1,6 @@
 # Test Model Generators
 
-Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators. A test can need fixed values for its assertion, for example for a sort order. Pass these values to a generator `Create{Model}` method through a private helper of the test class.
+Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators. A test can need fixed values for its assertion, for example for a sort order. Pass these values to a generator `Create{Model}` method through a private helper of the test class. The one exception is an options record in a configuration test. Its test class builds the record in a `CreateValidOptions()` helper, and each test changes one value with a `with` expression. The example for the validation of configuration options shows this.
 
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
@@ -48,11 +48,6 @@ namespace MyApp.Tests.Common.Helpers.Generators.Sales.Markets;
 
 public sealed class MarketGenerator
 {
-    /// <summary>
-    /// Singleton instance for convenient access.
-    /// </summary>
-    public static MarketGenerator Instance { get; } = new();
-
     public MarketGenerator()
     {
     }
@@ -127,8 +122,7 @@ public sealed class MarketServiceTests : BaseMockTest
 
     public MarketServiceTests()
     {
-        // Use singleton instance
-        _generator = MarketGenerator.Instance;
+        _generator = new MarketGenerator();
     }
 
     [Test]
@@ -141,7 +135,7 @@ public sealed class MarketServiceTests : BaseMockTest
         var repository = CreateMarketRepository(markets: new[] { expectedMarket });
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<MarketService>();
+        var service = CreateService();
 
         // Act.
         var result = await service.GetMarketAsync(expectedMarketId);
@@ -161,7 +155,7 @@ public sealed class MarketServiceTests : BaseMockTest
         var repository = CreateMarketRepository(markets: new[] { market1, market2, market3 });
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<MarketService>();
+        var service = CreateService();
 
         // Act.
         var results = await service.GetAllMarketsAsync();
@@ -190,6 +184,11 @@ public sealed class MarketServiceTests : BaseMockTest
             .ApplyIf(markets is not null, b => b.AddMarketRange(markets!))
             .Build();
     }
+
+    private MarketService CreateService()
+    {
+        return Fixture.Create<MarketService>();
+    }
 }
 ```
 
@@ -205,7 +204,7 @@ public sealed class CustomerGenerator
 
     public CustomerGenerator()
     {
-        _storeGenerator = StoreGenerator.Instance;
+        _storeGenerator = new StoreGenerator();
         _orgGenerator = new OrganizationGenerator();
     }
 
@@ -252,7 +251,7 @@ public CustomerAccount GenerateCustomerAccount(
 
 ## Key Points
 
-1. **Singleton access**: Use `{Generator}.Instance` for convenience
+1. **New instance**: Create each generator with `new {Model}Generator()`. Do not add a static `Instance` property. This is a rule of the project: a shared static generator caused test failures that were hard to trace in real projects.
 
 2. **Create vs Generate**: `Create` for explicit values, `Generate` for random
 

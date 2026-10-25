@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.6.0 in release [3.6.0] - 2026-10-25
+
+Some instructions of dotnet-backend-dev contradicted another file, or fired on a request that they did not support (issue #62). The `add-migration` skill now has a path for a standard EF Core repo. The templates and the examples now follow the rules of the skills. Some fixes change the code that a skill writes on purpose. Each of these bullets says so.
+
+### Added in dotnet-backend-dev
+
+- `add-migration` (issue #62): the skill fired on "add migration" in any repo, but it taught only the migration interfaces of the framework. In a standard EF Core repo, the code that it wrote did not build. A new first step finds out which migration system the repo uses. A new section adds a standard EF Core migration with `dotnet ef migrations add`, and gives the install command of the `dotnet-ef` tool. The command pins the version of the EF Core packages. A migration can have custom code in its `Up` and `Down` methods, for example a data backfill. The table goes by the production provider. If both systems match, the skill asks the user. Behavior change: in a repo without the framework, the skill runs `dotnet ef` and writes no framework migration class. In a repo with no migration system and a document database, it stops and asks the user.
+
+### Fixed in dotnet-backend-dev
+
+- `add-migration` (issue #62): the steps for a new partition key deleted the old Cosmos DB container with no question to the user. Behavior change: the skill now asks the user before the delete.
+- `create-ef-entity` (issue #62): the skill added a `DbSet` and stopped. On a relational provider, the first query then failed, because the table did not exist. Behavior change: a new Step 7 builds the changed projects. If the production provider is relational, it then adds a migration with `add-migration`. If the production provider is not clear, it asks the user.
+- `update-swagger-spec` (issue #62): the step for the controller showed a `public sealed` class on `ControllerBase` with no try-catch. This sketch broke the rules of `create-controller`. The sketch is gone, and the step points to `create-controller` for the class.
+- `create-tests` (issue #62): the skill ran the full test suite before it reported the work as complete. `dev-essentials:dotnet-build-test` forbids a run with no filter in a repo with integration tests. Behavior change: the skill now runs the test classes that it wrote or changed, with a filter. It runs them in one run with one filter. The full suite runs in two cases only. The user asks for it, or the user says yes to it after a props-file change.
+- `add-configuration-option` (issue #62): the template put `[Required]` on two `Int32` properties, where the attribute has no effect. Two range rules used the message for a missing value. Behavior change: the template has no `[Required]` on a value type. Each rule gets a message from the error builder that matches the rule.
+- `create-domain-model` (issue #62): the `ToString` rule said to include all fields, against the rule to erase sensitive information. It now says to include all fields, and to write the erased placeholder as the value of each field with sensitive information.
+- `create-tests` and `dotnet-conventions` (issue #62): the rule made each test data generator a singleton with a static `Instance` property. This is a rule of the project: a shared static generator caused test failures that were hard to trace in real projects. Behavior change: each test class now creates its generators with `new {Model}Generator()`, and the generator template has no `Instance` property. All examples follow the new rule.
+- `create-tests` (issue #62): two examples built the class under test with `Fixture.Create` in the test case, against Gate 3. They now call a `CreateService()` helper. The rule against inline test data now names its one exception: an options record in a configuration test.
+- `test-engineer` (issue #62): the description said to use the agent for "write tests for X". So a request for one class can start an agent that cannot ask the user a question. The sentence is gone. The agent serves the `/write-tests` command.
+
 ## dev-essentials 3.4.0 in release [3.5.0] - 2026-10-25
 
 This release fixes workflow bugs in dev-essentials (issue #60). Some rules contradicted each other. Some steps made a commit, a push, or a deletion that the user did not ask for. Where a fix changes behavior on purpose, the bullet says so.
@@ -696,7 +716,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...HEAD
+[3.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...v3.3.1

@@ -76,8 +76,8 @@ Some test paths compile only under a define constant, for example the constant f
 
 1. Add the define constant to the Debug `<DefineConstants>` in `Directory.Build.props` for the time of the work.
 2. Run **only** targeted tests: `dotnet test --filter "FullyQualifiedName~<name>"`. Never run the full suite while the constant is set.
-3. **Before the full-suite run**, remove the constant from the Debug constants. The props file then has its committed content again.
-4. Run the full suite before you report the work as complete. No failure counts as pre-existing: you must fix each red signal in the session (see `dev-essentials:engineering-discipline` Rule 1).
+3. Before the test run of step 4, remove the constant from the Debug constants. The props file then has its committed content again.
+4. Before you report the work as complete, run the test classes that you wrote or changed. Run them in one run, with one filter that joins the full class names with `|`, for example `dotnet test <TestProject>.csproj --filter "FullyQualifiedName~<Namespace>.<TestClassA>.|FullyQualifiedName~<Namespace>.<TestClassB>."`. Use the full class name and end it with a dot, because `~` also matches longer names that start with it. If the user asks for the full suite, run it. A change in a props file changes the build of every project. If the work keeps such a change, ask the user before a full-suite run. A full-suite run can start slow integration tests, so follow `dev-essentials:dotnet-build-test` for it. No failure counts as pre-existing: you must fix each red signal in the session (see `dev-essentials:engineering-discipline` Rule 1).
 
 ### Props / config files — never stage automatically
 
@@ -147,7 +147,7 @@ public sealed class {ClassName}Tests : {BaseClass}
 
     public {ClassName}Tests()
     {
-        _generator = SomeGenerator.Instance;
+        _generator = new SomeGenerator();
     }
 
     // Tests organized by method/feature
@@ -158,7 +158,7 @@ public sealed class {ClassName}Tests : {BaseClass}
 
 **ALWAYS use test model generators** to create test data:
 
-- Generators are singletons: `{Model}Generator.Instance`.
+- Create each generator with `new {Model}Generator()` in the constructor of the test class. A generator has no static `Instance` property. This is a rule of the project: a shared static generator caused test failures that were hard to trace in real projects.
 - They are in `Tests.Common/Helpers/Generators/` or `{ProjectName}.Tests.Common/Helpers/Generators/`.
 - They have `Create{Model}()` methods (explicit parameters) and `Generate{Model}()` methods (random values).
 - **NEVER call generators directly in test cases.** Wrap each call in a private `Generate{Model}(...)` helper method (see [Private Helper Methods](#private-helper-methods-mandatory-indirection)).
@@ -401,7 +401,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 ### Unit / integration tests (non-scenario)
 
-- [ ] Test data comes from test model generators, not inline object creation
+- [ ] Test data comes from test model generators, not inline object creation. The one exception is an options record in a configuration test (see [config-options-tests.md](examples/config-options-tests.md))
 - [ ] Every interface mock comes from a Test Mock Builder. No direct mock of the mocking library or the test data library in test cases (for example, `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()`). With NSubstitute through AutoFixture, a builder gets its substitute with `_fixture.Create<IInterface>()`.
 - [ ] Test cases call builders and generators only through private `Create{Mock}` and `Generate{Model}` helpers, and add no setup to a returned mock
 - [ ] The helpers follow rules 1 to 7 of [Private Helper Methods](#private-helper-methods-mandatory-indirection), with `CreateServiceWithAllArguments` as the one required-positional exception

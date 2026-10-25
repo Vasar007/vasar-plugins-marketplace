@@ -45,7 +45,7 @@ public sealed class XxxTests : {BaseClass}
 
     public XxxTests()
     {
-        _generator = XxxGenerator.Instance;
+        _generator = new XxxGenerator();
     }
 }
 ```
@@ -120,9 +120,9 @@ Typically already available in `*.Tests.Common/Helpers/Mocks/`:
 
 ## Test Data Generators
 
-Singletons in `*.Tests.Common/Helpers/Generators/`:
+Generators are in `*.Tests.Common/Helpers/Generators/`:
 
-- `{Model}Generator.Instance`
+- Each test class creates its generators with `new {Model}Generator()`. A generator has no static `Instance` property (see [Test Model Generators](../create-tests/SKILL.md#test-model-generators) in `create-tests`).
 - Provide `Create{Model}()` (explicit params) and `Generate{Model}()` (random) methods.
 
 ## Database Integration Tests

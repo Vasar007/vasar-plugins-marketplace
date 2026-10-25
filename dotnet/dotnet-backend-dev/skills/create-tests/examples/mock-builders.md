@@ -158,7 +158,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
     public AccountSelectionServiceTests()
     {
-        _generator = AccountGenerator.Instance;
+        _generator = new AccountGenerator();
     }
 
     [Test]
@@ -172,7 +172,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var repository = CreateAccountRepository(accounts: new[] { account1, account2, account3 });
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<AccountSelectionService>();
+        var service = CreateService();
 
         // Act.
         var result = await service.SelectAccountAsync();
@@ -188,7 +188,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var repository = CreateAccountRepository();
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<AccountSelectionService>();
+        var service = CreateService();
 
         // Act.
         var result = await service.SelectAccountAsync();
@@ -209,6 +209,11 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
             .ApplyIf(accounts is not null, b => b.AddCustomerAccountRange(accounts!))
             .Build();
     }
+
+    private AccountSelectionService CreateService()
+    {
+        return Fixture.Create<AccountSelectionService>();
+    }
 }
 ```
 
@@ -222,7 +227,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 4. **Stateful behavior**: Internal list tracks add/update/delete operations
 
-5. **Use generators**: Create test data with `{Model}Generator.Instance`
+5. **Use generators**: Create test data with a generator that the test class creates with `new {Model}Generator()`
 
 6. **Fixture.Inject**: In AutoFixture, replace the default mock of the fixture with the configured builder result
 
