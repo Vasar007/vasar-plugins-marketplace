@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare one `claude plugin eval` suite at a base commit and at a head commit.
+"""Compare one `claude plugin eval` suite at a base commit and at a head commit, or record one baseline.
 
 The verdict follows the rules of skill/scripts/compare.py in https://github.com/anthropics/single-agent-loop-kit.
 Run the script with --help for the rules and the subcommands.
@@ -8,6 +8,7 @@ import argparse
 import io
 import json
 import math
+import re
 import shlex
 import shutil
 import statistics
@@ -20,6 +21,8 @@ from pathlib import Path
 ROUTE_PREFIX = "route-"
 SCHEMA_VERSION = 1
 NOT_RECORDED = "not recorded"
+BASELINE_FILE = "baseline.json"
+DEPENDENCY_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 REPO = Path(__file__).resolve().parents[2]
 
 RULES = """\
@@ -268,6 +271,61 @@ def export_commit(repo, revision, dest):
     return sha
 
 
+def dependency_name(entry, marketplace_name):
+    """The plugin name of one entry of `dependencies`: a name, "name@marketplace", or an object with a name."""
+    if isinstance(entry, str):
+        name, _, market = entry.partition("@")
+    elif isinstance(entry, dict) and isinstance(entry.get("name"), str):
+        name, market = entry["name"], entry.get("marketplace") or ""
+    else:
+        raise InputError(f"cannot read the dependency {entry!r}. Use a plugin name, or an object with a name")
+    if not DEPENDENCY_NAME.fullmatch(name):
+        raise InputError(f"the dependency name {name!r} is not a plugin name. Use letters, digits, dots, hyphens, and underscores")
+    if market and market != marketplace_name:
+        raise InputError(f"the dependency {entry!r} is not in the marketplace {marketplace_name}")
+    return name
+
+
+def add_dependencies(root, plugin):
+    """Copy the dependencies of the plugin into <plugin>/.deps/<name>. Root is the exported repository.
+
+    The eval session loads only the plugin under test, so a case lists the copies in its `plugins` field.
+    A version range of a dependency is not checked, because the copy comes from the same commit.
+    Only the dependencies in plugin.json are copied, one level deep, not those of a dependency.
+    """
+    manifest = plugin / ".claude-plugin" / "plugin.json"
+    try:
+        entries = json.loads(manifest.read_text(encoding="utf-8")).get("dependencies") or []
+    except (OSError, ValueError, AttributeError) as exc:
+        raise InputError(f"cannot read the manifest {manifest.relative_to(root).as_posix()}: {exc}") from exc
+    if not isinstance(entries, list):
+        raise InputError(f"dependencies in {manifest.relative_to(root).as_posix()} is not a list")
+    if not entries:
+        return
+    market_file = root / ".claude-plugin" / "marketplace.json"
+    try:
+        market = json.loads(market_file.read_text(encoding="utf-8"))
+        sources = {p["name"]: p["source"] for p in market["plugins"]}
+        market_name = market["name"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise InputError(f"cannot read the plugins of {market_file.relative_to(root).as_posix()}: {exc}") from exc
+    for name in dict.fromkeys(dependency_name(entry, market_name) for entry in entries):
+        source = sources.get(name)
+        if not isinstance(source, str):
+            raise InputError(f"the dependency {name} is not in the marketplace {market_name}, or has no path source")
+        folder = (root / source).resolve()
+        if not folder.is_relative_to(root.resolve()) or not (folder / ".claude-plugin" / "plugin.json").is_file():
+            raise InputError(f"the dependency {name} has no plugin folder at {source}")
+        deps = (plugin / ".deps").resolve()
+        target = (deps / name).resolve()
+        if target.parent != deps:
+            raise InputError(f"the dependency {name} would be copied outside {deps}")
+        # Leave out the eval folder of the dependency, or claude plugin eval also runs its cases.
+        skip = manifest_suite(folder) or "evals"
+        shutil.copytree(folder, target, symlinks=True,
+                        ignore=lambda where, names: [skip] if Path(where) == folder else [])
+
+
 def eval_command(args, plugin_dir, result, claude, suite):
     command = [claude, "plugin", "eval", str(plugin_dir), "--ablation", "none", "--runs", str(args.runs),
                "--model", args.model, "--judge-model", args.judge_model, "--threshold", "0",
@@ -338,67 +396,119 @@ def again_lines(args, shas, out, cases):
             "Then compare all result files:", "", "```sh", joined, "```"]
 
 
-def run_suites(args, runner=subprocess.run):
-    """Run the suite of the head commit against the plugin at each commit. Return the result paths and commit ids."""
+def find_claude(args):
     claude = shutil.which(args.claude)
     if claude is None:
         raise InputError(f"cannot find the command {args.claude}. Install Claude Code, or pass its path with --claude")
-    out = Path(args.out).resolve()
-    for side in ("base", "head"):
-        existing = out / f"{side}.json"
+    return claude
+
+
+def refuse_existing(out, names):
+    for name in names:
+        existing = out / name
         if existing.exists():
             raise InputError(f"{existing} already exists. Use a new --out folder, so that no result is lost")
+
+
+def export_plugin(args, tmp, side, revision):
+    """Export one commit, and add the dependencies of the plugin. Return the plugin folder and the commit id."""
+    root = Path(tmp) / side
+    sha = export_commit(args.repo, revision, root)
+    plugin = root / args.plugin
+    if not (plugin / ".claude-plugin" / "plugin.json").is_file():
+        raise InputError(f"{args.plugin} is not a plugin folder at the {side} commit {sha[:12]}")
+    add_dependencies(root, plugin)
+    return plugin, sha
+
+
+def run_eval(args, side, plugin, sha, result, claude, suite, runner):
+    """Run the suite on one copy. Return the exit code of claude plugin eval."""
+    print(f"Running the suite on the {side} commit {sha[:12]}.", file=sys.stderr)
+    try:
+        code = runner(eval_command(args, plugin, result, claude, suite), cwd=plugin).returncode
+    except FileNotFoundError as exc:
+        raise InputError(f"cannot start {args.claude}: {exc}") from exc
+    if not result.is_file():
+        raise InputError(f"claude plugin eval exited with {code} and wrote no result for the {side} commit")
+    if code != 0 and side != "baseline":
+        print(f"claude plugin eval exited with {code} on the {side} commit. "
+              "The report counts the runs that ended with an error.", file=sys.stderr)
+    return code
+
+
+def run_suites(args, runner=subprocess.run):
+    """Run the suite of the head commit against the plugin at each commit. Return the result paths and commit ids."""
+    claude = find_claude(args)
+    out = Path(args.out).resolve()
+    refuse_existing(out, ("base.json", "head.json"))
     out.mkdir(parents=True, exist_ok=True)
-    results, shas = {}, {}
+    results, shas, plugins = {}, {}, {}
     with tempfile.TemporaryDirectory(prefix="compare-versions-", ignore_cleanup_errors=True) as tmp:
         for side, revision in (("head", args.head), ("base", args.base)):
-            shas[side] = export_commit(args.repo, revision, Path(tmp) / side)
-        plugins = {side: Path(tmp) / side / args.plugin for side in ("head", "base")}
-        for side, plugin in plugins.items():
-            if not (plugin / ".claude-plugin" / "plugin.json").is_file():
-                raise InputError(f"{args.plugin} is not a plugin folder at the {side} commit {shas[side][:12]}")
+            plugins[side], shas[side] = export_plugin(args, tmp, side, revision)
         suite = args.eval_dir or manifest_suite(plugins["head"]) or "evals"
         if not (plugins["head"] / suite).is_dir():
             raise InputError(f"{args.plugin}/{suite} does not exist at the head commit {shas['head'][:12]}")
+        missing = sorted({p.name for p in (plugins["head"] / ".deps").glob("*")}
+                         - {p.name for p in (plugins["base"] / ".deps").glob("*")})
+        if missing:
+            raise InputError(f"the head suite needs the dependency {', '.join(missing)}, but the base commit "
+                             f"{shas['base'][:12]} does not declare it. Use a base commit that declares it")
         shutil.rmtree(plugins["base"] / suite, ignore_errors=True)
         shutil.copytree(plugins["head"] / suite, plugins["base"] / suite)
         for side in ("base", "head"):
             results[side] = out / f"{side}.json"
-            print(f"Running the suite on the {side} commit {shas[side][:12]}.", file=sys.stderr)
-            try:
-                code = runner(eval_command(args, plugins[side], results[side], claude, suite), cwd=plugins[side]).returncode
-            except FileNotFoundError as exc:
-                raise InputError(f"cannot start {args.claude}: {exc}") from exc
-            if not results[side].is_file():
-                raise InputError(f"claude plugin eval exited with {code} and wrote no result for the {side} commit")
-            if code != 0:
-                print(f"claude plugin eval exited with {code} on the {side} commit. "
-                      "The report counts the runs that ended with an error.", file=sys.stderr)
+            run_eval(args, side, plugins[side], shas[side], results[side], claude, suite, runner)
     return results, shas
+
+
+def run_baseline(args, runner=subprocess.run):
+    """Run the suite of one commit against the plugin at that commit. Return the result path and the commit id."""
+    claude = find_claude(args)
+    out = Path(args.out).resolve()
+    refuse_existing(out, (BASELINE_FILE,))
+    out.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="compare-versions-", ignore_cleanup_errors=True) as tmp:
+        plugin, sha = export_plugin(args, tmp, "baseline", args.commit)
+        suite = args.eval_dir or manifest_suite(plugin) or "evals"
+        if not (plugin / suite).is_dir():
+            raise InputError(f"{args.plugin}/{suite} does not exist at the baseline commit {sha[:12]}")
+        result = out / BASELINE_FILE
+        code = run_eval(args, "baseline", plugin, sha, result, claude, suite, runner)
+    cases = len(read_result(result).get("cases") or [])
+    if code != 0 or cases == 0:
+        raise InputError(f"claude plugin eval exited with {code} and wrote {cases} case(s) to {result}. "
+                         "Read its output, fix the cases, and run the baseline again into a new folder")
+    return result, sha
 
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], epilog=RULES,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    run = commands.add_parser("run", help="run the suite on both commits, then compare",
+    shared = argparse.ArgumentParser(add_help=False)
+    shared.add_argument("--plugin", required=True, help="plugin folder relative to the repository root")
+    shared.add_argument("--model", required=True, help="full id of the model under test, stored in the result")
+    shared.add_argument("--judge-model", required=True, help="full id of the judge model, stored in the result")
+    shared.add_argument("--runs", type=int, default=3, help="runs for each case on each side (default: 3)")
+    shared.add_argument("--case", help="case name glob, passed to claude plugin eval")
+    shared.add_argument("--tag", nargs="+", help="case tags, passed to claude plugin eval")
+    shared.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
+    shared.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
+    shared.add_argument("--max-cost-usd", type=float, help="cost ceiling for each side")
+    shared.add_argument("--eval-dir", help="eval folder below the plugin (default: experimental.evals of the manifest, else evals)")
+    shared.add_argument("--repo", type=Path, default=REPO, help="repository root (default: this repository)")
+    shared.add_argument("--claude", default="claude", help="the claude command (default: claude)")
+    run = commands.add_parser("run", parents=[shared], help="run the suite on both commits, then compare",
                               epilog=RULES, formatter_class=argparse.RawDescriptionHelpFormatter)
-    run.add_argument("--plugin", required=True, help="plugin folder relative to the repository root")
     run.add_argument("--base", required=True, help="base commit, branch, or tag")
     run.add_argument("--head", default="HEAD", help="head commit, branch, or tag (default: HEAD)")
-    run.add_argument("--model", required=True, help="full id of the model under test, stored in the result")
-    run.add_argument("--judge-model", required=True, help="full id of the judge model, stored in the result")
     run.add_argument("--out", required=True, help="folder for base.json, head.json, their reports, and report.md")
-    run.add_argument("--runs", type=int, default=3, help="runs for each case on each side (default: 3)")
-    run.add_argument("--case", help="case name glob, passed to claude plugin eval")
-    run.add_argument("--tag", nargs="+", help="case tags, passed to claude plugin eval")
-    run.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
-    run.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
-    run.add_argument("--max-cost-usd", type=float, help="cost ceiling for each side")
-    run.add_argument("--eval-dir", help="eval folder below the plugin (default: experimental.evals of the manifest, else evals)")
-    run.add_argument("--repo", type=Path, default=REPO, help="repository root (default: this repository)")
-    run.add_argument("--claude", default="claude", help="the claude command (default: claude)")
     run.add_argument("--fail-if-worse", action="store_true", help="exit 1 for no verdict or a lower mean")
+    baseline = commands.add_parser("baseline", parents=[shared],
+                                   help="run the suite on one commit and write one result file, with no comparison")
+    baseline.add_argument("--commit", default="HEAD", help="commit, branch, or tag (default: HEAD)")
+    baseline.add_argument("--out", required=True, help=f"folder for {BASELINE_FILE} and the output of claude plugin eval")
     compare_cmd = commands.add_parser("compare", help="compare finished result files",
                                       epilog=RULES, formatter_class=argparse.RawDescriptionHelpFormatter)
     compare_cmd.add_argument("--base", nargs="+", required=True, type=Path, help="result files of the base")
@@ -411,6 +521,10 @@ def parse_args(argv):
 def main(argv=None, runner=subprocess.run):
     args = parse_args(argv)
     try:
+        if args.command == "baseline":
+            result, sha = run_baseline(args, runner)
+            print(f"Wrote the baseline of {args.plugin} at {sha[:12]} to {result}.")
+            return 0
         if args.command == "run":
             results, shas = run_suites(args, runner)
             labels = (f"base {shas['base'][:12]}", f"head {shas['head'][:12]}")

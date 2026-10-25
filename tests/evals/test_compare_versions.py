@@ -426,6 +426,162 @@ class RunTests(CompareCase):
         self.assertIn("git rev-parse", err)
 
 
+class DependencyTests(CompareCase):
+    """The plugin copy of a run holds the plugins that the manifest lists in dependencies."""
+
+    git = RunTests.git
+    run_main = RunTests.run_main
+    run_args = RunTests.run_args
+
+    def setUp(self):
+        super().setUp()
+        if shutil.which("git") is None:
+            tool_missing(self, "git not found")
+        self.repo = self.tmp / "repo"
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest(["helper"]))
+        self.write_file("group/demo/skills/demo/SKILL.md", "demo skill\n")
+        self.write_file("tools/helper/.claude-plugin/plugin.json", '{"name": "helper", "version": "1.0.0"}\n')
+        self.write_file("tools/helper/skills/helper/SKILL.md", "old helper\n")
+        self.write_file(".claude-plugin/marketplace.json", json.dumps({
+            "name": "test-market",
+            "plugins": [{"name": "demo", "source": "./group/demo"}, {"name": "helper", "source": "./tools/helper"}],
+        }))
+        self.git("init", "-q")
+        self.commit("base")
+        self.base_sha = self.git("rev-parse", "HEAD").strip()
+        self.write_file("tools/helper/skills/helper/SKILL.md", "new helper\n")
+        self.write_file("group/demo/evals/triggers/fires/prompt.md", "Do the demo task.\n")
+        self.commit("head")
+        self.calls = []
+
+    @staticmethod
+    def manifest(dependencies):
+        return json.dumps({"name": "demo", "version": "1.0.0", "dependencies": dependencies})
+
+    def write_file(self, name, text):
+        path = self.repo / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def commit(self, message):
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", message)
+
+    def fake_eval(self, command, cwd):
+        """Stand-in for claude plugin eval: record the dependency copy that the plugin folder holds."""
+        plugin = Path(command[3])
+        copy_of_helper = plugin / ".deps" / "helper" / "skills" / "helper" / "SKILL.md"
+        self.calls.append({"command": command, "helper": copy_of_helper.read_text() if copy_of_helper.is_file() else None,
+                           "deps": sorted(p.name for p in (plugin / ".deps").glob("*"))})
+        Path(command[command.index("--json") + 1]).write_text(json.dumps(RESULT), encoding="utf-8")
+        return SimpleNamespace(returncode=0)
+
+    def baseline_args(self, *extra, commit="HEAD"):
+        return ("baseline", "--repo", self.repo, "--plugin", "group/demo", "--commit", commit,
+                "--model", "model-under-test-1", "--judge-model", "judge-model-1", "--out", self.tmp / "out",
+                "--claude", sys.executable, *extra)
+
+    def test_copy_holds_the_dependency_of_its_own_commit(self):
+        code, out, err = self.run_main(*self.run_args())
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["helper"] for c in self.calls], ["old helper\n", "new helper\n"])
+
+    def test_dependency_can_be_an_object_or_name_with_marketplace(self):
+        for entry in ({"name": "helper", "version": "^1.0", "marketplace": "test-market"}, "helper@test-market"):
+            with self.subTest(entry=entry):
+                self.calls = []
+                self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([entry, "helper"]))
+                self.commit("entry")
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                code, out, err = self.run_main(*self.run_args())
+                self.assertEqual(code, 0, out + err)
+                self.assertEqual([c["deps"] for c in self.calls], [["helper"], ["helper"]])
+
+    def test_plugin_without_dependencies_gets_no_deps_folder(self):
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([]))
+        self.commit("no dependencies")
+        code, out, err = self.run_main(*self.run_args(base="HEAD"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["deps"] for c in self.calls], [[], []])
+
+    def test_dependency_that_is_not_in_the_marketplace_is_an_input_error(self):
+        for entry in ("no-such-plugin", {"name": "helper", "marketplace": "other-market"}, "helper@other-market", 7):
+            with self.subTest(entry=entry):
+                self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([entry]))
+                self.commit("bad entry")
+                code, _, err = self.run_main(*self.run_args())
+                self.assertEqual(code, 2)
+                self.assertRegex(err, r"ERROR: (cannot read the dependency|the dependency)")
+                self.assertEqual(self.calls, [])
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+
+    def test_dependency_name_with_a_path_is_an_input_error(self):
+        for name in ("../evil", "a/b", "..", ".hidden", "a\\b"):
+            with self.subTest(name=name):
+                self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([name]))
+                self.commit("path entry")
+                code, _, err = self.run_main(*self.run_args())
+                self.assertEqual(code, 2)
+                self.assertIn("is not a plugin name", err)
+                self.assertEqual(self.calls, [])
+                self.assertFalse((self.tmp / "evil").exists())
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+
+    def test_baseline_writes_one_file_from_one_commit(self):
+        head_sha = self.git("rev-parse", "HEAD").strip()
+        code, out, err = self.run_main(*self.baseline_args(commit=head_sha))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["helper"] for c in self.calls], ["new helper\n"])
+        self.assertEqual(sorted(p.name for p in (self.tmp / "out").glob("*.json")), ["baseline.json"])
+        self.assertIn(f"at {head_sha[:12]}", out)
+
+    def test_copy_of_the_dependency_has_no_eval_cases(self):
+        self.write_file("tools/helper/evals/triggers/helper-fires/prompt.md", "Do the helper task.\n")
+        self.commit("helper cases")
+        seen = []
+
+        def look(command, cwd):
+            seen.append((Path(command[3]) / ".deps" / "helper" / "evals").exists())
+            return self.fake_eval(command, cwd)
+        code, out, err = self.run_main(*self.baseline_args(), runner=look)
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual(seen, [False])
+
+    def test_base_without_the_dependency_of_the_head_is_an_input_error(self):
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([]))
+        self.commit("drop the dependency")
+        old_sha = self.git("rev-parse", "HEAD").strip()
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest(["helper"]))
+        self.commit("declare it again")
+        code, _, err = self.run_main(*self.run_args(base=old_sha))
+        self.assertEqual(code, 2)
+        self.assertIn("the head suite needs the dependency helper", err)
+        self.assertEqual(self.calls, [])
+
+    def test_baseline_with_a_failed_eval_is_an_input_error(self):
+        def failed_eval(command, cwd):
+            Path(command[command.index("--json") + 1]).write_text(json.dumps({**RESULT, "cases": []}), encoding="utf-8")
+            return SimpleNamespace(returncode=1)
+        code, out, err = self.run_main(*self.baseline_args(), runner=failed_eval)
+        self.assertEqual(code, 2)
+        self.assertIn("claude plugin eval exited with 1 and wrote 0 case(s)", err)
+        self.assertNotIn("Wrote the baseline", out)
+
+    def test_baseline_does_not_overwrite_a_result(self):
+        (self.tmp / "out").mkdir()
+        (self.tmp / "out" / "baseline.json").write_text("old result", encoding="utf-8")
+        code, _, err = self.run_main(*self.baseline_args())
+        self.assertEqual(code, 2)
+        self.assertIn("baseline.json already exists", err)
+        self.assertEqual(self.calls, [])
+        self.assertEqual((self.tmp / "out" / "baseline.json").read_text(encoding="utf-8"), "old result")
+
+    def test_baseline_without_the_suite_is_an_input_error(self):
+        code, _, err = self.run_main(*self.baseline_args(commit=self.base_sha))
+        self.assertEqual(code, 2)
+        self.assertIn("group/demo/evals does not exist at the baseline commit", err)
+        self.assertEqual(self.calls, [])
+
 class CommandLineTests(unittest.TestCase):
     def run_script(self, *args):
         return subprocess.run([sys.executable, "-I", str(SCRIPT), *map(str, args)],
