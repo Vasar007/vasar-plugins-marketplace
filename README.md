@@ -51,6 +51,8 @@ After you add the marketplace, install a single plugin by name:
 /plugin install gop-pipeline@vasar-plugins-marketplace
 ```
 
+`dotnet-backend-dev` and `gop-pipeline` use skills or agents of `dev-essentials`, so they declare it as a dependency. If you install one of them, Claude Code also installs `dev-essentials`.
+
 To enable specific plugins for a project automatically, extend the same `.claude/settings.local.json` file:
 
 ```json
@@ -129,7 +131,7 @@ Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `
 
 ### Rules for `plugin.json`
 
-Keep `plugin.json` to metadata only: `name`, `version`, `description`, `author`, `repository`, and `keywords`. Do not set `$schema`. Claude Code accepts it, but the claude.ai sync strips it and shows a warning. Copy the values of `author` and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
+Keep `plugin.json` to metadata and dependencies: `name`, `version`, `description`, `author`, `repository`, `keywords`, and `dependencies`. A plugin can use a skill or an agent of another plugin of this marketplace. Then list that plugin in `dependencies` by its bare name, for example `"dependencies": ["dev-essentials"]`. Do not add a version range. A range resolves against release tags of the form `<plugin>--v<version>`, and this repository has no such tags. For the field, see [Plugin dependencies](https://code.claude.com/docs/en/plugins/dependencies). Do not set `$schema`. Claude Code accepts it, but the claude.ai sync strips it and shows a warning. Copy the values of `author` and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
 
 ### Validating
 

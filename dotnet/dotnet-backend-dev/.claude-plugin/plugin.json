@@ -1,11 +1,12 @@
 {
   "name": "dotnet-backend-dev",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions.",
   "author": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"
   },
   "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
-  "keywords": ["dotnet", "backend", "clean-architecture", "ddd", "ef-core", "openapi", "code-generation", "object-mapping"]
+  "keywords": ["dotnet", "backend", "clean-architecture", "ddd", "ef-core", "openapi", "code-generation", "object-mapping"],
+  "dependencies": ["dev-essentials"]
 }

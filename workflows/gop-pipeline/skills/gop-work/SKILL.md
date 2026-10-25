@@ -8,6 +8,8 @@ when_to_use: If the user explicitly asks for GOP mode at the start of a task, us
 
 Full end-to-end workflow that plans, implements, builds, tests, reviews with validator agents, and finalizes a task.
 
+Dependency: the build and test phases (Phases 2 and 3) assume a .NET solution and the .NET SDK (`dotnet`) on `PATH`.
+
 ## Autonomy
 
 This workflow has three modes. The user picks one with a flag.
@@ -48,6 +50,13 @@ In every mode, first detect the repository root:
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
+Then, in every mode, test the branch and record the start state:
+
+- Find the default branch with `git -C <REPO_ROOT> symbolic-ref --quiet --short refs/remotes/origin/HEAD`. It prints, for example, `origin/main`, and the default branch is the name after `origin/`. If that ref does not exist, run `git -C <REPO_ROOT> ls-remote --symref origin HEAD`, and take the branch name from its `ref: refs/heads/<name>` line. If that also gives no name, treat a branch named `main` or `master` as the default branch.
+- If `git -C <REPO_ROOT> branch --show-current` prints nothing, the HEAD is detached, and a push of the commit fails later. With `--autonomous`, create a branch as the next point says. In the default mode and with `--interactive`, stop and ask the user for a branch.
+- If the current branch (`git -C <REPO_ROOT> branch --show-current`) is the default branch, do not commit on it. A commit there goes straight into the default branch, and the push of Phase 5 sends it to the remote. With `--autonomous`, create a branch with `git -C <REPO_ROOT> switch -c <branch>`. If your instructions or the repository give a rule for branch names, follow it. Else use `gop/<slug>`, where `<slug>` is a short kebab-case name of the task. In the default mode and with `--interactive`, stop and ask the user. The user gives a branch name, or an explicit yes to work on the default branch. For a branch name, create that branch with the same `switch -c` command.
+- Run `git -C <REPO_ROOT> status --porcelain`, and keep its paths as `start_changes`. Each line starts with two status letters and a space, and the path follows. For a rename (`old -> new`), keep both paths. A path in quotes is a path with special characters, so remove the quotes. These changes were in the working tree before the run, so Phase 5 does not commit them. Exception: if the run edits a file of `start_changes`, Phase 5 commits the whole file, with the earlier edits of the user. Name each such file in the final report.
+
 Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and Plan agents in read-only mode. For a code search, use the agent type `dev-essentials:code-locator`. If the session does not list it, use the built-in `Explore`. Write the plan to `<REPO_ROOT>/.claude/plans/<slug>.md`, with the same content as step 2 below. Report its path in one status line, and start Phase 1. Ask the user only the open decisions of the plan. With `--autonomous`, decide them as "Autonomy" says. With `--interactive`: run steps 1 to 5 below.
 
 1. Call the **`EnterPlanMode`** tool to turn on the built-in Plan Mode. Plan Mode allows only read-only operations and gives you a plan file. With `--interactive`, use Plan agents only inside Plan Mode, as step 2 says. Do not dispatch a Plan agent in place of Plan Mode.
@@ -63,9 +72,9 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
    ## Post-implementation pipeline (automated)
    After implementation, the following stages run automatically:
    1. **Building** — builds affected projects, falls back to full solution
-   2. **Testing** — runs relevant unit tests (skipped if no test projects found)
+   2. **Testing** — runs the tests of the changed projects, or all tests after a change to a shared build file (skipped if no test projects found). A failed build or test goes back to implementation, at most 2 times
    3. **Validation** — reviews changes for completeness and quality
-   4. **Commit & Push**: commits all changes. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
+   4. **Commit & Push**: commits the files of this run. In the default mode, it pushes after the user approves it. With `--interactive`, the plan approval covers the push. With `--autonomous`, it pushes without a question.
    ```
 
 4. Call **`ExitPlanMode`** to leave Plan Mode. This asks the user to approve the plan.
@@ -79,27 +88,38 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
    - `plan_file_path`: path to the plan file from Phase 0
    - `repo_root`: the detected repository root
    - `validator_proposals`: (optional) list of accepted proposals from a previous validation cycle, or "None" on the first run
-8. After the implementation, record the six fields of the "Output" section of the stage file for the later phases. The fields are `modified_files`, `change_summary`, `deviations_from_plan`, `unresolved_concerns`, `applied_proposals`, and `rejected_proposals`.
+   - `build_test_failures`: (optional) the build errors or the failed tests of a fix cycle (see Phase 3), or "None"
+8. After the implementation, record the six fields of the "Output" section of the stage file for the later phases. The fields are `modified_files`, `change_summary`, `deviations_from_plan`, `unresolved_concerns`, `applied_proposals`, and `rejected_proposals`. `modified_files` lists only the files that Phase 1 created, changed, or deleted. If Phase 1 did not edit a path of `start_changes`, that path is not in it. Keep `run_files`, the union of `modified_files` of all Phase 1 cycles of this run. Phases 2 to 4 use `run_files`, so a fix cycle keeps the test scope and the projects of the earlier cycles.
 
 ### Phase 2: Building
 
 9. Launch a **gop-pipeline:gop-build** subagent, injecting:
-    - `modified_files`: from Phase 1
+    - `modified_files`: `run_files` from Phase 1
     - `repo_root`: the detected repository root
-10. Capture `build_status` (SUCCEEDED/FAILED) and `build_details` from output.
-11. If `build_status` is FAILED, report to the user and **stop**. Do not go on to Phase 3.
+10. Capture `build_status` (SUCCEEDED/FAILED) and `build_details` from output. Add each path of its `## Fixes applied` section to `fix_files`, a list that you keep for the whole run.
+11. If `build_status` is FAILED, start a fix cycle (see the end of Phase 3) with the build errors of `build_details`. Do not go on to Phase 3.
 
 ### Phase 3: Testing (conditional)
 
-12. Find out whether testing is relevant:
-    - If no modified file is a `.cs` file or a `.csproj` file, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`.
-    - Else, launch `gop-test`. It does the full test-project search. If it finds no test project, it returns `NO_TESTS_FOUND`.
-13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent, injecting:
-    - `modified_files`: from Phase 1
+12. Choose the test scope:
+    - If a modified file is a shared build file, set `test_scope` to `all`. Many projects read a shared build file at build time. Examples are `Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props`, `global.json`, and `NuGet.config`. Such a change can break any test, so all test projects run.
+    - If no shared build file changed, but a `.cs` file or a `.csproj` file changed, set `test_scope` to `changed`.
+    - If neither kind of file changed, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`.
+
+    `gop-test` does the full test-project search. If it finds no test project, it returns `NO_TESTS_FOUND`.
+13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent as a background subagent, injecting the inputs below. A test run can take longer than the Bash time limit, so `gop-test` runs it in the background and waits for its notification. Only a background subagent gets that notification. The agent file sets `background: true`. Then it runs in the background, also for a caller that waits for it. If the `Agent` tool has a `run_in_background` parameter, set it to `true` too.
+    - `modified_files`: `run_files` from Phase 1
     - `change_summary`: from Phase 1
     - `repo_root`: the detected repository root
-14. Capture `test_status` (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND) and `test_details` from output.
-15. If `test_status` is FAILED or BUILD_FAILED, report to the user and **stop**.
+    - `test_scope`: from step 12
+14. Capture `test_status` (PASSED/FAILED/BUILD_FAILED/NO_TESTS_FOUND) and `test_details` from output. Add each path of its `## Fixes applied` section to `fix_files`.
+15. If `test_status` is FAILED or BUILD_FAILED, start a fix cycle with the failed tests and the errors of `test_details`.
+
+A fix cycle sends a build or test failure back to the main session. `gop-build` fixes only small build breaks, and `gop-test` fixes only test code. The main session knows the plan, so it fixes the production code. In a fix cycle:
+
+- Return to Phase 1 with `build_test_failures`: the build errors, or the failed tests with their messages. Set `validator_proposals` to "None", because the proposals of an earlier cycle are already applied. Then run Phases 2 and 3 again.
+- Run at most 2 fix cycles in one run, in every mode, so that an unattended run does not loop without end. If the build or the tests still fail after the second fix cycle, stop, and report the failures to the user.
+- Fix cycles do not count toward the limit of proposal re-run cycles (see "Rules").
 
 ### Phase 4: Validation (parallel fan-out)
 
@@ -109,7 +129,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
     - `test_status`: from Phase 3 (or "NO_TESTS_FOUND")
     - `build_status`: from Phase 2
     - `repo_root`: the detected repository root
-    - `modified_files`: from Phase 1
+    - `modified_files`: `run_files` from Phase 1
     - `change_summary`: from Phase 1
     - `deviations_from_plan`: from Phase 1
     - `unresolved_concerns`: from Phase 1
@@ -142,12 +162,13 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
 
 ### Phase 5: Finalization
 
-20. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root`, `push`, `warning_note`, and `commit_trailer`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
+20. Collect the files of this run: each path of `run_files` and of `fix_files`. Do not add other paths from `git status`. A file that the user or a tool wrote during the run is not part of the run, and the commit must not take it. Launch a **gop-pipeline:gop-commit** subagent, and inject `repo_root`, `files`, `push`, `warning_note`, and `commit_trailer`. In the default mode, set `push: no`. Then ask the user to approve the push. After the approval, run the push yourself: `git -C <repo_root> push`. For a branch with no upstream, run `git -C <repo_root> push -u origin HEAD`. Never force-push. With `--interactive`, set `push: yes`, because the plan approval covers the push. With `--autonomous`, set `push: yes`, and do not ask.
     - `repo_root`: the detected repository root
+    - `files`: the files of this run, relative to `repo_root`
     - `push`: `yes` or `no`
     - `warning_note`: if the user dismissed CRITICAL findings at step 19, the text `Validation override: the user dismissed these CRITICAL findings:` and one line for each dismissed finding (`[<ID>] <title>`). Else `None`.
     - `commit_trailer`: if your instructions for this session ask for a commit trailer, for example a `Co-Authored-By` line, that trailer text. Else `None`.
-21. Report the final result to the user: commit hash, push status, and any warnings from validation.
+21. Report the final result to the user: commit hash, push status, the "Not committed" list of `gop-commit`, and any warnings from validation.
 
 ## Stages
 
@@ -170,7 +191,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
 - Without `--interactive`, the plan is auto-approved (see "Autonomy"). With `--interactive`, never proceed to implementation without user approval of the plan.
 - If the plan needs revision after partial implementation: without `--interactive`, revise the plan file, report the change, and ask only for a critical decision (with `--autonomous`, decide it as "Autonomy" says). With `--interactive`, pause and re-align with the user.
 - Phases 2-5 run as typed subagents with their own model and the smallest set of tools that they need. Pass data in the prompt, not through shared state. Subagents read files (plan, code) directly from the filesystem, so pass paths, not content.
-- If any phase fails (test, build), stop the pipeline and report to the user.
+- If the build or the tests still fail after the fix cycles of Phase 3, stop the pipeline and report to the user.
 - With `--interactive`, only aggregated validation status of BLOCKED or APPROVED_WITH_WARNINGS triggers user interaction mid-pipeline. Without it, step 19 decides. Other failures are hard stops.
 - After a re-run of Phase 1 with validator proposals, the full pipeline (Phases 1–4) runs again, with all five validators in parallel. Do not skip build, test, or any validator after a proposal-driven re-implementation.
 - Limit proposal re-run cycles to 2 iterations. After the second re-run, do not start a third one. If validation still finds CRITICAL issues, stop the pipeline and escalate to the user with the full history of aggregated findings. Else proceed to Phase 5, and list the warnings that remain in the final report. With `--interactive`, first show the remaining warnings. Offer only two options: proceed to the commit, or stop for a manual fix.
