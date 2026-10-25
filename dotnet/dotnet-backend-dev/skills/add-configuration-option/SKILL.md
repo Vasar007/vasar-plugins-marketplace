@@ -141,7 +141,18 @@ public sealed record {Feature}Options : IValidatableObject
 
 ## Step 2: Validator
 
-Use `ValidationErrorBuilder.Default` with `CreateValueRequiredMessage()` for a rule that requires a value, for example `NotEmpty` or `NotNull`. A range rule, for example `GreaterThan` or `InclusiveBetween`, keeps the default message of the validation library. The value of such a property is present but out of range, so a message that says that the value is required is wrong.
+Give each rule a message from `ValidationErrorBuilder.Default`. Pick the method that matches the rule:
+
+| Rule | Message method |
+| --- | --- |
+| `NotNull`, or `NotEmpty` on a collection or another value | `CreateValueRequiredMessage` |
+| `NotEmpty` on a string | `CreateStringRequiredMessage` |
+| `GreaterThan(0)` | `CreateValueMustBePositiveMessage` |
+| `GreaterThanOrEqualTo(0)` | `CreateValueMustNotBeNegativeMessage` |
+| `Equal` | `CreateValueMatchWithExpectedMessage` |
+| `IsInEnum` | `CreateEnumValueMustBeDefinedMessage` |
+
+The builder has no method for a rule with two limits, for example `InclusiveBetween(1, 10)`. Such a rule keeps the default message of the validation library. Do not use `CreateValueRequiredMessage` for a range rule. The value of such a property is present but out of range, so a message that says that the value is required is wrong.
 
 ### Cascade Mode
 
@@ -167,13 +178,17 @@ public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Optio
         var errorBuilder = ValidationErrorBuilder.Default;
 
         // Use Cascade(CascadeMode.Stop) to prevent running further rules if earlier ones fail
-        RuleFor(x => x.TimeoutSeconds).Cascade(CascadeMode.Stop).GreaterThan(0);
+        RuleFor(x => x.TimeoutSeconds).Cascade(CascadeMode.Stop)
+            .GreaterThan(0)
+            .WithMessage(x => errorBuilder.CreateValueMustBePositiveMessage(x.TimeoutSeconds));
 
-        RuleFor(x => x.MaxRetries).Cascade(CascadeMode.Stop).InclusiveBetween(1, 10);
+        // The builder has no message for two limits, so this rule keeps the default message
+        RuleFor(x => x.MaxRetries).Cascade(CascadeMode.Stop)
+            .InclusiveBetween(1, 10);
 
         RuleFor(x => x.EndpointUrl).Cascade(CascadeMode.Stop)
             .NotEmpty()
-            .WithMessage(x => errorBuilder.CreateValueRequiredMessage(x.EndpointUrl));
+            .WithMessage(x => errorBuilder.CreateStringRequiredMessage(x.EndpointUrl));
 
         // Only if the options class has nested options (see "Example Options Class" below)
         // For nested options, use SetValidator
@@ -474,7 +489,7 @@ Create configuration options tests following project conventions.
 - [ ] Properties use `{ get; set; }` (preferred) or `{ get; init; }`
 - [ ] Properties have sensible defaults
 - [ ] `[Required]`, `[Range]`, and other attributes on properties as needed
-- [ ] Validator of the validation library, with `ValidationErrorBuilder.Default.CreateValueRequiredMessage()` on each rule that requires a value
+- [ ] Validator of the validation library, with the `ValidationErrorBuilder.Default` message method that matches each rule
 - [ ] Validator stops at the first failed rule (FluentValidation: `ClassLevelCascadeMode = CascadeMode.Stop`)
 - [ ] Rule chains stop at the first failed rule to prevent invalid validation calls (FluentValidation: `.Cascade(CascadeMode.Stop)`)
 - [ ] Nested options use the child-validator call (FluentValidation: `.SetValidator(new NestedOptionsValidator())`)
