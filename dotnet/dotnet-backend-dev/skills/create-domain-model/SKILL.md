@@ -120,7 +120,7 @@ public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 - Constructor parameters must validate ALL inputs
 - Use `ThrowIfNull()` not null-coalescing for explicit errors
 - If you override `Equals`, `GetHashCode` must use the same field set
-- If you override `ToString`, it must include ALL fields for debugging
+- If you override `ToString`, it must include all fields, for debugging. For each field with sensitive information, write the erased placeholder as its value (see [Sensitive Information](#sensitive-information))
 
 ## Sensitive Information
 
