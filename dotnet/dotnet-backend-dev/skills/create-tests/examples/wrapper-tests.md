@@ -51,7 +51,7 @@ public sealed class SessionIdTests : BaseGuidWrapperTests<SessionId>
 
     public SessionIdTests()
     {
-        _generator = SessionGenerator.Instance;
+        _generator = new SessionGenerator();
     }
 
     protected override SessionId CreateNewWrapperValue()
@@ -95,7 +95,7 @@ public sealed class CustomerIdTests : BaseStringWrapperTests<CustomerId>
     public CustomerIdTests()
         : base(ignoreCase: true)  // Case-insensitive comparison
     {
-        _generator = CustomerGenerator.Instance;
+        _generator = new CustomerGenerator();
     }
 
     protected override CustomerId CreateNewWrapperValue()
@@ -127,7 +127,7 @@ public sealed class CustomerIdTests : BaseStringWrapperTests<CustomerId>
 public MyWrapperIdTests()
     : base(ignoreCase: true, conversionType: StringWrapperConversionType.ToLowerInvariant)
 {
-    _generator = MyWrapperGenerator.Instance;
+    _generator = new MyWrapperGenerator();
 }
 ```
 

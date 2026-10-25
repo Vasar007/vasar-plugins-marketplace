@@ -48,11 +48,6 @@ namespace MyApp.Tests.Common.Helpers.Generators.Sales.Markets;
 
 public sealed class MarketGenerator
 {
-    /// <summary>
-    /// Singleton instance for convenient access.
-    /// </summary>
-    public static MarketGenerator Instance { get; } = new();
-
     public MarketGenerator()
     {
     }
@@ -127,8 +122,7 @@ public sealed class MarketServiceTests : BaseMockTest
 
     public MarketServiceTests()
     {
-        // Use singleton instance
-        _generator = MarketGenerator.Instance;
+        _generator = new MarketGenerator();
     }
 
     [Test]
@@ -205,7 +199,7 @@ public sealed class CustomerGenerator
 
     public CustomerGenerator()
     {
-        _storeGenerator = StoreGenerator.Instance;
+        _storeGenerator = new StoreGenerator();
         _orgGenerator = new OrganizationGenerator();
     }
 
@@ -252,7 +246,7 @@ public CustomerAccount GenerateCustomerAccount(
 
 ## Key Points
 
-1. **Singleton access**: Use `{Generator}.Instance` for convenience
+1. **New instance**: Create each generator with `new {Model}Generator()`. Do not add a static `Instance` property. This is a rule of the project: a shared static generator caused test failures that were hard to trace in real projects.
 
 2. **Create vs Generate**: `Create` for explicit values, `Generate` for random
 

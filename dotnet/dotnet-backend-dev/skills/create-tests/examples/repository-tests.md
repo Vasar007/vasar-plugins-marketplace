@@ -211,7 +211,7 @@ public sealed class MarketShipmentRepositoryTests<TTestDbContextFactory>
 
     public MarketShipmentRepositoryTests()
     {
-        _generator = ShipmentGenerator.Instance;
+        _generator = new ShipmentGenerator();
     }
 
     // ... implement all 6 required overrides
@@ -260,7 +260,7 @@ For `TwoKeysTest`, also tests:
 
 ## Key Points
 
-1. **Use generators**: Create test models via `{Model}Generator.Instance`
+1. **Use generators**: Create test models with a generator that the test class creates with `new {Model}Generator()`
 
 2. **Async CreateModelAsync**: allows a complex setup, for example related entities that the test creates first
 

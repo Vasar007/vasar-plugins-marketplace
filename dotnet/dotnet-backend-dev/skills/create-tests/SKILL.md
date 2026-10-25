@@ -147,7 +147,7 @@ public sealed class {ClassName}Tests : {BaseClass}
 
     public {ClassName}Tests()
     {
-        _generator = SomeGenerator.Instance;
+        _generator = new SomeGenerator();
     }
 
     // Tests organized by method/feature
@@ -158,7 +158,7 @@ public sealed class {ClassName}Tests : {BaseClass}
 
 **ALWAYS use test model generators** to create test data:
 
-- Generators are singletons: `{Model}Generator.Instance`.
+- Create each generator with `new {Model}Generator()` in the constructor of the test class. A generator has no static `Instance` property. This is a rule of the project: a shared static generator caused test failures that were hard to trace in real projects.
 - They are in `Tests.Common/Helpers/Generators/` or `{ProjectName}.Tests.Common/Helpers/Generators/`.
 - They have `Create{Model}()` methods (explicit parameters) and `Generate{Model}()` methods (random values).
 - **NEVER call generators directly in test cases.** Wrap each call in a private `Generate{Model}(...)` helper method (see [Private Helper Methods](#private-helper-methods-mandatory-indirection)).

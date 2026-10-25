@@ -158,7 +158,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
     public AccountSelectionServiceTests()
     {
-        _generator = AccountGenerator.Instance;
+        _generator = new AccountGenerator();
     }
 
     [Test]
@@ -222,7 +222,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 4. **Stateful behavior**: Internal list tracks add/update/delete operations
 
-5. **Use generators**: Create test data with `{Model}Generator.Instance`
+5. **Use generators**: Create test data with a generator that the test class creates with `new {Model}Generator()`
 
 6. **Fixture.Inject**: In AutoFixture, replace the default mock of the fixture with the configured builder result
 
