@@ -76,8 +76,8 @@ Some test paths compile only under a define constant, for example the constant f
 
 1. Add the define constant to the Debug `<DefineConstants>` in `Directory.Build.props` for the time of the work.
 2. Run **only** targeted tests: `dotnet test --filter "FullyQualifiedName~<name>"`. Never run the full suite while the constant is set.
-3. **Before the full-suite run**, remove the constant from the Debug constants. The props file then has its committed content again.
-4. Run the full suite before you report the work as complete. No failure counts as pre-existing: you must fix each red signal in the session (see `dev-essentials:engineering-discipline` Rule 1).
+3. Before the test run of step 4, remove the constant from the Debug constants. The props file then has its committed content again.
+4. Before you report the work as complete, run the test classes that you wrote or changed. Run them in one run, with one filter that joins the full class names with `|`, for example `dotnet test <TestProject>.csproj --filter "FullyQualifiedName~<Namespace>.<TestClassA>.|FullyQualifiedName~<Namespace>.<TestClassB>."`. Use the full class name and end it with a dot, because `~` also matches longer names that start with it. If the user asks for the full suite, run it. A change in a props file changes the build of every project. If the work keeps such a change, ask the user before a full-suite run. A full-suite run can start slow integration tests, so follow `dev-essentials:dotnet-build-test` for it. No failure counts as pre-existing: you must fix each red signal in the session (see `dev-essentials:engineering-discipline` Rule 1).
 
 ### Props / config files — never stage automatically
 
