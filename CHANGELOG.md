@@ -9,6 +9,35 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.4.1, dotnet-backend-dev 1.6.1, and gop-pipeline 1.4.1 in release [3.6.1] - 2026-10-25
+
+This release adds the first eval tooling (issue #65). An eval runs test prompts and scores each run with graders. CI now runs `claude plugin validate` and a budget test for the always-on cost of each plugin. It also searches for lines that ask the model to write out its reasoning, and it checks that each changed plugin raises its version. A new script compares one eval suite at two commits. Each plugin gets trigger cases for the units whose descriptions share trigger words. A unit is a skill, an agent, or a command. No unit changes, so the plugins behave as before.
+
+### Added in dev-essentials
+
+- `evals/triggers/` (issue #65): 18 trigger cases for 9 pairs of units, for example `review-loop` and `help-review-pr`. For each pair, one case checks that the right unit starts. A near-miss case checks that the unit does not start for the words of the other unit. If another unit owns those words, the case also checks that this other unit starts. CI does not run them, because each run calls a model.
+
+### Added in dotnet-backend-dev
+
+- `evals/triggers/` (issue #65): 10 trigger cases for 5 pairs of units, for example `create-controller` and `update-swagger-spec`.
+
+### Added in gop-pipeline
+
+- `evals/triggers/` (issue #65): 2 trigger cases. They check that `gop-work` starts on a request for GOP mode, and not on a plain request to implement and commit a task.
+
+### Added in the repository
+
+- `tests/test_plugin_cli.py` (issue #65): runs `claude plugin validate --strict` on the marketplace and on each plugin. It also compares the always-on cost of each plugin from `claude plugin details` with a budget.
+- `tests/test_prompt_phrases.py` (issue #65): fails on a line in a plugin file that asks the model to write out its reasoning. Such a line can make a model refuse the task.
+- `tests/evals/compare_versions.py` (issue #65): runs one `claude plugin eval` suite on the plugin at a base commit and at a head commit, or reads two finished result files. It then gives a verdict with the rules of the single-agent-loop-kit. A lower mean score or a missing case fails. A change in at most one run is marked as possible noise, and the report prints the commands to run those cases again. If the output folder already holds a result file, the script stops. The report names the agent model and the judge model of each side, and it shows route checks as information only. `tests/evals/test_compare_versions.py` tests it on a fixture result file and calls no model.
+- `tests/test_version_bump.py` (issue #65): if a pull request changes a file of a plugin, and the version of that plugin does not go up, the test fails.
+
+### Changed in the repository
+
+- `.github/workflows/tests.yml` (issue #65): CI installs the latest Claude Code with npm. CI also fetches the full history, so that the version check finds the merge base.
+- `.gitignore` (issue #65): git ignores the `evals/results/` folder of each plugin.
+- `README.md` (issue #65): the Testing section names the new tests. A new Evals section says how to run the trigger cases and the compare script by hand.
+
 ## dotnet-backend-dev 1.6.0 in release [3.6.0] - 2026-10-25
 
 Some instructions of dotnet-backend-dev contradicted another file, or fired on a request that they did not support (issue #62). The `add-migration` skill now has a path for a standard EF Core repo. The templates and the examples now follow the rules of the skills. Some fixes change the code that a skill writes on purpose. Each of these bullets says so.
@@ -716,7 +745,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...HEAD
+[3.6.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...v3.4.0

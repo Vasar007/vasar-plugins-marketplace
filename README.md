@@ -146,7 +146,7 @@ Run the second command for each plugin that you changed. The run on the reposito
 
 ### Testing
 
-The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3 and Git. The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
+The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
 
 To run all tests, run this command from the repository root:
 
@@ -159,12 +159,41 @@ The command runs these parts:
 - The tests of `check_report.py` (skill `bug-hunt`) and `trim_report.py` (skill `trim-artifacts`).
 - The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test.
 - markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+- `claude plugin validate --strict` on the marketplace and on each plugin.
+- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
+- A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
+- The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
+- A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
 
 The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
 
-The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter fails the run. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+
+The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
+
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+
+### Evals
+
+An eval case is a prompt and its graders. A grader is a pass or fail check of a run. `claude plugin eval` runs the cases of a plugin and scores them. Each run calls a model on your account, so CI does not run the evals. The docs page [Test plugins with evals](https://code.claude.com/docs/en/plugin-evals) describes the case format.
+
+The script `tests/evals/compare_versions.py` runs one suite on the plugin at a base commit and at a head commit. Then it compares the scores. Both sides run the cases of the head commit. This example runs the suite of `dev-essentials`:
+
+```bash
+python3 tests/evals/compare_versions.py run --plugin essentials/dev-essentials --base main --head HEAD --model <model id> --judge-model <model id> --out <folder>
+```
+
+Pass full model ids. The result files store them, because a comparison is valid only on the same models. The script writes `base.json`, `head.json`, and `report.md` into the `--out` folder. If the folder already holds a result file, the script stops. For a case that the report marks as unclear, the report prints the commands to run the case again and to compare all result files. To compare result files that you already have, use `compare --base <files> --head <files>`. For the rules of the verdict, run the script with `--help`.
+
+The trigger cases are in `evals/triggers/` of each plugin. In this section, a unit is a skill, an agent, or a command. Some units have the same trigger words in their descriptions. For each such pair, one case checks that the right unit starts. A near-miss case checks that the unit does not start for the words of the other unit. If another unit owns those words, the case also checks that this other unit starts. A grader with the name `<unit>-not-fired` checks that another unit did not start. The trigger cases use no shell tool, so they also run on native Windows. To run the trigger cases of one plugin, run this command from the repository root:
+
+```bash
+claude plugin eval essentials/dev-essentials --ablation none --trust-plugin --no-publish --model <model id> --judge-model <model id> --tag triggers
+```
+
+To compare only the trigger cases at two commits, add `--tag triggers` to the command of the compare script. The run writes its results into `evals/results/` of the plugin. Git ignores this folder. A suite that grants `Bash` needs the sandbox of Claude Code, and native Windows has no sandbox. Run such a suite under WSL2.
 
 ## Conventions
 

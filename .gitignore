@@ -30,3 +30,6 @@ CLAUDE.local.md
 docs/superpowers/
 docs/private/
 Notes/
+
+# Results of claude plugin eval runs
+*/*/evals/results/
