@@ -1,12 +1,53 @@
 ---
 name: add-migration
-description: Add an EF Core database migration or a product upgrade migration, with the storage configuration that the database provider needs.
+description: Add a database migration. In a standard EF Core repo, it runs `dotnet ef migrations add`. A repo can have the `IDatabaseMigration` and `IProductMigration` interfaces of the framework. There, it writes a migration class for a schema change, a data change, or a product upgrade.
 when_to_use: Use it for "add migration", "schema change", "data transformation", or "product upgrade".
 ---
 
 # Add Migration
 
-Create EF Core migrations for database schema changes or product-level upgrade operations using the Framework migration system.
+Add a migration for a schema change, a data transformation, or a product upgrade. A repo uses one of two migration systems: the standard migrations of EF Core, or the migration system of the framework (`IDatabaseMigration` and `IProductMigration`). Find out which system the repo uses before you write code.
+
+## Choose the Migration System
+
+Search the repo for the files and the names below. Then use the row that matches. If the first two rows both match, ask the user which system to use. "Provider" means the database provider that the app uses in production, not a test provider such as SQLite or InMemory:
+
+| The repo has | Use |
+| --- | --- |
+| A model snapshot of EF Core: a `*ModelSnapshot.cs` file, usually in a `Migrations/` folder | [Standard EF Core Migrations](#standard-ef-core-migrations) for a schema change, or for a data transformation in the `Up` and `Down` methods of a migration |
+| Classes that implement `IDatabaseMigration` or `IProductMigration` | The framework migration system, from [Migration Types](#migration-types) on, for a schema change, a data transformation, a product upgrade, or a change on a document database |
+| Neither, and a relational production provider (for example, SQL Server, PostgreSQL, or SQLite) | [Standard EF Core Migrations](#standard-ef-core-migrations). The first migration also writes the model snapshot |
+| Neither, and a document database as the production provider (for example, Cosmos DB) | No migration system. Stop and ask the user. The EF Core provider for Cosmos DB does not support schema migrations |
+
+Do not add the framework interfaces to a repo that does not reference the framework. The build then fails with `CS0246`, because the types do not exist.
+
+## Standard EF Core Migrations
+
+The `dotnet ef` tool writes the migration file and updates the model snapshot. Do not change the snapshot by hand, because it must match the model of the `DbContext`. You can add custom code to the `Up` and `Down` methods of a migration, for example a data backfill with `migrationBuilder.Sql(...)`.
+
+The tool needs the `dotnet-ef` .NET tool, and the startup project needs a reference to the `Microsoft.EntityFrameworkCore.Design` package. If `dotnet ef --version` fails, install the tool. If it shows another major version than the EF Core packages of the repo, run the same command with `update` in place of `install`:
+
+```bash
+dotnet tool install --global dotnet-ef --version "<major>.*"
+```
+
+`<major>` is the major version of the EF Core packages of the repo, so that the tool matches them.
+
+If the repo lists `dotnet-ef` in a tool manifest (`.config/dotnet-tools.json`), run `dotnet tool restore` instead.
+
+1. Change the entity classes and their configuration first. The tool compares the model with the snapshot and writes the difference.
+2. Add the migration. `<Name>` is a PascalCase name for the change, for example `AddOrderDiscount`. `--project` names the project with the `DbContext`. `--startup-project` names the project that starts the app, for example the WebApi project:
+
+   ```bash
+   dotnet ef migrations add <Name> --project src/{ProjectName}.Infrastructure --startup-project src/{ProjectName}.WebApi
+   ```
+
+   If the repo has more than one `DbContext`, add `--context <DbContextName>`.
+3. Read the new migration file. Make sure that `Up` and `Down` hold only the change of step 1. If they also hold other changes, the model and the snapshot were different before your change. Tell the user, and do not remove these changes without approval. If your own change is wrong, run `dotnet ef migrations remove` with the same `--project` and `--startup-project` options. Then fix the model, and go back to step 2. Do not add `--force`, because it also reverts the migration in the database.
+4. Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again.
+5. Do not run `dotnet ef database update` unless the user asks for it. The command changes a database.
+
+The sections from [Migration Types](#migration-types) to the [Checklist](#checklist) are for the framework migration system only.
 
 ## Migration Types
 
@@ -459,7 +500,7 @@ If you need a different partition key:
 1. Create a new container with the new partition key
 2. Migrate data from old container to new container
 3. Update DbContext to use new container
-4. Delete old container (after verification)
+4. Make sure that the new container has all the data. Then ask the user before you delete the old container, and delete it only after the user agrees. The delete removes all documents in the old container.
 
 ### No Schema Enforcement
 
@@ -525,6 +566,8 @@ modelBuilder.Entity<MyNewEntity>()
 4. For Cosmos DB, monitor RU consumption
 
 ## Checklist
+
+This checklist is for the framework migration system. For a standard EF Core migration, use the steps of [Standard EF Core Migrations](#standard-ef-core-migrations).
 
 - [ ] Determined migration type (IDatabaseMigration or IProductMigration)
 - [ ] Created migration class in `Infrastructure/Persistence/Migration/{Feature}/`
