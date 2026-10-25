@@ -21,7 +21,7 @@ The GOP pipeline had four bugs and one rule that never applied (issue #58). In s
 - `gop-work` (issue #58): a failed build, or a test that failed because of production code, stopped the run, also with `--autonomous`. `gop-test` must not change production code. Behavior change: the run now goes back to Phase 1 with the failures, and the main session fixes the production code. The run does this at most 2 times, and then it stops and reports the failures.
 - The five `gop-validate-*` validators (issue #58): a rule made a failed build or test CRITICAL. The rule never applied, because the run stops or starts a fix cycle before the validation. The rule is gone. The validators still record "no tests found" as INFO.
 - `gop-work` (issue #58): the skill now states that its build and test phases assume a .NET solution and the .NET SDK on `PATH`.
-- `gop-test` (issue #58): the agent polled the log of a long test run with `sleep` loops. When the background command of a background subagent ends, Claude Code sends the subagent a notification. The agent now waits for that notification and then reads the exit file and the log. `gop-work` now starts `gop-test` as a background subagent, so the notification arrives.
+- `gop-test` (issue #58): the agent polled the log of a long test run with `sleep` loops. When the background command of a background subagent ends, Claude Code sends the subagent a notification. The agent now waits for that notification and then reads the exit file and the log. `gop-work` now starts `gop-test` as a background subagent, and the agent file sets `background: true`. So the notification arrives.
 
 ### Changed in gop-pipeline
 

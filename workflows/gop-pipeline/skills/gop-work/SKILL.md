@@ -107,7 +107,7 @@ Without `--interactive`: do not enter Plan Mode. Dispatch code-search agents and
     - If neither kind of file changed, **skip this phase**, and set `test_status = "NO_TESTS_FOUND"`.
 
     `gop-test` does the full test-project search. If it finds no test project, it returns `NO_TESTS_FOUND`.
-13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent as a background subagent, injecting the inputs below. A test run can take longer than the Bash time limit, so `gop-test` runs it in the background and waits for its notification. Only a background subagent gets that notification. If the `Agent` tool has a `run_in_background` parameter, set it to `true`. Do not ask for a foreground run.
+13. If step 12 did not skip this phase, launch a **gop-pipeline:gop-test** subagent as a background subagent, injecting the inputs below. A test run can take longer than the Bash time limit, so `gop-test` runs it in the background and waits for its notification. Only a background subagent gets that notification. The agent file sets `background: true`. Then it runs in the background, also for a caller that waits for it. If the `Agent` tool has a `run_in_background` parameter, set it to `true` too.
     - `modified_files`: `run_files` from Phase 1
     - `change_summary`: from Phase 1
     - `repo_root`: the detected repository root

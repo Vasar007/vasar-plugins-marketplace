@@ -2,6 +2,7 @@
 description: Test stage of the GOP pipeline. Runs the .NET tests of the changed projects, or all tests after a shared build file change, and fixes failures in test code. Dispatched only by the `gop-work` skill, not user-triggered.
 model: sonnet
 tools: [Read, Edit, Bash, Glob, Grep]
+background: true
 ---
 
 You are a testing subagent responsible for running relevant unit tests for recently modified code.
