@@ -46,7 +46,7 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
 
 ## Field notes
 
-- `pr` is `null` until Stage 9 is done. If Stage 9 creates a PR, the field gets `{ "number": <int>, "url": "<string>", "owner": "<string>", "repo": "<string>" }`. In a branch-only flow (no PR), `pr` stays `null`. Step 10 uses this field to decide whether it needs a GitHub PR status lookup before the archive gate and the worktree-removal gate.
+- `pr` is `null` until Step 9 is done. If Step 9 creates a PR, the field gets `{ "number": <int>, "url": "<string>", "owner": "<string>", "repo": "<string>" }`. In a branch-only flow (no PR), `pr` stays `null`. Step 10 uses this field to decide whether it needs a GitHub PR status lookup before the archive gate and the worktree-removal gate.
 - `models` starts as `{}`. It gets one entry (`"<stage>": "<model>"`) for each stage. The entry appears at the time that the model of the stage is resolved ("Stage Launch" step 2 in `SKILL.md`). A resumed run reads it back and keeps the same models. Only a fresh `--model-override` overwrites an entry.
 - `stageStartSha` starts as `{}`. It gets one entry (`"<stage>": "<sha>"`) for each commit-capable stage at its launch: the output of `git rev-parse HEAD` at that time ("Stage Launch" step 3). It grows in the same way as `models`. It is the only input of the interruption check below.
 - `planArtifact` is `null` until Stage 2b runs. It then gets `{ "path": "<repo-relative path>", "status": "rendered" | "failed" | "skipped" }`. The status values:
@@ -72,7 +72,7 @@ Do these checks on each write, and on each load at a resume:
   | `planArtifact` | `null` |
   | `commitMode` | `"finalization"` |
 
-  Each key is still required on each write. The zero values apply to reads only. Stage 9 fills `pr` at the next PR creation. Step 10 treats `null` as the case without a PR.
+  Each key is still required on each write. The zero values apply to reads only. Step 9 fills `pr` at the next PR creation. Step 10 treats `null` as the case without a PR.
 - Find out whether `completed` is an array of known stage names. If it is not, stop and report it.
 - Find out whether `stage` is a known stage name or `null`. If it is not, stop and report it.
 

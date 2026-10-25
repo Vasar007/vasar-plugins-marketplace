@@ -70,6 +70,8 @@ These rules apply in all modes:
 - If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
+In this skill, a thread reply and a thread resolve are not dangerous gates. This rule replaces the default-mode line above about a post to an outside system. So the default mode posts a reply and resolves a thread without a stop. Buckets A1 and A2 below say which replies post at once and which ones wait as a draft. In the default mode, only two dangerous gates stop: each push, and each new `[OutOfScope]` issue.
+
 The `autonomous` flag (default off) removes every stop of this skill: the approach of the implementation, the replies, the `[OutOfScope]` issue creation, and the push. This skill has no merge step. A human reviewer still reviews and approves the PR before the merge, and `autonomous` does not approve the PR. Thread resolution is not a gate. After the push of a fix lands, the skill resolves the thread on its own, with or without `autonomous` (see Phase 4). For the rank of `autonomous` against the other flags, see the flag precedence in Rules. The gates fall into three buckets.
 
 ### Bucket A1: local decision gates, approved by default
