@@ -208,6 +208,12 @@ public sealed class {Entity}Service : I{Entity}Service
 
 Note: Repositories call `SaveChangesAsync` internally. Callers, including services, must NOT call it.
 
+## Step 7: Build, Then Add a Migration
+
+1. Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again.
+2. Find the database provider that the app uses in production. A repo can pick the provider by configuration, for example Cosmos DB in production and SQLite or InMemory in tests. Only the production provider counts. If the production provider is not clear, ask the user.
+3. If the production provider is relational (for example, SQL Server or PostgreSQL), add a migration with the [add-migration](../add-migration/SKILL.md) skill. Its table chooses the migration system. A new `DbSet` has no table until a migration creates it, so the first query fails without the migration. A document database (for example, Cosmos DB) has no schema, so a new entity needs no migration there.
+
 ## Key Rules
 
 1. **Entities are mutable records**: use `{ get; set; }` for updateable properties
@@ -242,3 +248,5 @@ Create tests for EF entities, mappers, repositories, and services:
 - [ ] Application service interface and implementation (only for a case in the Step 6 list)
 - [ ] Service registered in DI (if applicable)
 - [ ] DbSet added to {ServiceName}DbContext
+- [ ] The changed projects build with no errors
+- [ ] On a relational provider, a migration for the new `DbSet` (see [add-migration](../add-migration/SKILL.md))
