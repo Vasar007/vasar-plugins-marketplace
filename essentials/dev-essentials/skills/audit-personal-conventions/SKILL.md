@@ -1,6 +1,6 @@
 ---
 name: audit-personal-conventions
-description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills). Decide which rules to promote into a marketplace plugin. It classifies each rule, shows a triage for approval, authors the approved entities, runs a review loop, and bumps the plugin version."
+description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills). Decide which rules to promote into a marketplace plugin. It classifies each rule and shows a triage. On a request to promote, it also authors the approved entities, runs a review loop, and bumps the plugin version."
 when_to_use: "Use it for 'audit my memory', 'promote my memory to skills', or 'which of my rules belong in the marketplace'. Do not use it to turn one named rule into a skill."
 ---
 
@@ -37,12 +37,23 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 | `--branch-prefix=<prefix>` | derive from context, else ask | The prefix of the branch name for Phase 9c branches (`<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>`). Default: if a CLAUDE.md file of the project or the global CLAUDE.md states a branch-name convention, take the prefix from it. Else, ask the user once for each run, before the first cross-repo branch. |
 | `--delete-personal-entities` | off (bare) | **Opt-in.** Lets Phase 9d delete personal global command, agent, and skill files that an entity supersedes. That entity is either promoted in this run, or already shipped (then Phase 3 classifies the file F-stale). The checks and questions of Phase 9d still gate each deletion. Without the flag, Phase 9d only reports the superseded files with a suggested manual action. |
 | `--resume=<path>` | none | Resumes a deferred Phase 9c cleanup from its TODO file, without a new audit. This is the 9c-only re-entry mode (Phase 9c.1). Phase 0 resolves the marketplace root in its resume order. |
-| `--dry-run` | off (bare) | Run Phases 0 to 4 only, and stop after the triage. No approval gate, no authoring, no cleanup. |
+| `--dry-run` | off (bare) | Run Phases 0 to 4 only, and stop after the triage. No approval gate, no authoring, no cleanup. A request that is not a promote request stops at the same point without this flag (see "Question or promotion"). |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
 | `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
 | `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
 
-**Only `--autonomous` skips the Phase 9 gates. This includes the per-repo push gate.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
+**Only `--autonomous` skips the Phase 9 gates. This includes the per-repo push gate.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. On a promote request, the Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
+
+## Question or promotion
+
+Decide the kind of request before Phase 0, because only a promote request changes files.
+
+- A promote request asks the run to promote rules or to act on a triage. Examples: "promote my memory to skills", "promote the recommended items", or a reply to a triage with the Phase 5 verbs.
+- Any other request is a question or an audit. Examples: "which of my rules belong in the marketplace?", "audit my memory", or an invocation of this skill with no request text.
+
+For a question or an audit, run Phases 0 to 4, as `--dry-run` does, and stop after the triage. The user asked for a list, not for new commits or a version bump. End the reply with one line on how to go on: answer the triage with the Phase 5 verbs, or ask to promote the recommended items. That later answer is the promote request. Continue at Phase 5 with it, and do not run Phases 0 to 4 again.
+
+`--autonomous` does not turn a question into a promote request, because the flag removes stops and adds no steps. `--resume=<path>` is a request of its own. It runs the 9c-only re-entry mode of Phase 9c.
 
 ## Autonomy
 
@@ -160,7 +171,7 @@ Copy the Phase 4 triage template from `references/report-templates.md`. Fill eve
 
 ### Phase 5 — Approval gate (hard gate)
 
-Without `--interactive`, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. With `--interactive`, wait for the reply of the user, as below.
+Phase 5 runs only on a promote request (see "Question or promotion"). Without `--interactive`, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. With `--interactive`, wait for the reply of the user, as below.
 
 Number the items with one global `#N` numbering across every table of Phase 4. The reply has three verbs, `approve`, `defer`, and `reject`, and two shorthands, `approve all promotes` and `approve none`. **Anything not named is deferred, always.** No approval is implicit.
 
