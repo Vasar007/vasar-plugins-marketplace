@@ -163,6 +163,7 @@ The command runs these parts:
 - A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
+- A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
 
@@ -170,7 +171,9 @@ The simple-english test first looks for the linter in the folder that the variab
 
 The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
 
-The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
+
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
 
 ### Evals
 

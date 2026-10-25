@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # The version check in tests/test_version_bump.py needs the base branch and the merge base.
+          fetch-depth: 0
 
       # Take the latest release of the simple-english linter, not a pinned commit.
       - name: Find the latest SimpleEnglish release
