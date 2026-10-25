@@ -7,6 +7,7 @@ effort: low
 autoCompactWindow: 100000
 omitClaudeMd: true
 maxTurns: 15
+background: true
 ---
 
 # Test Runner
@@ -49,9 +50,9 @@ If the brief says that a test run can take longer than 10 minutes, use these ste
 
 1. Make a log folder outside the repository with `mktemp -d`.
 2. Start the run with `run_in_background: true` and a `timeout` that covers the run, at most `7200000` (2 hours). Send the output to a log file in that folder. Then write the exit code to an exit file in the same folder.
-3. Wait in foreground calls. Give each call a `timeout` of at most `600000`. In each call, loop over short `sleep` turns, look for the exit file, and exit the loop before the timeout. Do not end your run before the exit file exists, unless step 5 applies.
-4. When the exit file exists, read the log file. Report the result from the exit code and the log only.
-5. If Claude Code reports that the background command stopped at its time limit, stop the wait. Report the test run as failed, and give that reason.
+3. Wait for the notification that the command ended. Do not poll the log or the exit file with `sleep` loops or repeated tool calls. Write your report only after the notification arrives.
+4. Read the exit file and the log file. Report the result from the exit code and the log only.
+5. If Claude Code reports that the background command stopped at its time limit, report the test run as failed, and give that reason.
 
 ## Report format
 

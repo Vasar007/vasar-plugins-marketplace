@@ -35,7 +35,7 @@ Besides the snapshots, you can read these sources. All of them are read-only.
 
 - Public documentation and web pages, with WebFetch and WebSearch.
 - Source code of third-party libraries at the version that the project uses. Download it into the shared tools folder.
-- GitHub data. If `gh` is installed and signed in, use these `gh` commands only: `gh issue list`, `gh issue view`, `gh pr list`, `gh pr view`, `gh run list`, `gh run view`, `gh release list`, `gh release view`, and `gh api` for GET requests. With `gh api`, do not use `-X`, `--method`, `-f`, `-F`, `--field`, `--raw-field`, or `--input`. These flags can send a write request. Do not use `--web` with any `gh` command. It opens a browser.
+- GitHub data. If `gh` is installed and signed in, use these `gh` commands only: `gh issue list`, `gh issue view`, `gh pr list`, `gh pr view`, `gh run list`, `gh run view`, `gh release list`, `gh release view`, and `gh api` for GET requests. With `gh api`, do not use `-X`, `--method`, `-f`, `-F`, `--field`, `--raw-field`, or `--input`. These flags can send a write request. Do not use `--web` with any `gh` command. It opens a browser. You have no GitHub MCP tools, so these `gh` commands are your only GitHub source. The rule to use only the GitHub MCP tools (`dev-essentials:github-mcp-conventions`) is for the bug-hunt orchestrator and the known-issues collector, not for you.
 
 ## Rules
 

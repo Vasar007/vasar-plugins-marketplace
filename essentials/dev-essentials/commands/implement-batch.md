@@ -30,7 +30,7 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
 | `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>` from the branch-naming convention in the `CLAUDE.md` of the repo or of the user. Without a convention, **ask once**. |
-| `--plan-dir=<path>` | `Notes/Plans/` | The folder inside the worktree for the plan files. A plan location that the repo documents wins. |
+| `--plan-dir=<path>` | `Notes/Plans/` | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--push` | off | Push the finished stack after the final report. **Off unless the user asks for it in this invocation.** |
 | `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
@@ -69,13 +69,14 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - **Effort**: pass `effort` on each dispatch of a general agent type. The planner of Step 2: `high`, or `xhigh` for a large plan or a change on the critical path. The implementer of Step 3: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer and a mechanical extraction: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and the fixer with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels.
 - **Parallel where safe, sequential where not.** All N tasks share one worktree. Two dispatches can run at the same time only under two rules. Each one writes its own path. Neither one runs a git command that changes the worktree, the index, or the history. Such commands are `add`, `commit`, `checkout`, `reset`, and branch operations, but not `log`, `show`, or `diff`.
   - The Step 2 planners qualify. Each one writes only its own `<--plan-dir>/<task-slug>-plan.md`, and uses git only to read (for example for `file:line` anchors). Dispatch them in parallel, and write both rules into every planner brief.
-  - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and they commit. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops (they commit) and the Step 4 final loop.
+  - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and they commit. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops and the Step 4 final loop, because this session runs each loop itself.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
 - A bounded dispatch does the work itself, and does not delegate it again (Rule 7). Examples: the plan of one task, one implementation, or one fix.
 
 ## Guardrails
 
-- **One task per commit** in the final stack. Do not merge two tasks into one commit or split one task across two, unless the user asks. One exception: the commit of task 1 also holds the Step 2 plans commit (Step 3.1). The guard "implement only this task" of Step 3.2 still binds the implementer of task 1. Only the squash of the orchestrating session takes in the plans commit.
+- **One task per commit** in the final stack. Do not merge two tasks into one commit or split one task across two, unless the user asks.
+- **Plan files stay out of commits**. Never stage a plan file of this run, and name the plan paths in the final report. A later reader of the history does not have the plans (`dev-essentials:engineering-discipline` Rule 3). Also, a repo can ignore the plan folder, and then `git add` of a plan file fails.
 - **Own every red signal** from each build or test run in this session (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates the batch.
 - **Do not improvise.** Ask the user about an unclear plan item, an ambiguous review finding, or a task that is bigger than its plan. Do not guess. With `--autonomous`, decide as "Autonomy" says.
 - The plan files are the source of truth. Keep them up to date as tasks complete.
@@ -110,24 +111,17 @@ Then, for each plan, run `dev-essentials:review-loop` with `target=spec <plan pa
 
 Collect the open decisions of all N plans, and each finding that a plan-review fixer did not resolve with confidence. If the list is empty, start Step 3 without a stop. Else, without `--autonomous`, ask the user all of them in one batch before Step 3. With `--autonomous`, decide each one as "Autonomy" says, write the decision into its plan, and start Step 3. Do not carry ambiguity into the implementation. The plan-review loops run without the routine triage stop. "Review-loop configuration" says which findings still reach the user.
 
-**Step 2 makes exactly one commit, before Step 3 starts.** The planners commit nothing. When the planners return, and before the first plan-review loop, stage the N plan files by explicit path, and commit them: `git -C "<worktree>" commit -m "Plans for <N> tasks"`. The N plan-review loops run one at a time and commit per cycle. When every plan is reviewed and every open question is answered or decided, stage the N plan files again by explicit path. A decision can change a plan after the loops. Then squash all Step 2 commits into one:
-
-```bash
-git -C "<worktree>" reset --soft <BATCH_BASE_SHA>
-git -C "<worktree>" commit -m "Plans for <N> tasks (<N> plan reviews)"
-```
-
-The squash-base safety stop of Step 3.6 applies. The squash of task 1 takes in this one commit (Step 3.1).
+**Step 2 makes no commit.** The planners and the plan-review loops change only the plan files. The plan files stay out of commits (see "Guardrails"). So each plan-review loop runs `dev-essentials:review-loop` with `--no-commit`, which turns off its Phase 7. The next cycle of that loop reviews the plan file again, as the fix pass changed it.
 
 ### Step 3 — Per-task cycle (repeat for each of the N tasks, sequentially)
 
 For task `i`:
 
-1. **Record the base SHA of the task.** For task 1, `TASK_BASE_SHA[1] = BATCH_BASE_SHA` from Step 1, **not** a new `rev-parse`. So the Step 3.6 squash of task 1 also takes in the plans commit. For tasks 2 to N, `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`. Also record `REVIEW_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`. For task 1, this is the Step 2 plans commit, so the review of task 1 does not see the plans.
+1. **Record the base SHA of the task**: `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
 2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. The implementer runs its own build and tests. Then dispatch `dev-essentials:test-runner` with the absolute worktree path and the build and test commands of the plan. Follow item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. It covers the test filter, a STOPPED status, and the comparison of the result with the report of the implementer. If they differ, or the status is not GREEN, resume the implementer with the report of the test runner. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
-4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: the source and test changes of this task, and only the plan file of this task (`<plan-dir>/<this-task-slug>-plan.md`). Never stage the plan file of another task, also a dirty one.
-5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <REVIEW_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
+4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails").
+5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
 6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`:
 
    ```bash
@@ -135,7 +129,7 @@ For task `i`:
    git -C "<worktree>" commit -m "<Issue ref> — <summary> (implement + <rounds> review rounds)"
    ```
 
-   If a commit in this range is not work of this task, **STOP and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. For task 1, the Step 2 plans commit in this range is expected and does not trigger the stop. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
+   If a commit in this range is not work of this task, **STOP and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
 7. Report one status line, and go to task `i+1`.
 
 ### Step 4 — Final cross-task review
@@ -156,15 +150,16 @@ For task `i`:
 
 - **Do not push.** Report and wait for the review of the user. Push only with `--push` in this invocation, and only after you deliver the report.
 - Report the real commit topology: `git -C "<worktree>" log --oneline <BATCH_BASE_SHA>..HEAD`. The expected end state is **N task commits plus at most 1 final-review commit**. If the real topology differs, report it and explain why. Never report the planned shape as a fact.
-- For each task: what was implemented, which files, the review-loop verdict (`stop-clean`, `stop-max-rounds`, or `stop-blocked`), and the subject of the squashed commit. For task 1, say that its commit also holds the Step 2 plan-review fixes of all tasks.
+- For each task: what was implemented, which files, the review-loop verdict (`stop-clean`, `stop-max-rounds`, or `stop-blocked`), and the subject of the squashed commit.
+- The paths of the N plan files. They are not in any commit.
 - For the batch: the verdict of the final review, the build and test state at `HEAD`, and each decision that needed a sign-off with its outcome. Also each gate that this run passed without a stop, and each finding deferred by agreement. With `--autonomous`, also list each decision that the run made for the user under "Decisions for your review".
 - The absolute worktree path and the branch name.
 
 ## Review-loop configuration
 
-Every review loop of this command (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This command wants the "Default configuration" of that skill, so it overrides nothing. Only these options belong to this command:
+Every review loop of this command (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This command wants the "Default configuration" of that skill. It overrides only one point: the Step 2 loops pass `--no-commit` (see the last item). Only these options belong to this command:
 
 - `--rounds=<N>` from the `--rounds` of this command (default `2`), passed to every loop.
 - **`--interactive`**: without it, every loop runs without the Phase 4 triage stop. With it, pass `--interactive` to the Step 3 loops and to the Step 4 loop. Do not pass it to the Step 2 plan-review loops.
 - **`--autonomous`**: pass it to every loop, also to the Step 2 plan-review loops. Without it, a plan-review loop still asks the user at its own Phase 4 about a finding that is not clear-cut. A finding that a plan-review fixer did not resolve with confidence waits for the Step 2 batch.
-- Commit after each review cycle in every loop, so that the squashes are well defined.
+- Commit after each review cycle in the Step 3 and Step 4 loops, so that the squashes are well defined. The Step 2 loops pass `--no-commit` and commit nothing, because a plan file stays out of commits.

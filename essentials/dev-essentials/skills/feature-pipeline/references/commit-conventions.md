@@ -52,8 +52,7 @@ Follow them exactly; do not invent your own format.
 - **NEVER `--no-verify`.** If a hook fails, fix the underlying issue.
 - **NEVER amend.** If anything needs correcting after a commit exists, create
   a NEW commit.
-- **Do not push from your stage** — pushing happens only in the Finalization
-  stage (if you *are* Finalization, follow your own stage instructions for
-  when to push).
+- **Do not push from your stage**. The master agent pushes after the
+  Finalization stage. This holds for the Finalization stage too.
 - **Never commit anything under `{ARTIFACTS_DIR}/`.**
 ```

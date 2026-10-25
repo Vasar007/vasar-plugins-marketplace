@@ -9,6 +9,37 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.4.0 in release [3.5.0] - 2026-10-25
+
+This release fixes workflow bugs in dev-essentials (issue #60). Some rules contradicted each other. Some steps made a commit, a push, or a deletion that the user did not ask for. Where a fix changes behavior on purpose, the bullet says so.
+
+### Added in dev-essentials
+
+- `scripts/backup_move.py` (issue #60): a script that moves notes files to a backup folder outside the workspace. It never deletes a file, and it refuses a file that git tracks. Without `--apply`, it prints the plan only. `save-context` uses it.
+
+### Changed in dev-essentials
+
+- `audit-personal-conventions` (issue #60): behavior change: a question or an audit request, such as "which of my rules belong in the marketplace?", now stops after the Phase 4 triage. Before, the default mode approved its own triage, authored the entities, committed them, and bumped a version. Phase 5 and the later phases now run only on a request to promote. A reply to the triage with the Phase 5 verbs is such a request.
+- `save-context` (issue #60): behavior change: Step 5 moves the finished notes files to a backup folder outside the workspace with `backup_move.py`. Before, it deleted them with no stop and no copy. `research-implement-review-report` and `implement-task` now say "move" where they said "delete".
+- `implement-batch` (issue #60): behavior change: the plan files stay out of every commit. Step 2 makes no commit, and its plan-review loops pass the new `review-loop` option `--no-commit`. The commit of task 1 no longer holds the plans. Before, a repo that ignores the plan folder got an empty plans commit, and other repos shipped the plan files. The final report names the plan paths.
+- `implement` (issue #60): behavior change: a commit holds no plan file and no research file. The commit message follows the style of the repo, with no `Phase N: Task X.Y` numbers.
+- `opsx-implement` (issue #60): the commit message follows the style of the repo, with no phase or task numbers of `tasks.md`.
+- `feature-pipeline` (issue #60): behavior change: the finalization stage makes the commit and returns the facts for the push and the PR. The master agent then pushes and creates the PR in the main session. Before, the stage subagent pushed, against Rule 4 of `subagent-orchestration`.
+- `review-loop` (issue #60): new option `--no-commit` for a caller that keeps the target out of commits, for example a plan file. Phase 7 makes no commit, and Phase 8 re-reviews the whole target.
+- `review-loop` (issue #60): behavior change: for `target=pr <id>`, Phase 5 compares `HEAD` with the fetched PR head before the first fix. If they differ, the run asks the user, or with `--autonomous` it continues as `--dry-run`. Before, the fixer edited and committed on the branch that was checked out, also on an unrelated branch such as `main`. The trigger phrases now name the loop and its fixes, and a plain PR review points to `help-review-pr`. The gate covers `target=diff <range>` too: it compares `HEAD` with the right side of the range, and a range with `HEAD` on the right side needs no check.
+
+### Fixed in dev-essentials
+
+- `process-pr-comments` (issue #60): the copied Autonomy text said that a post stops in the default mode, but Bucket A1 posts replies with no stop. The skill now states its own gates: a reply and a resolve do not stop, and a push and a new issue do.
+- `subagent-orchestration` (issue #60): Rule 1 sent a plain "process PR comments" request to a subagent, which cannot ask the user. The main session now invokes `process-pr-comments`, with `dry-run` for a plan only.
+- `create-html-artifact` (issue #60): `references/pitfalls.md` said that a review of 1,000 lines has about 1 major item, which can act as a cap. The renderer now shows every finding that the caller gives.
+- `bug-hunter` and `bug-verifier` (issue #60): each agent now says that its read-only `gh` commands are its only GitHub source. The rule to use only the GitHub MCP tools is for the orchestrator and the known-issues collector.
+- `dotnet-build-test` and `test-runner` (issue #60): a long test run in a subagent no longer polls with `sleep`. A background subagent waits for the notification that its background command ended. `test-runner` sets `background: true`. Then it runs in the background, also for a caller that waits for it.
+
+### Changed in the repository
+
+- `tests/test_backup_move.py` (issue #60): unit tests for `backup_move.py`.
+
 ## gop-pipeline 1.4.0 and dotnet-backend-dev 1.5.0 in release [3.4.0] - 2026-10-25
 
 The GOP pipeline had four bugs and one rule that never applied (issue #58). In some runs, it committed a file that the run did not change, or it committed and pushed on the default branch. A change to a shared build file skipped all tests. A failed build, or a test that failed because of production code, stopped the run. This release fixes them, and each fix changes behavior on purpose. The release also declares `dev-essentials` as a dependency of `dotnet-backend-dev` and `gop-pipeline`, so an install of either plugin also installs it.
@@ -665,7 +696,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...v3.3.0

@@ -23,7 +23,7 @@ The master agent (you) runs 10 stages, each in its own subagent with a fresh con
 | 6 | `docs` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md` | Docs |
 | 7 | `review` | `feature-dev:code-reviewer` | `opus` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
 | 8 | `security-review` | `general-purpose` | `opus` | `requirements.md`, `spec.md` | `security-review.md` |
-| 9 | `finalization` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `review.md` | Commit, push, and PR |
+| 9 | `finalization` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `review.md` | Commit, and the facts for the push and the PR |
 
 Every stage also gets the task context (`task-context.md`, injected). Stages 6, 7, and 8 run in parallel.
 
@@ -109,10 +109,10 @@ If the host can isolate subprocesses, advise a plain OS terminal (cmd, pwsh, or 
 
 Five stages can commit: `implementation` (also in the fix rounds of Human Approve #2, which run this stage again), `test-coverage`, `simplifier`, `docs`, and `finalization`. No other stage commits. Stage 2b does not touch git.
 
-- `finalization` mode (default): each stage stages only its own changes with an explicit `git add <path>`, never `-A` or `.`. It does not commit. Stage 9 creates the one commit of the run, pushes, and opens the PR.
+- `finalization` mode (default): each stage stages only its own changes with an explicit `git add <path>`, never `-A` or `.`. It does not commit. Stage 9 creates the one commit of the run. Then the master agent pushes and opens the PR (Step 9).
 - `per-step` mode: each of the four earlier stages commits its own changes as soon as they are green. Each stage file states its own commit granularity. Stage 9 creates no commit. If `git status` shows uncommitted or unstaged source changes at the start of Stage 9, Stage 9 stops and reports. It does not commit them.
 
-In both modes, push only at Stage 9, never between commits. Never commit anything under `{ARTIFACTS_DIR}/`.
+In both modes, only the master agent pushes, at Step 9 after Stage 9, never between commits. Never commit anything under `{ARTIFACTS_DIR}/`.
 
 State `{COMMIT_MODE}` explicitly in the prompt of each commit-capable stage. Do not expect a subagent to infer it. Each commit-capable stage also gets the `<commit-conventions>` block. The block and its rules are in [references/commit-conventions.md](references/commit-conventions.md).
 
@@ -291,7 +291,7 @@ Launch the stages `docs`, `review`, and `security-review` at the same time, with
 
 ### Human Approve #2 (after Review)
 
-This gate stops without `--autonomous`, because it approves the posts to the task provider, the push, and the PR of Stage 9. With `--autonomous`, write the gate content to the final report, and continue to Task Comment #2. If Task Comment #1 is not posted yet, post it first. One exception: if blocking issues remain after the automatic fix round, stop and show this gate in every mode. The run cannot fix them itself. Without `--interactive`, and with blocking issues in the reviews, run one automatic fix round (the numbered steps below) before you show this gate. If the reviews still have blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
+This gate stops without `--autonomous`, because it approves the posts to the task provider, the push, and the PR of Step 9. With `--autonomous`, write the gate content to the final report, and continue to Task Comment #2. If Task Comment #1 is not posted yet, post it first. One exception: if blocking issues remain after the automatic fix round, stop and show this gate in every mode. The run cannot fix them itself. Without `--interactive`, and with blocking issues in the reviews, run one automatic fix round (the numbered steps below) before you show this gate. If the reviews still have blocking issues after that round, show this gate with the open blocking issues. If the user asks for a fix round (request changes), start one.
 
 "Blocking issues in the reviews" means the items under `## Blocking Issues` in `review.md` and in `security-review.md`.
 
@@ -339,9 +339,16 @@ Before you launch Step 9, post a second comment. It follows the rules of Task Co
 
 ### Step 9: Finalization + PR
 
-Launch the stage `finalization`. When it is done, update the checkpoint, and report the branch or PR status.
+Launch the stage `finalization`. It makes the commit and reports the facts for the push and the PR. It does not push. Then run the push and the PR yourself, in the main session. A push stays with the main agent (`dev-essentials:subagent-orchestration` Rule 4), so that the user sees the push command and its result. Human Approve #2 approved both, or `--autonomous` did.
 
-If the stage created a PR, write its `number`, `url`, `owner`, and `repo` into `pr` of `pipeline-state.json` before Step 10. If it created no PR (a branch-only flow, or no PR command), leave `pr` as `null`. Step 10 reads this field to decide whether it needs a GitHub PR lookup.
+1. Push. If the report gives no push command, say so in the final report, and do not invent a push step. If the current branch is the default branch of the repository, do not push. Stop and report it. Else run `cd "{WORKTREE_PATH}" && <push command>`. Never force-push, and never pass `--no-verify`. If the push fails because the history diverged, stop and report it.
+2. Create the PR. If the report gives no PR command, skip this step. Report the branch status and the work that is left for the human. If the PR command is a shell command, run `cd "{WORKTREE_PATH}" && <PR command>`. If it is an MCP tool name, load the tool with `ToolSearch`. Then call it with the base branch, the title, and the body of the report.
+3. If the report names a linking tool, link the PR to its tracking issue. Load the tool with `ToolSearch`, and create the link. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
+4. If step 1 or step 2 fails, stop and report the failure. Do not try workarounds.
+
+Add `finalization` to `completed` only after these steps. Then update the checkpoint, and report the branch or PR status.
+
+If the run created a PR, write its `number`, `url`, `owner`, and `repo` into `pr` of `pipeline-state.json` before Step 10. If it created no PR (a branch-only flow, or no PR command), leave `pr` as `null`. Step 10 reads this field to decide whether it needs a GitHub PR lookup.
 
 ### Step 10: Cleanup
 

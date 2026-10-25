@@ -159,18 +159,27 @@ This is a light pass, not a full trim. To trim one file in depth, use `dev-essen
 
 1. List the files in the notes folder that holds the saved file (for example `Notes/`), with their dates. Find the links to them in the saved file and in the other notes files. If the project has agent memory files, find the links there too.
 2. Put each file into one group:
-   - Delete (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
+   - Move to the backup (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
    - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
    - Keep: the saved file, the files of work that still runs, and raw history exports such as session transcripts.
-   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Delete it only after the user says yes. With `--autonomous`, put a file from an older session in the group "Delete" and list it in Step 6. A branch follows the safety rules below.
-3. In the saved file and in the trimmed files, update facts that are no longer true. Examples: an old commit SHA, an old version, or a "this session" frame from an earlier date.
-4. Fix each link to a deleted file. Remove the link, or point it to the file that now holds the fact.
+   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Move the file to the backup only after the user says yes. With `--autonomous`, put a file from an older session in the group "Move to the backup" and list it in Step 6. A branch follows the safety rules below.
+3. Move the files of the group "Move to the backup" with the script `backup_move.py` of this plugin. The script moves each file to a backup folder outside the workspace and keeps its path relative to the workspace. It never deletes a file, so a wrong "finished" call loses nothing. First run it without `--apply`. It prints the plan and the `BACKUP` folder. Then run it with `--apply` and that folder:
+
+   ```bash
+   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<repo root>" <file> ...
+   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<repo root>" --backup "<BACKUP folder>" --apply <file> ...
+   ```
+
+   If the plan has a `REFUSE` line, the script moves no file. Keep each refused file, and list it with its reason in Step 6. Then run the script again without the refused files. The script needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash).
+4. In the saved file and in the trimmed files, update facts that are no longer true. Examples: an old commit SHA, an old version, or a "this session" frame from an earlier date.
+5. Fix each link to a moved file. Remove the link, or point it to the file that now holds the fact.
 
 Safety rules:
 
-- Delete only files that git does not track. Before you delete or trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
+- Never delete a notes file in this step. The backup folder keeps each moved file until the user deletes it.
+- Move only files that git does not track. The script refuses a tracked file. Before you trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
-- Do not delete a file from an older session or a branch without the user's yes or `--autonomous`.
+- Do not move a file from an older session, and do not delete a branch, without the user's yes or `--autonomous`.
 - For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. With `--autonomous`, use it only after both checks of the squash-merge exception in "Autonomy" pass. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.
 
 ### 6. Confirm to user
@@ -179,7 +188,7 @@ Show:
 
 - Where the file was saved
 - Brief summary of what was captured
-- What Step 5 did: the deleted files, the trimmed files, and the fixed links. If Step 5 did not run, say why in one line.
+- What Step 5 did: the moved files and the path of the backup folder, the trimmed files, and the fixed links. If Step 5 did not run, say why in one line.
 - The Step 5 candidates that wait for the user's yes, each with its reason, as one question
 
 Then go to Step 7. Without a request of the user, Step 7 emits nothing.
