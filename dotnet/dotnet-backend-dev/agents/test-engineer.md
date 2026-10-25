@@ -1,6 +1,6 @@
 ---
 name: test-engineer
-description: Write, refactor, or extend .NET unit and integration tests for a class, a module, or a whole project. The agent follows the conventions of the preloaded `create-tests` skill. The `/write-tests` command dispatches one agent for each target and gets back a short report. If the user asks to "write tests for X", "test this class", or "refactor these tests", use it too.
+description: Write, refactor, or extend .NET unit and integration tests for a class, a module, or a whole project. The agent follows the conventions of the preloaded `create-tests` skill. The `/write-tests` command dispatches one agent for each target and gets back a short report.
 tools: [Read, Write, Edit, Bash, Grep, Glob, Skill]
 skills:
   - dotnet-backend-dev:create-tests
