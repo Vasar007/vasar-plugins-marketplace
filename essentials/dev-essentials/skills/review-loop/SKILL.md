@@ -1,7 +1,7 @@
 ---
 name: review-loop
 description: "Iterative multi-agent review loop for a branch, a PR, a diff, a spec, a class, a method, or any file. Each cycle reviews, triages the findings on their merits, fixes only the proven findings, and reviews the fixes again."
-when_to_use: "Use it for 'run a review loop', 'review the PR', 'review this branch', 'review the spec', or '/review-loop'."
+when_to_use: "Use it for 'run a review loop', 'review and fix this branch', 'review and fix this PR', 'review and fix the spec', or '/review-loop'. For a review with no edits, such as 'review PR 42', use help-review-pr."
 ---
 
 # Review Loop
@@ -221,6 +221,15 @@ Phase 9 lists every deferred finding, deferred by `--skip` or by the judgment ab
 ### Phase 5 — Verify-then-fix
 
 **If `--dry-run` or `--no-verify-fix` is set, skip this phase** (see "Flag interaction matrix").
+
+**Head gate for `target=pr <id>`**. The fixer edits the files of the branch that is checked out, and Phase 7 commits on that branch. The findings cite the lines of the PR head. So before the first fix of the run, compare `git rev-parse HEAD` with `git rev-parse origin/pull/<id>/head`. Phase 1 fetched that ref. Also run `git symbolic-ref -q HEAD`. On a detached HEAD it fails, and Phase 7 then makes commits that no branch holds. If the two SHAs are equal and HEAD is on a branch, continue. Else the checked-out branch is not the PR head:
+
+- Without `--autonomous`, stop and ask the user to choose. The user checks out the PR branch at the PR head, and the run compares the SHAs again. Or the run continues as `--dry-run`.
+- With `--autonomous`, do not ask. Continue as `--dry-run`. The Phase 9 summary says that the checked-out branch was not the PR head.
+
+A run that continues as `--dry-run` skips Phases 5, 6, and 7, and Phase 8 stops (see "Flag interaction matrix").
+
+**Head gate for `target=diff <range>`**. If the right side of the range is not `HEAD`, the same risk holds. The fixer then edits a branch that the findings do not cite. Before the first fix of the run, compare `git rev-parse HEAD` with `git rev-parse <right side of the range>`. If the two SHAs are equal, continue. If they differ, follow the same two choices as for `target=pr`: ask the user, or with `--autonomous` continue as `--dry-run`. A range with `HEAD` on the right side needs no check. A range with no right side (`A..` or `A...`) has `HEAD` on its right side. A single revision `A` compares with the working tree, so it also needs no check.
 
 **Step 5a: the reviewer model plans the fix, and the fixer only carries it out**. Every finding cleared for a fix gets a fix _approach_ before the fixer edits anything. The approach comes from the model of the reviewer (`--reviewer-model`). The plan comes from the reviewer subagent that raised the finding, or from a new dispatch. Use the same model and the same `--reviewer-effort`. The plan gives the general approach, the architecture, and the direction, **not** code line by line. Base it on how the existing code already handles the same case: find the working pattern in the codebase and follow it, and do not invent a new one. Put the plan of each finding into the fixer brief as the required approach. The fixer works from that plan, and does not choose its own approach from scratch. It still classifies each finding APPLY, PARTIAL, or REJECT by the rules below. A planned fix is not automatically a proven one.
 
