@@ -141,7 +141,7 @@ public sealed record {Feature}Options : IValidatableObject
 
 ## Step 2: Validator
 
-Give each rule the message method of `ValidationErrorBuilder.Default` that matches the rule, for example `CreateValueMustBePositiveMessage` for `GreaterThan(0)`. Use `CreateValueRequiredMessage` only for a rule that requires a value, for example `NotNull`. A value that is out of range is present, so a message that says that the value is required is wrong.
+Give each rule a message from `ValidationErrorBuilder.Default` that describes how the rule fails. A message for a missing value fits only a rule that requires a value. A range rule needs a message about the allowed range. In the template below, `{RangeMessageMethod}` stands for the builder method of such a message.
 
 ### Cascade Mode
 
@@ -169,11 +169,11 @@ public sealed class {Feature}OptionsValidator : AbstractValidator<{Feature}Optio
         // Use Cascade(CascadeMode.Stop) to prevent running further rules if earlier ones fail
         RuleFor(x => x.TimeoutSeconds).Cascade(CascadeMode.Stop)
             .GreaterThan(0)
-            .WithMessage(x => errorBuilder.CreateValueMustBePositiveMessage(x.TimeoutSeconds));
+            .WithMessage(x => errorBuilder.{RangeMessageMethod}(x.TimeoutSeconds));
 
         RuleFor(x => x.MaxRetries).Cascade(CascadeMode.Stop)
             .GreaterThan(0)
-            .WithMessage(x => errorBuilder.CreateValueMustBePositiveMessage(x.MaxRetries));
+            .WithMessage(x => errorBuilder.{RangeMessageMethod}(x.MaxRetries));
 
         RuleFor(x => x.EndpointUrl).Cascade(CascadeMode.Stop)
             .NotEmpty()
@@ -478,7 +478,7 @@ Create configuration options tests following project conventions.
 - [ ] Properties use `{ get; set; }` (preferred) or `{ get; init; }`
 - [ ] Properties have sensible defaults
 - [ ] `[Required]`, `[Range]`, and other attributes on properties as needed
-- [ ] Validator of the validation library, with the `ValidationErrorBuilder.Default` message method that matches each rule
+- [ ] Validator of the validation library, with a `ValidationErrorBuilder.Default` message that matches each rule
 - [ ] Validator stops at the first failed rule (FluentValidation: `ClassLevelCascadeMode = CascadeMode.Stop`)
 - [ ] Rule chains stop at the first failed rule to prevent invalid validation calls (FluentValidation: `.Cascade(CascadeMode.Stop)`)
 - [ ] Nested options use the child-validator call (FluentValidation: `.SetValidator(new NestedOptionsValidator())`)
