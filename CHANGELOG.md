@@ -9,6 +9,32 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## gop-pipeline 1.4.0 and dotnet-backend-dev 1.5.0 in release [3.4.0] - 2026-10-25
+
+The GOP pipeline had four bugs and one rule that never applied (issue #58). In some runs, it committed a file that the run did not change, or it committed and pushed on the default branch. A change to a shared build file skipped all tests. A failed build, or a test that failed because of production code, stopped the run. This release fixes them, and each fix changes behavior on purpose. The release also declares `dev-essentials` as a dependency of `dotnet-backend-dev` and `gop-pipeline`, so an install of either plugin also installs it.
+
+### Fixed in gop-pipeline
+
+- `gop-commit` (issue #58): the agent staged every change with `git add -A`. So a commit sometimes took in an untracked file of the user, for example `.env.local`, and `--autonomous` pushed it. Behavior change: `gop-work` now gives the agent the files of the run, and the agent stages and commits only these paths. Changes that the user staged before the run stay staged. The report lists each change that the commit left out.
+- `gop-work` (issue #58): no step made a branch, and `gop-commit` must not switch branches. So a run on the default branch committed there, and `--autonomous` pushed to the default branch of the remote. Behavior change: if the run starts on the default branch, Phase 0 stops and asks for a branch name or an explicit yes. With `--autonomous`, Phase 0 creates a branch. Phase 0 also records the changes that were in the working tree before the run, so that Phase 5 does not commit them.
+- `gop-work` (issue #58): a change to `Directory.Packages.props` or another shared build file, with no `.cs` or `.csproj` change, skipped all tests. Behavior change: such a change now runs all test projects. `gop-test` has a new input `test_scope` for this.
+- `gop-work` (issue #58): a failed build, or a test that failed because of production code, stopped the run, also with `--autonomous`. `gop-test` must not change production code. Behavior change: the run now goes back to Phase 1 with the failures, and the main session fixes the production code. The run does this at most 2 times, and then it stops and reports the failures.
+- The five `gop-validate-*` validators (issue #58): a rule made a failed build or test CRITICAL. The rule never applied, because the run stops or starts a fix cycle before the validation. The rule is gone. The validators still record "no tests found" as INFO.
+- `gop-work` (issue #58): the skill now states that its build and test phases assume a .NET solution and the .NET SDK on `PATH`.
+- `gop-test` (issue #58): the agent polled the log of a long test run with `sleep` loops. When the background command of a background subagent ends, Claude Code sends the subagent a notification. The agent now waits for that notification and then reads the exit file and the log. `gop-work` now starts `gop-test` as a background subagent, so the notification arrives.
+
+### Changed in gop-pipeline
+
+- `plugin.json` (issue #58): the plugin declares `dev-essentials` as a dependency, because `gop-work` and `gop-test` use its skills and agents. An install of `gop-pipeline` now also installs `dev-essentials`.
+
+### Changed in dotnet-backend-dev
+
+- `plugin.json` (issue #58): the plugin declares `dev-essentials` as a dependency, because some of its skills use skills of `dev-essentials`. An install of `dotnet-backend-dev` now also installs `dev-essentials`.
+
+### Changed in the repository
+
+- `README.md` (issue #58): the rules for `plugin.json` allow the `dependencies` field, with bare plugin names and no version range. The install section says that `dotnet-backend-dev` and `gop-pipeline` also install `dev-essentials`.
+
 ## dev-essentials 3.3.1 and gop-pipeline 1.3.1 in release [3.3.1] - 2026-10-22
 
 This release follows up on issue #55. Some skill text named a versioned model, or quoted the higher price that one model charges for a long prompt. Other text cited the docs as the reason for a rule. When a new model or a new docs page ships, such text goes out of date. The text now gives a reason that stays true, and names models only by family. No behavior changes.
@@ -639,7 +665,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.3...v3.3.0
 [3.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.2.2...v3.2.3
