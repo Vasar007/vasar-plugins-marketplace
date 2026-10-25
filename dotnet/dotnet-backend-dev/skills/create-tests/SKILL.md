@@ -401,7 +401,7 @@ See [examples/scenario-tests.md](examples/scenario-tests.md) for a complete exam
 
 ### Unit / integration tests (non-scenario)
 
-- [ ] Test data comes from test model generators, not inline object creation
+- [ ] Test data comes from test model generators, not inline object creation. The one exception is an options record in a configuration test (see [config-options-tests.md](examples/config-options-tests.md))
 - [ ] Every interface mock comes from a Test Mock Builder. No direct mock of the mocking library or the test data library in test cases (for example, `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, or `Fixture.Create<IInterface>()`). With NSubstitute through AutoFixture, a builder gets its substitute with `_fixture.Create<IInterface>()`.
 - [ ] Test cases call builders and generators only through private `Create{Mock}` and `Generate{Model}` helpers, and add no setup to a returned mock
 - [ ] The helpers follow rules 1 to 7 of [Private Helper Methods](#private-helper-methods-mandatory-indirection), with `CreateServiceWithAllArguments` as the one required-positional exception

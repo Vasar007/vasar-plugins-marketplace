@@ -172,7 +172,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var repository = CreateAccountRepository(accounts: new[] { account1, account2, account3 });
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<AccountSelectionService>();
+        var service = CreateService();
 
         // Act.
         var result = await service.SelectAccountAsync();
@@ -188,7 +188,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         var repository = CreateAccountRepository();
         Fixture.Inject(repository);
 
-        var service = Fixture.Create<AccountSelectionService>();
+        var service = CreateService();
 
         // Act.
         var result = await service.SelectAccountAsync();
@@ -208,6 +208,11 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
         return new TestCustomerAccountRepositoryBuilder(Fixture)
             .ApplyIf(accounts is not null, b => b.AddCustomerAccountRange(accounts!))
             .Build();
+    }
+
+    private AccountSelectionService CreateService()
+    {
+        return Fixture.Create<AccountSelectionService>();
     }
 }
 ```
