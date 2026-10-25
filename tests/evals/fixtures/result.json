@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.309",
+  "startedAt": "2026-10-25T10:00:00.000Z",
+  "durationSeconds": 360,
+  "costUsd": 0.45,
+  "partial": false,
+  "suite": {"root": "/work/plugin", "ablation": "none", "modelOverride": "model-under-test-1", "judgeModel": "judge-model-1", "threshold": 0, "concurrency": 1, "plugins": [{"name": "example-plugin", "version": "1.0.0", "path": "/work/plugin"}]},
+  "cases": [
+    {
+      "name": "fires",
+      "dir": "evals/review-loop/fires",
+      "source": "prose",
+      "promptMarkdown": "fixture prompt",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {"name": "fires", "type": "tool_used", "weight": 1, "config": {"tool": "Skill", "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?review-loop\""}}
+      ],
+      "arms": {"with": [
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fires", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fires", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fires", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]}
+      ]},
+      "aggregates": {"score": 1.0, "passRate": 1.0}
+    },
+    {
+      "name": "near-miss",
+      "dir": "evals/review-loop/near-miss",
+      "source": "prose",
+      "promptMarkdown": "fixture prompt",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {"name": "not-fired", "type": "tool_used", "weight": 1, "config": {"tool": "Skill", "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?review-loop\"", "min": 0, "max": 0}}
+      ],
+      "arms": {"with": [
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "not-fired", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "not-fired", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "not-fired", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]}
+      ]},
+      "aggregates": {"score": 1.0, "passRate": 1.0}
+    },
+    {
+      "name": "off-by-one",
+      "dir": "evals/review-loop/off-by-one",
+      "source": "prose",
+      "promptMarkdown": "fixture prompt",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {"name": "fixed", "type": "regex", "weight": 2, "config": {"pattern": "range\\(0, count\\)", "target": {"source": "file", "path": "src/pager.py"}}},
+        {"name": "no-push", "type": "tool_used", "weight": 1, "config": {"tool": "Bash", "input_match": "git push", "min": 0, "max": 0}},
+        {"name": "route-agents", "type": "tool_used", "weight": 1, "config": {"tool": "Agent", "min": 2}}
+      ],
+      "arms": {"with": [
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fixed", "passed": true, "weight": 2, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "no-push", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "route-agents", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fixed", "passed": true, "weight": 2, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "no-push", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "route-agents", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]},
+        {"score": 1.0, "passed": true, "turns": 6, "costUsd": 0.05, "judgeCostUsd": 0, "durationSeconds": 40, "startedAt": "2026-10-25T10:00:00.000Z", "error": null, "tracePath": "/tmp/claude-eval-x/out/trace.jsonl", "skippedPaidGraders": false, "graders": [{"name": "fixed", "passed": true, "weight": 2, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "no-push", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}, {"name": "route-agents", "passed": true, "weight": 1, "explanation": "fixture", "withOnly": false, "scored": true}]}
+      ]},
+      "aggregates": {"score": 1.0, "passRate": 1.0}
+    }
+  ],
+  "aggregates": {"casesTotal": 3, "casesPassed": 3, "overallScore": 1, "overallPassRate": 1}
+}
