@@ -93,14 +93,14 @@ Never run tests with `run_in_background: true` or an equivalent. Run tests in th
 
 ### Exception: a long test run in a subagent
 
-A foreground Bash command times out after 2 minutes by default. The `timeout` parameter raises this to at most 10 minutes (`600000`). At its timeout, Claude Code moves the command to the background. A subagent must report the test result in the same run, so it cannot wait for a notification. Also, at the end of the run of a foreground subagent, its commands stop. If a subagent must report a test run that can take longer than 10 minutes, it does these steps:
+A foreground Bash command times out after 2 minutes by default. The `timeout` parameter raises this to at most 10 minutes (`600000`). At its timeout, Claude Code moves the command to the background. A subagent that Claude starts from the main conversation runs in the background by default, but a caller can still wait for it. So an agent that uses this recipe sets `background: true` in its frontmatter. A background subagent can leave a background command running past the end of its turn. When that command ends, Claude Code sends the subagent a notification. When the run of a foreground subagent ends, its background commands stop. If a subagent must report a test run that can take longer than 10 minutes, it does these steps:
 
 1. Make a log folder outside the repository with `mktemp -d`.
 2. Start the run with `run_in_background: true` and a `timeout` that covers the run, at most 2 hours (`7200000`). Without a `timeout`, an unattended session stops a background command after 30 minutes. Send the output to a log file in that folder. Then write the exit code to an exit file in the same folder.
-3. Wait in foreground calls. Give each call a `timeout` of at most `600000`. Make its loop exit before that time, for example with a bounded number of short `sleep` turns. Each call looks for the exit file in that loop. Do not end the run of the subagent before the exit file exists, unless step 5 applies.
-4. When the exit file exists, read the log file. Report the result from the exit code and the log only.
-5. If Claude Code reports that the background command stopped at its time limit, the exit file does not come. Stop the wait, report the test run as failed, and give that reason.
+3. Wait for the notification that the command ended. Do not poll the log or the exit file with `sleep` loops or repeated tool calls. Write the report only after the notification arrives.
+4. Read the exit file and the log file. Report the result from the exit code and the log only.
+5. If Claude Code reports that the background command stopped at its time limit, the exit file does not come. Report the test run as failed, and give that reason.
 
 ### Don't poll a backgrounded task
 
-A task can run in the background because the user asked, or because a task notification system delivers its results. Do not poll such a task with sleep loops or repeated tool calls. At the end of the task, the runtime sends a notification. The only poll that this skill allows is the exit-file wait of the section above. For parallel agent dispatch, see `dev-essentials:subagent-orchestration` Rule 3.
+A task can run in the background because the user asked, or because a task notification system delivers its results. Do not poll such a task with sleep loops or repeated tool calls. At the end of the task, the runtime sends a notification. This skill allows no poll, also not for the long test run of the section above. For parallel agent dispatch, see `dev-essentials:subagent-orchestration` Rule 3.
