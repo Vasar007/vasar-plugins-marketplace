@@ -146,7 +146,7 @@ Run the second command for each plugin that you changed. The run on the reposito
 
 ### Testing
 
-The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3 and Git. The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
+The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
 
 To run all tests, run this command from the repository root:
 
@@ -159,12 +159,17 @@ The command runs these parts:
 - The tests of `check_report.py` (skill `bug-hunt`) and `trim_report.py` (skill `trim-artifacts`).
 - The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test.
 - markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+- `claude plugin validate --strict` on the marketplace and on each plugin.
+- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
+- A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
 
 The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
 
-The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter fails the run. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
 
 ## Conventions
 

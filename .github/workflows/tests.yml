@@ -45,6 +45,12 @@ jobs:
         with:
           node-version: "24"
 
+      # Take the latest Claude Code for the tests of claude plugin validate and claude plugin details.
+      - name: Install Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
       - name: Run the tests and the linters
         env:
           SIMPLE_ENGLISH_DIR: ${{ github.workspace }}/.simple-english
