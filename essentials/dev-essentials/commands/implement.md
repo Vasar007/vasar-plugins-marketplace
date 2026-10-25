@@ -86,10 +86,8 @@ These rules apply in all modes:
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase/section:
-   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`.
-   - Commit with message format: `Phase N: Task X.Y - brief description (5-10 words)`
-     - If the plan has no phases, use: `Task X - brief description`
-     - If no task numbering either, use: `brief description of changes`
+   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`. Do not stage the plan file or the research file of Step 6. They are working files of this run.
+   - Write the commit message in the commit style of the repo. If the `CLAUDE.md` of the repo has commit rules, follow them. Else copy the style of `git log --oneline -20`. Describe the change to the code. Do not put plan numbers such as `Phase 2` or `Task 3.1`, or the path of the plan file, in the message. A later reader of the history does not have the plan (`dev-essentials:engineering-discipline` Rule 3).
    - If `--commit-push`, also push to the current remote tracking branch.
    - Do NOT push unless `--commit-push` was explicitly specified.
 

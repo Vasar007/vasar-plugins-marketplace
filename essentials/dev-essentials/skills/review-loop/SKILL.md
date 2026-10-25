@@ -6,7 +6,7 @@ when_to_use: "Use it for 'run a review loop', 'review and fix this branch', 'rev
 
 # Review Loop
 
-This skill runs review cycles. In each cycle, one or more reviewer subagents review the target, and the orchestrator triages their findings. Then a fixer subagent tests each finding against a primary source and fixes only what it can prove. The next cycle re-reviews only the fix diff. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer.
+This skill runs review cycles. In each cycle, one or more reviewer subagents review the target, and the orchestrator triages their findings. Then a fixer subagent tests each finding against a primary source and fixes only what it can prove. The next cycle re-reviews only the fix diff, or the whole target with `--no-commit`. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer.
 
 ## When NOT to use
 
@@ -32,6 +32,7 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 | `--audit-team-args <...>` | none | Free text for the `/audit-team` command, added after the `<path>` argument that Phase 2 supplies. It works only with `--reviewer audit-team`. `references/audit-team-adapter.md` has the argument rules. A value of the user for `[agent-count]` or `[model]` always wins. |
 | `--no-verify-fix` | off | Skip the fix edits of Phase 5. Phase 6 still runs on the existing code as a sanity check. Phase 7 does not run. Phase 9 still runs. |
 | `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
+| `--no-commit` | off | Only for `target=spec` and `target=file`. A diff, branch, or PR target reads committed code, so a re-review does not see fixes that stay uncommitted. For another target, stop and ask. For a caller that keeps the target out of commits, for example a plan file in a gitignored folder. Phase 7 makes no commit, and the fixes stay in the working tree. Phase 6 skips its failure check, because no fix commit exists. Phase 8 re-reviews the whole target file. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
 | `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
 | `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`. This includes a run with `--rounds 1`. |
@@ -43,7 +44,7 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 The defaults in the table above are the configuration that this loop is meant to run with. They ship with this skill. A global or per-repo `CLAUDE.md` does not have to state them, and a caller does not have to repeat them. Out of the box: **2 cycles, one reviewer on `--reviewer-model`, one fixer on `--fixer-model`, a commit per cycle, and nothing auto-deferred by severity label**. The reviewer works at `--reviewer-effort` and the fixer at `--fixer-effort`. For any other behavior, override only the flag that needs it.
 
 - **The reviewer model plans each fix, and the fixer only carries it out**. See Phase 5, step 5a. The model that found the problem chooses the approach before anyone edits a file. It bases the approach on how the existing code already solves the same case.
-- **The fix pass of every cycle gets its own commit**. Phase 7 commits after the first fix pass and after each later one. So the changes of each cycle land as a separate commit that a reader can review. If a caller wants a single commit, it squashes the round commits afterwards. It does not turn off Phase 7.
+- **The fix pass of every cycle gets its own commit**. Phase 7 commits after the first fix pass and after each later one. So the changes of each cycle land as a separate commit that a reader can review. If a caller wants a single commit, it squashes the round commits afterwards. Only `--no-commit` turns off Phase 7, for a target that stays out of commits.
 - **Nothing is deferred by label**. Severity still orders the triage table and the deferred list of Phase 9. It does not decide on its own what gets fixed. Phase 4 decides that on the merits of each finding.
 - **Fable is not a default reviewer, and never a silent one**. Use `--reviewer-model fable` only rarely, for large, complex, or critical-path change sets. Sometimes Fable is the idea of the orchestrator and not the instruction of the user. Then, with `--interactive`, ask the user first, every time, as the "Model selection" section of `dev-essentials:subagent-orchestration` says. Without `--interactive`, keep Opus (see "Autonomy").
 - **An explicit choice of the user outranks these defaults**. If the user names a round count, a reviewer, a fixer, a model, an effort level, or a `--skip` set for a run, use it. These defaults are the baseline, not a policy to push the user back to.
@@ -81,6 +82,7 @@ These flags change which phases run. Read this matrix before each phase:
 | _(none)_ | runs | runs | commits | continues (if eligible) | runs |
 | `--dry-run` | **skipped** | **skipped** (nothing changed) | **skipped** | **stops** (no edits to re-review) | runs |
 | `--no-verify-fix` | **skipped** | runs against existing code | **skipped** | **stops** (no edits to re-review) | runs |
+| `--no-commit` | runs | runs, with no failure check | **skipped** | continues (if eligible), and re-reviews the whole target | runs |
 
 Rules:
 
@@ -225,11 +227,11 @@ Phase 9 lists every deferred finding, deferred by `--skip` or by the judgment ab
 **Head gate for `target=pr <id>`**. The fixer edits the files of the branch that is checked out, and Phase 7 commits on that branch. The findings cite the lines of the PR head. So before the first fix of the run, compare `git rev-parse HEAD` with `git rev-parse origin/pull/<id>/head`. Phase 1 fetched that ref. Also run `git symbolic-ref -q HEAD`. On a detached HEAD it fails, and Phase 7 then makes commits that no branch holds. If the two SHAs are equal and HEAD is on a branch, continue. Else the checked-out branch is not the PR head:
 
 - Without `--autonomous`, stop and ask the user to choose. The user checks out the PR branch at the PR head, and the run compares the SHAs again. Or the run continues as `--dry-run`.
-- With `--autonomous`, do not ask. Continue as `--dry-run`. The Phase 9 summary says that the checked-out branch was not the PR head.
+- With `--autonomous`, do not ask. Continue as `--dry-run`. The Phase 9 summary says why: the checked-out branch was not the PR head, or HEAD was detached.
 
 A run that continues as `--dry-run` skips Phases 5, 6, and 7, and Phase 8 stops (see "Flag interaction matrix").
 
-**Head gate for `target=diff <range>`**. If the right side of the range is not `HEAD`, the same risk holds. The fixer then edits a branch that the findings do not cite. Before the first fix of the run, compare `git rev-parse HEAD` with `git rev-parse <right side of the range>`. If the two SHAs are equal, continue. If they differ, follow the same two choices as for `target=pr`: ask the user, or with `--autonomous` continue as `--dry-run`. A range with `HEAD` on the right side needs no check. A range with no right side (`A..` or `A...`) has `HEAD` on its right side. A single revision `A` compares with the working tree, so it also needs no check.
+**Head gate for `target=diff <range>`**. If the right side of the range is not `HEAD`, the same risk holds. The fixer then edits a branch that the findings do not cite. Before the first fix of the run, compare `git rev-parse HEAD` with `git rev-parse <right side of the range>`. If the two SHAs are equal, continue. Also run `git symbolic-ref -q HEAD`, as for `target=pr`. If the SHAs differ or HEAD is detached, follow the same two choices as for `target=pr`: ask the user, or with `--autonomous` continue as `--dry-run`. A range with `HEAD` on the right side needs no check. A range with no right side (`A..` or `A...`) has `HEAD` on its right side. A single revision `A` compares with the working tree, so it also needs no check.
 
 **Step 5a: the reviewer model plans the fix, and the fixer only carries it out**. Every finding cleared for a fix gets a fix _approach_ before the fixer edits anything. The approach comes from the model of the reviewer (`--reviewer-model`). The plan comes from the reviewer subagent that raised the finding, or from a new dispatch. Use the same model and the same `--reviewer-effort`. The plan gives the general approach, the architecture, and the direction, **not** code line by line. Base it on how the existing code already handles the same case: find the working pattern in the codebase and follow it, and do not invent a new one. Put the plan of each finding into the fixer brief as the required approach. The fixer works from that plan, and does not choose its own approach from scratch. It still classifies each finding APPLY, PARTIAL, or REJECT by the rules below. A planned fix is not automatically a proven one.
 
@@ -275,7 +277,8 @@ If the build or the tests fail:
 
 - Report the failures honestly. Do not call them "pre-existing".
 - If the run uses `--no-verify-fix`, or the fix pass of this cycle changed no file, no fix of this cycle is on disk. Then the failure is in the existing code. Do not run the failure check. Do not fix the failure in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
-- After a fix pass, do not guess the cause of a failure. Do not use file names or a read of the code to decide whether the fix pass caused it. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
+- With `--no-commit`, no fix commit exists. Do not run the failure check. Report the failure in the Phase 9 summary, and end the loop with `stop-blocked`.
+- Without `--no-commit`, after a fix pass, do not guess the cause of a failure. Do not use file names or a read of the code to decide whether the fix pass caused it. Decide with a run. Phase 7 first commits the fixes of this cycle. Then do the failure check below.
 
 Failure check (after the Phase 7 commit of this cycle). In this check, `<fix-commit>` is the Phase 7 commit of the review fixes of this cycle. It is never a regression-fix commit. Each run of a build or test command in this check is also a dispatch of the test runner. Its worktree path is the folder of that run.
 
@@ -292,7 +295,7 @@ The check only picks the next step. It never excuses a failure. Each path ends w
 
 ### Phase 7 — Commit fixes
 
-**If `--dry-run` or `--no-verify-fix` is set, skip this phase** (see "Flag interaction matrix").
+**If `--dry-run`, `--no-verify-fix`, or `--no-commit` is set, skip this phase** (see "Flag interaction matrix").
 
 Stage and commit only the files that this fix pass changed. Never use `git add -A` or `git add .`.
 
@@ -306,7 +309,7 @@ Review round <N>: Fix <short summary of issues fixed>
 
 Rules:
 
-- **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. It does not turn off this phase.
+- **One commit per round, every round**. The fix pass of the first round gets its own commit, and so does the fix pass of each later round. Never collect the rounds of a run into a single commit at the end. If a caller wants one commit, it squashes the round commits afterwards. Only `--no-commit` turns off this phase.
 - Commit also after a failed Phase 6. If Phase 6 failed after a fix pass, commit the fixes of this cycle first. Then do the failure check of Phase 6, one time in each cycle. A regression fix from that check gets its own commit, with the subject `Review round <N>: Fix regression <short summary>`.
 - **Never push by default**. The push is a decision of the user. The user can explicitly allow a push, for example "you can push after each fix commit".
 
@@ -317,7 +320,7 @@ Decide whether to run another cycle. The decision follows fixed rules.
 - **Continue** only on two conditions, and both must hold. (a) The rounds used are fewer than `--rounds`. (b) The fixer applied at least one edit in this cycle, so new code is on disk.
   - If the fixer applied no edit in this cycle, **stop**, because there is no new code to re-review. Examples: all findings were REJECT, or the cycle ran with `--dry-run` or `--no-verify-fix`.
   - If the fixer applies no edit in a re-review cycle, skip Phase 6 in that cycle. There is no new code to build or test. Carry the build and test status of the previous cycle forward into Phase 9.
-  - The re-review covers ONLY the files that the fix commit changed, not the full original target. This is on purpose: a re-review of the whole target mixes new findings with old deferred ones.
+  - The re-review covers ONLY the files that the fix commit changed, not the full original target. This is on purpose: a re-review of the whole target mixes new findings with old deferred ones. With `--no-commit`, no fix commit exists, so the re-review covers the whole target file.
   - The re-review in Round N+1 always uses one `general-purpose` agent, for any `--reviewer` value. Dispatch it on `--reviewer-model` at `--reviewer-effort`, so that the re-review has the same judgment as Round 1. The reviewer setup (`audit-team`, `dual`, `pair`, `quad`) applies to Round 1 only. The goal is the question "did the fix resolve the issue, with no new regression?", not a full architecture review.
 - **Stop** in every other case. Classify the stop verdict:
   - **stop-clean**: BOTH conditions hold. (1) No unresolved finding in the re-review scope is `blocking: true` or has the severity Blocker, Critical, or High. (2) No such finding is in the deferred list of the whole run. This covers three kinds of deferral. The first is by `--skip`. The second is after the unproven part of a PARTIAL verdict of the fixer or a REJECT verdict whose reason is missing proof. The third is by the merit judgment of Phase 4. A REJECT that a primary source refutes (the code is shown to be correct) resolves the finding. It is not a deferral, and Phase 9 lists it under "Rejected findings". Both halves of the test matter. `blocking: true` is the judgment of Phase 4 on each finding, so a flagged Medium, Low, or Nit blocks `stop-clean` exactly as a High does. The severity half reads the label, so an unflagged Blocker, Critical, or High can never clear the gate in silence. If either condition fails, use `stop-max-rounds` instead.
@@ -343,7 +346,7 @@ Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
   Fixed:    <count> (APPLY=<A>, PARTIAL=<P>, REJECT=<R>)
   Deferred: <count> (per --skip / merit triage)
 
-### Round 2 (re-review of fix diff)
+### Round 2 (re-review of fix diff, or of the whole target with `--no-commit`)
   Found: <count> issues
   Status: <clean | new issues>
 

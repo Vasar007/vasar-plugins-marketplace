@@ -88,7 +88,7 @@ The check does not depend on `{COMMIT_MODE}`. It finds a `per-step` stage that s
 - With `--dry-run`, report the result in the announced plan, but do NOT stop. A dry run never touches the branch, so it has nothing to protect.
 - There are two allowed ways past this stop. Only the first one works with `--start-from` alone.
   1. Discard the extra commits. Reset HEAD to the recorded `stageStartSha` of the stage. Then resume with `--start-from=<stage>`, with the interrupted stage or a later one. That flag overrides the checkpoint resume point. HEAD now matches the recorded SHA, so the check passes.
-  2. Keep the extra commits. `--start-from` alone changes neither `stageStartSha` nor `completed`, so the stop fires again on the next invocation. So first update the state by hand. Add the interrupted stage to `completed` in `pipeline-state.json`, or set its `stageStartSha` entry to the new HEAD. Then resume with `--start-from=<stage>`.
+  2. Keep the extra commits. `--start-from` alone changes neither `stageStartSha` nor `completed`, so the stop fires again on the next invocation. So first update the state by hand. Add the interrupted stage to `completed` in `pipeline-state.json`, or set its `stageStartSha` entry to the new HEAD. Then resume with `--start-from=<stage>`. If the interrupted stage is `finalization` and HEAD is its own commit, set `stageStartSha`, and do not add the stage to `completed`. A stage in `completed` skips the push and the PR.
 
   Do not resume past this stop in any other way.
 
