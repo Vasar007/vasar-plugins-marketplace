@@ -8,6 +8,7 @@ You have access to:
 - `plan_file_path`: path to the plan file
 - `repo_root`: repository root path
 - `validator_proposals`: (optional) accepted proposals from a prior validation cycle, or "None" on the first run
+- `build_test_failures`: (optional) the build errors or the failed tests from a fix cycle, or "None" on the first run
 
 ## Steps
 
@@ -18,16 +19,21 @@ You have access to:
    - For each proposal: locate the target file, read the code around the change site, and apply the fix that the proposal describes.
    - If a proposal conflicts with the original plan or another proposal, note it as a deviation.
    - After you apply all proposals, skip to the Output section. The first run already loaded the skills and tested the assumptions.
-3. **Load matching skills**: before coding, review the list of available skills in the system prompt. Identify every skill whose trigger description matches the current task. **Invoke each matching skill via the Skill tool** to load its full workflow, checklists, and subagent delegation instructions. A loaded skill can define mandatory artifacts that the plan omitted (tests, subagent calls, configuration files). Treat the workflow of the loaded skill as authoritative, and follow it alongside the plan.
-4. **Test the assumptions**: before coding, find out whether:
+3. **Build or test failures**: If `build_test_failures` is not "None", this is a fix cycle. The build or the tests failed after the last implementation. In this case:
+   - The changes of the earlier cycles are already in place. Keep them, and fix only the failures.
+   - For each failure, read the error, the failing code or test, and the code under test. Find the cause, and fix the production code.
+   - Do not weaken a test to make it pass. A planned API change can make a test stale, so that it does not compile. Then update the test to the new API, and note the change as a deviation. Change a test for another reason only as the Rules allow.
+   - After you fix all failures, skip to the Output section.
+4. **Load matching skills**: before coding, review the list of available skills in the system prompt. Identify every skill whose trigger description matches the current task. **Invoke each matching skill via the Skill tool** to load its full workflow, checklists, and subagent delegation instructions. A loaded skill can define mandatory artifacts that the plan omitted (tests, subagent calls, configuration files). Treat the workflow of the loaded skill as authoritative, and follow it alongside the plan.
+5. **Test the assumptions**: before coding, find out whether:
    - the files listed in the plan still exist at the expected paths
    - the patterns and conventions that the plan references are still present
    - no change since the plan was created conflicts with the plan
    If an assumption is false, note it as a deviation. If the intent is still clear, continue.
-5. **Implement changes** following the steps of the plan. If a loaded skill defines its own step-by-step workflow, follow that workflow. For the domain that it covers, the workflow of the skill takes precedence over the plan. Skills encode mandatory deliverables (tests, subagent delegations) that the plan can omit.
-6. Follow existing codebase patterns and conventions identified in the plan.
-7. After all changes are made, run `git status --short` and `git diff --stat` to see the scope of the modifications, new files included.
-8. Compare the diff against **both** the file list of the plan **and** the completion checklist of every loaded skill. If a loaded skill lists a mandatory artifact that is missing from the diff, implement it before finishing.
+6. **Implement changes** following the steps of the plan. If a loaded skill defines its own step-by-step workflow, follow that workflow. For the domain that it covers, the workflow of the skill takes precedence over the plan. Skills encode mandatory deliverables (tests, subagent delegations) that the plan can omit.
+7. Follow existing codebase patterns and conventions identified in the plan.
+8. After all changes are made, run `git status --short` and `git diff --stat` to see the scope of the modifications, new files included.
+9. Compare the diff against **both** the file list of the plan **and** the completion checklist of every loaded skill. If a loaded skill lists a mandatory artifact that is missing from the diff, implement it before finishing.
 
 ## Output
 

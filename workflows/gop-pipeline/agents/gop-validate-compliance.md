@@ -32,7 +32,7 @@ You will receive:
    - Every file that imports or references the modified files
    This set is the "blast radius": the code that these changes can affect. Record it for use in Phase 2.
 
-3. **Pipeline cross-reference**: if `build_status` is FAILED or `test_status` is FAILED or BUILD_FAILED, record as CRITICAL immediately. If `test_status` is NO_TESTS_FOUND, record as INFO.
+3. **Pipeline cross-reference**: if `test_status` is NO_TESTS_FOUND, record as INFO. A failed build or test run never reaches this phase, because `gop-work` starts a fix cycle or stops first.
 
 ## Phase 2: Compliance Analysis
 
@@ -176,7 +176,6 @@ Each warning follows the same rigid pattern:
 - If there are warnings but no CRITICAL issue, the status is APPROVED_WITH_WARNINGS.
 - If there is no CRITICAL issue and no warning, the status is APPROVED. INFO items do not change the status.
 - Be pragmatic. Flag only what the plan, a loaded skill, or a guidance file in the repo clearly requires. Do not invent requirements.
-- Test/build failures from earlier stages are automatically CRITICAL.
 - Every CRITICAL and WARNING must include a specific file reference and a requirement source citation, and be actionable. A vague finding does not help.
 - Do NOT make any code changes. This is a read-only review phase.
 - Do NOT commit or push. The finalization stage does that.
