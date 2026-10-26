@@ -4,6 +4,8 @@
 # make_pager_repo: the "pager" repo with CLAUDE.md, src/, and passing unittest tests. A case adds its own branch.
 # make_users_repo <modules>: an app whose modules call fetch_user. The argument is 6 (small) or 40 (large).
 # Both functions leave main checked out with one fixture commit and a bare remote. They do not publish it.
+# add_paging_branch: on the pager repo, add the branch feature/paging with the planted off-by-one in page_slice.
+# It leaves feature/paging checked out. It does not publish it.
 set -euo pipefail
 
 make_pager_repo() {
@@ -238,6 +240,23 @@ if __name__ == "__main__":
 PAGER_EOF
     fixture_commit "add the pager package"
     fixture_remote_init
+}
+
+# The planted defect is "end = start + size - 1" in src/pager.py, so a page holds one item too few.
+add_paging_branch() {
+    git checkout -q -b feature/paging
+    cat >> src/pager.py <<'PAGER_EOF'
+
+
+def page_slice(items, page, size=DEFAULT_PAGE_SIZE):
+    """Return the items of a page (1-based, like page_numbers in ranges.py). A page holds at most size items."""
+    if size <= 0:
+        raise ValueError("size must be positive")
+    start = (page - 1) * size
+    end = start + size - 1
+    return items[start:end]
+PAGER_EOF
+    fixture_commit "add page_slice"
 }
 
 make_users_repo() {

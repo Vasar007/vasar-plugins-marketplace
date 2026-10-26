@@ -8,6 +8,7 @@ One test runs the .NET probe scaffolds with a real restore and build, and then r
 It needs the .NET SDK 10 and network access for the first restore. As in a real run, the packages
 go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
 """
+import json
 import os
 import re
 import shutil
@@ -29,6 +30,11 @@ EXPECTED_BRANCH = {
     "probe-git-sandbox": "main",
     "probe-dotnet-sandbox": "work/probe-dotnet-sandbox",
     "probe-test-fixture": "work/tests",
+    "rl-off-by-one": "feature/paging",
+    "rl-null-guard": "feature/display-name",
+    "rl-unbounded-query": "feature/recent-orders",
+    "rl-clean-branch": "feature/clamp",
+    "rl-pr-head-gate": "main",
 }
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
@@ -124,6 +130,7 @@ class ScaffoldTests(FixtureCase):
         bare = workspace / ".remote" / "origin.git"
         if bare.exists():
             self.check_remote(workspace, bare, text)
+            self.check_mocked_pull_request(case, bare)
         if (workspace / "tests").is_dir() and not list(workspace.glob("*.sln")):
             self.check_python_tests(case, workspace)
         return self.refs(workspace)
@@ -139,6 +146,16 @@ class ScaffoldTests(FixtureCase):
             for pull in pulls.split():
                 number = pull.split(":")[0]
                 self.assertEqual(self.git(bare, "rev-parse", "--verify", "-q", f"refs/pull/{number}/head")[0], 0)
+
+    def check_mocked_pull_request(self, case, bare):
+        """The head SHA in the mock of pull_request_read must be the commit of the pull request ref."""
+        mock = case.path / "mocks" / "github" / "fixtures" / "get.json"
+        if not mock.is_file():
+            return
+        pull = json.loads(mock.read_text(encoding="utf-8"))
+        ref = f"refs/pull/{pull['number']}/head"
+        self.assertEqual(pull["head"]["sha"], self.git(bare, "rev-parse", "--verify", ref)[1],
+                         f"the head SHA in {mock.name} is not the commit of {ref}")
 
     def check_python_tests(self, case, workspace):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
@@ -203,6 +220,17 @@ class LibraryTests(FixtureCase):
         self.assertIn("range(1, count + 1)", (workspace / "src" / "ranges.py").read_text(encoding="utf-8"))
         self.assertIn("1-based, inclusive", (workspace / "src" / "ranges.py").read_text(encoding="utf-8"))
         self.assertIn("python3 -m unittest discover -s tests", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                              capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_paging_branch_has_the_planted_defect_and_passing_tests(self):
+        workspace = self.workspace()
+        self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
+                         "make_pager_repo\nadd_paging_branch")
+        self.assertEqual(self.git(workspace, "rev-parse", "--abbrev-ref", "HEAD")[1], "feature/paging")
+        self.assertIn("end = start + size - 1", (workspace / "src" / "pager.py").read_text(encoding="utf-8"))
+        self.assertEqual(self.git(workspace, "rev-list", "--count", "main..feature/paging")[1], "1")
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
                               capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertEqual(done.returncode, 0, done.stderr)

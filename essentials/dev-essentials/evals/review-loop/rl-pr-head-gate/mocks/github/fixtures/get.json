@@ -1,0 +1,10 @@
+{
+  "number": 42,
+  "title": "Add paging to the order list",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "base": { "ref": "main" },
+  "head": { "ref": "feature/paging", "sha": "6439c0debab1fd094662d57f949caeb0032b6d93" },
+  "user": { "login": "example-author" }
+}
