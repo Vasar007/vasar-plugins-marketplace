@@ -7,7 +7,7 @@
 # dotnet_warm <solution>: restore and build once, so that the first-run files of dotnet and NuGet exist before the agent starts.
 #
 # All runs share one NuGet package folder, /tmp/plugin-evals/nuget. Only the first restore downloads packages.
-# The folder is outside HOME, because the sandbox cannot read HOME. If another user owns it, dotnet_warm stops.
+# The folder is outside HOME, because the sandbox cannot read HOME. If it is a link or another user owns it, dotnet_warm stops.
 # The scaffold never runs the tests. If EVAL_FIXTURE_SKIP_DOTNET=1, dotnet_warm does nothing. Only a test sets it.
 #
 # This file is copied into each plugin that has .NET fixtures. A test makes sure that the copies are equal.
@@ -125,12 +125,12 @@ DOTNET_EOF
 dotnet_prepare_cache() {
     local folder
     for folder in /tmp/plugin-evals /tmp/plugin-evals/nuget; do
-        mkdir -p "$folder"
-        if [ ! -O "$folder" ]; then
-            printf 'Another user owns %s. Remove it, then run the scaffold again.\n' "$folder" >&2
+        mkdir -p "$folder" || return 1
+        if [ -L "$folder" ] || [ ! -O "$folder" ]; then
+            printf '%s is a link or another user owns it. Remove it, then run the scaffold again.\n' "$folder" >&2
             return 1
         fi
-        chmod 700 "$folder"
+        chmod 700 "$folder" || return 1
     done
 }
 
@@ -138,7 +138,7 @@ dotnet_warm() {
     if [ "${EVAL_FIXTURE_SKIP_DOTNET:-}" = "1" ]; then
         return 0
     fi
-    dotnet_prepare_cache
+    dotnet_prepare_cache || return 1
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
     dotnet restore "$1" --verbosity quiet
     dotnet build "$1" --no-restore --verbosity quiet
