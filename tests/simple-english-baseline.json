@@ -54,6 +54,12 @@
       "rule": "synonym_rotation",
       "text": "confirmed (check-verify)",
       "reason": "Quoted example: the file copies a real audit report of bug-hunt. The report quotes the section name \"Resume check\" and the marker \"Not confirmed:\" of that skill."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/subagent-orchestration/so-two-fixes/graders/billing-fixed.md",
+      "rule": "sentence_over_limit",
+      "text": "?\\* ?total|1 ?- ?percent ?/ ?100|\\(100 ?- ?percent\\) ?/{1,2} ?100|\\(1 ?- ?percen…",
+      "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
     }
   ]
 }
