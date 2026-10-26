@@ -14,6 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from support import load_module, tool_missing
 
@@ -394,6 +395,46 @@ class RunTests(CompareCase):
                                        runner=self.eval_with_one_worse_run)
         self.assertEqual(code, 0, err)
         self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--concurrency 2 --tag smoke")
+
+    def baseline_args(self, *extra):
+        return ("baseline", "--repo", self.repo, "--plugin", "group/demo", "--commit", "HEAD",
+                "--model", "model-under-test-1", "--judge-model", "judge-model-1", "--out", self.tmp / "out",
+                "--claude", sys.executable, *extra)
+
+    def main_on(self, platform, folder, arguments):
+        """Run main() as if the platform and the temp folder were these values."""
+        with mock.patch.object(cv, "is_linux", return_value=platform == "linux"),                 mock.patch.object(cv, "temp_folder", return_value=folder):
+            return self.run_main(*arguments)
+
+    def test_bash_grant_with_the_temp_folder_under_tmp_stops_before_any_run(self):
+        for folder in ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b"):
+            for arguments in (self.run_args("--allow-tools", "Bash", "Write"),
+                              self.baseline_args("--allow-tools", "Write", "Bash")):
+                with self.subTest(folder=folder, command=arguments[0]):
+                    code, _, err = self.main_on("linux", folder, arguments)
+                    self.assertEqual(code, 2)
+                    self.assertIn("the eval sandbox denies writes to /tmp", err)
+                    self.assertIn("Set TMPDIR to a folder in your home", err)
+                    self.assertEqual(self.calls, [])
+                    self.assertFalse((self.tmp / "out").exists())
+
+    def test_temp_folder_outside_tmp_or_no_bash_grant_or_other_platform_is_allowed(self):
+        cases = (("linux", "/home/user/.cache/plugin-evals/tmp", ("--allow-tools", "Bash")),
+                 ("linux", "/tmpfiles", ("--allow-tools", "Bash")),
+                 ("linux", "/tmp", ("--allow-tools", "Write", "Edit")),
+                 ("linux", "/tmp", ()),
+                 ("win32", "/tmp", ("--allow-tools", "Bash")))
+        for platform, folder, extra in cases:
+            with self.subTest(platform=platform, folder=folder, extra=extra):
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                self.calls = []
+                code, out, err = self.main_on(platform, folder, self.baseline_args(*extra))
+                self.assertEqual(code, 0, out + err)
+                self.assertEqual(len(self.calls), 1)
+
+    def test_temp_folder_follows_tmpdir(self):
+        with mock.patch.dict(os.environ, {"TMPDIR": str(self.tmp)}), mock.patch.object(tempfile, "tempdir", None):
+            self.assertEqual(Path(cv.temp_folder()), self.tmp)
 
     def test_claude_command_that_is_not_found_is_an_input_error(self):
         code, _, err = self.run_main(*self.run_args("--claude", "no-such-claude-command"))

@@ -8,6 +8,7 @@ import argparse
 import io
 import json
 import math
+import posixpath
 import re
 import shlex
 import shutil
@@ -400,6 +401,29 @@ def again_lines(args, shas, out, cases):
             "Then compare all result files:", "", "```sh", joined, "```"]
 
 
+def is_linux():
+    return sys.platform.startswith("linux")
+
+
+def temp_folder():
+    return tempfile.gettempdir()
+
+
+def check_temp_folder(args):
+    """Stop a run that grants Bash on Linux when the temp folder is /tmp or under it.
+
+    The eval sandbox denies writes to /tmp. The run folder follows TMPDIR, so every Bash call in the run would fail.
+    """
+    if not is_linux() or "Bash" not in (args.allow_tools or []):
+        return
+    folder = posixpath.normpath(temp_folder())
+    if folder == "/tmp" or folder.startswith("/tmp/"):
+        raise InputError(f"the temporary folder is {folder}, and the eval sandbox denies writes to /tmp, "
+                         "so every Bash call in the run would fail. Set TMPDIR to a folder in your home, "
+                         "for example export TMPDIR=$HOME/.cache/plugin-evals/tmp, and make that folder. "
+                         "Then run the command again")
+
+
 def find_claude(args):
     claude = shutil.which(args.claude)
     if claude is None:
@@ -442,6 +466,7 @@ def run_eval(args, side, plugin, sha, result, claude, suite, runner):
 
 def run_suites(args, runner=subprocess.run):
     """Run the suite of the head commit against the plugin at each commit. Return the result paths and commit ids."""
+    check_temp_folder(args)
     claude = find_claude(args)
     out = Path(args.out).resolve()
     refuse_existing(out, ("base.json", "head.json"))
@@ -468,6 +493,7 @@ def run_suites(args, runner=subprocess.run):
 
 def run_baseline(args, runner=subprocess.run):
     """Run the suite of one commit against the plugin at that commit. Return the result path and the commit id."""
+    check_temp_folder(args)
     claude = find_claude(args)
     out = Path(args.out).resolve()
     refuse_existing(out, (BASELINE_FILE,))
