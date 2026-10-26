@@ -402,7 +402,7 @@ def again_lines(args, shas, out, cases):
             "Then compare all result files:", "", "```sh", joined, "```"]
 
 
-DENIED_TEMP_FOLDERS = ("/tmp", "/var/tmp", "/dev/shm")
+DENIED_TEMP_FOLDERS = ("/tmp", "/var/tmp", "/dev/shm", "/run/shm")
 
 
 def is_linux():
@@ -414,7 +414,7 @@ def temp_folder():
 
 
 def check_temp_folder(args):
-    """Stop a run that grants Bash on Linux when the temp folder is /tmp, /var/tmp, /dev/shm, or under one.
+    """Stop a run that grants Bash on Linux when the temp folder is /tmp, /var/tmp, /dev/shm, /run/shm, or under one.
 
     The eval sandbox denies writes to these folders. The run folder follows TMPDIR, so every Bash call would fail.
     """

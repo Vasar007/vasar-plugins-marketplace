@@ -410,14 +410,15 @@ class RunTests(CompareCase):
             return self.run_main(*arguments)
 
     def test_bash_grant_with_the_temp_folder_under_tmp_stops_before_any_run(self):
-        folders = ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b", "/var/tmp", "/var/tmp/x", "/dev/shm", "/dev/shm/x")
+        folders = ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b", "/var/tmp", "/var/tmp/x", "/dev/shm", "/dev/shm/x",
+                   "/run/shm", "/run/shm/x")
         for folder in folders:
             for arguments in (self.run_args("--allow-tools", "Bash", "Write"),
                               self.baseline_args("--allow-tools", "Write", "Bash")):
                 with self.subTest(folder=folder, command=arguments[0]):
                     code, _, err = self.main_on("linux", folder, arguments)
                     self.assertEqual(code, 2)
-                    self.assertRegex(err, r"the eval sandbox denies writes to (?:/tmp|/var/tmp|/dev/shm),")
+                    self.assertRegex(err, r"the eval sandbox denies writes to (?:/tmp|/var/tmp|/dev/shm|/run/shm),")
                     self.assertIn("Set TMPDIR to a folder in your home", err)
                     self.assertEqual(self.calls, [])
                     self.assertFalse((self.tmp / "out").exists())
@@ -426,6 +427,7 @@ class RunTests(CompareCase):
         cases = (("linux", "/home/user/.cache/plugin-evals/tmp", ("--allow-tools", "Bash")),
                  ("linux", "/tmpfiles", ("--allow-tools", "Bash")),
                  ("linux", "/var/tmpfiles", ("--allow-tools", "Bash")),
+                 ("linux", "/run/shmem", ("--allow-tools", "Bash")),
                  ("linux", "/tmp", ("--allow-tools", "Write", "Edit")),
                  ("linux", "/tmp", ()),
                  ("win32", "/tmp", ("--allow-tools", "Bash")))
