@@ -35,6 +35,15 @@ EXPECTED_BRANCH = {
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
     "rl-pr-head-gate": "main",
+    "gop-e1-seeded-defects": "work/seeded-defects",
+    "gop-e1-clean-change": "work/clean-change",
+    "gop-e1-border-auth": "work/border-auth",
+    "gop-e2-untracked-file": "work/untracked-file",
+    "gop-e3-autonomous-main": "main",
+    "gop-e4-package-bump": "work/package-bump",
+    "gop-e5-breaking-change": "work/breaking-change",
+    "gop-e6-python-no-sln": "work/python-no-sln",
+    "gop-e8-rename-across-projects": "work/rename-across-projects",
 }
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
@@ -141,6 +150,8 @@ class ScaffoldTests(FixtureCase):
         self.check_report_folders(case, workspace)
 
         text = script.read_text(encoding="utf-8")
+        if "SCRATCH_CONTENT=" in text:
+            self.assertEqual(self.git(repo, "status", "--porcelain")[1], "?? scratch.txt", "the scratch file must stay untracked")
         bare = repo / ".remote" / "origin.git"
         if bare.exists():
             self.check_remote(repo, bare, text)

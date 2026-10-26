@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gop-e5-breaking-change
+context:
+  scaffold_script: scaffold.sh
