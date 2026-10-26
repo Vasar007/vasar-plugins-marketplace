@@ -11,7 +11,7 @@ cat >> src/users.py <<'PAGER_EOF'
 
 
 def display_name(user: User) -> str:
-    """Return the name of a user without spaces at the start and the end."""
+    """Return the name of a user without spaces at the start and the end. A user with no name gets an empty string."""
     return user.name.strip()
 PAGER_EOF
 sed -i 's/^from users import User, email_domain$/from users import User, display_name, email_domain/' src/report.py

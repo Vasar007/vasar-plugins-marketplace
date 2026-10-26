@@ -1,6 +1,5 @@
 ---
 type: regex
-pattern: 'stop-clean|Stop verdict'
-flags: i
-target: last_message
+pattern: 'Stop verdict: stop-'
+target: { source: file, path: Notes/Reviews/feature-clamp-summary.md }
 ---
