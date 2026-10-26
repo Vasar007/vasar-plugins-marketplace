@@ -117,23 +117,37 @@ class ScaffoldTests(FixtureCase):
         started = time.monotonic()
         self.run_bash([script.as_posix()], workspace)
         self.assertLess(time.monotonic() - started, SCAFFOLD_SECONDS)
+        repo = self.repo_folder(workspace)
 
-        subjects = self.git(workspace, "log", "--all", "--format=%s")[1].splitlines()
+        subjects = self.git(repo, "log", "--all", "--format=%s")[1].splitlines()
         self.assertTrue(subjects, "the scaffold made no commit")
         self.assertEqual([s for s in subjects if not s.startswith("fixture:")], [], "commit subjects need the prefix fixture:")
-        branch = self.git(workspace, "rev-parse", "--abbrev-ref", "HEAD")[1]
+        branch = self.git(repo, "rev-parse", "--abbrev-ref", "HEAD")[1]
         self.assertEqual(branch, EXPECTED_BRANCH.get(case.name, branch))
         self.assertNotEqual(branch, "HEAD", "the checkout is detached")
-        self.assertEqual(self.git(workspace, "diff", "--quiet", "HEAD")[0], 0, "a tracked file has a change")
+        self.assertEqual(self.git(repo, "diff", "--quiet", "HEAD")[0], 0, "a tracked file has a change")
+        self.check_report_folders(case, workspace)
 
         text = script.read_text(encoding="utf-8")
-        bare = workspace / ".remote" / "origin.git"
+        bare = repo / ".remote" / "origin.git"
         if bare.exists():
-            self.check_remote(workspace, bare, text)
+            self.check_remote(repo, bare, text)
             self.check_mocked_pull_request(case, bare)
-        if (workspace / "tests").is_dir() and not list(workspace.glob("*.sln")):
-            self.check_python_tests(case, workspace)
-        return self.refs(workspace)
+        if (repo / "tests").is_dir() and not list(repo.glob("*.sln")):
+            self.check_python_tests(case, repo)
+        return self.refs(repo)
+
+    @staticmethod
+    def repo_folder(workspace):
+        """The workspace is the repo, except in the bug-hunt fixture, where the repo is project/."""
+        project = workspace / "project"
+        return project if (project / ".git").is_dir() and not (workspace / ".git").exists() else workspace
+
+    def check_report_folders(self, case, workspace):
+        """A bug hunt asks a question if the report folder is missing, so the scaffold must make it."""
+        prompt = (case.path / "prompt.md").read_text(encoding="utf-8") if (case.path / "prompt.md").is_file() else ""
+        for folder in re.findall(r"--report-dir=\./(\S+?)(?=\s|$)", prompt):
+            self.assertTrue((workspace / folder).is_dir(), f"the prompt names the report folder {folder}, but the scaffold made none")
 
     def check_remote(self, workspace, bare, script_text):
         self.assertEqual(self.git(bare, "rev-parse", "--is-bare-repository")[1], "true")
