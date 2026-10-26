@@ -9,6 +9,44 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.4.2, dotnet-backend-dev 1.6.3, and gop-pipeline 1.4.3 in release [3.6.3] - 2026-10-26
+
+This release adds behavior suites. A behavior suite is a set of eval cases that runs a workflow skill on a small planted repository and grades the result. Each case builds its repository with a `scaffold.sh` script, and the graders check the files, the commits, the pushes, and the final message. CI does not run the suites, because each run calls a model. No skill, agent, or command changes, so the plugins behave as before.
+
+### Added in dev-essentials
+
+- `evals/review-loop/`: 5 cases for the `review-loop` skill.
+- `evals/subagent-orchestration/`: 4 cases for the `subagent-orchestration` skill.
+- `evals/process-pr-comments/`: 3 cases for the `process-pr-comments` skill. Mock files answer the calls to the GitHub tools.
+- `evals/bug-hunt/`: 2 cases for the `bug-hunt` skill.
+- `evals/create-html-artifact/`: 2 cases for the `create-html-artifact` skill. They grant no shell tool, so they also run on native Windows.
+- `evals/probes/`: 2 probe cases that test the run environment, not a skill: the git sandbox and the GitHub mocks.
+- `evals/_lib/`: the Bash functions that the scaffold scripts use to build the fixture repositories.
+- `eval-stubs/github`: a stand-in plugin that declares the GitHub server, so that the mock files can answer for it. It is outside `evals/`, because `claude plugin eval` refuses a plugin in the eval folder.
+
+### Added in dotnet-backend-dev
+
+- `evals/write-tests/`: 2 cases for the `write-tests` command.
+- `evals/probes/`: 1 probe case for the .NET fixture.
+- `evals/_lib/`: the fixture functions for the Billing solution.
+
+### Added in gop-pipeline
+
+- `evals/gop-work/`: 9 cases for the `gop-work` skill, from the scenarios E1 to E6 and E8.
+- `evals/probes/`: 1 probe case for the .NET fixture.
+- `evals/_lib/`: the fixture functions for the Inventory solution and a Python repository.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: the new option `--concurrency` sets the number of runs at the same time. If a run grants `Bash` on Linux, the script now checks the temporary folder. If the folder is `/tmp`, `/var/tmp`, `/dev/shm`, `/run/shm`, or under one of them, the script stops with a message. The sandbox of a run denies writes to these folders, so every Bash call in the run fails ([anthropics/claude-code#104631](https://github.com/anthropics/claude-code/issues/104631)). `tests/evals/test_compare_versions.py` tests both changes.
+- `tests/test_eval_cases.py`: static checks of every eval case. They call no model.
+- `tests/test_eval_scaffolds.py`: runs each scaffold script in a temporary folder and checks the repository that it builds. One test builds a .NET solution.
+- `.github/workflows/tests.yml`: CI installs the .NET SDK 10 for the scaffold tests.
+- `.gitattributes`: shell scripts keep LF line ends on Windows, so that the scaffolds run in Bash.
+- `.gitignore`: the stand-in plugin keeps its `.mcp.json`.
+- `tests/simple-english-baseline.json`: three new entries for text that is not prose, with the reason for each.
+- `README.md`: the Testing section names the new tests. A new section of Evals explains the behavior suites, the WSL2 setup, the `TMPDIR` rule, the `-m:1` option for .NET builds, and the probes.
+
 ## dotnet-backend-dev 1.6.2 and gop-pipeline 1.4.2 in release [3.6.2] - 2026-10-25
 
 The trigger cases of dotnet-backend-dev and gop-pipeline tested nothing (issue #67). Both plugins list `dev-essentials` in `dependencies`, and `claude plugin eval` loads only the plugin under test. So the eval session reported `dependency-unsatisfied` and did not load the plugin. A case can now load the dependency. No skill, agent, or command changes, so the plugins behave as before.
@@ -763,7 +801,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...HEAD
+[3.6.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.5.0...v3.6.0
