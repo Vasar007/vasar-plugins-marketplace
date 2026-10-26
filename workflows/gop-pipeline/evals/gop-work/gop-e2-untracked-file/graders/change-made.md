@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'IsNullOrWhiteSpace'
+pattern: 'ArgumentException|NullOrWhiteSpace|IsNullOrEmpty|IsWhiteSpace'
 target: { source: file, path: src/Inventory/SkuFormatter.cs }
 ---
