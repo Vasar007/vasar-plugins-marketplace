@@ -2,6 +2,7 @@
 # .NET setup for eval fixtures. A scaffold sources this file after git-fixture.sh.
 #
 # dotnet_write_common_files: .gitignore, Directory.Build.props, and nuget.config.
+# Directory.Build.props turns off the git queries of the SDK, because the sandbox of a run denies reads of .gitmodules.
 # dotnet_write_solution <file> <project>...: a classic .sln file, so that the scaffold needs no dotnet command.
 # dotnet_write_run_marker <folder>: RunMarker.cs for an NUnit test project.
 # dotnet_warm <solution>: restore and build once, so that the packages and the first-run files of dotnet exist before the agent starts.
@@ -26,6 +27,7 @@ DOTNET_EOF
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 </Project>
 DOTNET_EOF
