@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '9102|example002|\[Question\]'
+pattern: 'Post this \[Question\] reply|\(yes / edit / skip\)'
 target: last_message
 ---
