@@ -5,8 +5,8 @@ EVAL_FIXTURE_SKIP_DOTNET=1. The tests need bash and git, and the Python tests of
 If bash or git is not found, the tests skip. In CI they fail.
 
 One test runs the .NET probe scaffolds with a real restore and build, and then runs dotnet test.
-It needs the .NET SDK 10 and network access for the first restore. The packages go to
-/tmp/plugin-evals/nuget, as in a real run.
+It needs the .NET SDK 10 and network access for the first restore. As in a real run, the packages
+go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
 """
 import os
 import re
