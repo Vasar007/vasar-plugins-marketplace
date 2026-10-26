@@ -1,7 +1,7 @@
 ---
 description: Probe of the mock setup. It checks that a mock of a second plugin answers a call from the session, and that a subagent can call the mocked tool.
 tags: [probe]
-plugins: ["../../..", "../../_stubs/github"]
+plugins: ["../../..", "../../../eval-stubs/github"]
 allowed_tools: [Read, Glob, Grep, Agent]
 max_turns: 30
 timeout_seconds: 600

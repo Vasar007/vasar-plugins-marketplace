@@ -19,7 +19,7 @@ from support import REPO, tool_missing
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 EVALS = "evals"
-NOT_CASE_FOLDERS = {"results", "_lib", "_stubs", "mocks"}
+NOT_CASE_FOLDERS = {"results", "_lib", "mocks"}
 ROUTE_PREFIX = "route-"
 ROUTE_TAG = "route"
 MAX_TURNS = 200
@@ -502,16 +502,32 @@ def dependency_names(plugin_root):
     return names
 
 
+def in_own_case_subfolder(target, case_dir):
+    """True if target is below the case folder, and is not the graders or mocks folder or inside them."""
+    if target == case_dir or not target.is_relative_to(case_dir):
+        return False
+    return not any(target.is_relative_to(case_dir / name) for name in ("graders", "mocks"))
+
+
 def plugin_entry_problems(case):
-    """Each entry of `plugins` must be a plugin folder. A .deps copy of a declared dependency also counts."""
+    """Each entry of `plugins` must be a plugin folder. A .deps copy of a declared dependency also counts.
+
+    claude plugin eval refuses a plugin in the eval folder unless the plugin sits in its own subfolder of the case.
+    """
     entries = case.field("plugins")
     if entries is None:
         return []
     if not isinstance(entries, list) or not all(isinstance(e, str) for e in entries):
         return [f"{case.label}: plugins must be a list of strings"]
     problems = []
+    evals = (case.plugin_root / EVALS).resolve()
+    case_dir = case.path.resolve()
     for entry in entries:
         target = (case.path / entry).resolve()
+        if target != evals and target.is_relative_to(evals) and not in_own_case_subfolder(target, case_dir):
+            problems.append(f"{case.label}: the plugins entry {entry} is in {EVALS}/ but not in its own subfolder "
+                            f"of the case, so claude plugin eval refuses it. Move the plugin out of {EVALS}/")
+            continue
         if (target / ".claude-plugin" / "plugin.json").is_file():
             continue
         deps = (case.plugin_root / ".deps").resolve()
@@ -832,15 +848,27 @@ class CaseCheckTests(CaseFiles):
         helper = self.tmp / "other" / "helper"
         (helper / ".claude-plugin").mkdir(parents=True)
         (helper / ".claude-plugin" / "plugin.json").write_text('{"name": "helper"}', encoding="utf-8")
+        for stub in (self.plugin / "eval-stubs" / "github", self.plugin / EVALS / "probes" / "own" / "github-stub"):
+            (stub / ".claude-plugin").mkdir(parents=True)
+            (stub / ".claude-plugin" / "plugin.json").write_text('{"name": "github"}', encoding="utf-8")
+        entries = '["../../..", "../../../eval-stubs/github", "../../../.deps/helper"]'
+        good = self.case("probes/good", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        self.assertEqual(plugin_entry_problems(good), [])
+        own = self.case("probes/own", prompt='---\nplugins: ["../../..", "github-stub"]\n---\nx\n')
+        self.assertEqual(plugin_entry_problems(own), [])
+        entries = '["../../..", "../../../eval-stubs/missing", "../../../.deps/unknown"]'
+        bad = self.case("probes/bad", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        self.assertEqual(len(plugin_entry_problems(bad)), 2)
+
+    def test_plugins_entry_in_the_eval_folder_must_be_in_its_own_case_subfolder(self):
         stub = self.plugin / EVALS / "_stubs" / "github" / ".claude-plugin"
         stub.mkdir(parents=True)
         (stub / "plugin.json").write_text('{"name": "github"}', encoding="utf-8")
-        entries = '["../../..", "../../_stubs/github", "../../../.deps/helper"]'
-        good = self.case("probes/good", prompt=f"---\nplugins: {entries}\n---\nx\n")
-        self.assertEqual(plugin_entry_problems(good), [])
-        entries = '["../../..", "../../_stubs/missing", "../../../.deps/unknown"]'
-        bad = self.case("probes/bad", prompt=f"---\nplugins: {entries}\n---\nx\n")
-        self.assertEqual(len(plugin_entry_problems(bad)), 2)
+        for entries in ('["../../_stubs/github"]', '["."]', '["graders"]', '["mocks/github"]'):
+            with self.subTest(entries=entries):
+                case = self.case("probes/demo", prompt=f"---\nplugins: {entries}\n---\nx\n")
+                problems = plugin_entry_problems(case)
+                self.assertTrue(any("refuses it" in problem for problem in problems), problems)
 
     def scaffold_case(self, yaml, script="#!/usr/bin/env bash\nset -euo pipefail\n", name="fixture-case"):
         extra = {"case.yaml": yaml}
