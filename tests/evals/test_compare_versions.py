@@ -345,16 +345,20 @@ class RunTests(CompareCase):
 
     def test_eval_command_pins_the_models_and_puts_lists_last(self):
         self.run_main(*self.run_args("--tag", "smoke", "triggers", "--allow-tools", "Write", "--case", "fires*",
-                                     "--max-cost-usd", "5"))
+                                     "--max-cost-usd", "5", "--concurrency", "3"))
         command = self.calls[0]["command"]
         self.assertEqual(command[1:3], ["plugin", "eval"])
         for flag, value in (("--model", "model-under-test-1"), ("--judge-model", "judge-model-1"),
                             ("--ablation", "none"), ("--threshold", "0"), ("--runs", "3"), ("--case", "fires*"),
-                            ("--max-cost-usd", "5.0")):
+                            ("--max-cost-usd", "5.0"), ("--concurrency", "3")):
             self.assertEqual(command[command.index(flag) + 1], value, flag)
         self.assertIn("--trust-plugin", command)
         self.assertIn("--no-publish", command)
         self.assertEqual(command[-5:], ["--tag", "smoke", "triggers", "--allow-tools", "Write"])
+
+    def test_concurrency_is_left_out_by_default(self):
+        self.run_main(*self.run_args())
+        self.assertNotIn("--concurrency", self.calls[0]["command"])
 
     def test_relative_out_folder_gets_the_results(self):
         old = os.getcwd()
@@ -384,6 +388,12 @@ class RunTests(CompareCase):
                               r"--out \S+out-more-1 .*--claude \S+ --tag smoke")
         self.assertIn(f"compare --base {folder}/base.json {folder}-more-1/base.json "
                       f"--head {folder}/head.json {folder}-more-1/head.json", out)
+
+    def test_report_repeats_the_concurrency(self):
+        code, out, err = self.run_main(*self.run_args("--concurrency", "2", "--tag", "smoke"),
+                                       runner=self.eval_with_one_worse_run)
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--concurrency 2 --tag smoke")
 
     def test_claude_command_that_is_not_found_is_an_input_error(self):
         code, _, err = self.run_main(*self.run_args("--claude", "no-such-claude-command"))
@@ -596,6 +606,12 @@ class CommandLineTests(unittest.TestCase):
     def test_usage_error_exits_with_2(self):
         self.assertEqual(self.run_script().returncode, 2)
         self.assertEqual(self.run_script("run", "--plugin", "x").returncode, 2)
+
+    def test_concurrency_above_8_exits_with_2(self):
+        result = self.run_script("baseline", "--plugin", "x", "--model", "m", "--judge-model", "j", "--out", "o",
+                                 "--concurrency", "9")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid choice", result.stderr)
 
 
 if __name__ == "__main__":

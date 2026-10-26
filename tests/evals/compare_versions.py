@@ -337,6 +337,8 @@ def eval_command(args, plugin_dir, result, claude, suite):
         command.append("--scaffold")
     if args.max_cost_usd is not None:
         command += ["--max-cost-usd", str(args.max_cost_usd)]
+    if args.concurrency:
+        command += ["--concurrency", str(args.concurrency)]
     # claude plugin eval reads a list option up to the next option, so the lists go last.
     if args.tag:
         command += ["--tag", *args.tag]
@@ -372,6 +374,8 @@ def option_words(args):
         words.append("--scaffold")
     if args.max_cost_usd is not None:
         words += ["--max-cost-usd", str(args.max_cost_usd)]
+    if args.concurrency:
+        words += ["--concurrency", str(args.concurrency)]
     if args.tag:
         words += ["--tag", *args.tag]
     if args.allow_tools:
@@ -496,6 +500,8 @@ def parse_args(argv):
     shared.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
     shared.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
     shared.add_argument("--max-cost-usd", type=float, help="cost ceiling for each side")
+    shared.add_argument("--concurrency", type=int, choices=range(1, 9),
+                        help="runs at the same time, passed to claude plugin eval (1 to 8)")
     shared.add_argument("--eval-dir", help="eval folder below the plugin (default: experimental.evals of the manifest, else evals)")
     shared.add_argument("--repo", type=Path, default=REPO, help="repository root (default: this repository)")
     shared.add_argument("--claude", default="claude", help="the claude command (default: claude)")

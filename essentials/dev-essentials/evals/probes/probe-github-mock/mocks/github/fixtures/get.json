@@ -1,0 +1,7 @@
+{
+  "number": 42,
+  "title": "Add paging to the order list",
+  "state": "open",
+  "base": { "ref": "main" },
+  "head": { "ref": "feature/paging", "sha": "0123456789abcdef0123456789abcdef01234567" }
+}

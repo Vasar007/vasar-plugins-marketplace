@@ -1,2 +1,5 @@
 # Count the Markdown files in the GitHub language statistics (issue #52).
 *.md linguist-detectable=true
+
+# Keep LF in shell scripts on Windows, so that eval scaffolds run in Bash.
+*.sh text eol=lf

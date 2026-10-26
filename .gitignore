@@ -33,3 +33,6 @@ Notes/
 
 # Results of claude plugin eval runs
 */*/evals/results/
+
+# The stand-in plugin of the eval cases needs its .mcp.json.
+!essentials/dev-essentials/evals/_stubs/github/.mcp.json
