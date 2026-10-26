@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'Stop verdict: stop-'
-target: { source: file, path: Notes/Reviews/feature-clamp-summary.md }
+pattern: 'Stop verdict: stop-(?:clean|max-rounds|blocked)'
+target: trace
 ---
