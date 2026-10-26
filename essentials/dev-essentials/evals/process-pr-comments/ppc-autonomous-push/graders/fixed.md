@@ -1,6 +1,5 @@
 ---
 type: regex
-pattern: 'start \+ size - 1'
-match: not_contains
+pattern: 'end = start \+ size\s*\n\s*return items\[start:end\]|items\[start:end \+ 1\]|items\[start:start \+ size\]'
 target: { source: file, path: src/pager.py }
 ---

@@ -8,6 +8,7 @@ import argparse
 import io
 import json
 import math
+import os
 import posixpath
 import re
 import shlex
@@ -401,24 +402,28 @@ def again_lines(args, shas, out, cases):
             "Then compare all result files:", "", "```sh", joined, "```"]
 
 
+DENIED_TEMP_FOLDERS = ("/tmp", "/var/tmp", "/dev/shm")
+
+
 def is_linux():
     return sys.platform.startswith("linux")
 
 
 def temp_folder():
-    return tempfile.gettempdir()
+    return os.path.realpath(tempfile.gettempdir())
 
 
 def check_temp_folder(args):
-    """Stop a run that grants Bash on Linux when the temp folder is /tmp or under it.
+    """Stop a run that grants Bash on Linux when the temp folder is /tmp, /var/tmp, /dev/shm, or under one.
 
-    The eval sandbox denies writes to /tmp. The run folder follows TMPDIR, so every Bash call in the run would fail.
+    The eval sandbox denies writes to these folders. The run folder follows TMPDIR, so every Bash call would fail.
     """
     if not is_linux() or "Bash" not in (args.allow_tools or []):
         return
     folder = posixpath.normpath(temp_folder())
-    if folder == "/tmp" or folder.startswith("/tmp/"):
-        raise InputError(f"the temporary folder is {folder}, and the eval sandbox denies writes to /tmp, "
+    denied = next((name for name in DENIED_TEMP_FOLDERS if folder == name or folder.startswith(name + "/")), None)
+    if denied is not None:
+        raise InputError(f"the temporary folder is {folder}, and the eval sandbox denies writes to {denied}, "
                          "so every Bash call in the run would fail. Set TMPDIR to a folder in your home, "
                          "for example export TMPDIR=$HOME/.cache/plugin-evals/tmp, and make that folder. "
                          "Then run the command again")

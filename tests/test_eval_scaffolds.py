@@ -40,6 +40,18 @@ EXPECTED_BRANCH = {
 FAILING_TESTS = {"so-two-fixes": 2}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
+FAILING_TEST = """namespace Billing.Domain.Tests;
+
+[TestFixture]
+public sealed class FailingProbeTests
+{
+    [Test]
+    public void AlwaysFails()
+    {
+        Assert.That(1, Is.EqualTo(2));
+    }
+}
+"""
 
 
 def remove_tree(path):
@@ -220,6 +232,27 @@ class DotnetProbeTests(FixtureCase):
                 self.assertTrue(list(runs.glob("started-*")), "the run left no start file")
                 self.assertEqual((runs / "last.txt").read_text(encoding="utf-8"), "Passed")
                 self.assertEqual(self.git(workspace, "status", "--porcelain")[1], "", "build files are not ignored")
+
+    def test_run_marker_says_failed_when_a_test_fails(self):
+        dotnet = shutil.which("dotnet")
+        if dotnet is None:
+            tool_missing(self, "dotnet not found. Install the .NET SDK 10 to run this test.")
+        version = subprocess.run([dotnet, "--version"], capture_output=True, text=True).stdout.strip()
+        if not version.startswith("10."):
+            tool_missing(self, f"The .NET SDK 10 is needed, but dotnet --version prints {version!r}.")
+        script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
+        workspace = self.workspace("probe-test-fixture")
+        self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
+        failing = workspace / "tests" / "Billing.Domain.Tests" / "FailingProbeTests.cs"
+        failing.write_text(FAILING_TEST, encoding="utf-8")
+        solution = next(workspace.glob("*.sln")).name
+        done = subprocess.run([dotnet, "test", solution, "--no-restore"], cwd=workspace,
+                              env=self.environment(skip_dotnet=False), capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=DOTNET_SECONDS)
+        self.assertNotEqual(done.returncode, 0, done.stdout + done.stderr)
+        runs = workspace / ".test-runs"
+        self.assertTrue(list(runs.glob("started-*")), "the run left no start file")
+        self.assertEqual((runs / "last.txt").read_text(encoding="utf-8"), "Failed")
 
 
 class LibraryTests(FixtureCase):

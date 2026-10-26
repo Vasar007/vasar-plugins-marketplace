@@ -403,17 +403,21 @@ class RunTests(CompareCase):
 
     def main_on(self, platform, folder, arguments):
         """Run main() as if the platform and the temp folder were these values."""
-        with mock.patch.object(cv, "is_linux", return_value=platform == "linux"),                 mock.patch.object(cv, "temp_folder", return_value=folder):
+        with (
+            mock.patch.object(cv, "is_linux", return_value=platform == "linux"),
+            mock.patch.object(cv, "temp_folder", return_value=folder),
+        ):
             return self.run_main(*arguments)
 
     def test_bash_grant_with_the_temp_folder_under_tmp_stops_before_any_run(self):
-        for folder in ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b"):
+        folders = ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b", "/var/tmp", "/var/tmp/x", "/dev/shm", "/dev/shm/x")
+        for folder in folders:
             for arguments in (self.run_args("--allow-tools", "Bash", "Write"),
                               self.baseline_args("--allow-tools", "Write", "Bash")):
                 with self.subTest(folder=folder, command=arguments[0]):
                     code, _, err = self.main_on("linux", folder, arguments)
                     self.assertEqual(code, 2)
-                    self.assertIn("the eval sandbox denies writes to /tmp", err)
+                    self.assertRegex(err, r"the eval sandbox denies writes to (?:/tmp|/var/tmp|/dev/shm),")
                     self.assertIn("Set TMPDIR to a folder in your home", err)
                     self.assertEqual(self.calls, [])
                     self.assertFalse((self.tmp / "out").exists())
@@ -421,6 +425,7 @@ class RunTests(CompareCase):
     def test_temp_folder_outside_tmp_or_no_bash_grant_or_other_platform_is_allowed(self):
         cases = (("linux", "/home/user/.cache/plugin-evals/tmp", ("--allow-tools", "Bash")),
                  ("linux", "/tmpfiles", ("--allow-tools", "Bash")),
+                 ("linux", "/var/tmpfiles", ("--allow-tools", "Bash")),
                  ("linux", "/tmp", ("--allow-tools", "Write", "Edit")),
                  ("linux", "/tmp", ()),
                  ("win32", "/tmp", ("--allow-tools", "Bash")))
@@ -434,7 +439,18 @@ class RunTests(CompareCase):
 
     def test_temp_folder_follows_tmpdir(self):
         with mock.patch.dict(os.environ, {"TMPDIR": str(self.tmp)}), mock.patch.object(tempfile, "tempdir", None):
-            self.assertEqual(Path(cv.temp_folder()), self.tmp)
+            self.assertEqual(Path(cv.temp_folder()), self.tmp.resolve())
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_temp_folder_resolves_a_link_into_tmp(self):
+        target = Path(tempfile.mkdtemp(dir="/tmp"))
+        self.addCleanup(shutil.rmtree, target, ignore_errors=True)
+        link = self.tmp / "link"
+        link.symlink_to(target)
+        with mock.patch.dict(os.environ, {"TMPDIR": str(link)}), mock.patch.object(tempfile, "tempdir", None):
+            code, _, err = self.run_main(*self.run_args("--allow-tools", "Bash"))
+        self.assertEqual(code, 2)
+        self.assertIn("denies writes to /tmp", err)
 
     def test_claude_command_that_is_not_found_is_an_input_error(self):
         code, _, err = self.run_main(*self.run_args("--claude", "no-such-claude-command"))

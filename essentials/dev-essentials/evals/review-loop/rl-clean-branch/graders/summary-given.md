@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'Stop verdict: stop-(?:clean|max-rounds|blocked)'
+pattern: '"type":"assistant"[^\n]*Stop verdict: stop-(?:clean|max-rounds|blocked)'
 target: trace
 ---
