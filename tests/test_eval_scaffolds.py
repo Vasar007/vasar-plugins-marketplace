@@ -44,6 +44,8 @@ EXPECTED_BRANCH = {
     "gop-e5-breaking-change": "work/breaking-change",
     "gop-e6-python-no-sln": "work/python-no-sln",
     "gop-e8-rename-across-projects": "work/rename-across-projects",
+    "wt-one-class": "work/tests",
+    "wt-pricing-folder": "work/tests",
 }
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}

@@ -52,6 +52,7 @@ DOTNET_EOF
 - Test command: `dotnet test Billing.sln`
 - Tests use NUnit, FluentAssertions, NSubstitute, and AutoFixture.
 - Test base classes are in `tests/Billing.Domain.Tests/Tests.Common`.
+- A test file has the same folder path as its class. The tests of `src/Billing.Domain/Pricing/X.cs` are in `tests/Billing.Domain.Tests/Pricing/XTests.cs`.
 DOTNET_EOF
     fixture_write src/Billing.Domain/Billing.Domain.csproj <<'DOTNET_EOF'
 <Project Sdk="Microsoft.NET.Sdk">

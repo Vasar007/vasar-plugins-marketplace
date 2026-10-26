@@ -60,6 +60,18 @@
       "rule": "sentence_over_limit",
       "text": "?\\* ?total|1 ?- ?percent ?/ ?100|\\(100 ?- ?percent\\) ?/{1,2} ?100|\\(1 ?- ?percen…",
       "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
+    },
+    {
+      "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-one-class/prompt.md",
+      "rule": "em_dash",
+      "text": "--",
+      "reason": "The `--` is the syntax of the write-tests command. Text after it goes to each agent as extra instructions. The prompt needs it, because the environment note must reach the agents."
+    },
+    {
+      "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-pricing-folder/prompt.md",
+      "rule": "em_dash",
+      "text": "--",
+      "reason": "The `--` is the syntax of the write-tests command. Text after it goes to each agent as extra instructions. The prompt needs it, because the environment note must reach the agents."
     }
   ]
 }
