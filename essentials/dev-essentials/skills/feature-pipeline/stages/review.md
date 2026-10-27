@@ -120,6 +120,14 @@ Each item is a Warning.
 - Style that differs from the conventions of the same file: names, layout, member order, import order, comment style. Do not report a general style opinion.
 - A new abstraction with one implementation and one caller, or a third near-duplicate where an abstraction fits (the Rule of Three).
 
+### Compliance
+
+- Each item of "Implementation Steps" in `spec.md`, and each acceptance criterion of `requirements.md`. It is done in the diff, explained as a deviation, or missing. A missing item is Blocking. A deviation that weakens the intent is a Warning.
+- The skills of the session. Read the skill listing. For each skill whose trigger fits the task, load it with the `Skill` tool, and list its mandatory artifacts (tests, registrations, configuration, docs). A missing mandatory artifact is Blocking. A conditional artifact whose condition applies is a Warning.
+- The rule files of the repository. For each folder that the diff touches, read each `CLAUDE.md` and `REVIEW.md` on the path from the repository root down to that folder. These files can be absent from the guidance files of the Project Context. Report each rule that the diff newly breaks, and quote the rule. Also report a rule that the diff makes obsolete. If the two files conflict, `REVIEW.md` wins. Do not report a rule that the code broke before the diff. Each report is a Warning.
+- A statement in a guidance file that the diff makes false, for example a removed component or a moved path. Stage 6 runs at the same time. Report the statement anyway, so that the human sees whether Stage 6 fixed it. This is a Suggestion.
+- The same rule files for the folder of each caller that "Scope" finds. Each report is a Warning.
+
 ## Rules
 
 - Never modify any file, and run no git command that changes state. This is a read-only review.
