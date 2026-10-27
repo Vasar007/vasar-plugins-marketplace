@@ -14,7 +14,7 @@ Fixes by pattern matching put regressions into shipping code. A reviewer names a
 
 Classify every finding of the triage before you touch any file.
 
-**APPLY**: a primary source (see section 3) proves the finding, AND the proposed fix is bounded (no refactor around it, no file outside the triage). Apply the fix as described. Example: the reviewer flags a missing null check. The fixer reads the callers, finds a code path with no guard, and adds the check.
+**APPLY**: a primary source (see section 3) proves the finding, and the proposed fix is bounded (no refactor around it, no file outside the triage). Apply the fix as described. Example: the reviewer flags a missing null check. The fixer reads the callers, finds a code path with no guard, and adds the check.
 
 **PARTIAL**: a primary source proves the finding, but the proposed fix goes too far, or only a part of the fix has a primary source. An example of too far: the reviewer suggests a refactor of the module, but only the target line needs a change. Apply the bounded, proven part. Write down what you left out, and why. Example: the reviewer recommends a new helper class together with the fix of a logic bug. Fix the logic bug, and put the helper class in the deferred list of Phase 9.
 
@@ -34,7 +34,7 @@ Before you apply a fix, or a part of a fix, cite one of these sources:
 - **(d) The CLAUDE.md of the repository**, for a finding about a convention or a versioning rule of the repository.
 - **(e) The skill, spec, or artifact under review**, for a finding about the stated rules of that artifact.
 
-These do NOT count:
+These do not count:
 
 - Pattern matching from training data ("this is typically how X is done").
 - An analogy of structure with no reading of the source ("this looks like Y, so the fix is Z").
@@ -56,7 +56,7 @@ These patterns came up in past review cycles. REJECT each one unless you proved 
 
 ## 5. Don't-over-fix rule
 
-The fixer does NOT refactor code around the fix, normalize unrelated style, or improve anything outside the scope of the finding. The files and lines that the reviewer cited in the triage set the scope. If you notice an unrelated issue during a targeted change, log it in the deferred list of Phase 9 and move on. An addition to this commit breaks the scope. This holds for a correct fix too.
+The fixer does not refactor code around the fix, normalize unrelated style, or improve anything outside the scope of the finding. The files and lines that the reviewer cited in the triage set the scope. If you notice an unrelated issue during a targeted change, log it in the deferred list of Phase 9 and move on. An addition to this commit breaks the scope. This holds for a correct fix too.
 
 The reason: an over-fix adds diff noise that hides the targeted change. It adds new review surface for the re-review pass, and it makes the commit history harder to bisect later.
 
@@ -66,7 +66,7 @@ The reason: an over-fix adds diff noise that hides the targeted change. It adds 
 
 The fixer touches only the files that the triage cites. After the fixes, stage with `git add <specific-files-touched>`. Never use `git add -A` or `git add .`. Unrelated staged files silently widen the commit, and they can ship work-in-progress changes by accident.
 
-**An exception for supporting files that the fix structurally needs**. Sometimes a proven finding cannot land without a change to a directly related file that the triage does not cite. Then the fixer can also touch that file. The fix must need the file in its structure. Convenience is not enough. Examples: for "missing test coverage for the new code path", the fixer can add or change the matching `*Tests.cs` or test file. For "missing configuration option", it can also touch the file that registers the configuration. The exception is narrow: only a file without which the fix is incomplete in its architecture. Unrelated style changes, refactors, and edits for convenience do NOT qualify. Log the extra file in the cycle report, on the verification source line of the finding.
+**An exception for supporting files that the fix structurally needs**. Sometimes a proven finding cannot land without a change to a directly related file that the triage does not cite. Then the fixer can also touch that file. The fix must need the file in its structure. Convenience is not enough. Examples: for "missing test coverage for the new code path", the fixer can add or change the matching `*Tests.cs` or test file. For "missing configuration option", it can also touch the file that registers the configuration. The exception is narrow: only a file without which the fix is incomplete in its architecture. Unrelated style changes, refactors, and edits for convenience do not qualify. Log the extra file in the cycle report, on the verification source line of the finding.
 
 ---
 

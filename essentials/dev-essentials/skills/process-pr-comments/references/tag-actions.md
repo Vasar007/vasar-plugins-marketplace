@@ -91,7 +91,7 @@ The reviewer wants an explanation. A wrong public answer under the identity of t
 The reviewer wants a conversation, not a fix. Never edit code.
 
 - Sum up the positions in chat: the concern of the reviewer, your reading of the trade-off, and a proposed direction.
-- Without `autonomous`, do NOT post a thread reply on your own. Ask the human: `This thread is tagged [ToDiscuss] — want me to draft a reply or wait for you to respond?`
+- Without `autonomous`, do not post a thread reply on your own. Ask the human: `This thread is tagged [ToDiscuss] — want me to draft a reply or wait for you to respond?`
 - If the user asks for a reply, or with `autonomous` (Bucket A2), post a measured reply that frames the options and marks the uncertainty.
 
 ### `[OutOfScope]`
@@ -108,7 +108,7 @@ Issue flow:
 1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a short brief: the comment text, the file and the line, the reason that it is out of scope, and each priority hint from other tags. Task Composer drafts the title and the description in chat. It writes no file and makes no GitHub call yet.
 2. Ask the user to approve the title and the type. With `autonomous`, skip this step: take the title from the draft. If the reviewer or the user named a type, pass it. Else pass no type, and Task Composer leaves `type` out. Name the fields in the cycle log (Bucket A2).
 3. After the approval of the user, or with `autonomous`, invoke Task Composer again with `mode: create`, the approved fields, `owner`, and `repo`. Task Composer requires `owner` and `repo`. Pass them word for word, and never infer them (`dev-essentials:github-mcp-conventions` Rule 1). Task Composer creates the issue. If the brief gives a parent, Task Composer links the issue to it. Then it reads the issue back, and returns its ID and its URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which approves `mode: create`.
-4. Use ONLY the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.`
+4. Use only the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.`
 
 If the user declines, or wants to defer: reply `**[AI]** Noted — will not track separately yet.` Create no issue.
 
@@ -125,7 +125,7 @@ Information only. No code edit and no thread reply.
 The reviewer marks a pattern that occurs several times. The tag means: fix the whole pattern, not only this instance.
 
 1. Find the underlying tag, usually `[ToFix]` or `[Suggestion]`.
-2. Find every occurrence of the pattern in the diff of the PR, and NOT outside it. Keep to the scope of the PR.
+2. Find every occurrence of the pattern in the diff of the PR, and not outside it. Keep to the scope of the PR.
 3. Without `interactive`, apply the pattern fix at every occurrence (Bucket A1), and go to step 4. With `interactive`, show the pattern and the list of occurrences in chat, and ask: `Found N occurrences. Apply the pattern fix across all?`
 4. After the fix at every occurrence, commit at once (Phase 4), and reply `**[AI]** Fixed pattern across N occurrences: <summary>. Committed as <short-sha>; will be included in the next push.`
 5. With `interactive` and no approval: fix only the flagged instance, and reply `**[AI]** Fixed this instance. Waiting on your call for the remaining N−1.`
@@ -162,4 +162,4 @@ Examples:
 
 - No tag parses: `[Note]`.
 - The size category is not clear: treat the change as Medium / Large, and follow that row of "Size thresholds for autonomy".
-- The file of the thread (`filePath`) cannot be read, for example because it was renamed or moved: do NOT guess. Show the thread to the human in chat, and leave the comment unprocessed for the next cycle.
+- The file of the thread (`filePath`) cannot be read, for example because it was renamed or moved: do not guess. Show the thread to the human in chat, and leave the comment unprocessed for the next cycle.

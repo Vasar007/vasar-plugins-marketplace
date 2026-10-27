@@ -188,7 +188,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 ### 2 §3 vs §7 contradiction on decrement timing
 
-- **Problem**: §3 tests the quota before dispatch. §7 decrements ONLY after a successful response. So a failed request costs nothing and does not drain the quota counter. Under a lasting failure rate, the real throughput can be far above the intended limit.
+- **Problem**: §3 tests the quota before dispatch. §7 decrements only after a successful response. So a failed request costs nothing and does not drain the quota counter. Under a lasting failure rate, the real throughput can be far above the intended limit.
 - **Impact**: workloads with many failures bypass the quota. Rate limiting does not work while error rates are high.
 - **Confidence**: high. Sections 3 and 7 give two different decrement times for the same counter.
 - **Recommendation**: delete the decrement sentence of §7. Add a note that the decrement happens at the admission of §3. The note also says that failed requests consume quota with no refund (admit-then-count, no reclaim on failure).

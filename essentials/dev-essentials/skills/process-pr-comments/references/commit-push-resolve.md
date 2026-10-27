@@ -4,7 +4,7 @@ Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The
 
 Contents: the steps for each thread, the push, the resolve, carried-over threads, the reply templates, the `no-reply` split, and the threads to resolve.
 
-The reply comes right after the commit and before the push. So the reply never claims too much: it reports a local commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread ONLY after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and replied to.
+The reply comes right after the commit and before the push. So the reply never claims too much: it reports a local commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread only after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and replied to.
 
 To resolve a thread, call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId`. The schema of the tool also requires `owner`, `repo`, and `pullNumber` on every call, although `resolve_thread` does not use their values. Pass the values from Phase 1. A resolve of an already resolved thread does nothing.
 
@@ -14,9 +14,9 @@ Do these steps in order for each thread that this cycle fixes, before you go on 
 
 **Exception for `squash`**. Steps 1 and 2 still run for each thread in this loop. The one commit of step 3 does not exist until the end of the cycle. So the reply of step 4 cannot name a SHA for each thread yet. Run steps 1 and 2 for every thread first, and make the one commit at the end of the cycle. THEN run step 4 for every thread, each reply with that one shared SHA. Then go on to the push.
 
-**Exception for `deep-fix`**. An eligible thread that `deep-fix` names does NOT run steps 1 to 4 here. It goes to Stage 3 (see `deep-fix.md`).
+**Exception for `deep-fix`**. An eligible thread that `deep-fix` names does not run steps 1 to 4 here. It goes to Stage 3 (see `deep-fix.md`).
 
-1. **Build and test**: build the affected projects and run the affected tests. If the build fails or a test regresses, do NOT commit.
+1. **Build and test**: build the affected projects and run the affected tests. If the build fails or a test regresses, do not commit.
 2. **Stage**: `git add` only the files that this thread touched. Never `git add -A` or `git add .`.
 3. **Commit**: make one commit for each thread (default). A local `git commit` gives a real SHA at once, before any push. Message format:
 
@@ -28,9 +28,9 @@ Do these steps in order for each thread that this cycle fixes, before you go on 
    Co-Authored-By: Claude <noreply@anthropic.com>
    ```
 
-   - With `squash`, do NOT run step 4 after each thread (see the exception above). First collect the fixes of steps 1 and 2 for every thread. Then make ONE commit at the end of the cycle, with every `T#<id>` in the body. Only then run step 4 for each thread.
+   - With `squash`, do not run step 4 after each thread (see the exception above). First collect the fixes of steps 1 and 2 for every thread. Then make ONE commit at the end of the cycle, with every `T#<id>` in the body. Only then run step 4 for each thread.
    - With `no-commit`, skip the commit and the push. Leave the edits staged for the human, and reply with the "staged" template below.
-   - **Do NOT ask the user to approve a commit**. Commits stay automatic. The push is different (see below). Feedback of the user on an earlier cycle, for example "LGTM, proceed", does NOT change the commit default to `no-commit`. A user who wants to inspect before the commit says so with the `no-commit` flag.
+   - **Do not ask the user to approve a commit**. Commits stay automatic. The push is different (see below). Feedback of the user on an earlier cycle, for example "LGTM, proceed", does not change the commit default to `no-commit`. A user who wants to inspect before the commit says so with the `no-commit` flag.
 4. **Reply** with `mcp__plugin_github_github__add_reply_to_pull_request_comment` and the templates below. Name the LOCAL commit SHA of step 3. The reply does not claim a push. The reply is the lasting record of the commit, and the skill writes no other state. In a later cycle, Phase 2 step 5 finds the committed-but-unpushed state again from this reply text. It runs `git merge-base --is-ancestor` against the remote. This works in the same invocation and in a later one.
 
 Repeat steps 1 to 4 for every thread of the cycle before the push.
@@ -46,14 +46,14 @@ The orchestrating session pushes after steps 1 to 4 ran for every thread of the 
 
 ## Resolve threads and report
 
-This step runs after the push of this cycle succeeds. It covers two groups of threads: (a) the threads that this cycle committed and replied to, AND (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle.
+This step runs after the push of this cycle succeeds. It covers two groups of threads: (a) the threads that this cycle committed and replied to, and (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle.
 
 **Group (a), the threads of this cycle**. Skip a thread with `openFindingsMarker: true` (see `deep-fix.md`). For each other thread, run the ancestry check (`thread-state-schema.md` § "Ancestry check") for its commit SHA against `<pushed-tip>`. `<pushed-tip>` is the commit or branch state that the push of this cycle produced, not the remote-tracking ref.
 
 - The check passes. This is the normal case, because the push carried the commit. Call `pull_request_review_write` with `method: resolve_thread`, `threadId: <threadNodeId>` from the Phase 2 roster, and `owner`, `repo`, and `pullNumber` from Phase 1.
   - On success, report: `T#<id> resolved — <file>:<line>, commit <sha> pushed as part of this cycle.`
   - On an MCP error, report: `T#<id> pushed but resolve failed (<short reason>) — resolve manually via GitHub UI.`
-- The check fails: the commit is not on the pushed branch, for example because it was dropped or rebased away. Do NOT call resolve. Report the thread as still open. Do not guess.
+- The check fails: the commit is not on the pushed branch, for example because it was dropped or rebased away. Do not call resolve. Report the thread as still open. Do not guess.
 
 **Group (b), the `unconfirmed-commit-claim` threads of this cycle**. The resolve depends on the answer of the human to the question of Phase 2 step 5, not on the ancestry alone. The answer lives in the conversation of this session or `/loop` run, not in a file. It has to last only until Phase 4 of this cycle. Both of these conditions must hold before you resolve such a thread:
 
@@ -85,7 +85,7 @@ If three or more threads carry the **same note of the reviewer** at different ca
 
 Each reply starts with a **leading tag part** on the FIRST line. It has the `**[AI]**` or `**[AI][Draft]**` marker, and other bold reviewer-style tags as needed. At its end, it has a bold `**[T#<commentId>]**` thread tag as a deep link.
 
-**Link format of the T# tag**. Use the `html_url` field of the comment from `pull_request_read`. Do NOT build the URL by hand (see `dev-essentials:github-mcp-conventions` § "Thread anchors and `html_url`").
+**Link format of the T# tag**. Use the `html_url` field of the comment from `pull_request_read`. Do not build the URL by hand (see `dev-essentials:github-mcp-conventions` § "Thread anchors and `html_url`").
 
 ```markdown
 **[[T#<commentId>](<html_url>)]**
@@ -116,11 +116,11 @@ For the tone and the length of a reply, follow `review-principles.md`.
 ## Thread resolution after a fix lands: the `no-reply` split
 
 - **Without `no-reply` (default)**: reply, then resolve, with the steps above.
-- **With `no-reply`**: do NOT post the `**[AI]** Fixed` reply, and do NOT resolve the thread automatically. The reply is the record of why the thread is resolved, so without it the skill does not resolve. Report the cured thread to the user in chat instead, with the file path, the line range, and the commit SHA. Example: `T#<id> cured — <file>:<line>, commit <sha> — resolve manually via the GitHub UI when ready`. The user resolves the thread after a review of the committed diff. This holds for a new fix in Phase 4 and for a catch-up in Phase 2 step 5.
+- **With `no-reply`**: do not post the `**[AI]** Fixed` reply, and do not resolve the thread automatically. The reply is the record of why the thread is resolved, so without it the skill does not resolve. Report the cured thread to the user in chat instead, with the file path, the line range, and the commit SHA. Example: `T#<id> cured — <file>:<line>, commit <sha> — resolve manually via the GitHub UI when ready`. The user resolves the thread after a review of the committed diff. This holds for a new fix in Phase 4 and for a catch-up in Phase 2 step 5.
 
 ## Which threads to resolve
 
-The skill calls `resolve_thread` (with the node ID of the thread) ONLY for a thread that meets the rule above: committed, replied to, AND pushed. It never resolves on a guess, and never resolves a thread that it did not fix.
+The skill calls `resolve_thread` (with the node ID of the thread) only for a thread that meets the rule above: committed, replied to, and pushed. It never resolves on a guess, and never resolves a thread that it did not fix.
 
 Resolve these threads after they meet the rule, where the change clearly addresses the point of the reviewer:
 
