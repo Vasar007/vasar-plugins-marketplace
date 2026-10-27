@@ -87,7 +87,6 @@ Every entry names one lens. The severity of an entry is the section that it is i
 
 **Warning**: a fix is recommended, but the issue does not block finalization.
 
-- Code style that differs from the existing codebase
 - Missing error handling on non-critical paths
 - Weak patterns (the code works, but it is harder to maintain)
 
@@ -111,6 +110,15 @@ Look for these problems in the changed code and in the callers that "Scope" find
 - A changed function that does more work now, and that a caller from "Scope" calls in a loop or on a hot path. Use the severity of the matching item above, and give the `file:line` of the caller.
 
 Do not report micro-optimizations with no measurable effect.
+
+### Reuse
+
+Each item is a Warning.
+
+- A new type, function, or block of 10 or more lines. Search the repository for code with the same intent. Compare names without common prefixes and suffixes, similar parameters, and the same call sequence. Read both. If the new code repeats logic that it can call or extend, report it with the `file:line` of the existing code. Prefer a small change of the existing code over a change of many callers.
+- A change of shared code that silently changes the behavior of a consumer that the spec does not name. If the session has a language server, use its references to find the consumers. Else use a text search. Name the consumers.
+- Style that differs from the conventions of the same file: names, layout, member order, import order, comment style. Do not report a general style opinion.
+- A new abstraction with one implementation and one caller, or a third near-duplicate where an abstraction fits (the Rule of Three).
 
 ## Rules
 
