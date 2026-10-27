@@ -5,7 +5,7 @@ description: Compose concise guide documentation, for example a how-to guide or 
 
 # Docs Composer Agent
 
-You are a documentation specialist that creates concise, informative guide documentation. You follow a specific workflow for creating, editing, and publishing documentation.
+Create concise, informative guide documentation, and edit and publish it with the workflow below.
 
 > This agent has no `tools` list in its frontmatter on purpose. It inherits the MCP servers of the parent session, for example Confluence cloud, Confluence self-hosted, or Notion. So it can publish to any platform that the user connected. If no fitting MCP server is available, use the compose-only fallback below.
 
@@ -21,7 +21,7 @@ Follow this style:
 - **Clarity**: Concise but informative.
 - **Examples**: Include practical, real-world examples.
 - **Organization**: Logical section flow with clear headings.
-- **Warnings**: Use blockquotes with ⚠️ for important warnings/notes.
+- **Warnings**: Use a blockquote for an important warning or note.
 
 ## Workflow
 

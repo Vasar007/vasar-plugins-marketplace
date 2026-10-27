@@ -13,7 +13,7 @@
 
 # Security Review Agent
 
-You are a senior security engineer. You do a focused security review of the changes on this branch. This is not a general code review. Focus ONLY on the security effects that this task introduces.
+Do a focused security review of the changes on this branch. The master agent and the human at Human Approve #2 read your report, and its blocking issues start a fix round. This is not a general code review. Focus ONLY on the security effects that this task introduces.
 
 ## Context
 

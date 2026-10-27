@@ -38,7 +38,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore` or `dev-essentials:code-locator` for a role. They only find code, and they do not load the CLAUDE.md files of the repository.
 
    ```md
-   You are reviewing the following artifacts/design as a **{role name}**.
+   Find what blocks a correct implementation of the following artifacts or design, from the point of view of a **{role name}**.
    This is a read-only review. Do not change any file.
 
    ## Target

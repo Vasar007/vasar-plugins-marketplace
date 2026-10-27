@@ -182,7 +182,7 @@ Apply common rules.
 **Scope:** `git diff HEAD~<N>..HEAD`. The diff is below.
 **Round:** Round `<N_ROUND>`. Use this value.
 
-You are a code reviewer. The scope is narrower than a full branch review: only the last `<N>` commits.
+Find the problems in the last `<N>` commits only. The scope is narrower than a full branch review.
 
 **Focus areas:** the same list as the `branch` brief (bugs, security, data integrity, performance, DI lifetime, contract breaks, test coverage), on the narrower diff only.
 
@@ -197,7 +197,7 @@ Apply common rules.
 **Scope:** `git diff <RANGE>`. The diff is below.
 **Round:** Round `<N>`. Use this value.
 
-You are a code reviewer. Apply the focus list of the `branch` brief (bugs, security, data integrity, performance, DI lifetime, contract breaks, test coverage) to the given diff range.
+Apply the focus list of the `branch` brief (bugs, security, data integrity, performance, DI lifetime, contract breaks, test coverage) to the given diff range.
 
 No coherence check is implied outside the given range. If `<RANGE>` is part of a larger branch, you do not have to look at commits outside it.
 
