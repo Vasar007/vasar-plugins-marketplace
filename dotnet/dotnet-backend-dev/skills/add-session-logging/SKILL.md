@@ -296,7 +296,7 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 
 ## Build
 
-Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. An error that names a member that a generated file lacks means that the generator did not run. Do not change the calling code for such an error. If the build does not update `StringResources.Designer.cs`, follow the [stop-and-ask rule](../create-string-resource/SKILL.md#if-values-dont-appear) of `create-string-resource`.
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. If an error names a member that a generated file lacks, `StringResources.resx` lacks the entry, or the generator did not run. Add a missing entry to `StringResources.resx`. Do not change the calling code for such an error. If the build does not update `StringResources.Designer.cs`, follow the [stop-and-ask rule](../create-string-resource/SKILL.md#if-values-dont-appear) of `create-string-resource`.
 
 ## Checklist
 

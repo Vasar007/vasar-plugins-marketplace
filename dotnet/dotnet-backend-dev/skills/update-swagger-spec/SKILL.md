@@ -347,7 +347,7 @@ public async Task GetStoreConfiguration_ShouldReturnConfiguration()
 
 ### 7. Build Again
 
-Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. The build of step 3 can fail until step 4 adds the controller, so this loop runs at the end. Do not edit a generated file to fix an error. If the build does not update the generated files, follow the [stop-and-ask rule](#if-the-build-does-not-update-auto-generated-files).
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. The build of step 3 can fail until step 4 adds the controller, so this loop runs at the end. Do not edit a generated file to fix an error. An error in generated code counts as an error in the changed code. Fix it in the spec. If the build does not update the generated files, follow the [stop-and-ask rule](#if-the-build-does-not-update-auto-generated-files).
 
 ## Common Patterns
 

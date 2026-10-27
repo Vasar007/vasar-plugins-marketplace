@@ -15,7 +15,7 @@ This release makes seven large dotnet skills shorter. They move examples and rar
 
 ### Added in dotnet-backend-dev
 
-- `create-domain-model`, `create-primitive-wrapper`, `create-exception`, `handle-sensitive-data`, `model-mapping`, `create-controller`, `update-swagger-spec`, `create-external-client`, `add-configuration-option`, `add-session-logging`, and `create-string-resource` (issue #78): a build loop. Behavior change: the skill builds the changed projects with `dotnet build`, fixes the errors, and reports the result line of the last build. The skills with a code generator do not edit a generated file, and they point to their stop-and-ask rule. `model-mapping` also fixes each unmapped member that the build reports. `update-swagger-spec` runs the loop as a new last step.
+- `create-domain-model`, `create-primitive-wrapper`, `create-exception`, `handle-sensitive-data`, `model-mapping`, `create-controller`, `update-swagger-spec`, `create-external-client`, `add-configuration-option`, `add-session-logging`, and `create-string-resource` (issue #78): a build loop. Behavior change: the skill builds the changed projects with `dotnet build`, fixes the errors, and reports the result line of the last build. The skills with a code generator do not edit a generated file, and they point to their stop-and-ask rule. For an error that names a missing generated member, they do not change the calling code. `model-mapping` also fixes each unmapped member that the build reports. `update-swagger-spec` runs the loop as a new last step.
 - `add-migration` (issue #78): a build and migration-test loop on the framework path. The standard EF Core path already had its build.
 
 ### Changed in dotnet-backend-dev
@@ -30,9 +30,9 @@ This release makes seven large dotnet skills shorter. They move examples and rar
 
 ### Changed in dev-essentials
 
-- `write-markdown` (issue #78): the validation workflow loops on `markdownlint` until the exit code is `0`. An exit code of `2` to `4` is a configuration error, and the skill reports it.
-- `create-documentation` (issue #78): the checklist starts with a `markdownlint` loop until exit `0`. The list keeps the four items that the linter cannot test: the file name, the title heading, the contents list, and the relative links.
-- `generate-xml-docs` (issue #78): a CS1591 build loop with `-p:GenerateDocumentationFile=true` for that build only. The checklist stays the test for internal members.
+- `write-markdown` (issue #78): the validation workflow loops on `markdownlint` until the exit code is `0`. An exit code of `2` to `4` is a configuration error, and the skill reports it. Usage text from `markdownlint` means that the path matched no file.
+- `create-documentation` (issue #78): the checklist starts with a `markdownlint` loop until exit `0`. The list keeps the four items that the linter cannot test: the file name, the title heading, the contents list, and the relative links. Usage text from `markdownlint` means that the path matched no file.
+- `generate-xml-docs` (issue #78): a CS1591 build loop with `-p:GenerateDocumentationFile=true` for that build only. The checklist stays the test for internal members. If the project hides CS1591 or sets `TreatWarningsAsErrors`, the skill names the fallback.
 
 ## dev-essentials 3.5.0 and dotnet-backend-dev 1.6.5 in release [3.7.0] - 2026-10-27
 
