@@ -51,6 +51,11 @@ MATCH_VALUE = re.compile(r"not_contains|count:\d+")
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 IGNORED_REGEX_FLAGS = set("guyd")
 
+PAIR_FOLDER = "style-compare"
+PAIR_ARMS = ("openbsd", "simple-english")
+PAIR_KEYS_THAT_DIFFER = {"name", "tags", "plugins", "append_system_prompt"}
+PAIR_GRADERS_THAT_DIFFER = {"loaded-style"}
+
 LIBRARY_COPIES = {
     "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
     "dotnet-fixture.sh": ["workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
@@ -538,6 +543,46 @@ def plugin_entry_problems(case):
     return problems
 
 
+def pair_problems(cases):
+    """The two arms of a style comparison must differ in the style only.
+
+    A pair is <PAIR_FOLDER>/<arm>/<id> for each arm in PAIR_ARMS. The prompt text, the other frontmatter keys, and
+    the graders must be equal, except the keys in PAIR_KEYS_THAT_DIFFER and the graders in PAIR_GRADERS_THAT_DIFFER.
+    Each arm must have the graders in PAIR_GRADERS_THAT_DIFFER.
+    """
+    groups = {}
+    for case in cases:
+        parts = case.path.parts
+        if PAIR_FOLDER not in parts:
+            continue
+        rest = parts[len(parts) - parts[::-1].index(PAIR_FOLDER):]
+        if len(rest) == 2 and rest[0] in PAIR_ARMS:
+            groups.setdefault((str(case.plugin_root), rest[1]), {})[rest[0]] = case
+    problems = []
+    for (root, pair_id), arms in sorted(groups.items()):
+        missing = [arm for arm in PAIR_ARMS if arm not in arms]
+        if missing:
+            problems.append(f"{PAIR_FOLDER}/{pair_id}: the arm {', '.join(missing)} is missing")
+            continue
+        first, second = (arms[arm] for arm in PAIR_ARMS)
+        where = f"{first.label} and {second.label}"
+        if first.prompt_body.strip() != second.prompt_body.strip():
+            problems.append(f"{where}: the prompt text differs")
+        keys = [{k: v for k, v in case.prompt.items() if k not in PAIR_KEYS_THAT_DIFFER} for case in (first, second)]
+        if keys[0] != keys[1]:
+            problems.append(f"{where}: the frontmatter differs in a key other than "
+                            f"{', '.join(sorted(PAIR_KEYS_THAT_DIFFER))}")
+        graders = [{n: g for n, g in case.graders.items() if n not in PAIR_GRADERS_THAT_DIFFER}
+                   for case in (first, second)]
+        if graders[0] != graders[1]:
+            different = sorted(n for n in set(graders[0]) | set(graders[1]) if graders[0].get(n) != graders[1].get(n))
+            problems.append(f"{where}: the graders differ: {', '.join(different)}")
+        for case in (first, second):
+            for name in sorted(PAIR_GRADERS_THAT_DIFFER - set(case.graders)):
+                problems.append(f"{case.label}: the arm needs the grader {name}")
+    return problems
+
+
 def scaffold_problems(case, modes):
     """The case.yaml of a fixture case, and the scaffold script that it names. Modes maps a path to its git mode."""
     if case.case_yaml is None:
@@ -923,6 +968,52 @@ class CaseCheckTests(CaseFiles):
             self.assertTrue(any("bad.sh" in p and "bash -n" in p for p in problems), problems)
 
 
+class PairTests(CaseFiles):
+    PROMPT = "---\nname: {name}\ntags: [{tag}]\nappend_system_prompt: {rule}\n{extra}---\nWrite the file.\n"
+    OK = "---\ntype: regex\npattern: ok\n---\n"
+    LOADED = "---\ntype: tool_used\ntool: {tool}\n---\n"
+
+    def pair(self, text="Write the file.", extra="", second_graders=None, drop_second=False):
+        graders = {"acc": self.OK, "loaded-style": self.LOADED.format(tool="Skill")}
+        first = self.PROMPT.format(name="a", tag="x", rule="one", extra="")
+        self.case(f"{PAIR_FOLDER}/openbsd/d1", prompt=first, graders=graders)
+        if not drop_second:
+            second = self.PROMPT.format(name="b", tag="y", rule="two", extra=extra).replace("Write the file.", text)
+            if second_graders is None:
+                second_graders = {"acc": self.OK, "loaded-style": self.LOADED.format(tool="Other")}
+            self.case(f"{PAIR_FOLDER}/simple-english/d1", prompt=second, graders=second_graders)
+        return pair_problems(load_cases(self.plugin))
+
+    def test_arms_that_differ_in_the_style_only_pass(self):
+        self.assertEqual(self.pair(), [])
+
+    def test_a_different_prompt_text_fails(self):
+        problems = self.pair(text="Write the page.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_a_different_frontmatter_key_fails(self):
+        problems = self.pair(extra="max_turns: 5\n")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the frontmatter differs", problems[0])
+
+    def test_a_different_grader_fails(self):
+        problems = self.pair(second_graders={"acc": "---\ntype: regex\npattern: other\n---\n",
+                                             "loaded-style": self.LOADED.format(tool="Other")})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the graders differ: acc", problems[0])
+
+    def test_a_missing_arm_fails(self):
+        problems = self.pair(drop_second=True)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the arm simple-english is missing", problems[0])
+
+    def test_an_arm_needs_the_loaded_style_grader(self):
+        problems = self.pair(second_graders={"acc": self.OK})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the arm needs the grader loaded-style", problems[0])
+
+
 class ScratchTests(CaseFiles):
     def make(self, content, path):
         self.case("gop-e2", graders={"scratch-not-staged": f"---\ntype: file_exists\npath: {path}\nexists: false\n---\n"},
@@ -982,6 +1073,9 @@ class RepositoryCasesTest(unittest.TestCase):
 
     def test_fixture_libraries_have_equal_copies(self):
         self.assertEqual(copy_problems(), [])
+
+    def test_style_compare_arms_differ_in_the_style_only(self):
+        self.assertEqual(pair_problems(self.cases), [])
 
     def test_untracked_file_case_names_the_blob_of_its_scratch_file(self):
         if shutil.which("git") is None:

@@ -108,6 +108,24 @@
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
       "reason": "Heading text: the contents list repeats the words of the heading. The heading keeps its name, because other files and anchors use it."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/coexist/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/openbsd/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/simple-english/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
     }
   ]
 }

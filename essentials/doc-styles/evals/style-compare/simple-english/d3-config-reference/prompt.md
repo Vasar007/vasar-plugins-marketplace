@@ -1,0 +1,24 @@
+---
+description: The model writes the reference of the snapsync configuration file from a fact sheet.
+name: se-d3-config-reference
+tags: [style-compare, style-compare-se]
+plugins: ["../../../../eval-stubs/simple-english"]
+allowed_tools: [Skill, Read, Glob, Grep]
+max_turns: 20
+timeout_seconds: 600
+append_system_prompt: 'Writing rule: before you write English text, load the simple-english:simple-english skill with the Skill tool, and follow it. The rule covers files and your reply.'
+---
+
+Write `docs/snapsync.conf.md`, the reference of the configuration file of snapsync.
+
+Facts about the file:
+
+- The configuration file has one directive on each line. A `#` starts a comment.
+- `keep count`: the default is 30. The `-k` flag overrides it.
+- `port number`: the default is 22.
+- `exclude pattern` and `include pattern`: the patterns are globs. Each directive can repeat. The last match decides.
+- `bandwidth rate`: the rate is in KB/s. 0 means no limit, and it is the default.
+- A `source path { ... }` block sets `keep` and `exclude` for one source.
+- An unknown directive stops `snapsync` with exit status 1 and the message `line N: unknown directive`.
+
+Use only these facts.
