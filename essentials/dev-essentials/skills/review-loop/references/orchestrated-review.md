@@ -162,8 +162,8 @@ Step 4 — Use this skill's severity scale exactly: `Blocker`, `Critical`, `High
 `Nit` — do not invent your own scale. Use one type per finding from: `Bug`, `Reliability`, `Security`, `Performance`,
 `Maintainability`, `Test`, `Style`, `Architecture`, `Spec`, `Docs`.
 
-Don't over-flag. A healthy density is about 1 Critical/High + 4 Medium + 3 Low/Nit per ~1,000
-lines — only report findings with real, actionable signal.
+Report every finding that you find, at every severity, also one that you are not sure of. Phase 4
+of the loop filters the findings, so a filter here drops real findings.
 
 Return a structured list. Each finding has:
 - severity: Blocker | Critical | High | Medium | Low | Nit
@@ -174,6 +174,7 @@ Return a structured list. Each finding has:
 - title: ≤80 chars one-liner
 - diagnosis: ≤300 chars of why this matters
 - fix direction: ≤200 chars — not the exact fix, just "refactor", "add validation", etc.
+- confidence: high, medium, or low
 
 Also return positive callouts (a `good`-flagged item, not a severity) — conventions this area
 follows well. Be selective: one or two strong positives per file at most.
@@ -181,14 +182,12 @@ follows well. Be selective: one or two strong positives per file at most.
 Do NOT include file contents or diff text in your response. The orchestrating agent will read
 only the specific lines you anchor.
 
-Hard cap: ≤600 words total for the response.
+Keep each field to its limit above. Do not leave out a finding to make the response shorter.
 ```
 
-## Step between Role 2 and Role 3 — collate and check density
+## Step between Role 2 and Role 3 — collate
 
 The orchestrator does this step itself, with no subagent. Merge the duplicates across areas (one issue that shows up in two areas) into one finding with several sites. Sort the findings by severity, then by file path.
-
-**Apply the density guardrail of the section "Guardrails" of `SKILL.md` here**. If the collated count is far from that baseline, challenge the results of the Area Explorers. Dispatch a second review of the areas with too many findings, with a stricter bar. Do this before Role 3 and before the triage table of Phase 4.
 
 ## Role 3 — Finding Verifier (optional)
 
@@ -229,4 +228,4 @@ Keep the findings with the verdict `confirm` or `refine`. Drop the findings with
 
 The orchestrator reads only the lines that the remaining findings point to. It reads them itself, with `Read` or with a targeted `git show <Source tree-ish>:<path> | sed -n`. The usual total is a few hundred lines for the whole target, at any target size.
 
-With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated, density-checked, and (optionally) verified findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.
+With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated and (optionally) verified findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.

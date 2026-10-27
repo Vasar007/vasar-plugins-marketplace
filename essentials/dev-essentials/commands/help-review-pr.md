@@ -68,7 +68,7 @@ The categories below are **examples, not a full list**. Adapt them to the conven
 - **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:general-conventions`, for example the quoting of frontmatter scalars.
 - **Exception and user-facing messages**: if the repo keeps its user-facing strings in one place, messages come from resources, not from inline string literals.
 
-Do not report too many findings. A sane ratio for each 1,000 lines is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings. See the finding-density guardrail of `dev-essentials:review-loop`.
+Report every finding with a severity. Sort the findings table of the artifact by severity, so that the reader and `--mode=post-<N>-<M>` start with the most severe ones.
 
 ## Phase 5 — Produce the HTML artifact
 
@@ -85,7 +85,7 @@ For a large PR, delegate the phases that need much context (2 to 4) to subagents
 1. Role 1: a Target Explorer subagent builds a fact map of the PR, with no judgment.
 2. The map comparison between Role 1 and Role 2.
 3. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
-4. The density test between Role 2 and Role 3.
+4. The collation between Role 2 and Role 3.
 5. Role 3: an optional Finding Verifier subagent.
 6. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
 
