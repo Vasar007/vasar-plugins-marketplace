@@ -97,6 +97,21 @@ Every entry names one lens. The severity of an entry is the section that it is i
 - Small refactoring chances
 - More test cases beyond the plan
 
+### Performance
+
+Look for these problems in the changed code and in the callers that "Scope" finds. Each item names its severity.
+
+- A database query, a remote call, or file I/O inside a loop (N+1), also through a called function. Warning. If the collection can be large (a page, a table scan, user input), Blocking. If the same interface has a batch form, name it in `Fix:`.
+- Awaited calls in a loop that can run at the same time. Warning.
+- Nested loops over the same size, repeated linear searches in a loop, or string building by repeated concatenation in a loop. Warning. Do not report a size that is provably small (below about 100).
+- Allocations or full copies in each iteration of a hot path (a request handler, an inner loop, a large batch). Warning. Blocking on a clear hot path.
+- Blocking I/O on an async path. Warning. A block on a task or promise in async code is Blocking, because it can deadlock.
+- The same pure work repeated for each request, or a cache with no eviction or size limit in a long-running process. Warning.
+- Many small remote calls where one call or a batch endpoint does the work. Warning.
+- A changed function that does more work now, and that a caller from "Scope" calls in a loop or on a hot path. Use the severity of the matching item above, and give the `file:line` of the caller.
+
+Do not report micro-optimizations with no measurable effect.
+
 ## Rules
 
 - Never modify any file, and run no git command that changes state. This is a read-only review.
