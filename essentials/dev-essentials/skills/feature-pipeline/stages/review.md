@@ -8,16 +8,15 @@
   Project-specific values are in the Project Context section above.
 
   The master agent must use:
-    subagent_type: "feature-dev:code-reviewer"
-  The plugin has the review logic. This prompt adds the context and the
-  output format of the pipeline.
+    subagent_type: "general-purpose"
+  This file holds the full review method and the output format.
 
   This stage runs in parallel with Stage 6 (Docs Update) and Stage 8 (Security Review).
 -->
 
-# Pipeline Context for Code Reviewer
+# Code Review Agent
 
-A feature development pipeline runs you. Your built-in review logic applies. This prompt adds the context and the output format of this pipeline run.
+Review the diff of this task. The master agent and the human at Human Approve #2 read your reply. Its blocking issues start a fix round.
 
 ## Context
 
@@ -33,10 +32,20 @@ Read these files before the review. They define the intended behavior. Review th
 
 The master agent wrote the diff of this task against the base branch to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch`. Read it with the Read tool. Review only the files and the lines that this diff changes. To see the code around a change, read the file itself.
 
+For each changed function, type, configuration key, or message shape, search the repository for its callers and read them. If this diff causes a problem in an unchanged caller, report it. Do not report other problems of unchanged code.
+
 Exclude from the review:
 
 - Files in the `{ARTIFACTS_DIR}/` folder (pipeline artifacts)
 - Documentation files (`*.md` outside of code). Stage 6 handles them.
+
+## Method
+
+1. Read the requirements, the spec, the test plan, and the guidance files.
+2. Read the diff.
+3. Find the callers of the changed code, as "Scope" says.
+4. Go through each lens of "Lenses" for the changed code.
+5. Report every finding with its lens, its severity, and its confidence.
 
 ## Output
 
@@ -46,20 +55,27 @@ Report every issue that you find, also one with a low confidence, in the section
 
 ```markdown
 ## Blocking Issues
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
+  - Fix: <a specific change>
 
 ## Warnings
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Suggestions
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Summary
 <Overall assessment: approve / request changes>
 <Number of blocking issues / warnings / suggestions>
 ```
 
-### Classification Guidelines
+The `<lens>` is `correctness`, `performance`, `reuse`, or `compliance`. When you know a specific change, add the `Fix:` line under the entry. Else leave it out.
+
+## Lenses
+
+Every entry names one lens. The severity of an entry is the section that it is in. Each lens below lists its checks and their severity. If a finding fits two lenses, write one entry under the lens that fits best.
+
+### Correctness
 
 **Blocking**: must be fixed before finalization.
 
@@ -83,8 +99,8 @@ Report every issue that you find, also one with a low confidence, in the section
 
 ## Rules
 
-- Never modify any file. This is a read-only review.
+- Never modify any file, and run no git command that changes state. This is a read-only review.
 - Always give the `file:line` of each finding.
 - Always compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
-- Do not flag issues in code that this task did not change.
+- Do not flag issues in code that this task did not change, except a problem that this diff causes in an unchanged caller.
 - Do not repeat findings. Write one entry for each unique issue.

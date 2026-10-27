@@ -21,7 +21,7 @@ The master agent (you) runs 10 stages, each in its own subagent with a fresh con
 | 4 | `test-coverage` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `test-plan.md` | Test files |
 | 5 | `simplifier` | `code-simplifier:code-simplifier` | `sonnet` | The diff against the base branch | Code |
 | 6 | `docs` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md` | Docs |
-| 7 | `review` | `feature-dev:code-reviewer` | `opus` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
+| 7 | `review` | `general-purpose` | `opus` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
 | 8 | `security-review` | `general-purpose` | `opus` | `requirements.md`, `spec.md` | `security-review.md` |
 | 9 | `finalization` | `general-purpose` | `sonnet` | `requirements.md`, `spec.md`, `review.md` | Commit, and the facts for the push and the PR |
 
@@ -43,7 +43,7 @@ Human Approve #1 stops only with `--interactive`. Human Approve #2 stops without
 
 The model defaults are the tier choices of this pipeline. They follow the model matrix in the "Model selection" section of `dev-essentials:subagent-orchestration`. That section has the rules for Haiku and Fable.
 
-Stages 5 and 7 need the external plugins `code-simplifier` and `feature-dev`. Install both before a run. If one is missing, install it, or skip its stage with `--skip=simplifier` or `--skip=review`. The run then has no output from that stage. Stage 2b uses `dev-essentials:create-html-artifact`, which ships with this plugin.
+Stage 5 needs the external plugin `code-simplifier`. If it is missing, install it, or skip the stage with `--skip=simplifier`. The run then has no output from that stage. Stage 2b uses `dev-essentials:create-html-artifact`, which ships with this plugin.
 
 ## Arguments
 
@@ -295,7 +295,7 @@ Launch the stage `test-coverage`, then the stage `simplifier`. The simplifier is
 
 ### Steps 6, 7, and 8: Docs, Code Review, and Security Review (parallel)
 
-Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The reviewer is a plugin agent with its own review logic. Its stage file only adds the context and the output format. The reviewer agent has no tool that writes a file or runs git. So before its "Stage Launch" steps, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>`. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the reviewer is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
+Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. The stage file of the review holds its full method. The review stage writes no file. It runs no git command that changes state. The review reads one fixed patch. So before its "Stage Launch" steps, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>`. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the review is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file. The security stage file holds its full method. Wait until all three are done, then update the checkpoint.
 
 ### Human Approve #2 (after Review)
 
