@@ -32,13 +32,15 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 | `--include-vendored` | off (bare) | Include the vendored or third-party CLAUDE.md files in personal repos, with a clear label. By default, the run excludes them. |
 | `--dry-run` | off (bare) | Accepted for old invocations. The audit always stops after the triage. |
 
-A flag of the promotion, for example `--cross-repo`, `--resume`, `--delete-personal-entities`, `--interactive`, or `--autonomous`, belongs to `promote-conventions`. Its command is `/dev-essentials:promote-conventions`. Say so. The old call still works in two cases only. The first case is `--resume`. Read `../promote-conventions/SKILL.md`, start at "Phase 0 for a resume run" of that file, and skip the audit. The second case is a promote request, with or without a flag of the promotion. A promote request asks the run to promote rules or to act on a triage. Examples are "promote my memory to skills" and "promote the recommended items". Run the audit first. Then read that file, and continue at its Phase 5 in the same run.
+`--dry-run` wins over every rule of this section. With `--dry-run`, the run always stops after the triage. This also applies to a promote request.
 
-Any other request is a question or an audit. Examples are "audit my memory", "which of my rules belong in the marketplace?", and a call with no request text. It stops after the triage. If it carries a flag of the promotion, `--autonomous`, or `--interactive`, it still stops there. `--dry-run` wins over every flag of the promotion, and the run always stops after the triage. `--autonomous` adds no steps.
+A flag of the promotion, for example `--cross-repo`, `--resume`, `--delete-personal-entities`, `--interactive`, or `--autonomous`, belongs to `promote-conventions`. Its command is `/dev-essentials:promote-conventions`. Say so. The old call still works in two cases only. The first case is `--resume`. Read `../promote-conventions/SKILL.md`, start at "Phase 0 for a resume run" of that file, and skip the audit. The second case is a promote request, with or without a flag of the promotion. A promote request asks the run to promote rules or to act on a triage. Examples are "promote my memory to skills" and "promote the recommended items". If this conversation already holds a Phase 4 triage, do not run the audit again. Else, run the audit first. Then read that file, and continue at its Phase 5 in the same run.
+
+Any other request is a question or an audit. Examples are "audit my memory", "which of my rules belong in the marketplace?", and a call with no request text. It stops after the triage. If it carries a flag of the promotion, `--autonomous`, or `--interactive`, it still stops there. `--autonomous` adds no steps.
 
 Resolve each relative path of the promote file against the folder of `promote-conventions`. A `${...}` placeholder in that file stays unfilled. Treat it as an empty value, except for the branch prefix.
 
-The configured branch prefix is `${user_config.branch_prefix}`. Set it with `/plugin configure` (see `plugin.json`). If the value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty. On the old-flag path, use this value as the configured branch prefix of the promote file.
+The configured branch prefix is `${user_config.branch_prefix}`. Set it with `/plugin configure` (see `plugin.json`). If the value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty. When this skill continues into the promote file, use this value as the configured branch prefix of that file.
 
 ## After the triage
 
@@ -46,7 +48,7 @@ Unless the request continues into `promote-conventions` (see above), this skill 
 
 ## Autonomy
 
-The audit has no approval gate and changes no file. A promotion that continues from a flag or a reply follows the gates of `promote-conventions`. If the work cannot go on without an answer, ask the user. An example is a marketplace root that does not resolve. Do not ask in other cases.
+The audit has no approval gate and changes no file. A promotion that continues from a promote request, from `--resume`, or from a reply follows the gates of `promote-conventions`. If the work cannot go on without an answer, ask the user. An example is a marketplace root that does not resolve. Do not ask in other cases.
 
 ## Guardrails
 
