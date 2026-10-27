@@ -166,7 +166,7 @@ Do NOT report these issues. Other processes handle them, or they are out of scop
 2. UUIDs are unguessable and need no extra validation.
 3. Environment variables and CLI flags are trusted values.
 4. Resource management issues (memory or file-descriptor leaks) are not valid findings.
-5. Subtle web vulnerabilities (tabnabbing, XS-Leaks, prototype pollution, open redirects): skip them, unless your confidence is extremely high.
+5. Subtle web vulnerabilities (tabnabbing, XS-Leaks, prototype pollution, open redirects): report them under Warnings with your confidence.
 6. Modern client frameworks are generally secure against XSS. Flag XSS only for explicit unsafe HTML injection or a similar bypass.
 7. Missing authorization on the client is not a vulnerability by itself, as long as the server validates the request.
 8. Command injection in shell scripts: report it only for an injection point that untrusted input can reach.
@@ -202,7 +202,7 @@ Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/security-revie
 
 **Warning (MEDIUM):** vulnerabilities that need specific conditions, but have a large impact.
 
-**Low (LOW):** a weakness with a small impact, or a finding with a low confidence.
+**Low (LOW):** a weakness with a small impact.
 
 If you find no vulnerabilities, still write the output file, with empty Blocking Issues and Warnings sections and a clean Summary.
 

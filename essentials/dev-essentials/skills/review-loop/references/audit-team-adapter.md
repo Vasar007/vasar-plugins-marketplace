@@ -26,7 +26,7 @@ Run `/audit-team <path> [agent-count] [model]`. `<path>` is the target path that
 
 If the text of a single finding clearly calls for it, grade the finding up or down. Examples: a `Warning` about a bug that corrupts data is Critical. A `Warning` about a `should` that is not normative is Medium.
 
-`/audit-team` gives no **type** token. For `target=spec`, use `Spec`. For a documentation `target=file`, take the type from the text of the finding, with the type taxonomy of `SKILL.md`. The default is `Docs`.
+`/audit-team` gives a confidence for each finding. Carry it into the Confidence field. It gives no **type** token. For `target=spec`, use `Spec`. For a documentation `target=file`, take the type from the text of the finding, with the type taxonomy of `SKILL.md`. The default is `Docs`.
 
 ## Conclusion mapping
 

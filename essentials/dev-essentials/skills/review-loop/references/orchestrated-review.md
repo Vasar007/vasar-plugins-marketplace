@@ -27,7 +27,7 @@ Three roles, in this order of dependency:
 
 Models: dispatch the Area Explorers on `--reviewer-model`, because they judge code. A command with no `--reviewer-model` dispatches them on the model of the session. Dispatch the Target Explorer as `general-purpose` with `model: "haiku"` and `effort: "low"`, because it only maps facts. In `dev-essentials:review-loop`, also pass `--reviewer-effort` to the Area Explorers.
 
-The orchestrator never reads the full diff or full files itself. It reads only the fact map of the Target Explorer and the structured findings of the Area Explorers. At the very end, it reads the lines that the remaining findings point to.
+The orchestrator never reads the full diff or full files itself. It reads only the fact map of the Target Explorer and the structured findings of the Area Explorers. At the very end, it reads the lines that the findings point to.
 
 ---
 
@@ -190,8 +190,8 @@ The orchestrator does this step itself, with no subagent. Merge the duplicates a
 
 ## Role 3 — Main-agent synthesis (not a subagent)
 
-The orchestrator reads only the lines that the remaining findings point to. It reads them itself, with `Read` or with a targeted `git show <Source tree-ish>:<path> | sed -n`. The usual total is a few hundred lines for the whole target, at any target size.
+The orchestrator reads only the lines that the findings point to. It reads them itself, with `Read` or with a targeted `git show <Source tree-ish>:<path> | sed -n`. The usual total is a few hundred lines for the whole target, at any target size.
 
-For each finding, make sure that the diagnosis matches the lines. If the anchor is a few lines off, correct it. If the lines disprove the finding, drop it, and record it as REJECT-at-source in the list of rejected findings of Phase 9. If the findings become PR threads, this check is the last one before the post, because a posted comment cannot be edited through MCP.
+For each finding, make sure that the diagnosis matches the lines. If the anchor is a few lines off, correct it. If the lines disprove the finding, drop it, and record it as REJECT-at-source in the list of rejected findings of Phase 9. If the findings become PR threads, make this check with care, because a posted comment cannot be edited through MCP. `help-review-pr` reads the lines again in its Phase 6 before the post.
 
 With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated and checked findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.

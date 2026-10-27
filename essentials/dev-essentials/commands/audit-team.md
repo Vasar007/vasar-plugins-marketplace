@@ -38,7 +38,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore` or `dev-essentials:code-locator` for a role. They only find code, and they do not load the CLAUDE.md files of the repository.
 
    ```md
-   Find what blocks a correct implementation of the following artifacts or design, from the point of view of a **{role name}**.
+   Review the following artifacts or design from the point of view of a **{role name}**.
    This is a read-only review. Do not change any file.
 
    ## Target
@@ -75,13 +75,13 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    **Reviewers:** {list of roles}
 
    **Blockers** (must fix):
-   - [flagged by: {roles}] issue description
+   - [flagged by: {roles}] issue description (confidence: high, medium, or low)
 
    **Warnings** (should address):
-   - [flagged by: {roles}] issue description
+   - [flagged by: {roles}] issue description (confidence: high, medium, or low)
 
    **Suggestions** (nice to have):
-   - [flagged by: {roles}] issue description
+   - [flagged by: {roles}] issue description (confidence: high, medium, or low)
 
    **Agreement matrix:** Note which findings had consensus (multiple roles) vs. single-role findings.
    ```

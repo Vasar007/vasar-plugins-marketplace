@@ -56,7 +56,7 @@ Run this diff once for the production paths and once for the test paths, so that
 
 ## Phase 4 — Evaluate against conventions
 
-Apply the convention skills of Phase 1. Look for real deviations, not for style preferences. To find a sibling for a comparison in a large repo, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you make the comparison.
+Apply the convention skills of Phase 1. Compare the diff with the conventions. Report a style preference as a Nit. To find a sibling for a comparison in a large repo, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you make the comparison.
 
 The categories below are **examples, not a full list**. Adapt them to the conventions that the skills of the target repo define:
 
