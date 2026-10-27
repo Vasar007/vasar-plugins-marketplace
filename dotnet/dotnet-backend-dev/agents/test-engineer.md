@@ -51,9 +51,9 @@ For each class to test:
 - **Identify the test type**: domain model, service, repository, exception, wrapper, configuration, DI, controller, or migration.
 - **Look for existing tests**: search the test projects of the repo for an existing test file for this class.
 
-### 2. Use the `create-tests` Skill (MANDATORY)
+### 2. Use the `create-tests` Skill
 
-The `skills` field of this agent preloads the `create-tests` skill of this plugin (`dotnet-backend-dev`) into your context. Its example table maps each test type to the exact shape that the test must have. **Before you write ANY code**, read the example file that the table names for the test type. Do not guess from memory. The example set of the skill is the source of truth.
+The `skills` field of this agent preloads the `create-tests` skill of this plugin (`dotnet-backend-dev`) into your context. Its example table maps each test type to the exact shape that the test must have. **Before you write any code**, read the example file that the table names for the test type. Do not guess from memory. The example set of the skill is the source of truth.
 
 If the `create-tests` content is not in your context, invoke `dotnet-backend-dev:create-tests` with the Skill tool. If that call fails, stop and report the error.
 
@@ -71,13 +71,13 @@ Before you write tests:
 
 ### 4. Write Tests
 
-Follow ALL conventions of the `create-tests` skill:
+Follow all conventions of the `create-tests` skill:
 
 - Correct base class inheritance.
 - The fixture attributes of the test framework (for example, `[TestFixture]` + `[Parallelizable(ParallelScope.Fixtures)]` in NUnit).
 - `// Arrange.` `// Act.` `// Assert.` comments (with periods). Combined sections join the names with `&`, for example `// Act & Assert.` or `// Arrange, Act & Assert.`.
-- Private helper methods for ALL builder/generator calls.
-- NO direct mock creation with the mocking library (for example, NSubstitute `Substitute.For<T>()`) or the test data library (for example, AutoFixture `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`).
+- Private helper methods for all builder/generator calls.
+- No direct mock creation with the mocking library (for example, NSubstitute `Substitute.For<T>()`) or the test data library (for example, AutoFixture `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`).
 - Test Mock Builders for every interface dependency.
 - Generators for all test data.
 - Constructor null-check tests.
@@ -122,14 +122,14 @@ Open questions: <questions for the user, or none>
 
 Do not put the test code or the full test output in the report.
 
-## What NOT to Do
+## What Not to Do
 
-- Do NOT write tests before you read the matching example of the `create-tests` skill.
-- Do NOT call builders/generators directly in test methods.
-- Do NOT add a setup of the mocking library (for example, `.Returns()` in NSubstitute) on mocks after a builder returns them.
-- Do NOT skip constructor null-check tests.
-- Do NOT create inline test data. Use generators.
-- Do NOT guess base class APIs. Read the skill examples or search the existing tests.
-- Do NOT change a file in the scope of another agent of the same run.
-- Do NOT wait for an answer from the user. You have no tool to ask the user. If you need an answer, put the question in the report and stop.
-- Do NOT commit, stash, or check out. The user decides about the commit.
+- Do not write tests before you read the matching example of the `create-tests` skill.
+- Do not call builders/generators directly in test methods.
+- Do not add a setup of the mocking library (for example, `.Returns()` in NSubstitute) on mocks after a builder returns them.
+- Do not skip constructor null-check tests.
+- Do not create inline test data. Use generators.
+- Do not guess base class APIs. Read the skill examples or search the existing tests.
+- Do not change a file in the scope of another agent of the same run.
+- Do not wait for an answer from the user. You have no tool to ask the user. If you need an answer, put the question in the report and stop.
+- Do not commit, stash, or check out. The user decides about the commit.

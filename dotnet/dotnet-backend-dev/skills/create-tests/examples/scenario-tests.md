@@ -49,7 +49,7 @@ public sealed class StubExternalPaymentGateway : IExternalPaymentGateway
 }
 ```
 
-Raw data (domain objects, configuration records, primitive values) comes directly from constructors or generator classes, NOT from the test data library (for example, `IFixture`).
+Raw data (domain objects, configuration records, primitive values) comes directly from constructors or generator classes, not from the test data library (for example, `IFixture`).
 
 ## Worked example
 
@@ -147,7 +147,7 @@ public sealed class StubExternalPaymentGateway : IExternalPaymentGateway
 }
 ```
 
-### What the stub does NOT contain
+### What the stub does not contain
 
 ```csharp
 // ❌ FORBIDDEN — mock inside a stub
@@ -171,5 +171,5 @@ public sealed class BadStubExternalPaymentGateway : IExternalPaymentGateway
 | --- | --- |
 | Stub a leaf external dependency | Write a `Stub{Name}` class with in-memory state |
 | Provide test data | Use real constructors or generator classes, no test data library (for example, `IFixture`) |
-| Run intermediate services (auth, orchestration) | Leave them as real implementations. Do NOT mock them. |
+| Run intermediate services (auth, orchestration) | Leave them as real implementations. Do not mock them. |
 | Configure the stub | Call seeding methods (`AddPayment(...)`) in the per-test setup method (for example, `[SetUp]` in NUnit) |

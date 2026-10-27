@@ -36,12 +36,12 @@ public async Task ProcessAsync_ShouldThrowArgumentNullException_ForEachRequiredA
 
 Rules:
 
-- ONE merged `foreach` test for each public method in each fixture. NEVER separate `WhenXIsNull` tests for each parameter.
+- ONE merged `foreach` test for each public method in each fixture. Never separate `WhenXIsNull` tests for each parameter.
 - **General principle: group the null-argument tests of required parameters by the expected exception type, not by an ad hoc list of parameter types**. Different guard clauses throw different exceptions. `ThrowIfNull()` throws `ArgumentNullException`. `ThrowIfNullOrWhiteSpace()` (for `String`) throws `ArgumentException` (the assertion split of Gate 6). One `foreach` test can assert only one exception type in its assertion (for example, `Should().ThrowAsync<T>()`). So each exception-type group gets its own merged `foreach` test. The exclusions below follow from this rule. They are not a separate ad hoc list:
   - `CancellationToken`, value types, and reference types that are nullable by design: fully excluded. `null` is a legal value for them, not a guard violation, so no exception exists to group by.
   - Required `String` parameters: `ThrowIfNullOrWhiteSpace()` guards them and throws `ArgumentException`, not `ArgumentNullException`. So they belong to a different group than the merged `ArgumentNullException` `foreach` test. Give each one its own test with the `StringNullOrWhiteSpace_TestCases` test-case source (for example, `[TestCaseSource(typeof(StringNullOrWhiteSpace_TestCases))]` in NUnit) instead of the `foreach`.
   - A method with both `String` and other required reference parameters: write the `foreach` `ArgumentNullException` test for the parameters that are not `String` (one group). Write a separate `StringNullOrWhiteSpace_TestCases` test for each `String` parameter (the `ArgumentException` group).
-- If a method has NO required reference parameters, write no `foreach` test for it. Do not create an empty list.
+- If a method has no required reference parameters, write no `foreach` test for it. Do not create an empty list.
 - Put the test in the `#region <Method> Tests` block, next to the other behavior tests of the method. Gate 4 gives the order of the fixture body.
 
 ## Gate 2 — No async-wrapping single-expression lambdas
@@ -66,7 +66,7 @@ If the method signature already has a default for the token (`CancellationToken 
 
 **Why:** A test where every SUT variable is `sut` makes the reader remember which class is under test. `var processor = CreateProcessor(...)` shows at once the kind of the SUT and what the test does with it.
 
-Name the SUT variable and its factory helper after the role suffix of the class: `Service`, `Processor`, `Resolver`, `Updater`, `Validator`, `Provider`, `Handler`, `Manager`, `Coordinator`, `Repository`, and so on. NEVER use `sut` or `CreateSut`.
+Name the SUT variable and its factory helper after the role suffix of the class: `Service`, `Processor`, `Resolver`, `Updater`, `Validator`, `Provider`, `Handler`, `Manager`, `Coordinator`, `Repository`, and so on. Never use `sut` or `CreateSut`.
 
 ```csharp
 // ✅ CORRECT
@@ -85,7 +85,7 @@ Edge cases (use your judgment, and say so in a comment):
 
 ## Gate 4 — Helper-file ordering and the inheritance rule
 
-**Why:** The reader reads from the top down: `#region Constructor Tests`, then `#region <Method> Tests` for each public method. So the reader sees the test cases first. Helpers are reference material for the moment the reader needs to know HOW the test built a mock. Helpers at the top, or between the tests, make the reader scroll past the arrange code before the behavior assertions.
+**Why:** The reader reads from the top down: `#region Constructor Tests`, then `#region <Method> Tests` for each public method. So the reader sees the test cases first. Helpers are reference material for the moment the reader needs to know how the test built a mock. Helpers at the top, or between the tests, make the reader scroll past the arrange code before the behavior assertions.
 
 Fixture body order, top to bottom:
 
@@ -93,11 +93,11 @@ Fixture body order, top to bottom:
 2. `#region Constructor Tests` (ctor null-arg `foreach`-over-`List<Action>`, see
    [constructor-null-arg-tests.md](constructor-null-arg-tests.md)).
 3. `#region <PublicMethod1> Tests`, `#region <PublicMethod2> Tests`, and so on: one region for each public method. Each region holds the behavior tests of that method, and its null-argument `foreach` test where Gate 1 applies.
-4. ALL helper methods last, inside one `#region Helper Methods`. They are private. The exception is a helper of a base fixture that a derived fixture must call: make it `protected` (see the inheritance pair rule below).
+4. All helper methods last, inside one `#region Helper Methods`. They are private. The exception is a helper of a base fixture that a derived fixture must call: make it `protected` (see the inheritance pair rule below).
 
 The other example files leave out the regions for brevity. Gate 4 still applies to every test class that you write.
 
-**Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class ONLY. A derived class contains ONLY test methods (for example, `[Test]` methods in NUnit) and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.
+**Inheritance pair rule:** the helpers of derived fixtures that share a base fixture (`XxxBaseTests`) live in the base class only. A derived class contains only test methods (for example, `[Test]` methods in NUnit) and its own explicit parameterless constructor. It never declares a helper again and never overrides one. A helper that only the tests of the base fixture call stays `private`. A helper that a derived fixture also calls needs `protected`, because a `private` member is not accessible outside its declaring type.
 
 ```csharp
 // ✅ CORRECT — base owns all helpers; CreateRequest is protected because the derived
@@ -143,7 +143,7 @@ Use `Arg.Any<T>()` for:
 - interfaces,
 - ordinary value types (`Int32`, `Boolean`, `Guid`, `DateTime`, …).
 
-Use `default` ONLY for the record-struct wrapper types that you saw throw `AmbiguousArgumentsException` in this codebase. Try `Arg.Any<T>()` first. Use `default` only after you saw the exception for that type. Each time that you use `default`, add a one-line comment that names the type and the reason.
+Use `default` only for the record-struct wrapper types that you saw throw `AmbiguousArgumentsException` in this codebase. Try `Arg.Any<T>()` first. Use `default` only after you saw the exception for that type. Each time that you use `default`, add a one-line comment that names the type and the reason.
 
 ```csharp
 // ❌ WRONG — blanket default across the whole argument list

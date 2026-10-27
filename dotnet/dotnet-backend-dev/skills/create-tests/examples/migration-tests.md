@@ -19,7 +19,7 @@ Migration tests verify:
 
 ### TestDbContextFactory Requirement
 
-Migration tests MUST run through the `TestDbContextFactory_DiSafeCases` fixture source (for example, `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]` in NUnit) because:
+Migration tests must run through the `TestDbContextFactory_DiSafeCases` fixture source (for example, `[TestFixtureSource(typeof(TestDbContextFactory_DiSafeCases))]` in NUnit) because:
 
 - DbContext comes from DI container (via `IMigrationContext`)
 - Migration engine retrieves services from `IServiceProvider`

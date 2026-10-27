@@ -248,7 +248,7 @@ public sealed class NestedOptionsTests : BaseValidatableObjectTests
 
 1. **CreateDefaultOptions**: Use default constructor or `new T()` to get empty/default state
 
-2. **CreateValidOptions**: Provide ALL required values to pass validation
+2. **CreateValidOptions**: Provide all required values to pass validation
 
 3. **Use `with` expressions**: Cleanly create invalid variants from valid options
 

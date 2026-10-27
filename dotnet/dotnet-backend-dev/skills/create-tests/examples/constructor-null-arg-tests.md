@@ -139,7 +139,7 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
 
 ### Key details
 
-- Each entry in the `actions` list calls `CreateServiceWithAllArguments` with the SAME `Create{Mock}()` helpers and puts `null!` into exactly one positional slot. A new dependency adds one line.
+- Each entry in the `actions` list calls `CreateServiceWithAllArguments` with the same `Create{Mock}()` helpers and puts `null!` into exactly one positional slot. A new dependency adds one line.
 - The list holds lambdas, so each `Create{Mock}()` call is deferred to the run of its action. No shared valid instance exists that can hide a null substitution.
 - The `#region Constructor Tests` block is at the top of the class, before the regions for features.
 - `CreateServiceWithAllArguments` is the ONE required-positional helper in the file. The other `Create{Mock}` helpers here (`CreateRepository`, `CreateOrderService`, and the others) follow the normal convention. If a test case needs another configuration of a mock, the helper takes optional parameters and applies them with `.ApplyIf(...)`. See [SKILL.md](../SKILL.md) rule 4.

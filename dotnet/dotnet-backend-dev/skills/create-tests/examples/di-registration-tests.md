@@ -428,7 +428,7 @@ public void AddDiagnosticServices_RegistersConfigureOptions()
 
 3. **Always dispose ServiceProvider**: use `using var provider`
 
-4. **Test both positive and negative**: verify services ARE registered AND throw on null
+4. **Test both positive and negative**: verify services ARE registered and throw on null
 
 5. **Test conditional logic**: verify feature toggles/options affect registration
 

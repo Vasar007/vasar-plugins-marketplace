@@ -250,7 +250,7 @@ The base classes automatically test:
 - `DeleteByPrimaryKeyAsync`: removes the entity
 - `DeleteByPrimaryKeyAsync`: does not throw for a missing entity
 
-**NOT provided**: tests for `AddAsync` and `UpdateAsync`. If you need them, add them yourself.
+**Not provided**: tests for `AddAsync` and `UpdateAsync`. If you need them, add them yourself.
 
 For `TwoKeysTest`, also tests:
 
