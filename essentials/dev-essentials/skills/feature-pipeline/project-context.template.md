@@ -4,7 +4,7 @@
 
 ## Task Provider
 
-Optional. Needed only for a run on a task ID. A run on a plain request needs no provider.
+Optional. Without this section, the pipeline runs every task as a plain request and posts no task comments.
 
 - **Name:** <provider display name, for example GitHub Issues, Jira, or Linear>
 - **MCP server prefix:** <tool-name prefix for the capability lookup, for example `mcp__plugin_github_github__` or `mcp__jira__`>

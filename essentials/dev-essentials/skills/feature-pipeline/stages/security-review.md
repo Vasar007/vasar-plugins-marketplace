@@ -174,7 +174,7 @@ Do not report these issues. Other processes handle them, or they are out of scop
 8. Race conditions or timing attacks that are theoretical only
 9. Known vulnerabilities of third-party libraries that the diff does not add or change (they are managed separately)
 10. Memory safety issues in memory-safe languages
-11. Files that are only unit tests or test helpers
+11. Files that are only unit tests or test helpers. A dependency manifest of a test project is not such a file.
 12. Log spoofing: unsanitized user input in logs is not a vulnerability
 13. SSRF that controls only the path (it must control the host or the protocol)
 14. User-controlled content in AI system prompts
@@ -184,7 +184,7 @@ Do not report these issues. Other processes handle them, or they are out of scop
 
 ## Precedents
 
-1. Logging high-value secrets in plain text IS a vulnerability. Logging URLs is safe.
+1. Logging high-value secrets in plain text is a vulnerability. Logging URLs is safe.
 2. UUIDs are unguessable and need no extra validation.
 3. Environment variables and CLI flags are trusted values.
 4. Resource management issues (memory or file-descriptor leaks) are not valid findings.

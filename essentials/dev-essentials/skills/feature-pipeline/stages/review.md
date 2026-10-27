@@ -26,7 +26,7 @@ Review the diff of this task. The master agent and the human at Human Approve #2
 - **Test plan:** `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/test-plan.md`
 - **Project guidance and architecture docs**: the Project Context section above lists them.
 
-Read these files before the review. They define the intended behavior. Review the implementation AGAINST the spec and the project guidance, not in isolation.
+Read these files before the review. They define the intended behavior. Review the implementation against the spec and the project guidance, not in isolation.
 
 ## Scope
 
@@ -132,6 +132,6 @@ Each item is a Warning.
 
 - Never modify any file, and run no git command that changes state. This is a read-only review.
 - Always give the `file:line` of each finding.
-- Always compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
+- Always compare the implementation with `spec.md`. Behavior that differs from the approved spec is a blocking correctness issue. For a deviation that the diff explains, use the compliance lens.
 - Do not flag issues in code that this task did not change, except a problem that this diff causes in an unchanged caller.
 - Do not repeat findings. Write one entry for each unique issue.

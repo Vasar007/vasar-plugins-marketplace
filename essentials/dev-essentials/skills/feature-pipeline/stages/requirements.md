@@ -44,7 +44,7 @@ If the Task Context says `Source: request`, skip items 1, 2, and 4 of this phase
    - Find out whether the task links to other items (parent, child, related, predecessor, and others) through the task provider MCP server.
    - For each linked task, fetch its title, description, and status.
    - Use linked tasks to understand the wider context. Examples: a parent epic can clarify the overall goal. A related bug can explain edge cases. A predecessor task can hold design decisions for this task.
-   - **Deeper exploration:** a linked task can point to context that is still unclear. Then follow ITS links too. There is no hard depth limit. Continue while each hop adds useful context to the current task. If more links add no new information, stop.
+   - **Deeper exploration:** a linked task can point to context that is still unclear. Then follow its links too. There is no hard depth limit. Continue while each hop adds useful context to the current task. If more links add no new information, stop.
    - **Code changes:** a linked task can have pull requests or commits. If their code changes help to clarify the requirements, the scope, or the constraints of the current task, fetch and review the PR diff. This helps most for a predecessor task whose implementation sets patterns or contracts that the current task must follow.
    - **Budget awareness:** deeper traversal and PR reviews cost time. Go breadth-first. Scan titles and descriptions first. Drill into details (comments, PRs, more links) only for a linked task that looks directly relevant.
 

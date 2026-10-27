@@ -1,12 +1,13 @@
 # Checkpoint protocol
 
-The master agent reads this file at Step 0 of `SKILL.md`. It has the schema of `pipeline-state.json`, the notes for each field, the validation of the file, and the two resume checks. The rules for each stage are in "Checkpoints" in `SKILL.md`.
+The master agent reads this file at Step 0 of `SKILL.md`. It has the schema of `pipeline-state.json`, the notes for each field, and the validation of the file. It also has the rules for the updates during the run and the two resume checks.
 
 ## Contents
 
 - Schema
 - Field notes
 - Validation of the state file
+- Updates during the run
 - Interruption check (resume)
 - Mode-change check (`per-step` to `finalization`)
 
@@ -50,8 +51,8 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
 
 - `taskSource` is `"provider"` for a task ID and `"request"` for a plain request. Step 0 sets it (sub-step 2 of `references/setup.md`). A resume never changes it.
 - `pr` is `null` until Step 9 is done. If Step 9 creates a PR, the field gets `{ "number": <int>, "url": "<string>", "owner": "<string>", "repo": "<string>" }`. In a branch-only flow (no PR), `pr` stays `null`. Step 10 uses this field to decide whether it needs a GitHub PR status lookup before the archive gate and the worktree-removal gate.
-- `models` starts as `{}`. It gets one entry (`"<stage>": "<model>"`) for each stage. The entry appears at the time that the model of the stage is resolved ("Stage Launch" step 2 in `SKILL.md`). A resumed run reads it back and keeps the same models. Only a fresh `--model-override` overwrites an entry.
-- `stageStartSha` starts as `{}`. It gets one entry (`"<stage>": "<sha>"`) for each commit-capable stage at its launch: the output of `git rev-parse HEAD` at that time ("Stage Launch" step 3). It grows in the same way as `models`. It is the only input of the interruption check below.
+- `models` starts as `{}`. It gets one entry (`"<stage>": "<model>"`) for each stage. The entry appears at the time that the model of the stage is resolved (step 2 of "Launch steps" in `references/stage-launch.md`). A resumed run reads it back and keeps the same models. Only a fresh `--model-override` overwrites an entry.
+- `stageStartSha` starts as `{}`. It gets one entry (`"<stage>": "<sha>"`) for each commit-capable stage at its launch: the output of `git rev-parse HEAD` at that time (step 3 of "Launch steps"). It grows in the same way as `models`. It is the only input of the interruption check below.
 - `planArtifact` is `null` until Stage 2b runs. It then gets `{ "path": "<repo-relative path>", "status": "rendered" | "failed" | "skipped" }`. The status values:
   - `"rendered"`: the stage wrote the HTML artifact (after 0 or 1 retries).
   - `"failed"`: both attempts failed.
@@ -81,6 +82,20 @@ Do these checks on each write, and on each load at a resume:
   Each key is still required on each write. The zero values apply to reads only. Step 9 fills `pr` at the next PR creation. Step 10 treats `null` as the case without a PR.
 - Find out whether `completed` is an array of known stage names. If it is not, stop and report it.
 - Find out whether `stage` is a known stage name or `null`. If it is not, stop and report it.
+
+## Updates during the run
+
+- After each successful stage, update `stage` and `completed`. After each posted task comment, update `taskComments`.
+- On a resume, start at the first stage that is not in `completed`. `--start-from=<stage>` overrides this resume point. `--skip=<stage>` removes the stage from the plan.
+- If an earlier stage runs again and it can change code or docs, first remove all later dependent stages from `completed`.
+- If `spec` runs again, also remove `plan-artifact` from `completed`, so that the HTML artifact renders again from the new spec.
+- If `requirements` or `spec` runs again, clear both task-comment checkpoints, so that both comments post fresh summaries.
+- If a code, test, docs, review, or security stage runs again after Task Comment #2 was posted, clear only the checkpoint of Task Comment #2.
+- If `taskSource` is `provider`, and Step 3 or a later stage will run, and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
+- If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, show Human Approve #2 first, also on a resume. If Human Approve #2 already passed in this session, do not show it again. "Autonomy" in `SKILL.md` says how the gate works in the mode of this invocation. A request run never sets this field, so a resumed request run always shows the gate again.
+- If `taskSource` is `provider`, and Step 9 will run, and `taskComments.preFinalizationPostedAt` is missing, post Task Comment #2 after Human Approve #2. If the field is set, the gate and the comment are done, so run neither.
+- If Step 4 or a later stage will run and `buildGate.result` is not `pass` or `pass-after-retry`, run the Build Gate first.
+- When you remove a stage from `completed`, remove its `stageStartSha` entry in the same write.
 
 ## Interruption check (resume)
 

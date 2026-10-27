@@ -63,7 +63,7 @@ If a critical step is still ambiguous after this validation, stop, and report th
    git status
    ```
 
-   - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from `<start-changes>`, the change is from this run, so stage it. If a stage reported an edit of the path, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
+   - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from `<start-changes>`, the change is from this run, so stage it. If the `<start-changes>` block names the path as an edit of an earlier stage, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
    - **`per-step` mode**: `git status` must be clean, except for untracked artifacts (for example under `{ARTIFACTS_DIR}/`) and the paths of `<start-changes>` that no stage edited. The earlier stages already committed every source change. If the tree is not clean, stop, and report the uncommitted files. Do not commit them here.
 
 ### Step 3: Create Commit (finalization-commit mode only)
@@ -72,9 +72,9 @@ If a critical step is still ambiguous after this validation, stop, and report th
 
 On a resume, this stage can run again after its commit, because the master agent marks it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 4.
 
-The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`.
+The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. A staged path of `<start-changes>` is a path of this run only in one case: the block names it as an edit of an earlier stage. If the block says "unknown", leave such a path out, and list it under "Not committed".
 
-The content for this stage: take the WHY of the body from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the injected block against pipeline-internal references governs the wording.
+The content for this stage: the body gives the reason for the change. Take it from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the injected block against pipeline-internal references governs the wording.
 
 ### Step 4: Prepare the Push and the Pull Request
 

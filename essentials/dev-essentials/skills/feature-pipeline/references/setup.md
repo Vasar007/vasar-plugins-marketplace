@@ -23,7 +23,6 @@ This plugin ships a starter file, `project-context.template.md`, in the skill fo
 
 Required fields. Resolve them before the rest of Step 0, from the file, from `CLAUDE.md`, or from the answers of the user:
 
-- Task Provider: the provider name, the MCP server prefix, and the project identifier. Required only for a task ID.
 - Worktree: the branch-name template and its allowed variables (only without `--no-worktree`)
 - Repository: the repository type (git), the base branch, and the solution or root path
 - Commands: build, test, push, and PR. The lint and pre-build commands are optional.
@@ -35,6 +34,7 @@ Optional fields. They do not block the pipeline:
 - Architecture Docs: repository-relative paths to architecture docs
 - Testing Docs
 - Artifacts Directory: the repository-relative path for the pipeline artifacts. The default is `tasks`.
+- Task Provider: the provider name, the MCP server prefix, and the project identifier. Without it, every task is a plain request (see "Task input"). So the run never asks the user for it.
 
 Resolution algorithm:
 
@@ -56,13 +56,9 @@ for each required field still missing:
     ask user via AskUserQuestion
     store the answer in `resolved` (and, if the explicit context file
     exists, offer to append the answer to it at end of run)
-
-if the task is a task ID AND Task Provider still missing -> STOP the pipeline (cannot fetch the task)
 ```
 
 The resolved context goes into each stage prompt as the `<project-context>` block ("Stage Launch" in `SKILL.md`). The project-specific values stay readable text in that block. They are not placeholders.
-
-For a request, do not ask the user for a task provider.
 
 ## Task input
 
@@ -70,7 +66,7 @@ The task is the text of `$ARGUMENTS` before the first `--` flag. Do not take onl
 
 - If the task has a space, or if the project context has no Task Provider, the task is a plain request. Else the task is a task ID.
 - A request run gets the task ID `req-<slug>`. The `<slug>` has 2 to 5 words in kebab-case, taken from the request, with at most 40 characters. For example, `req-stock-cache`. The run reports the task ID.
-- To resume a request run, the user passes `req-<slug>` as the task. If `{ARTIFACTS_DIR}/req-<slug>/task-context.md` exists and has the line `Source: request`, the task is that request. The run loads the file and does not look for the task in the provider.
+- To resume a request run, the user passes `req-<slug>` as the task. A task that starts with `req-` and has no space is such an ID. Set `taskSource` to `request`, and do not look for the task in the provider. Sub-step 10 reads the task context file of that run.
 - The branch template takes `{task-id}` = `req-<slug>` and `{slug}` = `<slug>`.
 
 ## Provider capability contract
@@ -82,7 +78,7 @@ The project context names the task provider and its MCP server prefix. Look at t
 - Create a task comment by ID
 - Fetch the task metadata: the title, the description, the labels, the priority, and the branch metadata (where the provider has them)
 
-If the MCP server cannot give the required capabilities, stop at once. If the MCP server seems unavailable, apply Safeguard 3 of `SKILL.md` first.
+If the MCP server cannot give the required capabilities, stop at once. If the MCP server seems unavailable, apply Safeguard 3 of `references/pipeline-discipline.md` first.
 
 ## Step 0 sub-steps
 
@@ -100,11 +96,11 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
    - Set `{WORKTREE_PATH}` to the current working directory (the repository root).
    - Find the default branch with `git -C "{WORKTREE_PATH}" symbolic-ref --quiet --short refs/remotes/origin/HEAD`, and take the name after `origin/`. If the ref does not exist, take the name from the `ref: refs/heads/<name>` line of `git -C "{WORKTREE_PATH}" ls-remote --symref origin HEAD`. If that also gives no name, treat `main` or `master` as the default branch.
    - If `git -C "{WORKTREE_PATH}" branch --show-current` prints nothing, the HEAD is detached, and the push of Step 9 fails later.
-   - If the HEAD is detached, do not commit on it. If the current branch is the default branch or the base branch of the project context, do not commit on it either.
-   - With `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it.
-   - In the default mode and with `--interactive`, stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
-   - With `--dry-run`, report the result, and switch nothing.
-   - In every other case, use the current branch as it is. Do not create or switch branches.
+   - If the HEAD is detached, do not commit on it. The same holds for the default branch and for the base branch of the project context. In these three cases, do one of these steps:
+     - With `--dry-run`, report the result, and switch nothing.
+     - Else, with `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it.
+     - Else (the default mode and `--interactive`), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
+   - If the HEAD is on another branch, use the current branch as it is. Do not create or switch branches.
    - Log: "Running in-place on branch `<current-branch>`".
    - Skip the worktree creation, the branch fetch, and the copy of `settings.local.json`.
 
@@ -132,16 +128,16 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
 7. If the project context has a Pre-build command, run it in the `{WORKTREE_PATH}` folder. If it fails, stop at once, because the build fails without it. With `--dry-run`, do not run it. Name it in the plan.
 8. Search `{WORKTREE_PATH}` for files that mention the task ID. They are the doc candidates. For a request, the list is `[]`.
 9. Resolve `{ARTIFACTS_DIR}`. Use the Artifacts Directory value of the project context. If it has none, use `tasks`.
-10. Write `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` with the task metadata, the branch name, and the doc candidates (see "Task context file" below). With `--dry-run`, do not write the file. Keep its content for the plan of sub-step 15.
+10. Write `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` with the task metadata, the branch name, and the doc candidates (see "Task context file" below). With `--dry-run`, do not write the file. Keep its content for the plan of sub-step 15. For a `req-` task ID of a resume ("Task input"), read the file of the earlier run instead, and do not write it. If that file does not exist, stop, and report that no request run has this task ID.
 11. Read `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` in the worktree, or create it (see `references/checkpoint-protocol.md`). With `--dry-run`, never create the file. If it exists, read it. If the file exists, this run is a resume. Then run the interruption check of `references/checkpoint-protocol.md` right after the load. It runs before sub-step 12 can overwrite `commitMode`. With `--dry-run`, report the result of the check instead of a stop. For a new state file, write the list of sub-step 6 into `startChanges`. On a resume, keep the recorded `startChanges`. The working tree then holds the changes of the earlier run too.
 12. Resolve `{COMMIT_MODE}`. If this invocation has `--commit-mode`, use it. Else use the `commitMode` value of `pipeline-state.json` from an earlier run. Else use `finalization`. The precedence and the conflict rule are the same as for `--model-override`. A `--commit-mode` on a resume overwrites the recorded `commitMode`, and the resume logs the change. This holds also after a commit-capable stage ran in the old mode. **Exception:** the new value is `finalization`, the recorded value is `per-step`, and at least one commit-capable stage is already in `completed`. Then do not log and allow the overwrite. Stop instead, as the mode-change check of `references/checkpoint-protocol.md` says. If the exception does not apply, record the resolved value in `commitMode`. A later resume uses it, unless that invocation passes `--commit-mode` again. With `--dry-run`, report the result instead of a stop, and do not write `commitMode`.
-13. Prepare the prompt blocks. They are the resolved project context and `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md`. They are also the three safeguards of "Pipeline Discipline" in `SKILL.md`, and the `<commit-conventions>` block with its cadence line for `{COMMIT_MODE}` (`references/commit-conventions.md`). They are also the `startChanges` list for the `<start-changes>` block. "Stage Launch" in `SKILL.md` says how each launch uses them.
-14. Each launch makes sure that no placeholder is left in its composed prompt ("Stage Launch" step 6 in `SKILL.md`).
+13. Prepare the prompt blocks. They are the resolved project context and `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md`. They are also the three safeguards of `references/pipeline-discipline.md`, and the `<commit-conventions>` block with its cadence line for `{COMMIT_MODE}` (`references/commit-conventions.md`). They are also the `startChanges` list for the `<start-changes>` block. "Launch steps" in `references/stage-launch.md` says how each launch uses them.
+14. Each launch makes sure that no placeholder is left in its composed prompt (step 6 of "Launch steps" in `references/stage-launch.md`).
 15. With `--dry-run`, announce the plan and the provider details. Also announce the branch name, the worktree path (existing or planned), and the Pre-build command that did not run. Also announce the resolved `{COMMIT_MODE}` and the two planned task comments, or "none" for a request. Then end the run without a stage.
 
 ## Task context file
 
-The master agent writes `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` once, at sub-step 10, after it fetches the task details from the provider. Format:
+The master agent writes `{ARTIFACTS_DIR}/{TASK_ID}/task-context.md` once, at sub-step 10. For a task ID, it writes the file after it fetches the task details from the provider. Format:
 
 ```markdown
 # Task Context
