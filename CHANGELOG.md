@@ -9,6 +9,42 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.5.0 and dotnet-backend-dev 1.6.5 in release [3.7.0] - 2026-10-27
+
+This release gives each trigger phrase one owner. It puts the hard rules and the done test of the large dev-essentials skills first. It turns two commands into skills with the same names, and it splits the promotion out of `audit-personal-conventions`. It also adds two plugin options (issue #76). The two moved units keep their invocation paths. Every `/dev-essentials:research-implement-review-report` and `/dev-essentials:implement-batch` call works as before.
+
+### Added in dev-essentials
+
+- `promote-conventions` (issue #76): Phases 5 to 10 of the old audit. Only the user starts it, with `/dev-essentials:promote-conventions`, because the skill sets `disable-model-invocation: true`. It adds no cost to the always-on skill listing.
+- `userConfig` options (issue #76), set with `/plugin configure dev-essentials@<marketplace>`:
+  - `branch_prefix`, default empty: the first segment of the task branches. The order of the rules is the flag. Then come the `CLAUDE.md` of the repo, this value, and the `CLAUDE.md` of the user. Last comes one question to the user.
+  - `notes_dir`, default `Notes`: the folder for plans, reports, reviews, and progress files. A location that the repo documents wins.
+  - A value that is not saved stays a `${user_config...}` placeholder in the text. Each skill and command reads that as an empty prefix and as the folder `Notes`. So a user who sets nothing sees the old behavior.
+- Reference files (issue #76): review-loop `parameters.md` and `output-formats.md`, process-pr-comments `parameters.md` and `invocation-examples.md`, and subagent-orchestration `model-selection.md`.
+- Trigger cases `audit-personal-conventions-fires` and `promote-conventions-near-miss`, and the listing probes `probe-listing` (issue #76).
+
+### Changed in dev-essentials
+
+- `audit-personal-conventions` (issue #76): behavior change: a promote request stops after the triage and names `/dev-essentials:promote-conventions`.
+- `research-implement-review-report` and `implement-batch` (issue #76): now skills with the same names, so every invocation works as before.
+- `general-conventions` (issue #76): PowerShell only. Its frontmatter rules moved to `write-markdown`.
+- `write-markdown` (issue #76): the general markdownlint examples, the file template, and the quick reference are cut. The skill keeps the two choices that are not linter defaults.
+- review-loop, process-pr-comments, and subagent-orchestration (issue #76): the rules and the done test come first, and the parameters, the examples, and the model detail moved to reference files (no rule change).
+- `task-composer`, `compose-pr`, `create-html-artifact`, and `write-markdown` (issue #76): trigger words, so that each phrase has one owner.
+- `git-worktree-management`, `help-review-pr`, `implement`, `implement-task`, `opsx-implement`, and `save-context` (issue #76): they read the notes folder from the new option. Examples with a path keep `Notes/`.
+
+### Fixed in dev-essentials
+
+- `review-loop` (issue #76): the final chat message now always holds the `Stop verdict:` line. Before, a run with the summary in a file or with a report format of the user often left it out.
+
+### Changed in dotnet-backend-dev
+
+- `create-ef-entity`, `model-mapping`, `create-tests`, and `/write-tests` (issue #76): one owner for "EF mapping" and for one test in an existing class.
+
+### Changed in the repository
+
+- `README.md` (issue #76): `userConfig` in the list of `plugin.json` fields.
+
 ## dev-essentials 3.4.4 and dotnet-backend-dev 1.6.4 in release [3.6.5] - 2026-10-27
 
 This release changes the text of skills, commands, and agents (issue #74). Each workflow states its own gates. Plain rules replace shouted words. Long reference files get a contents list. Two plugins name what they assume. The old shared block and the steps of some workflows disagreed. In these cases the table keeps what the step says. The `bug-hunt` cleanup deletes the paths that the run made with no stop. A few gates, such as the report path of `audit-personal-conventions` and the reference conflict of `implement-task`, still ask in the default mode.
@@ -840,7 +876,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...v3.7.0
 [3.6.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...v3.6.5
 [3.6.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...v3.6.3
