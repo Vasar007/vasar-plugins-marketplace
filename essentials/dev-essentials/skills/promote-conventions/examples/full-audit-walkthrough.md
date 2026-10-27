@@ -1,6 +1,6 @@
 # Full Audit Walkthrough — End-to-End Worked Example
 
-A sanitized, fictional run from end to end. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all four Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
+A sanitized, fictional run from end to end. Phases 0 to 4 run in `audit-personal-conventions`. Phases 5 to 10 run in `promote-conventions`, which the user starts after the triage. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all four Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
 
 ## Contents
 
@@ -23,7 +23,13 @@ A sanitized, fictional run from end to end. It covers the scan, the triage, a pa
 **Invocation:**
 
 ```text
-audit-personal-conventions --scope=all --projects=auto --marketplace=. --target-plugin=dev-essentials --rounds=2 --interactive
+audit-personal-conventions --scope=all --projects=auto --marketplace=. --target-plugin=dev-essentials
+```
+
+After the triage, the user starts the promotion:
+
+```text
+promote-conventions --rounds=2 --interactive
 ```
 
 ---
@@ -398,7 +404,7 @@ Once the `<target-marketplace-name>` PR carrying v1.5.0 merged, the user re-invo
 session, days later:
 
 ```text
-audit-personal-conventions --resume=./.claude-audit-todo-20260820.md --cross-repo=RepoAlpha,RepoBeta
+promote-conventions --resume=./.claude-audit-todo-20260820.md --cross-repo=RepoAlpha,RepoBeta
 ```
 
 This run promotes nothing new. Without the resume, that fires the ignore-if-nothing-promoted rule and makes `--cross-repo` a silent no-op. Here the rule does not fire: `--resume=<path>` turns on the 9c-only re-entry mode. So Phase 9c works on the promotion set that the TODO artifact of the main run above recorded. It re-enters at 9c.2, then runs the 9c.3 sequencing question again, once for the resumed set, before it goes on to 9c.4. The Phase 5 approval gate does not run again. The TODO artifact already holds the resumed approvals (#1, #3).

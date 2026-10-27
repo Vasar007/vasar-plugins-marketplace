@@ -286,7 +286,7 @@ List each superseded personal file in the "Manual TODOs" list of the Phase 10 re
 ```markdown
 - `<claude-root>/commands/<name>.md` — superseded by `<plugin>:<entity>`. Suggested action: delete
   (its entire content is now covered by the promoted entity), or edit to reference it instead.
-  Resume by re-running with `--scope=personal-entities --delete-personal-entities --interactive`
+  Resume by running `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --interactive`,
   and approve the F item at Phase 5 — once the
   marketplace PR merges, if `<plugin>:<entity>` was promoted this run; immediately, if
   `<plugin>:<entity>` was already shipped.

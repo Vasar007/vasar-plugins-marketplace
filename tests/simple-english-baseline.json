@@ -80,7 +80,7 @@
       "reason": "Heading text: the contents list repeats the words of the heading. The heading keeps its name, because other files and anchors use it."
     },
     {
-      "file": "essentials/dev-essentials/skills/audit-personal-conventions/references/entity-authoring-conventions.md",
+      "file": "essentials/dev-essentials/skills/promote-conventions/references/entity-authoring-conventions.md",
       "rule": "slop_word",
       "text": "Load-bearing",
       "reason": "Heading text: the contents list repeats the words of the heading. The heading keeps its name, because other files and anchors use it."
