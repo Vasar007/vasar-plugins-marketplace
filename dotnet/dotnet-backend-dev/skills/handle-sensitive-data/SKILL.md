@@ -177,56 +177,7 @@ The raw value must never go into serialized output. Mask it, leave it out, or en
 
 This example uses `System.Text.Json`, the JSON serializer that ships with .NET. ASP.NET Core uses it for JSON responses by default. If the project uses another serializer, add the same mask to that serializer.
 
-```csharp
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using MyApp.Framework.Constants;
-
-namespace MyApp.Domain.Security;
-
-/// <summary>
-/// Writes the erased placeholder in place of the value of an <see cref="ApiSecretToken"/>.
-/// </summary>
-public sealed class ApiSecretTokenJsonConverter : JsonConverter<ApiSecretToken>
-{
-    private static String DefaultErasedPlaceholder => Constants.DefaultErasedPlaceholder;
-
-    // ✅ CRITICAL - the JSON gets the placeholder, never the token
-    public override void Write(
-        Utf8JsonWriter writer,
-        ApiSecretToken value,
-        JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(DefaultErasedPlaceholder);
-    }
-
-    // No round trip - the placeholder is not the token
-    public override ApiSecretToken Read(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        JsonSerializerOptions options)
-    {
-        throw new NotSupportedException(
-            $"{nameof(ApiSecretToken)} cannot be read from JSON. Its JSON form holds only the placeholder.");
-    }
-}
-
-// Register the converter on the wrapper type
-[JsonConverter(typeof(ApiSecretTokenJsonConverter))]
-public readonly record struct ApiSecretToken : IStringWrapper<ApiSecretToken>
-{
-    // Members as in "Example: Primitive Wrapper with Secret"
-}
-```
-
-```csharp
-var json = JsonSerializer.Serialize(new
-{
-    Endpoint = "https://api.example.com",
-    Token = ApiSecretToken.FromValue("s3cr3t"),
-});
-// {"Endpoint":"https://api.example.com","Token":"<the placeholder>"}
-```
+The code is in [references/serialized-output.md](references/serialized-output.md).
 
 **Key points:**
 
