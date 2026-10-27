@@ -12,11 +12,23 @@ REPO = Path(__file__).resolve().parent.parent
 IN_CI = os.environ.get("CI") == "true"
 
 
+# Folders with copies of third-party text. The lint tests skip them, because the upstream project owns the text.
+VENDORED = {
+    "essentials/doc-styles/eval-stubs/simple-english/": "Byte copy of simple-english 2.1.1 (MIT) for the eval runs. "
+                                                        "The upstream project owns the text.",
+}
+
+
+def without_vendored(paths):
+    """The paths that are not under a VENDORED folder."""
+    return [p for p in paths if not p.startswith(tuple(VENDORED))]
+
+
 def tracked_markdown_files():
-    """The tracked .md files that are in the work tree, as paths relative to the repository root."""
+    """The tracked .md files that are in the work tree and not vendored, as paths relative to the repository root."""
     out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", "*.md"],
                          capture_output=True, text=True, check=True).stdout
-    return sorted(p for p in out.split("\0") if p and (REPO / p).is_file())
+    return sorted(p for p in without_vendored(out.split("\0")) if p and (REPO / p).is_file())
 
 
 def load_module(name, path):
