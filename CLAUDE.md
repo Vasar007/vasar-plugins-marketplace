@@ -33,3 +33,18 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 - Each plugin lives at `<group>/<plugin>/` with its own `.claude-plugin/plugin.json`.
 - New plugins must be registered in `.claude-plugin/marketplace.json` and the matrix in `README.md`.
 - If a behavior depends on a specific tool or runtime (for example .NET, PowerShell, or AWS), document the assumption explicitly inside the skill. Do not spread it across files.
+
+## New and imported units
+
+A unit is a skill, an agent, or a command. Every new unit goes through this workflow before it merges. This includes a unit that comes from another repo or from another person.
+
+1. Define the job. Write one sentence for the task that the unit solves, who starts it (the user, Claude, or both), and the test that shows it is done. Search the existing units for the same job. If one exists, extend it instead of adding a second unit.
+2. Fit the repo. Remove branding and internal links, and keep the credit to the source. Follow the conventions of this file and of `dev-essentials:optimize-skill`: a kebab-case name, no model versions in the text, each tool or runtime assumption stated in the unit, and a short entry file with the details in reference files.
+3. Write the evals before you tune the unit. Add trigger cases: one where the unit must start, and a near-miss for each neighbor unit that shares its words. If the unit changes files or runs a workflow, add behavior cases with a planted problem and graders that check the outcome. The Evals section of `README.md` says how.
+4. Measure it. Record a baseline with the unit, and one without it (`--ablation`). If the unit does not beat the run without it, the unit does not add value. Fix it or drop it.
+5. Optimize it with `dev-essentials:optimize-skill`. Move fixed steps into scripts with unit tests. Remove obsolete, repeated, or extra instructions, and any instruction that the run without the unit already follows. Keep the description short and exact, because it costs tokens in every session.
+6. Measure it again. The scores must not drop. Record the cost and the time of the suite.
+7. Review the change with `dev-essentials:review-loop`.
+8. Ship it: register it in `README.md` and, for a new plugin, in `.claude-plugin/marketplace.json`, add the CHANGELOG entry, and bump the version.
+
+A large change to an existing unit goes through steps 3 to 7. When a new model comes out, run the suites of the main units again.

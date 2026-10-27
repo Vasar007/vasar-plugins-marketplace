@@ -2,6 +2,24 @@
   "version": "2.1.1",
   "entries": [
     {
+      "file": "CLAUDE.md",
+      "rule": "sentence_over_limit",
+      "text": "Write one sentence for the task that the unit solves, who starts it (the user, C…",
+      "reason": "The text of the repo rule for new and imported units, which the user approved word for word."
+    },
+    {
+      "file": "CLAUDE.md",
+      "rule": "sentence_over_limit",
+      "text": "a kebab-case name, no model versions in the text, each tool or runtime assumptio…",
+      "reason": "The text of the repo rule for new and imported units, which the user approved word for word."
+    },
+    {
+      "file": "CLAUDE.md",
+      "rule": "synonym_rotation",
+      "text": "check (check-verify)",
+      "reason": "The text of the repo rule for new and imported units, which the user approved word for word. The word check is the name of a check in the rule text."
+    },
+    {
       "file": "dotnet/dotnet-backend-dev/skills/create-tests/SKILL.md",
       "rule": "synonym_rotation",
       "text": "config (config-settings)",
