@@ -16,7 +16,7 @@ This command is for the other goal, "review and report". It evaluates a PR again
 Look in `$ARGUMENTS` for the `--orchestrate` flag (anywhere after the URL):
 
 - **Without `--orchestrate`** (default, the "inline" mode): the main agent reads everything itself. This mode fits small PRs (under about 1,500 lines), where the full diff fits in the context.
-- **With `--orchestrate`** (the delegation mode): the main agent dispatches subagents for the steps that need much context. These steps are PR exploration, the reading of the codebase and the diff, convention evaluation, and finding verification. The main agent keeps only the synthesized findings and **the specific lines that those findings point to**. This mode fits large PRs (over about 2,000 lines or over 30 files) and PRs that touch many separate areas. It also fits a run where the user wants to keep the main context for follow-up work.
+- **With `--orchestrate`** (the delegation mode): the main agent dispatches subagents for the steps that need much context. These steps are PR exploration, the reading of the codebase and the diff, and convention evaluation. The main agent keeps only the synthesized findings and **the specific lines that those findings point to**. This mode fits large PRs (over about 2,000 lines or over 30 files) and PRs that touch many separate areas. It also fits a run where the user wants to keep the main context for follow-up work.
 
 With `--orchestrate`, follow the section **Orchestrator mode** below instead of Phases 2 to 4. Phase 1 (setup), Phase 5 (HTML artifact), and Phase 6 (post comments) are the same in both modes. Phase 7 (multi-PR) is different: it always dispatches one review subagent for each PR, **with or without `--orchestrate`**. So the flag has no effect at the top level there. Phase 7 passes it on to each subagent. See Phase 7.
 
@@ -86,8 +86,7 @@ For a large PR, delegate the phases that need much context (2 to 4) to subagents
 2. The map comparison between Role 1 and Role 2.
 3. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
 4. The collation between Role 2 and Role 3.
-5. Role 3: an optional Finding Verifier subagent.
-6. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
+5. Role 3: the main agent reads back only the specific lines that the findings point to, makes sure that each diagnosis matches them, and writes the synthesis.
 
 Read that reference file directly. This command does not copy its subagent prompts.
 

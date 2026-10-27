@@ -19,14 +19,13 @@ The threshold calls for judgment. It is not a fixed gate. A target just under it
 
 This file defines **roles and prompt shapes**: what each subagent does and what it returns. It does not repeat the **dispatch mechanics**, which `dev-essentials:subagent-orchestration` covers. An example is several independent `Agent` calls in one message, against calls in sequence. Follow that skill to launch these subagents. The roles below say which subagents to dispatch, and in which order.
 
-Four roles, in this order of dependency:
+Three roles, in this order of dependency:
 
 1. **Target Explorer** (always): one subagent. It builds a fact map of the target, with no judgment.
 2. **Area Explorers** (always, after the Target Explorer returns): one subagent for each logical area, all dispatched together. They do not depend on each other.
-3. **Finding Verifier** (optional, see the trigger below): one subagent. It re-reads the anchor of every finding before anyone trusts the finding.
-4. **Main-agent synthesis** (not a subagent): the orchestrator collects the results into the reviewer report format that Phase 3 always produces. Then Phase 4 continues with no change.
+3. **Main-agent synthesis** (not a subagent): the orchestrator collects the results into the reviewer report format that Phase 3 always produces. Then Phase 4 continues with no change.
 
-Models: dispatch the Area Explorers and the Finding Verifier on `--reviewer-model`, because they judge code. A command with no `--reviewer-model` dispatches them on the model of the session. Dispatch the Target Explorer as `general-purpose` with `model: "haiku"` and `effort: "low"`, because it only maps facts. In `dev-essentials:review-loop`, also pass `--reviewer-effort` to the Area Explorers and the Finding Verifier.
+Models: dispatch the Area Explorers on `--reviewer-model`, because they judge code. A command with no `--reviewer-model` dispatches them on the model of the session. Dispatch the Target Explorer as `general-purpose` with `model: "haiku"` and `effort: "low"`, because it only maps facts. In `dev-essentials:review-loop`, also pass `--reviewer-effort` to the Area Explorers.
 
 The orchestrator never reads the full diff or full files itself. It reads only the fact map of the Target Explorer and the structured findings of the Area Explorers. At the very end, it reads the lines that the remaining findings point to.
 
@@ -189,43 +188,10 @@ Keep each field to its limit above. Do not leave out a finding to make the respo
 
 The orchestrator does this step itself, with no subagent. Merge the duplicates across areas (one issue that shows up in two areas) into one finding with several sites. Sort the findings by severity, then by file path.
 
-## Role 3 — Finding Verifier (optional)
-
-If accuracy matters and a mistake is hard to undo, dispatch this role. An example is `target=pr <id>`, where the findings become PR threads (`dev-essentials:github-mcp-conventions`: no comment edit or comment delete through MCP after a post). Another example is any run where the user asked for a stricter pass. Skip this role for a routine local `branch` or `diff` review. There, the findings only feed Phases 4 and 5 of this skill, and the next round corrects a wrong anchor.
-
-One subagent, dispatched after the collation step. It re-reads the anchor of each finding before any later step trusts the finding.
-
-Prompt template:
-
-```text
-You are the last-mile verifier for a review-loop cycle on <target identity>. The orchestrating
-agent will triage these findings next. Accuracy is load-bearing — verify before anything is
-trusted.
-
-For each finding below, do exactly two things:
-1. Run: <git show <Source tree-ish>:<finding.file> | sed -n '<finding.line>,+5p'> (or read the file
-   directly for non-diff targets).
-2. Read the window and answer: does the diagnosis match the code? Is the severity appropriate per
-   this skill's severity scale (Blocker/Critical/High/Medium/Low/Nit)?
-
-Findings:
-<structured list from the collation step>
-
-Return for each finding:
-- id: <index>
-- verdict: confirm | refine | reject
-- refined-line: <N> (only if refine and the anchor was off by ≤5 lines)
-- refined-diagnosis: <text> (only if refine and the original diagnosis overstated or understated
-  the issue)
-- reject-reason: <text> (only if reject)
-
-Hard cap: ≤300 words.
-```
-
-Keep the findings with the verdict `confirm` or `refine`. Drop the findings with the verdict `reject`. Record each one as REJECT-at-source in the list of rejected findings of Phase 9, like any other rejected finding.
-
-## Role 4 — Main-agent synthesis (not a subagent)
+## Role 3 — Main-agent synthesis (not a subagent)
 
 The orchestrator reads only the lines that the remaining findings point to. It reads them itself, with `Read` or with a targeted `git show <Source tree-ish>:<path> | sed -n`. The usual total is a few hundred lines for the whole target, at any target size.
 
-With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated and (optionally) verified findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.
+For each finding, make sure that the diagnosis matches the lines. If the anchor is a few lines off, correct it. If the lines disprove the finding, drop it, and record it as REJECT-at-source in the list of rejected findings of Phase 9. If the findings become PR threads, this check is the last one before the post, because a posted comment cannot be edited through MCP.
+
+With these lines, the orchestrator has all that it needs for the normal output of Phase 3. It writes the standard reviewer report in the **Full format** of `references/reviewer-briefs.md`, from the collated and checked findings. The report has the same summary table, the same severity and type columns, and the same footer "Review made by `<MODEL>`". The footer names the model that wrote the synthesis. The body of the report says that Area Explorer subagents found the findings, so that the record of Phase 9 stays honest about their source. Give that report to Phase 4 in the same way as the report of a single reviewer. Phase 4 and the later phases need no change for this mode.
