@@ -235,7 +235,7 @@ Create model converters in `WebApi/Converters/{Feature}/`:
 
 ## Build
 
-Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build. Do not edit a generated file to fix an error. The spec comes first, so fix the OpenAPI spec with the [update-swagger-spec](../update-swagger-spec/SKILL.md) skill. If the build does not update the generated files, follow the [stop-and-ask rule](../update-swagger-spec/SKILL.md#if-the-build-does-not-update-auto-generated-files) of that skill.
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. An error that names a member that a generated file lacks means that the generator did not run. Do not change the calling code for such an error. If the error is in generated code, fix the OpenAPI spec with the [update-swagger-spec](../update-swagger-spec/SKILL.md) skill, because the spec comes first. Fix an error in the controller in the controller. If the build does not update the generated files, follow the [stop-and-ask rule](../update-swagger-spec/SKILL.md#if-the-build-does-not-update-auto-generated-files) of that skill.
 
 ## Tests
 

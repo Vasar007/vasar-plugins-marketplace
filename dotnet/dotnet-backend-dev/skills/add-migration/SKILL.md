@@ -60,9 +60,9 @@ Hard rules of the framework system:
 - The ID format is `"YYYYMMDD_Description"`, and each ID is unique.
 - The version is higher than the stored version.
 - `ExecuteAsync` is idempotent.
-- Ask the user before you delete the old container.
+- If a Cosmos DB partition key changes, ask the user before you delete the old container.
 
-Build the changed projects, then run the migration tests with a filter (see `dev-essentials:dotnet-build-test`). If the build or a test fails, fix the migration and go back to step 5 of [references/framework-migrations.md](references/framework-migrations.md). Repeat until the build and the migration tests pass. Report the result lines of the last build and the last test run.
+Build the changed projects, then run the migration tests with a filter (see `dev-essentials:dotnet-build-test`). If the build or a test fails, fix the migration and go back to step 5 of [references/framework-migrations.md](references/framework-migrations.md). Repeat until the build and the migration tests pass. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result lines of the last build and the last test run.
 
 ## Checklist
 

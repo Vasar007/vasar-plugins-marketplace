@@ -82,11 +82,12 @@ A hint for tables: a filled-in table row can pass the line-length limit of the t
 
 ## Documentation Checklist
 
-Before you submit documentation, run `markdownlint` on the documentation folder, for example `markdownlint "Docs/**/*.md"`. Fix each reported rule, and run it again until it exits with `0`. If it exits with `2` to `4`, report the configuration error and do not loop. The [write-markdown](../write-markdown/SKILL.md) skill covers the linter setup.
+Before you submit documentation, run `markdownlint` on the documentation folder, for example `markdownlint "Docs/**/*.md"`. Fix each reported rule, and run it again until it exits with `0`. If `markdownlint` prints its usage text, the path matched no file, even when the exit code is `0`. Fix the path and run it again. If it exits with `2` to `4`, report the configuration error and do not loop. The [write-markdown](../write-markdown/SKILL.md) skill covers the linter setup.
 
 The linter cannot test these items, so make sure that each one is true:
 
 - [ ] File name follows the naming convention: `{ProjectName} - {Topic}.md`
+- [ ] Single H1 heading as document title
 - [ ] Table of Contents with working anchor links
 - [ ] Internal links use relative paths with URL encoding for spaces
 

@@ -9,9 +9,9 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.5.1 and dotnet-backend-dev 1.7.0 in release [3.8.0] - 2026-10-27
+## dotnet-backend-dev 1.7.0 and dev-essentials 3.6.0 in release [3.8.0] - 2026-10-27
 
-This release makes seven large dotnet skills shorter. They move examples and rare sections into reference and example files. The skills that write code or Markdown now run a build or a lint loop until it passes (issue #78). The move keeps the text word for word and cuts no rule.
+This release makes seven large dotnet skills shorter. They move examples and rare sections into reference and example files. The skills that write code or Markdown now run a build or a lint loop until it passes (issue #78). Each loop stops after three failed fix attempts, or for an error outside the changed code. The moves keep the rules.
 
 ### Added in dotnet-backend-dev
 
@@ -21,8 +21,8 @@ This release makes seven large dotnet skills shorter. They move examples and rar
 ### Changed in dotnet-backend-dev
 
 - `add-migration` (issue #78): the framework text moved to `references/framework-migrations.md` and `references/cosmos-db.md`. The hard rules stay in `SKILL.md`.
-- `update-swagger-spec` (issue #78): the common spec patterns moved to `references/common-patterns.md`.
-- `create-tests` (issue #78): the helper and mocking examples moved to `examples/helper-methods.md` and `examples/mocking-rules.md`, and the checklist comes first.
+- `update-swagger-spec` (issue #78): the common spec patterns moved to `references/common-patterns.md`. Step 1 now states the `500` rule and its reason.
+- `create-tests` (issue #78): the helper and mocking examples moved to `examples/helper-methods.md` and `examples/mocking-rules.md`, and the checklist comes first. The forbidden list for scenario tests points to the table of `examples/scenario-tests.md`. The builder rule moved to `examples/mocking-rules.md`.
 - `model-mapping` (issue #78): the full examples moved to `examples/full-examples.md`.
 - `add-configuration-option` (issue #78): the `BuildEnvironment` pattern moved to `references/build-environment.md`.
 - `handle-sensitive-data` (issue #78): the JSON converter code moved to `references/serialized-output.md`.
@@ -31,7 +31,7 @@ This release makes seven large dotnet skills shorter. They move examples and rar
 ### Changed in dev-essentials
 
 - `write-markdown` (issue #78): the validation workflow loops on `markdownlint` until the exit code is `0`. An exit code of `2` to `4` is a configuration error, and the skill reports it.
-- `create-documentation` (issue #78): the checklist starts with a `markdownlint` loop until exit `0`. The list keeps the three items that the linter cannot test: the file name, the contents list, and the relative links.
+- `create-documentation` (issue #78): the checklist starts with a `markdownlint` loop until exit `0`. The list keeps the four items that the linter cannot test: the file name, the title heading, the contents list, and the relative links.
 - `generate-xml-docs` (issue #78): a CS1591 build loop with `-p:GenerateDocumentationFile=true` for that build only. The checklist stays the test for internal members.
 
 ## dev-essentials 3.5.0 and dotnet-backend-dev 1.6.5 in release [3.7.0] - 2026-10-27

@@ -289,7 +289,7 @@ Read [examples/full-examples.md](examples/full-examples.md) for a REST response 
 
 ## Build
 
-Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build. Riok.Mapperly reports an unmapped member as a build warning or error. Fix each one for the converters that you wrote.
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Riok.Mapperly reports an unmapped member as a build warning or error. Fix each one for the converters that you wrote.
 
 ## Tests
 
