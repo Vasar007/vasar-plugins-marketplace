@@ -40,7 +40,7 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 | `--dry-run` | off (bare) | Run Phases 0 to 4 only, and stop after the triage. No approval gate, no authoring, no cleanup. A request that is not a promote request stops at the same point without this flag (see "Question or promotion"). |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
 | `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 **Only `--autonomous` skips the Phase 9 gates. This includes the per-repo push gate.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. On a promote request, the Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
 

@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.4.4 and dotnet-backend-dev 1.6.4 in release [3.6.5] - 2026-10-27
 
-This release changes the text of skills, commands, and agents (issue #74). Each workflow states its own gates. Plain rules replace shouted words. Long reference files get a contents list. Two plugins name what they assume. No behavior changes, except where a file had two lines that disagreed. None were found.
+This release changes the text of skills, commands, and agents (issue #74). Each workflow states its own gates. Plain rules replace shouted words. Long reference files get a contents list. Two plugins name what they assume. The old shared block and the steps of some workflows disagreed. In these cases the table keeps what the step says. The `bug-hunt` cleanup deletes the paths that the run made with no stop. A few gates, such as the report path of `audit-personal-conventions` and the reference conflict of `implement-task`, still ask in the default mode.
 
 ### Changed in dev-essentials
 

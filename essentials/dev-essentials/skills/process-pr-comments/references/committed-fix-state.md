@@ -13,7 +13,7 @@ Find the newest reply of Claude in the thread: a reply that starts with `**[AI]*
 
 ## Guard: a newer reply of a human
 
-Run this guard FIRST, before you derive `cured` or `unconfirmed-commit-claim`. Look for a reply after the newest commit-claim reply of Claude that is not a reply of Claude. Such a reply does not start with `**[AI]**`, `**[AI][Draft]**`, or the old plain form, so it comes from a human or a reviewer.
+Run this guard first, before you derive `cured` or `unconfirmed-commit-claim`. Look for a reply after the newest commit-claim reply of Claude that is not a reply of Claude. Such a reply does not start with `**[AI]**`, `**[AI][Draft]**`, or the old plain form, so it comes from a human or a reviewer.
 
 If such a reply exists, run no catch-up branch on this thread, whatever the SHA and the ancestry check show. Report: `T#<id> has a newer reply after the AI's last comment — needs human attention before any automated catch-up action.` Then classify that newest human reply in Phase 3. If no such reply exists, go on with the steps below.
 

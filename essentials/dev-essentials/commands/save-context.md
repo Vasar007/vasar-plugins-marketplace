@@ -24,8 +24,8 @@ Save the current session's context, research findings, decisions, and progress t
 | `--compact`                | When updating an existing file, aggressively compact old content    |
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
 | `--continuation-prompt`    | Print Step 7's next-session continuation prompt (off by default)    |
-| `--interactive`            | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous`             | Do not stop at any gate. This includes the gate before deletion. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive`            | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous`             | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 ## Autonomy
 

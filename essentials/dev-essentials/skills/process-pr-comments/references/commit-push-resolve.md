@@ -14,8 +14,6 @@ Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The
 - Thread resolution after a fix lands: the `no-reply` split
 - Which threads to resolve
 
-Contents: the steps for each thread, the push, the resolve, carried-over threads, the reply templates, the `no-reply` split, and the threads to resolve.
-
 The reply comes right after the commit and before the push. So the reply never claims too much: it reports a local commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread only after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and replied to.
 
 To resolve a thread, call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId`. The schema of the tool also requires `owner`, `repo`, and `pullNumber` on every call, although `resolve_thread` does not use their values. Pass the values from Phase 1. A resolve of an already resolved thread does nothing.
@@ -95,7 +93,7 @@ If three or more threads carry the **same note of the reviewer** at different ca
 
 ## Reply templates
 
-Each reply starts with a **leading tag part** on the FIRST line. It has the `**[AI]**` or `**[AI][Draft]**` marker, and other bold reviewer-style tags as needed. At its end, it has a bold `**[T#<commentId>]**` thread tag as a deep link.
+Each reply starts with a **leading tag part** on the first line. It has the `**[AI]**` or `**[AI][Draft]**` marker, and other bold reviewer-style tags as needed. At its end, it has a bold `**[T#<commentId>]**` thread tag as a deep link.
 
 **Link format of the T# tag**. Use the `html_url` field of the comment from `pull_request_read`. Do not build the URL by hand (see `dev-essentials:github-mcp-conventions` § "Thread anchors and `html_url`").
 

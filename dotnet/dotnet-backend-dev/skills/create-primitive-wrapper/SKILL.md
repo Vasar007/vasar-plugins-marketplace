@@ -8,7 +8,7 @@ when_to_use: Use it for "create ID type", "add wrapper type", or "strongly-typed
 
 Create strongly-typed primitive wrappers in `{ProjectNamespace}.Domain` for type-safe identifiers and value objects.
 
-The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+The templates use the private shared framework of the `MyApp.Framework` namespaces, and `MyApp.OnlyForTests` in test code. If the repo does not use it, follow the closest existing code of the repo.
 
 ## Structure
 

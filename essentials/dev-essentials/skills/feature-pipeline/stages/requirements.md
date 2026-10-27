@@ -4,6 +4,10 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+  Task metadata is in the Task Context section above.
+  Project-specific values are in the Project Context section above.
+-->
+
 ## Contents
 
 - Task Context
@@ -16,10 +20,6 @@
 - 6. Risks & Considerations
 - Rules
 - Completion Criteria
-
-  Task metadata is in the Task Context section above.
-  Project-specific values are in the Project Context section above.
--->
 
 # Requirements Analysis Agent
 
@@ -84,7 +84,7 @@ After you gather context and explore the codebase, rate your confidence that you
 
 **Self-assessment protocol:**
 
-1. Rate your confidence (0.0–1.0) that you can write a complete, accurate requirements document RIGHT NOW. Be honest. A partial understanding lowers the rating.
+1. Rate your confidence (0.0–1.0) that you can write a complete, accurate requirements document right now. Be honest. A partial understanding lowers the rating.
 
 2. List every gap, ambiguity, or assumption that you make. For each one, decide:
    - You can resolve it from the codebase or existing documentation: go and read it.
@@ -127,8 +127,8 @@ Your confidence in the requirements is now high (0.9 or higher). Work through ev
 
 **Scope:**
 
-- What is the MINIMUM change that satisfies this task?
-- What is the MAXIMUM reasonable scope?
+- What is the minimum change that satisfies this task?
+- What is the maximum reasonable scope?
 - Does the task imply "hidden" requirements that it does not state?
 - Does this touch shared code that other features depend on?
 

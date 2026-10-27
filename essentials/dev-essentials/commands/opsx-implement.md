@@ -26,8 +26,8 @@ This command needs the `openspec` CLI on the PATH. If an `openspec` command fail
 | `--commit`         | off     | Commit changes after each completed phase                |
 | `--commit-push`    | off     | Commit and push to remote after each completed phase     |
 | `--context <path>` | auto    | Path to a research/context file with prior session notes |
-| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 If neither `--commit` nor `--commit-push` is specified, changes are left uncommitted (working tree only).
 
@@ -39,7 +39,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | --- | --- | --- | --- |
 | Step 3: the task list | Show it and continue | Show it and continue | Show it and continue |
 | Step 4 and Guardrails: a critical decision | Ask | Ask | Decide, and list it |
-| Guardrails: a plan issue with a clear fix | Update the artifacts, and list the change | Pause, and suggest updates | Same |
+| Guardrails: a plan issue with a clear fix | Update the artifacts, and list the change | Pause, and suggest updates | Same as default |
 | Step 5: push | Only with `--commit-push`, which approves it | Same | Same |
 | Step 6: `/save-context` cleanup | Its own gates, with the flag of this run | Same | Same |
 

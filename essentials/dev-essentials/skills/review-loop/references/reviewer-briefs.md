@@ -16,8 +16,6 @@ Phase 3 of `review-loop` builds each reviewer prompt from this file. Paste the C
 - `spec <path>`: Specification / design document review
 - Customization points
 
-Contents: Common Rules, Full format, the eight briefs (one for each `target=` value), and Customization points.
-
 ---
 
 ## Common Rules

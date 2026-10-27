@@ -11,8 +11,6 @@ Read this file before you reply to a comment with an automated-review header. Ex
 - Hard rules
 - Chat output alongside the thread reply
 
-Contents: what counts as an automated review comment, the steps before a verdict, and the verdicts and confidence levels. Then the obviousness test, the reply templates, the hard rules, and the chat output.
-
 ## What counts as an automated review comment
 
 Any comment whose first non-empty line (or title) contains one of:
@@ -97,7 +95,7 @@ For `valid` and `valid-but-narrow`, the size of the fix does **not** matter. Ask
 
 - **It is a fix, not a redesign from the ground up**. Line count, file count, and "it touches more than one place" do **not** disqualify it. These are all fixes: a fix across several files, and a field threaded through a schema and its consumers. A stricter form of a rule that the code or the doc already states is a fix too. A missing case added to existing logic is a fix too. So is the end of a contradiction between two parts of the current change.
 - **It stays inside the files and areas that the PR diff already touches**. It does not expand into new files or areas outside the scope. This is PR-scope discipline (Bucket B in `SKILL.md`).
-- **It adds no NEW architecture and no NEW public contract**. Some changes fix an existing contract. Examples: documented behavior made to match reality, a stated rule made stricter, and a gap in existing logic closed. A mismatch between stated and actual behavior, corrected, is one too. These are not a change of architecture or contract. Only a mechanism or a contract that does not exist today fails this condition.
+- **It adds no new architecture and no new public contract**. Some changes fix an existing contract. Examples: documented behavior made to match reality, a stated rule made stricter, and a gap in existing logic closed. A mismatch between stated and actual behavior, corrected, is one too. These are not a change of architecture or contract. Only a mechanism or a contract that does not exist today fails this condition.
 
 A fix that fails the second or the third condition goes to Phase 3b step 6, like the exception below. With `autonomous`, a fix that meets the second condition but fails the third is implemented without that stop. The cycle log lists it under "Decisions for your review" (Bucket A2 in `SKILL.md`).
 

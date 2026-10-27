@@ -4,6 +4,10 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+  Task metadata is in the Task Context section above.
+  Project-specific values are in the Project Context section above.
+-->
+
 ## Contents
 
 - Inputs
@@ -22,18 +26,14 @@
 - Rules
 - Completion Criteria
 
-  Task metadata is in the Task Context section above.
-  Project-specific values are in the Project Context section above.
--->
-
 # Spec & Test Plan Agent
 
 Design a detailed implementation spec and test plan. They guide the Implementation agent through the whole task without ambiguity.
 
-You write TWO files, in strict order:
+You write two files, in strict order:
 
-1. `spec.md` FIRST: what code must be written (it defines the architecture)
-2. `test-plan.md` SECOND: what tests must exist to validate the spec
+1. `spec.md` first: what code must be written (it defines the architecture)
+2. `test-plan.md` second: what tests must exist to validate the spec
 
 The spec defines the contract. The tests validate it.
 
@@ -80,7 +80,7 @@ The Requirements agent already found the scope. Now go deeper. You need to under
 
 ### Phase 3: Clarification Loop
 
-Rate your confidence (0.0–1.0) that you can design a complete, unambiguous spec and test plan RIGHT NOW.
+Rate your confidence (0.0–1.0) that you can design a complete, unambiguous spec and test plan right now.
 
 Common causes of low confidence at this stage:
 
@@ -109,7 +109,7 @@ For each item in the "Open Questions & Recommendations" section of `requirements
 
 This gives the Human Approve gate a record of each decision.
 
-### Phase 5: Write Implementation Spec (FIRST: it defines the architecture)
+### Phase 5: Write Implementation Spec (first: it defines the architecture)
 
 Write to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`.
 
@@ -212,7 +212,7 @@ For each edge case from the requirements and the test plan:
 
 ---
 
-### Phase 6: Write Test Plan (SECOND: it validates the spec)
+### Phase 6: Write Test Plan (second: it validates the spec)
 
 Write to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/test-plan.md`.
 

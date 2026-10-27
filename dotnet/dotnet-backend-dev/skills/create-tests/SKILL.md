@@ -15,7 +15,7 @@ Create .NET unit and integration tests in `tests/` or `src/Tests/`. The tests us
 
 The rules name each library by its role. The code examples here and in [examples/](examples/) use NUnit, FluentAssertions, and NSubstitute through AutoFixture. With another library, use its equivalent attributes and calls.
 
-The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+The templates use the private shared framework of the `MyApp.Framework` namespaces, and `MyApp.OnlyForTests` in test code. If the repo does not use it, follow the closest existing code of the repo.
 
 ## Test Project Structure
 

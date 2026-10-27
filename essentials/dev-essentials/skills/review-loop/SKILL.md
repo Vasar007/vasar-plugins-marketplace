@@ -34,7 +34,7 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 | `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
 | `--no-commit` | off | Only for `target=spec` and `target=file`. A diff, branch, or PR target reads committed code, so a re-review does not see fixes that stay uncommitted. For another target, stop and ask. For a caller that keeps the target out of commits, for example a plan file in a gitignored folder. Phase 7 makes no commit, and the fixes stay in the working tree. Phase 6 skips its failure check, because no fix commit exists. Phase 8 re-reviews the whole target file. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 | `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`. This includes a run with `--rounds 1`. |
 | `--print-reports` | off | Print every full cycle report in chat. This includes a run with `--rounds` 2 or more. |
 | `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also keeps the resolved threads (`is_resolved: true`), and the reviewer brief gets the section "Previously addressed in this PR". The open threads (`is_resolved: false`) always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
@@ -59,6 +59,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Phase 4: a fix that is not clearly safe or in scope | Ask | Ask | Decide, and list it under "Decisions for your review" |
 | Phase 5: head gate for `target=pr` and `target=diff` | Stop and ask | Same | Continue as `--dry-run`, and say why |
 | Push | Never, unless the user allows it in words | Same | Same |
+| Fable on the own initiative of the agent | Keep Opus | Ask before each Fable dispatch | Same as default |
 
 These rules apply in every mode:
 

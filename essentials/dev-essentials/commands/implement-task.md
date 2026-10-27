@@ -37,8 +37,8 @@ This command owns only the order of the phases, the worktree, the context sweep 
 | `--notes-dir=<path>` | `Notes/` | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
 | `--no-simplify` | off | Skip Phase 4. Use it only for a run in which the user does not want the pass. |
 | `--push` | off | Push after the final report. **Off unless the user asks for it in this invocation.** |
-| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 The other options of RIRR (`--context`, `--skip-research`, and `--branch-prefix`) pass through. For `--context`, see Phase 3.
 
@@ -53,6 +53,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Phase 4 step 3: a cleanup that needs a change of behavior | Stop that cleanup, and put the question in the report | Same | Keep the code, and list the skipped cleanup |
 | Phase 5: `save-context` cleanup | Ask before it moves a file of an older session | Same | Same |
 | Phase 5: push | Only with `--push`, after the report | Same | Same |
+| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
 These rules apply in every mode:
 

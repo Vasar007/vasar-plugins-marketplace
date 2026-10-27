@@ -44,8 +44,8 @@ orchestrator decides open items from the source of truth, not from the taste of 
 | `--applier-model` | `sonnet` | The model of the applier |
 | `--reviewer-model` | `opus` | The model of the behavior reviewer |
 | `--review-fixer-model` | `sonnet` | The model of the review fixer |
-| `--interactive` | off | Stop at every decision gate, and ask about each open item and each disputed finding. Without it, the run decides them itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the stop before a deletion that the user did not approve. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 ## Autonomy
 
@@ -54,7 +54,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Gate | Default | `--interactive` | `--autonomous` |
 | --- | --- | --- | --- |
 | Step 0 item 8: the scope | Continue | Wait for the OK | Same as default |
-| Step 2: open items and disputed findings | Decide, and list them under "Decisions for your review" | Ask | Same as default |
+| Step 2 and Step 6: open items and disputed findings | Decide, and list them under "Decisions for your review" | Ask | Same as default |
 | Step 2 item 5: delete a file that this run did not create | Ask before Step 3, unless the user approved it before | Same | No stop |
 | Step 2 item 6: the decisions | Continue | Wait for the OK | Same as default |
 | Step 6: the review triage | Continue | Wait for the OK | Same as default |

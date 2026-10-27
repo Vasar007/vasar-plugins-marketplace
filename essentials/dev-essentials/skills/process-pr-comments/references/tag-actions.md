@@ -9,8 +9,6 @@ Stage 2 reads this file before it acts on a tagged comment. It has the action, t
 - When multiple tags combine
 - Fall-back rules
 
-Contents: tag parsing, the size thresholds, one section for each tag, automated review comments, combined tags, and the fall-back rules.
-
 The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs, `SKILL.md` wins: `interactive` and `autonomous` change these gates as Bucket A1 and Bucket A2 say. Where this file says to ask the human or to wait, Stage 2 records the open item and goes on with the other threads. The orchestrating session asks the human (see "Who talks to the user" in `SKILL.md`).
 
 The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text.

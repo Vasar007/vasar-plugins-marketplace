@@ -33,8 +33,8 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 | `--plan-dir=<path>` | `Notes/Plans/` | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--push` | off | Push the finished stack after the final report. **Off unless the user asks for it in this invocation.** |
-| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 ## Autonomy
 
@@ -47,6 +47,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
 | Step 3.6 and Step 4.4: a commit from outside the task | Stop and ask before the soft reset | Same | Skip the squash, and report the commit |
 | Step 5: push | Only with `--push`, after the report | Same | Same |
+| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
 These rules apply in every mode:
 

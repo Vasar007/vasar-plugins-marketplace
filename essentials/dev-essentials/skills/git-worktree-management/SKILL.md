@@ -24,8 +24,9 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Workflow A Step 4: path not gitignored | Add it to `info/exclude`, and say so | Ask | Same as default |
 | Workflow C Step 2: remove one worktree | Ask for a yes | Same | Show the path, and continue |
 | Workflow D Step 3: remove the merged worktrees | Ask for a yes | Same | Show the list, and continue |
-| Workflow D step 4: unknown PR status | Ask | Same | Keep the worktree, and report it |
+| Workflow D Step 2 item 4: unknown PR status | Ask | Same | Keep the worktree, and report it |
 | Uncommitted changes | Ask the user to commit or stash | Same | Keep the worktree, and report it |
+| Recreate-If-Missing: an orphan stub folder | List its contents, and ask for a yes before the deletion | Same | Do not delete it, and list it in the final report |
 
 Pipeline mode skips the Workflow A Step 3 prompt in every mode.
 

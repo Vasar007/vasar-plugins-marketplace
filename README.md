@@ -111,7 +111,7 @@ The background update does not ask for credentials. The repository is private, s
 
 ## Rules for push, force push, and --no-verify
 
-The skills of this marketplace ask before each push. They never force-push, and they never skip hooks with `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
+A skill of this marketplace pushes in three cases: the user says yes, the user passes a push flag such as `--push` or `--commit-push`, or the user passes `--autonomous`. The skills that push say never to force-push, and some skills that commit say never to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
 
 ```json
 {
@@ -140,7 +140,7 @@ The skills of this marketplace ask before each push. They never force-push, and 
 }
 ```
 
-You can also add ask rules for a push. With these rules, Claude Code prompts you for each push. The prompt appears also in an `--autonomous` run, and also after you said "push". If you want that cost, add them.
+You can also add ask rules for a push. With these rules, Claude Code prompts you for each push. In `dontAsk` mode, it denies the push instead. The prompt appears also in an `--autonomous` run, and also after you said "push". If you want that cost, add them.
 
 ```json
 {
@@ -155,7 +155,7 @@ You can also add ask rules for a push. With these rules, Claude Code prompts you
 }
 ```
 
-These rules guard the usual form of a command. They are not a security boundary. A rule matches the command text that Claude writes. It does not match other forms, for example `git -c push.default=current push`, a `+` refspec such as `git push origin +main`, or `git commit -n`. A force push that you want is blocked by the deny rules. Run it in your own terminal. See the [permissions page](https://code.claude.com/docs/en/permissions) of the Claude Code documentation for the rule syntax.
+These rules guard the usual form of a command. They are not a security boundary. A rule matches the command text that Claude writes. It does not match other forms, for example `git -c push.default=current push`, a `+` refspec such as `git push origin +main`, or `git commit -n`. A rule with `*` also blocks a command that only contains the text, for example a commit message that names `--no-verify`. Then write the message to a file, and commit with `git commit -F <file>`. A force push that you want is blocked by the deny rules. Run it in your own terminal. See the [permissions page](https://code.claude.com/docs/en/permissions) of the Claude Code documentation for the rule syntax.
 
 ## Authoring reference
 

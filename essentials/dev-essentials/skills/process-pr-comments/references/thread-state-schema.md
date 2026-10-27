@@ -13,8 +13,6 @@ This file has the state that `process-pr-comments` keeps in the session, so that
 - Examples
 - Session lifecycle
 
-Contents: the dedup set, committed-fix detection, the ancestry check, the PR metadata, and the Stage 1 report. Then the cycle log, examples, and the session lifecycle.
-
 ## `processedCommentIds` — dedup set
 
 A set with one entry for each GitHub comment that this session fully handled.

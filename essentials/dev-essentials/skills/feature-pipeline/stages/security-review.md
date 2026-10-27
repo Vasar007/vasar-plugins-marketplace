@@ -4,6 +4,13 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+  Task metadata is in the Task Context section above.
+  Project-specific values are in the Project Context section above.
+
+  This stage runs in parallel with Stage 6 (Docs Update) and Stage 7 (Code Review).
+  All three only read the implementation code. None of them writes to it.
+-->
+
 ## Contents
 
 - Context
@@ -17,13 +24,6 @@
 - Output
 - Rules
 - Completion Criteria
-
-  Task metadata is in the Task Context section above.
-  Project-specific values are in the Project Context section above.
-
-  This stage runs IN PARALLEL with Stage 6 (Docs Update) and Stage 7 (Code Review).
-  All three only read the implementation code. None of them writes to it.
--->
 
 # Security Review Agent
 

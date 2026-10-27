@@ -12,7 +12,7 @@
   The plugin has the review logic. This prompt adds the context and the
   output format of the pipeline.
 
-  This stage runs IN PARALLEL with Stage 6 (Docs Update) and Stage 8 (Security Review).
+  This stage runs in parallel with Stage 6 (Docs Update) and Stage 8 (Security Review).
 -->
 
 # Pipeline Context for Code Reviewer

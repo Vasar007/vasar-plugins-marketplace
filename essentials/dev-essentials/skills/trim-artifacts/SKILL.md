@@ -50,9 +50,9 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 
 | Gate | Default | `--interactive` | `--autonomous` |
 | --- | --- | --- | --- |
-| Step 2: the protect-set | Infer it, and report it | Wait for approval | Same as default |
+| Step 1: the protect-set | Infer it, and report it | Wait for approval | Same as default |
 | Step 5: deletion gate | Stop | Stop | Put the three lists into the final message, and continue |
-| Step 12: delete the backup | Ask | Ask | Keep the backup, and give its path |
+| Step 11: delete the backup | Ask | Ask | Keep the backup, and give its path |
 
 These rules apply in every mode:
 

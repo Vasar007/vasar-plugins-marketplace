@@ -34,8 +34,8 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed to `dev-essentials:review-loop` as `--rounds`. |
 | `--context=<path>` | auto | A research or handoff file to load, instead of fresh research or in addition to it. The resolution is the same as for the `--context` of `dev-essentials:implement`. **Repeatable**: the run reads every path, and no path replaces another. |
 | `--skip-research` | off | Skip Phase 1, for example to resume a session whose plan exists and is current. Phase 2 still loads each `--context`. |
-| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 ## Autonomy
 
@@ -49,6 +49,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Commit cadence, single mode: a commit from outside the run | Stop and ask before the soft reset | Same | Skip the squash, and report the commit |
 | Phase 3: review loop | Its gates, with the flag of this run | Same | Same |
 | Phase 4: `save-context` cleanup | Runs with no flag. It asks before it moves a file of an older session | Same | Same |
+| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
 This command has no push step.
 
