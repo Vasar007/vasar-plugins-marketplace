@@ -1,0 +1,8 @@
+{
+  "number": 831,
+  "title": "Add IsInStock",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/831",
+  "labels": [],
+  "body": "Add a method IsInStock(string sku) to StockService. If GetQuantity for the sku is more than 0, IsInStock returns true. Add a test for it."
+}

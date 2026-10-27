@@ -235,11 +235,13 @@ class ScaffoldTests(FixtureCase):
                 self.assertEqual(self.git(bare, "rev-parse", "--verify", "-q", f"refs/pull/{number}/head")[0], 0)
 
     def check_mocked_pull_request(self, case, bare):
-        """The head SHA in the mock of pull_request_read must be the commit of the pull request ref."""
+        """The head SHA in the mock of pull_request_read must be the commit of the pull request ref. An issue mock has no head."""
         mock = case.path / "mocks" / "github" / "fixtures" / "get.json"
         if not mock.is_file():
             return
         pull = json.loads(mock.read_text(encoding="utf-8"))
+        if "head" not in pull:
+            return
         ref = f"refs/pull/{pull['number']}/head"
         self.assertEqual(pull["head"]["sha"], self.git(bare, "rev-parse", "--verify", ref)[1],
                          f"the head SHA in {mock.name} is not the commit of {ref}")

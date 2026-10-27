@@ -1180,7 +1180,7 @@ class RepositoryCasesTest(unittest.TestCase):
     def test_untracked_file_case_names_the_blob_of_its_scratch_file(self):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        found = [case for case in self.cases if case.name == "gop-e2-untracked-file"]
+        found = [case for case in self.cases if case.name in ("gop-e2-untracked-file", "fp-e2-untracked-file")]
         if not found:
             self.skipTest("the case gop-e2-untracked-file does not exist yet")
         self.assertEqual([p for case in found for p in scratch_problems(case)], [])
