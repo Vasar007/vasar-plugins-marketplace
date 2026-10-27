@@ -8,6 +8,10 @@ when_to_use: "Use it for 'run a review loop', 'review and fix this branch', 'rev
 
 This skill runs review cycles. In each cycle, one or more reviewer subagents review the target, and the orchestrator triages their findings. Then a fixer subagent tests each finding against a primary source and fixes only what it can prove. The next cycle re-reviews only the fix diff, or the whole target with `--no-commit`. The orchestrator is the session that runs this skill and dispatches the reviewer and the fixer.
 
+## Done test
+
+The run is done after Phase 8 sets a stop verdict and Phase 9 runs. The last chat message of the run must hold two things. The first is this line as plain text: `Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>`. The second is the path of each file that the run fixed. If the run fixed no file, the message says so. Write both in every run. Three cases often lose them: the summary goes to a file, the instructions of the user set the format of the final report, or a calling workflow gets the summary. The user and the calling workflow read the verdict from this line.
+
 ## When not to use
 
 - To act on pull-request review comments from human reviewers, use `dev-essentials:process-pr-comments`.
@@ -113,7 +117,7 @@ The value of `--rounds` decides where a cycle report goes. At the end of a cycle
 - `--save-reports` writes each report to a file. This includes a run with `--rounds 1`.
 - `--print-reports` prints each report in chat. This includes a run with `--rounds` 2 or more.
 - The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
-- The run format (see "Run format") does not change these destinations. It changes only what chat shows. When a report goes to a file, chat gets one status line for it.
+- The run format (see "Run format") does not change these destinations. It changes only what chat shows. When a report goes to a file, chat gets one status line for it. For the Phase 9 summary, chat also gets the `Stop verdict:` line.
 
 ## Run format
 
@@ -122,7 +126,7 @@ The run format says what the orchestrator checks itself and how the run reports 
 After Phase 2, state the run format in a few lines. If Phase 1 has a scope hint, add it. Do not wait for an answer. If the calling workflow already stated the same run format in this session, do not state it again.
 
 - Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result, and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
-- Reporting: when a cycle report goes to a file, chat gets at most one short status line for that cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue". If a cycle report goes to chat, print it. The Brief format and the full cycle reports go where the "Report destination rules" say. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line.
+- Reporting: when a cycle report goes to a file, chat gets at most one short status line for that cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue". If a cycle report goes to chat, print it. The Brief format and the full cycle reports go where the "Report destination rules" say. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. In both cases, the final report holds the `Stop verdict:` line of the done test. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line and the `Stop verdict:` line.
 - Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage is also the agreement. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
 
 If the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The triage judgment of Phase 4, Phase 6, and the Role 3 reads of the large-target mode still run.
@@ -331,7 +335,7 @@ Decide whether to run another cycle. The decision follows fixed rules.
 
 ### Phase 9 — Final summary
 
-Aggregate across all cycles. Follow the "Report destination rules": write to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section.
+Aggregate across all cycles. Follow the "Report destination rules": write to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, end the chat output of the run with the `Stop verdict:` line and the paths of the fixed files (see "Done test").
 
 Format:
 
