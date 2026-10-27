@@ -163,6 +163,8 @@ The command runs these parts:
 - A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
+- The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
+- The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10. If a tool is missing, the test skips. In CI, it fails.
 - A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
@@ -173,7 +175,7 @@ The tests of `claude plugin validate` and `claude plugin details` give each call
 
 The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
 
-The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also installs the .NET SDK 10 for the scaffold tests. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
 
 ### Evals
 
@@ -204,6 +206,44 @@ claude plugin eval essentials/dev-essentials --ablation none --trust-plugin --no
 ```
 
 To compare only the trigger cases at two commits, add `--tag triggers` to the command of the compare script. The run writes its results into `evals/results/` of the plugin. Git ignores this folder. A suite that grants `Bash` needs the sandbox of Claude Code, and native Windows has no sandbox. Run such a suite under WSL2.
+
+#### Behavior suites
+
+A behavior suite is a set of eval cases that runs a workflow skill on a small planted repository. The graders check the result: the files, the commits, the pushes, and what the final message tells the user. Each suite is in `evals/` of its plugin, and the tag of its cases is the name of the suite.
+
+| Suite | Plugin | Cases | Where it runs |
+| --- | --- | ---: | --- |
+| `review-loop` | `dev-essentials` | 5 | WSL |
+| `subagent-orchestration` | `dev-essentials` | 4 | WSL |
+| `process-pr-comments` | `dev-essentials` | 3 | WSL |
+| `bug-hunt` | `dev-essentials` | 2 | WSL |
+| `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
+| `gop-work` | `gop-pipeline` | 9 | WSL |
+| `write-tests` | `dotnet-backend-dev` | 2 | WSL |
+
+The count is the number of behavior cases. If a skill has two trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
+
+Run the suites through the compare script, because the cases of `gop-pipeline` and `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
+
+1. Install `bubblewrap` and `socat`. The sandbox needs both.
+2. For the `gop-work` and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works.
+3. Set `TMPDIR` to a folder outside `/tmp`, `/var/tmp`, `/dev/shm`, and `/run/shm`, and make that folder. The sandbox of a run denies these four folders, and the run folder follows `TMPDIR`. If `TMPDIR` points to one of them, no Bash write works in the run. This is a bug of Claude Code ([anthropics/claude-code#104631](https://github.com/anthropics/claude-code/issues/104631)). The `run` and `baseline` commands stop with a message in this case.
+
+This example runs the `review-loop` suite in WSL2. Pass `--scaffold`, because each case builds its repository with its `scaffold.sh`. Pass `--allow-tools`, because a run asks for no permission and grants no shell tool by default. If the shell does not find `claude`, pass its path with `--claude`.
+
+```bash
+export TMPDIR=$HOME/.cache/plugin-evals/tmp
+mkdir -p "$TMPDIR"
+python3 tests/evals/compare_versions.py baseline --plugin essentials/dev-essentials --commit <branch> --model <model id> --judge-model <model id> --scaffold --runs 3 --concurrency 3 --max-cost-usd <usd> --tag review-loop --out <folder> --allow-tools Bash Write Edit
+```
+
+A `scaffold.sh` script builds the repository of a case. It sources the functions in `evals/_lib/` of its plugin. The repository has a bare remote in `.remote/origin.git`, and each fixture commit has a subject that starts with `fixture:`. The cases with `mocks` answer the calls to the GitHub tools with mock files. They load the stand-in plugin in `essentials/dev-essentials/eval-stubs/github`, which declares the name of the server. The stand-in is outside `evals/`, because `claude plugin eval` refuses a plugin that sits in the eval folder of the case.
+
+The .NET cases need `-m:1`. The sandbox blocks the Unix sockets that the worker nodes of MSBuild need, so a plain `dotnet build` or `dotnet test` of a solution fails. With `-m:1`, MSBuild builds in one process, and the build works. So the prompt of each .NET case tells the agent to pass `-m:1`. The grader `route-plain-dotnet` counts the plain calls. A run has no network. The scaffold of a .NET case restores the packages into the shared folder `/tmp/plugin-evals/nuget`. Then it copies them into the home folder of the run, because the run cannot read `/tmp`.
+
+The probes are cheap cases that test the run environment, not a skill. They are in `evals/probes/` of each plugin, and the tag is `probe`. Run them with the same command and `--tag probe` before the first paid suite run on a new machine.
+
+Do not commit baseline files. A result file holds local temporary paths, so keep the baselines outside git.
 
 ## Conventions
 

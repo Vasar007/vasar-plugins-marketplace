@@ -14,6 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from support import load_module, tool_missing
 
@@ -345,16 +346,20 @@ class RunTests(CompareCase):
 
     def test_eval_command_pins_the_models_and_puts_lists_last(self):
         self.run_main(*self.run_args("--tag", "smoke", "triggers", "--allow-tools", "Write", "--case", "fires*",
-                                     "--max-cost-usd", "5"))
+                                     "--max-cost-usd", "5", "--concurrency", "3"))
         command = self.calls[0]["command"]
         self.assertEqual(command[1:3], ["plugin", "eval"])
         for flag, value in (("--model", "model-under-test-1"), ("--judge-model", "judge-model-1"),
                             ("--ablation", "none"), ("--threshold", "0"), ("--runs", "3"), ("--case", "fires*"),
-                            ("--max-cost-usd", "5.0")):
+                            ("--max-cost-usd", "5.0"), ("--concurrency", "3")):
             self.assertEqual(command[command.index(flag) + 1], value, flag)
         self.assertIn("--trust-plugin", command)
         self.assertIn("--no-publish", command)
         self.assertEqual(command[-5:], ["--tag", "smoke", "triggers", "--allow-tools", "Write"])
+
+    def test_concurrency_is_left_out_by_default(self):
+        self.run_main(*self.run_args())
+        self.assertNotIn("--concurrency", self.calls[0]["command"])
 
     def test_relative_out_folder_gets_the_results(self):
         old = os.getcwd()
@@ -384,6 +389,70 @@ class RunTests(CompareCase):
                               r"--out \S+out-more-1 .*--claude \S+ --tag smoke")
         self.assertIn(f"compare --base {folder}/base.json {folder}-more-1/base.json "
                       f"--head {folder}/head.json {folder}-more-1/head.json", out)
+
+    def test_report_repeats_the_concurrency(self):
+        code, out, err = self.run_main(*self.run_args("--concurrency", "2", "--tag", "smoke"),
+                                       runner=self.eval_with_one_worse_run)
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--concurrency 2 --tag smoke")
+
+    def baseline_args(self, *extra):
+        return ("baseline", "--repo", self.repo, "--plugin", "group/demo", "--commit", "HEAD",
+                "--model", "model-under-test-1", "--judge-model", "judge-model-1", "--out", self.tmp / "out",
+                "--claude", sys.executable, *extra)
+
+    def main_on(self, platform, folder, arguments):
+        """Run main() as if the platform and the temp folder were these values."""
+        with (
+            mock.patch.object(cv, "is_linux", return_value=platform == "linux"),
+            mock.patch.object(cv, "temp_folder", return_value=folder),
+        ):
+            return self.run_main(*arguments)
+
+    def test_bash_grant_with_the_temp_folder_under_tmp_stops_before_any_run(self):
+        folders = ("/tmp", "/tmp/", "/tmp/eval-runs", "/tmp/a/../b", "/var/tmp", "/var/tmp/x", "/dev/shm", "/dev/shm/x",
+                   "/run/shm", "/run/shm/x")
+        for folder in folders:
+            for arguments in (self.run_args("--allow-tools", "Bash", "Write"),
+                              self.baseline_args("--allow-tools", "Write", "Bash")):
+                with self.subTest(folder=folder, command=arguments[0]):
+                    code, _, err = self.main_on("linux", folder, arguments)
+                    self.assertEqual(code, 2)
+                    self.assertRegex(err, r"the eval sandbox denies writes to (?:/tmp|/var/tmp|/dev/shm|/run/shm),")
+                    self.assertIn("Set TMPDIR to a folder in your home", err)
+                    self.assertEqual(self.calls, [])
+                    self.assertFalse((self.tmp / "out").exists())
+
+    def test_temp_folder_outside_tmp_or_no_bash_grant_or_other_platform_is_allowed(self):
+        cases = (("linux", "/home/user/.cache/plugin-evals/tmp", ("--allow-tools", "Bash")),
+                 ("linux", "/tmpfiles", ("--allow-tools", "Bash")),
+                 ("linux", "/var/tmpfiles", ("--allow-tools", "Bash")),
+                 ("linux", "/run/shmem", ("--allow-tools", "Bash")),
+                 ("linux", "/tmp", ("--allow-tools", "Write", "Edit")),
+                 ("linux", "/tmp", ()),
+                 ("win32", "/tmp", ("--allow-tools", "Bash")))
+        for platform, folder, extra in cases:
+            with self.subTest(platform=platform, folder=folder, extra=extra):
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                self.calls = []
+                code, out, err = self.main_on(platform, folder, self.baseline_args(*extra))
+                self.assertEqual(code, 0, out + err)
+                self.assertEqual(len(self.calls), 1)
+
+    def test_temp_folder_follows_tmpdir(self):
+        with mock.patch.dict(os.environ, {"TMPDIR": str(self.tmp)}), mock.patch.object(tempfile, "tempdir", None):
+            self.assertEqual(Path(cv.temp_folder()), self.tmp.resolve())
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_temp_folder_resolves_a_link_into_tmp(self):
+        target = Path(tempfile.mkdtemp(dir="/tmp"))
+        self.addCleanup(shutil.rmtree, target, ignore_errors=True)
+        link = self.tmp / "link"
+        link.symlink_to(target)
+        with mock.patch.dict(os.environ, {"TMPDIR": str(link)}), mock.patch.object(tempfile, "tempdir", None):
+            code, _, err = self.run_main(*self.run_args("--allow-tools", "Bash"))
+        self.assertEqual(code, 2)
+        self.assertIn("denies writes to /tmp", err)
 
     def test_claude_command_that_is_not_found_is_an_input_error(self):
         code, _, err = self.run_main(*self.run_args("--claude", "no-such-claude-command"))
@@ -596,6 +665,12 @@ class CommandLineTests(unittest.TestCase):
     def test_usage_error_exits_with_2(self):
         self.assertEqual(self.run_script().returncode, 2)
         self.assertEqual(self.run_script("run", "--plugin", "x").returncode, 2)
+
+    def test_concurrency_above_8_exits_with_2(self):
+        result = self.run_script("baseline", "--plugin", "x", "--model", "m", "--judge-model", "j", "--out", "o",
+                                 "--concurrency", "9")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid choice", result.stderr)
 
 
 if __name__ == "__main__":

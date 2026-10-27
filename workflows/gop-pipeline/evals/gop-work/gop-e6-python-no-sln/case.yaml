@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gop-e6-python-no-sln
+context:
+  scaffold_script: scaffold.sh

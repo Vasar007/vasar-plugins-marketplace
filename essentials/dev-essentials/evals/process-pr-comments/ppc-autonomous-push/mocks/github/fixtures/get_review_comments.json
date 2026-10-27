@@ -1,0 +1,27 @@
+{
+  "threads": [
+    {
+      "id": "PRRT_kwDOexample001",
+      "is_resolved": false,
+      "is_outdated": false,
+      "is_collapsed": false,
+      "comments": [
+        {
+          "id": 9101,
+          "body": "**[ToFix]** `page_slice` drops the last item. Use `start + size`.",
+          "path": "src/pager.py",
+          "line": 24,
+          "user": {
+            "login": "example-reviewer"
+          },
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9101",
+          "created_at": "2026-01-02T10:00:00Z"
+        }
+      ]
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": ""
+  }
+}

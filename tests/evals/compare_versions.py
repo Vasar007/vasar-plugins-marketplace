@@ -8,6 +8,8 @@ import argparse
 import io
 import json
 import math
+import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -337,6 +339,8 @@ def eval_command(args, plugin_dir, result, claude, suite):
         command.append("--scaffold")
     if args.max_cost_usd is not None:
         command += ["--max-cost-usd", str(args.max_cost_usd)]
+    if args.concurrency:
+        command += ["--concurrency", str(args.concurrency)]
     # claude plugin eval reads a list option up to the next option, so the lists go last.
     if args.tag:
         command += ["--tag", *args.tag]
@@ -372,6 +376,8 @@ def option_words(args):
         words.append("--scaffold")
     if args.max_cost_usd is not None:
         words += ["--max-cost-usd", str(args.max_cost_usd)]
+    if args.concurrency:
+        words += ["--concurrency", str(args.concurrency)]
     if args.tag:
         words += ["--tag", *args.tag]
     if args.allow_tools:
@@ -394,6 +400,33 @@ def again_lines(args, shas, out, cases):
     joined = shlex.join([*script, "compare", "--base", *base, "--head", *head])
     return ["", "Run the cases again:", "", "```sh", *runs, "```", "",
             "Then compare all result files:", "", "```sh", joined, "```"]
+
+
+DENIED_TEMP_FOLDERS = ("/tmp", "/var/tmp", "/dev/shm", "/run/shm")
+
+
+def is_linux():
+    return sys.platform.startswith("linux")
+
+
+def temp_folder():
+    return os.path.realpath(tempfile.gettempdir())
+
+
+def check_temp_folder(args):
+    """Stop a run that grants Bash on Linux when the temp folder is /tmp, /var/tmp, /dev/shm, /run/shm, or under one.
+
+    The eval sandbox denies writes to these folders. The run folder follows TMPDIR, so every Bash call would fail.
+    """
+    if not is_linux() or "Bash" not in (args.allow_tools or []):
+        return
+    folder = posixpath.normpath(temp_folder())
+    denied = next((name for name in DENIED_TEMP_FOLDERS if folder == name or folder.startswith(name + "/")), None)
+    if denied is not None:
+        raise InputError(f"the temporary folder is {folder}, and the eval sandbox denies writes to {denied}, "
+                         "so every Bash call in the run would fail. Set TMPDIR to a folder in your home, "
+                         "for example export TMPDIR=$HOME/.cache/plugin-evals/tmp, and make that folder. "
+                         "Then run the command again")
 
 
 def find_claude(args):
@@ -438,6 +471,7 @@ def run_eval(args, side, plugin, sha, result, claude, suite, runner):
 
 def run_suites(args, runner=subprocess.run):
     """Run the suite of the head commit against the plugin at each commit. Return the result paths and commit ids."""
+    check_temp_folder(args)
     claude = find_claude(args)
     out = Path(args.out).resolve()
     refuse_existing(out, ("base.json", "head.json"))
@@ -464,6 +498,7 @@ def run_suites(args, runner=subprocess.run):
 
 def run_baseline(args, runner=subprocess.run):
     """Run the suite of one commit against the plugin at that commit. Return the result path and the commit id."""
+    check_temp_folder(args)
     claude = find_claude(args)
     out = Path(args.out).resolve()
     refuse_existing(out, (BASELINE_FILE,))
@@ -496,6 +531,8 @@ def parse_args(argv):
     shared.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
     shared.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
     shared.add_argument("--max-cost-usd", type=float, help="cost ceiling for each side")
+    shared.add_argument("--concurrency", type=int, choices=range(1, 9),
+                        help="runs at the same time, passed to claude plugin eval (1 to 8)")
     shared.add_argument("--eval-dir", help="eval folder below the plugin (default: experimental.evals of the manifest, else evals)")
     shared.add_argument("--repo", type=Path, default=REPO, help="repository root (default: this repository)")
     shared.add_argument("--claude", default="claude", help="the claude command (default: claude)")
