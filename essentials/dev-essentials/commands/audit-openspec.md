@@ -10,6 +10,8 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
 - The folder under `openspec/changes/`.
 - If no arguments, use the **AskUserQuestion tool** to ask for the change folder name.
 
+This command assumes the OpenSpec folder layout: one folder for each change under `openspec/changes/`.
+
 ## Steps
 
 1. **Read all artifacts**

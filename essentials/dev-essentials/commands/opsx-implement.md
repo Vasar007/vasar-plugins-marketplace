@@ -17,6 +17,8 @@ Implement tasks from an OpenSpec change, optionally limited to specific phases.
   - `split-account-balancing-options --context Notes/Results/research.md`: use a specific context file
 - If no change name is given, run `openspec list --json`, and use the **AskUserQuestion tool** to ask which change to implement.
 
+This command needs the `openspec` CLI on the PATH. If an `openspec` command fails because the CLI is not found, stop and tell the user.
+
 **Options:**
 
 | Flag               | Default | Description                                              |

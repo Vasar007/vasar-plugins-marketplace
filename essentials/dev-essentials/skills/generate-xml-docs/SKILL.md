@@ -8,6 +8,8 @@ when_to_use: Use it for missing XML docs, and for "add XML docs", "document this
 
 Generate XML documentation for C# types, methods, properties, and parameters following standard conventions.
 
+The examples guard parameters with the fluent extension style of a shared guard library, for example `request.ThrowIfNull()`. The same documentation rules apply to the guards of the .NET base library, such as `ArgumentNullException.ThrowIfNull(request)`.
+
 ## Required Documentation
 
 **All public, protected, and internal types, methods, and properties must have XML documentation** (except tests).
