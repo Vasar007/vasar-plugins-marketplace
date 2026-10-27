@@ -4,6 +4,13 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+## Contents
+
+- Inputs
+- Process
+- Rules
+- Completion Criteria
+
   Task metadata (with the doc candidates) is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 

@@ -2,6 +2,12 @@
 
 Three sanitized cases, each based on a real finding. Cases 1 and 2 end the same way: an edit to an already-shipped entity, and the source pruned. Neither case makes a new entity. Case 3 shows the mixed outcome that one wrapper file can produce after a diff of each section. The repo names and the rule content are fictional. No marketplace is named.
 
+## Contents
+
+- Case 1: Self-labelled stopgap for a shipped skill's wrong example
+- Case 2: Wrapper command's "delta" is actually a base-skill correction
+- Case 3: Mixed wrapper: one section stays, one is extracted as E, one is F-stale
+
 ---
 
 ## Case 1 — Self-labelled stopgap for a shipped skill's wrong example

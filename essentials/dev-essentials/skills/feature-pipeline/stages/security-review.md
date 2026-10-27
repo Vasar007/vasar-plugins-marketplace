@@ -4,6 +4,20 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+## Contents
+
+- Context
+- Scope
+- Objective
+- Security Categories to Examine
+- Analysis Methodology
+- Confidence Scoring
+- Hard Exclusions
+- Precedents
+- Output
+- Rules
+- Completion Criteria
+
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 

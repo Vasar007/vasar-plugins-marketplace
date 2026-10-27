@@ -2,6 +2,18 @@
 
 Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match the six-value enum in `SKILL.md` verbatim. Do not invent new tokens. The file holds the six dispositions, Steps 1 to 7, and six calibration cases.
 
+## Contents
+
+- The six dispositions
+- Step 1: Corroborate first
+- Step 2: Check already-promoted status against on-disk manifests
+- Step 3: B-vs-C external-authority tie-breaker
+- Step 4: `E` disposition and its marker phrase
+- Step 5: `type:` frontmatter is never a category signal
+- Step 6: Over-generalization screen
+- Step 7: Gap-vs-overlap check
+- Calibration mini-cases
+
 ---
 
 ## The six dispositions

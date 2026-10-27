@@ -2,6 +2,12 @@
 
 These principles come from the series *How to Do Code Reviews Like a Human* by Michael Lynch (parts 1 and 2). This file adapts them to the **author side**, which is the side of this skill. The skill replies to reviewers for the author. Read this file before you write any reply.
 
+## Contents
+
+- Principles: applied to author-side replies
+- Anti-patterns
+- Quick sanity check before posting a reply
+
 Contents: ten principles, the anti-patterns, and a short list of questions before you post a reply.
 
 Source articles:

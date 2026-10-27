@@ -2,6 +2,15 @@
 
 Read this file before you reply to a comment with an automated-review header. Examples: `AI Code Review`, `copilot:review`, `coderabbitai`, or a similar heading from a bot. Automated review comments fail more often than other review feedback. They quote old snippets, miss the invariants of the enclosing code, or flag code that production never reaches. Never trust the framing. Always test the finding on your own.
 
+## Contents
+
+- What counts as an automated review comment
+- Verification checklist
+- Obviousness test (Phase 3b step 5)
+- Draft reply templates
+- Hard rules
+- Chat output alongside the thread reply
+
 Contents: what counts as an automated review comment, the steps before a verdict, and the verdicts and confidence levels. Then the obviousness test, the reply templates, the hard rules, and the chat output.
 
 ## What counts as an automated review comment

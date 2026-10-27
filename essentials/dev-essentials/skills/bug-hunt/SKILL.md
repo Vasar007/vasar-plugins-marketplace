@@ -155,6 +155,9 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKI
 The brief for each role is in [references/agent-briefs.md](references/agent-briefs.md). Fill
 every placeholder before you dispatch.
 
+The hunters, verifiers, and auditor also read
+[references/report-format.md](references/report-format.md).
+
 ## Pipeline
 
 ### Pauses, resume, and failures

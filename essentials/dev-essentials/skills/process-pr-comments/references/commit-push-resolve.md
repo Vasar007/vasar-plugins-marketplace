@@ -2,6 +2,18 @@
 
 Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The orchestrating session runs it, after steps 1 to 4 of every thread, and then resumes Stage 2 for the resolve step. On a `deep-fix` cycle, Stage 2 runs steps 1 to 4 only. The orchestrating session then owns the push, the resolve, and Phase 5 (see `deep-fix.md`).
 
+## Contents
+
+- Steps for each thread
+- Push, once per cycle
+- Resolve threads and report
+- Threads carried over from an earlier cycle
+- One file, several threads
+- Threads with the same note
+- Reply templates
+- Thread resolution after a fix lands: the `no-reply` split
+- Which threads to resolve
+
 Contents: the steps for each thread, the push, the resolve, carried-over threads, the reply templates, the `no-reply` split, and the threads to resolve.
 
 The reply comes right after the commit and before the push. So the reply never claims too much: it reports a local commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread only after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and replied to.

@@ -2,6 +2,24 @@
 
 A sanitized, fictional run from end to end. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all four Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
 
+## Contents
+
+- Phase 0: Resolve scope
+- Phase 1-2: Inventory and extraction
+- Phase 3: Classify, cluster, corroborate
+- Phase 4: Triage
+- Phase 5: Approval gate
+- Phase 6: Author approved entities
+- Phase 7: Review loop
+- Phase 8: Finalize (version bump)
+- Phase 9a: Personal memory cleanup (default-on)
+- Phase 9b: Global CLAUDE.md (skipped, not opted in)
+- Phase 9c: Deferred by default (no `--cross-repo` in the main run)
+- Phase 9d: Personal entities (report-only, no promoted personal entities this run)
+- Final report (Phase 10) for the main run
+- Phase 9c: Cross-repo cleanup (resumed in a later, separate invocation)
+- Follow-up report (Phase 10) for the resumed run
+
 **Invocation:**
 
 ```text

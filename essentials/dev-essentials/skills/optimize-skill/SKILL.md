@@ -162,6 +162,7 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 Dispatch the auditor with the auditor brief. The auditor reads the guideline sources itself
 and writes the audit report in the form of
 [references/audit-report-format.md](references/audit-report-format.md).
+[examples/bug-hunt-audit.md](examples/bug-hunt-audit.md) shows a full audit report in that form.
 
 When the auditor replies, make sure that the report exists and that each item has every field
 of the format. Also make sure that the report ends with the executor section and the "Not

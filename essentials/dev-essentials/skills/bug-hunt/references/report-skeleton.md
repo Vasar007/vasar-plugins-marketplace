@@ -2,6 +2,13 @@
 
 The orchestrator reads the report skeleton and the run context template at step 2. The known-issues collector reads the digest format at step 1. The hunters, verifiers, and auditor do not need this file. They read [report-format.md](report-format.md) and the run context file.
 
+## Contents
+
+- Files in the report folder
+- Skeleton
+- Run context file
+- Known-issues digest
+
 ## Files in the report folder
 
 ```text

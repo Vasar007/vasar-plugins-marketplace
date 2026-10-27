@@ -5,6 +5,15 @@ self-contained. The agent does not see this skill. It sees its brief and the `CL
 files. In each brief, `<common rules>` stands for the common rules block below. Paste it in
 full. If `{RESUME_NOTE}` or `{DEFECTS}` is empty, leave out its line.
 
+## Contents
+
+- Placeholders
+- Shared blocks
+- Auditor brief
+- Applier brief
+- Behavior reviewer brief
+- Review fixer brief
+
 ## Placeholders
 
 | Placeholder | Meaning |

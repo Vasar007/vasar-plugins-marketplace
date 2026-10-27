@@ -2,6 +2,26 @@
 
 A worked example of the review of a spec change document (`target=spec`). The document can come from any spec framework. A spec change can be a folder, for example an OpenSpec change at `openspec/changes/<name>/`, or a single file in another framework. This example uses an OpenSpec change at `openspec/changes/add-tenant-quotas/`. Its paths, its validator command, and its precedent spec are those of OpenSpec. With another framework, use the change path and the validator of that framework. The flow stays the same.
 
+## Contents
+
+- Invocation
+- Phase 1: Resolve target
+- Phase 2: Resolve reviewer + fixer
+- Phase 3: Round 1 review
+- Phase 4: Triage
+- Phase 5: Verify-then-fix
+- Phase 6: Build / test verify
+- Phase 7: Commit
+- Phase 8: Stop
+- Phase 9: Final summary (printed to chat: single cycle, no `--save-reports`)
+- Full format: Round 1 report
+- Description
+- Summary table
+- Details per item
+- Conclusion
+- Final verdict
+- Reviewer model
+
 The example shows how a spec review differs from a code review. There is no build step, and the fixes are edits of the spec. The validation runs the validator of the spec framework of the repository (here, `openspec validate`) instead of a compiler. OpenSpec keeps an active change in `openspec/changes/<name>/` and moves a completed change to `openspec/changes/archive/<YYYY-MM-DD>-<name>/`.
 
 ---

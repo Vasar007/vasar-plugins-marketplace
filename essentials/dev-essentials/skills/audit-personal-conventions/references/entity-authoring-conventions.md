@@ -2,6 +2,19 @@
 
 Phase 6 of `SKILL.md` reads this file. The conventions come from an earlier ad-hoc promotion in the history of this marketplace (see the intro of `SKILL.md`).
 
+## Contents
+
+- Skill vs. command vs. agent selection
+- Frontmatter: this skill's own template sticks to `name`, `description`, and `when_to_use`
+- The description recipe
+- Body structure
+- General terms
+- References vs. examples: conditional need and the 500-line limit
+- Load-bearing terms
+- Author-commit-pairing discipline
+- Version bump
+- Extend vs. create
+
 ---
 
 ## Skill vs. command vs. agent selection

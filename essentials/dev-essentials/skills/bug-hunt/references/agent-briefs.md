@@ -6,6 +6,18 @@ A plugin agent also sees its agent file. A general-purpose helper has no agent f
 carries its own rules. The hunter, verifier, and auditor have the read-only rules and the
 progress-file rules in their agent files. Their briefs hold only the values for the run.
 
+## Contents
+
+- Placeholders
+- Shared blocks
+- Scoping helper (step 0, general-purpose)
+- Setup helper (step 1, general-purpose)
+- Known-issues collector (step 1, general-purpose)
+- Hunter (step 3, dev-essentials:bug-hunter)
+- Verifier (step 4, dev-essentials:bug-verifier)
+- Auditor (step 5, dev-essentials:bug-report-auditor)
+- Cleanup helper (step 6, general-purpose)
+
 In the collector brief, `<crash-safety block>` stands for the shared block below. Paste it
 in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 

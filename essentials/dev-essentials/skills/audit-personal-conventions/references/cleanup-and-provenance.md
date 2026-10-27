@@ -2,6 +2,13 @@
 
 Phase 9 of `SKILL.md` reads this file. It holds, in this order: the matrix of sub-phases, the 9a templates, the full 9c cross-repo mechanism (9c.0 to 9c.9), and the full 9d mechanism for personal entities.
 
+## Contents
+
+- Default-on vs. opt-in matrix
+- 9a: Standardized heading and bullet template
+- 9c: Cross-repo project CLAUDE.md files, full mechanism
+- 9d: Personal entities (commands/agents/skills) cleanup
+
 ---
 
 ## Default-on vs. opt-in matrix

@@ -4,6 +4,24 @@
   Note for the master agent: replace the four placeholders that "Stage Launch"
   in SKILL.md names.
 
+## Contents
+
+- Inputs
+- Process
+- 1. Resolved Questions
+- 2. Architecture Overview
+- 3. Implementation Steps
+- 4. Execution Order
+- 5. Database Migrations (if applicable)
+- 6. Edge Cases & Error Handling
+- 1. Test Strategy Overview
+- 2. Test Cases
+- 3. Tests for Existing Code (regression)
+- 4. Coverage Expectations
+- Test Design Principles
+- Rules
+- Completion Criteria
+
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 -->

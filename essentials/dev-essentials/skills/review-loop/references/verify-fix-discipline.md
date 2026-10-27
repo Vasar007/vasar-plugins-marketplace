@@ -2,6 +2,19 @@
 
 **Read this file before you apply any fix**. This is the playbook of the fixer subagent that Phase 5 dispatches.
 
+## Contents
+
+- 1. Why verify-then-fix exists
+- 2. APPLY / PARTIAL / REJECT classification
+- 3. What counts as a primary source
+- 4. Common rejection patterns
+- 5. Don't-over-fix rule
+- 6. Scope: only files the reviewer named
+- 7. Build / test verification mandate
+- 8. Per-finding report format
+- 9. When the fixer disagrees with a confident reviewer
+- Hard rules (no exceptions)
+
 ---
 
 ## 1. Why verify-then-fix exists

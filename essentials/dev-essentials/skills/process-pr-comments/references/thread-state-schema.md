@@ -2,6 +2,17 @@
 
 This file has the state that `process-pr-comments` keeps in the session, so that a polling cycle does not process a comment again. It also has the format of the cycle log for the user. The state lives only in the session. A new `/loop` session starts empty. It finds the comments that an earlier session handled from the thread state on GitHub: the reply text and the state of the thread.
 
+## Contents
+
+- `processedCommentIds`: dedup set
+- Committed-fix detection: re-derived every cycle, not persisted
+- Ancestry check: shared git mechanic
+- PR metadata (resolved once, reused every cycle)
+- Stage 1 report: the Phase 2 → Phase 3 handoff
+- Cycle log: user-facing
+- Examples
+- Session lifecycle
+
 Contents: the dedup set, committed-fix detection, the ancestry check, the PR metadata, and the Stage 1 report. Then the cycle log, examples, and the session lifecycle.
 
 ## `processedCommentIds` — dedup set

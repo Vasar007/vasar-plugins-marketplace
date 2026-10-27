@@ -2,6 +2,16 @@
 
 Starting points to copy for the recurring parts that `SKILL.md` describes. If a prior artifact of the same series exists, adapt the colors and the spacing to that artifact. This CSS is a starting point for a new series, not a fixed design system.
 
+## Contents
+
+- Color map (CSS variables)
+- Status/severity badge
+- Stats grid
+- Findings / AC grid table with deep-links
+- Collapsible detail group
+- Annotated line grid (diff / code + side chip)
+- Mockup / wireframe block
+
 ## Color map (CSS variables)
 
 ```css

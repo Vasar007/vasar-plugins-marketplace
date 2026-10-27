@@ -2,6 +2,20 @@
 
 Phase 3 of `review-loop` builds each reviewer prompt from this file. Paste the Common Rules, the Full format, and the brief that matches the `target=` value, with the `<PLACEHOLDERS>` filled in. The reviewer does not see `SKILL.md` or this file, so paste the text word for word.
 
+## Contents
+
+- Common Rules
+- Full format
+- `branch`: Full branch diff against base
+- `pr <id>`: Pull request diff
+- `commits <N>` / `last-N`: Last N commits only
+- `diff <range>`: Arbitrary git diff range
+- `file <path>`: Full file review (not a diff)
+- `class <FQN>`: Named class review
+- `method <FQN>`: Named method review
+- `spec <path>`: Specification / design document review
+- Customization points
+
 Contents: Common Rules, Full format, the eight briefs (one for each `target=` value), and Customization points.
 
 ---
