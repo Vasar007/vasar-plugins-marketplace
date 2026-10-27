@@ -129,7 +129,7 @@ Before you launch a stage, do these steps in order:
 1. Make sure that each file in the "Reads" column of the Overview table exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages. One exception: if `--skip` removed the `review` stage from the plan, `review.md` is not required. Launch the stage without it.
 2. Resolve the model. If this invocation has a `--model-override` entry for this stage, use it. Else use the entry of this stage in `models` of `pipeline-state.json`, from an earlier run. Else use the default model of the Overview table. Write the result into `models` (`{"<stage>": "<model>"}`). If an override of this invocation replaces a recorded entry, log the change. Pass the model in the `model` parameter of the `Agent` tool.
 3. For a commit-capable stage, write the output of `git rev-parse HEAD` into `stageStartSha` (`{"<stage>": "<sha>"}`). This records the branch tip at the start of the stage. A later resume uses it to find out whether HEAD moved while the stage was incomplete.
-4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages.
+4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages. `<start-changes>` goes to the same five stages. If `startChanges` is empty, leave it out.
 
    ```md
    <project-context>
@@ -155,6 +155,11 @@ Before you launch a stage, do these steps in order:
    <commit-conventions>
    {the block from references/commit-conventions.md, with its cadence line for {COMMIT_MODE}}
    </commit-conventions>
+
+   <start-changes>
+   These paths had changes before this run started. Do not stage them, and do not commit them, unless your stage edits that path. If your stage edits one, name it in your final reply.
+   {the paths of startChanges, one for each line}
+   </start-changes>
 
    {text of the stage file}
    ```
@@ -354,7 +359,7 @@ Launch the stage `finalization`. It makes the commit and reports the facts for t
 3. If the report names a linking tool, link the PR to its tracking issue. Load the tool with `ToolSearch`, and create the link. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
 4. If step 1 or step 2 fails, stop and report the failure. Do not try workarounds.
 
-Add `finalization` to `completed` only after these steps. Then update the checkpoint, and report the branch or PR status.
+Add `finalization` to `completed` only after these steps. Put the "Not committed" list of the stage into the final report. Then update the checkpoint, and report the branch or PR status.
 
 If the run created a PR, write its `number`, `url`, `owner`, and `repo` into `pr` of `pipeline-state.json` before Step 10. If it created no PR (a branch-only flow, or no PR command), leave `pr` as `null`. Step 10 reads this field to decide whether it needs a GitHub PR lookup.
 

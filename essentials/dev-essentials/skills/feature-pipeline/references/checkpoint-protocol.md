@@ -37,6 +37,7 @@ The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to dat
   "stageStartSha": {},
   "planArtifact": null,
   "commitMode": "finalization",
+  "startChanges": [],
   "failed": null,
   "startedAt": "2026-03-01T11:00:00Z",
   "updatedAt": "2026-03-01T11:30:00Z"
@@ -56,6 +57,7 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
   - `"failed"`: both attempts failed.
   - `"skipped"`: the run skipped the stage, for example with `--skip=plan-artifact`.
 - `commitMode` is `"finalization"` by default. With `--commit-mode=per-step` at Step 0, it is `"per-step"`. Each checkpoint write keeps it, so that a resumed run uses the original choice. Two cases change it: a new `--commit-mode` on that invocation, or the mode-change check below (see also "Commit Cadence" in `SKILL.md`).
+- `startChanges` is `[]` in a new worktree. Else Step 0 writes the paths that `git status --porcelain` listed before the run (sub-step 6 of `references/setup.md`). A resume keeps the recorded list. Stage Launch passes it to the five commit-capable stages.
 - `autoFixRound` is not in the schema above. The first fix round of Human Approve #2 sets it to `true`. A missing key means `false`.
 
 ## Validation of the state file
@@ -63,8 +65,8 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
 Do these checks on each write, and on each load at a resume:
 
 - Parse the file as JSON. If it is not valid JSON, stop at once.
-- Find out whether each top-level key of the schema above exists (16 keys). For a missing key of the backward-compatibility table below, use its zero value. For any other missing key, stop and report it.
-- Backward compatibility: an old state file can lack `taskSource`, `pr`, `models`, `stageStartSha`, `planArtifact`, or `commitMode`. On a read, each missing key takes the zero value in the table below. The next write stores it.
+- Find out whether each top-level key of the schema above exists (17 keys). For a missing key of the backward-compatibility table below, use its zero value. For any other missing key, stop and report it.
+- Backward compatibility: an old state file can lack `taskSource`, `pr`, `models`, `stageStartSha`, `planArtifact`, `commitMode`, or `startChanges`. On a read, each missing key takes the zero value in the table below. The next write stores it.
 
   | Field | Zero value |
   | --- | --- |
@@ -74,6 +76,7 @@ Do these checks on each write, and on each load at a resume:
   | `stageStartSha` | `{}` |
   | `planArtifact` | `null` |
   | `commitMode` | `"finalization"` |
+  | `startChanges` | `[]` |
 
   Each key is still required on each write. The zero values apply to reads only. Step 9 fills `pr` at the next PR creation. Step 10 treats `null` as the case without a PR.
 - Find out whether `completed` is an array of known stage names. If it is not, stop and report it.

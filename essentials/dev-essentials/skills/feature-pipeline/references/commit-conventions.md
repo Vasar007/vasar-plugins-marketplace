@@ -52,6 +52,12 @@ Follow them exactly; do not invent your own format.
 - **NEVER `--no-verify`.** If a hook fails, fix the underlying issue.
 - **NEVER amend.** If anything needs correcting after a commit exists, create
   a NEW commit.
+- **Commit with paths.** Run `git commit -m <message> -- <path> ...`, with the
+  paths that you staged. A change that the user staged before the run then
+  stays staged and out of the commit.
+- **NEVER `git add -f`.** If git says that a path is ignored, leave it out, and
+  name it in your final reply. A `.gitignore` entry often keeps local secrets
+  out of the repository.
 - **Do not push from your stage**. The master agent pushes after the
   Finalization stage. This holds for the Finalization stage too.
 - **Never commit anything under `{ARTIFACTS_DIR}/`.**

@@ -63,8 +63,8 @@ If a critical step is still ambiguous after this validation, stop, and report th
    git status
    ```
 
-   - **`finalization` mode (default)**: the earlier stages staged all implementation, test, and doc changes. If unstaged changes look intentional, stage them. Do not stage untracked files that look like artifacts (logs, coverage reports).
-   - **`per-step` mode**: `git status` must be clean, except for untracked artifacts (for example under `{ARTIFACTS_DIR}/`). The earlier stages already committed every source change. If the tree is not clean, stop, and report the uncommitted files. Do not commit them here.
+   - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from `<start-changes>`, the change is from this run, so stage it. If a stage reported an edit of the path, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
+   - **`per-step` mode**: `git status` must be clean, except for untracked artifacts (for example under `{ARTIFACTS_DIR}/`) and the paths of `<start-changes>` that no stage edited. The earlier stages already committed every source change. If the tree is not clean, stop, and report the uncommitted files. Do not commit them here.
 
 ### Step 3: Create Commit (finalization-commit mode only)
 
@@ -72,7 +72,7 @@ If a critical step is still ambiguous after this validation, stop, and report th
 
 On a resume, this stage can run again after its commit, because the master agent marks it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 4.
 
-The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format.
+The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`.
 
 The content for this stage: take the WHY of the body from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the injected block against pipeline-internal references governs the wording.
 
@@ -93,6 +93,7 @@ Return the final outcome as your final output:
 
 - The commit that you created, or "none" in `per-step` mode
 - The six facts of Step 4
+- The "Not committed" list: each path that you left out, with its reason (a change from before the run, an untracked file, or an ignored path), or "none"
 
 ## Rules
 
@@ -107,4 +108,4 @@ Return the final outcome as your final output:
 Your work is done when:
 
 1. In `finalization` mode, a clean commit exists, with a message format that fits the repository. In `per-step` mode, `git status` was clean at Step 2, and this stage made no new commit.
-2. The master agent has the commit and the six facts of Step 4.
+2. The master agent has the commit, the six facts of Step 4, and the "Not committed" list.
