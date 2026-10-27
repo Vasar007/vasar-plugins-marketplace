@@ -378,6 +378,10 @@ Read [references/build-environment.md](references/build-environment.md) for a co
 
 Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead.
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build.
+
 ## Tests
 
 Create configuration options tests following project conventions.
@@ -399,6 +403,7 @@ Create configuration options tests following project conventions.
 - [ ] Important options exposed in the deployment values (for Helm, `helm/values.yaml`)
 - [ ] Validation of required values added to the deployment script (for Helm, `helm/deploy.sh`)
 - [ ] XML documentation on class and properties
+- [ ] The changed projects build, and the report gives the result line of the last build
 
 ## Related Skills
 

@@ -345,6 +345,10 @@ public async Task GetStoreConfiguration_ShouldReturnConfiguration()
 
 **See [create-tests](../create-tests/SKILL.md) for testing patterns.**
 
+### 7. Build Again
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build. The build of step 3 can fail until step 4 adds the controller, so this loop runs at the end. Do not edit a generated file to fix an error. If the build does not update the generated files, follow the [stop-and-ask rule](#if-the-build-does-not-update-auto-generated-files).
+
 ## Common Patterns
 
 Read [references/common-patterns.md](references/common-patterns.md) for these cases: a session-based operation, a list filter, an enum, the error responses, or the spec of an external client.
@@ -380,6 +384,7 @@ If the controller implementation does not match the generated interface:
 - [ ] Implemented controller interface (see create-controller skill)
 - [ ] Created integration tests using generated client
 - [ ] Each long-running operation documented with the session-based pattern
+- [ ] The changed projects build, and the report gives the result line of the last build
 
 ## Related Skills
 
