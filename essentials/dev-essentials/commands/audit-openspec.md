@@ -51,7 +51,7 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
 
 4. **Read back the code references**
 
-   Make sure that each finding that names code cites a `path:line` that this run opened, and that the line says what the finding claims. Correct or remove each finding that fails this test. If a finding says that code does not exist, name the search that found nothing, for example the `Grep` pattern and the folder.
+   Make sure that each finding that names code cites a `path:line` that this run opened, and that the line says what the finding claims. Correct or remove each finding that fails this test. If a finding says that code does not exist, it needs no `path:line`. Name the search that found nothing, for example the `Grep` pattern and the folder.
 
 5. **Report**
 

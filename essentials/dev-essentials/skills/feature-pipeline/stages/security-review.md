@@ -166,7 +166,7 @@ Do NOT report these issues. Other processes handle them, or they are out of scop
 2. UUIDs are unguessable and need no extra validation.
 3. Environment variables and CLI flags are trusted values.
 4. Resource management issues (memory or file-descriptor leaks) are not valid findings.
-5. Subtle web vulnerabilities (tabnabbing, XS-Leaks, prototype pollution, open redirects): report them under Warnings with your confidence.
+5. Subtle web vulnerabilities (tabnabbing, XS-Leaks, prototype pollution, open redirects): report them with your confidence. The rule under Confidence Scoring decides where each one goes.
 6. Modern client frameworks are generally secure against XSS. Flag XSS only for explicit unsafe HTML injection or a similar bypass.
 7. Missing authorization on the client is not a vulnerability by itself, as long as the server validates the request.
 8. Command injection in shell scripts: report it only for an injection point that untrusted input can reach.
