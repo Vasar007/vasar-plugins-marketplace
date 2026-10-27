@@ -9,6 +9,31 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.5.1 and dotnet-backend-dev 1.7.0 in release [3.8.0] - 2026-10-27
+
+This release makes seven large dotnet skills shorter. They move examples and rare sections into reference and example files. The skills that write code or Markdown now run a build or a lint loop until it passes (issue #78). The move keeps the text word for word and cuts no rule.
+
+### Added in dotnet-backend-dev
+
+- `create-domain-model`, `create-primitive-wrapper`, `create-exception`, `handle-sensitive-data`, `model-mapping`, `create-controller`, `update-swagger-spec`, `create-external-client`, `add-configuration-option`, `add-session-logging`, and `create-string-resource` (issue #78): a build loop. Behavior change: the skill builds the changed projects with `dotnet build`, fixes the errors, and reports the result line of the last build. The skills with a code generator do not edit a generated file, and they point to their stop-and-ask rule. `model-mapping` also fixes each unmapped member that the build reports. `update-swagger-spec` runs the loop as a new last step.
+- `add-migration` (issue #78): a build and migration-test loop on the framework path. The standard EF Core path already had its build.
+
+### Changed in dotnet-backend-dev
+
+- `add-migration` (issue #78): the framework text moved to `references/framework-migrations.md` and `references/cosmos-db.md`. The hard rules stay in `SKILL.md`.
+- `update-swagger-spec` (issue #78): the common spec patterns moved to `references/common-patterns.md`.
+- `create-tests` (issue #78): the helper and mocking examples moved to `examples/helper-methods.md` and `examples/mocking-rules.md`, and the checklist comes first.
+- `model-mapping` (issue #78): the full examples moved to `examples/full-examples.md`.
+- `add-configuration-option` (issue #78): the `BuildEnvironment` pattern moved to `references/build-environment.md`.
+- `handle-sensitive-data` (issue #78): the JSON converter code moved to `references/serialized-output.md`.
+- `add-session-logging` (issue #78): the two Best Practices sections are one section.
+
+### Changed in dev-essentials
+
+- `write-markdown` (issue #78): the validation workflow loops on `markdownlint` until the exit code is `0`. An exit code of `2` to `4` is a configuration error, and the skill reports it.
+- `create-documentation` (issue #78): the checklist starts with a `markdownlint` loop until exit `0`. The list keeps the three items that the linter cannot test: the file name, the contents list, and the relative links.
+- `generate-xml-docs` (issue #78): a CS1591 build loop with `-p:GenerateDocumentationFile=true` for that build only. The checklist stays the test for internal members.
+
 ## dev-essentials 3.5.0 and dotnet-backend-dev 1.6.5 in release [3.7.0] - 2026-10-27
 
 This release gives each trigger phrase one owner. It puts the hard rules and the done test of the large dev-essentials skills first. It turns two commands into skills with the same names, and it splits the promotion out of `audit-personal-conventions`. It also adds two plugin options (issue #76). The two moved units keep their invocation paths. Every `/dev-essentials:research-implement-review-report` and `/dev-essentials:implement-batch` call works as before.
@@ -876,7 +901,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...HEAD
+[3.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...v3.7.0
 [3.6.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...v3.6.5
 [3.6.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...v3.6.4
