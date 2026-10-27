@@ -324,7 +324,7 @@ Decide whether to run another cycle. The decision follows fixed rules.
 
 ### Phase 9 — Final summary
 
-Aggregate across all cycles. Follow the "Report destination rules": write to `<target-slug>-summary.md` in the reviews folder in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, end the chat output of the run with the `Stop verdict:` line and the paths of the fixed files (see "Done test").
+Aggregate across all cycles. Follow the "Report destination rules": write to `<target-slug>-summary.md` in the reviews folder in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, the chat output of the run holds the `Stop verdict:` line and the paths of the fixed files (see "Done test").
 
 Fill the Phase 9 template of `references/output-formats.md`.
 
