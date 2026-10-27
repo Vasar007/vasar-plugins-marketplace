@@ -410,5 +410,3 @@ Before you finish, check the document against this list:
 - Search the text for: simply, just, easily, powerful, seamless, please,
   "you", "!", "**". Remove each hit or justify it.
 - "must", "may", "should" and "can" each have their exact meaning.
-
-Source: a skill by a colleague of the marketplace author.
