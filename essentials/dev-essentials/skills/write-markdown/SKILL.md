@@ -10,7 +10,7 @@ Create and maintain Markdown files that pass markdownlint validation with zero w
 
 ## Tooling Setup
 
-These are setup notes for the user. Do not install tools or create or change configuration files (`.markdownlint.json`, `.vscode/settings.json`) unless the user asks. Use the existing markdownlint configuration of the repo. If `markdownlint` is not installed, tell the user, and check the rules by hand.
+These are setup notes for the user. Do not install tools or create or change configuration files (`.markdownlint.json`, `.vscode/settings.json`) unless the user asks. Use the existing markdownlint configuration of the repo. If `markdownlint` is not installed, tell the user. Then apply the rules by hand. The [markdownlint rule list](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) names them.
 
 ### Editor Extension
 
@@ -57,7 +57,7 @@ Before you commit a Markdown file:
 
 ## Rules beyond the linter
 
-markdownlint names each rule that a file breaks, so this skill does not repeat the rules. Two choices are not the defaults of markdownlint:
+markdownlint names each rule that a file breaks, so this skill does not repeat the rules. One choice is not a default of markdownlint (the `-` marker, because MD004 defaults to `consistent`). One rule is easy to break by hand (the 2-space indent of MD007, which is the default):
 
 - Use `-` as the list marker. Indent a nested list by 2 spaces.
 - Fix a warning in the text, not with a disable comment (see "Inline Suppressions").

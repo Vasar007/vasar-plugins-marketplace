@@ -2,7 +2,7 @@
 name: promote-conventions
 description: "Promote the approved items of an audit-personal-conventions triage into a marketplace plugin. It authors the entities, runs a review loop, bumps the plugin version, and cleans up the sources."
 disable-model-invocation: true
-argument-hint: "[approve <numbers> | approve all promotes | approve none | defer <numbers> | reject <numbers>] [--rounds=N] [--cleanup-mode=stub|annotate|none] [--update-global-claude-md] [--cross-repo=off|all|<repo>,...] [--branch-prefix=<prefix>] [--delete-personal-entities] [--resume=<path>] [--marketplace=<path>] [--report=chat|<path>] [--interactive] [--autonomous]"
+argument-hint: "[approve <numbers> | approve all promotes | approve none | defer <numbers> | reject <numbers>] [--rounds=N] [--cleanup-mode=stub|annotate|none] [--update-global-claude-md] [--cross-repo=off|all|<repo>,...] [--branch-prefix=<prefix>] [--delete-personal-entities] [--resume=<path>] [--marketplace=<path>] [--scope=<tokens>] [--projects=<list>] [--exclude-projects=<list>] [--target-plugin=<name>] [--min-evidence=<N>] [--dispositions=<tokens>] [--include-vendored] [--report=chat|<path>] [--interactive] [--autonomous]"
 ---
 
 # Promote Conventions
@@ -14,6 +14,8 @@ This skill promotes the approved items of a triage into a marketplace plugin. Th
 ## Path resolution rule
 
 Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable. If that variable is not set, use the home directory of the user plus `/.claude`. Never hardcode a username, a drive letter, or an absolute path in the text, prompts, or examples of this skill. Write each path relative to the config root or to the repo root.
+
+The configured branch prefix is `${user_config.branch_prefix}`. Set it with `/plugin configure` (see `plugin.json`). If the value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty.
 
 ## Start rule
 
@@ -41,16 +43,18 @@ Load the TODO file first. If the TODO has no `Marketplace remote` field, stop, o
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--rounds=<N>` | `2` | The number of review cycles for the review-loop skill of the target marketplace (see Phase 7). |
-| `--marketplace=<path>` | none | Only with `--resume=<path>`. The clone of the marketplace repo that the TODO file names. See "Phase 0 for a resume run". |
+| `--marketplace=<path>` | none | With `--resume=<path>`: the clone of the marketplace repo that the TODO file names (see "Phase 0 for a resume run"). Without `--resume`: the Start rule passes it to the audit, where it is the root of the target marketplace. |
 | `--cleanup-mode=stub\|annotate\|none` | `stub` | Applies to fully promoted memory files only. `none` touches nothing for that item, also not its bullet in the `MEMORY.md` index. Details in Phase 9a. |
 | `--update-global-claude-md` | off (bare) | **Opt-in.** Without it, Phase 9b only reports which rules of the global CLAUDE.md can become a pointer, and how to re-run to apply them. It edits nothing. With it, Phase 9b asks for each file before it writes (see Phase 9b for the exact question). |
 | `--cross-repo=off\|all\|<repo>[,<repo>...]` | `off` | **Opt-in.** Turns on Phase 9c, which edits the tracked CLAUDE.md files of OTHER repos. Bare `--cross-repo` means `--cross-repo=all`. If this run promoted nothing and no `--resume` TODO file is given, the run ignores the flag with a warning. See the 9c-only re-entry mode in Phase 9c and `references/cleanup-and-provenance.md`. |
-| `--branch-prefix=<prefix>` | derive from context, else ask | The prefix of the branch name for Phase 9c branches (`<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>`). Default: use the first of these that gives a prefix: a branch-naming rule in the CLAUDE.md file of the project, the configured branch prefix of this plugin, a branch-naming rule in the global CLAUDE.md. If none gives a prefix, ask the user once for each run, before the first cross-repo branch. |
+| `--branch-prefix=<prefix>` | derive from context, else ask | The prefix of the branch name for Phase 9c branches (`<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>`). Default: use the first of these that gives a prefix: a branch-naming rule in the CLAUDE.md file of the project, the configured branch prefix, a branch-naming rule in the global CLAUDE.md. If none gives a prefix, ask the user once for each run, before the first cross-repo branch. |
 | `--delete-personal-entities` | off (bare) | **Opt-in.** Lets Phase 9d delete personal global command, agent, and skill files that an entity supersedes. That entity is either promoted in this run, or already shipped (then Phase 3 classifies the file F-stale). The checks and questions of Phase 9d still gate each deletion. Without the flag, Phase 9d only reports the superseded files with a suggested manual action. |
 | `--resume=<path>` | none | Resumes a deferred Phase 9c cleanup from its TODO file, without a new audit. This is the 9c-only re-entry mode (Phase 9c.1). See "Phase 0 for a resume run". |
 | `--report=chat\|<path>` | `chat` | Where the final report goes. |
 | `--interactive` | off (bare) | Wait at the Phase 5 approval gate. Without it, Phase 5 approves the recommended items itself. See "Autonomy". |
 | `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
+
+When the conversation has no triage, the Start rule passes these scope flags to the audit: `--scope`, `--projects`, `--exclude-projects`, `--target-plugin`, `--min-evidence`, `--dispositions`, and `--include-vendored`. `dev-essentials:audit-personal-conventions` defines them.
 
 **Only `--autonomous` skips the Phase 9 gates. This includes the per-repo push gate.** The opt-in flags `--update-global-claude-md`, `--cross-repo`, and `--delete-personal-entities` turn on a capability. They do not skip its gates. The Phase 5 approval gate follows "Autonomy". By default, the run approves the recommended items itself. With `--interactive`, it waits.
 

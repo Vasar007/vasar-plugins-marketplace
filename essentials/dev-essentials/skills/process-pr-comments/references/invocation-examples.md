@@ -1,6 +1,6 @@
 # Process PR Comments Invocation Examples
 
-These examples show the parameters of `SKILL.md` in use.
+These examples show the parameters of `references/parameters.md` in use.
 
 ```text
 # One-shot on a specific PR (owner and repo required)

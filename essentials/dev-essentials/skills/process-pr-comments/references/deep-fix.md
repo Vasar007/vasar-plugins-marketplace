@@ -1,6 +1,6 @@
 # `deep-fix`: one thread through `/research-implement-review-report`
 
-Read this file for a run in which the `deep-fix` parameter names a thread. The parameter row and the rules for `deep-fix` are in `SKILL.md` (Parameters and Rules).
+Read this file for a run in which the `deep-fix` parameter names a thread. The parameter row and the rules for `deep-fix` are in `references/parameters.md` and in `SKILL.md` (Rules).
 
 Contents: the override and the ineligible cases, and the place of Stage 3 in the cycle. Then the hand-back of Stage 2, the brief and the outcomes of Stage 3, and the cycle log.
 

@@ -10,7 +10,7 @@ Multi-stage tasks (feature-pipeline, review-loop, audit-team, PR-comment process
 
 ## Model selection
 
-Every dispatch carries a `model`, or uses an agent type whose file sets the model (see "How a model gets applied"). The choice of the model is part of the orchestration decision. The phrase "per the model matrix" in the rules below means this matrix.
+Every dispatch carries a `model`, or uses an agent type whose file sets the model (see "How a model gets applied" in `references/model-selection.md`). The choice of the model is part of the orchestration decision. The phrase "per the model matrix" in the rules below means this matrix.
 
 | Model | When to use | Typical tasks |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ Reason: subagents keep the main context small and run in parallel. An inline `Gr
 
 What inlines: a standalone single-step request, such as a one-line edit on a known path, a status check, or a file that the user just named. Also the orchestration verbs themselves: the brief for the next subagent, talking to the user, and a memory update.
 
-The orchestrator does not implement a small task of a plan itself either. If a small task needs the context of the session, use the fork exception of "Plan → execute split". A fork is still a dispatch.
+The orchestrator does not implement a small task of a plan itself either. If a small task needs the context of the session, use the fork exception of "Plan → execute split" in `references/model-selection.md`. A fork is still a dispatch.
 
 What delegates:
 
@@ -84,7 +84,7 @@ Subagents run in the background by default. When a subagent completes, a task no
 
 **Sequential dependency** (stage B needs the output of stage A): dispatch A, wait for the notification of A, and then dispatch B in a later message.
 
-**Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied"). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief.
+**Forks.** `subagent_type: "fork"` starts a subagent that inherits the whole conversation, the tools, and the model of the main session. It ignores the `model` parameter (see "How a model gets applied" in `references/model-selection.md`). Use a fork for a side task that needs the full context. For work that needs a specific model or a clean context, use another agent type with a complete brief.
 
 Other cases:
 
@@ -120,7 +120,7 @@ Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an int
 
 Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
-The correct dispatch shape has these fields. Leave out `model` for an agent type whose file sets it (see "How a model gets applied").
+The correct dispatch shape has these fields. Leave out `model` for an agent type whose file sets it (see "How a model gets applied" in `references/model-selection.md`).
 
 ```text
 Agent(

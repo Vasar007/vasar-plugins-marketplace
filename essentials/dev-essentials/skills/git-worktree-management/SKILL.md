@@ -155,6 +155,7 @@ git -C <worktree-path> branch --unset-upstream
 # 3. Create the notes folder for plans, drafts, and scratch files.
 #    The configured notes folder is ${user_config.notes_dir}.
 #    If that value still shows as a placeholder, no value is saved: use Notes.
+#    A location that the CLAUDE.md of the repo names wins.
 mkdir -p <worktree-path>/<notes-folder>
 ```
 

@@ -15,7 +15,7 @@ This release gives each trigger phrase one owner. It puts the hard rules and the
 
 ### Added in dev-essentials
 
-- `promote-conventions` (issue #76): Phases 5 to 10 of the old audit. Only the user starts it, with `/dev-essentials:promote-conventions`, because the skill sets `disable-model-invocation: true`. It adds no cost to the always-on skill listing.
+- `promote-conventions` (issue #76): Phases 5 to 10 of the old audit. Only the user starts it, with `/dev-essentials:promote-conventions`, because the skill sets `disable-model-invocation: true`. Per the skills docs, its description is not in the skill listing.
 - `userConfig` options (issue #76), set with `/plugin configure dev-essentials@<marketplace>`:
   - `branch_prefix`, default empty: the first segment of the task branches. The order of the rules is the flag. Then come the `CLAUDE.md` of the repo, this value, and the `CLAUDE.md` of the user. Last comes one question to the user.
   - `notes_dir`, default `Notes`: the folder for plans, reports, reviews, and progress files. A location that the repo documents wins.
@@ -25,17 +25,17 @@ This release gives each trigger phrase one owner. It puts the hard rules and the
 
 ### Changed in dev-essentials
 
-- `audit-personal-conventions` (issue #76): behavior change: a promote request stops after the triage and names `/dev-essentials:promote-conventions`.
+- `audit-personal-conventions` (issue #76): behavior change: every triage ends with the command `/dev-essentials:promote-conventions`. These flags moved to that skill: `--resume`, `--cross-repo`, `--delete-personal-entities`, `--update-global-claude-md`, `--cleanup-mode`, `--rounds`, `--report`, `--interactive`, and `--autonomous`. They still work on the audit. A reply such as `approve 1,3` works too. The audit reads `promote-conventions` and continues in the same run. So an old invocation keeps its path, and the bump stays MINOR.
 - `research-implement-review-report` and `implement-batch` (issue #76): now skills with the same names, so every invocation works as before.
 - `general-conventions` (issue #76): PowerShell only. Its frontmatter rules moved to `write-markdown`.
 - `write-markdown` (issue #76): the general markdownlint examples, the file template, and the quick reference are cut. The skill keeps the two choices that are not linter defaults.
-- review-loop, process-pr-comments, and subagent-orchestration (issue #76): the rules and the done test come first, and the parameters, the examples, and the model detail moved to reference files (no rule change).
-- `task-composer`, `compose-pr`, `create-html-artifact`, and `write-markdown` (issue #76): trigger words, so that each phrase has one owner.
-- `git-worktree-management`, `help-review-pr`, `implement`, `implement-task`, `opsx-implement`, and `save-context` (issue #76): they read the notes folder from the new option. Examples with a path keep `Notes/`.
+- review-loop, process-pr-comments, and subagent-orchestration (issue #76): the rules and the done test come first, and the parameters, the examples, and the model detail moved to reference files. review-loop and process-pr-comments got a done test, and review-loop got one new hard rule (the head gate before the first fix).
+- `task-composer`, `compose-pr`, `create-html-artifact`, and `general-conventions` (issue #76): trigger words, so that each phrase has one owner.
+- `git-worktree-management`, `help-review-pr`, `implement`, `implement-task`, `opsx-implement`, `save-context`, `research-implement-review-report`, `implement-batch`, and `review-loop` (issue #76): they read the notes folder from the new option. `research-implement-review-report`, `implement-batch`, `implement-task`, and `promote-conventions` also read the branch prefix. Examples with a path keep `Notes/`.
 
 ### Fixed in dev-essentials
 
-- `review-loop` (issue #76): the final chat message now always holds the `Stop verdict:` line. Before, a run with the summary in a file or with a report format of the user often left it out.
+- `review-loop` (issue #76): the final chat message now always holds the `Stop verdict:` line and the path of each fixed file. Before, a run with the summary in a file or with a report format of the user often left it out.
 
 ### Changed in dotnet-backend-dev
 

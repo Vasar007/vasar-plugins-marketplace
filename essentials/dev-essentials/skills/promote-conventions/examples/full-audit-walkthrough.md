@@ -50,7 +50,7 @@ Scope resolved:
 
 ## Phase 1-2 — Inventory and extraction
 
-39 files read across memory files and indexes, the global CLAUDE.md, 6 project CLAUDE.md files, and 4 personal global commands. 41 atomic rules extracted. One landmine from `references/source-inventory.md` came up in this pass: a dated append-block in one memory file. The 2026-03 entry superseded a 2025-11 entry on the same topic, so the run used the later entry.
+39 files read across memory files and indexes, the global CLAUDE.md, 6 project CLAUDE.md files, and 4 personal global commands. 41 atomic rules extracted. One landmine from `references/source-inventory.md` of `audit-personal-conventions` came up in this pass: a dated append-block in one memory file. The 2026-03 entry superseded a 2025-11 entry on the same topic, so the run used the later entry.
 
 ---
 

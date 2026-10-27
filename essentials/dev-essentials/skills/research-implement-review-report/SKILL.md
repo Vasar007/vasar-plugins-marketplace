@@ -138,7 +138,7 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 
 ### Phase 3 — Review loop
 
-Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this skill wants, so override nothing. Pass only these options of this command:
+Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this skill wants, so override nothing. Pass only these options of this skill:
 
 - `--rounds=<N>` from the `--rounds` of this skill (default `2`).
 - `--interactive` or `--autonomous`, for a run that has it.

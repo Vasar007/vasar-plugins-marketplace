@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'create-html-artifact'
+pattern: 'create-ef-entity'
 target: last_message
 ---

@@ -1,7 +1,7 @@
 ---
 name: create-html-artifact
 description: "Create a self-contained HTML file that the user reviews in a browser instead of raw Markdown. Examples are a plan view, a PR review, a comparison report, or a status dashboard. It uses inline CSS, diagrams, highlighted code, and mockups."
-when_to_use: "Use it before you write an HTML file that the user opens in a browser. Use it also for 'HTML artifact', 'HTML report', 'render as HTML', 'make this easier to review', or 'mockups'. Do not use it for a hosted Artifact page."
+when_to_use: "Use it before you write a self-contained HTML file that the user reviews in a browser. Use it also for 'HTML artifact', 'HTML report', 'render as HTML', 'make this easier to review', or 'mockups'. Do not use it for a hosted Artifact page."
 ---
 
 # Create HTML Artifact

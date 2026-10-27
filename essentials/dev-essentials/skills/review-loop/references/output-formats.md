@@ -11,6 +11,7 @@ Rounds: <N> of <max> max
 Build: <passing (0 errors, 0 warnings) | failing (<details>) | skipped (no command resolved)>
 Tests: <X passed, Y failed, Z skipped | not run>
 Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
+Fixed files: <path of each fixed file | none>
 
 ### Round 1 (<target-summary>)
   Found:    <B> Blocker, <C> Critical, <H> High, <M> Medium, <L> Low, <N> Nit

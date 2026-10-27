@@ -32,15 +32,15 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 | `--include-vendored` | off (bare) | Include the vendored or third-party CLAUDE.md files in personal repos, with a clear label. By default, the run excludes them. |
 | `--dry-run` | off (bare) | Accepted for old invocations. The audit always stops after the triage. |
 
-A flag of the promotion, for example `--cross-repo`, `--resume`, `--interactive`, or `--autonomous`, belongs to `promote-conventions`. Name that skill, and do not run the promotion.
+A flag of the promotion, for example `--cross-repo`, `--resume`, `--delete-personal-entities`, `--interactive`, or `--autonomous`, belongs to `promote-conventions`. Its command is `/dev-essentials:promote-conventions`. Say so. The old call still works: read `../promote-conventions/SKILL.md`, and continue with its phases in the same run. With `--resume`, start at "Phase 0 for a resume run" of that file, and skip the audit. Without `--resume`, run the audit first, and then continue at Phase 5 of that file. When you read that file, a `${...}` placeholder stays unfilled. Treat it as an empty value.
 
 ## After the triage
 
-This skill always stops after the Phase 4 triage. The user asked for a list, not for new commits or a version bump. If the request asks to promote, end the reply with the command that continues. An example is `/dev-essentials:promote-conventions approve all promotes`. Add one line on the Phase 5 verbs: `approve`, `defer`, and `reject` take item numbers, and `approve all promotes` and `approve none` are the two shorthands. Only the user starts that skill.
+Without a flag of the promotion, this skill stops after the Phase 4 triage. The user asked for a list, not for new commits or a version bump. End every triage reply with the command that continues. An example is `/dev-essentials:promote-conventions approve all promotes`. Add one line on the Phase 5 verbs: `approve`, `defer`, and `reject` take item numbers, and `approve all promotes` and `approve none` are the two shorthands. Only the user starts that skill with the command. The next message in the same chat can be a Phase 5 reply, such as `approve 1,3`. Then read `../promote-conventions/SKILL.md`, and continue at its Phase 5 in the same run.
 
 ## Autonomy
 
-This skill has no approval gate and changes no file. If the work cannot go on without an answer, ask the user. An example is a marketplace root that does not resolve. Do not ask in other cases.
+The audit has no approval gate and changes no file. A promotion that continues from a flag or a reply follows the gates of `promote-conventions`. If the work cannot go on without an answer, ask the user. An example is a marketplace root that does not resolve. Do not ask in other cases.
 
 ## Guardrails
 

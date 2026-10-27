@@ -49,7 +49,7 @@ Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and 
 
 ## Done test
 
-At the end of a cycle, each active thread has an action, a waiting draft, or an open question for the user. Each fix has a local commit and a reply that names its SHA. The cycle log of Phase 5 ends with the line about the push state.
+At the end of a cycle, each active thread has an action, a waiting draft, or an open question for the user. Each fix has a local commit and a reply that names its SHA. A flag of "Flag precedence" can turn off the commit or the reply. The cycle log of Phase 5 ends with the line about the push state.
 
 ## Autonomy
 

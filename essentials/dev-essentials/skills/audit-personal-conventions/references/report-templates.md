@@ -72,7 +72,7 @@ procedure) — one row per landmine-12 wrapper found, so a missing diff is visib
 
 ## 8. Approval
 
-Reply with any combination:
+To approve, run `/dev-essentials:promote-conventions` with any combination, or reply with it in this chat:
 
     approve: 1,3,5-9,14
     defer:   4,11

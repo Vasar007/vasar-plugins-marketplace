@@ -105,7 +105,7 @@ git -C <repo-root> check-ignore -v <path>             # ignored?
 
 Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning in two cases only:
 
-- This run promoted nothing, **and** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, a `--dry-run` run, or a run where the user declined the Phase 5 approval gate for everything.
+- This run promoted nothing, **and** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, an audit with no promotion, or a run where the user declined the Phase 5 approval gate for everything.
 - The flag names a repo that is not the source of any promoted rule of this run (or of the resumed TODO file).
 
 ### 9c.2 — Three preconditions (all required, checked per promotion)
@@ -295,11 +295,11 @@ List each superseded personal file in the "Manual TODOs" list of the Phase 10 re
 This default deletes and edits nothing. The two routes recover in different ways:
 
 - A deferral **promoted or E-fixed in this run** becomes reachable after the marketplace PR merges. A later run then classifies the file F-stale, because the entity is already shipped. The file then takes the F-stale branch of the same three gates below.
-- An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Re-run the audit directly with `--scope=personal-entities --delete-personal-entities --interactive`, and approve the F item at Phase 5.
+- An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Run `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --interactive`, and approve the F item at Phase 5.
 
 ### Partially superseded wrapper
 
-A wrapper can still need its personal layer and also carry an F-stale section. The personal layer stays by the orthogonality rule of Step 4 in `references/classification-framework.md`, because it keeps B-taste or pure-forwarding sections. The F-stale section is a divergence that an upstream fix already removed. Step 4 tests the self-label of the wrapper against the current content of the shipped entity. Such a wrapper is **never eligible for deletion**, even with `--delete-personal-entities`.
+A wrapper can still need its personal layer and also carry an F-stale section. The personal layer stays by the orthogonality rule of Step 4 in `references/classification-framework.md` of `audit-personal-conventions`, because it keeps B-taste or pure-forwarding sections. The F-stale section is a divergence that an upstream fix already removed. Step 4 tests the self-label of the wrapper against the current content of the shipped entity. Such a wrapper is **never eligible for deletion**, even with `--delete-personal-entities`.
 
 Handle it like a partially promoted memory file in 9a, which the run never stubs. Report only. Name each section to trim, and the shipped entity and version that now covers it. The two recovery routes of 9d apply:
 

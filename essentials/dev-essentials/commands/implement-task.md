@@ -16,7 +16,7 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 
 This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
 
-The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
 
 **Arguments**: $ARGUMENTS
 
@@ -32,7 +32,7 @@ The notes folder is `${user_config.notes_dir}`. If that value still shows as a `
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build it with the branch-name table in Phase 0 of RIRR. Take `<prefix>` from the branch-naming convention in the `CLAUDE.md` of the repo or of the user. Without a convention, **ask once**. |
+| `--worktree=<branch-ref>` | ask or derive | Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build it with the branch-name table in Phase 0 of RIRR. Take `<prefix>` from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
 | `--refs=<url\|id\|text>` | none | Extra context, repeatable, added to the references in the prose. A value is **a URL or an ID** (a PR, an issue, a document, or a wiki page). Or it is **plain free text** with nothing to fetch. The way that a value reads decides its kind, not a tag. Read-only (see Phase 2). |
 | `--commit-mode=<per-phase\|single>` | `single` | Passed verbatim to the `--commit-mode` of RIRR. RIRR defaults to `per-phase`. This command defaults to `single`, because the goal is one task commit plus one simplify commit. Both modes work (see Phase 4). |
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed verbatim to the `--rounds` of RIRR. |
