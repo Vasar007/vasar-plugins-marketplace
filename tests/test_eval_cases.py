@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from support import REPO, tool_missing
 
@@ -50,6 +51,10 @@ TARGETS = {"last_message", "trace", "files", "mock_calls"}
 MATCH_VALUE = re.compile(r"not_contains|count:\d+")
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 IGNORED_REGEX_FLAGS = set("guyd")
+
+# Plugins whose eval runs load a .deps copy of a plugin that plugin.json does not declare.
+# compare_versions.py makes the copy with --extra-dep. The key is the plugin folder name.
+EVAL_ONLY_DEPS = {"doc-styles": {"dev-essentials"}}
 
 PAIR_FOLDER = "style-compare"
 PAIR_ARMS = ("openbsd", "simple-english")
@@ -517,6 +522,8 @@ def in_own_case_subfolder(target, case_dir):
 def plugin_entry_problems(case):
     """Each entry of `plugins` must be a plugin folder. A .deps copy of a declared dependency also counts.
 
+    A .deps copy of a plugin in EVAL_ONLY_DEPS for this plugin counts too.
+
     claude plugin eval refuses a plugin in the eval folder unless the plugin sits in its own subfolder of the case.
     """
     entries = case.field("plugins")
@@ -536,10 +543,11 @@ def plugin_entry_problems(case):
         if (target / ".claude-plugin" / "plugin.json").is_file():
             continue
         deps = (case.plugin_root / ".deps").resolve()
-        if target.parent == deps and target.name in dependency_names(case.plugin_root):
+        allowed = dependency_names(case.plugin_root) | EVAL_ONLY_DEPS.get(case.plugin_root.name, set())
+        if target.parent == deps and target.name in allowed:
             continue
-        problems.append(f"{case.label}: the plugins entry {entry} is not a plugin folder, "
-                        f"and it is not a .deps copy of a dependency of the plugin")
+        problems.append(f"{case.label}: the plugins entry {entry} is not a plugin folder, and it is not a .deps copy "
+                        f"of a dependency of the plugin or of an eval-only dependency in EVAL_ONLY_DEPS")
     return problems
 
 
@@ -904,6 +912,21 @@ class CaseCheckTests(CaseFiles):
         entries = '["../../..", "../../../eval-stubs/missing", "../../../.deps/unknown"]'
         bad = self.case("probes/bad", prompt=f"---\nplugins: {entries}\n---\nx\n")
         self.assertEqual(len(plugin_entry_problems(bad)), 2)
+
+    def test_plugins_entry_allows_a_deps_copy_of_an_eval_only_dependency(self):
+        entries = '["../../..", "../../../.deps/extra"]'
+        case = self.case("probes/extra", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        self.assertEqual(len(plugin_entry_problems(case)), 1)
+        with mock.patch.dict(EVAL_ONLY_DEPS, {self.plugin.name: {"extra"}}):
+            self.assertEqual(plugin_entry_problems(case), [])
+
+    def test_plugins_entry_with_an_unlisted_deps_copy_still_fails(self):
+        entries = '["../../..", "../../../.deps/other"]'
+        case = self.case("probes/other", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        with mock.patch.dict(EVAL_ONLY_DEPS, {self.plugin.name: {"extra"}, "elsewhere": {"other"}}):
+            problems = plugin_entry_problems(case)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("EVAL_ONLY_DEPS", problems[0])
 
     def test_plugins_entry_in_the_eval_folder_must_be_in_its_own_case_subfolder(self):
         stub = self.plugin / EVALS / "_stubs" / "github" / ".claude-plugin"

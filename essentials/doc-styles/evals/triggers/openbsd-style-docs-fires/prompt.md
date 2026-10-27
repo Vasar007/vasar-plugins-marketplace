@@ -1,7 +1,7 @@
 ---
 description: If the user asks to rewrite a README in the style of an OpenBSD man page, the openbsd-style-docs skill starts.
 tags: [triggers, openbsd-style-docs]
-plugins: ["../../..", "../../../../dev-essentials", "../../../eval-stubs/simple-english"]
+plugins: ["../../..", "../../../.deps/dev-essentials", "../../../eval-stubs/simple-english"]
 allowed_tools: [Skill, Read, Glob, Grep]
 ---
 

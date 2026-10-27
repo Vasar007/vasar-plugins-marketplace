@@ -288,8 +288,10 @@ def dependency_name(entry, marketplace_name):
     return name
 
 
-def add_dependencies(root, plugin):
+def add_dependencies(root, plugin, extra=()):
     """Copy the dependencies of the plugin into <plugin>/.deps/<name>. Root is the exported repository.
+
+    The names in extra are eval-only dependencies. They are copied like the declared ones, but plugin.json does not list them.
 
     The eval session loads only the plugin under test, so a case lists the copies in its `plugins` field.
     A version range of a dependency is not checked, because the copy comes from the same commit.
@@ -302,7 +304,7 @@ def add_dependencies(root, plugin):
         raise InputError(f"cannot read the manifest {manifest.relative_to(root).as_posix()}: {exc}") from exc
     if not isinstance(entries, list):
         raise InputError(f"dependencies in {manifest.relative_to(root).as_posix()} is not a list")
-    if not entries:
+    if not entries and not extra:
         return
     market_file = root / ".claude-plugin" / "marketplace.json"
     try:
@@ -311,7 +313,9 @@ def add_dependencies(root, plugin):
         market_name = market["name"]
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise InputError(f"cannot read the plugins of {market_file.relative_to(root).as_posix()}: {exc}") from exc
-    for name in dict.fromkeys(dependency_name(entry, market_name) for entry in entries):
+    names = [dependency_name(entry, market_name) for entry in entries]
+    names += [dependency_name(name, market_name) for name in extra]
+    for name in dict.fromkeys(names):
         source = sources.get(name)
         if not isinstance(source, str):
             raise InputError(f"the dependency {name} is not in the marketplace {market_name}, or has no path source")
@@ -329,7 +333,8 @@ def add_dependencies(root, plugin):
 
 
 def eval_command(args, plugin_dir, result, claude, suite):
-    command = [claude, "plugin", "eval", str(plugin_dir), "--ablation", "none", "--runs", str(args.runs),
+    command = [claude, "plugin", "eval", str(plugin_dir), "--ablation", getattr(args, "ablation", "none"),
+               "--runs", str(args.runs),
                "--model", args.model, "--judge-model", args.judge_model, "--threshold", "0",
                "--trust-plugin", "--no-publish", "--output-dir", str(result.with_suffix("")),
                "--json", str(result), "--eval-dir", suite]
@@ -337,6 +342,8 @@ def eval_command(args, plugin_dir, result, claude, suite):
         command += ["--case", args.case]
     if args.scaffold:
         command.append("--scaffold")
+    if getattr(args, "keep_temp", False):
+        command.append("--keep-temp")
     if args.max_cost_usd is not None:
         command += ["--max-cost-usd", str(args.max_cost_usd)]
     if args.concurrency:
@@ -372,6 +379,8 @@ def option_words(args):
         words += ["--eval-dir", args.eval_dir]
     if args.claude != "claude":
         words += ["--claude", args.claude]
+    for name in args.extra_dep or []:
+        words += ["--extra-dep", name]
     if args.scaffold:
         words.append("--scaffold")
     if args.max_cost_usd is not None:
@@ -450,7 +459,7 @@ def export_plugin(args, tmp, side, revision):
     plugin = root / args.plugin
     if not (plugin / ".claude-plugin" / "plugin.json").is_file():
         raise InputError(f"{args.plugin} is not a plugin folder at the {side} commit {sha[:12]}")
-    add_dependencies(root, plugin)
+    add_dependencies(root, plugin, args.extra_dep or [])
     return plugin, sha
 
 
@@ -530,6 +539,9 @@ def parse_args(argv):
     shared.add_argument("--tag", nargs="+", help="case tags, passed to claude plugin eval")
     shared.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
     shared.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
+    shared.add_argument("--extra-dep", action="append", metavar="NAME",
+                        help="also copy the marketplace plugin NAME into .deps/NAME, for a plugin that the cases load "
+                             "but plugin.json does not list (repeatable)")
     shared.add_argument("--max-cost-usd", type=float, help="cost ceiling for each side")
     shared.add_argument("--concurrency", type=int, choices=range(1, 9),
                         help="runs at the same time, passed to claude plugin eval (1 to 8)")
@@ -545,6 +557,10 @@ def parse_args(argv):
     baseline = commands.add_parser("baseline", parents=[shared],
                                    help="run the suite on one commit and write one result file, with no comparison")
     baseline.add_argument("--commit", default="HEAD", help="commit, branch, or tag (default: HEAD)")
+    baseline.add_argument("--ablation", choices=("none", "with-without"), default="none",
+                          help="none, or with-without to also run an arm with no plugin (default: none)")
+    baseline.add_argument("--keep-temp", action="store_true",
+                          help="keep the temporary folder of each run, passed to claude plugin eval")
     baseline.add_argument("--out", required=True, help=f"folder for {BASELINE_FILE} and the output of claude plugin eval")
     compare_cmd = commands.add_parser("compare", help="compare finished result files",
                                       epilog=RULES, formatter_class=argparse.RawDescriptionHelpFormatter)

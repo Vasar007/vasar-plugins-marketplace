@@ -627,6 +627,58 @@ class DependencyTests(CompareCase):
         self.assertIn("the head suite needs the dependency helper", err)
         self.assertEqual(self.calls, [])
 
+    def test_extra_dependency_is_copied_without_being_declared(self):
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([]))
+        self.commit("no dependencies")
+        code, out, err = self.run_main(*self.baseline_args("--extra-dep", "helper"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["deps"] for c in self.calls], [["helper"]])
+        self.assertEqual([c["helper"] for c in self.calls], ["new helper\n"])
+
+    def test_extra_dependency_has_no_eval_cases_and_is_copied_once(self):
+        self.write_file("tools/helper/evals/triggers/helper-fires/prompt.md", "Do the helper task.\n")
+        self.commit("helper cases")
+        seen = []
+
+        def look(command, cwd):
+            seen.append((Path(command[3]) / ".deps" / "helper" / "evals").exists())
+            return self.fake_eval(command, cwd)
+        code, out, err = self.run_main(*self.baseline_args("--extra-dep", "helper", "--extra-dep", "helper"), runner=look)
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual(seen, [False])
+        self.assertEqual([c["deps"] for c in self.calls], [["helper"]])
+
+    def test_extra_dependency_applies_to_both_sides_of_a_run(self):
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([]))
+        self.commit("no dependencies")
+        code, out, err = self.run_main(*self.run_args("--extra-dep", "helper", base="HEAD"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["deps"] for c in self.calls], [["helper"], ["helper"]])
+
+    def test_extra_dependency_that_is_not_in_the_marketplace_is_an_input_error(self):
+        for name in ("no-such-plugin", "../evil"):
+            with self.subTest(name=name):
+                code, _, err = self.run_main(*self.baseline_args("--extra-dep", name))
+                self.assertEqual(code, 2)
+                self.assertRegex(err, r"ERROR: the dependency")
+                self.assertEqual(self.calls, [])
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+
+    def test_baseline_passes_the_ablation_and_keeps_the_temporary_folders_on_request(self):
+        self.run_main(*self.baseline_args())
+        command = self.calls[0]["command"]
+        self.assertEqual(command[command.index("--ablation") + 1], "none")
+        self.assertNotIn("--keep-temp", command)
+        shutil.rmtree(self.tmp / "out", ignore_errors=True)
+        self.run_main(*self.baseline_args("--ablation", "with-without", "--keep-temp"))
+        command = self.calls[1]["command"]
+        self.assertEqual(command[command.index("--ablation") + 1], "with-without")
+        self.assertIn("--keep-temp", command)
+
+    def test_baseline_with_an_unknown_ablation_is_refused(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.run_main(*self.baseline_args("--ablation", "all"))
+
     def test_baseline_with_a_failed_eval_is_an_input_error(self):
         def failed_eval(command, cwd):
             Path(command[command.index("--json") + 1]).write_text(json.dumps({**RESULT, "cases": []}), encoding="utf-8")

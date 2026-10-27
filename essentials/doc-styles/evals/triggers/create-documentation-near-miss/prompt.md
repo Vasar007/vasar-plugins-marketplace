@@ -1,7 +1,7 @@
 ---
 description: If the user asks for documentation of a feature with no style named, the openbsd-style-docs skill does not start.
 tags: [triggers, openbsd-style-docs]
-plugins: ["../../..", "../../../../dev-essentials", "../../../eval-stubs/simple-english"]
+plugins: ["../../..", "../../../.deps/dev-essentials", "../../../eval-stubs/simple-english"]
 allowed_tools: [Skill, Read, Glob, Grep]
 ---
 
