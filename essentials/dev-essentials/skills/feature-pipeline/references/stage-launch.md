@@ -87,6 +87,8 @@ The review stage writes no file. It runs no git command that changes state. The 
 
 ## After the stage
 
+A final reply of Stage 1 or Stage 2 can start with the line `QUESTIONS:`. Then do the steps of "Stage questions" instead of the steps below.
+
 Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy" in `SKILL.md`): ask the user in every mode, then run the stage again or stop.
 
 If the final reply of a commit-capable stage names a path of `startChanges` that the stage edited, note the path. Pass the noted paths to the finalization stage in its `<start-changes>` block, and name them in the final report of the run. On a resume, the replies of the earlier session are gone. Then pass "unknown".

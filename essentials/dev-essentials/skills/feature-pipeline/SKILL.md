@@ -195,7 +195,7 @@ If the run skipped `review` or `security-review`, show "skipped" in place of its
 
 Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)". For a request, ask "Approve finalization (push, PR)? (yes / request changes)".
 
-The anti-bypass clause of Human Approve #1 applies to this gate too, with the same lists of phrases that count and do not count.
+The anti-bypass clause of Human Approve #1 applies to this gate too, also in the default mode. The same lists of phrases count and do not count.
 
 Run a fix round, as "Fix round" in [references/stage-launch.md](references/stage-launch.md) says, in these cases:
 
