@@ -25,7 +25,7 @@ public class {ExceptionName}Exception : Exception
 
 ## Required Constructors
 
-ALL custom exceptions MUST implement 3 standard constructors:
+All custom exceptions must implement 3 standard constructors:
 
 1. **Parameterless constructor**
 2. **Constructor with message**
@@ -170,7 +170,7 @@ public static {ExceptionName}Exception Create(
 
 ## User-Facing Messages
 
-**ALL exception messages MUST use StringResources** with `[TBD]` prefix:
+**All exception messages must use StringResources** with `[TBD]` prefix:
 
 ```csharp
 // In StringResources.resx
@@ -184,7 +184,7 @@ var message = StringResources.MissingOutputMessage.SafeFormat(entityInfo);
 
 ## XML Documentation
 
-ALL exceptions require XML documentation:
+All exceptions require XML documentation:
 
 - Class-level `<summary>` and `<remarks>`
 - Constructor documentation

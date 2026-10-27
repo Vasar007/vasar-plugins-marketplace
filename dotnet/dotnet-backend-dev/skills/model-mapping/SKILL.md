@@ -45,9 +45,9 @@ internal static partial class {Feature}Converter
 
 ## Required Attributes
 
-### Mapper Attribute (ALWAYS Required)
+### Mapper Attribute (Always Required)
 
-**ALWAYS map enums by name, case-insensitive, in every converter.** With Riok.Mapperly, use these settings on every converter:
+**Always map enums by name, case-insensitive, in every converter.** With Riok.Mapperly, use these settings on every converter:
 
 ```csharp
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
@@ -169,7 +169,7 @@ public static partial RestRequest ToRestRequest(Request request);
 
 ## When to Use Manual Mapping
 
-**IMPORTANT**: If model mapping becomes too complex and the mapping library generates many errors, prefer manual mapping over fighting with attributes.
+If model mapping becomes too complex and the mapping library generates many errors, prefer manual mapping over fighting with attributes.
 
 ### Signs You Should Use Manual Mapping
 
@@ -479,14 +479,14 @@ Always create unit tests for converters.
 
 ## Checklist
 
-- [ ] Converter is `static partial class` (for REST/External API) OR `sealed partial class` (for EF and other non-static mappers)
+- [ ] Converter is `static partial class` (for REST/External API) or `sealed partial class` (for EF and other non-static mappers)
 - [ ] Enums map by name, case-insensitive (Riok.Mapperly: `[Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]`)
 - [ ] For SDK wrapper conversions: reuse `SharedDomainWrappersConverter` (Riok.Mapperly: `[UseStaticMapper(typeof(SharedDomainWrappersConverter))]`)
 - [ ] If a mapper needs non-static mapper dependencies, add constructor parameters for them (Riok.Mapperly: `[UseMapper]` fields)
 - [ ] XML documentation on converter class
 - [ ] XML documentation on public mapping methods
-- [ ] Method signatures are `public static partial` (static) OR `public partial` (non-static)
-- [ ] Custom mapping methods are private (if needed) OR manual public methods
+- [ ] Method signatures are `public static partial` (static) or `public partial` (non-static)
+- [ ] Custom mapping methods are private (if needed) or manual public methods
 - [ ] Properties that must not be mapped are ignored (Riok.Mapperly: `[MapperIgnoreSource]` / `[MapperIgnoreTarget]`)
 - [ ] Explicit property mappings for name differences or transformations (Riok.Mapperly: `[MapProperty]`)
 - [ ] `UpdateEntity{Name}()` method for EF tracked entity updates (if applicable)

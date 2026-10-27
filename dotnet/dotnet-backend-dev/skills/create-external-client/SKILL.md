@@ -156,7 +156,7 @@ internal sealed class {Service}{Feature}Client : {Service}ClientBase, I{Service}
 
 Log only identifiers and other values that hold no sensitive data. Never log a whole request object, because it can hold a secret. See the [handle-sensitive-data](../handle-sensitive-data/SKILL.md) skill.
 
-All methods MUST log:
+All methods must log:
 
 ### Request Logging
 
@@ -195,7 +195,7 @@ Logger.LogInformation(
 
 ## Model Conversion
 
-**External clients return external service models directly.** They do NOT convert them to domain models.
+**External clients return external service models directly.** They do not convert them to domain models.
 
 **Why?**
 
@@ -253,6 +253,6 @@ If an external client contains business logic or complex transformations, create
 - [ ] No whole request object and no sensitive value in a log message
 - [ ] Session ID logging for async operations
 - [ ] Input validation with `ThrowIfNull()`
-- [ ] Returns external service models (NOT domain models)
+- [ ] Returns external service models (not domain models)
 - [ ] Domain → External conversion only (if needed, see [model-mapping](../model-mapping/SKILL.md))
 - [ ] DI registration

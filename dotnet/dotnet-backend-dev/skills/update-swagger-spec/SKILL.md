@@ -24,7 +24,7 @@ Used to generate client code for calling external service endpoints.
 
 ## Required [TBD] Prefix
 
-**CRITICAL**: ALL new or modified user-facing content MUST start with `[TBD]` prefix.
+All new or modified user-facing content must start with `[TBD]` prefix.
 
 This applies to:
 
@@ -162,7 +162,7 @@ This applies to:
 
 ### How Auto-Generation Works
 
-The build runs the OpenAPI code generator (for example, NSwag through MSBuild) and auto-generates the code. You must **NEVER** run the code generator directly. For NSwag, do not call `nswag`, `NSwagExe`, or any other NSwag tool. The build handles everything.
+The build runs the OpenAPI code generator (for example, NSwag through MSBuild) and auto-generates the code. You must **never** run the code generator directly. For NSwag, do not call `nswag`, `NSwagExe`, or any other NSwag tool. The build handles everything.
 
 #### Discovering the Generator Configuration
 
@@ -200,12 +200,12 @@ The build runs the generation. After you change the OpenAPI spec, build the proj
 dotnet build
 ```
 
-### If the Build Does NOT Update Auto-Generated Files
+### If the Build Does Not Update Auto-Generated Files
 
-**CRITICAL**: If you build the project and the auto-generated files are not updated:
+If you build the project and the auto-generated files are not updated:
 
-1. **STOP**. Do NOT attempt to run the code generator manually.
-2. **STOP**. Do NOT call any command of the code generator (for NSwag, `nswag run` or `$(NSwagExe_Net80)`).
+1. **Stop**. Do not attempt to run the code generator manually.
+2. **Stop**. Do not call any command of the code generator (for NSwag, `nswag run` or `$(NSwagExe_Net80)`).
 3. **ASK the user** to perform the regeneration manually (for example, with Visual Studio Rebuild or other tooling).
 
 ## Step-by-Step Workflow
@@ -299,7 +299,7 @@ Build the solution to trigger auto-generation:
 dotnet build
 ```
 
-**IMPORTANT**: Do NOT run the code generator manually. The build handles code generation automatically (for NSwag, through the `NSwagGeneration` MSBuild configuration). If the build does not update auto-generated files, stop and ask the user to regenerate.
+Do not run the code generator manually. The build handles code generation automatically (for NSwag, through the `NSwagGeneration` MSBuild configuration). If the build does not update auto-generated files, stop and ask the user to regenerate.
 
 ### 4. Implement Controller
 
@@ -507,9 +507,9 @@ paths:
 1. Build the project: `dotnet build`
 2. Read the MSBuild output for errors of the code generator
 3. Read the `.csproj`. Find out whether the configuration of the code generator (for NSwag, the `NSwagGeneration` item group) exists and whether its paths are correct.
-4. If the build does not regenerate the files, **STOP and ask the user** to regenerate them manually
+4. If the build does not regenerate the files, **stop and ask the user** to regenerate them manually
 
-**CRITICAL**: Do NOT run the commands of the code generator directly. For NSwag, do NOT attempt `nswag run`, `$(NSwagExe_Net80)`, or any other manual NSwag invocation.
+Do not run the commands of the code generator directly. For NSwag, do not attempt `nswag run`, `$(NSwagExe_Net80)`, or any other manual NSwag invocation.
 
 ### Controller Interface Signature Mismatch
 

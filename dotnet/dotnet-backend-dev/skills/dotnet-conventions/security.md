@@ -12,7 +12,7 @@
 
 Use `ISecurePasswordGenerator` (Domain layer) for generating secure passwords. The default implementation (typically `Domain.Security.SecurePasswordGenerator` within the service) is wired via DI. Never roll custom password generation.
 
-## ToString() — NEVER Expose Secrets
+## ToString() — Never Expose Secrets
 
 Use `Constants.DefaultErasedPlaceholder` (from the .NET backend framework) for sensitive fields:
 
@@ -33,10 +33,10 @@ public override String ToString()
 ```
 
 - `Equals()` and `GetHashCode()` CAN use sensitive data (internal, never logged).
-- `ToString()` MUST erase sensitive fields with the placeholder.
+- `ToString()` must erase sensitive fields with the placeholder.
 - A serializer does not call `ToString()`. For JSON, see the `handle-sensitive-data` skill.
 
-## Logging — NEVER Log Secrets
+## Logging — Never Log Secrets
 
 ### Runtime logs (ILogger)
 

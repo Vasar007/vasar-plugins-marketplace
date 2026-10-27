@@ -45,7 +45,7 @@ StoreOnboardingCompletedMessage = [TBD] Store onboarding completed successfully.
 StoreOnboardingFailedMessage = [TBD] Store onboarding failed.
 ```
 
-**CRITICAL**: Use `[{0}]` (square brackets) for placeholders.
+Use `[{0}]` (square brackets) for placeholders.
 
 ### Step 2: Inject ISessionLogRepository
 
@@ -152,7 +152,7 @@ public async Task OnboardStoreAsync(
 
 ## Logging Best Practices
 
-### Runtime Logs (ILogger) — NEVER Use String Interpolation
+### Runtime Logs (ILogger) — Never Use String Interpolation
 
 ```csharp
 // ✅ Good - structured logging with placeholders
@@ -267,7 +267,7 @@ ex.Message
 
 ### 4. Sensitive Information
 
-**CRITICAL**: Never log sensitive information in session logs or runtime logs.
+Never log sensitive information in session logs or runtime logs.
 
 **See the [handle-sensitive-data](../handle-sensitive-data/SKILL.md) skill for complete guidance on handling sensitive data.**
 
@@ -299,8 +299,8 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 - [ ] String resources added with `[TBD]` prefix and CamelCase naming
 - [ ] Placeholders use square brackets: `[{0}]` not `'{0}'`
 - [ ] `ISessionLogRepository` injected into orchestrator
-- [ ] `SafeFormat` extension used (NOT `String.Format`)
-- [ ] Runtime logs use structured logging (NO string interpolation)
+- [ ] `SafeFormat` extension used (not `String.Format`)
+- [ ] Runtime logs use structured logging (no string interpolation)
 - [ ] Milestones logged at user-meaningful points
 - [ ] Both `ILogger` (runtime) and `ISessionLogRepository` (portal) used appropriately
 - [ ] Error messages are user-friendly (no technical details)

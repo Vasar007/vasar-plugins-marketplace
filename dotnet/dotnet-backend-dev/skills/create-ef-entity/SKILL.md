@@ -108,7 +108,7 @@ Create a mapper to convert between domain models and EF entities.
 
 ## Step 4: Repository Interface (Application layer)
 
-**IMPORTANT**: Repository interfaces must extend `IRepository<TEntity, TKey>` (or `IRepository<TEntity, TKey1, TKey2>` for composite keys) from `MyApp.Framework.Application.Abstractions.Repositories` NuGet package.
+Repository interfaces must extend `IRepository<TEntity, TKey>` (or `IRepository<TEntity, TKey1, TKey2>` for composite keys) from `MyApp.Framework.Application.Abstractions.Repositories` NuGet package.
 
 **Why?** `IRepository<>` provides common CRUD methods and XML documentation to avoid duplication:
 
@@ -206,7 +206,7 @@ public sealed class {Entity}Service : I{Entity}Service
 }
 ```
 
-Note: Repositories call `SaveChangesAsync` internally. Callers, including services, must NOT call it.
+Note: Repositories call `SaveChangesAsync` internally. Callers, including services, must not call it.
 
 ## Step 7: Build, Then Add a Migration
 
@@ -218,12 +218,12 @@ Note: Repositories call `SaveChangesAsync` internally. Callers, including servic
 
 1. **Entities are mutable records**: use `{ get; set; }` for updateable properties
 2. **Use `required` modifier** on properties that must be set
-3. **Collections use `ICollection<T>` with `new List<T>()`**, NOT collection expressions
+3. **Collections use `ICollection<T>` with `new List<T>()`**, not collection expressions
 4. **Mappers use the mapping library** (for example, Riok.Mapperly with the `[Mapper]` attribute)
 5. **Repository interfaces in Application**, implementations in Infrastructure
 6. **Mappers instantiated internally** by repositories via `new TMapper()`
 7. **Repositories registered standalone** in `PersistenceDependencyInjection.cs` as `AddScoped<IRepo, Repo>()`
-8. **Repositories call SaveChangesAsync internally**. Callers must NOT call it.
+8. **Repositories call SaveChangesAsync internally**. Callers must not call it.
 
 ## Tests
 

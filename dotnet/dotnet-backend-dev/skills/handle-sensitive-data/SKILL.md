@@ -17,7 +17,7 @@ Guidelines for securely handling sensitive information in code to prevent accide
 - **Personal Identifiable Information (PII)**: When not necessary for the operation
 - **Security-critical identifiers**: Session tokens, OAuth tokens, refresh tokens
 
-**NOT sensitive (usually safe to log):**
+**Not sensitive (usually safe to log):**
 
 - Public identifiers: Resource IDs, tenant IDs, region names
 - Non-secret metadata: Usernames (without passwords), instance IDs, timestamps
@@ -29,11 +29,11 @@ If the lists above do not settle whether specific data is sensitive, ask the use
 
 | Operation | Sensitive Data Allowed? | Reason |
 | --- | --- | --- |
-| `ToString()` | ❌ NO. Use the placeholder. | The output can be logged, shown in a debugger, or exposed externally. |
+| `ToString()` | ❌ No. Use the placeholder. | The output can be logged, shown in a debugger, or exposed externally. |
 | `Equals()` | ✅ YES. Safe to use. | Internal comparison, never exposed externally. |
 | `GetHashCode()` | ✅ YES. Safe to use. | Internal hashing, never exposed externally. |
-| Logging (`ILogger`, `ISessionLogRepository`) | ❌ NO. Never log it. | Logs are persistent and searchable, and they can be shared. |
-| Serialization (JSON in logs, API responses, caches, and messages) | ❌ NO. Mask it, leave it out, or encrypt it. | A serializer reads the public properties. It does not call `ToString()`. |
+| Logging (`ILogger`, `ISessionLogRepository`) | ❌ No. Never log it. | Logs are persistent and searchable, and they can be shared. |
+| Serialization (JSON in logs, API responses, caches, and messages) | ❌ No. Mask it, leave it out, or encrypt it. | A serializer reads the public properties. It does not call `ToString()`. |
 
 ## Erasing Sensitive Data in ToString()
 
@@ -400,7 +400,7 @@ public override String ToString()
 
 1. **Internal operations**: Used for collections (Dictionary, HashSet), never exposed externally
 2. **No logging**: Results are never logged or displayed
-3. **Required for correctness**: Two credentials with same username/password MUST be equal
+3. **Required for correctness**: Two credentials with same username/password must be equal
 4. **No security risk**: Hash codes do not reveal the original sensitive data
 
 **Example:**

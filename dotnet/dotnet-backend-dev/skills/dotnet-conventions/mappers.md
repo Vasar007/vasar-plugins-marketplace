@@ -1,10 +1,10 @@
 # Mapper and Converter Patterns
 
-## ALWAYS Use the Mapping Library
+## Always Use the Mapping Library
 
 Generate converters with the mapping library (for example, Riok.Mapperly). The examples in this file use Riok.Mapperly attributes. Another mapping library uses its own equivalent attributes or calls.
 
-If the mapping library can handle a mapping, do NOT use a second mapping library (for example, AutoMapper), hand-written `.Select()` projections, or manual mapping. If the mapping configuration becomes too complex (many errors, constructor mismatches), fall back to manual mapping. Use manual mapping only in this case.
+If the mapping library can handle a mapping, do not use a second mapping library (for example, AutoMapper), hand-written `.Select()` projections, or manual mapping. If the mapping configuration becomes too complex (many errors, constructor mismatches), fall back to manual mapping. Use manual mapping only in this case.
 
 ## Required Attributes — Every Mapper
 
@@ -12,7 +12,7 @@ If the mapping library can handle a mapping, do NOT use a second mapping library
 [Mapper(EnumMappingStrategy = EnumMappingStrategy.ByName, EnumMappingIgnoreCase = true)]
 ```
 
-This attribute is the Riok.Mapperly form of a MANDATORY rule: every converter or mapper maps enums by name, case-insensitive. Another mapping library uses its own setting for the same rule.
+This attribute is the Riok.Mapperly form of a required rule: every converter or mapper maps enums by name, case-insensitive. Another mapping library uses its own setting for the same rule.
 
 ## SharedDomainWrappersConverter
 
