@@ -56,4 +56,4 @@ Cycle <N> — <target-summary>
 
 ### Full format
 
-The Full format of the reviewer report is in `references/reviewer-briefs.md`, because the reviewer gets it with the Common Rules. Phase 3 reads that file in every run. Each cycle report uses the same format, and goes to chat or to `Notes/Reviews/<target-slug>-cycle-<N>.md` as the "Report destination rules" say.
+The Full format of the reviewer report is in `references/reviewer-briefs.md`, because the reviewer gets it with the Common Rules. Phase 3 reads that file in every run. Each cycle report uses the same format, and goes to chat or to `<target-slug>-cycle-<N>.md` in the reviews folder as the "Report destination rules" say.

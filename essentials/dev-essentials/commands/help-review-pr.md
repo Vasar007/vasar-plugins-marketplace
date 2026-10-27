@@ -72,9 +72,11 @@ Report every finding with a severity. Sort the findings table of the artifact by
 
 ## Phase 5 — Produce the HTML artifact
 
-Output path: `Notes/Reviews/pr-<number>-review.html`.
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`. The reviews folder is `Reviews/` in the notes folder.
 
-Invoke `dev-essentials:create-html-artifact` with the `Skill` tool. Map the review onto the sections of Recipe 2 (PR / code-review artifact) in its `references/recipes.md`. Give the `ARTIFACT: <path>` line that the invocation contract of that skill requires (see Output). Use the most recent prior artifact in `Notes/Reviews/` as the visual template, so that the series looks the same.
+Output path: `pr-<number>-review.html` in the reviews folder.
+
+Invoke `dev-essentials:create-html-artifact` with the `Skill` tool. Map the review onto the sections of Recipe 2 (PR / code-review artifact) in its `references/recipes.md`. Give the `ARTIFACT: <path>` line that the invocation contract of that skill requires (see Output). Use the most recent prior artifact in the reviews folder as the visual template, so that the series looks the same.
 
 Recipe 2 links each row of the findings table (`<a href="#F-<anchor>">`) to the file section with `id="F-<anchor>"`. Keep each `<anchor>` stable, so that the links still work after edits of the artifact. An example is a slug of the file path and the line. Make sure that each finding has links in both directions: from the table to the section, and back from the collapsible sections "major changes by file".
 
@@ -168,7 +170,7 @@ Use Markdown only: symbols as code in backticks, and no HTML tags.
 If the input lists several PR URLs, dispatch one review subagent for each PR with the `Agent` tool: `subagent_type: general-purpose` and `model: opus`. A critical review of a PR is judgment work (see the model matrix in the section "Model selection" of `dev-essentials:subagent-orchestration`). Put every `Agent` call into one message, so that the subagents run at the same time (Rule 3 of that skill). Each dispatch is a pure, unnamed one-shot dispatch, with no `name` and no `team_name` (Rule 5 of that skill). Each subagent gets:
 
 - The PR URL.
-- The path of the most recent reference artifact in `Notes/Reviews/`, so that it can copy the CSS and the structure.
+- The path of the most recent reference artifact in the reviews folder, so that it can copy the CSS and the structure.
 - The full instructions of Phases 1 to 5, copied into the prompt, because the subagent has no session context.
 - An instruction to end with one `ARTIFACT: <path>` line.
 - **The `--orchestrate` flag**. If the multi-PR invocation has the flag, state it explicitly in the prompt. The subagent then runs its own Phases 2 to 4 through its own dispatches (see **Orchestrator mode**). It does not read its whole diff inline. The fan-out happens with or without the flag, so this forwarding is the only effect of `--orchestrate` here. The dispatch at the top level does not change.
@@ -203,7 +205,7 @@ Multi-PR shape:
 In the final response, give the `ARTIFACT: <path>` line for each PR, with nothing else on that line (the output contract of `create-html-artifact`). Put a separate line with the finding counts after it:
 
 ```text
-ARTIFACT: Notes/Reviews/pr-<number>-review.html
+ARTIFACT: <reviews-folder>/pr-<number>-review.html
 N findings (X critical · Y major · Z minor · W info)
 ```
 

@@ -99,11 +99,13 @@ These rules hold for the whole run.
 
 ## Report destination rules
 
-The value of `--rounds` decides where a cycle report goes. At the end of a cycle, the real number of cycles is not known yet. With `--rounds 1`, the run prints the full cycle report in chat. With `--rounds` 2 or more, the run writes each cycle report to `Notes/Reviews/<target-slug>-cycle-<N>.md`, so that long reports do not fill the chat context.
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`. The reviews folder is `Reviews/` in the notes folder.
+
+The value of `--rounds` decides where a cycle report goes. At the end of a cycle, the real number of cycles is not known yet. With `--rounds 1`, the run prints the full cycle report in chat. With `--rounds` 2 or more, the run writes each cycle report to a file in the reviews folder. The file name is `<target-slug>-cycle-<N>.md`. So long reports do not fill the chat context.
 
 - `--save-reports` writes each report to a file. This includes a run with `--rounds 1`.
 - `--print-reports` prints each report in chat. This includes a run with `--rounds` 2 or more.
-- The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
+- The Phase 9 summary runs after the last cycle, so it uses the real number of cycles. It goes to `<target-slug>-summary.md` in the reviews folder in a run with more than one cycle or with `--save-reports`. Else it goes to chat.
 - The run format (see "Run format") does not change these destinations. It changes only what chat shows. When a report goes to a file, chat gets one status line for it. For the Phase 9 summary, chat also gets the `Stop verdict:` line.
 
 ## Run format
@@ -275,7 +277,7 @@ If the build or the tests fail:
 
 Failure check (after the Phase 7 commit of this cycle). In this check, `<fix-commit>` is the Phase 7 commit of the review fixes of this cycle. It is never a regression-fix commit. Each run of a build or test command in this check is also a dispatch of the test runner. Its worktree path is the folder of that run.
 
-1. Run `git status --porcelain` in the main worktree. Ignore the files that this loop wrote in this run. They are its cycle reports and summary under `Notes/Reviews/<target-slug>-*`, and any progress file of the loop. If it prints nothing else, the main worktree holds only `<fix-commit>`. Then the failed Phase 6 run is the result at `<fix-commit>`. If it prints other files, the main worktree also holds uncommitted changes. Then create a temporary worktree at `<fix-commit>`, in a folder outside the repository: `git worktree add --detach <temp-folder-1> <fix-commit>`. Run the build or test command that failed there. That run is the result at `<fix-commit>`.
+1. Run `git status --porcelain` in the main worktree. Ignore the files that this loop wrote in this run. They are its cycle reports and summary in the reviews folder under `<target-slug>-*`, and any progress file of the loop. If it prints nothing else, the main worktree holds only `<fix-commit>`. Then the failed Phase 6 run is the result at `<fix-commit>`. If it prints other files, the main worktree also holds uncommitted changes. Then create a temporary worktree at `<fix-commit>`, in a folder outside the repository: `git worktree add --detach <temp-folder-1> <fix-commit>`. Run the build or test command that failed there. That run is the result at `<fix-commit>`.
 2. If the command passed at `<fix-commit>`, skip this step, because the next step does not use the result at `<fix-commit>^`. Else, create a temporary worktree at the commit before the fixes, in a folder outside the repository: `git worktree add --detach <temp-folder-2> <fix-commit>^`. Run the build or test command that failed there. That run is the result at `<fix-commit>^`.
 3. If the test tool can run only the failing tests, run only those in each temporary worktree. After its run, remove each temporary worktree with `git worktree remove --force <temp-folder>`. Remove it in every case: the run passes, fails, or cannot start.
 4. Act on the two results:
@@ -322,7 +324,7 @@ Decide whether to run another cycle. The decision follows fixed rules.
 
 ### Phase 9 — Final summary
 
-Aggregate across all cycles. Follow the "Report destination rules": write to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, end the chat output of the run with the `Stop verdict:` line and the paths of the fixed files (see "Done test").
+Aggregate across all cycles. Follow the "Report destination rules": write to `<target-slug>-summary.md` in the reviews folder in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, end the chat output of the run with the `Stop verdict:` line and the paths of the fixed files (see "Done test").
 
 Fill the Phase 9 template of `references/output-formats.md`.
 

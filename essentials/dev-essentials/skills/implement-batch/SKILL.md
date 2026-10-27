@@ -15,13 +15,15 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs a tracked task from the task provider (for example, GitHub Issues or Jira) end-to-end in an isolated git worktree. It has one subagent for each stage and its own approval gates.
 
+The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<parent issue reference, or an explicit list of N tasks> [options]`
 - Examples (no value in them is fixed behavior):
-  - `Issue 1469733 — implement all its sub-issues --base=release/2.0 --worktree=vvasilyev/tasks/1469733-custom-retention-enhancements`
-  - `Notes/Plans/custom-retention-plan.md — implement every task in this plan --base=release/2.0`
-  - `1) add the retention option 2) wire it through the scheduler 3) cover it with tests --base=release/1.0 --worktree=vvasilyev/tasks/987654-retention`
+  - `Issue 1469733 — implement all its sub-issues --base=release/2.0 --worktree=jdoe/tasks/1469733-custom-retention-enhancements`
+  - `Plans/custom-retention-plan.md — implement every task in this plan --base=release/2.0` (the plan file is in the notes folder)
+  - `1) add the retention option 2) wire it through the scheduler 3) cover it with tests --base=release/1.0 --worktree=jdoe/tasks/987654-retention`
 - **N comes from the input of the user**: the list, the plan file, or the sub-issues of the parent. Never assume a count, and never drop or add a task silently.
 - If $ARGUMENTS is empty, use the **AskUserQuestion** tool to ask which tasks to implement.
 
@@ -30,8 +32,8 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>` from the branch-naming convention in the `CLAUDE.md` of the repo or of the user. Without a convention, **ask once**. |
-| `--plan-dir=<path>` | `Notes/Plans/` | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
+| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
+| `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--push` | off | Push the finished stack after the final report. **Off unless the user asks for it in this invocation.** |
 | `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |

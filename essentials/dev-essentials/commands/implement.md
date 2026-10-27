@@ -4,6 +4,8 @@ description: Implement tasks from a plan file (no spec-framework dependency)
 
 Implement tasks from a plan or task list file.
 
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<path-to-plan-file> [phase/section numbers] [options]`
@@ -66,7 +68,7 @@ These rules apply in every mode:
 
    Check for prior context in this order:
    1. If `--context <path>` was specified, read that file.
-   2. Otherwise, derive a research file name from the plan file (for example, `my-plan.md` → `Notes/Results/my-plan-research.md`). If it exists, read it.
+   2. Otherwise, derive a research file name from the plan file (for example, `my-plan.md` → `Results/my-plan-research.md` in the notes folder). If it exists, read it.
    3. As a final fallback, check the auto-memory directory (`MEMORY.md` and topic files) for relevant project notes.
 
 3. **Determine which tasks to implement**
@@ -95,7 +97,7 @@ These rules apply in every mode:
 6. **Save research and findings**
 
    Run this step after the selected sections. If the run stops early, run it before the stop. Follow the `/save-context` command logic with `--plan "<path>"`, plus `--interactive` or `--autonomous` for a run that has it.
-   - If `--context <path>` was given, save to that path. Else save to the research file name of Step 2 (for example, `Notes/Results/my-plan-research.md`).
+   - If `--context <path>` was given, save to that path. Else save to the research file name of Step 2 (for example, `Results/my-plan-research.md` in the notes folder).
    - Include: what was done, decisions made, issues found, what's next.
    - If the user asks for a continuation prompt in this run, print it after the summary of Step 7. Else print no continuation prompt for the next session.
 

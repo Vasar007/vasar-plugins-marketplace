@@ -16,6 +16,8 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 
 This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
 
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<issue reference or task description> [options]`
@@ -34,7 +36,7 @@ This command owns only the order of the phases, the worktree, the context sweep 
 | `--refs=<url\|id\|text>` | none | Extra context, repeatable, added to the references in the prose. A value is **a URL or an ID** (a PR, an issue, a document, or a wiki page). Or it is **plain free text** with nothing to fetch. The way that a value reads decides its kind, not a tag. Read-only (see Phase 2). |
 | `--commit-mode=<per-phase\|single>` | `single` | Passed verbatim to the `--commit-mode` of RIRR. RIRR defaults to `per-phase`. This command defaults to `single`, because the goal is one task commit plus one simplify commit. Both modes work (see Phase 4). |
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed verbatim to the `--rounds` of RIRR. |
-| `--notes-dir=<path>` | `Notes/` | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
+| `--notes-dir=<path>` | the notes folder | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
 | `--no-simplify` | off | Skip Phase 4. Use it only for a run in which the user does not want the pass. |
 | `--push` | off | Push after the final report. **Off unless the user asks for it in this invocation.** |
 | `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
@@ -130,7 +132,7 @@ Invoke `dev-essentials:research-implement-review-report`. Its Phases 0 to 3 run 
 - The task text from Phase 0, verbatim.
 - `--base=<Phase 0 base branch>`, the branch name, and the absolute worktree path, with this instruction: **its Phase 0 is only a verification step**. The worktree and the branch exist, so it must not create or derive a branch or a worktree.
 - `--commit-mode=<resolved>`, `--rounds=<N>`, and the mode flag of this run: `--interactive`, `--autonomous`, or none.
-- `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. Its `Notes/Plans/` and `Notes/Results/` move under it, as a convention of the repo that its Phase 1 and Phase 4 allow.
+- `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. The `Plans/` and `Results/` folders that RIRR keeps in the notes folder move under it. This is a convention of the repo, and Phase 1 and Phase 4 of RIRR allow it.
 - `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every brief of its Phase 1 and into the "Findings" section of the plan.
 - **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then stop and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
 

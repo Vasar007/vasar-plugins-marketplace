@@ -21,6 +21,6 @@ Phase 1 of `SKILL.md` reads this file. It lists every flag with its default and 
 | `--no-commit` | off | Only for `target=spec` and `target=file`. A diff, branch, or PR target reads committed code, so a re-review does not see fixes that stay uncommitted. For another target, stop and ask. For a caller that keeps the target out of commits, for example a plan file in a gitignored folder. Phase 7 makes no commit, and the fixes stay in the working tree. Phase 6 skips its failure check, because no fix commit exists. Phase 8 re-reviews the whole target file. |
 | `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
 | `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
-| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`. This includes a run with `--rounds 1`. |
+| `--save-reports` | off | Write every full cycle report to the reviews folder (see "Report destination rules"). This includes a run with `--rounds 1`. |
 | `--print-reports` | off | Print every full cycle report in chat. This includes a run with `--rounds` 2 or more. |
 | `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also keeps the resolved threads (`is_resolved: true`), and the reviewer brief gets the section "Previously addressed in this PR". The open threads (`is_resolved: false`) always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |

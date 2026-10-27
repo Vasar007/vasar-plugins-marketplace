@@ -4,6 +4,8 @@ description: Implement specific phases from an OpenSpec change with research tra
 
 Implement tasks from an OpenSpec change, optionally limited to specific phases.
 
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<change-name> [phase numbers] [options]`
@@ -65,7 +67,7 @@ These rules apply in every mode:
 
    Check for prior context in this order:
    1. If `--context <path>` was specified, read that file.
-   2. Otherwise, check for an existing research file at `Notes/Results/<change-name>-research.md`. If it exists, read it for prior context and findings.
+   2. Otherwise, check for an existing research file at `Results/<change-name>-research.md` in the notes folder. If it exists, read it for prior context and findings.
    3. As a final fallback, check the auto-memory directory (`MEMORY.md` and topic files) for relevant project notes.
 
    Then load the OpenSpec artifacts:
@@ -93,7 +95,7 @@ These rules apply in every mode:
 5. **Commit changes** (if `--commit` or `--commit-push`)
 
    After completing each phase:
-   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`. Do not stage the research file under `Notes/Results/`. It is a working file of this run.
+   - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`. Do not stage the research file under `Results/` in the notes folder. It is a working file of this run.
    - Write the commit message in the commit style of the repo. If the `CLAUDE.md` of the repo has commit rules, follow them. Else copy the style of `git log --oneline -20`. Describe the change to the code. Do not put the phase or task numbers of `tasks.md`, such as `Phase 2` or `Task 3.1`, in the message. A later reader of the history does not have them (`dev-essentials:engineering-discipline` Rule 3).
    - If `--commit-push`, also push to the current remote tracking branch.
    - Do not push unless `--commit-push` was explicitly specified.
@@ -101,7 +103,7 @@ These rules apply in every mode:
 6. **Save research and findings**
 
    Run this step after the selected phases. If the run stops because of a blocker, run it before the stop. Follow the `/save-context` command logic with `--change "<name>"`, plus `--interactive` or `--autonomous` for a run that has it.
-   - If `--context <path>` was given, save to that path. Else save to `Notes/Results/<change-name>-research.md`.
+   - If `--context <path>` was given, save to that path. Else save to `Results/<change-name>-research.md` in the notes folder.
    - Include: what was done, decisions made, issues found, what's next.
    - If the user asks for a continuation prompt in this run, print it after the summary of Step 7. Else print no continuation prompt for the next session.
 

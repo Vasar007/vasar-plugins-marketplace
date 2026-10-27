@@ -152,8 +152,10 @@ git -C <worktree-path> branch --unset-upstream
 # Note: inspect .gitignore for other .claude/... patterns (e.g., local CLAUDE.md
 # overrides, .claude/state/, plugin caches) and replicate each one the same way.
 
-# 3. Create a Notes/ directory for plans, drafts, and scratch files
-mkdir -p <worktree-path>/Notes
+# 3. Create the notes folder for plans, drafts, and scratch files.
+#    The configured notes folder is ${user_config.notes_dir}.
+#    If that value still shows as a placeholder, no value is saved: use Notes.
+mkdir -p <worktree-path>/<notes-folder>
 ```
 
 ### Step 7: Find the solution or project file and report
