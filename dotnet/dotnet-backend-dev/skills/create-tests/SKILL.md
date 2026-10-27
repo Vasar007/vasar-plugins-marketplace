@@ -1,7 +1,7 @@
 ---
 name: create-tests
 description: Write or change .NET unit and integration tests with the test framework, the assertion library, and the mock builders and generators of the project.
-when_to_use: Use it for "create tests", "unit tests", "test this class", or "write tests for".
+when_to_use: Use it for "create tests", "unit tests", "test this class", "add a test to a test class", or "write tests for".
 ---
 
 # Create Tests

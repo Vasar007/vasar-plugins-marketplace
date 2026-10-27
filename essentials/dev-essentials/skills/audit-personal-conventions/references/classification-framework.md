@@ -105,7 +105,7 @@ Before you propose a new entity, look for the same capability in the existing en
 - **Gap**: no existing entity covers it. A new entity is justified.
 - **Overlap**: an existing entity already covers this territory, at least in part. Extend that entity (an additional `## Rule N` section, an additional reference file). Do not create a near-duplicate, because it drifts from the original over time.
 
-`references/entity-authoring-conventions.md` applies the same check in Phase 6. Do it here first, before Phase 4 proposes the destination, not after Phase 6 starts authoring.
+`references/entity-authoring-conventions.md` of `promote-conventions` applies the same check in Phase 6. Do it here first, before Phase 4 proposes the destination, not after Phase 6 starts authoring.
 
 ---
 

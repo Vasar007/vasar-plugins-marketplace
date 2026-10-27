@@ -5,6 +5,8 @@ argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
 
+The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `[name-or-path] [options]`
@@ -59,9 +61,9 @@ Find the context source. Without `--change` or `--plan`, look at the conversatio
 
 Find the output path. The value of `--change` or `--plan` names the context source. It is never the output path.
 
-- If a name (not a path) is given, write to `Notes/Results/<name>-research.md`.
+- If a name (not a path) is given, write to `Results/<name>-research.md` in the notes folder.
 - If a path is given, write to that path.
-- If no name or path is given, use the context source. For a change, write to `Notes/Results/<change-name>-research.md`. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Notes/Results/my-plan-research.md`.
+- If no name or path is given, use the context source. For a change, write to `Results/<change-name>-research.md` in the notes folder. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Results/my-plan-research.md` in the notes folder.
 - If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. With `--interactive`, use **AskUserQuestion** to ask:
   > "What name do you want for this research file? (for example, `investigate-bug-123` or `refactor-auth`)"
 

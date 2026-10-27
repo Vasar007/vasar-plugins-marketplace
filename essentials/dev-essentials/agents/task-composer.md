@@ -1,6 +1,6 @@
 ---
 name: task-composer
-description: "Compose concise architectural task descriptions. The default mode `draft` writes a local Markdown draft. `mode: response` returns the text in chat. `mode: create` creates a verified GitHub issue. Use it for a task description, a task draft, or a new GitHub issue."
+description: "Compose a task description or a GitHub issue. The default mode `draft` writes a local Markdown draft. `mode: response` returns the text in chat. `mode: create` creates a verified GitHub issue. Use it for 'compose an issue', 'draft an issue', 'write a task description', or 'create a GitHub issue'."
 tools: [Read, Write, Edit, Grep, Glob, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__sub_issue_write, mcp__plugin_github_github__list_issue_types, mcp__plugin_github_github__get_label, mcp__plugin_github_github__list_label]
 ---
 

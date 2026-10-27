@@ -1,11 +1,12 @@
 ---
+name: research-implement-review-report
 description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. Needs no spec change (unlike opsx-implement), and does not stop before the review (unlike implement).
 argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive] [--autonomous]
 ---
 
 # Research → Implement → Review-Loop → Report
 
-## Division of labor in this command family
+## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
 - `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
@@ -14,14 +15,16 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs a tracked task from the task provider (for example, GitHub Issues or Jira) end-to-end in an isolated git worktree. It has one subagent for each stage and its own approval gates.
 
+The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<task description, plan file path, or issue reference> [options]`
 - Examples:
   - `Issue 123456 — wire the overwrite-existing-records flag through to the import pipeline`
-  - `Notes/Plans/my-existing-plan.md` goes straight to Phase 2 with this plan. Phase 1 still runs briefly to load earlier context.
+  - `Plans/my-existing-plan.md` in the notes folder goes straight to Phase 2 with this plan. Phase 1 still runs briefly to load earlier context.
   - `Fix the SingleOrDefault() 500 in InvoiceValidator --rounds=3`
-  - `Create a worktree vvasilyev/tasks/123456-overwrite-existing-records from release/2.0, then follow this command's workflow.` names the branch and the base branch, so Phase 0 does not derive a branch name.
+  - `Create a worktree jdoe/tasks/123456-overwrite-existing-records from release/2.0, then follow this skill's workflow.` names the branch and the base branch, so Phase 0 does not derive a branch name.
 - If $ARGUMENTS is empty, use the **AskUserQuestion** tool to ask what to work on.
 
 **Options:**
@@ -29,7 +32,7 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--branch-prefix=<prefix>` | derive from context, else ask | The prefix of the task-branch name of Phase 0. If a `CLAUDE.md` of the project or of the user states a branch-naming convention, take the prefix from it. Else ask the user once per run, before you create the branch. |
+| `--branch-prefix=<prefix>` | derive from context, else ask | The prefix of the task-branch name of Phase 0. Use the first of these that gives a prefix: this flag, a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, ask the user once per run, before you create the branch. |
 | `--commit-mode=<per-phase\|single>` | `per-phase` | `per-phase`: one commit after Phase 2 (Implement), then the commits of each Phase 3 round. `single`: run every phase and every review round the same way, but squash the whole run into **one commit at the end** (see "Commit cadence"). |
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed to `dev-essentials:review-loop` as `--rounds`. |
 | `--context=<path>` | auto | A research or handoff file to load, instead of fresh research or in addition to it. The resolution is the same as for the `--context` of `dev-essentials:implement`. **Repeatable**: the run reads every path, and no path replaces another. |
@@ -51,7 +54,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Phase 4: `save-context` cleanup | Runs with no flag. It asks before it moves a file of an older session | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
-This command has no push step.
+This skill has no push step.
 
 These rules apply in every mode:
 
@@ -68,7 +71,7 @@ These rules apply in every mode:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this skill adds these:
 
 - **Models**: fact gathering in Phase 1 uses Haiku, through the agent type `dev-essentials:fact-gatherer`. A Phase 1 question that needs judgment goes to a researcher on Opus. Planning (Phase 1) and review (Phase 3) use Opus. Implementation and fixes (Phase 2, and the fixer of Phase 3) use Sonnet. A task that the plan gives as an explicit 1-2-3 edit list uses Haiku. A small, tightly coupled task can go to a fork, which runs on the model of the session. Use this only as the exception of "Plan → execute split" allows. The build and test checks of the orchestrating session use Haiku, through the agent type `dev-essentials:test-runner`. A code search uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the phases below name only the role. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - **Effort**: pass `effort` on each dispatch of a general agent type. A Phase 1 researcher and the planner: `high`. The planner of a large plan, or of a change on the critical path: `xhigh`. A Phase 2 implementer: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and the fixer of Phase 3 with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels. All follow Rule 5 of `dev-essentials:subagent-orchestration`.
@@ -95,12 +98,12 @@ Keep a task list with one entry for each phase (Research & Plan, Implement, Revi
 1. Resolve the **base branch** as the `--base` row of the Options table says.
 2. Resolve the **task branch name**. If $ARGUMENTS names a branch (as in the worktree example of "Arguments"), use it verbatim. Else resolve `--branch-prefix` first (see the Options table). Then build the name from that prefix and the issue reference in $ARGUMENTS, by the type or label of the GitHub issue:
 
-   | Source | Branch name pattern | Example (`--branch-prefix=vvasilyev`) |
+   | Source | Branch name pattern | Example (`--branch-prefix=jdoe`) |
    | --- | --- | --- |
-   | GitHub issue typed/labeled `task` | `<branch-prefix>/tasks/<ID>-<short-description>` | `vvasilyev/tasks/123456-add-invoice-pagination` |
-   | GitHub issue typed/labeled `bug` | `<branch-prefix>/bugs/<ID>-<short-description>` | `vvasilyev/bugs/123456-fix-timeout` |
-   | GitHub issue, any other type/label `<type>` | `<branch-prefix>/<type>s/<ID>-<short-description>` | `vvasilyev/features/123456-add-x` |
-   | Research (no issue at all) | `<branch-prefix>/researches/<short-description>` | `vvasilyev/researches/investigate-y` |
+   | GitHub issue typed/labeled `task` | `<branch-prefix>/tasks/<ID>-<short-description>` | `jdoe/tasks/123456-add-invoice-pagination` |
+   | GitHub issue typed/labeled `bug` | `<branch-prefix>/bugs/<ID>-<short-description>` | `jdoe/bugs/123456-fix-timeout` |
+   | GitHub issue, any other type/label `<type>` | `<branch-prefix>/<type>s/<ID>-<short-description>` | `jdoe/features/123456-add-x` |
+   | Research (no issue at all) | `<branch-prefix>/researches/<short-description>` | `jdoe/researches/investigate-y` |
 
    `<ID>` is the issue number from $ARGUMENTS. For example, `Issue 123456` or `#123456` gives `123456`. The research pattern has no `<ID>` part. `<short-description>` is a short kebab-case slug of the task description. If the type or label of the issue is unknown and the task is not research, do this. Without `--interactive`, use the `tasks` pattern, and say so in the final report. With `--interactive`, ask the user which pattern applies, and do not guess.
 3. If $ARGUMENTS asks for a worktree (for example "Create a worktree ... from ..."), create it with `dev-essentials:git-worktree-management`, from the base branch of step 1 and with the branch name of step 2. Else create the branch, or check it out, as `dev-essentials:git-sync` says.
@@ -115,7 +118,7 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 1. Resolve each `--context=<path>` (the flag is repeatable). Without one, derive a context file as `dev-essentials:implement` does: from a plan-file argument, or from the auto-memory folder as a last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every brief of this phase.
 2. Dispatch the fact gatherers in parallel, with one narrow question for each, in one message (Rule 3 of `dev-essentials:subagent-orchestration`). They work from the real code, not from assumptions. Together they find out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. For example: one question on the production code path, one on the test coverage, and one on the callers of a method that the task changes. Each brief holds the question, the absolute worktree path, and the scope. It also holds the context of the user verbatim and each rule of the project `CLAUDE.md` that matters. A question that needs judgment goes whole to a researcher, not to a fact gatherer. Examples: an ambiguous change of behavior, a permission, a public contract, or a choice between designs. The researcher gets the same brief, and returns its findings with `path:line` evidence.
 3. When the reports of step 2 arrive, dispatch a planner. Paste each report verbatim into its brief. The planner reads only the lines that a critical decision of the plan depends on, and does no new broad research. If it needs a location that no report holds, it can dispatch `dev-essentials:code-locator` for it. It turns the research into a concrete plan: ordered tasks or phases, and for each task the exact paths, the anchors (`path:line` and method names), and the key signatures. The plan also lists the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).
-4. Save the plan to `Notes/Plans/<slug>-plan.md`, or to the location that the `CLAUDE.md` of the repo documents. This is the plan sign-off gate:
+4. Save the plan to the location that the `CLAUDE.md` of the repo documents. Else save it to `Plans/<slug>-plan.md` in the notes folder. This is the plan sign-off gate:
    - Without `--interactive`, report the plan path in one status line, and start Phase 2.
    - With `--interactive`, **show the plan to the user for sign-off before Phase 2 starts**. Resolve here each open question that the user raises.
    - If the plan lists open decisions, handle them before Phase 2. Without `--autonomous`, ask them all in one message, and start Phase 2 after the answers. With `--autonomous`, decide them as "Autonomy" says, write each decision into the plan, and start Phase 2.
@@ -135,16 +138,16 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 
 ### Phase 3 — Review loop
 
-Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this command wants, so override nothing. Pass only these options of this command:
+Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this skill wants, so override nothing. Pass only these options of this skill:
 
-- `--rounds=<N>` from the `--rounds` of this command (default `2`).
+- `--rounds=<N>` from the `--rounds` of this skill (default `2`).
 - `--interactive` or `--autonomous`, for a run that has it.
 
 Record each finding that the user and the orchestrating session agree to defer, as deferred in the Phase 4 report. "Commit cadence" says how the commits of each loop round fit the commit mode.
 
 ### Phase 4 — Report
 
-Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Notes/Results/<slug>-report.md` as its path argument. Pass no flag. This also applies to `--plan` and to the mode flag of this run. It is an exception to the last rule of "Autonomy". `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its default mode, also in a run with `--autonomous`. It runs its Step 5 cleanup and prints no continuation prompt. Before it moves a file of an older session to the backup, its Step 5 asks the user. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
+Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Results/<slug>-report.md` in the notes folder as its path argument. Pass no flag. This also applies to `--plan` and to the mode flag of this run. It is an exception to the last rule of "Autonomy". `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its default mode, also in a run with `--autonomous`. It runs its Step 5 cleanup and prints no continuation prompt. Before it moves a file of an older session to the backup, its Step 5 asks the user. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
 
 - **Overview**: what this run covered, the branch, the worktree, and the date.
 - **What Was Done**: for each phase, the research findings, the plan, each implemented task, and the outcome of each review round.
@@ -169,4 +172,4 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 - After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit: `git reset --soft <recorded-SHA>`, then one commit. Its message sums up the implementation and the fixes of each review round, for example `Task X — <summary> (implement + N review rounds)`.
 - **The `stop-blocked` exception**. If the review loop ends with `stop-blocked`, do not squash. Keep the round commits as they are, so that the caller can inspect the red state, and report the verdict.
 - **The squash-base safety stop**. If a commit from outside this run landed on `HEAD` (for example an unrelated concurrent commit), **stop and ask the user** before the soft reset. Do not squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the unexpected commit.
-- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This command does not coordinate it for the caller.
+- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This skill does not coordinate it for the caller.

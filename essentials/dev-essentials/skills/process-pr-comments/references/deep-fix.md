@@ -1,6 +1,6 @@
 # `deep-fix`: one thread through `/research-implement-review-report`
 
-Read this file for a run in which the `deep-fix` parameter names a thread. The parameter row and the rules for `deep-fix` are in `SKILL.md` (Parameters and Rules).
+Read this file for a run in which the `deep-fix` parameter names a thread. The parameter row and the rules for `deep-fix` are in `references/parameters.md` and in `SKILL.md` (Rules).
 
 Contents: the override and the ineligible cases, and the place of Stage 3 in the cycle. Then the hand-back of Stage 2, the brief and the outcomes of Stage 3, and the cycle log.
 
@@ -39,19 +39,19 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 
 **Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that absolute path as the worktree path in the brief below. Then find out whether `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, stop. Ask the user before you check out or switch a branch, or create anything.
 
-**Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the Stage 2 brief, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). It never goes to a subagent. That command can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
+**Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the Stage 2 brief, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). It never goes to a subagent. That skill can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
 
-1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That command needs these two facts for its pre-existing-branch verification step.
+1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That skill needs these two facts for its pre-existing-branch verification step.
 2. `--base=<baseRefName>`: the target branch of the PR, which Phase 1 cached.
 3. `--commit-mode=single` and `--rounds=<deep-fix-rounds>`.
 4. **Commit subject**. The one squash commit must use the format of Phase 4 step 3 of this skill. The subject is `PR #<prId> T#<commentId>: <subject>`. The body explains *why* and names the point of the reviewer. The commit ends with the `Co-Authored-By` trailer.
-5. **Squash window**. No other commit lands on this branch between the recorded `HEAD` and the squash (see "Place in the cycle"). The safety stop of that command for the squash base can still trip. Then let it stop and report. Do not override it.
+5. **Squash window**. No other commit lands on this branch between the recorded `HEAD` and the squash (see "Place in the cycle"). The safety stop of that skill for the squash base can still trip. Then let it stop and report. Do not override it.
 6. **Scope**. The fix stays inside the files and areas that the PR diff already touches, and it addresses only this thread.
-7. **Artifacts**. Never stage or commit the research, plan, or report artifacts of that command. Never put their paths in the thread reply or the commit message. Pipeline-internal artifacts stay out of anything that ships (`dev-essentials:engineering-discipline` Rule 3).
+7. **Artifacts**. Never stage or commit the research, plan, or report artifacts of that skill. Never put their paths in the thread reply or the commit message. Pipeline-internal artifacts stay out of anything that ships (`dev-essentials:engineering-discipline` Rule 3).
 8. **No push**. This skill owns the one push of the cycle. `/research-implement-review-report` never pushes without an explicit go-ahead of the user.
 9. Expect back: the squash SHA, the stop verdict of the review loop, the round count, and the list of deferred findings. The stop verdict is `stop-clean`, `stop-max-rounds`, or `stop-blocked`. On `stop-blocked`, do not squash. Keep the round commits as they are.
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
-11. **Review scope**. Run the review loop of that command with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
+11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
 **Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It posts the reply after Stage 3 reports its squash SHA, its stop verdict, and its round count:
 
@@ -83,9 +83,9 @@ Open findings remain; leaving this thread open: <1-2 line list>.
 
 Both replies are affirmative commit claims under the existing `Committed as <sha>` match. So Phase 2 step 5 and the resolve step of Phase 4 work without a new state machine. The last sentence of the `stop-max-rounds` reply STARTS WITH the `openFindingsMarker` phrase that a later cycle matches. The match is a prefix match on `Open findings remain; leaving this thread open`, with any punctuation (see `thread-state-schema.md`).
 
-Never link the report artifact of that command from either reply. It is a pipeline-internal artifact (`dev-essentials:engineering-discipline` Rule 3). The reply summarizes the arc, the round count, and the verdict instead.
+Never link the report artifact of that skill from either reply. It is a pipeline-internal artifact (`dev-essentials:engineering-discipline` Rule 3). The reply summarizes the arc, the round count, and the verdict instead.
 
-**`stop-blocked`: cancel the push of the cycle**. With `--commit-mode=single`, `/research-implement-review-report` makes the commits of each review-loop round on the PR source branch. It makes them before it can know that the build is red. The rule of Phase 4 step 1 (no commit after a failed build) cannot stop commits that the arc of that command already made. So:
+**`stop-blocked`: cancel the push of the cycle**. With `--commit-mode=single`, `/research-implement-review-report` makes the commits of each review-loop round on the PR source branch. It makes them before it can know that the build is red. The rule of Phase 4 step 1 (no commit after a failed build) cannot stop commits that the arc of that skill already made. So:
 
 - Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
 - **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.

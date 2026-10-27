@@ -1,5 +1,6 @@
 ---
 description: Create a concise architectural PR description from the git diff and from any spec or plan of the branch.
+when_to_use: "Use it for 'compose a PR description' or 'write the PR summary'. Not for an issue or a task description. Use the task-composer agent for that."
 ---
 
 Create a pull request description for the current branch. The `dev-essentials:pr-composer` agent writes it. The format of that agent is the one PR description format of this plugin.

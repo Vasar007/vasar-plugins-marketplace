@@ -1,11 +1,12 @@
 ---
+name: implement-batch
 description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks. Pushes only with --push.
 argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--push] [--interactive] [--autonomous]
 ---
 
 # Implement Batch (N tasks, N commits + at most 1 final-review commit)
 
-## Division of labor in this command family
+## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
 - `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
@@ -14,13 +15,15 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs a tracked task from the task provider (for example, GitHub Issues or Jira) end-to-end in an isolated git worktree. It has one subagent for each stage and its own approval gates.
 
+The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+
 **Arguments**: $ARGUMENTS
 
 - Format: `<parent issue reference, or an explicit list of N tasks> [options]`
 - Examples (no value in them is fixed behavior):
-  - `Issue 1469733 — implement all its sub-issues --base=release/2.0 --worktree=vvasilyev/tasks/1469733-custom-retention-enhancements`
-  - `Notes/Plans/custom-retention-plan.md — implement every task in this plan --base=release/2.0`
-  - `1) add the retention option 2) wire it through the scheduler 3) cover it with tests --base=release/1.0 --worktree=vvasilyev/tasks/987654-retention`
+  - `Issue 1469733 — implement all its sub-issues --base=release/2.0 --worktree=jdoe/tasks/1469733-custom-retention-enhancements`
+  - `Plans/custom-retention-plan.md — implement every task in this plan --base=release/2.0` (the plan file is in the notes folder)
+  - `1) add the retention option 2) wire it through the scheduler 3) cover it with tests --base=release/1.0 --worktree=jdoe/tasks/987654-retention`
 - **N comes from the input of the user**: the list, the plan file, or the sub-issues of the parent. Never assume a count, and never drop or add a task silently.
 - If $ARGUMENTS is empty, use the **AskUserQuestion** tool to ask which tasks to implement.
 
@@ -29,8 +32,8 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>` from the branch-naming convention in the `CLAUDE.md` of the repo or of the user. Without a convention, **ask once**. |
-| `--plan-dir=<path>` | `Notes/Plans/` | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
+| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
+| `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--push` | off | Push the finished stack after the final report. **Off unless the user asks for it in this invocation.** |
 | `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
@@ -64,7 +67,7 @@ These rules apply in every mode:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This skill adds these:
 
 - **Delegate almost everything.** The orchestrating session only resolves the arguments, dispatches, does the git bookkeeping (commits, squashes, SHA records), and talks to the user. It does not read source files, write code, or review diffs. Each brief asks for a short structured report (verdicts, `file:line` anchors, commands and results), never pasted diffs or file dumps.
 - **Models**: Opus plans and reviews, and Sonnet implements and fixes. A task that the plan gives as an explicit 1-2-3 edit list uses Haiku. The build and test check of the orchestrating session uses Haiku, through the agent type `dev-essentials:test-runner`. A code search uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the steps below name only the role. Haiku can do a mechanical extraction, such as the list of sub-issues. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
@@ -159,9 +162,9 @@ For task `i`:
 
 ## Review-loop configuration
 
-Every review loop of this command (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This command wants the "Default configuration" of that skill. It overrides only one point: the Step 2 loops pass `--no-commit` (see the last item). Only these options belong to this command:
+Every review loop of this skill (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This skill wants the "Default configuration" of that skill. It overrides only one point: the Step 2 loops pass `--no-commit` (see the last item). Only these options belong to this skill:
 
-- `--rounds=<N>` from the `--rounds` of this command (default `2`), passed to every loop.
+- `--rounds=<N>` from the `--rounds` of this skill (default `2`), passed to every loop.
 - **`--interactive`**: without it, every loop runs without the Phase 4 triage stop. With it, pass `--interactive` to the Step 3 loops and to the Step 4 loop. Do not pass it to the Step 2 plan-review loops.
 - **`--autonomous`**: pass it to every loop, also to the Step 2 plan-review loops. Without it, a plan-review loop still asks the user at its own Phase 4 about a finding that is not clear-cut. A finding that a plan-review fixer did not resolve with confidence waits for the Step 2 batch.
 - Commit after each review cycle in the Step 3 and Step 4 loops, so that the squashes are well defined. The Step 2 loops pass `--no-commit` and commit nothing, because a plan file stays out of commits.

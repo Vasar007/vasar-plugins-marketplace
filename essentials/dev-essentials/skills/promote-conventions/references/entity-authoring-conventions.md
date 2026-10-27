@@ -138,4 +138,4 @@ Phase 8 of `SKILL.md` sets the bump rules, the severities, and the precedent of 
 
 ## Extend vs. create
 
-Before you author a new entity in Phase 6, apply the gap-vs-overlap check of Step 7 in `references/classification-framework.md` again. Step 7 runs before Phase 4 proposes a destination. Phase 6 is where the choice of skill, command, or agent acts on its answer. For an overlap, extend the existing entity (an additional `## Rule N` section, an additional reference file). Do not author a near-duplicate.
+Before you author a new entity in Phase 6, apply the gap-vs-overlap check of Step 7 in `references/classification-framework.md` of `audit-personal-conventions` again. Step 7 runs before Phase 4 proposes a destination. Phase 6 is where the choice of skill, command, or agent acts on its answer. For an overlap, extend the existing entity (an additional `## Rule N` section, an additional reference file). Do not author a near-duplicate.

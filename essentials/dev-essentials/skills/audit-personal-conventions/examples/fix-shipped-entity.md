@@ -126,7 +126,7 @@ The file name matches landmine 12 signal (ii): `-custom.md`, and it holds the na
 
 - An edit to the `SKILL.md` of `dotnet-backend-dev:example-deploy-service`. The release tag of the worked example changes from `v<version>` to `rel-<version>`, as the consuming pipelines require.
 - The smoke-test opt-out bullet stays in `deploy-service-custom.md`, untouched. It is the own taste of this team, with no promotion or fix of any kind.
-- Both other bullets are the partially superseded wrapper case of Phase 9d (`references/cleanup-and-provenance.md`). The wrapper as a whole is not eligible for deletion, because its smoke-test section is still needed. But Phase 9d reports each superseded bullet on its own, with the shipped entity and the version that now covers it:
+- Both other bullets are the partially superseded wrapper case of Phase 9d (`references/cleanup-and-provenance.md` of `promote-conventions`). The wrapper as a whole is not eligible for deletion, because its smoke-test section is still needed. But Phase 9d reports each superseded bullet on its own, with the shipped entity and the version that now covers it:
   - The **changelog-bump bullet** (F-stale, superseded by an unrelated earlier change to the base skill) can be trimmed now. This is the already-shipped, F-stale recovery route, which needs no PR merge first.
   - The **tag-prefix bullet** (E-fixed in this run) can be trimmed only after the promotion of this run is published. This is the recovery route for a promotion or E-fix of this run. It opens after the marketplace PR with the `dotnet-backend-dev:example-deploy-service` correction merges.
 
