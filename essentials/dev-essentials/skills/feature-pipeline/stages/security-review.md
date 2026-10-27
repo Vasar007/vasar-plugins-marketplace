@@ -64,7 +64,7 @@ Exclude from the review:
 
 - Files in the `{ARTIFACTS_DIR}/` folder (pipeline artifacts)
 - Documentation files (`*.md`)
-- Test files
+- Test files. A dependency manifest of a test project is in scope.
 
 ## Objective
 
@@ -110,6 +110,14 @@ Find the security vulnerabilities that the changes bring in, and rate how sure y
 - Violations in the handling of PII
 - Data leaks through API endpoints
 - Exposure of debug information
+
+**Supply Chain and New Dependencies:**
+
+- A new third-party dependency in any manifest, lock file, or central version file: give its name, its version, and its source.
+- A name that differs by one or two characters from a well-known package, or a new package source (a typosquat or a dependency confusion).
+- A new install-time or post-install script of a third-party package.
+- A dependency on a floating or latest version instead of a fixed version.
+- If the session can reach the package registry, make sure that the package exists, and name its publisher. Else say that the lookup was not possible.
 
 ## Analysis Methodology
 
@@ -164,7 +172,7 @@ Do not report these issues. Other processes handle them, or they are out of scop
 6. Input sanitization in CI workflows, unless untrusted input can clearly trigger it
 7. Lack of hardening measures. Flag only concrete vulnerabilities.
 8. Race conditions or timing attacks that are theoretical only
-9. Vulnerabilities of outdated third-party libraries (they are managed separately)
+9. Known vulnerabilities of third-party libraries that the diff does not add or change (they are managed separately)
 10. Memory safety issues in memory-safe languages
 11. Files that are only unit tests or test helpers
 12. Log spoofing: unsanitized user input in logs is not a vulnerability
@@ -217,6 +225,8 @@ Write your findings to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/security-revie
 **Warning (MEDIUM):** vulnerabilities that need specific conditions, but have a large impact.
 
 **Low (LOW):** a weakness with a small impact.
+
+Report each new dependency under Warnings as [LOW], with its name and version, so that a human can look at it. A likely typosquat is [HIGH]. The rule under Confidence Scoring decides its section.
 
 If you find no vulnerabilities, still write the output file, with empty Blocking Issues and Warnings sections and a clean Summary.
 
