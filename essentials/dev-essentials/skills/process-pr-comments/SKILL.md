@@ -49,7 +49,7 @@ Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and 
 
 ## Autonomy
 
-This skill has three modes: the default, `interactive`, and `autonomous`. "Flag precedence" in Rules ranks them against the other flags. A gate is a step where the run can stop and ask the user. In the default mode, the Bucket A1 gates do not stop, and the Bucket A2 gates draft and wait. A reply about a fix of this run and a thread resolve post with no stop. Of the pushes and the posts, only two stop: each push, and each new `[OutOfScope]` issue. `autonomous` removes every stop of this skill: the approach of the implementation, the replies, the `[OutOfScope]` issue creation, and the push. Buckets A1 and A2 list the approval gates. Bucket B lists the rules that no flag changes.
+This skill has three modes: the default, `interactive`, and `autonomous`. "Flag precedence" in Rules ranks them against the other flags. A gate is a step where the run can stop and ask the user. In the default mode, the Bucket A1 gates do not stop, and the Bucket A2 gates draft and wait. A reply about a fix of this run and a thread resolve post with no stop. Apart from the Bucket A2 drafts, only two outside actions stop: each push, and each new `[OutOfScope]` issue. `autonomous` removes every stop of this skill: the approach of the implementation, the replies, the `[OutOfScope]` issue creation, and the push. Buckets A1 and A2 list the approval gates. Bucket B lists the rules that no flag changes.
 
 These rules apply in every mode:
 

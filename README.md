@@ -111,7 +111,7 @@ The background update does not ask for credentials. The repository is private, s
 
 ## Rules for push, force push, and --no-verify
 
-A skill of this marketplace pushes in three cases: the user says yes, the user passes a push flag such as `--push` or `--commit-push`, or the user passes `--autonomous`. The skills that push say never to force-push, and some skills that commit say never to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
+A skill of this marketplace pushes in three cases: the user says yes, the user passes a push flag such as `--push` or `--commit-push`, or the user passes `--autonomous`. Some skills that push say never to force-push, for example `process-pr-comments` and `feature-pipeline`. Some skills that commit say never to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
 
 ```json
 {

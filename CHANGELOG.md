@@ -16,13 +16,13 @@ This release changes the text of skills, commands, and agents (issue #74). Each 
 ### Changed in dev-essentials
 
 - 14 workflows (issue #74): the "Autonomy" section lists the gates of the workflow in a table, in place of a block that 14 files shared. Six are commands: `implement`, `opsx-implement`, `research-implement-review-report`, `implement-task`, `implement-batch`, and `save-context`. Eight are skills: `audit-personal-conventions`, `bug-hunt`, `feature-pipeline`, `git-worktree-management`, `optimize-skill`, `process-pr-comments`, `review-loop`, and `trim-artifacts`.
-- Plain rules in place of shouted words (issue #74): 313 lines in 47 files.
+- Plain rules in place of shouted words (issue #74): 47 files.
 - Contents lists (issue #74): 31 reference and example files. `bug-hunt` links `references/report-format.md`, and `optimize-skill` links `examples/bug-hunt-audit.md`.
 - `opsx-implement` names the `openspec` CLI, and `audit-openspec` names the OpenSpec folder layout. `generate-xml-docs` names its guard style (issue #74).
 
 ### Changed in dotnet-backend-dev
 
-- Plain rules in place of shouted words (issue #74): 149 lines in 30 files.
+- Plain rules in place of shouted words (issue #74): 30 files.
 - Contents lists (issue #74): 21 reference and example files.
 - The templates name the private shared framework (issue #74). The `dotnet-conventions` hub has a paragraph about it, nine skills have a dependency line, and the plugin description has one sentence about it.
 
