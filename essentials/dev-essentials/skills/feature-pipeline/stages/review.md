@@ -42,15 +42,17 @@ Exclude from the review:
 
 Return your findings as your final reply, with exactly this structure and no other text. Do not write a file. The master agent saves your reply as `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`.
 
+Report every issue that you find, also one with a low confidence, in the section that fits it. The master agent fixes only the blocking issues, and the human reads all of them at Human Approve #2. So a filter at this step hides real issues from the human.
+
 ```markdown
 ## Blocking Issues
-- [ ] <description> — `file:line`
+- [ ] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Warnings
-- [ ] <description> — `file:line`
+- [ ] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Suggestions
-- [ ] <description> — `file:line`
+- [ ] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Summary
 <Overall assessment: approve / request changes>

@@ -51,9 +51,9 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
 
    Record each mismatch as a finding.
 
-4. **Reverify findings**
+4. **Read back the code references**
 
-   Go through the full list of findings again. Find out whether each finding is a **real issue** or a false positive. Remove each finding that turns out to be fine.
+   Make sure that each finding that names code cites a `path:line` that this run opened, and that the line says what the finding claims. Correct or remove each finding that fails this test. If a finding says that code does not exist, it needs no `path:line`. Name the search that found nothing, for example the `Grep` pattern and the folder.
 
 5. **Report**
 

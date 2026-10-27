@@ -182,6 +182,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 - **Problem**: §4 says "within a sliding window", but gives no window size, reset semantics, or rule for an arrival at a boundary. Three implementers can build three incompatible counters.
 - **Impact**: a correct implementation is impossible without a guess about the window semantics.
+- **Confidence**: high. Section 4 gives no window size, and the quota precedent shows what the author most likely means.
 - **Recommendation**: give the window size (60 s, fixed) and the reset trigger (the window boundary). Also give the boundary rule: a request counts against the window that it arrives in.
 - **Verification source**: `openspec/changes/archive/2025-11-01-resource-limits/proposal.md`. The existing quota design uses fixed windows of 60 seconds. Align with that precedent.
 
@@ -189,6 +190,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 - **Problem**: §3 tests the quota before dispatch. §7 decrements ONLY after a successful response. So a failed request costs nothing and does not drain the quota counter. Under a lasting failure rate, the real throughput can be far above the intended limit.
 - **Impact**: workloads with many failures bypass the quota. Rate limiting does not work while error rates are high.
+- **Confidence**: high. Sections 3 and 7 give two different decrement times for the same counter.
 - **Recommendation**: delete the decrement sentence of §7. Add a note that the decrement happens at the admission of §3. The note also says that failed requests consume quota with no refund (admit-then-count, no reclaim on failure).
 - **Verification source**: the `resource-limits` spec, with the same admit-then-count and no reclaim on failure.
 
@@ -196,6 +198,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 - **Problem**: §5 lists timeouts and auth failures, but says nothing about a quota-exceeded case: no HTTP status, no response body, no log entry, and no event.
 - **Impact**: implementations differ, and client libraries and dashboards have nothing to match against.
+- **Confidence**: high. Section 5 has no quota-exceeded case, and the repository convention requires one.
 - **Recommendation**: add a subsection "Quota exceeded": HTTP 429, `{ "error": "quota_exceeded", "retryAfterSeconds": N }`, a WARN log with the entity ID and the limit, and no event.
 - **Verification source**: `CLAUDE.md` §"HTTP Error Path Convention."
 
@@ -203,6 +206,7 @@ A spec change proposal (here, an OpenSpec change) that adds a quota for each ten
 
 - **Problem**: the text `should typically be enforced at the gateway layer` is not normative. Under this wording, enforcement in the service layer also complies.
 - **Impact**: the services that implement this spec can use different architectures.
+- **Confidence**: medium. The wording is not normative. The author can say that service-layer enforcement is acceptable.
 - **Recommendation**: replace it with `MUST be implemented at the gateway layer`. If the service layer is also acceptable, say so explicitly.
 - **Verification source**: no proof. This is a design preference. Flag it for the author to make the intent clear.
 

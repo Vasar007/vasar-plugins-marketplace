@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.4.3 in release [3.6.4] - 2026-10-27
+
+This release changes the reviewer prompts (issue #72). Reviewers now report every finding with a severity and a confidence, and one later step filters them. Blanket second passes and persona lines are gone. Where a change alters behavior, the bullet says so.
+
+### Changed in dev-essentials
+
+- `review-loop` (issue #72): behavior change: the reviewer brief asks for every finding with a severity, a confidence, and a failure case. Phase 4 is the only filter, and it defers a Low or Nit finding unless the reviewer puts it under Must fix before merge. The finding counts are now a signal for the triage, and the run no longer asks for a stricter second review. The reviewer prompts of the branch, pr, last-commits, and diff-range briefs open with the goal, not a persona.
+- `review-loop` (issue #72): behavior change: the large-target mode has no Finding Verifier subagent and has three roles. In the synthesis, the main agent reads the lines of each finding and makes sure that the diagnosis matches them. An Area Explorer reports every finding with a confidence, and the word cap on the whole reply is gone. Each field keeps its own limit.
+- `help-review-pr` (issue #72): behavior change: the review reports every finding with a severity, and the findings table is sorted by severity. So `--mode=post-all` now posts a comment for every finding, also the Nits, and it can post more comments than before. The mode `--orchestrate` has no Finding Verifier.
+- `audit-team` (issue #72): behavior change: each role reports every issue with a confidence, and the consolidation is the only filter. The Reverify step is gone. The role prompt names a point of view, not a persona.
+- `audit-plan` and `audit-openspec` (issue #72): the Reverify step is now a step that makes sure that each cited `path:line` says what the finding claims.
+- `feature-pipeline` (issue #72): behavior change: the security stage now reports the LOW findings and the findings below a confidence of 0.8. They go under Warnings, and the human sees them at Human Approve #2. The subtle web vulnerabilities of precedent 5 now follow the same confidence rule, so a HIGH one can still block. The fix round still takes only the Blocking Issues. The code review stage asks for every issue with a confidence. The stage prompts open with the goal, not a persona.
+- `engineering-discipline` (issue #72): behavior change: the diff scan runs in the main session in every mode, and the line that asks to re-read the skill is gone.
+- `docs-composer` (issue #72): the agent prompt has no persona line, and the style rules have no emoji.
+
 ## dev-essentials 3.4.2, dotnet-backend-dev 1.6.3, and gop-pipeline 1.4.3 in release [3.6.3] - 2026-10-26
 
 This release adds behavior suites (issue #69). A behavior suite is a set of eval cases that runs a workflow skill on a small planted repository and grades the result. Each case builds its repository with a `scaffold.sh` script, and the graders check the files, the commits, the pushes, and the final message. CI does not run the suites, because each run calls a model. No skill, agent, or command changes, so the plugins behave as before.
@@ -801,7 +816,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...HEAD
+[3.6.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.0...v3.6.1

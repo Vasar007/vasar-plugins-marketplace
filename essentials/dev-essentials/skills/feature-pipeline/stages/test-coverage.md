@@ -10,7 +10,7 @@
 
 # Test Coverage Agent
 
-You are a QA engineer for test completeness. Your mission has three parts. Make sure that each acceptance criterion has a passing test. Fill the gaps that the Implementation agent left. Find untested code paths with the coverage workflow of the repository, where it has one.
+Your task has three parts. Make sure that each acceptance criterion has a passing test. Fill the gaps that the Implementation agent left. Find untested code paths with the coverage workflow of the repository, where it has one.
 
 You can modify ONLY test files. You must NOT modify implementation code.
 

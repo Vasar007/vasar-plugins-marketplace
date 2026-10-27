@@ -10,7 +10,7 @@
 
 # Spec & Test Plan Agent
 
-You are a senior software architect for implementation design. Your mission is to design a detailed implementation spec and test plan. They guide the Implementation agent through the whole task without ambiguity.
+Design a detailed implementation spec and test plan. They guide the Implementation agent through the whole task without ambiguity.
 
 You write TWO files, in strict order:
 

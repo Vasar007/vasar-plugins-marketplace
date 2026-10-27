@@ -16,7 +16,7 @@ This command is for the other goal, "review and report". It evaluates a PR again
 Look in `$ARGUMENTS` for the `--orchestrate` flag (anywhere after the URL):
 
 - **Without `--orchestrate`** (default, the "inline" mode): the main agent reads everything itself. This mode fits small PRs (under about 1,500 lines), where the full diff fits in the context.
-- **With `--orchestrate`** (the delegation mode): the main agent dispatches subagents for the steps that need much context. These steps are PR exploration, the reading of the codebase and the diff, convention evaluation, and finding verification. The main agent keeps only the synthesized findings and **the specific lines that those findings point to**. This mode fits large PRs (over about 2,000 lines or over 30 files) and PRs that touch many separate areas. It also fits a run where the user wants to keep the main context for follow-up work.
+- **With `--orchestrate`** (the delegation mode): the main agent dispatches subagents for the steps that need much context. These steps are PR exploration, the reading of the codebase and the diff, and convention evaluation. The main agent keeps only the synthesized findings and **the specific lines that those findings point to**. This mode fits large PRs (over about 2,000 lines or over 30 files) and PRs that touch many separate areas. It also fits a run where the user wants to keep the main context for follow-up work.
 
 With `--orchestrate`, follow the section **Orchestrator mode** below instead of Phases 2 to 4. Phase 1 (setup), Phase 5 (HTML artifact), and Phase 6 (post comments) are the same in both modes. Phase 7 (multi-PR) is different: it always dispatches one review subagent for each PR, **with or without `--orchestrate`**. So the flag has no effect at the top level there. Phase 7 passes it on to each subagent. See Phase 7.
 
@@ -56,7 +56,7 @@ Run this diff once for the production paths and once for the test paths, so that
 
 ## Phase 4 — Evaluate against conventions
 
-Apply the convention skills of Phase 1. Look for real deviations, not for style preferences. To find a sibling for a comparison in a large repo, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you make the comparison.
+Apply the convention skills of Phase 1. Compare the diff with the conventions. Report a style preference as a minor finding. To find a sibling for a comparison in a large repo, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you make the comparison.
 
 The categories below are **examples, not a full list**. Adapt them to the conventions that the skills of the target repo define:
 
@@ -68,7 +68,7 @@ The categories below are **examples, not a full list**. Adapt them to the conven
 - **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:general-conventions`, for example the quoting of frontmatter scalars.
 - **Exception and user-facing messages**: if the repo keeps its user-facing strings in one place, messages come from resources, not from inline string literals.
 
-Do not report too many findings. A sane ratio for each 1,000 lines is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings. See the finding-density guardrail of `dev-essentials:review-loop`.
+Report every finding with a severity. Sort the findings table of the artifact by severity, so that the reader and `--mode=post-<N>-<M>` start with the most severe ones.
 
 ## Phase 5 — Produce the HTML artifact
 
@@ -85,9 +85,8 @@ For a large PR, delegate the phases that need much context (2 to 4) to subagents
 1. Role 1: a Target Explorer subagent builds a fact map of the PR, with no judgment.
 2. The map comparison between Role 1 and Role 2.
 3. Role 2: parallel Area Explorer subagents, one for each area, read the code and the diff against the conventions. They return structured findings only.
-4. The density test between Role 2 and Role 3.
-5. Role 3: an optional Finding Verifier subagent.
-6. Role 4: the main agent writes the synthesis. It reads back only the specific lines that the remaining findings point to.
+4. The collation between Role 2 and Role 3.
+5. Role 3: the main agent reads back only the specific lines that the findings point to, makes sure that each diagnosis matches them, and writes the synthesis.
 
 Read that reference file directly. This command does not copy its subagent prompts.
 

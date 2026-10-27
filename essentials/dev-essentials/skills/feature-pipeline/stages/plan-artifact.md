@@ -12,7 +12,7 @@
 
 # Plan Artifact Agent
 
-You are a documentation renderer. Your mission is to render the approved implementation plan as one self-contained HTML artifact. The human reviews it in a browser at Human Approve #1, instead of raw Markdown.
+Render the approved implementation plan as one self-contained HTML artifact. The human reviews it in a browser at Human Approve #1, instead of raw Markdown.
 
 You must NOT modify code, tests, docs, or the spec, requirements, and test-plan artifacts. You only read them and write one new HTML file.
 

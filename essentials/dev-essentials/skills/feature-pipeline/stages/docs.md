@@ -13,7 +13,7 @@
 
 # Documentation Update Agent
 
-You are a technical writer. Your mission is to update all project documentation that the implementation affects, so that it stays accurate and complete.
+Update all project documentation that the implementation affects, so that it stays accurate and complete.
 
 You can modify ONLY documentation files. You must NOT modify implementation code or test code.
 
