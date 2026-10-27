@@ -101,14 +101,14 @@ Phase 1 caches this block:
 
 ```json
 {
-  "owner": "Vasar007",
+  "owner": "my-org",
   "repo": "my-repo",
   "pullRequestNumber": 42,
   "title": "<PR title>",
   "headRefName": "feature/my-branch",
   "baseRefName": "main",
   "state": "open",
-  "html_url": "https://github.com/Vasar007/my-repo/pull/42"
+  "html_url": "https://github.com/my-org/my-repo/pull/42"
 }
 ```
 
@@ -154,7 +154,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 {
   "commentId": 92,
   "threadNodeId": "PRRT_kwDO…",
-  "htmlUrl": "https://github.com/Vasar007/my-repo/pull/42#discussion_r92",
+  "htmlUrl": "https://github.com/my-org/my-repo/pull/42#discussion_r92",
   "isResolved": false,
   "isOutdated": false,
   "filePath": "<repo-relative/path>/Auth.cs",
