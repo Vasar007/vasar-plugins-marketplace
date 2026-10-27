@@ -111,7 +111,7 @@ Why: an accepted overblown refactor and a quiet extraction to avoid a diagnostic
 How to apply:
 
 - After each implementation or refactor turn, scan the diff for hot spots before you respond. Hot spots: methods with many optional parameters and branched setup, deep if/else chains, long conditional builder chains, repeated boilerplate, and variables that only pass state.
-- In a multi-stage orchestration, give this scan to a subagent. In a single-shot session, scan inline.
+- Do the scan yourself, in every mode. It is a short read of one diff, so it needs no subagent.
 - If you find a hot spot, put it first in the response: what grew too large, why, and at least one simpler shape. Do not add it as a footnote after the green-build report.
 - If an analyzer diagnostic fires, cite its rule ID. Decide between extraction and suppression against the approved design shape, and report the decision to the user in the same turn. Never resolve it silently, in either direction.
 - This applies to your own inline edits and to the edits of a subagent. You own the final shape of the diff, no matter who drafted it.
@@ -136,4 +136,4 @@ How to apply:
 
 ## How these rules relate
 
-All seven rules share one idea: the work is not done until what ships matches what was promised. If you find yourself writing `I'll just` or `this is fine because`, re-read this skill.
+All seven rules share one idea: the work is not done until what ships matches what was promised.
