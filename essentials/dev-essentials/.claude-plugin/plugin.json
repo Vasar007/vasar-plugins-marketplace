@@ -7,5 +7,19 @@
     "email": "vasar007@gmail.com"
   },
   "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
-  "keywords": ["composer-agents", "pr-review", "code-review", "workflow", "spec-driven", "markdown", "xml-docs", "git-worktree", "bug-hunt", "skill-optimization"]
+  "keywords": ["composer-agents", "pr-review", "code-review", "workflow", "spec-driven", "markdown", "xml-docs", "git-worktree", "bug-hunt", "skill-optimization"],
+  "userConfig": {
+    "branch_prefix": {
+      "type": "string",
+      "title": "Branch prefix",
+      "description": "The first segment of the task branches that the implement workflows create, for example jdoe. Leave it empty to use the branch-naming rule of a CLAUDE.md file.",
+      "default": ""
+    },
+    "notes_dir": {
+      "type": "string",
+      "title": "Notes folder",
+      "description": "The folder, relative to the repository root, for plans, reports, and progress files. A location that the CLAUDE.md of the repository names wins.",
+      "default": "Notes"
+    }
+  }
 }
