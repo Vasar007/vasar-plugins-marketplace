@@ -188,6 +188,8 @@ dotnet build
 
 Do not run `resgen`, `PublicResXFileCodeGenerator`, or any other tool directly. The build handles code generation automatically via the `EmbeddedResource` MSBuild configuration.
 
+If the build fails, fix the errors and build again (see `dev-essentials:dotnet-build-test`). Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit `StringResources.Designer.cs` to fix an error. If an error names a member that a generated file lacks, `StringResources.resx` lacks the entry, or the generator did not run. Add a missing entry to `StringResources.resx`. Do not change the calling code for such an error. If the build does not update the file, follow the [stop-and-ask rule](#if-values-dont-appear) in the next section.
+
 ### If Values Don't Appear
 
 If new string resources do not appear after the build:
@@ -255,3 +257,4 @@ The `[TBD]` prefix indicates:
 - [ ] Code uses `StringResources.{Name}.SafeFormat(...)` to access
 - [ ] Code formatting: `);` on new line, aligned with statement start
 - [ ] Runtime logs do not use StringResources (use structured logging instead)
+- [ ] The changed projects build, and the report gives the result line of the last build

@@ -233,6 +233,10 @@ Create model converters in `WebApi/Converters/{Feature}/`:
 
 8. **Model conversion**: Use model converters (see [model-mapping](../model-mapping/SKILL.md) skill)
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. If an error names a member that a generated file lacks, the OpenAPI spec lacks the member, or the generator did not run. Do not change the calling code for such an error. An error in generated code counts as an error in the changed code. Fix it in the OpenAPI spec with the [update-swagger-spec](../update-swagger-spec/SKILL.md) skill, because the spec comes first. Fix any other error in the controller code. If the build does not update the generated files, follow the [stop-and-ask rule](../update-swagger-spec/SKILL.md#if-the-build-does-not-update-auto-generated-files) of that skill.
+
 ## Tests
 
 Create controller integration tests following project conventions.
@@ -269,3 +273,4 @@ Create controller integration tests following project conventions.
 - [ ] Model converters created (see [model-mapping](../model-mapping/SKILL.md))
 - [ ] CancellationToken on all async methods
 - [ ] `cancellationToken.ThrowIfCancellationRequested()` at method start
+- [ ] The changed projects build, and the report gives the result line of the last build

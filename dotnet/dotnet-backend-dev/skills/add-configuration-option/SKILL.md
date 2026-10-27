@@ -374,95 +374,13 @@ public sealed class MyService
 
 ## BuildEnvironment Pattern
 
-For compile-time environment-specific configuration, use the `BuildEnvironment` + `BuildEnvironmentInfo` pattern:
+Read [references/build-environment.md](references/build-environment.md) for a compile-time switch that business code needs.
 
-### Step 1: BuildEnvironment Static Class
+Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead.
 
-```csharp
-// BuildEnvironment.cs
-public static class BuildEnvironment
-{
-    public const Boolean IsDebugConst =
-#if DEBUG
-        true;
-#else
-        false;
-#endif
+## Build
 
-    public const Boolean UseFeatureXConst =
-#if USE_FEATURE_X
-        true;
-#else
-        false;
-#endif
-}
-```
-
-### Step 2: BuildEnvironmentInfo Singleton (for DI/testing)
-
-```csharp
-// BuildEnvironmentInfo.cs
-public sealed class BuildEnvironmentInfo : I{ServiceName}BuildEnvironmentInfo
-{
-    public static BuildEnvironmentInfo Instance { get; } = new();
-
-    /// <inheritdoc cref="BuildEnvironment.IsDebugConst"/>
-    public Boolean IsDebugBuild => BuildEnvironment.IsDebugConst;
-
-    /// <inheritdoc cref="BuildEnvironment.UseFeatureXConst"/>
-    public Boolean UseFeatureX => BuildEnvironment.UseFeatureXConst;
-
-    private BuildEnvironmentInfo()
-    {
-    }
-}
-```
-
-### Step 3: Interface for Testing
-
-```csharp
-// I{ServiceName}BuildEnvironmentInfo.cs
-public interface I{ServiceName}BuildEnvironmentInfo
-{
-    Boolean IsDebugBuild { get; }
-    Boolean UseFeatureX { get; }
-}
-```
-
-Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead:
-
-```csharp
-// ✅ Good - testable
-public sealed class MyService
-{
-    private readonly I{ServiceName}BuildEnvironmentInfo _buildInfo;
-
-    public MyService(
-        I{ServiceName}BuildEnvironmentInfo buildInfo)
-    {
-        _buildInfo = buildInfo.ThrowIfNull();
-    }
-
-    public void DoWork()
-    {
-        if (_buildInfo.UseFeatureX)
-        {
-            // Feature X logic
-        }
-    }
-}
-
-// ❌ Bad - not testable
-public sealed class MyService
-{
-    public void DoWork()
-    {
-#if USE_FEATURE_X
-        // Feature X logic
-#endif
-    }
-}
-```
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build.
 
 ## Tests
 
@@ -485,6 +403,7 @@ Create configuration options tests following project conventions.
 - [ ] Important options exposed in the deployment values (for Helm, `helm/values.yaml`)
 - [ ] Validation of required values added to the deployment script (for Helm, `helm/deploy.sh`)
 - [ ] XML documentation on class and properties
+- [ ] The changed projects build, and the report gives the result line of the last build
 
 ## Related Skills
 

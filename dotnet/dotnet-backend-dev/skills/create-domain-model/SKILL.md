@@ -139,6 +139,10 @@ public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 - Inconsistent fields between Equals and GetHashCode
 - **Exposing sensitive data in ToString()**: use an erased placeholder instead
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build.
+
 ## Tests
 
 Create unit tests for domain models following project conventions.

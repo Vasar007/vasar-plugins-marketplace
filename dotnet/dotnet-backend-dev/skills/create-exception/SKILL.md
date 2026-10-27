@@ -192,6 +192,10 @@ All exceptions require XML documentation:
 
 **See the `dev-essentials:generate-xml-docs` skill for XML documentation patterns.**
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build.
+
 ## Tests
 
 Create exception tests extending `BaseExceptionTests<T>`.
@@ -272,3 +276,4 @@ public class UnsupportedOperationException : Exception
 - [ ] Factory methods documented with XML comments
 - [ ] File located in `Domain/Exceptions/` or feature folder
 - [ ] Tests created extending `BaseExceptionTests<T>`
+- [ ] The changed projects build, and the report gives the result line of the last build

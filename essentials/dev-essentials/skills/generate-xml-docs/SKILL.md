@@ -278,6 +278,8 @@ Use `<remarks>` for:
 
 ## Checklist
 
+Build the changed projects with `-p:GenerateDocumentationFile=true` (see `dev-essentials:dotnet-build-test`). Find the CS1591 warnings for the files that you changed. Add the missing docs and build again until none is left for these files. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. These flags are the one exception to the rule of `dev-essentials:dotnet-build-test` that allows no other flags. The option is for this build only. Do not add it to a project file. If the project hides CS1591 with `NoWarn` or with an `.editorconfig` severity of `none`, the build shows none. Then use the checklist below for all members. If the project sets `TreatWarningsAsErrors`, also pass `-p:TreatWarningsAsErrors=false`. CS1591 covers only members that are visible outside the assembly, so the checklist below stays the test for internal members (rule 1 of Key Rules).
+
 - [ ] Type has `<summary>` describing its purpose
 - [ ] All public, protected, and internal methods have `<summary>`
 - [ ] All parameters documented with `<param>`

@@ -152,9 +152,9 @@ public async Task OnboardStoreAsync(
 }
 ```
 
-## Logging Best Practices
+## Best Practices
 
-### Runtime Logs (ILogger) — Never Use String Interpolation
+### 1. Runtime Logs (ILogger) — Never Use String Interpolation
 
 ```csharp
 // ✅ Good - structured logging with placeholders
@@ -173,7 +173,7 @@ _logger.LogInformation(
 );
 ```
 
-### Session Logs — Use SafeFormat Extension
+### 2. Session Logs — Use SafeFormat Extension
 
 ```csharp
 using MyApp.Framework.Basic.Strings;
@@ -194,7 +194,7 @@ await _sessionLogRepository.CreateInformationAsync(
 String.Format(StringResources.StoreOnboardingContextMessage, storeId, storeName)
 ```
 
-### Code Formatting — Closing Parenthesis on New Line
+### 3. Code Formatting — Closing Parenthesis on New Line
 
 ```csharp
 // ✅ Good - ); on new line, aligned with statement start
@@ -220,9 +220,7 @@ await _sessionLogRepository.CreateInformationAsync(
     cancellationToken: cancellationToken);
 ```
 
-## Best Practices
-
-### 1. Milestone Granularity
+### 4. Milestone Granularity
 
 Log at meaningful user-visible milestones:
 
@@ -239,7 +237,7 @@ Log at meaningful user-visible milestones:
 - "Validating input"
 - "Calling database"
 
-### 2. Entity Logging Format
+### 5. Entity Logging Format
 
 When logging entities with both ID and name, use format: `"ID (name)"`:
 
@@ -252,7 +250,7 @@ var message = StringResources.StoreCreatedMessage.SafeFormat(
 // Results in: "Store [abc-123] (Corner Books) created"
 ```
 
-### 3. Error Messages
+### 6. Error Messages
 
 The `message` of a session log entry must be user-friendly: never put a stack trace or `ex.Message` in it. Pass `ex.ToString()` in the `details` parameter of `CreateErrorAsync`, as [logging.md](../dotnet-conventions/logging.md) shows. Write the exception to `ILogger` too:
 
@@ -267,13 +265,13 @@ $"NullReferenceException at line 42 in OnboardingService.cs"
 ex.Message
 ```
 
-### 4. Sensitive Information
+### 7. Sensitive Information
 
 Never log sensitive information in session logs or runtime logs.
 
 **See the [handle-sensitive-data](../handle-sensitive-data/SKILL.md) skill for complete guidance on handling sensitive data.**
 
-### 5. Parallel Operations
+### 8. Parallel Operations
 
 When logging parallel operations, include identifiers:
 
@@ -296,6 +294,10 @@ await _sessionLogRepository.CreateWarningAsync(sessionId, message, cancellationT
 await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToString(), ct);
 ```
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. If an error names a member that a generated file lacks, `StringResources.resx` lacks the entry, or the generator did not run. Add a missing entry to `StringResources.resx`. Do not change the calling code for such an error. If the build does not update `StringResources.Designer.cs`, follow the [stop-and-ask rule](../create-string-resource/SKILL.md#if-values-dont-appear) of `create-string-resource`.
+
 ## Checklist
 
 - [ ] String resources added with `[TBD]` prefix and CamelCase naming
@@ -308,3 +310,4 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 - [ ] Error messages are user-friendly (no technical details)
 - [ ] An entity with an ID and a name uses the format `"ID (name)"`
 - [ ] Code formatting: `);` on new line, aligned with statement start
+- [ ] The changed projects build, and the report gives the result line of the last build

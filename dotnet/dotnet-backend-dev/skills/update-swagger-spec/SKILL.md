@@ -212,6 +212,8 @@ If you build the project and the auto-generated files are not updated:
 
 ### 1. Modify the OpenAPI Spec
 
+Every operation lists the `500` response. Without `500` in the spec, some generated client code can treat an unhandled server exception as a client failure.
+
 Edit the primary spec (for example, `src/{ProjectName}.WebApi/Spec/ApiDefinition/swagger.json`):
 
 ```json
@@ -343,162 +345,13 @@ public async Task GetStoreConfiguration_ShouldReturnConfiguration()
 
 **See [create-tests](../create-tests/SKILL.md) for testing patterns.**
 
+### 7. Build Again
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. The build of step 3 can fail until step 4 adds the controller, so this loop runs at the end. Do not edit a generated file to fix an error. An error in generated code counts as an error in the changed code. Fix it in the spec. If the build does not update the generated files, follow the [stop-and-ask rule](#if-the-build-does-not-update-auto-generated-files).
+
 ## Common Patterns
 
-### Async Operations (Session-Based)
-
-For long-running operations, return `202 Accepted` with session reference:
-
-```json
-{
-  "post": {
-    "summary": "[TBD] Initiates retail store onboarding",
-    "responses": {
-      "202": {
-        "description": "[TBD] Onboarding started successfully",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/SessionReference"
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### List Operations with Filtering
-
-```json
-{
-  "get": {
-    "summary": "[TBD] Retrieves retail stores with optional filtering",
-    "parameters": [
-      {
-        "name": "organizationId",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "description": "[TBD] Filter by partner organization ID"
-      },
-      {
-        "name": "status",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "$ref": "#/components/schemas/StoreStatus"
-        },
-        "description": "[TBD] Filter by store status"
-      }
-    ]
-  }
-}
-```
-
-### Enums
-
-```json
-{
-  "components": {
-    "schemas": {
-      "StoreStatus": {
-        "type": "string",
-        "description": "[TBD] Current status of a retail store",
-        "enum": [
-          "Onboarding",
-          "Active",
-          "Updating",
-          "Closing",
-          "Closed",
-          "Failed"
-        ]
-      }
-    }
-  }
-}
-```
-
-### Error Responses
-
-Always include standard error responses. Every operation must document the `500` response. If the service returns `503` for its server errors, the operation still lists `500`. Without `500` in the spec, some generated client code can treat an unhandled server exception as a client failure. The shorter examples in this file show only some responses, but each real operation must list `500`.
-
-```json
-{
-  "responses": {
-    "400": {
-      "description": "[TBD] Invalid request parameters",
-      "content": {
-        "application/json": {
-          "schema": {
-            "$ref": "#/components/schemas/ProblemDetails"
-          }
-        }
-      }
-    },
-    "404": {
-      "description": "[TBD] Resource not found"
-    },
-    "500": {
-      "description": "[TBD] Internal server error",
-      "content": {
-        "application/json": {
-          "schema": {
-            "$ref": "#/components/schemas/ProblemDetails"
-          }
-        }
-      }
-    },
-    "503": {
-      "description": "[TBD] Service unavailable",
-      "content": {
-        "application/json": {
-          "schema": {
-            "$ref": "#/components/schemas/ProblemDetails"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-## External Service Clients (OpenAPI YAML)
-
-For external services (for example, a customer-portal API), use YAML format:
-
-**File**: for example, `src/Clients/{ProjectName}.{ExternalService}.Client/Spec/ApiDefinition/swagger.yml`
-
-```yaml
-openapi: 3.0.1
-info:
-  title: MyService Customer Portal OpenAPI
-  version: v1
-paths:
-  /api/customer-portal/retail-stores/getUsage/{orgId}:
-    get:
-      tags:
-        - Stores
-      summary: Retrieves subscription usage for an organization
-      parameters:
-        - name: orgId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Successfully retrieved usage data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsageResponse'
-```
+Read [references/common-patterns.md](references/common-patterns.md) for these cases: a session-based operation, a list filter, an enum, the error responses, or the spec of an external client.
 
 ## Troubleshooting
 
@@ -531,6 +384,7 @@ If the controller implementation does not match the generated interface:
 - [ ] Implemented controller interface (see create-controller skill)
 - [ ] Created integration tests using generated client
 - [ ] Each long-running operation documented with the session-based pattern
+- [ ] The changed projects build, and the report gives the result line of the last build
 
 ## Related Skills
 

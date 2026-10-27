@@ -237,6 +237,10 @@ Register in `ServiceCollectionExtensions.cs`:
 services.AddScoped<I{Service}{Feature}Client, {Service}{Feature}Client>();
 ```
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. After three failed fix attempts, or for an error outside the changed code, stop and report the last errors. Report the result line of the last build. Do not edit a generated file to fix an error. If an error names a member that a generated file lacks, the spec lacks the member, or the generator did not run. Add a missing member to the spec. Do not change the calling code for such an error. If the build does not update the generated client code, follow the [stop-and-ask rule](../update-swagger-spec/SKILL.md#if-the-build-does-not-update-auto-generated-files) of `update-swagger-spec`.
+
 ## Tests
 
 If an external client contains business logic or complex transformations, create unit tests for it.
@@ -256,3 +260,4 @@ If an external client contains business logic or complex transformations, create
 - [ ] Returns external service models (not domain models)
 - [ ] Domain → External conversion only (if needed, see [model-mapping](../model-mapping/SKILL.md))
 - [ ] DI registration
+- [ ] The changed projects build, and the report gives the result line of the last build
