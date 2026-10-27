@@ -109,6 +109,54 @@ With automatic updates, Claude Code refreshes the marketplace in the background 
 
 The background update does not ask for credentials. The repository is private, so the update works only with a stored git credential or with an SSH key in `ssh-agent`. The pages [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) and [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) give the details.
 
+## Rules for push, force push, and --no-verify
+
+The skills of this marketplace ask before each push. They never force-push, and they never skip hooks with `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
+
+```json
+{
+  "permissions": {
+    "deny": [
+        "Bash(git push --force*)",
+        "Bash(git push * --force*)",
+        "Bash(git push -f*)",
+        "Bash(git push * -f*)",
+        "Bash(git -C * push --force*)",
+        "Bash(git -C * push * --force*)",
+        "Bash(git -C * push -f*)",
+        "Bash(git -C * push * -f*)",
+        "Bash(* --no-verify*)",
+        "PowerShell(git push --force*)",
+        "PowerShell(git push * --force*)",
+        "PowerShell(git push -f*)",
+        "PowerShell(git push * -f*)",
+        "PowerShell(git -C * push --force*)",
+        "PowerShell(git -C * push * --force*)",
+        "PowerShell(git -C * push -f*)",
+        "PowerShell(git -C * push * -f*)",
+        "PowerShell(* --no-verify*)"
+    ]
+  }
+}
+```
+
+You can also add ask rules for a push. With these rules, Claude Code prompts you for each push. The prompt appears also in an `--autonomous` run, and also after you said "push". If you want that cost, add them.
+
+```json
+{
+  "permissions": {
+    "ask": [
+        "Bash(git push *)",
+        "Bash(git -C * push *)",
+        "PowerShell(git push *)",
+        "PowerShell(git -C * push *)"
+    ]
+  }
+}
+```
+
+These rules guard the usual form of a command. They are not a security boundary. A rule matches the command text that Claude writes. It does not match other forms, for example `git -c push.default=current push`, a `+` refspec such as `git push origin +main`, or `git commit -n`. A force push that you want is blocked by the deny rules. Run it in your own terminal. See the [permissions page](https://code.claude.com/docs/en/permissions) of the Claude Code documentation for the rule syntax.
+
 ## Authoring reference
 
 Only readers who modify this marketplace or add new plugins need this section. The official documentation describes the files of a marketplace and of a plugin. This section gives only the rules of this repository.
