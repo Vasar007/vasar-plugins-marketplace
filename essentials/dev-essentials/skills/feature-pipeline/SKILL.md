@@ -72,6 +72,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Task Comment #1 | Post it at Human Approve #2 | Post it now | Post it now |
 | Fix round for blocking issues | Run one round with no stop | Ask before each round | Same as default |
 | Human Approve #2 (posts, push, PR) | Stop | Stop | No stop, unless blocking issues remain after the fix round |
+| `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask | Ask | Create the branch of sub-step 5 in `references/setup.md` |
 | Step 10: worktree removal | Only after the PR merges, or on a request of the user | Same | Same |
 | Step 10: the PR lookup fails | Stop and ask | Same | Skip the archive and the worktree removal, and report the lookup |
 | Fable on the own initiative of the agent | Use Opus, and name the stage in the final report | Ask before each Fable dispatch | Same as default |

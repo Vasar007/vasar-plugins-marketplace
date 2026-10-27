@@ -98,7 +98,13 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
    With `--no-worktree`:
 
    - Set `{WORKTREE_PATH}` to the current working directory (the repository root).
-   - Use the current branch as it is. Do not create or switch branches.
+   - Find the default branch with `git -C "{WORKTREE_PATH}" symbolic-ref --quiet --short refs/remotes/origin/HEAD`, and take the name after `origin/`. If the ref does not exist, take the name from the `ref: refs/heads/<name>` line of `git -C "{WORKTREE_PATH}" ls-remote --symref origin HEAD`. If that also gives no name, treat `main` or `master` as the default branch.
+   - If `git -C "{WORKTREE_PATH}" branch --show-current` prints nothing, the HEAD is detached, and the push of Step 9 fails later.
+   - If the HEAD is detached, do not commit on it. If the current branch is the default branch or the base branch of the project context, do not commit on it either.
+   - With `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it.
+   - In the default mode and with `--interactive`, stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
+   - With `--dry-run`, report the result, and switch nothing.
+   - In every other case, use the current branch as it is. Do not create or switch branches.
    - Log: "Running in-place on branch `<current-branch>`".
    - Skip the worktree creation, the branch fetch, and the copy of `settings.local.json`.
 
