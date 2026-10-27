@@ -2,6 +2,16 @@
 
 Use `BaseConfigurationBindingTests<T>` for testing that configuration options classes correctly bind from JSON and environment variables.
 
+## Contents
+
+- Base Class
+- Required Override
+- Available Helper Methods
+- Base Class Definition
+- Complete Example
+- Test Patterns
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Class

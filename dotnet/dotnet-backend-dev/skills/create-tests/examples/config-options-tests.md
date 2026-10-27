@@ -2,6 +2,16 @@
 
 Use `BaseValidatableObjectTests` for testing configuration option classes that implement `IValidatableObject`.
 
+## Contents
+
+- Base Class
+- Required Pattern
+- Available Assertion Methods
+- Complete Example
+- Standard Tests to Include
+- Nested Options Pattern
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Class
@@ -248,7 +258,7 @@ public sealed class NestedOptionsTests : BaseValidatableObjectTests
 
 1. **CreateDefaultOptions**: Use default constructor or `new T()` to get empty/default state
 
-2. **CreateValidOptions**: Provide ALL required values to pass validation
+2. **CreateValidOptions**: Provide all required values to pass validation
 
 3. **Use `with` expressions**: Cleanly create invalid variants from valid options
 

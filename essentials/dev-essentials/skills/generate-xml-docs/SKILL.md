@@ -8,9 +8,11 @@ when_to_use: Use it for missing XML docs, and for "add XML docs", "document this
 
 Generate XML documentation for C# types, methods, properties, and parameters following standard conventions.
 
+The examples guard parameters with the fluent extension style of a shared guard library, for example `request.ThrowIfNull()`. The same documentation rules apply to the guards of the .NET base library, such as `ArgumentNullException.ThrowIfNull(request)`.
+
 ## Required Documentation
 
-**ALL public, protected, and internal types, methods, and properties MUST have XML documentation** (except tests).
+**All public, protected, and internal types, methods, and properties must have XML documentation** (except tests).
 
 This includes:
 
@@ -263,7 +265,7 @@ Use `<remarks>` for:
 
 ## Key Rules
 
-1. **ALL public and protected members, and all internal types, methods, and properties, need XML docs** (except tests)
+1. **All public and protected members, and all internal types, methods, and properties, need XML docs** (except tests)
 2. **Document exceptions based on validation** in method body
 3. **Use standard formats** for common validation exceptions
 4. **Include CancellationToken docs**: if a method has a `CancellationToken` parameter, document it with the standard text
@@ -271,7 +273,7 @@ Use `<remarks>` for:
 6. **Put header comments in `<remarks>`** section
 7. **Be concise but complete**: describe what, not how
 8. **Use proper grammar**: capitalize, punctuate correctly
-9. **Do NOT delete any constants, fields, methods, or properties**: only add or edit documentation. Fix or replace invalid or incorrect existing XML docs.
+9. **Do not delete any constants, fields, methods, or properties**: only add or edit documentation. Fix or replace invalid or incorrect existing XML docs.
 10. **Search for examples**: if you find no specific rule, search the project for similar classes and follow their documentation patterns
 
 ## Checklist

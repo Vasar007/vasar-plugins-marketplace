@@ -2,6 +2,16 @@
 
 Use test model generators to create consistent, valid test data. **Never create test data inline.** Always use generators. A test can need fixed values for its assertion, for example for a sort order. Pass these values to a generator `Create{Model}` method through a private helper of the test class. The one exception is an options record in a configuration test. Its test class builds the record in a `CreateValidOptions()` helper, and each test changes one value with a `with` expression. The example for the validation of configuration options shows this.
 
+## Contents
+
+- Generator Pattern
+- Generator Structure
+- Naming Conventions
+- Usage in Tests
+- Generator Composition
+- Parameterized Generation
+- Key Points
+
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
 ## Generator Pattern

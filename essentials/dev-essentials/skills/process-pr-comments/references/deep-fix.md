@@ -6,7 +6,7 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 
 ## `deep-fix` override
 
-`deep-fix=<commentId>` (or `T#<commentId>`) can name THIS thread. If the thread is eligible (see below), it does NOT get its normal action from the tag matrix of Phase 3. It goes to **Stage 3** instead. For an automated-review finding, this happens after Phase 3b (see Phase 3b step 5, the second exit). `deep-fix` names exactly one thread per invocation. A human named the thread, and that is the sign of eligibility. No size or tag list applies, only the hard list below.
+`deep-fix=<commentId>` (or `T#<commentId>`) can name this thread. If the thread is eligible (see below), it does not get its normal action from the tag matrix of Phase 3. It goes to **Stage 3** instead. For an automated-review finding, this happens after Phase 3b (see Phase 3b step 5, the second exit). `deep-fix` names exactly one thread per invocation. A human named the thread, and that is the sign of eligibility. No size or tag list applies, only the hard list below.
 
 **Hard ineligibility**. For these cases, decline the `deep-fix` routing with a one-line reason. The thread then gets its normal Phase 3 or Phase 3b classification.
 
@@ -23,9 +23,9 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 
 ## Place in the cycle
 
-An eligible `deep-fix` thread does NOT run Phase 4 steps 1 to 4. Stage 3 handles it separately, LAST in the cycle. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs BEFORE the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
+An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles it separately, last in the cycle. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs before the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
 
-**Hand-back of Stage 2**. Stage 3 runs in the orchestrating session, not in a dispatch. So on such a cycle, **the dispatch of Stage 2 ENDS** after steps 1 to 4 of every other thread. For a run with `squash`, it ends after the `squash` commit. It always ends BEFORE the push. Stage 2 returns these items to the orchestrating session:
+**Hand-back of Stage 2**. Stage 3 runs in the orchestrating session, not in a dispatch. So on such a cycle, **the dispatch of Stage 2 ends** after steps 1 to 4 of every other thread. For a run with `squash`, it ends after the `squash` commit. It always ends before the push. Stage 2 returns these items to the orchestrating session:
 
 - the `commentId` of the `deep-fix` thread (at minimum)
 - its `filePath` and line range, and the text of the reviewer word for word
@@ -37,14 +37,14 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 
 ## Stage 3 — `deep-fix` brief and outcomes
 
-**Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that ABSOLUTE path as the worktree path in the brief below. Then find out whether `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, STOP. Ask the user before you check out or switch a branch, or create anything.
+**Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that absolute path as the worktree path in the brief below. Then find out whether `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, stop. Ask the user before you check out or switch a branch, or create anything.
 
 **Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the Stage 2 brief, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). It never goes to a subagent. That command can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
 
 1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That command needs these two facts for its pre-existing-branch verification step.
 2. `--base=<baseRefName>`: the target branch of the PR, which Phase 1 cached.
 3. `--commit-mode=single` and `--rounds=<deep-fix-rounds>`.
-4. **Commit subject**. The one squash commit MUST use the format of Phase 4 step 3 of this skill. The subject is `PR #<prId> T#<commentId>: <subject>`. The body explains *why* and names the point of the reviewer. The commit ends with the `Co-Authored-By` trailer.
+4. **Commit subject**. The one squash commit must use the format of Phase 4 step 3 of this skill. The subject is `PR #<prId> T#<commentId>: <subject>`. The body explains *why* and names the point of the reviewer. The commit ends with the `Co-Authored-By` trailer.
 5. **Squash window**. No other commit lands on this branch between the recorded `HEAD` and the squash (see "Place in the cycle"). The safety stop of that command for the squash base can still trip. Then let it stop and report. Do not override it.
 6. **Scope**. The fix stays inside the files and areas that the PR diff already touches, and it addresses only this thread.
 7. **Artifacts**. Never stage or commit the research, plan, or report artifacts of that command. Never put their paths in the thread reply or the commit message. Pipeline-internal artifacts stay out of anything that ships (`dev-essentials:engineering-discipline` Rule 3).
@@ -59,7 +59,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 | --- | --- | --- | --- | --- |
 | `stop-clean` | Yes (one squash SHA) | Green | The "Implemented fix" template, plus one clause that names the arc | Yes, by the normal rule (`commit-push-resolve.md`) |
 | `stop-max-rounds` | Yes | Green | The "Implemented fix" template, plus an explicit line on the open work | No. It stays open with `openFindingsMarker: true`. |
-| `stop-blocked` | Yes, red (the commits of the arc stay on the unpushed tip) | Red | Nothing by default. STOP and ask the user. | No |
+| `stop-blocked` | Yes, red (the commits of the arc stay on the unpushed tip) | Red | Nothing by default. Stop and ask the user. | No |
 
 After the push of the cycle lands, the orchestrating session runs the resolve step of `commit-push-resolve.md` § "Resolve threads and report". It does this for every fixed thread of the cycle, the `deep-fix` thread included. It does this in one more one-shot GitHub dispatch (Rule 4).
 
@@ -87,8 +87,8 @@ Never link the report artifact of that command from either reply. It is a pipeli
 
 **`stop-blocked`: cancel the push of the cycle**. With `--commit-mode=single`, `/research-implement-review-report` makes the commits of each review-loop round on the PR source branch. It makes them before it can know that the build is red. The rule of Phase 4 step 1 (no commit after a failed build) cannot stop commits that the arc of that command already made. So:
 
-- Do NOT post a `**[AI]**` "Fixed" reply. Do NOT post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
-- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. STOP, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
+- Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
+- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
 - In Phase 5, report it as `deep-fix — blocked (build red, not pushed)`.
 - Offer the two real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
 

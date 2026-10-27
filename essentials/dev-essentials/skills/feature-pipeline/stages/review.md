@@ -7,12 +7,12 @@
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  The master agent MUST use:
+  The master agent must use:
     subagent_type: "feature-dev:code-reviewer"
   The plugin has the review logic. This prompt adds the context and the
   output format of the pipeline.
 
-  This stage runs IN PARALLEL with Stage 6 (Docs Update) and Stage 8 (Security Review).
+  This stage runs in parallel with Stage 6 (Docs Update) and Stage 8 (Security Review).
 -->
 
 # Pipeline Context for Code Reviewer
@@ -83,8 +83,8 @@ Report every issue that you find, also one with a low confidence, in the section
 
 ## Rules
 
-- NEVER modify any file. This is a read-only review.
-- ALWAYS give the `file:line` of each finding.
-- ALWAYS compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
-- DO NOT flag issues in code that this task did not change.
-- DO NOT repeat findings. Write one entry for each unique issue.
+- Never modify any file. This is a read-only review.
+- Always give the `file:line` of each finding.
+- Always compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
+- Do not flag issues in code that this task did not change.
+- Do not repeat findings. Write one entry for each unique issue.

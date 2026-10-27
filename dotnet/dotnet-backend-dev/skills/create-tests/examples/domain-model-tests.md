@@ -2,7 +2,16 @@
 
 Use `BaseEqualityMemberTests<T>` for **all** domain models implementing `IEquatable<T>` and `IEqualityOperators<T, T, Boolean>`.
 
-**MANDATORY:** The test class of a model that implements these interfaces MUST inherit from `BaseEqualityMemberTests<T>`. Do NOT inherit from `BaseTest` or `BaseMockTest` for such models.
+## Contents
+
+- Base Class
+- Required Override
+- Optional Overrides (Mutators)
+- Complete Example (Simple record: all fields affect equality)
+- Complete Example (Complex model: some fields are excluded from equality)
+- Key Points
+
+The test class of a model that implements these interfaces must inherit from `BaseEqualityMemberTests<T>`. Do not inherit from `BaseTest` or `BaseMockTest` for such models.
 
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
@@ -33,7 +42,7 @@ There is only **one** abstract method to implement:
 protected abstract TValue CreateUniqueValue();
 ```
 
-**NOTE:** The base class already provides `CreateConstantValue()`. It caches the result of the first `CreateUniqueValue()` call. Do NOT override it.
+**NOTE:** The base class already provides `CreateConstantValue()`. It caches the result of the first `CreateUniqueValue()` call. Do not override it.
 
 ## Optional Overrides (Mutators)
 
@@ -178,7 +187,7 @@ public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments
 
 ## Complete Example (Complex model — some fields are excluded from equality)
 
-Override `GetValueMutatorsForEquality()` **only** for a model with fields that do NOT affect equality, for example mutable properties such as `Name` or `Status`:
+Override `GetValueMutatorsForEquality()` **only** for a model with fields that do not affect equality, for example mutable properties such as `Name` or `Status`:
 
 ```csharp
 // Copyright (c) Vasily Vasilyev
@@ -306,15 +315,15 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
 
 ## Key Points
 
-1. **MANDATORY inheritance**: a test for a model that implements `IEquatable<T>` and `IEqualityOperators` MUST use `BaseEqualityMemberTests<T>`
+1. **Inheritance**: a test for a model that implements `IEquatable<T>` and `IEqualityOperators` must use `BaseEqualityMemberTests<T>`
 
 2. **Only one abstract method**: `CreateUniqueValue()`. Each call must return a distinct instance (different equality-significant fields). The base class calls it several times to test inequality
 
-3. **`CreateConstantValue()`**: the base class provides it, and it returns the same cached instance. The base class uses it to test that identical instances are equal. Do NOT override it
+3. **`CreateConstantValue()`**: the base class provides it, and it returns the same cached instance. The base class uses it to test that identical instances are equal. Do not override it
 
 4. **Mutators for inequality**: override `GetValueMutatorsForInequality()` to yield `with` expressions that change one equality-significant field at a time. The base class asserts that these give unequal instances
 
-5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do NOT override it
+5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do not override it
 
 6. **Additional tests**: add constructor, `ToString`, and method behavior tests as test methods next to the automatic equality tests
 

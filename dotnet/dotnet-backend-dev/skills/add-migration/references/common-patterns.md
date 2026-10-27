@@ -2,6 +2,14 @@
 
 Code patterns for the `ExecuteAsync` method of a migration. Step 5 of `SKILL.md` points here.
 
+## Contents
+
+- Grouping Records by Key
+- JSON Deserialization in Migrations
+- Progress Logging
+- Removing Legacy Data After Migration
+- Batch Processing (Large Datasets)
+
 ## Grouping Records by Key
 
 ```csharp

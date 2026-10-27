@@ -2,6 +2,14 @@
 
 This is a real audit report of the skill `dev-essentials:bug-hunt`, written in step 1 of an earlier run. It keeps 7 of its 11 items in full. The Summary and the executor section still name all 11 items. Line numbers refer to the version of the skill at that time. Personal paths and the names of private notes are replaced with placeholders such as `<repo>` and `<notes>`. Use it as a model of the form only. If it differs from [../references/audit-report-format.md](../references/audit-report-format.md), for example in its sources, its section names, or its line ends, the format file wins.
 
+## Contents
+
+- Sources
+- Summary
+- Items
+- Executor section
+- Not changed on purpose
+
 Target: the `bug-hunt` skill and its three agents in `essentials/dev-essentials/` at the base commit. This audit proposes changes and a plan. It does not change any plugin file.
 
 ## Sources

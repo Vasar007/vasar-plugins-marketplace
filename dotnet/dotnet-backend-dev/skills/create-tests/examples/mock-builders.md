@@ -2,11 +2,19 @@
 
 Use Test Mock Builders for every interface mock, instead of an inline setup with the test data library (for example, `Fixture.Freeze<T>()` in AutoFixture).
 
+## Contents
+
+- When to Use Mock Builders
+- Mock Builder Structure
+- Repository Mock Builder Example
+- Usage in Tests
+- Key Points
+
 The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
 ## When to Use Mock Builders
 
-**ALWAYS.** Mock Builders are **mandatory** for every interface mock, with no exceptions.
+**Always.** Mock Builders are **mandatory** for every interface mock, with no exceptions.
 
 A direct mock from the mocking library or the test data library is **strictly forbidden** in test fixtures and test cases. Examples are `Substitute.For<T>()`, `Fixture.Freeze<IInterface>()`, and `Fixture.Create<IInterface>()`. If a builder does not exist for the interface you need, create one first in `Tests.Common/Helpers/Mocks/{Feature}/`.
 
@@ -147,7 +155,7 @@ public sealed class TestCustomerAccountRepositoryBuilder
 
 ## Usage in Tests
 
-**IMPORTANT:** Test cases must NOT call builders or generators directly. All such calls must be wrapped in private helper methods.
+Test cases must not call builders or generators directly. All such calls must be wrapped in private helper methods.
 
 ```csharp
 [TestFixture]
@@ -219,7 +227,7 @@ public sealed class AccountSelectionServiceTests : BaseMockTest
 
 ## Key Points
 
-1. **Mandatory for ALL interface mocks**: never a direct mock from the mocking library or the test data library (for example, `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>`)
+1. **Mandatory for all interface mocks**: never a direct mock from the mocking library or the test data library (for example, `Substitute.For`, `Fixture.Freeze<IInterface>`, or `Fixture.Create<IInterface>`)
 
 2. **Fluent API**: Use builder pattern with method chaining: `.AddItem(x).AddItem(y).Build()`
 

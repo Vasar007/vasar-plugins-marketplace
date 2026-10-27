@@ -1,8 +1,18 @@
 # Domain Layer Conventions
 
+## Contents
+
+- No External Dependencies
+- Domain Models: Sealed Records
+- ID Wrapper Types
+- Domain Exceptions
+- Domain Enums
+- Domain Areas
+- Sensitive Data
+
 ## No External Dependencies
 
-The Domain layer has ZERO external dependencies. No references to Infrastructure, Application, WebApi, or external NuGet packages beyond the framework base.
+The Domain layer has zero external dependencies. No references to Infrastructure, Application, WebApi, or external NuGet packages beyond the framework base.
 
 ## Domain Models — Sealed Records
 
@@ -29,12 +39,12 @@ Key requirements:
 
 - `[Required]` on all required properties.
 - `{ get; init; }` pattern.
-- Constructor validates ALL inputs: `ThrowIfNull()`, `ThrowIfNullOrWhiteSpace()`, `ThrowIfUndefined()`.
+- Constructor validates all inputs: `ThrowIfNull()`, `ThrowIfNullOrWhiteSpace()`, `ThrowIfUndefined()`.
 - `IStaticEquatable<T>` is a framework-internal marker interface used by the project's shared library (`MyApp.Framework.*`). If your project does not provide this interface, substitute `IEquatable<T>, IEqualityOperators<T, T, Boolean>`. Records still provide `Equals`, `GetHashCode`, and `ToString` automatically.
 
 ### When to override `Equals` / `GetHashCode` / `ToString`
 
-Records already generate correct implementations for all three. **Do NOT override** them by default. Override them only in these cases:
+Records already generate correct implementations for all three. **Do not override** them by default. Override them only in these cases:
 
 - **A property's type does not implement value equality** (most commonly a reference-typed collection like `IReadOnlyList<T>` or `IDictionary<K, V>`, which uses reference equality by default). In that case, override `Equals` and `GetHashCode` together. Compare the collection element-wise in `Equals`, and use the same elements in `GetHashCode`.
 - **A property must be intentionally excluded from equality**, for example a timestamp or an audit field. Two models that differ only in this field are equal.

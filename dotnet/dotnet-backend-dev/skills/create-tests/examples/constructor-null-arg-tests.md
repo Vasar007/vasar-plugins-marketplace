@@ -2,6 +2,14 @@
 
 For a service or hosted service with one or more constructor dependencies, null-argument coverage uses exactly **two** tests: one positive and one negative. With one dependency, the `List<Action>` has one entry. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe test cases (for example, `[TestCase]` parameters in NUnit).
 
+## Contents
+
+- Pattern overview
+- Why the helper must be required-positional, not `dep ?? Create{Mock}()`
+- Canonical example
+- Anti-pattern: boolean stripes
+- Related gate: the same pattern applies to methods, not just constructors
+
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
 ## Pattern overview
@@ -139,7 +147,7 @@ public sealed class OrderProcessingServiceTests : BaseMockTest
 
 ### Key details
 
-- Each entry in the `actions` list calls `CreateServiceWithAllArguments` with the SAME `Create{Mock}()` helpers and puts `null!` into exactly one positional slot. A new dependency adds one line.
+- Each entry in the `actions` list calls `CreateServiceWithAllArguments` with the same `Create{Mock}()` helpers and puts `null!` into exactly one positional slot. A new dependency adds one line.
 - The list holds lambdas, so each `Create{Mock}()` call is deferred to the run of its action. No shared valid instance exists that can hide a null substitution.
 - The `#region Constructor Tests` block is at the top of the class, before the regions for features.
 - `CreateServiceWithAllArguments` is the ONE required-positional helper in the file. The other `Create{Mock}` helpers here (`CreateRepository`, `CreateOrderService`, and the others) follow the normal convention. If a test case needs another configuration of a mock, the helper takes optional parameters and applies them with `.ApplyIf(...)`. See [SKILL.md](../SKILL.md) rule 4.

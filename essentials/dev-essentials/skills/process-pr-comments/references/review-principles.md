@@ -2,14 +2,18 @@
 
 These principles come from the series *How to Do Code Reviews Like a Human* by Michael Lynch (parts 1 and 2). This file adapts them to the **author side**, which is the side of this skill. The skill replies to reviewers for the author. Read this file before you write any reply.
 
-Contents: ten principles, the anti-patterns, and a short list of questions before you post a reply.
-
 Source articles:
 
 - <https://mtlynch.io/human-code-reviews-1/>
 - <https://mtlynch.io/human-code-reviews-2/>
 
 The examples below show the tone. The exact reply templates are in `commit-push-resolve.md` § "Reply templates" and in `automated-review-verification.md`.
+
+## Contents
+
+- Principles: applied to author-side replies
+- Anti-patterns
+- Quick sanity check before posting a reply
 
 ## Principles — applied to author-side replies
 

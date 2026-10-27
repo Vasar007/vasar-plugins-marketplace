@@ -2,6 +2,13 @@
 
 Tests for primitive wrappers (string/GUID/integer IDs and value objects) using base wrapper test classes from `MyApp.OnlyForTests.Basic.Wrappers`.
 
+## Contents
+
+- Base Classes Available
+- GUID Wrapper Pattern
+- String Wrapper Pattern
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Classes Available

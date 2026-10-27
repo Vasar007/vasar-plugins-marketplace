@@ -2,6 +2,16 @@
 
 Phase 4 of `SKILL.md` uses this file. All severity and type tokens in this file are the tokens of the section "Severity and type taxonomy" of `SKILL.md`, word for word. Do not invent new tokens.
 
+## Contents
+
+- Severity scale
+- Default `--skip` value and token rules
+- Action mapping
+- The `blocking` flag: severity-independent
+- Triage-presentation format (Phase 4)
+- `--skip` interaction matrix
+- Type taxonomy
+
 ---
 
 ## Severity scale

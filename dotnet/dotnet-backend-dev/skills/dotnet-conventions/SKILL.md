@@ -23,3 +23,5 @@ Reference set for .NET Clean Architecture backends. Each file covers one topic a
 ## Project-specific details
 
 Examples in each file use generic placeholder names. `MyService` is the service, and `ShippingOptions` is an options class. `Store`, `Order`, and `Customer` are domain entities. `Oms`, `Ps`, `Inv`, and `Cds` are prefixes of external services. In your code, use the actual names of your repo. Do not copy the placeholder names. If your project does not have a framework type of these files, use the closest standard .NET equivalent. For example, use `IEquatable<T>, IEqualityOperators<T, T, Boolean>` for `IStaticEquatable<T>`, and `AbstractValidator<T>` from FluentValidation for `Base*ServiceOptionsValidator<T>`.
+
+Many templates of this plugin use a private shared framework: the `MyApp.Framework` namespaces, and `MyApp.OnlyForTests` in test code. If the repo does not reference that framework, follow the closest existing code of the repo, or use the standard .NET equivalent. Name each gap in the final report.

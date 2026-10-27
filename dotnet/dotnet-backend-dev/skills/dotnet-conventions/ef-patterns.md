@@ -45,7 +45,7 @@ The service's EF context lives in `Infrastructure/Persistence/` and is named aft
 - Interfaces in the Application layer extend `IRepository<TEntity, TKey>` (or dual-key variant) from the framework.
 - Implementations in the Infrastructure layer.
 - Repositories are injected directly through the constructor. Do **not** use `IUnitOfWork`.
-- Repositories call `SaveChangesAsync` internally after every mutation. Callers must NOT call it.
+- Repositories call `SaveChangesAsync` internally after every mutation. Callers must not call it.
 - Repositories create mappers internally with `new TMapper()`. Do **not** use `IEntityDomainMappingService`.
 - Use the Find + Update pattern. Do not call `UpsertAsync` directly.
 

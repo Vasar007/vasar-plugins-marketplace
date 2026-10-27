@@ -62,31 +62,37 @@ The stage names are the stage keys in the Overview table. The valid models are `
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag.
+This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
 
-- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
-- `--interactive`: every gate stops and waits for the user, as the gate text says.
-- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+| Gate | Default | `--interactive` | `--autonomous` |
+| --- | --- | --- | --- |
+| Human Approve #1 | Report the paths, and continue | Stop | Same as default |
+| Human Approve #1: open decisions in `spec.md` | Ask | Ask | Decide, and write each one into `spec.md` |
+| Stage questions of Stages 1 and 2 | Ask | Ask | Take the recommended option |
+| Task Comment #1 | Post it at Human Approve #2 | Post it now | Post it now |
+| Fix round for blocking issues | Run one round with no stop | Ask before each round | Same as default |
+| Human Approve #2 (posts, push, PR) | Stop | Stop | No stop, unless blocking issues remain after the fix round |
+| Step 10: worktree removal | Only after the PR merges, or on a request of the user | Same | Same |
+| Step 10: the PR lookup fails | Stop and ask | Same | Skip the archive and the worktree removal, and report the lookup |
+| Fable on the own initiative of the agent | Use Opus, and name the stage in the final report | Ask before each Fable dispatch | Same as default |
 
-These rules apply in all modes:
+These rules apply in every mode:
 
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
-- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
-- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests`, with `head: "<owner>:<branch>"` and `state: "all"`. `<owner>` is the `owner` value of the call. The default state lists open pull requests only, and GitHub ignores a `head` value without the `<owner>:` prefix. Then read the pull request with `pull_request_read` (`method: "get"`), and make sure that `merged` is `true`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
-- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
+- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
 - Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
+- With `--autonomous`, do not destroy git work that has no other copy. Examples: a branch with unmerged commits, or a worktree with uncommitted changes. List such an action in the final report instead.
 
 ## Pipeline Discipline
 
-These three safeguards apply to every stage. A stage subagent never sees this file. So "Stage Launch" step 4 copies the three safeguards into the prompt of each stage, and the subagents MUST follow them too.
+These three safeguards apply to every stage. A stage subagent never sees this file. So "Stage Launch" step 4 copies the three safeguards into the prompt of each stage, and the subagents must follow them too.
 
 ### Safeguard 1: claims about Claude Code
 
@@ -162,7 +168,7 @@ Before you launch a stage, do these steps in order:
 
 After each stage, run the output check (see "Output Validation"). Then update the checkpoint (see "Checkpoints").
 
-Read the final reply of each stage before the output check. A stage can report a STOP, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy"): ask the user in every mode, then run the stage again or stop.
+Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy"): ask the user in every mode, then run the stage again or stop.
 
 The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file. This includes a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
 
@@ -235,11 +241,11 @@ With `--interactive`, show the user:
 
 Then ask this question: "Approve spec and proceed to implementation? (yes / edit feedback)".
 
-> **Anti-bypass clause (with `--interactive`).** This gate stands on its own. A general instruction to work without clarifying questions does **NOT** let you skip this gate. The same holds for an instruction to "make the reasonable call and continue". Such an instruction settles an ambiguity. This gate is a consent point that exists to get the explicit approval of the user.
+> **Anti-bypass clause (with `--interactive`).** This gate stands on its own. A general instruction to work without clarifying questions does **not** let you skip this gate. The same holds for an instruction to "make the reasonable call and continue". Such an instruction settles an ambiguity. This gate is a consent point that exists to get the explicit approval of the user.
 >
 > **Counts as explicit approval to skip the gate.** Only these phrases or a clear equivalent count. The user must type one in this session: "approve all gates", "auto-approve the pipeline", "skip Human Approve #1/#2", "I trust you, run end-to-end".
 >
-> **Does NOT count**, and the gate stays armed: "no clarifying questions" and "make the reasonable call". A bare "continue" or "ok" from an unrelated context does not count either. Neither does an approval that the agent infers or makes up.
+> **Does not count**, and the gate stays armed: "no clarifying questions" and "make the reasonable call". A bare "continue" or "ok" from an unrelated context does not count either. Neither does an approval that the agent infers or makes up.
 >
 > At each gate, use `AskUserQuestion`, or stop and wait. Never act on a paraphrase of "the user said to continue".
 

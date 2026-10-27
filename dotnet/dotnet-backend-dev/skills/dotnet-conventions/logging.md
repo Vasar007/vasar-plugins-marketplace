@@ -1,5 +1,13 @@
 # Logging Conventions
 
+## Contents
+
+- Two Logging Channels
+- ILogger Patterns
+- ISessionLogRepository Patterns
+- Dual Logging Example
+- Sensitive Data in Logs
+
 ## Two Logging Channels
 
 | Channel                 | Audience              | Persistence                    | Purpose                             |
@@ -65,7 +73,7 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 
 ### Messages from StringResources
 
-All user-facing session log messages MUST come from the service's `StringResources.resx`. Use `.SafeFormat()` for parameters:
+All user-facing session log messages must come from the service's `StringResources.resx`. Use `.SafeFormat()` for parameters:
 
 ```csharp
 await _sessionLogRepository.CreateInformationAsync(
@@ -106,6 +114,6 @@ await _sessionLogRepository.CreateInformationAsync(
 
 ## Sensitive Data in Logs
 
-- **NEVER** log passwords, tokens, secrets, or private keys via either channel.
+- **Never** log passwords, tokens, secrets, or private keys via either channel.
 - Log only safe identifiers: resource IDs, tenant IDs, region names, usernames (without passwords).
 - See `security.md` for `ToString()` erasing patterns with `Constants.DefaultErasedPlaceholder`.

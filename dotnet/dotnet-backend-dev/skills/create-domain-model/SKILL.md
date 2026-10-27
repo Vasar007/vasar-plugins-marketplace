@@ -8,6 +8,8 @@ when_to_use: Use it for "create domain model", "add domain record", or "new enti
 
 Create domain models in your domain project (for example, `src/{ProjectName}.Domain`) following project conventions.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Structure
 
 Domain models are `sealed record` types that implement `IStaticEquatable<T>`. This marker interface comes from the internal framework of the project. If your project does not have it, use `IEquatable<T>, IEqualityOperators<T, T, Boolean>` instead:
@@ -117,7 +119,7 @@ public sealed record CancelledOrderItem : IStaticEquatable<CancelledOrderItem>
 
 ## Validation Rules
 
-- Constructor parameters must validate ALL inputs
+- Constructor parameters must validate all inputs
 - Use `ThrowIfNull()` not null-coalescing for explicit errors
 - If you override `Equals`, `GetHashCode` must use the same field set
 - If you override `ToString`, it must include all fields, for debugging. For each field with sensitive information, write the erased placeholder as its value (see [Sensitive Information](#sensitive-information))

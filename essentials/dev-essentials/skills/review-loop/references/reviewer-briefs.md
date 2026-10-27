@@ -2,13 +2,25 @@
 
 Phase 3 of `review-loop` builds each reviewer prompt from this file. Paste the Common Rules, the Full format, and the brief that matches the `target=` value, with the `<PLACEHOLDERS>` filled in. The reviewer does not see `SKILL.md` or this file, so paste the text word for word.
 
-Contents: Common Rules, Full format, the eight briefs (one for each `target=` value), and Customization points.
+## Contents
+
+- Common Rules
+- Full format
+- `branch`: Full branch diff against base
+- `pr <id>`: Pull request diff
+- `commits <N>` / `last-N`: Last N commits only
+- `diff <range>`: Arbitrary git diff range
+- `file <path>`: Full file review (not a diff)
+- `class <FQN>`: Named class review
+- `method <FQN>`: Named method review
+- `spec <path>`: Specification / design document review
+- Customization points
 
 ---
 
 ## Common Rules
 
-Every reviewer report MUST follow these rules. Each brief below ends with "Apply common rules."
+Every reviewer report must follow these rules. Each brief below ends with "Apply common rules."
 
 **Output format**: use the Full format below exactly. Do not invent a format that is almost the same.
 
@@ -145,7 +157,7 @@ The diff below comes from PR `<PR_ID>`. The remote-tracking refs `origin/<TARGET
 6. **Contract breaks**. Changes of the REST API shape, interface violations, changes of event schemas.
 7. **Test coverage**. Critical paths without tests, and assertions that test nothing meaningful.
 
-**Coherence check (mandatory):** find out whether the changes are coherent across commits, and report each break as a finding. A later commit can hide a regression from an earlier commit. Run `git log origin/<TARGET_BRANCH>..origin/pull/<PR_ID>/head` to see the commit sequence. Do NOT use `git log <BASE>..HEAD`, because `HEAD` is not the source branch of the PR here.
+**Coherence check (mandatory):** find out whether the changes are coherent across commits, and report each break as a finding. A later commit can hide a regression from an earlier commit. Run `git log origin/<TARGET_BRANCH>..origin/pull/<PR_ID>/head` to see the commit sequence. Do not use `git log <BASE>..HEAD`, because `HEAD` is not the source branch of the PR here.
 
 **Scope hint:** `<SCOPE_HINT>`. This is a focus note, not a hard boundary. If the hint is empty, leave this line out.
 

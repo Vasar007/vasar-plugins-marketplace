@@ -2,7 +2,16 @@
 
 This file has the state that `process-pr-comments` keeps in the session, so that a polling cycle does not process a comment again. It also has the format of the cycle log for the user. The state lives only in the session. A new `/loop` session starts empty. It finds the comments that an earlier session handled from the thread state on GitHub: the reply text and the state of the thread.
 
-Contents: the dedup set, committed-fix detection, the ancestry check, the PR metadata, and the Stage 1 report. Then the cycle log, examples, and the session lifecycle.
+## Contents
+
+- `processedCommentIds`: dedup set
+- Committed-fix detection: re-derived every cycle, not persisted
+- Ancestry check: shared git mechanic
+- PR metadata (resolved once, reused every cycle)
+- Stage 1 report: the Phase 2 → Phase 3 handoff
+- Cycle log: user-facing
+- Examples
+- Session lifecycle
 
 ## `processedCommentIds` — dedup set
 
@@ -29,9 +38,9 @@ The entry shape below is logical. Keep it in any form that works in the turn.
 
 Rules for writing to the set:
 
-- Add an entry ONLY after the action of the comment, or an explicit decision to skip it, completed without error.
+- Add an entry only after the action of the comment, or an explicit decision to skip it, completed without error.
 - After a temporary failure (an MCP timeout, a rejected file write), leave the comment unprocessed, so that the next cycle tries again.
-- A skip because of the `tags` filter is NOT an "explicit skip". Do NOT add the comment to the set. A later invocation with other `tags` must see the comment again.
+- A skip because of the `tags` filter is not an "explicit skip". Do not add the comment to the set. A later invocation with other `tags` must see the comment again.
 - A skip of a `[Note]` or untagged comment with no action IS an "explicit skip". Add the comment to the set with `action: "noted"`.
 
 Fields:
@@ -58,9 +67,9 @@ No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 fi
 **Affirmative commit claim**. The match is strict, not a loose prefix match. An affirmative commit claim is a reply of Claude with the phrase `Committed as <sha>` or `commit <sha>` next to the fix summary. The reply starts with `**[AI]**`, or with the old plain `[AI]` form. A `**[[T#<id>](<url>)]**` tag between the `**[AI]**` marker and the body is expected, and does not change the match.
 
 - Positive match: `**[AI]** Fixed: renamed TenantID → TenantId. Committed as a1b2c3d; will be included in the next push.`
-- Negative match: `**[AI]** Fixed: <summary>. Diff staged locally, awaiting your commit.` This is the `no-commit` reply template. Do NOT treat it as committed. Nothing was committed, so no SHA exists to test.
+- Negative match: `**[AI]** Fixed: <summary>. Diff staged locally, awaiting your commit.` This is the `no-commit` reply template. Do not treat it as committed. Nothing was committed, so no SHA exists to test.
 
-**`openFindingsMarker`**. Run a second, separate match on the same reply. A `deep-fix` run that ends `stop-max-rounds` still posts an affirmative commit claim, because the fix is committed (see `deep-fix.md`). But a later cycle must NOT treat the thread as `cured`, because open review findings remain. The skill uses no new `assessedState` for this case. Instead, the last sentence of that reply STARTS WITH the marker phrase `Open findings remain; leaving this thread open`.
+**`openFindingsMarker`**. Run a second, separate match on the same reply. A `deep-fix` run that ends `stop-max-rounds` still posts an affirmative commit claim, because the fix is committed (see `deep-fix.md`). But a later cycle must not treat the thread as `cured`, because open review findings remain. The skill uses no new `assessedState` for this case. Instead, the last sentence of that reply STARTS WITH the marker phrase `Open findings remain; leaving this thread open`.
 
 - Match the phrase as a PREFIX or a substring, and ignore the punctuation. The match needs no period after the phrase.
 - The text after the phrase does not change the match. It can be the `: <1-2 line list>.` of the `stop-max-rounds` template, or only a `.`.
@@ -73,7 +82,7 @@ Three steps of the skill test whether a commit SHA is on a target ref. All three
 
 The commands:
 
-1. The target ref can be a remote-tracking ref that is stale. Then fetch it first. For the head of the PR, run `git fetch origin "+refs/pull/<prId>/head:refs/remotes/origin/pull/<prId>/head"`. `<prId>` is the PR number. Do not fetch the head branch by its name (`headRefName`). For a PR from a fork, that branch is not on `origin`, but the `pull/<prId>/head` ref is. This fetch needs `origin` to be the base repository of the PR. If the fetch fails, STOP, and ask the user which remote holds the base repository. Stage 1 puts this question in the `blockers` list of its report. Then use that remote in place of `origin`.
+1. The target ref can be a remote-tracking ref that is stale. Then fetch it first. For the head of the PR, run `git fetch origin "+refs/pull/<prId>/head:refs/remotes/origin/pull/<prId>/head"`. `<prId>` is the PR number. Do not fetch the head branch by its name (`headRefName`). For a PR from a fork, that branch is not on `origin`, but the `pull/<prId>/head` ref is. This fetch needs `origin` to be the base repository of the PR. If the fetch fails, stop, and ask the user which remote holds the base repository. Stage 1 puts this question in the `blockers` list of its report. Then use that remote in place of `origin`.
 2. Run `git merge-base --is-ancestor <sha> <target-ref>`. Exit code `0` means that the changes of `<sha>` are already on `<target-ref>`. Exit code `1` means not yet. For a SHA that this checkout does not know at all, git fails with another exit code, for example `128`. That is a different failure from "not yet an ancestor". A step that reports the result must keep the two cases apart.
 
 The three steps use these commands in the same way. They differ in `<target-ref>`, in the need for a new `git fetch`, and most of all in what they do with the result:
@@ -81,8 +90,8 @@ The three steps use these commands in the same way. They differ in `<target-ref>
 | Step | `<target-ref>` | Fetch first? | SHA tested | On success | On failure or an unclear result |
 | --- | --- | --- | --- | --- | --- |
 | Phase 2 step 5, the first classification (Stage 1, `committed-fix-state.md`) | `origin/pull/<prId>/head` | Yes. Run the fetch of command 1 first. | The SHA from the existing affirmative commit claim of the thread. It becomes `claimedSha`. | Derive `assessedState: cured`. Stage 1 only derives this verdict. By default, Stage 2 makes the catch-up resolve after its own test (row 2), before Phase 3 and Phase 4 of this cycle. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Derive `assessedState: unconfirmed-commit-claim`. Show the thread to the human and wait. `autonomous` does not skip this. |
-| Stage 2 test before the catch-up resolve (`SKILL.md` § "Dispatch model") | `origin/pull/<prId>/head` | No. Stage 1 already fetched it in this cycle. | The `claimedSha` field of the report for that thread. | Make the `cured` catch-up resolve as the first action of Stage 2, before Phase 3. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Do NOT resolve. Handle the thread as `unconfirmed-commit-claim`. |
-| Phase 4 "Resolve threads and report", the test after the push (`commit-push-resolve.md`) | `<pushed-tip>`: the commit or branch state that the push of THIS cycle produced, NOT the remote-tracking ref | No. The push of this cycle is the newest state. | The SHA of the commit of this cycle for that thread. For a carried-over thread, the `claimedSha` that Phase 2 step 5 flagged earlier in this cycle. | Call `resolve_thread`, and report the thread as resolved. A carried-over thread also needs a push-and-resolve answer of the human in this session. See group (b) in `commit-push-resolve.md` § "Resolve threads and report". | Report the thread as still open. Do not guess. |
+| Stage 2 test before the catch-up resolve (`SKILL.md` § "Dispatch model") | `origin/pull/<prId>/head` | No. Stage 1 already fetched it in this cycle. | The `claimedSha` field of the report for that thread. | Make the `cured` catch-up resolve as the first action of Stage 2, before Phase 3. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Do not resolve. Handle the thread as `unconfirmed-commit-claim`. |
+| Phase 4 "Resolve threads and report", the test after the push (`commit-push-resolve.md`) | `<pushed-tip>`: the commit or branch state that the push of this cycle produced, not the remote-tracking ref | No. The push of this cycle is the newest state. | The SHA of the commit of this cycle for that thread. For a carried-over thread, the `claimedSha` that Phase 2 step 5 flagged earlier in this cycle. | Call `resolve_thread`, and report the thread as resolved. A carried-over thread also needs a push-and-resolve answer of the human in this session. See group (b) in `commit-push-resolve.md` § "Resolve threads and report". | Report the thread as still open. Do not guess. |
 
 The report fields `claimedSha`, `shaResolvesLocally`, and `isAncestorOfRemote` carry the result of Phase 2 step 5 forward (see § "Stage 1 report"). They go to the test of Stage 2. In the same cycle, they also go to the resolve step of Phase 4 for a carried-over thread. So no later step has to derive them again from the start. But each later step runs the test again against its own target ref, and does not trust the cached values.
 
@@ -107,7 +116,7 @@ Each later cycle runs only the PR-status recheck of Phase 1 (see § "Session lif
 
 ## Stage 1 report — the Phase 2 → Phase 3 handoff
 
-This report is the contract between the two dispatches of `SKILL.md` § "Dispatch model". Stage 1 (Phases 1 and 2) returns exactly this shape. Stage 2 (Phases 3 to 5) uses it as its ONLY source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
+This report is the contract between the two dispatches of `SKILL.md` § "Dispatch model". Stage 1 (Phases 1 and 2) returns exactly this shape. Stage 2 (Phases 3 to 5) uses it as its only source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
 
 The report is not stored and not cached across cycles. Each cycle of a `/loop` run runs Stage 1 again from the start, because the thread state changes between cycles: new replies of reviewers, or a push that lands an earlier SHA. § "Committed-fix detection" follows the same rule.
 
@@ -136,8 +145,8 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 - `summary` lets the orchestrating session report the cycle counts to the user at once, without a wait for Stage 2.
 - `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `is_resolved` or `is_outdated` (Phase 2 step 2).
 - `summary.newComments` counts the comments of this cycle that are not yet in `processedCommentIds`. Stage 1 has every input that it needs for this count. The number feeds the "N new comments" figure in the header of the cycle log (`SKILL.md` Phase 5). So Stage 2 does not have to derive it from the `comments` arrays of the threads.
-- `blockers` lists in free text the STOP conditions that Stage 1 met and did not settle on its own. These are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available. A failed fetch of the PR head ref (§ "Ancestry check") is one more. Subagents do not talk to the user. So Stage 1 reports the condition, and the orchestrating session asks.
-- If `blockers` is not empty and `threads` is empty, the orchestrating session does NOT dispatch Stage 2 in this cycle.
+- `blockers` lists in free text the stop conditions that Stage 1 met and did not settle on its own. These are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available. A failed fetch of the PR head ref (§ "Ancestry check") is one more. Subagents do not talk to the user. So Stage 1 reports the condition, and the orchestrating session asks.
+- If `blockers` is not empty and `threads` is empty, the orchestrating session does not dispatch Stage 2 in this cycle.
 
 ### Per-thread entry
 
@@ -188,7 +197,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 | `assessedState` | yes | The outcome of Phase 2 step 5: `fresh-unhandled`, `cured`, `unconfirmed-commit-claim`, or `already-assessed`. See the mapping below. |
 | `claimedSha` | when any | The SHA from the affirmative commit claim. `null` for a reply that claims a commit without a clear SHA. |
 | `shaResolvesLocally` / `isAncestorOfRemote` | when any | The raw results of the fetch of the PR head (§ "Ancestry check", command 1) and `git merge-base --is-ancestor <sha> origin/pull/<prId>/head` in Stage 1. They stay next to `assessedState`. So Stage 2 can write the exact report words of Phase 2 step 5 without a new git run: `hasn't landed on the remote yet`, `this checkout can't resolve the SHA locally`, or `no SHA could be extracted`. |
-| `newerHumanReply` / `newerHumanReplyCommentId` | yes | The guard of Phase 2 step 5: a reply that is not an AI reply came after the newest AI reply. With `true`, Stage 2 runs NO catch-up branch on this thread. It classifies that newest human reply instead. It treats the thread like a thread with no earlier AI commit claim. |
+| `newerHumanReply` / `newerHumanReplyCommentId` | yes | The guard of Phase 2 step 5: a reply that is not an AI reply came after the newest AI reply. With `true`, Stage 2 runs no catch-up branch on this thread. It classifies that newest human reply instead. It treats the thread like a thread with no earlier AI commit claim. |
 | `overrideCandidates` | yes | Possible overrides of the reviewer for one thread, which Stage 1 found by a plain phrase match: `[{ "commentId": 94, "phrase": "just fix it", "direction": "fix-directly" }]`. `direction` is `fix-directly` or `draft-first`. **Candidates only**. Stage 1 does the cheap substring match. Stage 2 decides whether the override really applies, and whether the intent of the reviewer is clear (`SKILL.md` Phase 3). An empty array, never left out. |
 | `aiReviewerExchangeCount` | yes | The count of `**[AI]**` replies with a reply of a reviewer after them. The count covers the full GitHub history of the thread (`SKILL.md` § "Stalemate detection"). Stage 1 makes the count, because it is mechanical. Stage 2 judges whether the last two replies show an open disagreement. |
 | `sameTextAsThreads` | optional | Other thread IDs of this cycle with the same or almost the same comment text of the reviewer. They feed the rule for threads with the same note (`commit-push-resolve.md` § "Threads with the same note") and the `[Repetition]` entry of the matrix. With no such threads, an empty array. |
@@ -250,7 +259,7 @@ Next cycle in <interval> (via /loop).
 - `no reply (dry-run)` or `no reply (no-reply)`: the parameter flag stopped the reply.
 - `no reply (awaiting approval)`: the action did not run, because it needs the approval of a human.
 - `reply failed — <short reason>`: an MCP error. The next cycle tries again.
-- `resolved (this cycle's push landed it)`: the fix is committed, replied to, and pushed, AND the skill resolved the thread with `pull_request_review_write` `method: resolve_thread` (see `commit-push-resolve.md`).
+- `resolved (this cycle's push landed it)`: the fix is committed, replied to, and pushed, and the skill resolved the thread with `pull_request_review_write` `method: resolve_thread` (see `commit-push-resolve.md`).
 - `reply posted, pending push`: the reply is live. The thread is not resolved yet, because the push of the commit did not happen in this cycle.
 - `pushed, resolve failed — <short reason>`: the commit is pushed and is on the remote, but the `resolve_thread` call failed. Resolve the thread in the GitHub UI. Phase 2 step 5 of each later cycle tries the resolve again.
 
@@ -279,7 +288,7 @@ Cycle 2 @ 15:42 — PR #4421 (5 threads checked, 2 new comments)
 1 commit ready, not yet pushed — push when ready.
 ```
 
-The fix of `T#9` was committed and replied to in cycle 1, but that cycle ended before its push. At the start of cycle 2, Phase 2 step 5 read the existing `**[AI]** Fixed: ... Committed as 9f3a1c2` reply again. The commit was not yet an ancestor of `origin/pull/<prId>/head`. So the step flagged the thread `unconfirmed-commit-claim`, and the orchestrating session asked the human. The human answered in this session with a push-and-resolve direction for `T#9`. The push of cycle 2 included `9f3a1c2`. After that push landed, the resolve step of Phase 4 ran the ancestry check again against `<pushed-tip>`. The human approved the resolve, so the step called `resolve_thread` and reported `T#9` as resolved. That happened in the SAME cycle as the push, not one cycle later. The resolve call sets `is_resolved` of `T#9` to `true` on GitHub. So the filter of Phase 2 skips the thread in every later fetch, and it does not appear in the table of cycle 3.
+The fix of `T#9` was committed and replied to in cycle 1, but that cycle ended before its push. At the start of cycle 2, Phase 2 step 5 read the existing `**[AI]** Fixed: ... Committed as 9f3a1c2` reply again. The commit was not yet an ancestor of `origin/pull/<prId>/head`. So the step flagged the thread `unconfirmed-commit-claim`, and the orchestrating session asked the human. The human answered in this session with a push-and-resolve direction for `T#9`. The push of cycle 2 included `9f3a1c2`. After that push landed, the resolve step of Phase 4 ran the ancestry check again against `<pushed-tip>`. The human approved the resolve, so the step called `resolve_thread` and reported `T#9` as resolved. That happened in the same cycle as the push, not one cycle later. The resolve call sets `is_resolved` of `T#9` to `true` on GitHub. So the filter of Phase 2 skips the thread in every later fetch, and it does not appear in the table of cycle 3.
 
 ### Dry-run cycle
 
@@ -309,4 +318,4 @@ Next cycle in 15m (via /loop). Thread T#17 has 4 exchanges; consider talking it 
 
 - Start of a session (the first `/loop` tick, or the first one-shot run): `processedCommentIds` and the PR metadata are empty. Run the Phase 1 bootstrap, then Phases 2 to 5.
 - Later in the session (each later `/loop` tick): reuse `processedCommentIds` and the PR metadata. Skip Phase 1, except the PR-status recheck: the `pull_request_read` call with `method: get` of Phase 1 step 3.
-- End of the session: the user stops `/loop`, or the PR becomes `merged` or `closed`. When the PR is complete, print a final summary and stop. Do NOT keep the state across sessions.
+- End of the session: the user stops `/loop`, or the PR becomes `merged` or `closed`. When the PR is complete, print a final summary and stop. Do not keep the state across sessions.

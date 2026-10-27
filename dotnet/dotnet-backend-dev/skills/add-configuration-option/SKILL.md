@@ -32,9 +32,7 @@ src/{ServiceName}.Configuration/
 
 ## Step 1: Options Class
 
-**CRITICAL**:
-
-- Properties MUST have `{ get; set; }` (preferred) or `{ get; init; }`, NOT just `{ get; }`.
+- Properties must have `{ get; set; }` (preferred) or `{ get; init; }`, not just `{ get; }`.
 - Prefer `{ get; set; }` to allow customizing options via ASP.NET's `.Configure()` method.
 
 ### Validation Flow
@@ -260,7 +258,7 @@ The section name is the name of the options class. It is the same name that `Con
 
 ### Deployment Configuration (Environment-Specific)
 
-**CRITICAL**: Important configuration options MUST be exposed in your deployment system (for example, Helm, Kustomize, or Terraform) for CI/CD.
+Important configuration options must be exposed in your deployment system (for example, Helm, Kustomize, or Terraform) for CI/CD.
 
 #### 1. Add to deployment values
 
@@ -431,7 +429,7 @@ public interface I{ServiceName}BuildEnvironmentInfo
 }
 ```
 
-**IMPORTANT**: Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead:
+Avoid `#if` pragmas in business code. Inject `I{ServiceName}BuildEnvironmentInfo` instead:
 
 ```csharp
 // ✅ Good - testable

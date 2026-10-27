@@ -21,7 +21,7 @@ This command merges those worktree folders back into the one main project folder
 ## Inputs (`$ARGUMENTS`)
 
 - **Main project folder names (optional).** Zero or more of these: a distinct keyword or substring (for example a repo name), or an exact folder name. Each one names the main folder that a match group merges INTO. To resolve a keyword, list the `projects/` folder under the resolved config root, and match without regard to case. The main folder is the one **without** a `--claude-worktrees-` (or `--worktrees-`) segment in its name. If a keyword matches more than one candidate main folder, stop and ask which one to use. Do not guess.
-- **No main folder name.** Then process **all** projects. Each folder in `projects/` whose name does NOT contain `--claude-worktrees-` or `--worktrees-` is a candidate main folder. Run Steps 1 to 6 for each candidate that has at least one worktree sibling. Skip a candidate with no sibling silently. Do not report a no-op for every unrelated project.
+- **No main folder name.** Then process **all** projects. Each folder in `projects/` whose name does not contain `--claude-worktrees-` or `--worktrees-` is a candidate main folder. Run Steps 1 to 6 for each candidate that has at least one worktree sibling. Skip a candidate with no sibling silently. Do not report a no-op for every unrelated project.
 - **`--exclude=<substring>[,<substring>...]` (optional).** Folder names or substrings to skip for this run, for example because sessions are active there. The flag applies both to a single project and to "process all". Leave an excluded folder completely untouched. Do not even inspect it for collisions. Name it as skipped in the final report.
 - **Free text**. The user can name a folder to skip in free text instead of the flag. Example: "do not touch X, there are active sessions there". Treat that like `--exclude=X`. In the same way, a free-text instruction to run the merge (for example "yes, go ahead and merge them") counts as `--apply`.
 - **`--apply` (optional, off by default).** Without it, the command always runs as a dry run. Steps 1 to 3 (discovery, safety check, collision check) run in full. Steps 4 and 5 only *compute* the plan for the merge and the deletions. No file is moved, merged, or deleted. With `--apply`, the command computes and shows the same plan. Then the user must pass the explicit approval gate below before Steps 4 and 5 run.
@@ -54,7 +54,7 @@ For each `(M, W)` pair, before you move or delete anything:
 
 1. List the top-level entries of `W`: the session files `<uuid>.jsonl`, the subagent-transcript folders `<uuid>/`, and the top-level `MEMORY.md` of `W`, where one exists.
 2. For each entry of step 1, check whether `M` has an entry with the same name:
-   - A `.jsonl` file or a `<uuid>/` folder with the same name: session UUIDs are unique in practice, so this case is not expected. If it happens, STOP for this pair. Do not move or delete anything in it. Report the exact colliding names for a manual fix.
+   - A `.jsonl` file or a `<uuid>/` folder with the same name: session UUIDs are unique in practice, so this case is not expected. If it happens, stop for this pair. Do not move or delete anything in it. Report the exact colliding names for a manual fix.
    - `MEMORY.md` with the same name: this is not a collision. Step 4 handles `MEMORY.md` on its own. Step 5 excludes it on purpose from its "move every remaining top-level entry".
 3. A `memory/` subfolder of `W` is not part of this step. Step 4 handles the collisions of each file in it.
 
@@ -62,22 +62,22 @@ For each `(M, W)` pair, before you move or delete anything:
 
 Every run computes this step. Only an `--apply` run with an explicit "yes" writes it (see "Modes and safety gate" above). In a dry run, do every check below (they all only read), and record what each part is to do instead of doing it.
 
-Most worktree folders have neither of the two, because memory usually grows only in the main folder. If `W` has a `memory/` folder OR a top-level `MEMORY.md`, run this merge for the pair. The top-level case covers a `W` that grew only a top-level index.
+Most worktree folders have neither of the two, because memory usually grows only in the main folder. If `W` has a `memory/` folder or a top-level `MEMORY.md`, run this merge for the pair. The top-level case covers a `W` that grew only a top-level index.
 
 1. Start an empty rename map (`originalName -> finalName`) for this pair.
 2. For each fact file in the memory folder of `W`:
    - If the memory folder of `M` has no file with that name, move the file as it is. Then `finalName == originalName`, and the rename map gets no entry.
    - If the names match and the two files are byte-identical, keep the copy of `M`, and drop the duplicate of `W` (`finalName == originalName`). Never silently overwrite.
    - If the names match and the contents differ, try `<name>-2.md`, `<name>-3.md`, and so on in the memory folder of `M`. Move the file of `W` in under the first name that does not exist there yet. Never write `<name>-2.md` blindly, because it can already exist.
-     - If no free name exists up to `<name>-9.md`, STOP for this file. Do not move or delete anything for it. Leave `W/memory/` in place with the STOPped files. For this pair, exclude `W/memory/` from the move of Step 5, and from the empty check and the deletion of Step 5. Flag the pair as **partially retained** in the final report, together with the STOPped file.
+     - If no free name exists up to `<name>-9.md`, stop for this file. Do not move or delete anything for it. Leave `W/memory/` in place with the STOPped files. For this pair, exclude `W/memory/` from the move of Step 5, and from the empty check and the deletion of Step 5. Flag the pair as **partially retained** in the final report, together with the STOPped file.
      - Otherwise, record `originalName.md -> <chosen-filename>` in the rename map. Use the exact filename. It already has its extension, so do not add `.md` again. Flag the file in the final report as one that needs a manual merge or review.
 3. Resolve the `MEMORY.md` path of each side on its own. `W` and `M` do not have to share a layout. For example, `W` can have only a top-level copy while `M` has one under `memory/`, or the other way around.
    - For `W`: use `W/memory/MEMORY.md`. If that file does not exist, use `W/MEMORY.md`. If neither file exists, `W` has no index to merge.
    - For `M`: use `M/memory/MEMORY.md`. If that file does not exist, use `M/MEMORY.md`. If neither file exists, `M` has no index.
    - The nested path under `memory/` is the common case. The top-level path is only a fallback.
 4. If step 3 found an index for `W`:
-   - If `M` also has an index, merge the index of `W` into it, and never overwrite the copy of `M`. Take each pointer line of the `W` copy whose linked filename the `M` copy does not reference yet. If the line names an `originalName` that the rename map renamed, replace it with the `finalName`. Then append the line to the copy of `M`. Do not append a pointer line whose target file was a STOP case of step 2. If a pointer line was such a STOP case, keep the index of `W` in place for this pair. Skip step 4.5 for it (keep the `W` index). Only a pair with a STOP case keeps its `W` index. Name the line in the final report under the partially retained pair. List the appended lines (after the rewrite) in the final report.
-   - If `M` has no index, create one at the nested path `M/memory/MEMORY.md` (the common case of step 3) from the copy of `W`. First rewrite the filename of each pointer line through the rename map of step 2. One exception: a pointer line whose target file was a STOP case of step 2 (no free name). That file did not move. So leave the filename of that line as it is, and add a note to the line, for example "⚠ not migrated, see manual resolution". Do not skip this step because `M` had no index. A pair that keeps its `W` index is the exception (the merge branch above). For every other pair, step 4.5 deletes the copy of `W`. So an index of `W` that is not merged is lost. List the created file and its content (after the rewrite) in the final report.
+   - If `M` also has an index, merge the index of `W` into it, and never overwrite the copy of `M`. Take each pointer line of the `W` copy whose linked filename the `M` copy does not reference yet. If the line names an `originalName` that the rename map renamed, replace it with the `finalName`. Then append the line to the copy of `M`. Do not append a pointer line whose target file was a stop case of step 2. If a pointer line was such a stop case, keep the index of `W` in place for this pair. Skip step 4.5 for it (keep the `W` index). Only a pair with a stop case keeps its `W` index. Name the line in the final report under the partially retained pair. List the appended lines (after the rewrite) in the final report.
+   - If `M` has no index, create one at the nested path `M/memory/MEMORY.md` (the common case of step 3) from the copy of `W`. First rewrite the filename of each pointer line through the rename map of step 2. One exception: a pointer line whose target file was a stop case of step 2 (no free name). That file did not move. So leave the filename of that line as it is, and add a note to the line, for example "⚠ not migrated, see manual resolution". Do not skip this step because `M` had no index. A pair that keeps its `W` index is the exception (the merge branch above). For every other pair, step 4.5 deletes the copy of `W`. So an index of `W` that is not merged is lost. List the created file and its content (after the rewrite) in the final report.
 5. Remove the `MEMORY.md` or `memory/MEMORY.md` copy of `W`. It is now merged or moved.
 6. When every file under `W/memory/` is merged into `M/memory/` and the `MEMORY.md` copy of `W` is gone, delete the empty `W/memory/` folder. Do it at once, before Step 5 runs. Step 5 works on what remains at the top level of `W`, and it must not see `memory/` there.
 
@@ -87,9 +87,9 @@ Every run computes this step. Only an `--apply` run with an explicit "yes" perfo
 
 This step skips two kinds of pair. Step 2 skipped the first kind in full (recent activity). Step 3 STOPped the second kind in full (a session-name collision for the whole pair). Every other pair goes through this step, also a pair that Step 4.2 flagged as partially retained.
 
-1. Move (do not copy) every remaining top-level entry from `W` into `M`. Do not touch what Step 4 already handled: a `memory/` folder or a top-level `MEMORY.md`. Step 4 either merged and removed it, or left it in place on purpose (for a STOP case of one file).
+1. Move (do not copy) every remaining top-level entry from `W` into `M`. Do not touch what Step 4 already handled: a `memory/` folder or a top-level `MEMORY.md`. Step 4 either merged and removed it, or left it in place on purpose (for a stop case of one file).
 2. Check whether `W` is now empty.
-3. If `W` is NOT empty, do NOT delete it. Report exactly what is left and why, and stop here for this pair.
+3. If `W` is not empty, do not delete it. Report exactly what is left and why, and stop here for this pair.
 4. If `W` is empty, delete the `W` folder.
 
 ## Step 6 — Report

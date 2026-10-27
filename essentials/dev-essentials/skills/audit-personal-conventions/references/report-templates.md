@@ -2,6 +2,11 @@
 
 Phase 4 and Phase 10 of `SKILL.md` read this file. Copy each template, replace the bracketed placeholders, and fill every table. Do not change the section structure of the Phase 4 template. The Phase 10 report also holds the items that "Autonomy" in `SKILL.md` asks for.
 
+## Contents
+
+- Phase 4 triage template
+- Phase 10 run report template
+
 ## Phase 4 triage template
 
 The "0. Disposition legend" table repeats the six-value enum of Phase 3 in `SKILL.md`. With it, the reader of the triage does not need `references/classification-framework.md` to decode a letter. If the enum changes, change the legend too.

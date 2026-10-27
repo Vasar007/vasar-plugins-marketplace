@@ -228,7 +228,7 @@ Final section content.
 
 ## Inline Suppressions
 
-**Do NOT use inline lint-disable comments to suppress warnings.** Fix the underlying formatting issue instead. Tables often trigger this. If a table triggers lint warnings, reformat the table: align the pipes, fix the column counts, and add blank lines around it. Do not add `<!-- markdownlint-disable -->` comments.
+**Do not use inline lint-disable comments to suppress warnings.** Fix the underlying formatting issue instead. Tables often trigger this. If a table triggers lint warnings, reformat the table: align the pipes, fix the column counts, and add blank lines around it. Do not add `<!-- markdownlint-disable -->` comments.
 
 If a rule cannot pass, use inline comments as a last resort. One example is a document that needs inline HTML for `<details>`/`<summary>`:
 

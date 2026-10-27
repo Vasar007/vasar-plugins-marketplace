@@ -1,13 +1,27 @@
 # Testing Conventions
 
+## Contents
+
+- Framework & Libraries
+- Base Classes
+- Use the create-tests Skill for Examples
+- Test Class Structure
+- AAA Comments
+- No Direct Mock Creation
+- Private Helper Methods
+- Common Builders
+- Test Data Generators
+- Database Integration Tests
+- Code Style in Tests
+
 ## Framework & Libraries
 
 The tests use these libraries of the project. The rules name each library by its role.
 
 - **The test framework** (for example, NUnit 3) runs the tests and gives the test and fixture attributes.
 - **The assertion library** (for example, FluentAssertions with `Should()`). Prefer it over the assertions of the test framework (for example, NUnit `Assert.*`).
-- **The mocking library** (for example, NSubstitute). NEVER create a mock with it directly, for example with `Substitute.For<T>()` (see below).
-- **The test data library** (for example, AutoFixture). NEVER get an interface mock from it directly, for example with `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`.
+- **The mocking library** (for example, NSubstitute). Never create a mock with it directly, for example with `Substitute.For<T>()` (see below).
+- **The test data library** (for example, AutoFixture). Never get an interface mock from it directly, for example with `Fixture.Freeze<IInterface>()` or `Fixture.Create<IInterface>()`.
 
 The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
@@ -30,9 +44,9 @@ The code examples in this file use NUnit, FluentAssertions, NSubstitute, and Aut
 
 These base classes live in the repo's `*.Tests.Common` project (exact name varies per service).
 
-## MANDATORY: Use the create-tests Skill for Examples
+## Use the create-tests Skill for Examples
 
-Before you write ANY test, invoke the `create-tests` skill. It has a matching example for each test type: domain model, exception, wrapper, repository, options validation, binding, DI, controller, migration, and mocked service. Do not guess the shape of tests from memory.
+Before you write any test, invoke the `create-tests` skill. It has a matching example for each test type: domain model, exception, wrapper, repository, options validation, binding, DI, controller, migration, and mocked service. Do not guess the shape of tests from memory.
 
 ## Test Class Structure
 
@@ -50,9 +64,9 @@ public sealed class XxxTests : {BaseClass}
 }
 ```
 
-## AAA Comments (MANDATORY)
+## AAA Comments
 
-Every test MUST have `// Arrange.` `// Act.` `// Assert.` with dot and blank line after each:
+Every test must have `// Arrange.` `// Act.` `// Assert.` with dot and blank line after each:
 
 ```csharp
 [Test]
@@ -72,7 +86,7 @@ public void Method_Condition_ExpectedResult()
 
 For combined sections, join the names with `&`: `// Act & Assert.`, `// Arrange, Act & Assert.`, or `// Arrange & Act.`. Never use `+`.
 
-## STRICT: No Direct Mock Creation
+## No Direct Mock Creation
 
 ```csharp
 // ❌ FORBIDDEN
@@ -89,11 +103,11 @@ var repo = new TestMyRepositoryBuilder(Fixture)
 var repo = TestMyRepositoryBuilder.CreateWithoutSetup(Fixture);
 ```
 
-This applies to EVERY interface mock. If `Test{Interface}Builder` does not exist, create it first in the `*.Tests.Common/Helpers/Mocks/{Feature}/` folder of the repo.
+This applies to every interface mock. If `Test{Interface}Builder` does not exist, create it first in the `*.Tests.Common/Helpers/Mocks/{Feature}/` folder of the repo.
 
-## STRICT: Private Helper Methods (Mandatory Indirection)
+## Private Helper Methods
 
-Test cases MUST NOT call builders or generators directly:
+Test cases must not call builders or generators directly:
 
 ```csharp
 // ❌ WRONG — generator called directly in test
@@ -108,7 +122,7 @@ private Item GenerateItem(String? name = null)
 }
 ```
 
-Each mock dependency has exactly one `Create{Mock}` helper, and each test data type has exactly one `Generate{Model}` helper, with no overloads. Do not add setup such as `.Returns()` to a mock that a helper returns. The full rules, with the optional parameters, `.ApplyIf`, and the bulk `Add*Range` methods, are in [Private Helper Methods (Mandatory Indirection)](../create-tests/SKILL.md#private-helper-methods-mandatory-indirection) of the `create-tests` skill.
+Each mock dependency has exactly one `Create{Mock}` helper, and each test data type has exactly one `Generate{Model}` helper, with no overloads. Do not add setup such as `.Returns()` to a mock that a helper returns. The full rules, with the optional parameters, `.ApplyIf`, and the bulk `Add*Range` methods, are in [Private Helper Methods](../create-tests/SKILL.md#private-helper-methods) of the `create-tests` skill.
 
 ## Common Builders
 

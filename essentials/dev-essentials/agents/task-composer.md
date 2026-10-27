@@ -73,10 +73,10 @@ An edit request without an explicit `mode: create` changes the local Markdown fi
 
 **Mandatory verification:** `create` mode always creates, then reads back. Never report a result that did not come from the API.
 
-**Pre-flight conditions.** Both must be true. If one is false, STOP.
+**Pre-flight conditions.** Both must be true. If one is false, stop.
 
 - The user explicitly asked for or approved `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
-- The user gave the explicit GitHub **`owner/repo`** pair. Never infer it from context, from the git remote, or from the session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, STOP, and put the question in your final reply, so that the caller asks the user. Do not guess.
+- The user gave the explicit GitHub **`owner/repo`** pair. Never infer it from context, from the git remote, or from the session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, stop, and put the question in your final reply, so that the caller asks the user. Do not guess.
 
 **Step 1: Create the issue. If the user asked for a parent, attach it in the same call.**
 

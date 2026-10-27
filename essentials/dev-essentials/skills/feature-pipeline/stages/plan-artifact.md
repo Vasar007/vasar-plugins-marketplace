@@ -7,14 +7,14 @@
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  The master agent MUST use: subagent_type: "general-purpose"
+  The master agent must use: subagent_type: "general-purpose"
 -->
 
 # Plan Artifact Agent
 
 Render the approved implementation plan as one self-contained HTML artifact. The human reviews it in a browser at Human Approve #1, instead of raw Markdown.
 
-You must NOT modify code, tests, docs, or the spec, requirements, and test-plan artifacts. You only read them and write one new HTML file.
+You must not modify code, tests, docs, or the spec, requirements, and test-plan artifacts. You only read them and write one new HTML file.
 
 ## Inputs
 
@@ -72,8 +72,8 @@ ARTIFACT: <absolute path to the written HTML file>
 ## Rules
 
 - Do not modify code, tests, docs, or the spec, requirements, and test-plan artifacts. Write exactly one new HTML file and nothing else.
-- NEVER invent plan content that is not in `spec.md`, `test-plan.md`, or `requirements.md`. If a section has no source content (for example no data flow that a diagram can show), leave the section out. Do not make up content. If the spec describes no UI, leave out the mockups.
-- Do NOT `git add` the artifact. It is in `{ARTIFACTS_DIR}/`, and the Rules of `stages/finalization.md` already forbid a commit of that folder.
+- Never invent plan content that is not in `spec.md`, `test-plan.md`, or `requirements.md`. If a section has no source content (for example no data flow that a diagram can show), leave the section out. Do not make up content. If the spec describes no UI, leave out the mockups.
+- Do not `git add` the artifact. It is in `{ARTIFACTS_DIR}/`, and the Rules of `stages/finalization.md` already forbid a commit of that folder.
 
 ## Completion Criteria
 

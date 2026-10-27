@@ -37,33 +37,35 @@ This command owns only the order of the phases, the worktree, the context sweep 
 | `--notes-dir=<path>` | `Notes/` | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
 | `--no-simplify` | off | Skip Phase 4. Use it only for a run in which the user does not want the pass. |
 | `--push` | off | Push after the final report. **Off unless the user asks for it in this invocation.** |
-| `--interactive` | off | Stop at every decision gate and wait for the user. Without it, the run approves its decision gates itself. See "Autonomy". |
-| `--autonomous` | off | Do not stop at any gate. This includes the gates before deletion, posts to outside systems, push, and pull request creation. The run still stops for a question that blocks the work. See "Autonomy". |
+| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
+| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
 The other options of RIRR (`--context`, `--skip-research`, and `--branch-prefix`) pass through. For `--context`, see Phase 3.
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag.
+This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
 
-- Default (no flag): the run does not stop at its decision gates. A decision gate is a step where the workflow asks the user to approve a plan, a triage, a list, or an option. The dangerous gates still stop. A dangerous gate comes before deletion of data, a post to an outside system, a push, or pull request creation. Examples of posts: GitHub comments, reviews, and issues, or documentation pages.
-- `--interactive`: every gate stops and waits for the user, as the gate text says.
-- `--autonomous`: no gate stops. This includes the dangerous gates. The flag is the yes of the user at each gate of this workflow, also at a gate whose text asks for an explicit yes. The run still stops for a question that blocks the work (see below).
+| Gate | Default | `--interactive` | `--autonomous` |
+| --- | --- | --- | --- |
+| Phase 2: a reference that implements or contradicts the task | Ask before Phase 3 | Same | Same |
+| Phase 3: RIRR | Its gates, with the flag of this run | Same | Same |
+| Phase 4 step 3: a cleanup that needs a change of behavior | Stop that cleanup, and put the question in the report | Same | Keep the code, and list the skipped cleanup |
+| Phase 5: `save-context` cleanup | Ask before it moves a file of an older session | Same | Same |
+| Phase 5: push | Only with `--push`, after the report | Same | Same |
+| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
-These rules apply in all modes:
+These rules apply in every mode:
 
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default that the gate names, and continue.
-- In the final report, list each gate that this run passed without a stop. With `--autonomous`, also list each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It does not add steps. Some steps run only with a flag such as `--push`, `--commit-push`, or `--apply`, or only on a request of the user. Such a step still needs that flag or request.
-- A flag that names an action approves that action for this run, so the action needs no new stop. Examples: `--push` and `--commit-push`. An action that a step of this workflow names as its default needs no new stop either.
-- If this workflow has a merge step and the branch policy allows a merge without a review, `--autonomous` merges. Else it does not merge. Never bypass branch protection. Do not use an admin override, a force push, or a change to the branch policy. In the other modes, the merge stays with the user.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests`, with `head: "<owner>:<branch>"` and `state: "all"`. `<owner>` is the `owner` value of the call. The default state lists open pull requests only, and GitHub ignores a `head` value without the `<owner>:` prefix. Then read the pull request with `pull_request_read` (`method: "get"`), and make sure that `merged` is `true`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
-- If the work cannot continue without an answer, ask the user. This applies in every mode. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that this run cannot fix also stops the run. Do not ask in other cases.
+- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
+- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
+- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
+- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
+- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
+- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
 - With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
 - Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 - When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Subagent dispatch
@@ -75,7 +77,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - Each brief asks for a short structured report: verdicts, `file:line` anchors, and the commands that ran with their real results. Never ask for pasted diffs, file dumps, or comment HTML.
 - Phase 2 names its models, and RIRR keeps its own. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
-- A bounded dispatch (one reference to read, one simplify pass) does the work itself (Rule 7). Write into the brief: "Do this work yourself. Do NOT dispatch further subagents for it."
+- A bounded dispatch (one reference to read, one simplify pass) does the work itself (Rule 7). Write into the brief: "Do this work yourself. Do not dispatch further subagents for it."
 
 ## Guardrails
 
@@ -130,7 +132,7 @@ Invoke `dev-essentials:research-implement-review-report`. Its Phases 0 to 3 run 
 - `--commit-mode=<resolved>`, `--rounds=<N>`, and the mode flag of this run: `--interactive`, `--autonomous`, or none.
 - `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. Its `Notes/Plans/` and `Notes/Results/` move under it, as a convention of the repo that its Phase 1 and Phase 4 allow.
 - `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every brief of its Phase 1 and into the "Findings" section of the plan.
-- **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then STOP and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
+- **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then stop and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
 
 When RIRR returns, record `SIMPLIFY_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 

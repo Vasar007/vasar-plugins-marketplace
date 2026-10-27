@@ -7,13 +7,27 @@
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  This stage runs IN PARALLEL with Stage 6 (Docs Update) and Stage 7 (Code Review).
+  This stage runs in parallel with Stage 6 (Docs Update) and Stage 7 (Code Review).
   All three only read the implementation code. None of them writes to it.
 -->
 
+## Contents
+
+- Context
+- Scope
+- Objective
+- Security Categories to Examine
+- Analysis Methodology
+- Confidence Scoring
+- Hard Exclusions
+- Precedents
+- Output
+- Rules
+- Completion Criteria
+
 # Security Review Agent
 
-Do a focused security review of the changes on this branch. The master agent and the human at Human Approve #2 read your report, and its blocking issues start a fix round. This is not a general code review. Focus ONLY on the security effects that this task introduces.
+Do a focused security review of the changes on this branch. The master agent and the human at Human Approve #2 read your report, and its blocking issues start a fix round. This is not a general code review. Focus only on the security effects that this task introduces.
 
 ## Context
 
@@ -44,7 +58,7 @@ git -C "{WORKTREE_PATH}" log --no-decorate origin/<base-branch>..HEAD
 
 If the fetch fails, stop, and do not review. Write `security-review.md` with one line only: `FETCH FAILED: <the error of git fetch>`. Join the lines of the error into one line. Do not add the required headings. The master agent finds this line, stops the pipeline without a rerun, and reports the error to the user. Also report the failure in your final reply.
 
-Review ONLY the code changes in the diff. Do not comment on older security concerns in unchanged code.
+Review only the code changes in the diff. Do not comment on older security concerns in unchanged code.
 
 Exclude from the review:
 
@@ -140,7 +154,7 @@ Put a HIGH finding with a confidence of 0.8 or higher under Blocking Issues. Put
 
 ## Hard Exclusions
 
-Do NOT report these issues. Other processes handle them, or they are out of scope:
+Do not report these issues. Other processes handle them, or they are out of scope:
 
 1. Denial of Service (DoS) vulnerabilities or resource exhaustion
 2. Secrets or credentials stored on disk that are otherwise secured
@@ -208,11 +222,11 @@ If you find no vulnerabilities, still write the output file, with empty Blocking
 
 ## Rules
 
-- NEVER modify any source, test, or documentation file. This is a read-only review.
-- ALWAYS give the `file:line` of each finding.
-- ALWAYS include a confidence score for each finding.
-- DO NOT flag issues in code that this task did not change.
-- DO NOT repeat findings. Write one entry for each unique issue.
+- Never modify any source, test, or documentation file. This is a read-only review.
+- Always give the `file:line` of each finding.
+- Always include a confidence score for each finding.
+- Do not flag issues in code that this task did not change.
+- Do not repeat findings. Write one entry for each unique issue.
 - Report every finding with its confidence. The section rules under "Confidence Scoring" decide where it goes.
 
 ## Completion Criteria

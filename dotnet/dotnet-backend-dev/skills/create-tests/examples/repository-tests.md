@@ -2,6 +2,17 @@
 
 Use repository base classes for integration tests that verify CRUD operations against a real database (a document-database emulator or in-memory).
 
+## Contents
+
+- Base Classes
+- Test Fixture Source
+- Required Overrides
+- Complete Example: Single Key Repository
+- Complete Example: Two Keys Repository
+- Parallelization
+- Provided Base Tests
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Classes
@@ -250,7 +261,7 @@ The base classes automatically test:
 - `DeleteByPrimaryKeyAsync`: removes the entity
 - `DeleteByPrimaryKeyAsync`: does not throw for a missing entity
 
-**NOT provided**: tests for `AddAsync` and `UpdateAsync`. If you need them, add them yourself.
+**Not provided**: tests for `AddAsync` and `UpdateAsync`. If you need them, add them yourself.
 
 For `TwoKeysTest`, also tests:
 

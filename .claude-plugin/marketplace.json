@@ -14,7 +14,7 @@
     {
       "name": "dotnet-backend-dev",
       "source": "./dotnet/dotnet-backend-dev",
-      "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions."
+      "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types."
     },
     {
       "name": "gop-pipeline",

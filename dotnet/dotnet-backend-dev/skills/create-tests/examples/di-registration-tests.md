@@ -2,6 +2,14 @@
 
 Use `BaseDependencyInjectionTests` for verifying that services are correctly registered in the DI container.
 
+## Contents
+
+- Base Class
+- Available Helper Methods
+- Complete Example
+- Test Patterns
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Class
@@ -428,7 +436,7 @@ public void AddDiagnosticServices_RegistersConfigureOptions()
 
 3. **Always dispose ServiceProvider**: use `using var provider`
 
-4. **Test both positive and negative**: verify services ARE registered AND throw on null
+4. **Test both positive and negative**: verify services ARE registered and throw on null
 
 5. **Test conditional logic**: verify feature toggles/options affect registration
 

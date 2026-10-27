@@ -2,6 +2,13 @@
 
 Fill the placeholders and paste each brief into its dispatch. Each brief is self-contained, because the agent sees only its brief.
 
+## Contents
+
+- Planner (read-only on the workspace)
+- Executor
+- Reviewer (read-only, fresh context)
+- Fixer
+
 Shared placeholders:
 
 | Placeholder | Meaning |

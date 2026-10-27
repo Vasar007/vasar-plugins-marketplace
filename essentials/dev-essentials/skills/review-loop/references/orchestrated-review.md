@@ -2,6 +2,16 @@
 
 Phase 3 of `SKILL.md` uses this file. It is a **different way to run Phase 3 only**, for targets that are too large for the context of one reviewer. It does not replace the default dispatch of one reviewer or of parallel reviewers. That dispatch stays the default for every target below the threshold. If Phase 3 chooses this mode, read this file. Else use `references/reviewer-briefs.md` as normal.
 
+## Contents
+
+- When to use this mode
+- What this mode dispatches (not how: see cross-reference below)
+- Role 1: Target Explorer
+- Check the map between Role 1 and Role 2
+- Role 2: Area Explorers (parallel, one per area)
+- Step between Role 2 and Role 3: collate
+- Role 3: Main-agent synthesis (not a subagent)
+
 The shape works for any large `branch`, `pr`, `diff`, or `commits` target of this skill.
 
 ---

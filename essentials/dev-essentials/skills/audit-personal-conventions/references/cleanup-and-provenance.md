@@ -2,6 +2,13 @@
 
 Phase 9 of `SKILL.md` reads this file. It holds, in this order: the matrix of sub-phases, the 9a templates, the full 9c cross-repo mechanism (9c.0 to 9c.9), and the full 9d mechanism for personal entities.
 
+## Contents
+
+- Default-on vs. opt-in matrix
+- 9a: Standardized heading and bullet template
+- 9c: Cross-repo project CLAUDE.md files, full mechanism
+- 9d: Personal entities (commands/agents/skills) cleanup
+
 ---
 
 ## Default-on vs. opt-in matrix
@@ -98,7 +105,7 @@ git -C <repo-root> check-ignore -v <path>             # ignored?
 
 Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning in two cases only:
 
-- This run promoted nothing, **AND** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, a `--dry-run` run, or a run where the user declined the Phase 5 approval gate for everything.
+- This run promoted nothing, **and** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, a `--dry-run` run, or a run where the user declined the Phase 5 approval gate for everything.
 - The flag names a repo that is not the source of any promoted rule of this run (or of the resumed TODO file).
 
 ### 9c.2 — Three preconditions (all required, checked per promotion)
@@ -113,7 +120,7 @@ Phase 6 picks the terms that each rule needs. The rule for them is in the sectio
 
 #### Precondition A
 
-1. Resolve the real default branch of the target marketplace with the fallback chain of 9c.4 step 1 below. Then run `git fetch origin <default-branch>` in the target marketplace repo. If the fetch fails (for example, no network or no configured remote), Precondition A fails. Do NOT fall back in silence to a stale local `<default-branch>` ref.
+1. Resolve the real default branch of the target marketplace with the fallback chain of 9c.4 step 1 below. Then run `git fetch origin <default-branch>` in the target marketplace repo. If the fetch fails (for example, no network or no configured remote), Precondition A fails. Do not fall back in silence to a stale local `<default-branch>` ref.
 2. Run `git merge-base --is-ancestor <this-run-marketplace-head-sha> origin/<default-branch>`. This ancestor check tests whether the commit of this run is on the default branch.
 3. Find out whether the files of the promoted entity exist at that ref: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`. If they do not exist, Precondition A fails.
 4. The checks of steps 2 and 3 are enough proof that the promotion is still published. They do not check content integrity, for example whether someone gutted or mangled the entity after the publish. Precondition C checks that.
@@ -132,7 +139,7 @@ If a precondition fails for a repo, skip that repo, record it in the deferred TO
 
 ### 9c.3 — Sequencing gate (asked once per run)
 
-Before the run creates a worktree for ANY repo, show the results of the mechanical Precondition A checks. Then ask exactly once:
+Before the run creates a worktree for any repo, show the results of the mechanical Precondition A checks. Then ask exactly once:
 
 > Has the `<target-marketplace-name>` PR for this run been merged to its default branch, and are
 > you ready for other repos to reference it? (yes / not yet)
@@ -143,14 +150,14 @@ The automated checks of Precondition A can already show a failure (not merged, o
 
 ### 9c.4 — Per-repo mechanism
 
-Process the repos one after the other, in ascending order of absolute path. The order keeps the reports stable across runs. A STOP in one repo never aborts the other repos.
+Process the repos one after the other, in ascending order of absolute path. The order keeps the reports stable across runs. A stop in one repo never aborts the other repos.
 
 1. **Preflight**. Run a clean-tree check scoped to the target file. Also run a separate, looser check for unrelated dirt elsewhere in the repo (see the dirty-repo matrix below). Then find the real default branch:
    1. Run `git symbolic-ref refs/remotes/origin/HEAD`, and strip the prefix `refs/remotes/origin/` to get the bare branch name. This gives the real default of the remote, for example `main`, `master`, or `release/1.0/master`. Never assume `main` or `master`.
    2. If that command fails or prints nothing, run `git rev-parse --verify origin/main`, then `git rev-parse --verify origin/master`. Use the first one that succeeds.
-   3. If none succeeds, **STOP and ask the user for the default branch**.
+   3. If none succeeds, **stop and ask the user for the default branch**.
 
-   Fetch the resolved branch. If the fetch fails (for example, no network or no configured remote), **STOP and ask the user**. Do NOT fall back in silence to a stale local `<default-branch>` ref.
+   Fetch the resolved branch. If the fetch fails (for example, no network or no configured remote), **stop and ask the user**. Do not fall back in silence to a stale local `<default-branch>` ref.
 2. **Branch name**. `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>` (see `--branch-prefix` in the Arguments table of `SKILL.md`). Every repo of this run gets the same branch name. The prefix `chores/` fits better than `researches/`, because this is routine maintenance in the product repo of someone else, not exploratory work.
 3. **Worktree creation**. If the target marketplace has its own worktree-management skill, delegate to it. In this marketplace, that skill is `dev-essentials:git-worktree-management`, with its pipeline mode. The `--cross-repo` flag and the 9c.3 sequencing gate already count as the approval, so the worktree skill needs no second question. Tell the worktree skill that `.gitignore` of repo B is off limits. If `.claude/worktrees/` is not ignored, use the local exclude file of repo B without a question, even with `--interactive`. Its path is `$(git -C <repo-B-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`, so the line goes into repo B and not into the calling repo. If the target marketplace has no such skill, create the worktree directly with `git worktree add`, with the same path convention (`<repo-root>/.claude/worktrees/<branch>/`). Note the degraded path explicitly in the report.
 4. **Surgical edit**. Remove the promoted section. Insert or extend the pointer with the 9c.5 template below. Touch nothing else. Before the commit, run `git status --porcelain`. It must show exactly the target file or files.
@@ -185,11 +192,11 @@ Append `Rule N` or `§ section` as needed, by the same convention as 9a above. T
 
 | Condition | Handling |
 | --- | --- |
-| Target file itself modified, staged, or in conflict | Hard STOP, no override |
-| Rebase, merge, or cherry-pick in progress | Hard STOP, no override |
-| Detached or unborn HEAD | Hard STOP, no override |
+| Target file itself modified, staged, or in conflict | Hard stop, no override |
+| Rebase, merge, or cherry-pick in progress | Hard stop, no override |
+| Detached or unborn HEAD | Hard stop, no override |
 | Target file untracked | Send it to the other branch of 9c.0 (the private-file path), not to this flow |
-| Worktree creation fails for any reason | Hard STOP, no override |
+| Worktree creation fails for any reason | Hard stop, no override |
 | Unrelated dirt elsewhere in the repo | Report it and ask once. Any answer other than an explicit yes means skip. The isolated worktree does not touch this dirt, but ask before you go on anyway |
 
 Never force-push. Never amend or rebase the branch of repo B. Never stash a file of the user in repo B, and never discard it with `git checkout`. Never touch `.gitignore` or `.claude/settings.json` in repo B.
@@ -229,7 +236,7 @@ A later run resumes the file with `--resume=<path> --cross-repo=<repo|all>`, wit
 2. It runs the 9c.3 sequencing question again, once for the resumed set. The repeated gate keeps the guarantee of 9c.9 that sequencing is absolute.
 3. Only then does it go on to 9c.4 for the named repo or repos.
 
-The Phase 5 approval gate does NOT run again, because the TODO file of the original run already holds the approvals. On resume, the Precondition A checks `git merge-base --is-ancestor` and `git -C <marketplace-root> cat-file -e` (9c.2) use the `<marketplace-root>` that Phase 0 resolved. They read `<this-run-marketplace-head-sha>` directly from the persisted `Promoted commit` field. That field holds, wherever `<marketplace-root>` came from, and after any unrelated later version bump. The resumed run can start from a different location. Only the persisted `Promoted commit` is an immutable reference to what the original run promoted.
+The Phase 5 approval gate does not run again, because the TODO file of the original run already holds the approvals. On resume, the Precondition A checks `git merge-base --is-ancestor` and `git -C <marketplace-root> cat-file -e` (9c.2) use the `<marketplace-root>` that Phase 0 resolved. They read `<this-run-marketplace-head-sha>` directly from the persisted `Promoted commit` field. That field holds, wherever `<marketplace-root>` came from, and after any unrelated later version bump. The resumed run can start from a different location. Only the persisted `Promoted commit` is an immutable reference to what the original run promoted.
 
 ### 9c.8 — Verbatim push gate per repo
 
@@ -297,7 +304,7 @@ A wrapper can still need its personal layer and also carry an F-stale section. T
 Handle it like a partially promoted memory file in 9a, which the run never stubs. Report only. Name each section to trim, and the shipped entity and version that now covers it. The two recovery routes of 9d apply:
 
 - A section that an EARLIER run fixed with E-fix-shipped can be trimmed now.
-- A section whose fix landed in THIS run can be trimmed only after that promotion is published. The publish checks are the same as for a fully superseded file.
+- A section whose fix landed in this run can be trimmed only after that promotion is published. The publish checks are the same as for a fully superseded file.
 
 ### Opt-in — `--delete-personal-entities` (bare boolean, default off)
 
@@ -305,10 +312,10 @@ This flag lets the skill delete the personal entity files in scope itself. Its g
 
 1. **Automated check of publication and local load**. Run it once for each run, before any question to the user. It runs Preconditions A and C of 9c.2 exactly as 9c.2 specifies them, against the target marketplace. This step does not restate their mechanics. Precondition A branches on the route that put the personal file in scope:
 
-   - **Promoted or E-fixed in this run** (output of Phase 6): Precondition A **in full**. This includes its default-branch fallback chain and its fetch-failure rule. It also includes its fallback for a failed ancestor check: the entity still exists at the ref, AND the published `plugin.json` version at that ref is `>=` the promoted `@version`. The fallback matters most here. The history of this marketplace uses squash merges, so the raw `git merge-base --is-ancestor` check often fails on a published promotion. Without the fallback, this step falls back to report-only after every normal merge. The reference point is always the Phase 8 bump of this run and `<this-run-marketplace-head-sha>`, not a persisted TODO field. The re-entry mode of 9c.1 is for 9c only.
-   - **Already shipped, F-stale** (classification of Phase 3): no commit of this run can prove the publication. The shipped entity that supersedes this file is older than this run. Precondition A still resolves the real default branch of the target marketplace with the fallback chain of 9c.4 step 1. It still runs `git fetch origin <default-branch>` under the same fetch-failure rule. A failed fetch is a hard Precondition A failure on this branch too, as on the promoted or E-fixed branch. This branch skips ONLY two checks: the ancestor check (`git merge-base --is-ancestor`) and the version-floor check of `plugin.json`. No commit of this run and no recorded promotion version exist for them to compare with. After the run resolves and fetches the default branch, the existence check is left: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
+   - **Promoted or E-fixed in this run** (output of Phase 6): Precondition A **in full**. This includes its default-branch fallback chain and its fetch-failure rule. It also includes its fallback for a failed ancestor check: the entity still exists at the ref, and the published `plugin.json` version at that ref is `>=` the promoted `@version`. The fallback matters most here. The history of this marketplace uses squash merges, so the raw `git merge-base --is-ancestor` check often fails on a published promotion. Without the fallback, this step falls back to report-only after every normal merge. The reference point is always the Phase 8 bump of this run and `<this-run-marketplace-head-sha>`, not a persisted TODO field. The re-entry mode of 9c.1 is for 9c only.
+   - **Already shipped, F-stale** (classification of Phase 3): no commit of this run can prove the publication. The shipped entity that supersedes this file is older than this run. Precondition A still resolves the real default branch of the target marketplace with the fallback chain of 9c.4 step 1. It still runs `git fetch origin <default-branch>` under the same fetch-failure rule. A failed fetch is a hard Precondition A failure on this branch too, as on the promoted or E-fixed branch. This branch skips only two checks: the ancestor check (`git merge-base --is-ancestor`) and the version-floor check of `plugin.json`. No commit of this run and no recorded promotion version exist for them to compare with. After the run resolves and fetches the default branch, the existence check is left: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
 
-   Precondition C is UNCHANGED on both branches. It uses the same mechanism. It checks again that the shipped entity still covers each term in the `Load-bearing terms` that 9c.2 defines. The terms were picked for this personal file. The "still published" proof of A explicitly does NOT cover mangled content, so cover every term. For each superseded personal file, run Precondition C at the same ref that A resolved and fetched:
+   Precondition C is UNCHANGED on both branches. It uses the same mechanism. It checks again that the shipped entity still covers each term in the `Load-bearing terms` that 9c.2 defines. The terms were picked for this personal file. The "still published" proof of A explicitly does not cover mangled content, so cover every term. For each superseded personal file, run Precondition C at the same ref that A resolved and fetched:
 
    - Run one `git -C <marketplace-root> grep -n -F -e '<term>' origin/<default-branch> -- <entity-path>` for each comma-separated term.
    - Match each term as a fixed string, never as a regex.

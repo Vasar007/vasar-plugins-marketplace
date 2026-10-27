@@ -8,6 +8,8 @@ when_to_use: Use it for "add migration", "schema change", "data transformation",
 
 Add a migration for a schema change, a data transformation, or a product upgrade. A repo uses one of two migration systems: the standard migrations of EF Core, or the migration system of the framework (`IDatabaseMigration` and `IProductMigration`). Find out which system the repo uses before you write code.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Choose the Migration System
 
 Search the repo for the files and the names below. Then use the row that matches. If the first two rows both match, ask the user which system to use. "Provider" means the database provider that the app uses in production, not a test provider such as SQLite or InMemory:

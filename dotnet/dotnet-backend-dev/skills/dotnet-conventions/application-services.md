@@ -1,5 +1,17 @@
 # Application Layer — Service Conventions
 
+## Contents
+
+- Directory Structure
+- Service Class Pattern
+- Query vs Command Separation
+- Repository Access: Direct Injection
+- Input Validation
+- Error Handling
+- DI Registration
+- Background Task Orchestration
+- Domain Logic Delegation
+
 ## Directory Structure
 
 ```text
@@ -52,7 +64,7 @@ Repositories are injected directly through the constructor. Do **not** use `IUni
 - `UpdateAsync(entity, ct)`: returns `void` or `T`.
 - `AddAsync(entity, ct)`: returns `void`.
 - `DeleteByPrimaryKeyAsync(id, ct)`: returns `void`.
-- **Repositories call `SaveChangesAsync` internally.** Callers must NOT call it. One save per logical operation happens inside the repository method.
+- **Repositories call `SaveChangesAsync` internally.** Callers must not call it. One save per logical operation happens inside the repository method.
 
 ## Repository Access — Direct Injection
 

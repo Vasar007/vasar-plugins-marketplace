@@ -2,6 +2,26 @@
 
 The feature branch `feature/<username>/tasks/1234567-add-pagination` is 5 commits ahead of `main` and touches 4 .NET files. The run has two rounds, the `dual` reviewer, and an explicit `--skip=medium,low,nit`.
 
+## Contents
+
+- Phase 1: Resolve target
+- Phase 2: Resolve reviewer + fixer
+- Phase 3: Round 1 review
+- Phase 4: Triage
+- Phase 5: Verify-then-fix
+- Phase 6: Build / test verify
+- Phase 7: Commit
+- Phase 8: Repeat
+- Phase 9: Final summary
+- Brief format: as printed after each cycle
+- Full format: Round 1 report
+- Description
+- Summary table
+- Details per item
+- Conclusion
+- Final verdict
+- Reviewer model
+
 **Invocation:**
 
 ```text

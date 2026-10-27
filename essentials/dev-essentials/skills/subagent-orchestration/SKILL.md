@@ -56,7 +56,7 @@ Haiku is not only for one-step lookups. Prefer Haiku over Sonnet for a short seq
 
 ## Rule 1 — Orchestrate aggressively; delegate even small research
 
-For multi-step, long-running, or complex work, the main agent is the orchestrator, not the implementer. Each logical work unit goes to a subagent. Research is NOT exempt. If the parent task is multi-stage, even a "quick" `Grep` or two `Read` calls for the plan belong in a subagent.
+For multi-step, long-running, or complex work, the main agent is the orchestrator, not the implementer. Each logical work unit goes to a subagent. Research is not exempt. If the parent task is multi-stage, even a "quick" `Grep` or two `Read` calls for the plan belong in a subagent.
 
 Self-test before any tool call inside a multi-stage session: ask "Can a subagent do this with a 5-line brief?".
 
@@ -73,7 +73,7 @@ What delegates:
 
 - Multi-commit fix stacks: one subagent for each commit. They run one after the other by default. If the units are really independent, they can run in parallel (see Rule 3).
 - Audits, sweeps, or cross-cutting refactors over the codebase: a subagent.
-- Research that locks the plan inside a multi-stage session (find a pattern, test a hypothesis, find a file): a subagent. The answer can feel close. Do NOT do it inline anyway.
+- Research that locks the plan inside a multi-stage session (find a pattern, test a hypothesis, find a file): a subagent. The answer can feel close. Do not do it inline anyway.
 - PR-comment retrieval, classification, and research (anything that maps to `dev-essentials:process-pr-comments`): subagents, which that skill dispatches itself. In both cases below, invoke the skill in the main session. Do not dispatch a subagent that runs the skill. The skill asks the user questions and waits for the go-ahead for each push, and a subagent cannot reach the user.
   - **User asks raw** ("process PR comments", "give me a fix plan", "handle review feedback"): invoke the skill in the main session. If the user asked only for a plan, pass `dry-run`.
   - **User explicitly invokes `/dev-essentials:process-pr-comments`**: the skill orchestrates from the main agent. Its internal phases (thread fetch, classification, research for each thread) still go to subagents. The main agent never runs the high-volume MCP reads on the outside system inline.
@@ -92,7 +92,7 @@ For a worked example of a bundled review loop, see [references/worked-examples.m
 
 ## Rule 2 — Pass user-supplied context verbatim; do not pre-research to enrich it
 
-The user can give context before the main agent dispatches subagents. Examples are finding counts ("25 issues"), file lists ("3 clients, ignore SMS"), path patterns, scope guards, and exact line references. Quote this context word for word in the prompt of the subagent. Do NOT run your own grep, glob, or read calls to test the numbers of the user or to list the files. Do NOT pre-read source to write a "richer" brief.
+The user can give context before the main agent dispatches subagents. Examples are finding counts ("25 issues"), file lists ("3 clients, ignore SMS"), path patterns, scope guards, and exact line references. Quote this context word for word in the prompt of the subagent. Do not run your own grep, glob, or read calls to test the numbers of the user or to list the files. Do not pre-read source to write a "richer" brief.
 
 Reason: research before a dispatch fills the context of the main agent with facts that the subagent can find fast in its own context. The main agent then has fewer tokens for the orchestration decisions that only it can make. Pre-research lowers the quality of the work.
 
@@ -135,7 +135,7 @@ Reason: PR-thread payloads are large. Even with minimal options, the threads of 
 
 If an MCP server for an outside system is missing in the current session, ask the user to fix it (`/mcp`). Never silently fall back to REST APIs or CLI tools. Rule 5 of `dev-essentials:github-mcp-conventions` names the one exception, a PR that `audit-personal-conventions` creates with `gh`. The main agent is the right place for the repair, because the user sees the MCP errors and the request to reconnect there.
 
-What this rule does NOT change:
+What this rule does not change:
 
 - Push commands stay with the main agent. A push is one-shot and has a small payload, and the user can inspect its repair surface (force-push prevention, branch checks) in the main session.
 - Rule 2 still holds. Pass IDs word for word, and do not fetch first.
@@ -188,7 +188,7 @@ Limits:
 
 Every write-capable subagent dispatch (one that edits files or runs git commands) must carry the ABSOLUTE worktree path. Put it in the first few lines of the brief, and again at every concrete instruction that touches files. Do not assume that a dispatched subagent starts in the worktree of the orchestrating session. Its shell CWD can be the MAIN repo root. Most relative paths exist in both places, so an ambiguous brief lets the subagent silently edit the wrong copy.
 
-Tell the subagent this rule: if its brief gives no absolute worktree path, it must STOP and ask. It never assumes the current working directory, and it never infers the worktree from a relative path somewhere else in the brief.
+Tell the subagent this rule: if its brief gives no absolute worktree path, it must stop and ask. It never assumes the current working directory, and it never infers the worktree from a relative path somewhere else in the brief.
 
 If two or more worktrees are in play, put an explicit CORRECT/WRONG example block near the top of the brief. Example:
 
@@ -205,8 +205,8 @@ Every git call in the work of the subagent uses `git -C "<absolute-worktree-path
 
 Two verification gates belong in every such brief:
 
-- **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, STOP. Also save the output of `git -C "<main-repo-root>" status --porcelain` for the Post-edit gate.
-- **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Look only at these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, STOP, and report the paths. Do not revert them, because another agent can own them.
+- **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, stop. Also save the output of `git -C "<main-repo-root>" status --porcelain` for the Post-edit gate.
+- **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Look only at these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, stop, and report the paths. Do not revert them, because another agent can own them.
 
 No `.bak` files. The Edit tool already fails loudly on a content mismatch. So manual backups are not necessary, and they pollute the tree.
 
@@ -216,7 +216,7 @@ This rule is about the briefs of dispatched subagents. The mechanics of worktree
 
 An agent with a concrete, bounded task DOES that task. A re-dispatch of the task to a fresh subagent, with only a relay of its report, is a hop that does nothing. It buys no parallelism and protects nothing, because the context of the parent was already sized for the job. It costs a full brief rewrite and another notification round trip. This binds every level: the main session, and any subagent that got a concrete task.
 
-Self-test before any dispatch that you make as the receiver of a bounded task: does MY OWN bounded task description already tell me to do the concrete work? Or does the scope really not fit one agent?
+Self-test before any dispatch that you make as the receiver of a bounded task: does my own bounded task description already tell me to do the concrete work? Or does the scope really not fit one agent?
 
 - If the description already tells you to do the work, do it yourself.
 - Decompose further only in one case: the work truly exceeds a single dispatch.
@@ -231,7 +231,7 @@ More fan-out IS legitimate for a received task that is really large:
 
 The test is whether each child dispatch owns real, separable work. A parent that prefers that someone else types the commands is no reason.
 
-**Brief accordingly**. If the task really needs fan-out, say so in the brief. For concrete work, write this line in the brief: "do this work yourself. Do NOT dispatch further subagents for it." A brief that says neither produced the worktree-cleanup failure in [references/worked-examples.md](references/worked-examples.md).
+**Brief accordingly**. If the task really needs fan-out, say so in the brief. For concrete work, write this line in the brief: "do this work yourself. Do not dispatch further subagents for it." A brief that says neither produced the worktree-cleanup failure in [references/worked-examples.md](references/worked-examples.md).
 
 ## Brief quality matters more than brief count
 
@@ -239,12 +239,12 @@ A vague brief produces shallow work. Each delegation must include:
 
 - **What is done** so far in this session. Paste the relevant context. Do not paraphrase it.
 - **What to do**: the deliverable in concrete terms (file paths, expected outputs).
-- **What NOT to do**: scope guards ("do not implement", "do not edit X").
+- **What not to do**: scope guards ("do not implement", "do not edit X").
 - **Skills the subagent must invoke**, for example `dotnet-backend-dev:create-tests` before it writes tests.
 - **The verification commands** that prove the work is done (build commands, test filters).
 - **Reporting format**: what the final message of the subagent must contain.
-- **STOP-and-report condition** for ambiguous cases.
-- **Whether further fan-out is allowed**. For a concrete, bounded task, write "do this yourself. Do NOT dispatch further subagents" (see Rule 7).
+- **Stop-and-report condition** for ambiguous cases.
+- **Whether further fan-out is allowed**. For a concrete, bounded task, write "do this yourself. Do not dispatch further subagents" (see Rule 7).
 
 A 10-line brief that prevents one wrong dispatch is worth more than three 3-line briefs that each need a redo.
 
