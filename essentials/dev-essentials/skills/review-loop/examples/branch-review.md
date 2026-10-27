@@ -259,6 +259,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 - **Problem**: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then applies `.Skip(offset).Take(pageSize)` on the returned `List<TenantEntity>`. Each request for a page loads every row of the table into memory.
 - **Impact**: on a large table, each list call scans the full table and allocates O(n) memory, and queries time out under load.
+- **Confidence**: high. The slice after `.ToListAsync()` is visible in the code at `TenantRepository.cs:89`.
 - **Recommendation**: move `.Skip(offset).Take(pageSize)` before `.ToListAsync()`, so that EF translates them to the SQL clauses `OFFSET` and `FETCH`.
 - **Verification source**: F1 [APPLY]. The slice in memory is real, at `TenantRepository.cs:89`. The fix stays inside lines 87 to 93. The pattern matches `ExternalResourceRepository.cs:54`, a known working example in a sibling service.
 
@@ -266,6 +267,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 - **Problem**: `TenantQueryServiceTests.cs` has no coverage for `pageSize=0` or for a negative `offset`. The fixer read `TenantQueryService.cs:38`. The service leaves validation to the repository layer: it passes the bounds to the repository, and the repository does the guard. So the finding is about missing test coverage, not about a missing runtime guard.
 - **Impact**: inputs at the edges have no test coverage, so a regression in the guard behavior goes unnoticed.
+- **Confidence**: high. The test file has no case for these inputs. Only a test that exists elsewhere can change this.
 - **Recommendation**: add tests with `foreach` over a `List<Action>` that assert `ArgumentOutOfRangeException` for `pageSize=0` and `offset=-1`.
 - **Verification source**: F2 [PARTIAL]. The gap is real, from a read of `TenantQueryService.cs:38`. The test uses `foreach` over a `List<Action>`. `dotnet-backend-dev:create-tests` documents `foreach` over a `List<Action>` for constructor guards and over a `List<Func<Task>>` for method guards. It has no rule for range guards, so the fixer followed the existing guard tests of `TenantRepositoryTests` and did not adopt the `[TestCase]` direction. The finding itself, the missing coverage, is fully resolved.
 
@@ -273,6 +275,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 - **Problem**: the reviewer says that `TenantQueryService` injects `IServiceScopeFactory` and resolves `ITenantRepository` in the method body. The reviewer calls this a "service locator anti-pattern".
 - **Impact**: claimed, a leak of a scoped service or a hidden dependency.
+- **Confidence**: low. The claim depends on how the service gets its scope, and the source can disprove it.
 - **Recommendation**: see the verification source. The finding is rejected.
 - **Verification source**: F3 [REJECT]. The fixer read all of `TenantQueryService.cs`. The service injects `IServiceScopeFactory` and creates a scoped lifetime for each call. This is the documented pattern to use scoped services from background hosts with a singleton lifetime. `BaseWorker.cs:31` of `BackgroundJobService` is a known working example of the same pattern. The claim of the reviewer does not hold against the source, so the finding is rejected.
 
@@ -280,6 +283,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 - **Problem**: the value `50` is a bare integer literal in `GetTenantsQuery.cs:12`, `TenantQueryService.cs:21`, and `TenantRepository.cs:14`.
 - **Impact**: a reader cannot tell that the three literals are the same constant. A change of the default needs three edits, and the compiler does not keep them the same.
+- **Confidence**: high. The three literals are visible in the code. The risk is small.
 - **Recommendation**: move it to a constant `PaginationDefaults.DefaultPageSize`. Deferred by `--skip medium`.
 - **Verification source**: deferred. No fix in this cycle.
 
@@ -287,6 +291,7 @@ Adds cursor-based pagination to `TenantQueryService` and `TenantRepository` thro
 
 - **Problem**: `TenantQueryService.cs:67` declares `public Task<PagedResult<TenantDto>> GetPage(...)`. The async naming convention of the repository requires the suffix `Async` on every method that returns a `Task`.
 - **Impact**: the name does not follow the naming convention, and an analyzer can warn about it later.
+- **Confidence**: high. The signature is visible at `TenantQueryService.cs:67`. The rule is in the repository convention.
 - **Recommendation**: rename it to `GetPageAsync`. Deferred by `--skip low`.
 - **Verification source**: deferred. No fix in this cycle.
 

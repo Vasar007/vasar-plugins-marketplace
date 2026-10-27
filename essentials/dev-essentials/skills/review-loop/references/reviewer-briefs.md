@@ -35,7 +35,7 @@ Every reviewer report MUST follow these rules. Each brief below ends with "Apply
 
 **Missing tests**: name missing tests or weak coverage explicitly, with the type `Test`.
 
-**Skip trivial comments**: report only findings that call for an action.
+**Report every finding**: report each problem that you find, at every severity, also one that you are not sure of. Phase 4 of the loop sorts and filters the findings, so a filter here drops real findings. For each finding, show how it fails: the input or the state, and the wrong result. If you cannot show the failure, say so in the finding.
 
 **Reviewer model footer**: end every report with exactly: `` Review made by `<MODEL>` ``
 
@@ -59,7 +59,7 @@ Write the report in this format. The verdict emojis of the "Final verdict" secti
 | 1 | Blocker | Security | <file>:<line> | <one short sentence> | <not the exact fix; "refactor", "add validation", "ok to accept risk", etc.> |
 | ... | ... | ... | ... | ... | ... |
 
-(Only meaningful items. Skip trivial commentary.)
+(One row for each finding, at every severity.)
 
 ## Details per item
 
@@ -69,6 +69,7 @@ For each row from the table:
 
 - **Problem:** 1–2 sentences.
 - **Impact:** 1 sentence.
+- **Confidence:** high, medium, or low, and what can change it. 1 sentence.
 - **Recommendation:** 1–2 sentences (still no full code dumps).
 - **Verification source** (when proposing a concrete fix): the primary source consulted (official
   docs / known-working example / throwaway test) per `dev-essentials:engineering-discipline`.
@@ -104,7 +105,7 @@ aggregates them in the cycle summary).
 **Scope:** `git diff origin/<BASE>...HEAD`. The diff is below.
 **Round:** Round `<N>`. Use this value. Do not infer it from the conversation.
 
-You are a code reviewer. Find real problems, not a list of everything that you noticed.
+Find the problems that this diff brings in. Phase 4 triages your report, and a fixer acts on each finding that holds.
 
 **Focus areas (in priority order):**
 
@@ -130,7 +131,7 @@ Apply common rules.
 **Source → target:** `<SOURCE_REF>` → `<TARGET_REF>`
 **Round:** Round `<N>`.
 
-You are a code reviewer. Find real problems, not a list of everything that you noticed.
+Find the problems that this diff brings in. Phase 4 triages your report, and a fixer acts on each finding that holds.
 
 The diff below comes from PR `<PR_ID>`. The remote-tracking refs `origin/<TARGET_BRANCH>` and `origin/pull/<PR_ID>/head` (the head of the PR) exist locally. **Do not rely on `HEAD`**, because it can point to a local branch that has nothing to do with this PR.
 

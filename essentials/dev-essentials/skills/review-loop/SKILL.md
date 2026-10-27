@@ -101,7 +101,7 @@ These rules hold for the whole run.
 - **Do not over-fix**. Fix the findings of the triage only. This is not a refactoring session.
 - **Respect `--rounds`**. Do not loop past the maximum. Report the unresolved findings under "Deferred items" in the final summary.
 - **Build and test after every fix pass (Phase 6)**. No flag skips Phase 6 after a fix pass. This session owns every red signal after a fix round: investigate and fix it, or escalate to the user.
-- **Watch the finding density**. A healthy density is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings for each 1,000 lines. The lines are the lines of diff or of file content. A high count to look thorough does not help the user. If the Phase 4 count is far from this baseline, challenge the result of the reviewer. Ask for a stricter second review before the triage. An example is 15 or more Mediums for a target of about 1,000 lines. Do not accept an inflated count as it is.
+- **Filter the findings once, in Phase 4**. The reviewer reports every finding with a severity and a confidence, because a filter in the reviewer prompt drops real findings. Phase 4 decides what to fix. A usual count is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings. The count is for each 1,000 lines of diff or file content. A count far above that is a signal for the triage, not a reason to drop findings. Then judge each Medium, Low, and Nit on its merit with more care. Do not ask for a second review.
 - **Fall back to `general-purpose` for an unknown or failed agent ID**. Phase 2 has the rules. They hold for `--reviewer` and `--fixer`. If `general-purpose` is also not available, **STOP and ask the user to install at least one reviewer plugin**.
 - **Take the round number from the cycle counter of this skill**. The counter starts at 1. Never take the round number from the conversation history.
 
@@ -188,7 +188,7 @@ Dispatch the reviewers as `dev-essentials:subagent-orchestration` Rule 3 says. F
 
 ### Phase 4 — Triage
 
-**Finding-density check (before triage):** apply the density guardrail of the "Guardrails" section. If the count of findings is far from that baseline, challenge the result of the reviewer. Ask for a stricter second review before you write the triage table below. Do not triage an inflated count as it is.
+**Count check (before triage):** compare the count of findings with the usual count of the "Guardrails" section. If the count is far above it, judge each Medium, Low, and Nit with more care in the steps below. Do not drop a finding unread, and do not ask for a second review.
 
 After all reviewer output is in, write a triage table before any action:
 
@@ -212,6 +212,7 @@ Apply `--skip` exactly. Each severity token in `--skip` is its own gate: `--skip
 
 - A Medium is worth a fix at any label in two cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
 - A Low or Nit that is only cosmetic is not worth a fix. Record it as deferred and move on.
+- Low confidence alone does not defer a finding. Phase 5 tests each finding against a primary source, and a finding that does not hold gets REJECT there.
 - If the fix is clear-cut, give it to Phase 5 as normal. Some fixes are **not** clearly safe or in scope: they need a large refactor, they touch a design decision, or the right resolution is truly ambiguous. For such a finding, without `--autonomous`, do not decide alone. Show the finding and the proposed fix or fixes as a short addendum to the triage (a short list, not a second review). Ask the user before the fixer touches it. This holds without `--interactive` too. The default approval covers the routine acknowledgment, never a real ambiguity. With `--autonomous`, do not ask. Decide as "Autonomy" says, and list the finding and the decision in the section "Decisions for your review" of the Phase 9 summary.
 
 **Record `blocking: true|false` on every finding, independent of its severity label**. Phase 4 sets `blocking: true` on a finding that it concludes must be resolved before merge. By default, this is any Blocker, Critical, or High, plus any Medium, Low, or Nit that the judgment above raises. Set `blocking: false` for anything that Phase 4 records and moves on from. This includes a Blocker, Critical, or High that the user and the session explicitly agreed to defer. In that case, say so in the triage. The `(<Y> blocking)` count of each severity row only sums up this flag. Phase 8 (`stop-clean`) and the deferred list of Phase 9 read the flag of each finding, not that count. Phase 8 also reads the severity label (see Phase 8).
