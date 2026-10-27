@@ -2,6 +2,17 @@
 
 Use `WebApiBaseTest` for integration tests that verify controller endpoints through HTTP requests.
 
+## Contents
+
+- Base Class
+- Structure
+- Complete Example
+- Test Patterns
+- Assertion Extensions
+- Test Data Setup
+- External Service Mocking
+- Key Points
+
 The code examples in this file use NUnit, FluentAssertions, and NSubstitute. With another test framework, assertion library, or mocking library, use its equivalent attributes and calls.
 
 ## Base Class

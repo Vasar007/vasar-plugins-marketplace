@@ -1,5 +1,19 @@
 # Testing Conventions
 
+## Contents
+
+- Framework & Libraries
+- Base Classes
+- Use the create-tests Skill for Examples
+- Test Class Structure
+- AAA Comments
+- No Direct Mock Creation
+- Private Helper Methods
+- Common Builders
+- Test Data Generators
+- Database Integration Tests
+- Code Style in Tests
+
 ## Framework & Libraries
 
 The tests use these libraries of the project. The rules name each library by its role.

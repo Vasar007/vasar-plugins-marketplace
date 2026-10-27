@@ -2,6 +2,14 @@
 
 Use Test Mock Builders for every interface mock, instead of an inline setup with the test data library (for example, `Fixture.Freeze<T>()` in AutoFixture).
 
+## Contents
+
+- When to Use Mock Builders
+- Mock Builder Structure
+- Repository Mock Builder Example
+- Usage in Tests
+- Key Points
+
 The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
 ## When to Use Mock Builders

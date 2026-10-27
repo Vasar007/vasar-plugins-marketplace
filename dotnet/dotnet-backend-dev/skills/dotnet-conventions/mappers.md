@@ -1,5 +1,18 @@
 # Mapper and Converter Patterns
 
+## Contents
+
+- Always Use the Mapping Library
+- Required Attributes: Every Mapper
+- SharedDomainWrappersConverter
+- Converter Types by Location
+- EF Entity Mappers: Non-Static
+- [UseMapper] for Non-Static Dependencies
+- REST Converter Naming
+- Project-Local DomainWrappersConverter
+- Common Attributes
+- Manual Mapping Fallback
+
 ## Always Use the Mapping Library
 
 Generate converters with the mapping library (for example, Riok.Mapperly). The examples in this file use Riok.Mapperly attributes. Another mapping library uses its own equivalent attributes or calls.

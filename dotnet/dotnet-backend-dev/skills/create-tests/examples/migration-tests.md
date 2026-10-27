@@ -2,6 +2,18 @@
 
 Testing patterns for database and product migrations using Framework migration system.
 
+## Contents
+
+- Overview
+- Test Fixture Structure
+- Required Helper Methods
+- Essential Test Scenarios
+- Production Data Testing
+- Test Data Helpers
+- Testing Checklist
+- Common Assertions
+- Related Patterns
+
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
 ## Overview

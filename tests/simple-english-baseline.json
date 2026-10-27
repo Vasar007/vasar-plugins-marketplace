@@ -74,6 +74,12 @@
       "reason": "The `--` is the syntax of the write-tests command. Text after it goes to each agent as extra instructions. The prompt needs it, because the environment note must reach the agents."
     },
     {
+      "file": "dotnet/dotnet-backend-dev/skills/create-tests/examples/migration-tests.md",
+      "rule": "synonym_rotation",
+      "text": "verify (check-verify)",
+      "reason": "Heading text: the contents list repeats the words of the heading. The heading keeps its name, because other files and anchors use it."
+    },
+    {
       "file": "essentials/dev-essentials/skills/audit-personal-conventions/references/entity-authoring-conventions.md",
       "rule": "slop_word",
       "text": "Load-bearing",

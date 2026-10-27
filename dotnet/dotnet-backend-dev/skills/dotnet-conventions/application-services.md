@@ -1,5 +1,17 @@
 # Application Layer — Service Conventions
 
+## Contents
+
+- Directory Structure
+- Service Class Pattern
+- Query vs Command Separation
+- Repository Access: Direct Injection
+- Input Validation
+- Error Handling
+- DI Registration
+- Background Task Orchestration
+- Domain Logic Delegation
+
 ## Directory Structure
 
 ```text

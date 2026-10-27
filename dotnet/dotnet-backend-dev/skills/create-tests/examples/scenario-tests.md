@@ -2,6 +2,14 @@
 
 Scenario tests live in `{ProjectName}.WebApi.Tests/Scenarios/`. They run **real end-to-end orchestration** across all application layers. They are very different from unit tests that use mock builders. Do not use mock-builder patterns here.
 
+## Contents
+
+- What scenario tests are for
+- Forbidden in scenario tests
+- Allowed pattern: stubs and raw data only
+- Worked example
+- Summary
+
 The code examples in this file use NUnit, FluentAssertions, NSubstitute, and AutoFixture. With another test framework, assertion library, mocking library, or test data library, use its equivalent attributes and calls.
 
 ## What scenario tests are for

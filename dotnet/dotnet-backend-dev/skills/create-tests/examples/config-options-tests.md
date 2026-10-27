@@ -2,6 +2,16 @@
 
 Use `BaseValidatableObjectTests` for testing configuration option classes that implement `IValidatableObject`.
 
+## Contents
+
+- Base Class
+- Required Pattern
+- Available Assertion Methods
+- Complete Example
+- Standard Tests to Include
+- Nested Options Pattern
+- Key Points
+
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.
 
 ## Base Class

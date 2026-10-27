@@ -2,6 +2,15 @@
 
 Use `BaseEqualityMemberTests<T>` for **all** domain models implementing `IEquatable<T>` and `IEqualityOperators<T, T, Boolean>`.
 
+## Contents
+
+- Base Class
+- Required Override
+- Optional Overrides (Mutators)
+- Complete Example (Simple record: all fields affect equality)
+- Complete Example (Complex model: some fields are excluded from equality)
+- Key Points
+
 The test class of a model that implements these interfaces must inherit from `BaseEqualityMemberTests<T>`. Do not inherit from `BaseTest` or `BaseMockTest` for such models.
 
 The code examples in this file use NUnit and FluentAssertions. With another test framework or assertion library, use its equivalent attributes and calls.

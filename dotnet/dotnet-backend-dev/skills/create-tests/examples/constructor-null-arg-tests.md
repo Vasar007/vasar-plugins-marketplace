@@ -2,6 +2,14 @@
 
 For a service or hosted service with one or more constructor dependencies, null-argument coverage uses exactly **two** tests: one positive and one negative. With one dependency, the `List<Action>` has one entry. The negative test iterates over a `List<Action>` with one entry for each dependency. It does not use boolean-stripe test cases (for example, `[TestCase]` parameters in NUnit).
 
+## Contents
+
+- Pattern overview
+- Why the helper must be required-positional, not `dep ?? Create{Mock}()`
+- Canonical example
+- Anti-pattern: boolean stripes
+- Related gate: the same pattern applies to methods, not just constructors
+
 The code examples in this file use NUnit, FluentAssertions, and AutoFixture. With another test framework, assertion library, or test data library, use its equivalent attributes and calls.
 
 ## Pattern overview

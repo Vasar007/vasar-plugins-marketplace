@@ -1,5 +1,16 @@
 # Configuration — Options & Validation
 
+## Contents
+
+- Directory Structure
+- Options Class Pattern
+- Validator Pattern
+- Nested Options
+- Computed Properties
+- DI Registration
+- Consuming Options
+- Adding a New Options Class
+
 ## Directory Structure
 
 ```text

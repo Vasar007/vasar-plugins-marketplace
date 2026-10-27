@@ -1,5 +1,15 @@
 # Domain Layer Conventions
 
+## Contents
+
+- No External Dependencies
+- Domain Models: Sealed Records
+- ID Wrapper Types
+- Domain Exceptions
+- Domain Enums
+- Domain Areas
+- Sensitive Data
+
 ## No External Dependencies
 
 The Domain layer has zero external dependencies. No references to Infrastructure, Application, WebApi, or external NuGet packages beyond the framework base.
