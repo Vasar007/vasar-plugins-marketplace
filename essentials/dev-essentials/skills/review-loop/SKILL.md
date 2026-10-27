@@ -12,6 +12,21 @@ This skill runs review cycles. In each cycle, one or more reviewer subagents rev
 
 The run is done after Phase 8 sets a stop verdict and Phase 9 runs. The last chat message of the run must hold two things. The first is this line as plain text: `Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>`. The second is the path of each file that the run fixed. If the run fixed no file, the message says so. Write both in every run. Three cases often lose them: the summary goes to a file, the instructions of the user set the format of the final report, or a calling workflow gets the summary. The user and the calling workflow read the verdict from this line.
 
+After a compaction, invoke this skill again before the next phase.
+
+## Hard rules
+
+These rules hold for the whole run.
+
+- **Never push by default**. Commits stay local, and the push is a decision of the user. Do not push unless the user explicitly allows it, for example "you can push after each fix commit".
+- **Never touch unrelated files**. Edit only the files that the triage names, plus a supporting file that the fix structurally needs (see section 6 of `references/verify-fix-discipline.md`). Do not start unrelated refactors.
+- **Fix only what a primary source proves**. Apply only the findings with the verdict APPLY or PARTIAL. REJECT means no edit. See `dev-essentials:engineering-discipline` Rule 5.
+- **Judge findings on their merits, not on their labels**. The default `--skip none` defers nothing unread. In return, Phase 4 records `blocking: true|false` on every finding. Without `--autonomous`, Phase 4 also asks the user about each fix that is not clearly safe or in scope, before the fixer touches it. Phase 8 reads the flag **in addition to** the severity, not instead of it. An unresolved `blocking: true` finding blocks `stop-clean` at any severity, and an unflagged Blocker, Critical, or High blocks it too.
+- **Respect `--rounds`**. Do not loop past the maximum. Report the unresolved findings under "Deferred items" in the final summary.
+- **Build and test after every fix pass (Phase 6)**. No flag skips Phase 6 after a fix pass. This session owns every red signal after a fix round: investigate and fix it, or escalate to the user.
+- **Take the round number from the cycle counter of this skill**. The counter starts at 1. Never take the round number from the conversation history.
+- Before the first fix, Phase 5 compares `HEAD` with the reviewed head. This holds for `target=pr`, and for a `target=diff` whose right side is not `HEAD`.
+
 ## When not to use
 
 - To act on pull-request review comments from human reviewers, use `dev-essentials:process-pr-comments`.
@@ -20,32 +35,11 @@ The run is done after Phase 8 sets a stop verdict and Phase 9 runs. The last cha
 
 ## Parameters
 
-| Parameter | Default | Meaning |
-|---|---|---|
-| `target=` | `branch` | What to review: `branch`, `pr <id>`, `commits <N>`, `diff <range>`, `file <path>`, `class <FQN>`, `method <FQN>`, or `spec <path>`. Phase 1 resolves it. |
-| `--base <branch>` | detected from git | The base branch for the `branch` and `pr` targets. |
-| `--rounds <N>` | `2` | The maximum number of review-fix-re-review cycles. The default gives one review-and-fix pass and one re-review of the fix diff. |
-| `--skip <severities>` | `none` | Comma-separated severity tokens to defer **by label, unread**, without triage. Valid tokens: `blocker`, `critical`, `high`, `medium`, `low`, `nit`, and `none`. Each token is independent: `--skip medium,low` defers Medium and Low, but not Nit. The default `none` defers nothing by label. Every finding then goes to the merit-based triage of Phase 4 (see "Default configuration" and Phase 4). Do not pass an explicit set, for example `--skip medium,low,nit`, unless the user wants deferral by label. |
-| `--reviewer <id>` | `general-purpose` | The reviewer subagent or subagents. One reviewer by default. Values: `general-purpose`, `audit-team`, `dual`, `feature-dev:code-reviewer`, `pair <a>+<b>`, `quad <a>,<b>,<c>,<d>`, or any `<plugin>:<agent>`. The values with more than one reviewer are opt-in, for targets that need several points of view. **`audit-team` is not an agent ID**. It is a slash command that takes a documentation `<path>`. So it works only for `target=spec <path>` and for a `target=file <path>` with the extension `.md`. For any other target, Phase 2 warns and uses `general-purpose`. |
-| `--reviewer-model <model>` | `opus` | The model of each reviewer subagent, passed in the `model` field of each reviewer `Agent` call. The default is Opus, because a review needs judgment, and because this model also plans each fix (Phase 5, step 5a). It accepts any value of the `model` parameter of the `Agent` tool, or `inherit` for the model of the session. |
-| `--reviewer-effort <level>` | `high` | The effort level of each reviewer dispatch, passed in the `effort` field of each reviewer `Agent` call. It also applies to the fix plan of step 5a and to the re-review of Phase 8. The reviewer-model subagents of the orchestrated mode use it too. It does not reach `/audit-team`, which dispatches its own agents. Valid values: `low`, `medium`, `high`, `xhigh`, and `max`. |
-| `--reviewer-focus <tokens>` | the default list of the brief | Comma-separated focus tokens, for example `security,performance,test-coverage`. They replace the default focus list of the reviewer brief. `references/reviewer-briefs.md` defines the valid tokens and the rule for unknown tokens. |
-| `--fixer <id>` | `general-purpose` | The subagent that tests and fixes the findings (the fixer). It takes one agent ID: `general-purpose` or any `<plugin>:<agent>`. The values `audit-team`, `dual`, `pair`, and `quad` are for reviewers only (see Phase 2). |
-| `--fixer-model <model>` | `sonnet` | The model of the fixer, passed in the `model` field of the fixer `Agent` call. The default is Sonnet, because the fixer carries out an approach that the reviewer model already planned (Phase 5, step 5a). It accepts `inherit` for the model of the session. |
-| `--fixer-effort <level>` | `medium` | The effort level of the fixer, passed in the `effort` field of the fixer `Agent` call. The default is `medium`, because the fixer carries out a plan that is already made. It accepts the same values as `--reviewer-effort`. |
-| `--audit-team-args <...>` | none | Free text for the `/audit-team` command, added after the `<path>` argument that Phase 2 supplies. It works only with `--reviewer audit-team`. `references/audit-team-adapter.md` has the argument rules. A value of the user for `[agent-count]` or `[model]` always wins. |
-| `--no-verify-fix` | off | Skip the fix edits of Phase 5. Phase 6 still runs on the existing code as a sanity check. Phase 7 does not run. Phase 9 still runs. |
-| `--dry-run` | off | Skip the fix edits of Phase 5, skip Phase 6 (nothing changed, so there is nothing to build or test), and skip Phase 7. Phase 9 still runs. |
-| `--no-commit` | off | Only for `target=spec` and `target=file`. A diff, branch, or PR target reads committed code, so a re-review does not see fixes that stay uncommitted. For another target, stop and ask. For a caller that keeps the target out of commits, for example a plan file in a gitignored folder. Phase 7 makes no commit, and the fixes stay in the working tree. Phase 6 skips its failure check, because no fix commit exists. Phase 8 re-reviews the whole target file. |
-| `--interactive` | off | Wait for the user to acknowledge the Phase 4 triage before Phase 5. See "Autonomy". |
-| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
-| `--save-reports` | off | Write every full cycle report to `Notes/Reviews/`. This includes a run with `--rounds 1`. |
-| `--print-reports` | off | Print every full cycle report in chat. This includes a run with `--rounds` 2 or more. |
-| `--include-resolved` | off | Only for `target=pr <id>`. Phase 1 also keeps the resolved threads (`is_resolved: true`), and the reviewer brief gets the section "Previously addressed in this PR". The open threads (`is_resolved: false`) always go into the brief as the section "Open reviewer threads", with or without this flag. Other targets ignore the flag. |
+Read `references/parameters.md` before Phase 1. It gives the default and the meaning of each flag.
 
 ## Default configuration
 
-The defaults in the table above are the configuration that this loop is meant to run with. They ship with this skill. A global or per-repo `CLAUDE.md` does not have to state them, and a caller does not have to repeat them. Out of the box: **2 cycles, one reviewer on `--reviewer-model`, one fixer on `--fixer-model`, a commit per cycle, and nothing auto-deferred by severity label**. The reviewer works at `--reviewer-effort` and the fixer at `--fixer-effort`. For any other behavior, override only the flag that needs it.
+The defaults in `references/parameters.md` are the configuration that this loop is meant to run with. They ship with this skill. A global or per-repo `CLAUDE.md` does not have to state them, and a caller does not have to repeat them. Out of the box: **2 cycles, one reviewer on `--reviewer-model`, one fixer on `--fixer-model`, a commit per cycle, and nothing auto-deferred by severity label**. The reviewer works at `--reviewer-effort` and the fixer at `--fixer-effort`. For any other behavior, override only the flag that needs it.
 
 - **The reviewer model plans each fix, and the fixer only carries it out**. See Phase 5, step 5a. The model that found the problem chooses the approach before anyone edits a file. It bases the approach on how the existing code already solves the same case.
 - **The fix pass of every cycle gets its own commit**. Phase 7 commits after the first fix pass and after each later one. So the changes of each cycle land as a separate commit that a reader can review. If a caller wants a single commit, it squashes the round commits afterwards. Only `--no-commit` turns off Phase 7, for a target that stays out of commits.
@@ -98,17 +92,10 @@ Rules:
 
 These rules hold for the whole run.
 
-- **Never push by default**. Commits stay local, and the push is a decision of the user. Do not push unless the user explicitly allows it, for example "you can push after each fix commit".
-- **Never touch unrelated files**. Edit only the files that the triage names, plus a supporting file that the fix structurally needs (see section 6 of `references/verify-fix-discipline.md`). Do not start unrelated refactors.
-- **Fix only what a primary source proves**. Apply only the findings with the verdict APPLY or PARTIAL. REJECT means no edit. See `dev-essentials:engineering-discipline` Rule 5.
-- **Judge findings on their merits, not on their labels**. The default `--skip none` defers nothing unread. In return, Phase 4 records `blocking: true|false` on every finding. Without `--autonomous`, Phase 4 also asks the user about each fix that is not clearly safe or in scope, before the fixer touches it. Phase 8 reads the flag **in addition to** the severity, not instead of it. An unresolved `blocking: true` finding blocks `stop-clean` at any severity, and an unflagged Blocker, Critical, or High blocks it too.
 - **Be honest about uncertainty**. Mark an unclear finding as PARTIAL or REJECT, and give the reason. Do not skip it in silence, and do not apply it blindly.
 - **Do not over-fix**. Fix the findings of the triage only. This is not a refactoring session.
-- **Respect `--rounds`**. Do not loop past the maximum. Report the unresolved findings under "Deferred items" in the final summary.
-- **Build and test after every fix pass (Phase 6)**. No flag skips Phase 6 after a fix pass. This session owns every red signal after a fix round: investigate and fix it, or escalate to the user.
 - **Filter the findings once, in Phase 4**. The reviewer reports every finding with a severity and a confidence, because a filter in the reviewer prompt drops real findings. Phase 4 decides what to fix. A usual count is about 1 Critical or High, 4 Medium, and 3 Low or Nit findings. The count is for each 1,000 lines of diff or file content. A count far above that is a signal for the triage, not a reason to drop findings. Then judge each Medium, Low, and Nit on its merit with more care. Do not ask for a second review.
 - **Fall back to `general-purpose` for an unknown or failed agent ID**. Phase 2 has the rules. They hold for `--reviewer` and `--fixer`. If `general-purpose` is also not available, **stop and ask the user to install at least one reviewer plugin**.
-- **Take the round number from the cycle counter of this skill**. The counter starts at 1. Never take the round number from the conversation history.
 
 ## Report destination rules
 
@@ -126,7 +113,7 @@ The run format says what the orchestrator checks itself and how the run reports 
 After Phase 2, state the run format in a few lines. If Phase 1 has a scope hint, add it. Do not wait for an answer. If the calling workflow already stated the same run format in this session, do not state it again.
 
 - Check scope: the orchestrator checks the structure only. It makes sure that the target resolved and that each finding has a severity, a type, and a file reference. It makes sure that the fixer gave a verdict for each finding that it received. It also reads the Phase 6 result, and makes sure that each Phase 7 commit holds only the intended files. The fixer tests the content of each finding (APPLY, PARTIAL, or REJECT), and the re-review of the next round tests each fix. The fixes of the last round get no re-review, and the final report says so. The orchestrator does not re-read the cited code to test findings again.
-- Reporting: when a cycle report goes to a file, chat gets at most one short status line for that cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue". If a cycle report goes to chat, print it. The Brief format and the full cycle reports go where the "Report destination rules" say. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. In both cases, the final report holds the `Stop verdict:` line of the done test. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line and the `Stop verdict:` line.
+- Reporting: when a cycle report goes to a file, chat gets at most one short status line for that cycle, for example "Cycle 1: 6 findings, 4 fixed, build passed, continue". If a cycle report goes to chat, print it. The Brief format and the full cycle reports go where the "Report destination rules" say. The Brief format is in `references/output-formats.md`. Questions that block the run still go to chat: the Phase 4 acknowledgment (with `--interactive`), and any finding that needs a decision of the user (without `--autonomous`). If the instructions of the user define an end-of-run report format, the final report uses it. Else print the Phase 9 summary. In both cases, the final report holds the `Stop verdict:` line of the done test. If a calling workflow runs this skill, give the Phase 9 summary to that workflow, and print only the status line and the `Stop verdict:` line.
 - Agreement: unless the user objects, the run format applies from the statement after Phase 2. With `--interactive`, the acknowledgment of the Phase 4 triage is also the agreement. In three cases the agreement is implicit, and the run does not stop for it: the run has no `--interactive`, the user asked for full autonomy, or the request gives the same rules. The user can change the format at any time.
 
 If the run format applies, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The triage judgment of Phase 4, Phase 6, and the Role 3 reads of the large-target mode still run.
@@ -337,71 +324,19 @@ Decide whether to run another cycle. The decision follows fixed rules.
 
 Aggregate across all cycles. Follow the "Report destination rules": write to `Notes/Reviews/<target-slug>-summary.md` in a run with more than one cycle or with `--save-reports`, and else print in chat. If the run format applies, the final chat report follows the "Run format" section. Whatever the destination, end the chat output of the run with the `Stop verdict:` line and the paths of the fixed files (see "Done test").
 
-Format:
-
-```text
-## Review Loop Complete
-
-Rounds: <N> of <max> max
-Build: <passing (0 errors, 0 warnings) | failing (<details>) | skipped (no command resolved)>
-Tests: <X passed, Y failed, Z skipped | not run>
-Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
-
-### Round 1 (<target-summary>)
-  Found:    <B> Blocker, <C> Critical, <H> High, <M> Medium, <L> Low, <N> Nit
-  Fixed:    <count> (APPLY=<A>, PARTIAL=<P>, REJECT=<R>)
-  Deferred: <count> (per --skip / merit triage)
-
-### Round 2 (re-review of fix diff, or of the whole target with `--no-commit`)
-  Found: <count> issues
-  Status: <clean | new issues>
-
-...
-
-### Deferred items (by severity; (blocking) = Phase 4 marked it must-fix-before-merge)
-  [High]   H1: <short description> (blocking)
-  [Medium] M1: <short description> (blocking)
-  [Low]    L1: <short description>
-  ...
-
-### Rejected findings
-  <#> REJECT: <reason>
-  ...
-
-### Decisions for your review (only with `--autonomous`)
-  <#> <finding>: <decision and reason>
-  ...
-```
+Fill the Phase 9 template of `references/output-formats.md`.
 
 A `(blocking)` row, or a deferred Blocker, Critical, or High row, means that the run did not reach `stop-clean` (see Phase 8).
 
 ---
-
-## Output formats
-
-### Brief format (printed to chat after every cycle)
-
-Print it at the end of every cycle. If the run format applies (see "Run format"), write it into the cycle report, and print only one status line. A run with more than one cycle collects these into the final summary of Phase 9.
-
-```text
-Cycle <N> — <target-summary>
-  <count> findings: <Blk> Blocker, <Cri> Critical, <Hi> High, <Me> Medium, <Lo> Low, <Ni> Nit
-  Triage: fix=<F>, deferred=<D> (per --skip / merit triage)
-  Fix verdicts: APPLY=<A>, PARTIAL=<P>, REJECT=<R>
-  Build: <pass|fail|skipped (no command resolved)>
-  Tests: <X passed, Y failed, Z skipped | not run>
-  Verdict: <continue|stop-clean|stop-max-rounds|stop-blocked>
-```
-
-### Full format
-
-The Full format of the reviewer report is in `references/reviewer-briefs.md`, because the reviewer gets it with the Common Rules. Phase 3 reads that file in every run. Each cycle report uses the same format, and goes to chat or to `Notes/Reviews/<target-slug>-cycle-<N>.md` as the "Report destination rules" say.
 
 ## Files and related skills
 
 | File or skill | When to read it, or why this skill depends on it |
 |---|---|
 | `references/reviewer-briefs.md` | Phase 3, in every run: the Common Rules, the Full format, a brief for each target type, and the `--reviewer-focus` tokens. |
+| `references/parameters.md` | Phase 1: the default and the meaning of each flag. Read it before Phase 1. |
+| `references/output-formats.md` | Phase 9: the summary template. Also the Brief format of each cycle and the Full format. |
 | `references/orchestrated-review.md` | Phase 3, only in the large-target orchestrated mode. |
 | `references/audit-team-adapter.md` | Phase 2, only with `--reviewer audit-team`. |
 | `references/triage-matrix.md` | Phase 4: the severity scale, the action for each severity, and the `blocking` flag. |
