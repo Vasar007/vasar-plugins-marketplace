@@ -201,6 +201,10 @@ Add when wrapper represents an enum-compatible value:
 
 **See the [handle-sensitive-data](../handle-sensitive-data/SKILL.md) skill for complete guidance on handling sensitive data.**
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build.
+
 ## Tests
 
 Create wrapper tests extending base wrapper test classes from `MyApp.OnlyForTests.Basic.Wrappers`.
@@ -217,3 +221,4 @@ Create wrapper tests extending base wrapper test classes from `MyApp.OnlyForTest
 - [ ] `[Required]` on Value
 - [ ] XML docs on all members
 - [ ] Equals/GetHashCode use DefaultStringComparer (for strings)
+- [ ] The changed projects build, and the report gives the result line of the last build

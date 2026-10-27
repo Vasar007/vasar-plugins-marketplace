@@ -287,6 +287,10 @@ public sealed partial class {Entity}Mapper
 
 Read [examples/full-examples.md](examples/full-examples.md) for a REST response converter, an external request converter, an EF entity mapper, or a non-static converter with mapper dependencies.
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build. Riok.Mapperly reports an unmapped member as a build warning or error. Fix each one for the converters that you wrote.
+
 ## Tests
 
 Always create unit tests for converters.
@@ -309,3 +313,4 @@ Always create unit tests for converters.
 - [ ] Converter file name matches class name
 - [ ] Appropriate namespace for usage location
 - [ ] EF mappers instantiated internally by repository (no separate DI registration)
+- [ ] The changed projects build, and the report gives the result line of the last build

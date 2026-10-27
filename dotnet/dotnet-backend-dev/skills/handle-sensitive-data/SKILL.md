@@ -370,6 +370,10 @@ var dict = new Dictionary<UserCredentials, String>();
 dict[creds1] = "session-id";  // Safe, internal hashing
 ```
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build.
+
 ## Security Review Checklist
 
 - [ ] Identified all sensitive properties in model/wrapper
@@ -388,6 +392,7 @@ dict[creds1] = "session-id";  // Safe, internal hashing
 - [ ] Tests verify that `ToString()` does not leak sensitive data
 - [ ] Tests make sure that the JSON of each wrapper type with a secret holds only the placeholder
 - [ ] Documentation warns about sensitive data handling
+- [ ] The changed projects build, and the report gives the result line of the last build
 
 ## References
 
