@@ -1,4 +1,5 @@
 ---
+name: research-implement-review-report
 description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. Needs no spec change (unlike opsx-implement), and does not stop before the review (unlike implement).
 argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive] [--autonomous]
 ---
