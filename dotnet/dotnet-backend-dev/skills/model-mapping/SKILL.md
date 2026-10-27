@@ -1,7 +1,7 @@
 ---
 name: model-mapping
 description: Create converters between REST, domain, external API, and EF models in .NET.
-when_to_use: Use it for "create converter", "add mapper", "map models", or "convert between types".
+when_to_use: Use it for "create converter", "add mapper", "map models", or "convert between types". Not for the EF Core mapping of an entity property to a column. Use create-ef-entity for that.
 ---
 
 # Create a Model Converter

@@ -1,6 +1,6 @@
 ---
 description: Write, refactor, or extend .NET tests for one or more targets. A target is a class, a module (a folder or a namespace), or a whole project. The command dispatches one `test-engineer` agent for each target, runs independent targets in parallel, and shows one merged report.
-when_to_use: Use it for "write tests for X", "add tests for this folder", "test this project", or "refactor these tests".
+when_to_use: Use it for "write tests for X", "add tests for this folder", "test this project", or "refactor these tests". For one new test in an existing test class, use the create-tests skill.
 argument-hint: "<class | file.cs | folder | namespace | project.csproj> [...] [-- extra instructions]"
 ---
 
