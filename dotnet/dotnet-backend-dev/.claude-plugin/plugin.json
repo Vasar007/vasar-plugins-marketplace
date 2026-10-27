@@ -1,6 +1,6 @@
 {
   "name": "dotnet-backend-dev",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types.",
   "author": {
     "name": "Vasily Vasilyev",

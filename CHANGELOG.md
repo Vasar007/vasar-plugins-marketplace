@@ -9,6 +9,30 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.4.4 and dotnet-backend-dev 1.6.4 in release [3.6.5] - 2026-10-27
+
+This release changes the text of skills, commands, and agents (issue #74). Each workflow states its own gates. Plain rules replace shouted words. Long reference files get a contents list. Two plugins name what they assume. No behavior changes, except where a file had two lines that disagreed. None were found.
+
+### Changed in dev-essentials
+
+- 14 workflows (issue #74): the "Autonomy" section lists the gates of the workflow in a table, in place of a block that 14 files shared. Six are commands: `implement`, `opsx-implement`, `research-implement-review-report`, `implement-task`, `implement-batch`, and `save-context`. Eight are skills: `audit-personal-conventions`, `bug-hunt`, `feature-pipeline`, `git-worktree-management`, `optimize-skill`, `process-pr-comments`, `review-loop`, and `trim-artifacts`.
+- Plain rules in place of shouted words (issue #74): 313 lines in 47 files.
+- Contents lists (issue #74): 31 reference and example files. `bug-hunt` links `references/report-format.md`, and `optimize-skill` links `examples/bug-hunt-audit.md`.
+- `opsx-implement` names the `openspec` CLI, and `audit-openspec` names the OpenSpec folder layout. `generate-xml-docs` names its guard style (issue #74).
+
+### Changed in dotnet-backend-dev
+
+- Plain rules in place of shouted words (issue #74): 149 lines in 30 files.
+- Contents lists (issue #74): 21 reference and example files.
+- The templates name the private shared framework (issue #74). The `dotnet-conventions` hub has a paragraph about it, nine skills have a dependency line, and the plugin description has one sentence about it.
+
+### Changed in the repository
+
+- `README.md` (issue #74): a new section with permission rules for push, force push, and `--no-verify`. The dotnet-backend-dev row names the shared framework.
+- `.claude-plugin/marketplace.json` (issue #74): the same description change.
+- `CLAUDE.md` (issue #74): a new section with the workflow for new and imported units.
+- `tests/simple-english-baseline.json` (issue #74): five entries for heading words that the new contents lists repeat.
+
 ## dev-essentials 3.4.3 in release [3.6.4] - 2026-10-27
 
 This release changes the reviewer prompts (issue #72). Reviewers now report every finding with a severity and a confidence, and one later step filters them. Blanket second passes and persona lines are gone. Where a change alters behavior, the bullet says so.
@@ -816,7 +840,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...HEAD
+[3.6.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...v3.6.5
 [3.6.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.1...v3.6.2
