@@ -18,6 +18,7 @@ import sys
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 
 from support import REPO, tool_missing
@@ -47,6 +48,11 @@ EXPECTED_BRANCH = {
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
 }
+# The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
+START_CONTENT = {
+    "gop-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
+}
+BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
@@ -84,6 +90,35 @@ def scaffold_cases():
             if isinstance(script, str):
                 pairs.append((case, case.path / script))
     return pairs
+
+
+def branch_path_problems(case, branch):
+    """A grader path under logs/refs/heads/ must name the branch of the scaffold. A glob path is skipped."""
+    problems = []
+    for name, (options, _body) in sorted(case.graders.items()):
+        target = options.get("target")
+        path = options.get("path") or (target.get("path") if isinstance(target, dict) else None)
+        found = BRANCH_LOG_PATH.search(path.replace("\\", "/")) if isinstance(path, str) else None
+        if found and "*" not in found.group(1) and found.group(1) != branch:
+            problems.append(f"{case.label}/graders/{name}.md: the path names {found.group(1)}, but the scaffold branch is {branch}")
+    return problems
+
+
+class GraderBranchTests(unittest.TestCase):
+    def test_grader_paths_name_the_branch_of_the_scaffold(self):
+        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith("gop-")]
+        self.assertTrue(cases, "No gop case is listed in EXPECTED_BRANCH.")
+        self.assertEqual([p for case in cases for p in branch_path_problems(case, EXPECTED_BRANCH[case.name])], [])
+
+    def test_a_typo_in_a_branch_path_is_found(self):
+        case = SimpleNamespace(label="gop-x", graders={
+            "committed": ({"type": "regex", "target": {"source": "file", "path": ".git/logs/refs/heads/work/a"}}, ""),
+            "no-push": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/work/b"}, ""),
+            "any-push": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/*/*"}, ""),
+        })
+        problems = branch_path_problems(case, "work/a")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("no-push", problems[0])
 
 
 class FixtureCase(unittest.TestCase):
@@ -152,6 +187,9 @@ class ScaffoldTests(FixtureCase):
         self.check_report_folders(case, workspace)
 
         text = script.read_text(encoding="utf-8")
+        if case.name in START_CONTENT:
+            name, expected = START_CONTENT[case.name]
+            self.assertIn(expected, (repo / name).read_text(encoding="utf-8"), f"{name} has another start content")
         if "SCRATCH_CONTENT=" in text:
             self.assertEqual(self.git(repo, "status", "--porcelain")[1], "?? scratch.txt", "the scratch file must stay untracked")
         bare = repo / ".remote" / "origin.git"

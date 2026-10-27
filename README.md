@@ -221,6 +221,8 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `gop-work` | `gop-pipeline` | 9 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
 
+The count is the number of behavior cases. If a skill has two trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
+
 Run the suites through the compare script, because the cases of `gop-pipeline` and `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 
 1. Install `bubblewrap` and `socat`. The sandbox needs both.
