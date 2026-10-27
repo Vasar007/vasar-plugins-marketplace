@@ -62,6 +62,8 @@ Hard rules of the framework system:
 - `ExecuteAsync` is idempotent.
 - Ask the user before you delete the old container.
 
+Build the changed projects, then run the migration tests with a filter (see `dev-essentials:dotnet-build-test`). If the build or a test fails, fix the migration and go back to step 5 of [references/framework-migrations.md](references/framework-migrations.md). Repeat until the build and the migration tests pass. Report the result lines of the last build and the last test run.
+
 ## Checklist
 
 This checklist is for the framework migration system. For a standard EF Core migration, use the steps of [Standard EF Core Migrations](#standard-ef-core-migrations).
@@ -84,6 +86,7 @@ This checklist is for the framework migration system. For a standard EF Core mig
 - [ ] Tested the removal of legacy data (if applicable)
 - [ ] Added XML documentation to migration class
 - [ ] Reviewed for performance (batch processing for large datasets)
+- [ ] The changed projects build, the migration tests pass, and the report gives the result lines of the last build and test run
 
 ## Related Skills
 
