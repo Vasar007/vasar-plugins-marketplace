@@ -1,3 +1,6 @@
+<!-- markdownlint-disable-file MD033 -->
+<!-- The <placeholder> notation is the design of the source. The model reads the raw text. -->
+
 # Skeletons by document type
 
 Each skeleton gives the sections in canonical order. Delete a section that has
@@ -173,10 +176,15 @@ The `<func2>()` function does not return a value.
 
 <Purpose sentence>:
 
+<!-- markdownlint-disable MD010 -->
+<!-- The tab is the indent that style(9) asks for. -->
+
 ```c
 if ((fd = <func>(path, FLAG_A)) == -1)
 	err(1, "%s", path);
 ```
+
+<!-- markdownlint-enable MD010 -->
 
 <What the example guarantees, one sentence.>
 

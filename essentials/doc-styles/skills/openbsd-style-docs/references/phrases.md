@@ -1,3 +1,6 @@
+<!-- markdownlint-disable-file MD033 -->
+<!-- The <placeholder> notation is the design of the source. The model reads the raw text. -->
+
 # Phrase templates
 
 These phrases come from the OpenBSD manual pages. Each one is a fixed formula.

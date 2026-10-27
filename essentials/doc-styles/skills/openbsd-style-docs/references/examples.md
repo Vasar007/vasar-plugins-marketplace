@@ -8,7 +8,7 @@ Opening of a README.
 
 > Before: 🚀 **logrot** is a blazing-fast, modern and easy-to-use tool that
 > helps you effortlessly manage your log files!
-
+>
 > After: The `logrot` utility rotates and compresses log files.
 
 Option description.
@@ -16,8 +16,9 @@ Option description.
 > Before: `-k, --keep N`: You can use this option if you want to change how
 > many old log files will be kept around (it's 7 by default, but you might
 > want more).
-
+>
 > After:
+>
 > - `-k` *count*\
 >   Keep *count* rotated files and delete older ones.
 >   The default is 7.
@@ -26,8 +27,9 @@ Default and conflict.
 
 > Before: Note: `--dry-run` doesn't actually do anything, so it won't work
 > with `--force` (which forces rotation even if the file is small).
-
+>
 > After:
+>
 > - `-f`\
 >   Rotate the file even if it is smaller than the size limit.
 > - `-n`\
@@ -38,21 +40,21 @@ Limit.
 
 > Before: Very large files may take a while and could potentially cause
 > problems.
-
+>
 > After: Files larger than 4 gigabytes are not compressed.
 > They are rotated and left uncompressed.
 
 Error behavior.
 
 > Before: If something goes wrong, logrot will let you know and exit.
-
+>
 > After: The `logrot` utility exits 0 on success, and >0 if an error occurs.
 > In particular, 2 means that no file needed rotation.
 
 Security warning.
 
 > Before: ⚠️ **IMPORTANT!!!** Be very careful with permissions!
-
+>
 > After: The state file must be owned by root and must not be writable by
 > other users. A user who can write the state file can make `logrot` delete
 > any file on the system.
@@ -62,10 +64,10 @@ Example.
 > Before: ### Example 1
 > Here's how you might rotate logs:
 > `logrot /var/log/app`
-
+>
 > After: Rotate all logs in `/var/log/app` and keep 14 files:
 >
-> ```
+> ```text
 > # logrot -k 14 /var/log/app
 > ```
 
@@ -73,7 +75,7 @@ Concept.
 
 > Before: Our architecture is built around the powerful concept of workers,
 > which seamlessly handle jobs.
-
+>
 > After: The daemon runs one *worker* process for each CPU.
 > Each worker takes one job at a time from the queue.
 > A worker that fails is restarted after 5 seconds.

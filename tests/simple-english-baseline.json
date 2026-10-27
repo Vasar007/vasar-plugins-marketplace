@@ -1,5 +1,11 @@
 {
   "version": "2.1.1",
+  "excluded": [
+    {
+      "path": "essentials/doc-styles/skills/openbsd-style-docs/",
+      "reason": "This skill writes the OpenBSD manual style, which breaks the simple-english rules on purpose: `may` and `should` with exact meanings, conditions after the command, semicolons, and fixed formulas. Its section \"Precedence over other writing rules\" states this."
+    }
+  ],
   "entries": [
     {
       "file": "dotnet/dotnet-backend-dev/skills/create-tests/SKILL.md",

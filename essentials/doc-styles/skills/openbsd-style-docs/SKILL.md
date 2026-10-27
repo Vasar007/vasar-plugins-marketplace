@@ -131,7 +131,7 @@ The canonical order, from `mdoc(7)`, is below. Use only the sections that
 apply. The skeletons in `references/skeletons.md` show the selection for
 each document type.
 
-```
+```text
 NAME            one line: name and what it does
 SYNOPSIS        invocation syntax, function prototypes, or file grammar
 DESCRIPTION     what it does, then the options or the directives
@@ -171,7 +171,7 @@ The NAME line is the name, then a short description: lowercase, no article, no
 final period, about 5 words, never a full sentence. For a tool, use a verb
 phrase. For a daemon, a file or an API family, use a noun phrase.
 
-```
+```text
 logrot - rotate and compress log files
 libcfg - configuration file parser
 backupd.conf - backup daemon configuration file
@@ -285,7 +285,7 @@ almost never necessary in Markdown.
 The synopsis is a fenced code block in the grammar of `style(9)`. The usage
 message of the program must match it.
 
-```
+```text
 logrot [-nv] [-c file] [-k count] path ...
 logrot -l [-c file]
 ```
@@ -410,3 +410,5 @@ Before you finish, check the document against this list:
 - Search the text for: simply, just, easily, powerful, seamless, please,
   "you", "!", "**". Remove each hit or justify it.
 - "must", "may", "should" and "can" each have their exact meaning.
+
+Source: a skill by a colleague of the marketplace author.
