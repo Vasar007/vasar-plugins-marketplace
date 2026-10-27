@@ -82,7 +82,7 @@ These rules apply in every mode:
    For each pending task in the selected phases:
    - Announce which task is being worked on.
    - **Follow existing patterns** in the codebase. Read the related files before you write new code.
-   - **If unclear about something, ask the user**. Do NOT improvise. With `--autonomous`, decide as "Autonomy" says.
+   - **If unclear about something, ask the user**. Do not improvise. With `--autonomous`, decide as "Autonomy" says.
    - Use the skills that fit the change type and the stack, for example `dotnet-backend-dev:create-domain-model` and `dotnet-backend-dev:create-tests` in a .NET repo with that plugin.
    - Mark each task complete in `tasks.md` as you finish it: `- [ ]` → `- [x]`
    - Keep the OpenSpec artifacts in sync with the code. If you find an inconsistency or an issue, update the artifacts that it affects (specs, design, tasks).
@@ -94,7 +94,7 @@ These rules apply in every mode:
    - Stage the files relevant to that phase by explicit path. Never use `git add -A` or `git add .`. Do not stage the research file under `Notes/Results/`. It is a working file of this run.
    - Write the commit message in the commit style of the repo. If the `CLAUDE.md` of the repo has commit rules, follow them. Else copy the style of `git log --oneline -20`. Describe the change to the code. Do not put the phase or task numbers of `tasks.md`, such as `Phase 2` or `Task 3.1`, in the message. A later reader of the history does not have them (`dev-essentials:engineering-discipline` Rule 3).
    - If `--commit-push`, also push to the current remote tracking branch.
-   - Do NOT push unless `--commit-push` was explicitly specified.
+   - Do not push unless `--commit-push` was explicitly specified.
 
 6. **Save research and findings**
 
@@ -114,7 +114,7 @@ These rules apply in every mode:
 
 ## Guardrails
 
-- **Do NOT improvise**. If you are not sure, ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
+- **Do not improvise**. If you are not sure, ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
 - Stop after the specified phases. Do not continue into phases that the user did not select.
 - Always save research findings before stopping
 - If implementation reveals design issues: without `--interactive`, update the artifacts for a clear fix, and list the change in the output. If the fix needs a critical decision, follow "Autonomy". With `--interactive`, pause and suggest artifact updates.

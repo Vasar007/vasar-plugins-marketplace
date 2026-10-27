@@ -40,7 +40,7 @@ Docs/
 
 ## Markdown Guidelines
 
-**CRITICAL**: Follow the [write-markdown](../write-markdown/SKILL.md) skill for lint-free Markdown. Before you finish, go through the "Documentation Checklist" below.
+Follow the [write-markdown](../write-markdown/SKILL.md) skill for lint-free Markdown. Before you finish, go through the "Documentation Checklist" below.
 
 ## Content Conventions
 

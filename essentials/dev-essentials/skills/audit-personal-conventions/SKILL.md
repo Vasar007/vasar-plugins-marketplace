@@ -10,7 +10,7 @@ Personal conventions grow without review. They mix project-local trivia, persona
 
 **Hard requirement: no hardcoded marketplace or host name**. Each mention of "the marketplace" resolves from `--marketplace=` and from the `name` field of that `marketplace.json`. This holds for the skill text, its phase prompts, its output templates, and its examples. The target can be a different marketplace than the one that ships this skill. Do not name this marketplace, another specific marketplace, or a specific host in prose, templates, or examples. One exception: you can name the source marketplace of an external, optional tool that this skill mentions.
 
-## When NOT to use
+## When not to use
 
 Do not use this skill to promote one rule that the user names directly, for example "turn this into a skill" about one paragraph. Write that entity by hand. If `skill-creator` is installed, you can use it instead. `skill-creator` is an official Anthropic plugin from the `claude-plugins-official` marketplace, and it does not ship with this plugin. This skill is for the audit and triage of many sources at once.
 
@@ -22,10 +22,10 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--scope=<tokens>` | `all` | Tokens, combined with commas: `memory`, `global-claude-md`, `project-claude-md`, `claude-md` (alias for both CLAUDE.md tokens), `personal-entities` (personal global `commands/`, `agents/`, `skills/`), and `all`. If `all` comes with another token, warn and use `all`. If a token is unknown, STOP and list the valid tokens. |
-| `--projects=auto\|none\|<list>` | `auto` | `auto` takes every directory under the projects folder of the config root (see Phase 0). It decodes each encoded name by probing candidate paths, collapses worktree siblings into their one real parent repo, and reports the collapse count. `none` means global sources only. A list accepts project names, decoded paths, or encoded directory names. If an entry does not resolve, STOP. |
+| `--scope=<tokens>` | `all` | Tokens, combined with commas: `memory`, `global-claude-md`, `project-claude-md`, `claude-md` (alias for both CLAUDE.md tokens), `personal-entities` (personal global `commands/`, `agents/`, `skills/`), and `all`. If `all` comes with another token, warn and use `all`. If a token is unknown, stop and list the valid tokens. |
+| `--projects=auto\|none\|<list>` | `auto` | `auto` takes every directory under the projects folder of the config root (see Phase 0). It decodes each encoded name by probing candidate paths, collapses worktree siblings into their one real parent repo, and reports the collapse count. `none` means global sources only. A list accepts project names, decoded paths, or encoded directory names. If an entry does not resolve, stop. |
 | `--exclude-projects=<list>` | empty | Remove these projects from the `auto` set. |
-| `--marketplace=<path>` | auto-detect | The root of the target marketplace repo, which receives the promoted entities. It can be a different marketplace than the one that ships this skill. If the current working tree contains `.claude-plugin/marketplace.json`, auto-detect uses it. Else, STOP and ask. With `--resume=<path>`, Phase 0 uses its resume order instead. |
+| `--marketplace=<path>` | auto-detect | The root of the target marketplace repo, which receives the promoted entities. It can be a different marketplace than the one that ships this skill. If the current working tree contains `.claude-plugin/marketplace.json`, auto-detect uses it. Else, stop and ask. With `--resume=<path>`, Phase 0 uses its resume order instead. |
 | `--target-plugin=<name>` | none (ambiguous: ask) | The default destination plugin in the target marketplace. The triage can choose another plugin for each item. |
 | `--min-evidence=<N>` | `1` | Present only the promotion candidates that at least N independent sources corroborate. |
 | `--dispositions=<tokens>` | all | Filter for the triage that the run presents: `promote`, `promote-scoped`, `fix-shipped`, `prune`, `keep`. The tokens map to the six dispositions: `promote`=C, `promote-scoped`=D, `fix-shipped`=E, `prune`=F, `keep`=A+B. `keep` covers both leave-alone dispositions, because the run never acts on them. The filter can hide `keep` items from the detail table, but the summary always counts them. |
@@ -113,16 +113,16 @@ These rules apply in every mode:
 
 Parse the flags. Resolve the Claude config root with the path resolution rule above. Then resolve the root of the target marketplace.
 
-**Non-resume runs** (no `--resume=<path>`): if the user gave `--marketplace=`, use it. Else, auto-detect the current working tree by its `.claude-plugin/marketplace.json`. If neither resolves, STOP and ask.
+**Non-resume runs** (no `--resume=<path>`): if the user gave `--marketplace=`, use it. Else, auto-detect the current working tree by its `.claude-plugin/marketplace.json`. If neither resolves, stop and ask.
 
-**`--resume=<path>` runs**: load the TODO file first. If the TODO has no `Marketplace remote` field, STOP, on every path below. Ask the user for the remote URL of the marketplace that the TODO was written for. Use the answer as the persisted `Marketplace remote` for this run, and write it into the TODO. If the user cannot name the URL, the TODO needs a new full run. Precondition A (9c.2, step 8) compares the remote with that field, and the compare always fails for an empty field. Then resolve the marketplace root with the first of these steps that applies:
+**`--resume=<path>` runs**: load the TODO file first. If the TODO has no `Marketplace remote` field, stop, on every path below. Ask the user for the remote URL of the marketplace that the TODO was written for. Use the answer as the persisted `Marketplace remote` for this run, and write it into the TODO. If the user cannot name the URL, the TODO needs a new full run. Precondition A (9c.2, step 8) compares the remote with that field, and the compare always fails for an empty field. Then resolve the marketplace root with the first of these steps that applies:
 
-0. If the TODO has no `Marketplace root` field (an old TODO file), resolve as in a non-resume run: `--marketplace=`, else auto-detect in the current working tree. If neither resolves, STOP and ask. An old TODO has no `Marketplace remote` either, so the user gave it above. Then make sure that the remote of the resolved root matches that remote, as in step 1. If the remotes clearly differ, STOP and ask.
+0. If the TODO has no `Marketplace root` field (an old TODO file), resolve as in a non-resume run: `--marketplace=`, else auto-detect in the current working tree. If neither resolves, stop and ask. An old TODO has no `Marketplace remote` either, so the user gave it above. Then make sure that the remote of the resolved root matches that remote, as in step 1. If the remotes clearly differ, stop and ask.
 1. If `--marketplace=` is given, and `git -C <supplied> config --get remote.origin.url` matches the persisted `Marketplace remote`, use the given path. It is the same repo in another clone location. Show the match.
-2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, STOP and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
+2. If `--marketplace=` is given and its remote clearly differs from a persisted `Marketplace remote`, stop and ask. Never pick one of the two silently. Precondition A in 9c.2 also treats a mismatch as a hard failure.
 3. If the persisted `Marketplace root` exists on disk, use it. Precondition A in 9c.2 still checks its remote again.
-4. If the given clone has no `origin` remote, STOP and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
-5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), STOP. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. On a resume run, never fall back to auto-detect in the current working directory.
+4. If the given clone has no `origin` remote, stop and ask for a clone that has one. Precondition A needs `origin` to fetch the default branch.
+5. If no step above applies (the persisted root is not on disk, and no usable `--marketplace=` exists), stop. Show the persisted root and remote, and ask the user for the current clone path of that marketplace. Check the answer as in step 1. If the remotes clearly differ, ask again, and never accept the answer. If the answer has no `origin` remote, ask again. On a resume run, never fall back to auto-detect in the current working directory.
 
 Before you build the project set, read `references/source-inventory.md`. Build the project set from `--projects` with its decode-and-probe procedure and its worktree-sibling collapse. Before you read any source file, show the resolved scope to the user:
 
@@ -199,7 +199,7 @@ Invoke the review-loop skill of the TARGET marketplace with `<marketplace-root>`
 
 Use the two-dot commit range from the SHA of Phase 6, not a three-dot branch-base diff (`<base>...HEAD`). A three-dot diff also takes the commits that the branch carried before Phase 6. The loop then raises findings and applies edits on content that this run did not approve. Use the current flag syntax of that skill: `--flag=value` for flags with a value, and a required `target=` selector. If a different target marketplace ships an equivalent review-loop skill, use that skill with its own interface. If neither exists, do a single-pass self-review, and say so in the report. This skill does not need `review-loop` in every target marketplace.
 
-Before you invoke the loop, make sure that the range still describes this run. If `git -C <marketplace-root> merge-base --is-ancestor <pre-authoring-sha> HEAD` fails, STOP. In that case, Phase 6 rebased, reset, or otherwise rewrote history, and the range no longer holds only the commits of this run. A diff of that range shows unrelated older content as deletions.
+Before you invoke the loop, make sure that the range still describes this run. If `git -C <marketplace-root> merge-base --is-ancestor <pre-authoring-sha> HEAD` fails, stop. In that case, Phase 6 rebased, reset, or otherwise rewrote history, and the range no longer holds only the commits of this run. A diff of that range shows unrelated older content as deletions.
 
 If this session has its own review-loop defaults, apply them (for example, a cycle count, a reviewer model, or a fixer model). They are defaults of the session, not a requirement of this skill.
 
@@ -257,7 +257,7 @@ Read sections 9c.0 to 9c.9 of `references/cleanup-and-provenance.md` before any 
 - **9c.3, sequencing gate, once for each run, before the run creates any worktree.** Show the results of Precondition A, and require an explicit `yes`. On any other answer, stop: write the deferred TODO, and touch no other repo. If Precondition A already failed, skip the question and defer.
 - **9c.4, mechanism for each repo.** Process the repos one at a time, in ascending order of absolute path. For each repo: preflight, the branch `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>`, a worktree, a surgical edit, and one commit with an explicit `git add <path>`. Then the push gate, and the PR through the tools of the detected host.
 - **9c.5, pointer template.** Extend the `## Cross-project rules — migrated to marketplace skills` heading with one bullet for each promoted rule. Each bullet keeps a one-line gist.
-- **9c.6, dirty repos.** Each of these states is a hard STOP with no override:
+- **9c.6, dirty repos.** Each of these states is a hard stop with no override:
   - The target file is modified, staged, or in conflict.
   - A rebase, merge, or cherry-pick is in progress.
   - HEAD is detached or unborn.

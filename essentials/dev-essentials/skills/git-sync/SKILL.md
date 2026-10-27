@@ -49,7 +49,7 @@ git log --format="%h %s" origin/<base>..HEAD
 
 If a subject is only the opening sentence of the body (no leading scope tag or issue reference), the rebase mangled it.
 
-### Fix recipe — does NOT require interactive rebase or amend permission
+### Fix recipe — does not require interactive rebase or amend permission
 
 ```bash
 # Save the commit(s) above the broken one
@@ -76,13 +76,13 @@ If the broken commit is `HEAD`, skip the last `git cherry-pick`, because no comm
 
 ### Safety net
 
-ALWAYS create a backup tag before any rebase that crosses an upstream rewrite:
+Always create a backup tag before any rebase that crosses an upstream rewrite:
 
 ```bash
 git tag backup/<task>-pre-rebase-<n> <current-head>
 ```
 
-If conflicts during an `--onto` rebase look unexpectedly broad (the same files changed on both sides for unrelated reasons), STOP. Look at the merge base again with `git merge-base HEAD <new-base>`, and at the diff between the old and the new base. A third commit that you did not expect can be the cause.
+If conflicts during an `--onto` rebase look unexpectedly broad (the same files changed on both sides for unrelated reasons), stop. Look at the merge base again with `git merge-base HEAD <new-base>`, and at the diff between the old and the new base. A third commit that you did not expect can be the cause.
 
 ### Anti-patterns
 
@@ -128,9 +128,9 @@ If the author is ambiguous, default to a merge.
 - Always use `--no-ff`, so that the merge commit is explicit even where a fast-forward is possible. The merge commit records the moment that the user pulled the base into the branch.
 - Run from inside the worktree of the branch with `git -C <worktree> ...`.
 - After the merge, build the full affected scope. A merge across areas can pull in changes anywhere. Build the solution, not a single project, unless you have specific evidence for a narrower scope.
-- Do NOT push the merge as part of the sync. A push is a separate step, and the user decides on it.
-- If conflicts arise, report the file list, run `git merge --abort`, and hand it back to the user. Do NOT resolve them automatically, because the original author can have context about the correct resolution.
-- Do NOT change the upstream of the worktree. See `dev-essentials:git-worktree-management` for the rule to unset the upstream.
+- Do not push the merge as part of the sync. A push is a separate step, and the user decides on it.
+- If conflicts arise, report the file list, run `git merge --abort`, and hand it back to the user. Do not resolve them automatically, because the original author can have context about the correct resolution.
+- Do not change the upstream of the worktree. See `dev-essentials:git-worktree-management` for the rule to unset the upstream.
 
 ### Edge case
 

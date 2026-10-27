@@ -43,14 +43,14 @@ These rules apply in every mode:
 
 ### Pre-check: Gather required information
 
-**CRITICAL: NEVER invent or guess branch names, task numbers, or descriptions.**
+**Never invent or guess branch names, task numbers, or descriptions.**
 
 You need:
 
 - The full branch ref (for example `feature/tasks/1370383-foo`). It can include any prefix segment. Do not flatten it, and do not drop a segment.
 - A short description. You need it only with `--interactive`, for your approval prompt. The path comes only from the branch ref.
 
-If the user did not give the branch ref, STOP and ask. With `--interactive`, also ask for the description:
+If the user did not give the branch ref, stop and ask. With `--interactive`, also ask for the description:
 
 > To create a worktree I need:
 >
@@ -83,7 +83,7 @@ Example: the branch `feature/tasks/1370383-terminate-reservation` gives the path
 
 **Pipeline mode (in every mode)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the approval gate in this case.
 
-**With `--interactive`, STOP and show an approval prompt before you create the worktree:**
+**With `--interactive`, stop and show an approval prompt before you create the worktree:**
 
 > I will create a worktree with the following settings:
 >
@@ -101,7 +101,7 @@ Wait for an explicit yes. Do not continue without it.
 git -C <repo-root> check-ignore -v .claude/worktrees/placeholder
 ```
 
-If the path is NOT gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git -C <repo-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
+If the path is not gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git -C <repo-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 
@@ -212,7 +212,7 @@ Present the output showing path, branch, and commit hash. Note which entry is th
 
 **User-directed override**. If the user explicitly asks to remove this specific worktree, continue, also if the PR is still open or no PR exists. Examples of such a request: "remove this worktree", "clean up the worktree", and "you can drop the worktree now". Tell the user that the worktree goes away before the PR is merged. Then continue to Step 2.
 
-If the PR is still open or in review **and the user did not explicitly ask for the removal**, do NOT remove the worktree. Tell the user.
+If the PR is still open or in review **and the user did not explicitly ask for the removal**, do not remove the worktree. Tell the user.
 
 ### Step 2: Get confirmation
 
@@ -227,9 +227,9 @@ git worktree remove <path>
 git worktree list   # verify removal
 ```
 
-**Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on removal is usually NOT an IDE file lock. Work through this diagnosis in order:
+**Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on removal is usually not an IDE file lock. Work through this diagnosis in order:
 
-1. **Step 1: shell CWD (the main cause, always first)**. The Bash tool and the PowerShell tool each keep their OWN current folder (CWD) between calls. An earlier `cd <worktree>` or `Set-Location <worktree>` can leave it inside the worktree, also through a build or test run. Windows then treats the folder as in use. Git or `Remove-Item` reports this as `Permission denied`, with no IDE involved. Move the CWD of BOTH shells out first:
+1. **Step 1: shell CWD (the main cause, always first)**. The Bash tool and the PowerShell tool each keep their own current folder (CWD) between calls. An earlier `cd <worktree>` or `Set-Location <worktree>` can leave it inside the worktree, also through a build or test run. Windows then treats the folder as in use. Git or `Remove-Item` reports this as `Permission denied`, with no IDE involved. Move the CWD of both shells out first:
 
    ```bash
    cd <repo-root>              # Bash
@@ -259,7 +259,7 @@ Tell the user which step fixed the error. Do not force a removal past a real ref
 
 ## Workflow D: Removing All Worktrees
 
-**CRITICAL: Never remove the main worktree**.
+**Never remove the main worktree**.
 
 **Remove only the worktrees whose PRs are merged**.
 
@@ -279,13 +279,13 @@ For each secondary worktree (path contains `.claude/worktrees/`), derive its bra
 
 2. **Determine PR status via the appropriate platform:**
    - **GitHub:** call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head: "<owner>:<branch-ref>"`, and `state: "all"`. The default state lists open PRs only, and GitHub ignores a `head` value without the `<owner>:` prefix. Get `owner` and `repo` as `dev-essentials:github-mcp-conventions` Rule 1 says, and pass them on every call (Rule 2). The list can show `merged: false` for a merged PR. So read each PR that comes back with `mcp__plugin_github_github__pull_request_read` (`method: "get"`, `pullNumber`). If the PR has `merged: true`, or if it has `state: closed` and a non-null `merged_at`, the worktree is eligible for removal.
-   - **Other platforms:** use the equivalent task-provider MCP server. If no MCP tool is available for the platform, **STOP and ask the user** for the PR status for that specific worktree.
+   - **Other platforms:** use the equivalent task-provider MCP server. If no MCP tool is available for the platform, **stop and ask the user** for the PR status for that specific worktree.
 
-3. **Apply the merged filter**. If the PR status that you read does not say that the PR is merged, the worktree is not eligible for removal. Any other status (open, draft, closed without a merge, or no PR found) means that you must NOT remove the worktree automatically.
+3. **Apply the merged filter**. If the PR status that you read does not say that the PR is merged, the worktree is not eligible for removal. Any other status (open, draft, closed without a merge, or no PR found) means that you must not remove the worktree automatically.
 
-4. **If discovery fails or is ambiguous**, **STOP and ask the user** about that specific worktree: its PR status, or whether to remove it. Examples: MCP is not available, several PRs come back for the same source branch, or no PR comes back but the branch looks active. Do NOT guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
+4. **If discovery fails or is ambiguous**, **stop and ask the user** about that specific worktree: its PR status, or whether to remove it. Examples: MCP is not available, several PRs come back for the same source branch, or no PR comes back but the branch looks active. Do not guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
 
-Worktrees with open or undiscoverable PRs must NOT be removed.
+Worktrees with open or undiscoverable PRs must not be removed.
 
 ### Step 3: Show list and ask for confirmation
 
@@ -301,7 +301,7 @@ The main worktree will be preserved.
 Proceed with removing the 1 eligible worktree? (yes/no)
 ```
 
-Without `--autonomous`, **STOP and wait for an explicit yes.** With `--autonomous`, show the list and continue.
+Without `--autonomous`, **stop and wait for an explicit yes.** With `--autonomous`, show the list and continue.
 
 ### Step 4: Remove each eligible worktree
 
@@ -318,7 +318,7 @@ git worktree prune
 
 ## Lifecycle Rule: Keep Until PR Is Merged
 
-**Do NOT remove a worktree at the end of a session, at the end of a pipeline, or after the question "are we done?"**.
+**Do not remove a worktree at the end of a session, at the end of a pipeline, or after the question "are we done?"**.
 
 PR review feedback, follow-up fixes, and build and test runs at the branch HEAD all need the worktree.
 
@@ -353,4 +353,4 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
 
-**Permission denied on removal:** On Windows, this is usually NOT an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.
+**Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.

@@ -76,7 +76,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - Each brief asks for a short structured report: verdicts, `file:line` anchors, and the commands that ran with their real results. Never ask for pasted diffs, file dumps, or comment HTML.
 - Phase 2 names its models, and RIRR keeps its own. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
-- A bounded dispatch (one reference to read, one simplify pass) does the work itself (Rule 7). Write into the brief: "Do this work yourself. Do NOT dispatch further subagents for it."
+- A bounded dispatch (one reference to read, one simplify pass) does the work itself (Rule 7). Write into the brief: "Do this work yourself. Do not dispatch further subagents for it."
 
 ## Guardrails
 
@@ -131,7 +131,7 @@ Invoke `dev-essentials:research-implement-review-report`. Its Phases 0 to 3 run 
 - `--commit-mode=<resolved>`, `--rounds=<N>`, and the mode flag of this run: `--interactive`, `--autonomous`, or none.
 - `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. Its `Notes/Plans/` and `Notes/Results/` move under it, as a convention of the repo that its Phase 1 and Phase 4 allow.
 - `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every brief of its Phase 1 and into the "Findings" section of the plan.
-- **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then STOP and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
+- **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then stop and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
 
 When RIRR returns, record `SIMPLIFY_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 

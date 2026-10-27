@@ -2,7 +2,7 @@
 
 The facts below hold for mermaid 10.9.1 and its jison grammars. The STR rule of `flow.jison` is `[^"]+`. The TXT rule of `sequenceDiagram.jison` is `[^#\n;]+`.
 
-- **Most "syntax errors" that mermaid reports in the browser are NOT a syntax bug**. One known cause comes from HTML artifacts in practice: `highlight.js@11/lib/core.min.js` on the same page. This file is CommonJS only, for Node and npm. It corrupts globals, and mermaid then reads `-->` as `STR` instead of `LINK`. This cause is a diagnosis from one past incident, and the jison grammar does not prove it. Treat it as a strong first guess, not as a certainty. Use the browser CDN build instead:
+- **Most "syntax errors" that mermaid reports in the browser are not a syntax bug**. One known cause comes from HTML artifacts in practice: `highlight.js@11/lib/core.min.js` on the same page. This file is CommonJS only, for Node and npm. It corrupts globals, and mermaid then reads `-->` as `STR` instead of `LINK`. This cause is a diagnosis from one past incident, and the jison grammar does not prove it. Treat it as a strong first guess, not as a certainty. Use the browser CDN build instead:
   - `@highlightjs/cdn-assets@11/highlight.min.js`
   - `@highlightjs/cdn-assets@11/languages/<lang>.min.js`
 
@@ -16,9 +16,9 @@ The facts below hold for mermaid 10.9.1 and its jison grammars. The STR rule of 
 
   This tool uses the same parser as the CDN build. If `mmdc` renders the diagram, the bug is in the page and not in the diagram text. The usual causes are the highlight.js conflict above and the content-level failures below.
 
-- **Inside a quoted flowchart label `A["..."]`**: every character except `"` is fine. Em-dashes, parentheses, slashes, `=`, and commas are NOT the problem. The trailing `;` on `classDef` is optional, because the grammar accepts `NEWLINE | SEMI | EOF` as the separator.
+- **Inside a quoted flowchart label `A["..."]`**: every character except `"` is fine. Em-dashes, parentheses, slashes, `=`, and commas are not the problem. The trailing `;` on `classDef` is optional, because the grammar accepts `NEWLINE | SEMI | EOF` as the separator.
 
-- **Inside the message text of a sequence diagram** (after the `:`): every character except `#`, a newline, and `;` is fine. Em-dashes, parentheses, `=`, `/`, and `,` are NOT the bug, because the v10 grammar lexer allows them.
+- **Inside the message text of a sequence diagram** (after the `:`): every character except `#`, a newline, and `;` is fine. Em-dashes, parentheses, `=`, `/`, and `,` are not the bug, because the v10 grammar lexer allows them.
 
 - **Init script**: put this script at the bottom of `<body>`:
 

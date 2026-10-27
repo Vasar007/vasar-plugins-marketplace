@@ -8,7 +8,7 @@ when_to_use: "Use it for 'build the solution', 'run the tests', 'check for compi
 
 ## Rule 1: `dotnet build` is the authority; LSP is not
 
-A plain, incremental `dotnet build` is the authoritative compiler signal. LSP and IDE diagnostics are a hint, NOT an authority. Do not claim a regression from LSP alone. Run a fresh `dotnet build` first.
+A plain, incremental `dotnet build` is the authoritative compiler signal. LSP and IDE diagnostics are a hint, not an authority. Do not claim a regression from LSP alone. Run a fresh `dotnet build` first.
 
 ### Why
 
@@ -49,14 +49,14 @@ error MSB4062: The "CheckIfPackageReferenceShouldBeFrameworkReference" task coul
 ... Could not load file or assembly 'System.Runtime, Version=10.0.0.0, ...
 ```
 
-These errors are SDK and MSBuild infrastructure noise, NOT compile errors in the project under test. They cascade across every project in the solution and bury the real application-level signal.
+These errors are SDK and MSBuild infrastructure noise, not compile errors in the project under test. They cascade across every project in the solution and bury the real application-level signal.
 
 ### How to apply
 
 - Default: `dotnet build <path-to-solution>.sln -c Debug` (incremental, one configuration). Targets run again only on dirty inputs, and the codegen path stays inside the pinned SDK of the project.
-- A build from scratch is rare, usually only after a corrupted `obj/` or `bin/`. If you truly need one, delete those folders by hand and run a plain `dotnet build`. Do NOT use `--no-incremental` as a shortcut.
-- After a successful `dotnet build`, `--no-build` is **not always safe** for a test run. A solution-level incremental build does NOT always refresh the output of a REFERENCED project in the output folder of the test project. This happens after edits in a project that the test project references, not in the test project itself. Then `dotnet test --no-build` runs against a stale DLL. It reports a green, complete-looking result for the OLD code, not for the edited code.
-- If anything changed in a project that the test project references since the last full build of that reference chain, `--no-build` is NOT safe. If you are not sure (the common case after any edit), run `dotnet build <TestProject>.csproj`, or `dotnet test <TestProject>.csproj` without `--no-build`. Then MSBuild's own up-to-date logic refreshes the output of the referenced project.
+- A build from scratch is rare, usually only after a corrupted `obj/` or `bin/`. If you truly need one, delete those folders by hand and run a plain `dotnet build`. Do not use `--no-incremental` as a shortcut.
+- After a successful `dotnet build`, `--no-build` is **not always safe** for a test run. A solution-level incremental build does not always refresh the output of a REFERENCED project in the output folder of the test project. This happens after edits in a project that the test project references, not in the test project itself. Then `dotnet test --no-build` runs against a stale DLL. It reports a green, complete-looking result for the OLD code, not for the edited code.
+- If anything changed in a project that the test project references since the last full build of that reference chain, `--no-build` is not safe. If you are not sure (the common case after any edit), run `dotnet build <TestProject>.csproj`, or `dotnet test <TestProject>.csproj` without `--no-build`. Then MSBuild's own up-to-date logic refreshes the output of the referenced project.
 - Always add a focused `--filter`. Never run the whole suite without a filter in a repo with integration tests. Tests against an emulator (for example, the Cosmos DB emulator), a database, or an external service are slow. Ask the user before you run slow suites that your filter does not cover. If `dotnet-backend-dev:create-tests` is loaded, see it for detailed test-scope conventions.
 
 ### Reporting gate: no green test result without verbatim proof
@@ -72,7 +72,7 @@ To compare warnings, use one of these two ways:
 1. Make both sides full clean rebuilds. Delete `obj/` and `bin/`, then run a plain `dotnet build`. Never use `--no-incremental` for this (Rule 2).
 2. Compare by changed line numbers, not by totals. Get the changed lines with `git diff -U0 <parent> <commit> -- <file>`. Match them against the line numbers that the build log gives for that file. A warning on an unrelated line in a file that you touched is pre-existing.
 
-Two incremental builds are NOT a safe basis for a comparison. For a routine "is it green" build, still avoid `--no-incremental` (Rule 2).
+Two incremental builds are not a safe basis for a comparison. For a routine "is it green" build, still avoid `--no-incremental` (Rule 2).
 
 ## Rule 3: Tests run foreground, with two exceptions
 

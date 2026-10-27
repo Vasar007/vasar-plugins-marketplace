@@ -35,16 +35,16 @@ When the user requests documentation on a topic:
 
 ### 2. Editing Documentation
 
-**IMPORTANT:** All edit requests WITHOUT the explicit "publish" command relate to the local Markdown draft in the drafts folder.
+All edit requests without the explicit "publish" command relate to the local Markdown draft in the drafts folder.
 
 - User provides feedback on the draft
 - Make requested changes to the Markdown file
 - Iterate based on feedback
-- **DO NOT publish** to any platform unless explicitly requested
+- **Do not publish** to any platform unless explicitly requested
 
 ### 3. Publishing
 
-**If the user does not EXPLICITLY say "publish", do NOT publish.**
+**If the user does not explicitly say "publish", do not publish.**
 
 Get these values from the user. If a required value is missing, stop, and put the question in your final reply, so that the caller asks the user:
 

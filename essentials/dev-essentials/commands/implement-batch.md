@@ -130,7 +130,7 @@ For task `i`:
    git -C "<worktree>" commit -m "<Issue ref> — <summary> (implement + <rounds> review rounds)"
    ```
 
-   If a commit in this range is not work of this task, **STOP and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
+   If a commit in this range is not work of this task, **stop and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
 7. Report one status line, and go to task `i+1`.
 
 ### Step 4 — Final cross-task review

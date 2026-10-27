@@ -89,7 +89,7 @@ Keep a task list with one entry for each phase (Research & Plan, Implement, Revi
 
 0. **A worktree and branch that already exist: verification only.** Case: the caller says that the worktree and the branch exist, and gives the branch name and the absolute worktree path. A wrapper such as `dev-essentials:implement-task` does exactly this. In this case, Phase 0 is only a verification step: find out whether `git -C "<worktree path>" rev-parse --abbrev-ref HEAD` prints the expected branch.
    - If it does, skip steps 1 to 3, and run every later phase in that worktree. Do **not** derive a branch name again, and do **not** create a second worktree or branch.
-   - If it does not, STOP and ask the caller or the user. Do not create a branch or a worktree to recover.
+   - If it does not, stop and ask the caller or the user. Do not create a branch or a worktree to recover.
    - If the caller gave no worktree or branch, go on with step 1.
 1. Resolve the **base branch** as the `--base` row of the Options table says.
 2. Resolve the **task branch name**. If $ARGUMENTS names a branch (as in the worktree example of "Arguments"), use it verbatim. Else resolve `--branch-prefix` first (see the Options table). Then build the name from that prefix and the issue reference in $ARGUMENTS, by the type or label of the GitHub issue:

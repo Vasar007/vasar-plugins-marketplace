@@ -220,8 +220,8 @@ Rules for the prompt:
 
 ## Guardrails
 
-- Do NOT fabricate information. Capture only what happened in the conversation.
-- Do NOT include raw code dumps. Summarize the findings, and give the file paths.
+- Do not fabricate information. Capture only what happened in the conversation.
+- Do not include raw code dumps. Summarize the findings, and give the file paths.
 - Keep it short. This is a handoff document, not a transcript.
 - If you update an existing file, keep its content. Never lose the data of an earlier session.
 - Step 5 removes only content that is finished or no longer true, and only under its safety rules

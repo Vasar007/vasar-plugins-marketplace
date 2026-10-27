@@ -50,7 +50,7 @@ From the response, keep `title`, `state`, `html_url`, and `number`. Also keep th
 
 ## Phase 3 — Get the diff locally
 
-Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself (`github-mcp-conventions` Rule 7). Use the `target=pr <id>` diff steps of `dev-essentials:review-loop`, and do not invent other steps. After Phase 2, run `git fetch origin <baseRefName> "+refs/pull/<number>/head:refs/remotes/origin/pull/<number>/head"`. The `pull/<number>/head` ref also exists for a PR from a fork, whose head branch is not on `origin`. If the fetch fails, STOP and ask the user which remote holds the base repository. Then diff with the remote-tracking names: `git diff origin/<baseRefName>...origin/pull/<number>/head`. Never use local branch names, because they can be missing or stale.
+Never call `mcp__plugin_github_github__pull_request_read` with `method="get_diff"` for the review itself (`github-mcp-conventions` Rule 7). Use the `target=pr <id>` diff steps of `dev-essentials:review-loop`, and do not invent other steps. After Phase 2, run `git fetch origin <baseRefName> "+refs/pull/<number>/head:refs/remotes/origin/pull/<number>/head"`. The `pull/<number>/head` ref also exists for a PR from a fork, whose head branch is not on `origin`. If the fetch fails, stop and ask the user which remote holds the base repository. Then diff with the remote-tracking names: `git diff origin/<baseRefName>...origin/pull/<number>/head`. Never use local branch names, because they can be missing or stale.
 
 Run this diff once for the production paths and once for the test paths, so that you read them separately. Put `-- <paths>` at the end of each command. If a diff is very large, save it to a temp file and read it in parts.
 
