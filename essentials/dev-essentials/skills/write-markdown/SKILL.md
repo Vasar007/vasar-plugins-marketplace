@@ -53,7 +53,8 @@ Before you commit a Markdown file:
 
 1. Run auto-fix: `markdownlint --fix "path/to/file.md"`
 2. Check: `markdownlint "path/to/file.md"`
-3. If the exit code is `0`, review the changes and commit.
+3. If the exit code is `1`, fix each reported rule and run `markdownlint` again. Repeat until the exit code is `0`. If the exit code is `2` to `4`, report the error and do not loop.
+4. When the exit code is `0`, review the changes and commit.
 
 ## Rules beyond the linter
 
