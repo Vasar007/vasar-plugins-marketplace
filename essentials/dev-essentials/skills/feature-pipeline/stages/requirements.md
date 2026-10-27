@@ -49,7 +49,7 @@ Before you read any code, collect every available source of information about th
 
 ### Phase 2: Understand the Project (targeted)
 
-Read only what is relevant to THIS task. Do NOT read the whole codebase.
+Read only what is relevant to this task. Do not read the whole codebase.
 
 1. Read the guidance files that the Project Context section above lists.
    - Focus on the sections about the task domain.
@@ -65,9 +65,9 @@ Read only what is relevant to THIS task. Do NOT read the whole codebase.
    - After you trace the dependencies, step back and ask: "Am I missing a related module?"
    - Search for similar patterns (grep for key terms of the task) to find areas that you missed.
 
-### Phase 3: Clarification Loop (MANDATORY)
+### Phase 3: Clarification Loop
 
-After you gather context and explore the codebase, rate your confidence that you understand ALL requirements of this task.
+After you gather context and explore the codebase, rate your confidence that you understand all requirements of this task.
 
 **Self-assessment protocol:**
 
@@ -75,9 +75,9 @@ After you gather context and explore the codebase, rate your confidence that you
 
 2. List every gap, ambiguity, or assumption that you make. For each one, decide:
    - You can resolve it from the codebase or existing documentation: go and read it.
-   - You can NOT resolve it without human input: add it to your question list.
+   - You cannot resolve it without human input: add it to your question list.
 
-3. If your confidence is **below 0.9**, you MUST get answers to your questions before you continue. You cannot ask the user yourself, because a subagent has no `AskUserQuestion` tool. So do not write `requirements.md`. End the run with a final reply in the format below, and stop. The master agent gets the answers, and then runs this stage again with them. Group your questions by topic. Examples of questions:
+3. If your confidence is **below 0.9**, you must get answers to your questions before you continue. You cannot ask the user yourself, because a subagent has no `AskUserQuestion` tool. So do not write `requirements.md`. End the run with a final reply in the format below, and stop. The master agent gets the answers, and then runs this stage again with them. Group your questions by topic. Examples of questions:
    - An ambiguous acceptance criterion ("Does X also handle Y, or only Z?")
    - Missing context ("The task mentions a new permissions model. Is there a design doc or an earlier discussion to read?")
    - Scope boundaries ("Does this include a migration of existing data, or only new records from now on?")
@@ -103,12 +103,12 @@ After you gather context and explore the codebase, rate your confidence that you
 
 **Rules for this phase:**
 
-- NEVER continue to Brainstorm with a confidence below 0.9.
-- NEVER ask a question that the codebase or the docs can answer. Use the self-service sources (Phase 1 and 2) first.
-- NEVER ask a vague question ("Can you tell me more about X?"). Be specific, and offer options where you can.
+- Never continue to Brainstorm with a confidence below 0.9.
+- Never ask a question that the codebase or the docs can answer. Use the self-service sources (Phase 1 and 2) first.
+- Never ask a vague question ("Can you tell me more about X?"). Be specific, and offer options where you can.
 - Aim for 2–6 targeted questions in each round, not 15 shallow ones.
 
-### Phase 4: Deep Brainstorm (CRITICAL: do not skip or shorten it)
+### Phase 4: Deep Brainstorm (do not skip or shorten it)
 
 Your confidence in the requirements is now high (0.9 or higher). Work through every question below. Write your reasoning in your thinking. Do not skip a question. State each answer explicitly, also an answer that looks obvious.
 
@@ -179,7 +179,7 @@ Group by change type:
 
 ### Out of Scope
 
-List explicitly what this task does NOT include. This keeps later stages from scope creep.
+List explicitly what this task does not include. This keeps later stages from scope creep.
 
 ## 3. Acceptance Criteria
 
@@ -220,12 +220,12 @@ For each ambiguity:
 
 ## Rules
 
-- Do NOT list a file that you did not read. Read it first to make sure.
-- Do NOT copy the task-provider description as the Task Summary. Write it in your own words after the full analysis.
-- Do NOT skip or shorten the Brainstorm phase. It finds most spec-stage ambiguities early.
-- Do NOT design the solution: no code snippets, class hierarchies, or function signatures. Define WHAT must happen, not HOW to implement it.
+- Do not list a file that you did not read. Read it first to make sure.
+- Do not copy the task-provider description as the Task Summary. Write it in your own words after the full analysis.
+- Do not skip or shorten the Brainstorm phase. It finds most spec-stage ambiguities early.
+- Do not design the solution: no code snippets, class hierarchies, or function signatures. Define what must happen, not how to implement it.
 - You can note the existing architectural patterns that you saw in the codebase. These hints help the Spec agent, but stop short of a design.
-- Do NOT include information that you are not sure about. Write it as an Open Question with a recommendation.
+- Do not include information that you are not sure about. Write it as an Open Question with a recommendation.
 
 ## Completion Criteria
 

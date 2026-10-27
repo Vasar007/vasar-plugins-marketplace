@@ -80,12 +80,12 @@ Do these checks on each write, and on each load at a resume:
 
 Checkpoints record whole stages only. `completed` holds stage names, with no progress inside a stage. So before you resume a commit-capable stage, find out whether it ran in part.
 
-The commit-capable stages are `implementation`, `test-coverage`, `simplifier`, `docs`, and `finalization`. For each of them that is NOT in `completed` and has a `stageStartSha` entry, compare `git rev-parse HEAD` with the `stageStartSha` entry of that stage. If they differ, stop and report. Do not restart that stage from scratch. A restart can make duplicate or conflicting commits for work that is already committed. It can also start a Stage 9 that wrongly expects a clean tree.
+The commit-capable stages are `implementation`, `test-coverage`, `simplifier`, `docs`, and `finalization`. For each of them that is not in `completed` and has a `stageStartSha` entry, compare `git rev-parse HEAD` with the `stageStartSha` entry of that stage. If they differ, stop and report. Do not restart that stage from scratch. A restart can make duplicate or conflicting commits for work that is already committed. It can also start a Stage 9 that wrongly expects a clean tree.
 
 The check does not depend on `{COMMIT_MODE}`. It finds a `per-step` stage that stopped after some of its own commits. It also finds a Stage 9 in `finalization` mode that stopped after the commits of other stages landed. HEAD moved in both cases.
 
-- Order: the check runs right after the load of `pipeline-state.json` (Step 0, sub-step 11). It runs BEFORE sub-step 12 resolves `{COMMIT_MODE}` and overwrites the recorded value. It uses only `stageStartSha` and `completed`, never `{COMMIT_MODE}`. So a resume cannot escape it with a new `--commit-mode` value.
-- With `--dry-run`, report the result in the announced plan, but do NOT stop. A dry run never touches the branch, so it has nothing to protect.
+- Order: the check runs right after the load of `pipeline-state.json` (Step 0, sub-step 11). It runs before sub-step 12 resolves `{COMMIT_MODE}` and overwrites the recorded value. It uses only `stageStartSha` and `completed`, never `{COMMIT_MODE}`. So a resume cannot escape it with a new `--commit-mode` value.
+- With `--dry-run`, report the result in the announced plan, but do not stop. A dry run never touches the branch, so it has nothing to protect.
 - There are two allowed ways past this stop. Only the first one works with `--start-from` alone.
   1. Discard the extra commits. Reset HEAD to the recorded `stageStartSha` of the stage. Then resume with `--start-from=<stage>`, with the interrupted stage or a later one. That flag overrides the checkpoint resume point. HEAD now matches the recorded SHA, so the check passes.
   2. Keep the extra commits. `--start-from` alone changes neither `stageStartSha` nor `completed`, so the stop fires again on the next invocation. So first update the state by hand. Add the interrupted stage to `completed` in `pipeline-state.json`, or set its `stageStartSha` entry to the new HEAD. Then resume with `--start-from=<stage>`. If the interrupted stage is `finalization` and HEAD is its own commit, set `stageStartSha`, and do not add the stage to `completed`. A stage in `completed` skips the push and the PR.
@@ -115,8 +115,8 @@ All other resume cases keep the log-and-allow rule of sub-step 12:
 
 More rules for this check:
 
-- Order: the check runs after sub-step 12 reads the recorded `commitMode`, and strictly BEFORE sub-step 12 writes the new value to `pipeline-state.json`. If this stop fires, write nothing to `pipeline-state.json`.
-- With `--dry-run`, report the result in the announced plan, but do NOT stop, as for the interruption check.
+- Order: the check runs after sub-step 12 reads the recorded `commitMode`, and strictly before sub-step 12 writes the new value to `pipeline-state.json`. If this stop fires, write nothing to `pipeline-state.json`.
+- With `--dry-run`, report the result in the announced plan, but do not stop, as for the interruption check.
 - There are two allowed ways past this stop:
   1. Resume with `--commit-mode=per-step`. The run keeps the original cadence and commits per step. `pipeline-state.json` needs no change.
   2. Reset the branch to the state before the `per-step` commits, and start a fresh run in `finalization` mode. Also remove the affected commit-capable stages from `completed`, with their `stageStartSha` entries. Or delete `pipeline-state.json` for a truly fresh run. A branch reset without this state change leaves `completed` and `commitMode` pointing at the discarded commits. The stop then fires again on the next invocation. If a run goes past the stop anyway, it skips the stages that the reset undid, and it makes an empty finalization commit.

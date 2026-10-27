@@ -7,7 +7,7 @@
   Task metadata is in the Task Context section above.
   Project-specific values are in the Project Context section above.
 
-  The master agent MUST use:
+  The master agent must use:
     subagent_type: "code-simplifier:code-simplifier"
   The plugin has the simplification logic. This prompt adds the scope and
   the test rules of the pipeline.
@@ -21,7 +21,7 @@ A feature development pipeline runs you. Your built-in simplification logic appl
 
 Simplify only the files that this task changed. Use the base branch from the Project Context section above to find the files that changed relative to it.
 
-From that list, focus ONLY on implementation files. Exclude:
+From that list, focus only on implementation files. Exclude:
 
 - Test files
 - Documentation files
@@ -47,7 +47,7 @@ From that list, focus ONLY on implementation files. Exclude:
 
 5. **Stage or commit the changes.** `{COMMIT_MODE}` decides:
 
-   - **`finalization` mode (default)**: stage only. Do NOT commit.
+   - **`finalization` mode (default)**: stage only. Do not commit.
 
      ```bash
      git add <specific-files-you-simplified>
@@ -57,8 +57,8 @@ From that list, focus ONLY on implementation files. Exclude:
 
 ## Rules
 
-- NEVER modify test files. Modify only implementation code.
-- NEVER change function signatures, exported types, or public API contracts.
-- NEVER change behavior. A simplification changes the structure only.
-- NEVER touch files outside the scope of the changed files.
+- Never modify test files. Modify only implementation code.
+- Never change function signatures, exported types, or public API contracts.
+- Never change behavior. A simplification changes the structure only.
+- Never touch files outside the scope of the changed files.
 - If a simplification needs a test change to pass, it changes behavior. Do not make it.

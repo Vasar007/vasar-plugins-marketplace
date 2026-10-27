@@ -90,7 +90,7 @@ These rules apply in every mode:
 
 ## Pipeline Discipline
 
-These three safeguards apply to every stage. A stage subagent never sees this file. So "Stage Launch" step 4 copies the three safeguards into the prompt of each stage, and the subagents MUST follow them too.
+These three safeguards apply to every stage. A stage subagent never sees this file. So "Stage Launch" step 4 copies the three safeguards into the prompt of each stage, and the subagents must follow them too.
 
 ### Safeguard 1: claims about Claude Code
 
@@ -166,7 +166,7 @@ Before you launch a stage, do these steps in order:
 
 After each stage, run the output check (see "Output Validation"). Then update the checkpoint (see "Checkpoints").
 
-Read the final reply of each stage before the output check. A stage can report a STOP, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy"): ask the user in every mode, then run the stage again or stop.
+Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy"): ask the user in every mode, then run the stage again or stop.
 
 The master agent writes `review-feedback.md` before it runs `implementation` again (Build Gate, or a fix round of Human Approve #2). If the file exists, the implementation stage knows that the run is a re-entry. When the re-entry run returns, delete the file. This includes a failed run. If a retry follows, write the file again before the retry. A file that stays sends a later normal run of `implementation` to the re-entry phase, for example after `--start-from=implementation`.
 
@@ -239,11 +239,11 @@ With `--interactive`, show the user:
 
 Then ask this question: "Approve spec and proceed to implementation? (yes / edit feedback)".
 
-> **Anti-bypass clause (with `--interactive`).** This gate stands on its own. A general instruction to work without clarifying questions does **NOT** let you skip this gate. The same holds for an instruction to "make the reasonable call and continue". Such an instruction settles an ambiguity. This gate is a consent point that exists to get the explicit approval of the user.
+> **Anti-bypass clause (with `--interactive`).** This gate stands on its own. A general instruction to work without clarifying questions does **not** let you skip this gate. The same holds for an instruction to "make the reasonable call and continue". Such an instruction settles an ambiguity. This gate is a consent point that exists to get the explicit approval of the user.
 >
 > **Counts as explicit approval to skip the gate.** Only these phrases or a clear equivalent count. The user must type one in this session: "approve all gates", "auto-approve the pipeline", "skip Human Approve #1/#2", "I trust you, run end-to-end".
 >
-> **Does NOT count**, and the gate stays armed: "no clarifying questions" and "make the reasonable call". A bare "continue" or "ok" from an unrelated context does not count either. Neither does an approval that the agent infers or makes up.
+> **Does not count**, and the gate stays armed: "no clarifying questions" and "make the reasonable call". A bare "continue" or "ok" from an unrelated context does not count either. Neither does an approval that the agent infers or makes up.
 >
 > At each gate, use `AskUserQuestion`, or stop and wait. Never act on a paraphrase of "the user said to continue".
 

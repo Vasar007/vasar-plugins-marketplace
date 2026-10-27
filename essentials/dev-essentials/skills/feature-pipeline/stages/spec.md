@@ -35,7 +35,7 @@ The spec defines the contract. The tests validate it.
    - Scope: the affected files, and the out-of-scope boundaries
    - Acceptance Criteria: the `Must`, `Should`, and `Could` priorities
    - Technical Constraints: patterns, conventions, and migration needs
-   - Open Questions & Recommendations: you MUST address each one
+   - Open Questions & Recommendations: you must address each one
    - Risks & Considerations: areas that need extra care
    - Architectural hints: patterns that the Requirements agent noted
 
@@ -75,8 +75,8 @@ If your confidence is **below 0.9**, you need answers to your questions. You can
 
 Rules:
 
-- NEVER ask what the codebase can tell you. You have full read access.
-- NEVER continue with a confidence below 0.9.
+- Never ask what the codebase can tell you. You have full read access.
+- Never continue with a confidence below 0.9.
 - Ask 2–6 targeted questions in each round.
 
 ### Phase 4: Resolve Open Questions from Requirements
@@ -150,7 +150,7 @@ public Result ExampleMethod(ExampleParams parameters)
 
 ## 4. Execution Order
 
-A numbered list of ALL steps across all files, in the order that the Implementation agent runs them. This is the master list.
+A numbered list of all steps across all files, in the order that the Implementation agent runs them. This is the master list.
 
 1. Create `path/to/new-types.ext` (Step 1.1)
 2. Modify `path/to/repository.ext`: add a new method (Step 2.1)
@@ -245,7 +245,7 @@ List each existing test that this change makes you modify:
 
 - Which new files and functions must have test coverage
 - The estimated number of new test cases
-- Any areas that are explicitly NOT tested, and why
+- Any areas that are explicitly not tested, and why
 - Whether the repository has a dedicated coverage command (see the Project Context)
 
 ---
@@ -275,13 +275,13 @@ Each test validates one behavior from the spec:
 
 ## Rules
 
-- ALWAYS write `spec.md` BEFORE `test-plan.md`. The spec defines the architecture, and the tests validate it.
-- ALWAYS include exact signatures (function name, parameters with types, and return type) where the Implementation agent needs precision.
-- ALWAYS group the implementation steps by file, not by feature.
-- ALWAYS give the execution order. The Implementation agent follows it in sequence.
-- ALWAYS list the callers that need updates for each changed function signature. A missing caller update is a top cause of pipeline failures.
-- Do NOT write implementation bodies. Write only signatures and contracts.
-- Do NOT add steps that the acceptance criteria do not require. No scope creep.
+- Always write `spec.md` before `test-plan.md`. The spec defines the architecture, and the tests validate it.
+- Always include exact signatures (function name, parameters with types, and return type) where the Implementation agent needs precision.
+- Always group the implementation steps by file, not by feature.
+- Always give the execution order. The Implementation agent follows it in sequence.
+- Always list the callers that need updates for each changed function signature. A missing caller update is a top cause of pipeline failures.
+- Do not write implementation bodies. Write only signatures and contracts.
+- Do not add steps that the acceptance criteria do not require. No scope creep.
 - A `Could have` acceptance criterion can make the spec much more complex. Then you can propose to defer it. Note this in Resolved Questions.
 
 ## Completion Criteria

@@ -50,7 +50,7 @@
 
 ## Key Conventions
 
-<!-- Short bullets. Anything that the pipeline agents must know and that is NOT already in CLAUDE.md. -->
+<!-- Short bullets. Anything that the pipeline agents must know and that is not already in CLAUDE.md. -->
 - <for example "All PRs must reference the tracking issue URL in the PR body">
 - <for example "Commit messages use the format `#<task-id> - <summary>`">
 - <more conventions, as needed>
