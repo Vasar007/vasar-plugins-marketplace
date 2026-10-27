@@ -25,7 +25,7 @@ Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and 
 1. The GitHub MCP tools (`mcp__plugin_github_github__*`) must be available. If they are missing, stop. Ask the user to reconnect them with `/mcp`, then try again (see `dev-essentials:github-mcp-conventions` Rule 5).
 2. The user must give the explicit **`owner`** and **`repo`** values, or a full GitHub PR URL that holds them. Never infer them from the git remote or from the session context (see `dev-essentials:github-mcp-conventions` Rule 1).
 3. To create an issue for an `[OutOfScope]` comment, the Task Composer agent (`task-composer` from `dev-essentials`) must be loaded.
-4. `deep-fix` also needs the command `/research-implement-review-report` of this plugin. If the command is not available, decline the `deep-fix` routing with a one-line reason. The thread then gets its normal Phase 3 or Phase 3b classification (see Rules).
+4. `deep-fix` also needs the skill `/research-implement-review-report` of this plugin. If the skill is not available, decline the `deep-fix` routing with a one-line reason. The thread then gets its normal Phase 3 or Phase 3b classification (see Rules).
 
 ## Rules
 
@@ -101,7 +101,7 @@ These rules are not approval gates. They are safety invariants, the contract of 
 - **Never stage or commit the research, plan, or report artifacts of a `deep-fix` run. Never put their paths in a thread reply or a commit message**. Pipeline-internal artifacts stay out of anything that ships (`dev-essentials:engineering-discipline` Rule 3).
 - **Never push a cycle whose `deep-fix` run ended `stop-blocked`**. Cancel the push of that whole cycle, for the commits of every thread, and stop (see `references/deep-fix.md`).
 
-On a `deep-fix` run, pass the mode flag on. With `interactive`, pass `--interactive` to `/research-implement-review-report`. Then its Phase 1 sign-off gate holds. With `autonomous`, pass `--autonomous`. Then that command decides its open decisions itself and lists them in its report. Without either flag, that command approves its plan by default and still asks about its open decisions.
+On a `deep-fix` run, pass the mode flag on. With `interactive`, pass `--interactive` to `/research-implement-review-report`. Then its Phase 1 sign-off gate holds. With `autonomous`, pass `--autonomous`. Then that skill decides its open decisions itself and lists them in its report. Without either flag, that skill approves its plan by default and still asks about its open decisions.
 
 ## Parameters
 
@@ -117,7 +117,7 @@ Each cycle runs as **two** one-shot, unnamed subagent dispatches, never one. Sta
 | --- | --- | --- | --- |
 | **Stage 1: classifier** | **Haiku** | Phase 1 and Phase 2 | **Read-only**. Fetch the threads, drop the noise, classify, find the committed-fix state again, and return the Stage 1 report. No GitHub writes and no file edits. No git writes to the working tree, the index, or the history. `git fetch` is expected. No verdicts and no replies. |
 | **Stage 2: actor** | **Sonnet** | Phase 3, 3b, and Phase 4 steps 1 to 4. After the push of the orchestrating session, the resolve step of Phase 4 and Phase 5. With no push, Phase 5 only. On a `deep-fix` cycle: Phase 3, 3b, and Phase 4 steps 1 to 4 only. | The Stage 1 report is its only source of thread data. Every judgment call, code edit, commit, reply, and resolve happens here. The one exception is the `deep-fix` thread, which Stage 2 hands off. On a `deep-fix` cycle, Stage 2 ends after Phase 4 step 4, before the push (see `references/deep-fix.md`). Stage 2 never runs `git push`. |
-| **Stage 3: deep-fix** (opt-in, `deep-fix` only) | *The orchestrating session itself, not a subagent dispatch* | `references/deep-fix.md` | Runs `/research-implement-review-report` with `--commit-mode=single` as its own next phase. That command can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. |
+| **Stage 3: deep-fix** (opt-in, `deep-fix` only) | *The orchestrating session itself, not a subagent dispatch* | `references/deep-fix.md` | Runs `/research-implement-review-report` with `--commit-mode=single` as its own next phase. That skill can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. |
 | **Stage 3b: deep-fix reply** | **Sonnet** | `references/deep-fix.md` | A one-shot GitHub dispatch (Rule 4). It posts the thread reply after Stage 3 reports its squash SHA, its review-loop stop verdict, and its round count. It does not resolve the thread. |
 
 Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching, thread-state filters, and git ancestry checks. Stage 2 does judgment work, which needs the judgment tier (see "Model selection" in `dev-essentials:subagent-orchestration`).

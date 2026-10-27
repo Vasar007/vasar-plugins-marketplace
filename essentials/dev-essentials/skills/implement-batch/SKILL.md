@@ -6,7 +6,7 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 
 # Implement Batch (N tasks, N commits + at most 1 final-review commit)
 
-## Division of labor in this command family
+## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
 - `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
@@ -65,7 +65,7 @@ These rules apply in every mode:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This skill adds these:
 
 - **Delegate almost everything.** The orchestrating session only resolves the arguments, dispatches, does the git bookkeeping (commits, squashes, SHA records), and talks to the user. It does not read source files, write code, or review diffs. Each brief asks for a short structured report (verdicts, `file:line` anchors, commands and results), never pasted diffs or file dumps.
 - **Models**: Opus plans and reviews, and Sonnet implements and fixes. A task that the plan gives as an explicit 1-2-3 edit list uses Haiku. The build and test check of the orchestrating session uses Haiku, through the agent type `dev-essentials:test-runner`. A code search uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the steps below name only the role. Haiku can do a mechanical extraction, such as the list of sub-issues. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
@@ -160,9 +160,9 @@ For task `i`:
 
 ## Review-loop configuration
 
-Every review loop of this command (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This command wants the "Default configuration" of that skill. It overrides only one point: the Step 2 loops pass `--no-commit` (see the last item). Only these options belong to this command:
+Every review loop of this skill (Step 2, Step 3, and Step 4) invokes `dev-essentials:review-loop` and reimplements none of its mechanics. This skill wants the "Default configuration" of that skill. It overrides only one point: the Step 2 loops pass `--no-commit` (see the last item). Only these options belong to this command:
 
-- `--rounds=<N>` from the `--rounds` of this command (default `2`), passed to every loop.
+- `--rounds=<N>` from the `--rounds` of this skill (default `2`), passed to every loop.
 - **`--interactive`**: without it, every loop runs without the Phase 4 triage stop. With it, pass `--interactive` to the Step 3 loops and to the Step 4 loop. Do not pass it to the Step 2 plan-review loops.
 - **`--autonomous`**: pass it to every loop, also to the Step 2 plan-review loops. Without it, a plan-review loop still asks the user at its own Phase 4 about a finding that is not clear-cut. A finding that a plan-review fixer did not resolve with confidence waits for the Step 2 batch.
 - Commit after each review cycle in the Step 3 and Step 4 loops, so that the squashes are well defined. The Step 2 loops pass `--no-commit` and commit nothing, because a plan file stays out of commits.

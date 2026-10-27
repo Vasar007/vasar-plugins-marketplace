@@ -6,7 +6,7 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
 
 # Research → Implement → Review-Loop → Report
 
-## Division of labor in this command family
+## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
 - `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
@@ -22,7 +22,7 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
   - `Issue 123456 — wire the overwrite-existing-records flag through to the import pipeline`
   - `Notes/Plans/my-existing-plan.md` goes straight to Phase 2 with this plan. Phase 1 still runs briefly to load earlier context.
   - `Fix the SingleOrDefault() 500 in InvoiceValidator --rounds=3`
-  - `Create a worktree vvasilyev/tasks/123456-overwrite-existing-records from release/2.0, then follow this command's workflow.` names the branch and the base branch, so Phase 0 does not derive a branch name.
+  - `Create a worktree vvasilyev/tasks/123456-overwrite-existing-records from release/2.0, then follow this skill's workflow.` names the branch and the base branch, so Phase 0 does not derive a branch name.
 - If $ARGUMENTS is empty, use the **AskUserQuestion** tool to ask what to work on.
 
 **Options:**
@@ -52,7 +52,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Phase 4: `save-context` cleanup | Runs with no flag. It asks before it moves a file of an older session | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
-This command has no push step.
+This skill has no push step.
 
 These rules apply in every mode:
 
@@ -69,7 +69,7 @@ These rules apply in every mode:
 
 ## Subagent dispatch
 
-Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this command adds these:
+Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch, and this skill adds these:
 
 - **Models**: fact gathering in Phase 1 uses Haiku, through the agent type `dev-essentials:fact-gatherer`. A Phase 1 question that needs judgment goes to a researcher on Opus. Planning (Phase 1) and review (Phase 3) use Opus. Implementation and fixes (Phase 2, and the fixer of Phase 3) use Sonnet. A task that the plan gives as an explicit 1-2-3 edit list uses Haiku. A small, tightly coupled task can go to a fork, which runs on the model of the session. Use this only as the exception of "Plan → execute split" allows. The build and test checks of the orchestrating session use Haiku, through the agent type `dev-essentials:test-runner`. A code search uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the phases below name only the role. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - **Effort**: pass `effort` on each dispatch of a general agent type. A Phase 1 researcher and the planner: `high`. The planner of a large plan, or of a change on the critical path: `xhigh`. A Phase 2 implementer: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and the fixer of Phase 3 with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels. All follow Rule 5 of `dev-essentials:subagent-orchestration`.
@@ -136,9 +136,9 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 
 ### Phase 3 — Review loop
 
-Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this command wants, so override nothing. Pass only these options of this command:
+Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this skill wants, so override nothing. Pass only these options of this command:
 
-- `--rounds=<N>` from the `--rounds` of this command (default `2`).
+- `--rounds=<N>` from the `--rounds` of this skill (default `2`).
 - `--interactive` or `--autonomous`, for a run that has it.
 
 Record each finding that the user and the orchestrating session agree to defer, as deferred in the Phase 4 report. "Commit cadence" says how the commits of each loop round fit the commit mode.
@@ -170,4 +170,4 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 - After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit: `git reset --soft <recorded-SHA>`, then one commit. Its message sums up the implementation and the fixes of each review round, for example `Task X — <summary> (implement + N review rounds)`.
 - **The `stop-blocked` exception**. If the review loop ends with `stop-blocked`, do not squash. Keep the round commits as they are, so that the caller can inspect the red state, and report the verdict.
 - **The squash-base safety stop**. If a commit from outside this run landed on `HEAD` (for example an unrelated concurrent commit), **stop and ask the user** before the soft reset. Do not squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the unexpected commit.
-- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This command does not coordinate it for the caller.
+- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This skill does not coordinate it for the caller.
