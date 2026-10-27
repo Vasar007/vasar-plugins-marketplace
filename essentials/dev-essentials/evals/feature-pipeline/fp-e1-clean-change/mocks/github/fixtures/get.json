@@ -1,0 +1,8 @@
+{
+  "number": 813,
+  "title": "Reject an empty restock",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/813",
+  "labels": [],
+  "body": "If the amount is 0 or less, StockService.Restock must throw an ArgumentOutOfRangeException. Add a test for it."
+}
