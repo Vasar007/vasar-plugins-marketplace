@@ -45,12 +45,22 @@ EXPECTED_BRANCH = {
     "gop-e5-breaking-change": "work/breaking-change",
     "gop-e6-python-no-sln": "work/python-no-sln",
     "gop-e8-rename-across-projects": "work/rename-across-projects",
+    "fp-e1-seeded-defects": "work/seeded-defects",
+    "fp-e1-clean-change": "work/clean-change",
+    "fp-e1-border-auth": "work/border-auth",
+    "fp-e2-untracked-file": "work/untracked-file",
+    "fp-e3-autonomous-main": "main",
+    "fp-e4-package-bump": "work/package-bump",
+    "fp-e5-breaking-change": "work/breaking-change",
+    "fp-e8-rename-across-projects": "work/rename-across-projects",
+    "fp-free-text": "work/free-text",
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
     "gop-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
+    "fp-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
 }
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
@@ -106,8 +116,8 @@ def branch_path_problems(case, branch):
 
 class GraderBranchTests(unittest.TestCase):
     def test_grader_paths_name_the_branch_of_the_scaffold(self):
-        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith("gop-")]
-        self.assertTrue(cases, "No gop case is listed in EXPECTED_BRANCH.")
+        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith(("gop-", "fp-"))]
+        self.assertTrue(cases, "No gop or fp case is listed in EXPECTED_BRANCH.")
         self.assertEqual([p for case in cases for p in branch_path_problems(case, EXPECTED_BRANCH[case.name])], [])
 
     def test_a_typo_in_a_branch_path_is_found(self):
@@ -377,6 +387,24 @@ class LibraryTests(FixtureCase):
         done = subprocess.run([sys.executable, "cli.py", "--name", "Ada"], cwd=workspace, capture_output=True,
                               text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertEqual(done.stdout.strip(), "Hello, Ada!")
+
+    def test_pipeline_context_has_a_provider_section_only_for_with_provider(self):
+        for variant, has_provider in (("with-provider", True), ("no-provider", False)):
+            with self.subTest(variant=variant):
+                workspace = self.workspace(variant)
+                self.run_snippet(workspace, self.libs("essentials/dev-essentials", "pipeline-fixture.sh"),
+                                 f"fixture_init\nfp_write_context {variant}")
+                text = (workspace / ".claude" / "feature-pipeline-context.md").read_text(encoding="utf-8")
+                self.assertEqual("## Task Provider" in text, has_provider)
+                self.assertIn("**Branch template:** `work/{task-id}`", text)
+                self.assertIn("- `.pipeline`", text)
+                self.assertNotIn("REVIEW.md", text)
+
+    def test_pipeline_context_refuses_another_variant(self):
+        workspace = self.workspace()
+        with self.assertRaises(AssertionError):
+            self.run_snippet(workspace, self.libs("essentials/dev-essentials", "pipeline-fixture.sh"),
+                             "fixture_init\nfp_write_context other")
 
     def test_publish_makes_pull_refs_and_a_clean_remote_log(self):
         workspace = self.workspace()

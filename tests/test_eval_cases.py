@@ -67,7 +67,7 @@ PAIR_STYLE_PHRASE_ID_PREFIX = "d"
 
 LIBRARY_COPIES = {
     "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
-    "dotnet-fixture.sh": ["workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
+    "dotnet-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
 }
 
 
