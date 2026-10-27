@@ -49,12 +49,12 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
    ## Your Task
    1. Read all files at the target path carefully.
-   2. Review from your **{role name}** perspective. Focus on finding **real issues only** — not stylistic preferences or theoretical concerns.
+   2. Review from your **{role name}** perspective. Report every issue that you find, also one that you are not sure of. The consolidation step filters the findings, so a filter here drops real issues.
    3. Categorize findings by severity:
       - **Blockers** — must be resolved before implementation
       - **Warnings** — could cause problems, should be addressed
-      - **Suggestions** — would improve quality (only include if clearly valuable)
-   4. For each finding: state which file/section, what the issue is, and a concrete suggestion.
+      - **Suggestions** — would improve quality
+   4. For each finding: state which file/section, what the issue is, a concrete suggestion, and your confidence (high, medium, or low).
    5. Test each claim about the codebase against the real code. If you did not test a suggested fix against a primary source (official docs or a working example in the code), label it as a theory, not as a fix. For a broad search, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you judge them.
    6. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
    7. Present your final findings with your role clearly stated at the top.
@@ -67,6 +67,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    After all agents finish:
    - Collect all findings from all agents.
    - Deduplicate. If several agents found the same issue, merge them into one entry, and name the roles that flagged it.
+   - Filter once, here. If a finding does not affect correctness or a stated requirement, move it to Suggestions. The other findings stay under Blockers or Warnings.
    - Present a unified report:
 
    ```md
@@ -89,6 +90,6 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 ## Guardrails
 
 - **Read-only**: do not change any file. Only report findings.
-- **Real issues only**: each agent reverifies its findings (step 6 of the prompt). Reverify them again during consolidation.
+- **One filter, at consolidation**: the agents report every finding with a confidence. Step 3 is the only step that filters.
 - **Be specific**: every finding names a concrete file/section and includes a resolution suggestion.
 - **Verify before confident fixes**: apply this rule to the findings of the agents and to your consolidation. A suggested fix for a technical claim (configuration, schema, library API, method signature, codebase reference, or DI lifetime) must rest on a primary source: official docs, a known-working real example, or a throwaway test. If neither an agent nor you tested it, label it as a theory, not as a fix. See `dev-essentials:engineering-discipline` Rule 5.
