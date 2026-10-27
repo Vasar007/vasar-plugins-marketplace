@@ -294,6 +294,10 @@ await _sessionLogRepository.CreateWarningAsync(sessionId, message, cancellationT
 await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToString(), ct);
 ```
 
+## Build
+
+Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build-test`). If the build fails, fix the errors and build again. Repeat until the build passes. Report the result line of the last build. Do not edit a generated file to fix an error. If the build does not update `StringResources.Designer.cs`, follow the [stop-and-ask rule](../create-string-resource/SKILL.md#if-values-dont-appear) of `create-string-resource`.
+
 ## Checklist
 
 - [ ] String resources added with `[TBD]` prefix and CamelCase naming
@@ -306,3 +310,4 @@ await _sessionLogRepository.CreateErrorAsync(sessionId, message, details: ex.ToS
 - [ ] Error messages are user-friendly (no technical details)
 - [ ] An entity with an ID and a name uses the format `"ID (name)"`
 - [ ] Code formatting: `);` on new line, aligned with statement start
+- [ ] The changed projects build, and the report gives the result line of the last build
