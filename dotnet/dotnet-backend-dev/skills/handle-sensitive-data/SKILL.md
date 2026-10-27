@@ -8,6 +8,8 @@ when_to_use: Use it for "handle credentials", "sensitive information", "password
 
 Guidelines for securely handling sensitive information in code to prevent accidental exposure in logs, debugging output, ToString() representations, or serialized output such as JSON.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## What is Sensitive Information?
 
 **Sensitive data includes:**

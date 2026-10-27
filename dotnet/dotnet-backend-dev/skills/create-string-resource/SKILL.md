@@ -8,6 +8,8 @@ when_to_use: Use it for "add string resource", "user-facing message", "session l
 
 Add entries to `StringResources.resx` for all user-facing strings with the required `[TBD]` prefix.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## When to Use
 
 All user-facing strings must go in StringResources.resx:

@@ -8,6 +8,8 @@ when_to_use: Use it for "create converter", "add mapper", "map models", or "conv
 
 Create compile-time safe model converters with the mapping library (for example, Riok.Mapperly). The examples in this skill use Riok.Mapperly attributes. Another mapping library uses its own equivalent attributes or calls.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## File Location
 
 Place converters near their usage:

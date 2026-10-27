@@ -8,6 +8,8 @@ when_to_use: Use it for "create ID type", "add wrapper type", or "strongly-typed
 
 Create strongly-typed primitive wrappers in `{ProjectNamespace}.Domain` for type-safe identifiers and value objects.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Structure
 
 Primitive wrappers are `readonly record struct` implementing wrapper interfaces following the `I{Type}Wrapper<T>` pattern:

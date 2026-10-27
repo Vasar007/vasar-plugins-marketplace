@@ -8,6 +8,8 @@ when_to_use: Use it for "add session log", "portal milestone", or "track session
 
 Add session log milestones using `ISessionLogRepository` for portal-visible progress tracking.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Two-Phase Logging Architecture
 
 The project uses two types of logging:

@@ -8,6 +8,8 @@ when_to_use: Use it for "create entity", "persist to database", "add repository"
 
 Create EF Core entities, mappers, and repositories in your infrastructure project for database persistence.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Architecture Overview
 
 ```text

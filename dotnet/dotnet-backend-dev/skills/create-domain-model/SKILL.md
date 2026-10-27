@@ -8,6 +8,8 @@ when_to_use: Use it for "create domain model", "add domain record", or "new enti
 
 Create domain models in your domain project (for example, `src/{ProjectName}.Domain`) following project conventions.
 
+The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
+
 ## Structure
 
 Domain models are `sealed record` types that implement `IStaticEquatable<T>`. This marker interface comes from the internal framework of the project. If your project does not have it, use `IEquatable<T>, IEqualityOperators<T, T, Boolean>` instead:
