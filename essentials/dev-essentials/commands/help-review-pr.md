@@ -65,7 +65,7 @@ The categories below are **examples, not a full list**. Adapt them to the conven
 - **Services**: the DI pattern matches the sibling services. **Look for inconsistencies inside one class**. A new helper that the existing methods of the class do not use is a real finding, not a nitpick.
 - **Converters and mappers**: the conventions for extension methods or converter classes, and the validation of boundary input.
 - **Tests**: base-class conventions, AAA structure, assertion-library conventions, and the split between unit and integration tests.
-- **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:general-conventions`, for example the quoting of frontmatter scalars.
+- **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:write-markdown`, for example the quoting of frontmatter scalars.
 - **Exception and user-facing messages**: if the repo keeps its user-facing strings in one place, messages come from resources, not from inline string literals.
 
 Report every finding with a severity. Sort the findings table of the artifact by severity, so that the reader and `--mode=post-<N>-<M>` start with the most severe ones.
