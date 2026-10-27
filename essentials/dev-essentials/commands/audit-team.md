@@ -56,8 +56,7 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
       - **Suggestions** — would improve quality
    4. For each finding: state which file/section, what the issue is, a concrete suggestion, and your confidence (high, medium, or low).
    5. Test each claim about the codebase against the real code. If you did not test a suggested fix against a primary source (official docs or a working example in the code), label it as a theory, not as a fix. For a broad search, you can dispatch the agent type `dev-essentials:code-locator`. It returns locations only, and you judge them.
-   6. **Reverify**: Go through your findings again. Remove anything that is not a real issue on closer inspection. Be strict — only keep genuine problems.
-   7. Present your final findings with your role clearly stated at the top.
+   6. Present your final findings with your role clearly stated at the top.
    ```
 
    **Launch:** launch all agents in a single message so they run concurrently, then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).

@@ -49,9 +49,9 @@ Audit all artifacts in an OpenSpec change folder for issues, ambiguities, and mi
 
    Record each mismatch as a finding.
 
-4. **Reverify findings**
+4. **Read back the code references**
 
-   Go through the full list of findings again. Find out whether each finding is a **real issue** or a false positive. Remove each finding that turns out to be fine.
+   Make sure that each finding that names code cites a `path:line` that this run opened, and that the line says what the finding claims. Correct or remove each finding that fails this test.
 
 5. **Report**
 
