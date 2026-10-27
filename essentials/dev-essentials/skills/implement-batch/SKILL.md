@@ -13,7 +13,7 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 - `dev-essentials:research-implement-review-report` (RIRR) works one task: research, a plan, the implementation, a review loop, and a report.
 - `dev-essentials:implement-task` wraps RIRR for one task. It adds a sweep of extra context first and a `/simplify` commit at the end.
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
-- `dev-essentials:feature-pipeline` runs a tracked task from the task provider (for example, GitHub Issues or Jira) end-to-end in an isolated git worktree. It has one subagent for each stage and its own approval gates.
+- `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. It has one subagent for each stage and its own approval gates.
 
 The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
 

@@ -1,12 +1,12 @@
 ---
 name: feature-pipeline
-description: Runs one tracked task through a gated pipeline, with one subagent for each stage from requirements to the PR, in an isolated git worktree.
-argument-hint: <task-id> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive] [--autonomous]
+description: Runs one task, from a task provider or a plain request, through a gated pipeline. One subagent runs each stage from requirements to the PR, in an isolated git worktree.
+argument-hint: <task-id or "request"> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive] [--autonomous]
 when_to_use: "If the user names the feature pipeline, for example 'run the feature pipeline on issue 123', use it. Otherwise, do not use it, also not for a small edit. For one task without the pipeline, use research-implement-review-report or implement-task. For N related tasks, use implement-batch."
 ---
 # Feature Pipeline
 
-Implement a tracked task end-to-end with an implementation-first pipeline of subagents in an isolated git worktree.
+Implement one task end-to-end with an implementation-first pipeline of subagents in an isolated git worktree. The task is a tracked task or a plain request.
 
 ## Overview
 
@@ -48,7 +48,7 @@ Stages 5 and 7 need the external plugins `code-simplifier` and `feature-dev`. In
 ## Arguments
 
 - Arguments of this run: `$ARGUMENTS`
-- The first argument (`$ARGUMENTS[0]`): the task ID, for example `TASK-123`. Required.
+- The task: the text before the first flag. It is a task ID, for example `TASK-123`, or a plain request. Required. "Task input" in [references/setup.md](references/setup.md) says how the run tells them apart.
 - `--dry-run`: make the plan only. Create no worktree and no branch, write no file, and run no stage.
 - `--no-worktree`: create no worktree. Work on the current branch in the current working directory.
 - `--start-from=<stage>`: resume the pipeline at the named stage.
@@ -210,8 +210,8 @@ The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to dat
 - If `spec` runs again, also remove `plan-artifact` from `completed`, so that the HTML artifact renders again from the new spec.
 - If `requirements` or `spec` runs again, clear both task-comment checkpoints, so that both comments post fresh summaries.
 - If a code, test, docs, review, or security stage runs again after Task Comment #2 was posted, clear only the checkpoint of Task Comment #2.
-- If Step 3 or a later stage will run and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
-- If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, show Human Approve #2 first, also on a resume. "Autonomy" says how the gate works in the mode of this invocation. Then post Task Comment #2. If the field is set, run neither.
+- If `taskSource` is `provider`, and Step 3 or a later stage will run, and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
+- If `taskSource` is `provider`, and Step 9 will run, and `taskComments.preFinalizationPostedAt` is missing, show Human Approve #2 first, also on a resume. "Autonomy" says how the gate works in the mode of this invocation. Then post Task Comment #2. If the field is set, run neither.
 - If Step 4 or a later stage will run and `buildGate.result` is not `pass` or `pass-after-retry`, run the Build Gate first.
 - When you remove a stage from `completed`, remove its `stageStartSha` entry in the same write.
 
@@ -221,7 +221,7 @@ After a compaction, Claude Code keeps only the first part of this file. If a ste
 
 ### Step 0: Setup
 
-Read [references/setup.md](references/setup.md), and do its sub-steps 1 to 15. They parse the arguments, load the project context, fetch the task, and set up the worktree. They also write `task-context.md`, load or create `pipeline-state.json` with the resume checks, and resolve `{COMMIT_MODE}`. With `--dry-run`, Step 0 creates and writes nothing, and the run ends after Step 0.
+Read [references/setup.md](references/setup.md), and do its sub-steps 1 to 15. They parse the arguments, load the project context, fetch the task (for a task ID), and set up the worktree. They also write `task-context.md`, load or create `pipeline-state.json` with the resume checks, and resolve `{COMMIT_MODE}`. With `--dry-run`, Step 0 creates and writes nothing, and the run ends after Step 0.
 
 ### Steps 1, 2, and 2b
 
@@ -254,6 +254,8 @@ Without `--interactive`, the default approval of "Autonomy" applies. In the defa
 If the user gives feedback, run the `spec` stage again with the feedback in its prompt. If the user approves, continue.
 
 ### Task Comment #1 (before Implementation)
+
+If `taskSource` is `request`, the run has no task to comment on. Skip Task Comment #1 and #2 in every mode, and say so in the final report.
 
 Without `--interactive` or `--autonomous`, do not post this comment now. Write it to `{ARTIFACTS_DIR}/{TASK_ID}/task-comment-1.md`. Post it at Human Approve #2, after the yes of the user and before Task Comment #2. Then write "implementation started" in the past tense. With `--interactive`, post it now, because the approval at Human Approve #1 covers it. With `--autonomous`, post it now.
 
@@ -309,7 +311,7 @@ Show the user:
 
 If the run skipped `review` or `security-review`, show "skipped" in place of its file. The blocking issues then come only from the review file that exists.
 
-Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)".
+Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)". For a request, ask "Approve finalization (push, PR)? (yes / request changes)".
 
 The anti-bypass clause of Human Approve #1 applies to this gate too, with the same lists of phrases that count and do not count.
 
@@ -334,7 +336,7 @@ If the user approves, continue.
 
 ### Task Comment #2 (before Finalization)
 
-Before you launch Step 9, post a second comment. It follows the rules of Task Comment #1 and summarizes:
+For a request, skip this comment (see Task Comment #1). Else, before you launch Step 9, post a second comment. It follows the rules of Task Comment #1 and summarizes:
 
 - What the run implemented
 - The added or updated tests, and the latest test status

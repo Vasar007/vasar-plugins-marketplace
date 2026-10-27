@@ -17,6 +17,7 @@ The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to dat
 ```json
 {
   "taskId": "TASK-123",
+  "taskSource": "provider",
   "worktree": "feature/task-123",
   "noWorktree": false,
   "stage": "implementation",
@@ -46,6 +47,7 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
 
 ## Field notes
 
+- `taskSource` is `"provider"` for a task ID and `"request"` for a plain request. Step 0 sets it (sub-step 2 of `references/setup.md`). A resume never changes it.
 - `pr` is `null` until Step 9 is done. If Step 9 creates a PR, the field gets `{ "number": <int>, "url": "<string>", "owner": "<string>", "repo": "<string>" }`. In a branch-only flow (no PR), `pr` stays `null`. Step 10 uses this field to decide whether it needs a GitHub PR status lookup before the archive gate and the worktree-removal gate.
 - `models` starts as `{}`. It gets one entry (`"<stage>": "<model>"`) for each stage. The entry appears at the time that the model of the stage is resolved ("Stage Launch" step 2 in `SKILL.md`). A resumed run reads it back and keeps the same models. Only a fresh `--model-override` overwrites an entry.
 - `stageStartSha` starts as `{}`. It gets one entry (`"<stage>": "<sha>"`) for each commit-capable stage at its launch: the output of `git rev-parse HEAD` at that time ("Stage Launch" step 3). It grows in the same way as `models`. It is the only input of the interruption check below.
@@ -61,11 +63,12 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
 Do these checks on each write, and on each load at a resume:
 
 - Parse the file as JSON. If it is not valid JSON, stop at once.
-- Find out whether each top-level key of the schema above exists (15 keys). For a missing key of the backward-compatibility table below, use its zero value. For any other missing key, stop and report it.
-- Backward compatibility: an old state file can lack `pr`, `models`, `stageStartSha`, `planArtifact`, or `commitMode`. On a read, each missing key takes the zero value in the table below. The next write stores it.
+- Find out whether each top-level key of the schema above exists (16 keys). For a missing key of the backward-compatibility table below, use its zero value. For any other missing key, stop and report it.
+- Backward compatibility: an old state file can lack `taskSource`, `pr`, `models`, `stageStartSha`, `planArtifact`, or `commitMode`. On a read, each missing key takes the zero value in the table below. The next write stores it.
 
   | Field | Zero value |
   | --- | --- |
+  | `taskSource` | `"provider"` |
   | `pr` | `null` |
   | `models` | `{}` |
   | `stageStartSha` | `{}` |

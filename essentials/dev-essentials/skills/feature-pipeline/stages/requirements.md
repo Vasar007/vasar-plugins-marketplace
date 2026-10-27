@@ -35,6 +35,8 @@ The **Task Context** section at the top of this prompt has all task metadata: ID
 
 Before you read any code, collect every available source of information about this task.
 
+If the Task Context says `Source: request`, skip items 1, 2, and 4 of this phase. The request text in the Description is the whole task.
+
 1. **Provider comments and metadata**
    - Use the task provider MCP server from the Project Context section above, and the methods that the master agent selected. Fetch the comments, the linked context, and any other provider metadata of this task.
 
