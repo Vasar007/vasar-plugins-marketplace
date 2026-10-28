@@ -1,7 +1,7 @@
 ---
 name: openbsd-style-docs
 description: OpenBSD manual-page style for technical docs in Markdown. It writes uppercase sections in a fixed order, a one-line NAME summary, sorted tag lists, and each default as its own sentence.
-when_to_use: Use it only when the user names the style, for example "OpenBSD style", "like a man page", "man-page style", or "BSD style", or asks to review a document against it. Not for chat replies. For docs with no named style, use create-documentation.
+when_to_use: Use it only when the user names the style, for example "OpenBSD style", "like a man page", "man-page style", or "BSD style", or asks to review a document against it. It sets no style for chat replies. For docs with no named style, use create-documentation.
 ---
 
 # Technical documentation in the OpenBSD manual style
@@ -82,7 +82,7 @@ its rules.
 A skill cannot turn off a hook. To stop the `simple-english` lint hook from
 reporting on a path, the user can set `SIMPLE_ENGLISH_LINT_EXCLUDE` to a
 list of glob patterns. The separator is `:` on Linux and macOS and `;` on
-Windows, for example
+Windows. For example, on Linux:
 `SIMPLE_ENGLISH_LINT_EXCLUDE="$HOME/projects/*/docs/*:*/README.md"`.
 
 ## The principles
@@ -189,8 +189,9 @@ superuser may ..."). Then give the options or the directives.
   Do not hedge without information. "Skipping versions may work. Downgrading
   is unlikely to work." is calibrated and acceptable. "This might possibly
   cause issues" is not.
-- Do not use marketing words (the list is in "Self-check"), exclamation
-  marks or closing summaries. Do not restate the NAME line.
+- Do not use the marketing and filler words of the search list in
+  "Self-check", exclamation marks or closing summaries. Do not restate the
+  NAME line.
 - Give the reason for a rule only when the reason changes what the reader
   does: "Do not edit `passwd` by hand. Use `vipw(8)`, which locks the file."
 - Use "Note that" for a non-obvious exception or consequence, and use it
@@ -325,14 +326,15 @@ statement.
 
 ## Applying the style to a project README
 
-A README is a manual page for the whole project. Before you write one, read
-"Project README" in `references/skeletons.md`: its rules and its skeleton.
+A README is a manual page for the whole project. Before you write or review
+one, read "Project README" in `references/skeletons.md`: its rules and its
+skeleton.
 
 ## Documents in other languages
 
-The same rules apply to Russian and to other languages. Before you write in
-another language, read "Documents in other languages" in
-`references/phrases.md`.
+The same rules apply to Russian and to other languages. Before you write or
+review a document in another language, read "Documents in other languages"
+in `references/phrases.md`.
 
 ## Workflow
 
