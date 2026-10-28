@@ -244,7 +244,7 @@ A plugin with dependencies must run through this script. `claude plugin eval` lo
 
 To copy a plugin that the manifest does not list, pass `--extra-dep <name>` to `run` or `baseline` (repeat it for more plugins). The script copies it the same way, and a case lists it in `plugins`. The trigger cases of `doc-styles` use this for `dev-essentials`, because `doc-styles` must stay free of dependencies. The test `tests/test_eval_cases.py` accepts such a copy only for a plugin in `EVAL_ONLY_DEPS`. `baseline` also takes `--ablation none|with-without` (default `none`) and `--keep-temp`.
 
-The script also copies each folder of `tests/evals/stubs/` into `eval-stubs/` of each plugin copy. A `run` uses the stand-ins of the head commit on both sides. A case lists a stand-in as `../../../eval-stubs/<name>`, so it loads only through the script.
+The script also copies each folder of `tests/evals/stubs/` into `eval-stubs/` of each plugin copy. A `run` uses the stand-ins of the head commit on both sides. A case entry points to `eval-stubs/<name>` of the plugin under test, for example `../../../eval-stubs/github`, so the case loads only through the script.
 
 To record the result of one commit with no comparison, use `baseline`. It runs the suite at one commit with the same copy logic and writes `baseline.json` into the `--out` folder. If this file already exists, the script stops. This example records the trigger cases of `dotnet-backend-dev`:
 

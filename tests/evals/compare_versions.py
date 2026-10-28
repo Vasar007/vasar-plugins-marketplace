@@ -515,8 +515,10 @@ def run_suites(args, runner=subprocess.run):
                              f"{shas['base'][:12]} does not declare it. Use a base commit that declares it")
         shutil.rmtree(plugins["base"] / suite, ignore_errors=True)
         shutil.copytree(plugins["head"] / suite, plugins["base"] / suite)
-        for side in ("base", "head"):
-            add_stubs(Path(tmp) / "head", plugins[side])
+        add_stubs(Path(tmp) / "head", plugins["head"])
+        shutil.rmtree(plugins["base"] / STUB_FOLDER, ignore_errors=True)
+        if (plugins["head"] / STUB_FOLDER).is_dir():
+            shutil.copytree(plugins["head"] / STUB_FOLDER, plugins["base"] / STUB_FOLDER, symlinks=True)
         for side in ("base", "head"):
             results[side] = out / f"{side}.json"
             run_eval(args, side, plugins[side], shas[side], results[side], claude, suite, runner)

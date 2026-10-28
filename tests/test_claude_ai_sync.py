@@ -77,6 +77,12 @@ class ClaudeAiSyncTest(unittest.TestCase):
         self.assertEqual(failures, [], "Move these files out of the plugin folder, for example to tests/evals/stubs/. "
                                        "The claude.ai sync skips a plugin with a .claude-plugin folder below its root.")
 
+    def test_the_glob_finds_every_marketplace_plugin(self):
+        marketplace = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        sources = {PurePosixPath(plugin["source"]).as_posix() for plugin in marketplace["plugins"]}
+        roots = {root.relative_to(REPO).as_posix() for root in plugin_roots()}
+        self.assertEqual(roots, sources, f"Every marketplace source must match {PLUGIN_GLOB}, or the tests skip it.")
+
     def test_plugin_manifests_have_no_schema_key(self):
         roots = plugin_roots()
         self.assertTrue(roots, f"No plugin manifest matches {PLUGIN_GLOB}.")
