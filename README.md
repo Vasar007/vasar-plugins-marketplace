@@ -270,20 +270,21 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `process-pr-comments` | `dev-essentials` | 3 | WSL |
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
+| `feature-pipeline` | `dev-essentials` | 9 | WSL |
 | `gop-work` | `gop-pipeline` | 9 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-both` | `doc-styles` | 3 | Windows, because it grants no shell tool |
 
-The count is the number of behavior cases. If a skill has two trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
+The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag feature-pipeline` runs 13 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
 
 The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `essentials/doc-styles/eval-stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
 
 Run the suites through the compare script, because the cases of `gop-pipeline` and `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 
 1. Install `bubblewrap` and `socat`. The sandbox needs both.
-2. For the `gop-work` and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works.
+2. For the `feature-pipeline`, `gop-work`, and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works.
 3. Set `TMPDIR` to a folder outside `/tmp`, `/var/tmp`, `/dev/shm`, and `/run/shm`, and make that folder. The sandbox of a run denies these four folders, and the run folder follows `TMPDIR`. If `TMPDIR` points to one of them, no Bash write works in the run. This is a bug of Claude Code ([anthropics/claude-code#104631](https://github.com/anthropics/claude-code/issues/104631)). The `run` and `baseline` commands stop with a message in this case.
 
 This example runs the `review-loop` suite in WSL2. Pass `--scaffold`, because each case builds its repository with its `scaffold.sh`. Pass `--allow-tools`, because a run asks for no permission and grants no shell tool by default. If the shell does not find `claude`, pass its path with `--claude`.

@@ -154,7 +154,7 @@ After all steps are done:
 
      Never use `git add -A` or `git add .`. Add only the files that you changed or created on purpose.
 
-   - **`per-step` mode**: you already committed each step (Phase 3 step 6, Phase 4 step 2). Make sure with `git status` that nothing is left uncommitted. If something is left, commit it now in the same way (an explicit `git add <path>`, never `-A` or `.`).
+   - **`per-step` mode**: you already committed each step (Phase 3 step 6, Phase 4 step 2). Make sure with `git status` that nothing of this run is left uncommitted. The paths of `<start-changes>` that you did not edit stay as they are. If something of this run is left, commit it now in the same way (an explicit `git add <path>`, never `-A` or `.`).
 
 ## Rules
 

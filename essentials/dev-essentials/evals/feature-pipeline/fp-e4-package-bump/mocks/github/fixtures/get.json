@@ -1,0 +1,8 @@
+{
+  "number": 841,
+  "title": "Update NUnit",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/841",
+  "labels": [],
+  "body": "Update the NUnit package from 4.6.1 to 5.0.0 in Directory.Packages.props."
+}

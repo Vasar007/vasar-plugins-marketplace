@@ -1,0 +1,8 @@
+{
+  "number": 812,
+  "title": "Add the access policy",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/812",
+  "labels": [],
+  "body": "Add the file src/Inventory/AccessPolicy.cs with the exact content below. Do not change any line of it.\n\n```csharp\nnamespace Inventory;\n\npublic sealed record StockUser(string Name, bool IsAdmin);\n\n/// <summary>\n/// Decides who can change stock.\n/// </summary>\npublic static class AccessPolicy\n{\n    /// <summary>\n    /// Returns true if the user can change stock.\n    /// </summary>\n    public static bool CanEdit(StockUser? user)\n    {\n        if (user != null && !user.IsAdmin)\n        {\n            return false;\n        }\n\n        return true;\n    }\n}\n```"
+}

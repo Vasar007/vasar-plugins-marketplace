@@ -1,0 +1,8 @@
+{
+  "number": 881,
+  "title": "Rename GetQuantity",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/881",
+  "labels": [],
+  "body": "Rename the public method StockService.GetQuantity to GetAvailableQuantity. Update every caller."
+}

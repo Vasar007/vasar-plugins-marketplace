@@ -1,0 +1,8 @@
+{
+  "number": 851,
+  "title": "Cache GetQuantity",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/851",
+  "labels": [],
+  "body": "Add an in-memory cache to StockService.GetQuantity, so that a repeated read of one sku does not query the database again."
+}

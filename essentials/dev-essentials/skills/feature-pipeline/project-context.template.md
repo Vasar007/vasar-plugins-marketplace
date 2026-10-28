@@ -4,6 +4,8 @@
 
 ## Task Provider
 
+Optional. Without this section, the pipeline runs every task as a plain request and posts no task comments.
+
 - **Name:** <provider display name, for example GitHub Issues, Jira, or Linear>
 - **MCP server prefix:** <tool-name prefix for the capability lookup, for example `mcp__plugin_github_github__` or `mcp__jira__`>
 - **Project / organization:** <project identifier, for example `my-org/my-repo` on GitHub>

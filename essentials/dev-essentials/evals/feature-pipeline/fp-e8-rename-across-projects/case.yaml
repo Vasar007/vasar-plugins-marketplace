@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: fp-e8-rename-across-projects
+context:
+  scaffold_script: scaffold.sh

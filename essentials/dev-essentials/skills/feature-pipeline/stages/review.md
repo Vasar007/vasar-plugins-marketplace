@@ -8,16 +8,15 @@
   Project-specific values are in the Project Context section above.
 
   The master agent must use:
-    subagent_type: "feature-dev:code-reviewer"
-  The plugin has the review logic. This prompt adds the context and the
-  output format of the pipeline.
+    subagent_type: "general-purpose"
+  This file holds the full review method and the output format.
 
   This stage runs in parallel with Stage 6 (Docs Update) and Stage 8 (Security Review).
 -->
 
-# Pipeline Context for Code Reviewer
+# Code Review Agent
 
-A feature development pipeline runs you. Your built-in review logic applies. This prompt adds the context and the output format of this pipeline run.
+Review the diff of this task. The master agent and the human at Human Approve #2 read your reply. Its blocking issues start a fix round.
 
 ## Context
 
@@ -27,16 +26,26 @@ A feature development pipeline runs you. Your built-in review logic applies. Thi
 - **Test plan:** `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/test-plan.md`
 - **Project guidance and architecture docs**: the Project Context section above lists them.
 
-Read these files before the review. They define the intended behavior. Review the implementation AGAINST the spec and the project guidance, not in isolation.
+Read these files before the review. They define the intended behavior. Review the implementation against the spec and the project guidance, not in isolation.
 
 ## Scope
 
 The master agent wrote the diff of this task against the base branch to `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch`. Read it with the Read tool. Review only the files and the lines that this diff changes. To see the code around a change, read the file itself.
 
+For each changed function, type, configuration key, or message shape, search the repository for its callers and read them. If this diff causes a problem in an unchanged caller, report it. Do not report other problems of unchanged code.
+
 Exclude from the review:
 
 - Files in the `{ARTIFACTS_DIR}/` folder (pipeline artifacts)
 - Documentation files (`*.md` outside of code). Stage 6 handles them.
+
+## Method
+
+1. Read the requirements, the spec, the test plan, and the guidance files.
+2. Read the diff.
+3. Find the callers of the changed code, as "Scope" says.
+4. Go through each lens of "Lenses" for the changed code.
+5. Report every finding with its lens, its severity, and its confidence.
 
 ## Output
 
@@ -46,20 +55,27 @@ Report every issue that you find, also one with a low confidence, in the section
 
 ```markdown
 ## Blocking Issues
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
+  - Fix: <a specific change>
 
 ## Warnings
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Suggestions
-- [ ] <description> — `file:line` (confidence: high, medium, or low)
+- [ ] [<lens>] <description> — `file:line` (confidence: high, medium, or low)
 
 ## Summary
 <Overall assessment: approve / request changes>
 <Number of blocking issues / warnings / suggestions>
 ```
 
-### Classification Guidelines
+The `<lens>` is `correctness`, `performance`, `reuse`, or `compliance`. When you know a specific change, add the `Fix:` line under the entry. Else leave it out.
+
+## Lenses
+
+Every entry names one lens. The severity of an entry is the section that it is in. Each lens below lists its checks and their severity. If a finding fits two lenses, write one entry under the lens that fits best.
+
+### Correctness
 
 **Blocking**: must be fixed before finalization.
 
@@ -71,7 +87,6 @@ Report every issue that you find, also one with a low confidence, in the section
 
 **Warning**: a fix is recommended, but the issue does not block finalization.
 
-- Code style that differs from the existing codebase
 - Missing error handling on non-critical paths
 - Weak patterns (the code works, but it is harder to maintain)
 
@@ -81,10 +96,42 @@ Report every issue that you find, also one with a low confidence, in the section
 - Small refactoring chances
 - More test cases beyond the plan
 
+### Performance
+
+Look for these problems in the changed code and in the callers that "Scope" finds. Each item names its severity.
+
+- A database query, a remote call, or file I/O inside a loop (N+1), also through a called function. Warning. If the collection can be large (a page, a table scan, user input), Blocking. If the same interface has a batch form, name it in `Fix:`.
+- Awaited calls in a loop that can run at the same time. Warning.
+- Nested loops over the same size, repeated linear searches in a loop, or string building by repeated concatenation in a loop. Warning. Do not report a size that is provably small (below about 100).
+- Allocations or full copies in each iteration of a hot path (a request handler, an inner loop, a large batch). Warning. Blocking on a clear hot path.
+- Blocking I/O on an async path. Warning. A block on a task or promise in async code is Blocking, because it can deadlock.
+- The same pure work repeated for each request, or a cache with no eviction or size limit in a long-running process. Warning.
+- Many small remote calls where one call or a batch endpoint does the work. Warning.
+- A changed function that does more work now, and that a caller from "Scope" calls in a loop or on a hot path. Use the severity of the matching item above, and give the `file:line` of the caller.
+
+Do not report micro-optimizations with no measurable effect.
+
+### Reuse
+
+Each item is a Warning.
+
+- A new type, function, or block of 10 or more lines. Search the repository for code with the same intent. Compare names without common prefixes and suffixes, similar parameters, and the same call sequence. Read both. If the new code repeats logic that it can call or extend, report it with the `file:line` of the new code in the entry. Name the existing code with its `file:line` in the description or in `Fix:`. Prefer a small change of the existing code over a change of many callers.
+- A change of shared code that silently changes the behavior of a consumer that the spec does not name. If the session has a language server, use its references to find the consumers. Else use a text search. Name the consumers.
+- Style that differs from the conventions of the same file: names, layout, member order, import order, comment style. Do not report a general style opinion.
+- A new abstraction with one implementation and one caller, or a third near-duplicate where an abstraction fits (the Rule of Three).
+
+### Compliance
+
+- Each item of "Implementation Steps" in `spec.md`, and each acceptance criterion of `requirements.md`. It is done in the diff, explained as a deviation, or missing. A missing item is Blocking. A deviation that weakens the intent is a Warning.
+- The skills of the session. Read the skill listing. For each skill whose trigger fits the task and that states conventions or mandatory artifacts, load it with the `Skill` tool. Do not load a workflow skill, which runs steps, dispatches agents, or writes files. List the mandatory artifacts (tests, registrations, configuration, docs). A missing mandatory artifact is Blocking. A conditional artifact whose condition applies is a Warning.
+- The rule files of the repository. For each folder that the diff touches, read each `CLAUDE.md` and `REVIEW.md` on the path from the repository root down to that folder. These files can be absent from the guidance files of the Project Context. Report each rule that the diff newly breaks, and quote the rule. Also report a rule that the diff makes obsolete. If the two files conflict, `REVIEW.md` wins. Do not report a rule that the code broke before the diff. Each report is a Warning.
+- A statement in a guidance file that the diff makes false, for example a removed component or a moved path. Stage 6 runs at the same time. Report the statement anyway, so that the human sees whether Stage 6 fixed it. This is a Suggestion.
+- The same rule files for the folder of each caller that "Scope" finds. Each report is a Warning.
+
 ## Rules
 
-- Never modify any file. This is a read-only review.
+- Never modify any file, and run no git command that changes state. This is a read-only review.
 - Always give the `file:line` of each finding.
-- Always compare the implementation with `spec.md`. A deviation from the approved spec is a blocking issue.
-- Do not flag issues in code that this task did not change.
+- Always compare the implementation with `spec.md`. Behavior that differs from the approved spec is a blocking correctness issue. For a deviation that the diff explains, use the compliance lens.
+- Do not flag issues in code that this task did not change, except a problem that this diff causes in an unchanged caller.
 - Do not repeat findings. Write one entry for each unique issue.

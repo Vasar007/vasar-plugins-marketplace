@@ -67,7 +67,7 @@ PAIR_STYLE_PHRASE_ID_PREFIX = "d"
 
 LIBRARY_COPIES = {
     "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
-    "dotnet-fixture.sh": ["workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
+    "dotnet-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
 }
 
 
@@ -1180,10 +1180,128 @@ class RepositoryCasesTest(unittest.TestCase):
     def test_untracked_file_case_names_the_blob_of_its_scratch_file(self):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        found = [case for case in self.cases if case.name == "gop-e2-untracked-file"]
+        found = [case for case in self.cases if case.name in ("gop-e2-untracked-file", "fp-e2-untracked-file")]
         if not found:
             self.skipTest("the case gop-e2-untracked-file does not exist yet")
         self.assertEqual([p for case in found for p in scratch_problems(case)], [])
+
+
+FP_ROOT = REPO / "essentials" / "dev-essentials"
+FP_STAGES = FP_ROOT / "skills" / "feature-pipeline" / "stages"
+# For each caught-* grader: the path of the planted defect and a sentence with a keyword of the grader.
+FP_CAUGHT = {
+    "caught-sql": ("src/Inventory/StockQuery.cs", "SQL injection through string concatenation"),
+    "caught-bound": ("src/Inventory/StockQuery.cs", "The loop bound uses <= skus.Length, an off-by-one"),
+    "caught-key": ("src/Inventory/InventoryOptions.cs", "Hard-coded API key in the options class"),
+    "caught-query-in-loop": ("src/Inventory/StockQuery.cs", "N+1: one query for each sku in the loop"),
+    "caught-duplicate": ("src/Inventory/StockQuery.cs", "Duplicates SkuFormatter.Normalize"),
+    "caught-review-rule": ("src/Inventory/StockQuery.cs", "Missing XML doc comment (REVIEW.md rule)"),
+    "caught-typosquat": ("Directory.Packages.props", "Likely typosquat of the Newtonsoft.Json package"),
+    "caught-auth": ("src/Inventory/AccessPolicy.cs", "A null user bypasses the check"),
+}
+
+
+def trace_form(text):
+    """The text as it appears in the trace: a JSON string with escaped line ends, quotes, and dashes."""
+    return json.dumps(text)[1:-1]
+
+
+class FeaturePipelineGraderTests(unittest.TestCase):
+    """The caught-* graders of the feature-pipeline cases read one checkbox entry of a review in the trace."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graders = {}
+        for case in load_cases(FP_ROOT):
+            if case.name.startswith("fp-e1-"):
+                for name, (meta, _body) in case.graders.items():
+                    if name.startswith("caught-") or name == "no-blocking":
+                        flags = sum(REGEX_FLAGS.get(f, 0) for f in meta.get("flags", ""))
+                        cls.graders[name] = re.compile(meta["pattern"], flags)
+
+    def test_every_planted_defect_has_a_grader(self):
+        self.assertEqual(sorted(n for n in self.graders if n != "no-blocking"), sorted(FP_CAUGHT))
+
+    @staticmethod
+    def entries(path, sentence):
+        return {
+            "review": f"- [ ] [correctness] {sentence} — `{path}:26` (confidence: high)\n  - Fix: change it",
+            "security": (f"- [ ] **[HIGH]** Weak code — `{path}:26` (confidence: 0.9)\n"
+                         f"  - **Description:** {sentence}\n  - **Exploit scenario:** an attacker sends input"),
+            "keyword first": f"- [ ] **[MEDIUM]** {sentence} — `./{path}:26` (confidence: 0.6)",
+        }
+
+    def test_each_pattern_matches_an_entry_of_each_stage(self):
+        for name, (path, sentence) in FP_CAUGHT.items():
+            for kind, entry in self.entries(path, sentence).items():
+                with self.subTest(grader=name, entry=kind):
+                    text = trace_form(f"## Warnings\n{entry}\n\n## Suggestions\n")
+                    self.assertRegex(text, self.graders[name])
+
+    def test_a_keyword_in_another_entry_or_another_file_does_not_match(self):
+        other = "src/Inventory/Elsewhere.cs"
+        for name, (path, sentence) in FP_CAUGHT.items():
+            cases = {
+                "keyword in another file": f"- [ ] [correctness] {sentence} — `{other}:3` (confidence: high)",
+                "path in another entry": (f"- [ ] [correctness] Plain issue — `{path}:3` (confidence: high)\n"
+                                          f"- [ ] [correctness] {sentence} — `{other}:9` (confidence: high)"),
+                "no confidence": f"- [ ] {sentence} — `{path}:26`",
+                "no line number": f"- [ ] [correctness] {sentence} — `{path}` (confidence: high)",
+            }
+            for kind, entry in cases.items():
+                with self.subTest(grader=name, entry=kind):
+                    self.assertNotRegex(trace_form(entry), self.graders[name])
+
+    def test_a_reuse_entry_needs_the_new_code_path(self):
+        existing = ("- [ ] [reuse] `CleanSku` repeats the logic of `SkuFormatter.Normalize` "
+                    "— `src/Inventory/SkuFormatter.cs:7` (confidence: high)\n  - Fix: call SkuFormatter.Normalize")
+        fixed = ("- [ ] [reuse] `CleanSku` repeats the logic of `SkuFormatter.Normalize` "
+                 "— `src/Inventory/StockQuery.cs:29` (confidence: high)\n"
+                 "  - Fix: call SkuFormatter.Normalize (`src/Inventory/SkuFormatter.cs:7`)")
+        pattern = self.graders["caught-duplicate"]
+        self.assertNotRegex(trace_form(existing), pattern)
+        self.assertRegex(trace_form(fixed), pattern)
+
+    def test_a_summary_after_the_last_entry_does_not_match(self):
+        other = "src/Inventory/Elsewhere.cs"
+        for name, (path, sentence) in FP_CAUGHT.items():
+            text = (f"## Warnings\n- [ ] [correctness] Plain issue — `{other}:3` (confidence: high)\n\n"
+                    f"## Summary\n{sentence} at `{path}:26` (confidence: high)\n")
+            with self.subTest(grader=name):
+                self.assertNotRegex(trace_form(text), self.graders[name])
+
+    def test_the_stage_templates_and_a_spec_checkbox_do_not_match(self):
+        texts = {"spec": "- [ ] Reject a bad sku in src/Inventory/StockQuery.cs:12 to stop SQL injection and N+1 calls"}
+        for stage in ("review.md", "security-review.md"):
+            text = (FP_STAGES / stage).read_text(encoding="utf-8")
+            texts[stage] = text
+            for number, line in enumerate(text.splitlines(), 1):
+                if line.lstrip().startswith("- [ ]"):
+                    texts[f"{stage}:{number}"] = line
+        for name in FP_CAUGHT:
+            for source, text in texts.items():
+                with self.subTest(grader=name, source=source):
+                    self.assertNotRegex(trace_form(text), self.graders[name])
+
+    def test_no_blocking_finds_a_real_entry_and_skips_the_templates(self):
+        pattern = self.graders["no-blocking"]
+        real = "## Blocking Issues\n- [ ] [correctness] Bug — `src/A.cs:3` (confidence: high)\n\n## Warnings\n"
+        real_security = "## Blocking Issues\n\n- [ ] **[HIGH]** Bug — `src/A.cs:3` (confidence: 0.9)\n"
+        self.assertRegex(trace_form(real), pattern)
+        self.assertRegex(trace_form(real_security), pattern)
+        templates = (
+            "## Blocking Issues\n- [ ] <description> — `file:line` (confidence: high)",
+            "## Blocking Issues\n- [ ] [<lens>] <description> — `file:line`",
+            "## Blocking Issues\n- [ ] **[HIGH]** <title> — `file:line` (confidence: X.X)",
+            "## Blocking Issues\n\n## Warnings\n",
+            "## Blocking Issues\n- None\n",
+        )
+        for text in templates:
+            with self.subTest(text=text):
+                self.assertNotRegex(trace_form(text), pattern)
+        for stage in ("review.md", "security-review.md"):
+            with self.subTest(stage=stage):
+                self.assertNotRegex(trace_form((FP_STAGES / stage).read_text(encoding="utf-8")), pattern)
 
 
 if __name__ == "__main__":

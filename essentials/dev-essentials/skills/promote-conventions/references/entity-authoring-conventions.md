@@ -29,7 +29,7 @@ The three shapes grow in different ways. Pick the shape that the approved rules 
 
 ## Frontmatter: this skill's own template sticks to `name`, `description`, and `when_to_use`
 
-The Claude Code skill frontmatter supports several optional fields beyond `name` and `description`. Examples are `allowed-tools`, `model`, `context`, `disable-model-invocation`, and `argument-hint`. The official Claude Code skills documentation has the full list. `dev-essentials:feature-pipeline` sets `argument-hint` and `disable-model-invocation`. Do not claim that skill frontmatter allows only two fields, or that an optional field is a schema error. It is not.
+The Claude Code skill frontmatter supports several optional fields beyond `name` and `description`. Examples are `allowed-tools`, `model`, `context`, `disable-model-invocation`, and `argument-hint`. The official Claude Code skills documentation has the full list. `dev-essentials:promote-conventions` sets `disable-model-invocation`, and `dev-essentials:feature-pipeline` sets `argument-hint` and `when_to_use`. Do not claim that skill frontmatter allows only two fields, or that an optional field is a schema error. It is not.
 
 **By convention, the entity that this skill authors in Phase 6 uses only `name`, `description`, and `when_to_use`**. An agent gets no `when_to_use` (see the recipe below). The rules that this skill promotes are description-triggered procedures. They are not procedures that the user invokes by hand or that need restricted tools. If the authored entity needs the specific behavior of another optional field, add that field, for example `disable-model-invocation: true` for a workflow with side effects. Never add an optional field by default.
 

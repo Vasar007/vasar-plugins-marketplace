@@ -9,6 +9,35 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.7.0 in release [3.10.0] - 2026-10-28
+
+This release lets `feature-pipeline` take over the useful parts of `gop-work` (issue #71). So `gop-pipeline` can go in the next release. The pipeline takes a plain request. Its review has new lenses, and a new supply-chain check. It keeps the changes that you made before the run out of its commits. A new eval suite measures it.
+
+### Added in dev-essentials
+
+- `feature-pipeline` (issue #71): If the user names the pipeline, Claude can start it (`when_to_use`). A small edit does not start it. `implement-task`, `implement-batch`, and `research-implement-review-report` keep their own requests.
+- `feature-pipeline` (issue #71): a plain request as the task, for example `/dev-essentials:feature-pipeline "add a cache to GetQuantity"`. A task with a space is a request. If the project context has no Task Provider, any task is a request. A request run needs no task provider and posts no task comments.
+- `feature-pipeline` (issue #71): the request ID. The run gets the ID `req-<slug>`. If a folder or a branch of that ID exists, the run adds `-2`, `-3`, and so on. To resume a request run, pass its `req-<slug>` ID as the task.
+- `feature-pipeline` review (issue #71): the performance, reuse, and compliance lenses, and a check of the callers of the changed code. Each finding names its lens. A finding can carry a `Fix:` line.
+- `feature-pipeline` security review (issue #71): a supply-chain category. It covers new dependencies, likely typosquats, install scripts of third-party packages, and floating versions. A new dependency is a LOW warning. A likely typosquat is HIGH.
+- `feature-pipeline` references (issue #71): `stage-launch.md`, `pipeline-discipline.md`, and `task-comments.md`. The text moved out of `SKILL.md`, which is now shorter.
+
+### Changed in dev-essentials
+
+- `feature-pipeline` (issue #71): behavior change: Stage 7 runs as a `general-purpose` agent with the review method of the skill. The run no longer needs the `feature-dev` plugin.
+- `feature-pipeline` (issue #71): behavior change: the review and the security review read one fixed patch, `review-diff.patch`. The master agent writes it. The patch leaves out the paths that you changed before the run. The review runs no git command that changes state. A dependency manifest of a test project is now in the scope of the security review.
+- `feature-pipeline` (issue #71): behavior change: the run records the changes in the tree at the start (`startChanges` in the state file). No commit takes them, unless a stage edits that file. The final report lists each path that the run left out under "Not committed".
+- `feature-pipeline` (issue #71): behavior change: each commit names its paths after `--`. A rename lists the old path and the new path. A change that you staged before the run stays staged and out of the commit. No stage adds an ignored file, also not with `git add -f`.
+- `feature-pipeline` (issue #71): behavior change: with `--no-worktree` on the default branch, on the base branch, or on a detached HEAD, the run stops. It asks for a branch name or for an explicit yes. With `--autonomous`, it creates the branch. With `--dry-run`, it only reports.
+- `feature-pipeline` (issue #71): the state file has two new keys, `taskSource` and `startChanges`. A state file of an older run without them resumes with the values `"provider"` and `[]`.
+- `implement-task`, `implement-batch`, and `research-implement-review-report` (issue #71): the line that describes `feature-pipeline` now says that the task can be a plain request.
+- `promote-conventions` (issue #71): its example of skill frontmatter fields says that `feature-pipeline` sets `argument-hint` and `when_to_use`. It no longer says `disable-model-invocation`.
+
+### Changed in the repository
+
+- The `feature-pipeline` eval suite (issue #71): 9 behavior cases (`fp-*`) and 4 trigger cases, in `essentials/dev-essentials/evals/feature-pipeline` and `evals/triggers`. The fixtures `dotnet-fixture.sh`, `inventory-fixture.sh`, and `pipeline-fixture.sh` are in `evals/_lib/`. The probe `probe-dotnet-sandbox` checks the .NET sandbox. The cases `implement-task-fires` and `implement-task-near-miss` also make sure that `feature-pipeline` does not start. The suite row and the `--tag feature-pipeline` count (13 cases) are in `README.md`.
+- Tests (issue #71): `FeaturePipelineGraderTests` has 7 tests for the grader patterns of the suite. The scaffold tests cover the 9 new cases and the `pipeline-fixture.sh` file.
+
 ## doc-styles 1.0.0 in release [3.9.0] - 2026-10-28
 
 This release adds the plugin `doc-styles` with the skill `openbsd-style-docs` (issue #73). The skill comes from a public source, and it is adapted for this marketplace. It owns the docs that the user asks for in the style of the OpenBSD manual pages. `simple-english` stays the default for other text and for chat replies.
@@ -918,7 +947,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...HEAD
+[3.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...v3.7.0
