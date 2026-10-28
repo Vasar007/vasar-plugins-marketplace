@@ -1252,6 +1252,24 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 with self.subTest(grader=name, entry=kind):
                     self.assertNotRegex(trace_form(entry), self.graders[name])
 
+    def test_a_reuse_entry_needs_the_new_code_path(self):
+        existing = ("- [ ] [reuse] `CleanSku` repeats the logic of `SkuFormatter.Normalize` "
+                    "— `src/Inventory/SkuFormatter.cs:7` (confidence: high)\n  - Fix: call SkuFormatter.Normalize")
+        fixed = ("- [ ] [reuse] `CleanSku` repeats the logic of `SkuFormatter.Normalize` "
+                 "— `src/Inventory/StockQuery.cs:29` (confidence: high)\n"
+                 "  - Fix: call SkuFormatter.Normalize (`src/Inventory/SkuFormatter.cs:7`)")
+        pattern = self.graders["caught-duplicate"]
+        self.assertNotRegex(trace_form(existing), pattern)
+        self.assertRegex(trace_form(fixed), pattern)
+
+    def test_a_summary_after_the_last_entry_does_not_match(self):
+        other = "src/Inventory/Elsewhere.cs"
+        for name, (path, sentence) in FP_CAUGHT.items():
+            text = (f"## Warnings\n- [ ] [correctness] Plain issue — `{other}:3` (confidence: high)\n\n"
+                    f"## Summary\n{sentence} at `{path}:26` (confidence: high)\n")
+            with self.subTest(grader=name):
+                self.assertNotRegex(trace_form(text), self.graders[name])
+
     def test_the_stage_templates_and_a_spec_checkbox_do_not_match(self):
         texts = {"spec": "- [ ] Reject a bad sku in src/Inventory/StockQuery.cs:12 to stop SQL injection and N+1 calls"}
         for stage in ("review.md", "security-review.md"):

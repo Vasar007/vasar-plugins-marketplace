@@ -72,7 +72,7 @@ If a critical step is still ambiguous after this validation, stop, and report th
 
 On a resume, this stage can run again after its commit, because the master agent marks it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 4.
 
-The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. A staged path of `<start-changes>` is a path of this run only in one case: the block names it as an edit of an earlier stage. If the block says "unknown", leave such a path out, and list it under "Not committed".
+The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. List them with `git diff --cached --name-only --no-renames`, so that a rename lists the old path and the new path. A staged path of `<start-changes>` is a path of this run only in one case: the block names it as an edit of an earlier stage. If the block says "unknown", leave such a path out, and list it under "Not committed".
 
 The content for this stage: the body gives the reason for the change. Take it from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the injected block against pipeline-internal references governs the wording.
 

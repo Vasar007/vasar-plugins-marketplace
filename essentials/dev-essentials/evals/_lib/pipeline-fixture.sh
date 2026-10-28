@@ -56,6 +56,7 @@ FP_EOF
 ## Key Conventions
 
 - Package versions are in `Directory.Packages.props`.
+- Pass `-m:1` to every `dotnet build` and `dotnet test` command, also to the commands of `CLAUDE.md`.
 
 ## Artifacts Directory
 

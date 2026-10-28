@@ -10,3 +10,5 @@ timeout_seconds: 3600
 Use the dev-essentials feature-pipeline skill on issue 881 of example-org/inventory with these arguments: `881 --no-worktree --skip=simplifier,plan-artifact --commit-mode=per-step`.
 
 On this machine, MSBuild can use only one process. Pass -m:1 to every dotnet build and dotnet test command. Tell each subagent to do the same.
+
+Take the recommended option for each stage question, and do not ask me.

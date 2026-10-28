@@ -125,7 +125,7 @@ If all three conditions below are true, stop and report before you overwrite `co
 
 Do not accept the new mode silently.
 
-The reverse change, `finalization` to `per-step`, needs no check of its own in the common case. If no commit-capable stage runs between the resume point and Stage 9, Stage 9 itself stops on any uncommitted or unstaged change ("Commit Cadence"). A smaller gap remains. If a commit-capable stage runs in between, its plain `git commit` takes the changes that the earlier `finalization` stages staged. The tree is then clean at Stage 9, and Stage 9 does not find the problem. This protocol adds no check for that case.
+The reverse change, `finalization` to `per-step`, needs no check of its own in the common case. If no commit-capable stage runs between the resume point and Stage 9, Stage 9 itself stops on any uncommitted or unstaged change ("Commit Cadence"). A commit-capable stage that runs in between commits only its own paths ("Commit with paths" in `references/commit-conventions.md`). So the changes that the earlier `finalization` stages staged stay staged, and Stage 9 stops on them. This protocol adds no check for that case.
 
 All other resume cases keep the log-and-allow rule of sub-step 12:
 

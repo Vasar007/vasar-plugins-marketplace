@@ -102,7 +102,7 @@ Three safeguards apply to you and to every stage: claims about Claude Code, sche
 Five stages can commit: `implementation` (also in the fix rounds of Human Approve #2, which run this stage again), `test-coverage`, `simplifier`, `docs`, and `finalization`. No other stage commits. Stage 2b does not touch git.
 
 - `finalization` mode (default): each stage stages only its own changes with an explicit `git add <path>`, never `-A` or `.`. It does not commit. Stage 9 creates the one commit of the run. Then the master agent pushes and opens the PR (Step 9).
-- `per-step` mode: each of the four earlier stages commits its own changes as soon as they are green. Each stage file states its own commit granularity. Stage 9 creates no commit. If `git status` shows uncommitted or unstaged source changes at the start of Stage 9, Stage 9 stops and reports. It does not commit them.
+- `per-step` mode: each of the four earlier stages commits its own changes as soon as they are green. Each stage file states its own commit granularity. Stage 9 creates no commit. If `git status` shows uncommitted or unstaged source changes when Stage 9 starts, Stage 9 stops and reports. It does not commit them. The start-change paths that no stage edited do not count.
 
 In both modes, only the master agent pushes, at Step 9 after Stage 9, never between commits. It never force-pushes, never passes `--no-verify`, and does not push the default branch (Step 9). Never commit anything under `{ARTIFACTS_DIR}/`.
 

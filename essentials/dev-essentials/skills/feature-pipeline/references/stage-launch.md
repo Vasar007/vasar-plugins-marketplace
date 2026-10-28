@@ -28,7 +28,7 @@ Each stage reads and writes files in `{ARTIFACTS_DIR}/{TASK_ID}/`. Every stage a
 | 5 | `simplifier` | The diff against the base branch | Code |
 | 6 | `docs` | `requirements.md`, `spec.md` | Docs |
 | 7 | `review` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
-| 8 | `security-review` | `requirements.md`, `spec.md` | `security-review.md` |
+| 8 | `security-review` | `requirements.md`, `spec.md`, `review-diff.patch` | `security-review.md` |
 | 9 | `finalization` | `requirements.md`, `spec.md`, `review.md` | Commit, and the facts for the push and the PR |
 
 ## Launch steps
@@ -83,7 +83,7 @@ Before you launch a stage, do these steps in order:
 
 ## Review patch
 
-The review stage writes no file. It runs no git command that changes state. The review reads one fixed patch. So before its launch steps, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>`. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the review is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file.
+The review stage writes no file. It runs no git command that changes state. The review and the security review read one fixed patch. So before the launch steps of Stage 7 and Stage 8, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch> -- . ':(exclude)<path>'`. The user changed the paths of `startChanges` before the run. Add one `':(exclude)<path>'` for each of them that no stage edited. "After the stage" notes the edited paths. If the edited paths are unknown (a resume), exclude every path of `startChanges`. If `startChanges` is empty, leave out the pathspec. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the review is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file.
 
 ## After the stage
 

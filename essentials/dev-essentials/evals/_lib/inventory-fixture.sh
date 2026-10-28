@@ -44,6 +44,7 @@ DOTNET_EOF
 - Build command: `dotnet build Inventory.sln`
 - Test command: `dotnet test Inventory.sln`
 - Package versions are in `Directory.Packages.props`.
+- Pass `-m:1` to every `dotnet build` and `dotnet test` command.
 DOTNET_EOF
     fixture_write REVIEW.md <<'DOTNET_EOF'
 # Review rules

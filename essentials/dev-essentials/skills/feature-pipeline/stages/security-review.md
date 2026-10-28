@@ -46,15 +46,14 @@ Use the base branch from the Project Context section above. Fetch it, and get th
 # Refresh the remote-tracking ref
 git -C "{WORKTREE_PATH}" fetch origin <base-branch>
 
-# Changed files
-git -C "{WORKTREE_PATH}" diff --name-only --merge-base origin/<base-branch>
-
-# Full diff content
-git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch>
+# Changed files (from the patch)
+grep '^diff --git' "{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch"
 
 # Commit log
 git -C "{WORKTREE_PATH}" log --no-decorate origin/<base-branch>..HEAD
 ```
+
+Read the full diff from `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with the Read tool, not from git. The master agent wrote it. It leaves out the paths that the user changed before the run. Do not review those paths.
 
 If the fetch fails, stop, and do not review. Write `security-review.md` with one line only: `FETCH FAILED: <the error of git fetch>`. Join the lines of the error into one line. Do not add the required headings. The master agent finds this line, stops the pipeline without a rerun, and reports the error to the user. Also report the failure in your final reply.
 

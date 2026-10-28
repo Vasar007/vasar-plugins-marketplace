@@ -62,11 +62,12 @@ The resolved context goes into each stage prompt as the `<project-context>` bloc
 
 ## Task input
 
-The task is the text of `$ARGUMENTS` before the first `--` flag. Do not take only the first word, because a request has spaces. Decide what the task is after sub-step 2 resolves the project context.
+The task is the text of `$ARGUMENTS` without the flags of this skill. Take the flags only from the end of `$ARGUMENTS`: the words that start with `--` and that "Arguments" in `SKILL.md` lists. Text before them that looks like a flag, for example "make the CLI accept --verbose", is part of the request. Do not take only the first word, because a request has spaces. Decide what the task is after sub-step 2 resolves the project context.
 
 - If the task has a space, or if the project context has no Task Provider, the task is a plain request. Else the task is a task ID.
 - A request run gets the task ID `req-<slug>`. The `<slug>` has 2 to 5 words in kebab-case, taken from the request, with at most 40 characters. For example, `req-stock-cache`. The run reports the task ID.
 - To resume a request run, the user passes `req-<slug>` as the task. A task that starts with `req-` and has no space is such an ID. Set `taskSource` to `request`, and do not look for the task in the provider. Sub-step 10 reads the task context file of that run.
+- A task with a space always starts a new run. Before sub-step 5 makes the branch name, make the slug unique. Look at the folder `{ARTIFACTS_DIR}/req-<slug>/` and at the local and remote branches of the slug. If one exists, add `-2`, `-3`, and so on, until none exists. Use the Artifacts Directory value of the project context, or `tasks`.
 - The branch template takes `{task-id}` = `req-<slug>` and `{slug}` = `<slug>`.
 
 ## Provider capability contract
@@ -98,7 +99,7 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
    - If `git -C "{WORKTREE_PATH}" branch --show-current` prints nothing, the HEAD is detached, and the push of Step 9 fails later.
    - If the HEAD is detached, do not commit on it. The same holds for the default branch and for the base branch of the project context. In these three cases, do one of these steps:
      - With `--dry-run`, report the result, and switch nothing.
-     - Else, with `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it.
+     - Else, with `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it. If that branch already exists, run `git -C "{WORKTREE_PATH}" switch <branch-name>` when `git -C "{WORKTREE_PATH}" rev-list HEAD..<branch-name>` prints nothing. Else stop, and report it.
      - Else (the default mode and `--interactive`), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
    - If the HEAD is on another branch, use the current branch as it is. Do not create or switch branches.
    - Log: "Running in-place on branch `<current-branch>`".
@@ -122,7 +123,7 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
 
      Then run Workflow A of `dev-essentials:git-worktree-management` **in pipeline mode**. Pass the resolved path, the branch, and the base branch from the project context explicitly. Say that Workflow A Step 2 must use this base branch, not `origin/HEAD`. Say also that the user already approved the worktree with the start of the pipeline. So the approval prompt of Workflow A Step 3 is already answered and must not block. Workflow A does the full bootstrap. It fetches the base branch. It runs `git worktree add` with the right case (A, B, or C) for a new branch, a local branch, or a remote-only branch. It unsets the upstream (`git branch --unset-upstream`), copies `.claude/settings.local.json` into the worktree, and creates `Notes/`. Do not do these steps inline. Run Workflow A, so that the full bootstrap runs every time. An ad hoc creation skips two of its steps: `--unset-upstream` and `mkdir -p Notes/`.
 
-   In both modes, record the start changes. Run `git -C "{WORKTREE_PATH}" status --porcelain`, and keep its paths. Each line starts with two status letters and a space. For a rename (`old -> new`), keep both paths. Remove the quotes of a quoted path. These changes were in the tree before the run. No stage commits them, unless a stage edits that file. Then the whole file goes into the commit, with the earlier edits of the user, and the final report names it. In a new worktree, the list is empty. With `--dry-run`, report the list.
+   In both modes, record the start changes. Run `git -C "{WORKTREE_PATH}" status --porcelain --untracked-files=all`, and keep its paths. Each line starts with two status letters and a space. For a rename (`old -> new`), keep both paths. Remove the quotes of a quoted path. These changes were in the tree before the run. No stage commits them, unless a stage edits that file. Then the whole file goes into the commit, with the earlier edits of the user, and the final report names it. In a new worktree, the list is empty. With `--dry-run`, report the list.
 
    After this sub-step, in both modes, every later file operation and every subagent prompt must use `{WORKTREE_PATH}` as the project root.
 7. If the project context has a Pre-build command, run it in the `{WORKTREE_PATH}` folder. If it fails, stop at once, because the build fails without it. With `--dry-run`, do not run it. Name it in the plan.

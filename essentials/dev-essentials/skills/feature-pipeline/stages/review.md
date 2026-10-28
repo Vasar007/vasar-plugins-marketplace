@@ -115,7 +115,7 @@ Do not report micro-optimizations with no measurable effect.
 
 Each item is a Warning.
 
-- A new type, function, or block of 10 or more lines. Search the repository for code with the same intent. Compare names without common prefixes and suffixes, similar parameters, and the same call sequence. Read both. If the new code repeats logic that it can call or extend, report it with the `file:line` of the existing code. Prefer a small change of the existing code over a change of many callers.
+- A new type, function, or block of 10 or more lines. Search the repository for code with the same intent. Compare names without common prefixes and suffixes, similar parameters, and the same call sequence. Read both. If the new code repeats logic that it can call or extend, report it with the `file:line` of the new code in the entry. Name the existing code with its `file:line` in the description or in `Fix:`. Prefer a small change of the existing code over a change of many callers.
 - A change of shared code that silently changes the behavior of a consumer that the spec does not name. If the session has a language server, use its references to find the consumers. Else use a text search. Name the consumers.
 - Style that differs from the conventions of the same file: names, layout, member order, import order, comment style. Do not report a general style opinion.
 - A new abstraction with one implementation and one caller, or a third near-duplicate where an abstraction fits (the Rule of Three).
@@ -123,7 +123,7 @@ Each item is a Warning.
 ### Compliance
 
 - Each item of "Implementation Steps" in `spec.md`, and each acceptance criterion of `requirements.md`. It is done in the diff, explained as a deviation, or missing. A missing item is Blocking. A deviation that weakens the intent is a Warning.
-- The skills of the session. Read the skill listing. For each skill whose trigger fits the task, load it with the `Skill` tool, and list its mandatory artifacts (tests, registrations, configuration, docs). A missing mandatory artifact is Blocking. A conditional artifact whose condition applies is a Warning.
+- The skills of the session. Read the skill listing. For each skill whose trigger fits the task and that states conventions or mandatory artifacts, load it with the `Skill` tool. Do not load a workflow skill, which runs steps, dispatches agents, or writes files. List the mandatory artifacts (tests, registrations, configuration, docs). A missing mandatory artifact is Blocking. A conditional artifact whose condition applies is a Warning.
 - The rule files of the repository. For each folder that the diff touches, read each `CLAUDE.md` and `REVIEW.md` on the path from the repository root down to that folder. These files can be absent from the guidance files of the Project Context. Report each rule that the diff newly breaks, and quote the rule. Also report a rule that the diff makes obsolete. If the two files conflict, `REVIEW.md` wins. Do not report a rule that the code broke before the diff. Each report is a Warning.
 - A statement in a guidance file that the diff makes false, for example a removed component or a moved path. Stage 6 runs at the same time. Report the statement anyway, so that the human sees whether Stage 6 fixed it. This is a Suggestion.
 - The same rule files for the folder of each caller that "Scope" finds. Each report is a Warning.
