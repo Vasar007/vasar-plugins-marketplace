@@ -17,7 +17,7 @@ This release adds the plugin `doc-styles` with the skill `openbsd-style-docs` (i
 
 - `openbsd-style-docs` (issue #73): writes and rewrites a technical document in the style of the OpenBSD manual pages, as Markdown. The user must name the style to start it. The names are "OpenBSD style", "like a man page", "man-page style", and "BSD style". The document has uppercase sections in a fixed order, a one-line NAME summary, sorted option and error lists, and each default as its own sentence. The chat reply follows the reply rules of the session.
 - Eval suites (issue #73): 5 trigger cases, 3 probes, and 21 style-comparison cases. The comparison runs each case with the skill, with `simple-english`, and with both plugins loaded. The OpenBSD docs prompts also name the style.
-- `eval-stubs/simple-english` (issue #73): a stand-in for `simple-english` that is used only in the eval runs. It is a byte copy of simple-english 2.1.1 (MIT).
+- `eval-stubs/simple-english` (issue #73): a stand-in for `simple-english` that is used only in the eval runs. It is a byte copy of simple-english 2.1.1 (MIT). If a newer simple-english is installed, the test `tests/test_eval_stubs.py` fails.
 
 ### Changed in the repository
 

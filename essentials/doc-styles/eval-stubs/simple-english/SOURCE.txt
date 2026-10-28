@@ -12,3 +12,9 @@ Left out, because no run uses them:
 - Also left out: .claude-plugin/marketplace.json, .gitignore, and the cache marker files.
 
 The hooks need node and python3 on PATH.
+
+To update:
+- The test tests/test_eval_stubs.py fails when a newer simple-english is installed. It skips when none is installed.
+- Copy the plugin files from the installed copy again, and keep the left-out list above.
+- Set the Version, Copied on, and Copied from lines.
+- Run the style-compare suites of doc-styles again.
