@@ -1,6 +1,6 @@
 {
   "name": "vasar-plugins-marketplace",
-  "description": "Personal Claude Code plugins for everyday development: generic developer workflows with a gated task pipeline, and a .NET backend toolkit.",
+  "description": "Personal Claude Code plugins for everyday development: generic developer workflows with a gated task pipeline, a writing style for technical documents, and a .NET backend toolkit.",
   "owner": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"

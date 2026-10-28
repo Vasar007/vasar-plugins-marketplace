@@ -15,7 +15,7 @@ This release removes the `gop-pipeline` plugin (issue #71). The `feature-pipelin
 
 ### Removed
 
-- `gop-pipeline` (issue #71): the plugin, with the `gop-work` skill, its eight agents, and its eval suite. `feature-pipeline` in `dev-essentials` does the same job. To start it, ask Claude to "run the feature pipeline on this request", or run `/dev-essentials:feature-pipeline "<request>"`. The flags `--interactive` and `--autonomous` work as before. The five validators are now the checks of the review and the security review. After `/plugin marketplace update vasar-plugins-marketplace`, Claude Code shows "Removed from the "vasar-plugins-marketplace" marketplace" and turns the plugin off.
+- `gop-pipeline` (issue #71): the plugin, with the `gop-work` skill, its eight agents, and its eval suite. `feature-pipeline` in `dev-essentials` does the same job. To start it, ask Claude to "run the feature pipeline on this request", or run `/dev-essentials:feature-pipeline "<request>"`. The flags `--interactive` and `--autonomous` work as before. One difference: `feature-pipeline` works in a new worktree and ends with a pull request. To work on the current branch, as `gop-work` did, pass `--no-worktree`. The five validators are now the checks of the review and the security review. After `/plugin marketplace update vasar-plugins-marketplace`, Claude Code shows "Removed from the "vasar-plugins-marketplace" marketplace" and turns the plugin off.
 
 ### Changed in the repository
 
