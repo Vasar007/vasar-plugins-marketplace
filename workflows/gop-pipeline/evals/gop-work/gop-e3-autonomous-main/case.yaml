@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: gop-e3-autonomous-main
-context:
-  scaffold_script: scaffold.sh

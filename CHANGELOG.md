@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## gop-pipeline removed in release [4.0.0] - 2026-10-28
+
+This release removes the `gop-pipeline` plugin (issue #71). The `feature-pipeline` skill in `dev-essentials` does the same job. The release is MAJOR because an install path goes away: `/plugin install gop-pipeline@vasar-plugins-marketplace` no longer works. No other plugin changes its version.
+
+### Removed
+
+- `gop-pipeline` (issue #71): the plugin, with the `gop-work` skill, its eight agents, and its eval suite. `feature-pipeline` in `dev-essentials` does the same job. To start it, ask Claude to "run the feature pipeline on this request", or run `/dev-essentials:feature-pipeline "<request>"`. The flags `--interactive` and `--autonomous` work as before. One difference: `feature-pipeline` works in a new worktree and ends with a pull request. To work on the current branch, as `gop-work` did, pass `--no-worktree`. The five validators are now the checks of the review and the security review. After `/plugin marketplace update vasar-plugins-marketplace`, Claude Code shows "Removed from the "vasar-plugins-marketplace" marketplace" and turns the plugin off.
+
+### Changed in the repository
+
+- `marketplace.json` (issue #71): the `renames` map records the removal. The description no longer names a separate pipeline plugin.
+- `README.md` (issue #71): the plugin table, the install lines, and the eval notes no longer name `gop-pipeline`.
+- The tests (issue #71): they no longer name the `gop-` cases or the `gop-pipeline` folder.
+
 ## dev-essentials 3.7.0 in release [3.10.0] - 2026-10-28
 
 This release lets `feature-pipeline` take over the useful parts of `gop-work` (issue #71). So `gop-pipeline` can go in the next release. The pipeline takes a plain request. Its review has new lenses, and a new supply-chain check. It keeps the changes that you made before the run out of its commits. A new eval suite measures it.
@@ -947,7 +961,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...v4.0.0
 [3.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...v3.8.0

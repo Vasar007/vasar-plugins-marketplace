@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
 
-This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace. Its plugins help with everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.
+This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace. Its plugins help with everyday development: generic developer workflows with a gated task pipeline, a writing style for technical documents, and a .NET backend toolkit.
 
 > This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
 
@@ -13,7 +13,6 @@ This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marke
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
 | [`doc-styles`](./essentials/doc-styles) | `essentials` | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
-| [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval. |
 
 ## Installing the marketplace
 
@@ -50,10 +49,9 @@ After you add the marketplace, install a single plugin by name:
 /plugin install dev-essentials@vasar-plugins-marketplace
 /plugin install doc-styles@vasar-plugins-marketplace
 /plugin install dotnet-backend-dev@vasar-plugins-marketplace
-/plugin install gop-pipeline@vasar-plugins-marketplace
 ```
 
-`dotnet-backend-dev` and `gop-pipeline` use skills or agents of `dev-essentials`, so they declare it as a dependency. If you install one of them, Claude Code also installs `dev-essentials`.
+`dotnet-backend-dev` uses skills and agents of `dev-essentials`, so it declares it as a dependency. If you install it, Claude Code also installs `dev-essentials`.
 
 To enable specific plugins for a project automatically, extend the same `.claude/settings.local.json` file:
 
@@ -177,7 +175,7 @@ These items at the repository root are not part of a plugin:
 
 ### Rules for `marketplace.json`
 
-Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `name`, `source`, and `description`. The `source` path has the form `./<group>/<plugin>`. It must start with `./`. It must point to a folder that contains `.claude-plugin/plugin.json`. Do not set `version` here. The version is only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)). For all fields of the file, see the [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference).
+Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `name`, `source`, and `description`. The `source` path has the form `./<group>/<plugin>`. It must start with `./`. It must point to a folder that contains `.claude-plugin/plugin.json`. Do not set `version` here. The version is only in `plugin.json` (see [Versioning Policy](./CLAUDE.md#versioning-policy)). To remove a plugin, delete its entry and add `"<plugin>": null` to the top-level `renames` map. Do not delete an entry of `renames`, because Claude Code reads the map to move the users of old names. For all fields of the file, see the [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference).
 
 ### Rules for `plugin.json`
 
@@ -239,14 +237,14 @@ python3 tests/evals/compare_versions.py run --plugin essentials/dev-essentials -
 
 Pass full model ids. The result files store them, because a comparison is valid only on the same models. The script writes `base.json`, `head.json`, and `report.md` into the `--out` folder. If the folder already holds a result file, the script stops. For a case that the report marks as unclear, the report prints the commands to run the case again and to compare all result files. To compare result files that you already have, use `compare --base <files> --head <files>`. For the rules of the verdict, run the script with `--help`.
 
-A plugin with dependencies must run through this script. `claude plugin eval` loads only the plugin under test, so the plain command cannot load a dependency. The plugin then reports `dependency-unsatisfied` and does not load. The script copies each plugin that the manifest lists in `dependencies` from the marketplace at the same commit into `.deps/<name>` of the plugin copy. A case lists these copies in the `plugins` field of its `prompt.md`, for example `plugins: ["../../..", "../../../.deps/dev-essentials"]`. The trigger cases of `dotnet-backend-dev` and `gop-pipeline` do this, so they load only through the script.
+A plugin with dependencies must run through this script. `claude plugin eval` loads only the plugin under test, so the plain command cannot load a dependency. The plugin then reports `dependency-unsatisfied` and does not load. The script copies each plugin that the manifest lists in `dependencies` from the marketplace at the same commit into `.deps/<name>` of the plugin copy. A case lists these copies in the `plugins` field of its `prompt.md`, for example `plugins: ["../../..", "../../../.deps/dev-essentials"]`. The trigger cases of `dotnet-backend-dev` do this, so they load only through the script.
 
 To copy a plugin that the manifest does not list, pass `--extra-dep <name>` to `run` or `baseline` (repeat it for more plugins). The script copies it the same way, and a case lists it in `plugins`. The trigger cases of `doc-styles` use this for `dev-essentials`, because `doc-styles` must stay free of dependencies. The test `tests/test_eval_cases.py` accepts such a copy only for a plugin in `EVAL_ONLY_DEPS`. `baseline` also takes `--ablation none|with-without` (default `none`) and `--keep-temp`.
 
-To record the result of one commit with no comparison, use `baseline`. It runs the suite at one commit with the same copy logic and writes `baseline.json` into the `--out` folder. If this file already exists, the script stops. This example records the trigger cases of `gop-pipeline`:
+To record the result of one commit with no comparison, use `baseline`. It runs the suite at one commit with the same copy logic and writes `baseline.json` into the `--out` folder. If this file already exists, the script stops. This example records the trigger cases of `dotnet-backend-dev`:
 
 ```bash
-python3 tests/evals/compare_versions.py baseline --plugin workflows/gop-pipeline --commit main --model <model id> --judge-model <model id> --tag triggers --out <folder>
+python3 tests/evals/compare_versions.py baseline --plugin dotnet/dotnet-backend-dev --commit main --model <model id> --judge-model <model id> --tag triggers --out <folder>
 ```
 
 Later, pass the file to `compare --base` or `compare --head`. `baseline` runs the cases of its own commit, but `run` runs the cases of the head on both sides. If two commits have different cases, do not compare their baseline files. If an eval fails or writes no case, `baseline` stops with exit code 2.
@@ -271,20 +269,19 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
 | `feature-pipeline` | `dev-essentials` | 9 | WSL |
-| `gop-work` | `gop-pipeline` | 9 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-both` | `doc-styles` | 3 | Windows, because it grants no shell tool |
 
-The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag feature-pipeline` runs 13 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
+The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag feature-pipeline` runs 13 cases, and `--tag write-tests` runs 4 cases.
 
 The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `essentials/doc-styles/eval-stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
 
-Run the suites through the compare script, because the cases of `gop-pipeline` and `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
+Run the suites through the compare script, because the cases of `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 
 1. Install `bubblewrap` and `socat`. The sandbox needs both.
-2. For the `feature-pipeline`, `gop-work`, and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works.
+2. For the `feature-pipeline` and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works.
 3. Set `TMPDIR` to a folder outside `/tmp`, `/var/tmp`, `/dev/shm`, and `/run/shm`, and make that folder. The sandbox of a run denies these four folders, and the run folder follows `TMPDIR`. If `TMPDIR` points to one of them, no Bash write works in the run. This is a bug of Claude Code ([anthropics/claude-code#104631](https://github.com/anthropics/claude-code/issues/104631)). The `run` and `baseline` commands stop with a message in this case.
 
 This example runs the `review-loop` suite in WSL2. Pass `--scaffold`, because each case builds its repository with its `scaffold.sh`. Pass `--allow-tools`, because a run asks for no permission and grants no shell tool by default. If the shell does not find `claude`, pass its path with `--claude`.

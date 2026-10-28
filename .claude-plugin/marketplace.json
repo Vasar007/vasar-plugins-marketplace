@@ -1,6 +1,6 @@
 {
   "name": "vasar-plugins-marketplace",
-  "description": "Personal Claude Code plugins for everyday development: generic developer workflows, a .NET backend toolkit, and a gated pipeline that takes one task from plan to commit.",
+  "description": "Personal Claude Code plugins for everyday development: generic developer workflows with a gated task pipeline, a writing style for technical documents, and a .NET backend toolkit.",
   "owner": {
     "name": "Vasily Vasilyev",
     "email": "vasar007@gmail.com"
@@ -20,11 +20,9 @@
       "name": "dotnet-backend-dev",
       "source": "./dotnet/dotnet-backend-dev",
       "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types."
-    },
-    {
-      "name": "gop-pipeline",
-      "source": "./workflows/gop-pipeline",
-      "description": "A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval."
     }
-  ]
+  ],
+  "renames": {
+    "gop-pipeline": null
+  }
 }

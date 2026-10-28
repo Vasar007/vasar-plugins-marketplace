@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: gop-e4-package-bump
-context:
-  scaffold_script: scaffold.sh
