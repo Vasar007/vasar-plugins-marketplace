@@ -13,6 +13,7 @@ This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marke
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
 | [`doc-styles`](./essentials/doc-styles) | `essentials` | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
+| [`kb`](./knowledge/kb) | `knowledge` | Wiring for a personal knowledge base kept in git. Hooks sync the knowledge base, print its indexes, guard note writes, and brief subagents. Skills capture a solved problem and close a task. It needs a local clone of the knowledge base. |
 
 ## Installing the marketplace
 
@@ -49,6 +50,7 @@ After you add the marketplace, install a single plugin by name:
 /plugin install dev-essentials@vasar-plugins-marketplace
 /plugin install doc-styles@vasar-plugins-marketplace
 /plugin install dotnet-backend-dev@vasar-plugins-marketplace
+/plugin install kb@vasar-plugins-marketplace
 ```
 
 `dotnet-backend-dev` uses skills and agents of `dev-essentials`, so it declares it as a dependency. If you install it, Claude Code also installs `dev-essentials`.
@@ -209,6 +211,7 @@ The command runs these parts:
 - markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
 - `claude plugin validate --strict` on the marketplace and on each plugin.
 - A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
+- The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
 - The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.

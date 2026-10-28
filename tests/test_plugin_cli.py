@@ -20,6 +20,7 @@ LISTING_BUDGET = {
     "dev-essentials": 3100,
     "doc-styles": 127,
     "dotnet-backend-dev": 1250,
+    "kb": 120,
 }
 ALWAYS_ON = re.compile(r"^\s*Always-on:\s+(?:~|<\s*)?([\d,]+)\s+tok", re.MULTILINE)
 
