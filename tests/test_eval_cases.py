@@ -56,6 +56,9 @@ IGNORED_REGEX_FLAGS = set("guyd")
 # compare_versions.py makes the copy with --extra-dep. The key is the plugin folder name.
 EVAL_ONLY_DEPS = {"doc-styles": {"dev-essentials"}}
 
+# compare_versions.py copies each folder here into <plugin>/eval-stubs/ of its plugin copy.
+STUBS = REPO / "tests" / "evals" / "stubs"
+
 PAIR_FOLDER = "style-compare"
 PAIR_ARMS = ("openbsd", "simple-english")
 PAIR_KEYS_THAT_DIFFER = {"name", "tags", "plugins"}
@@ -523,10 +526,11 @@ def in_own_case_subfolder(target, case_dir):
     return not any(target.is_relative_to(case_dir / name) for name in ("graders", "mocks"))
 
 
-def plugin_entry_problems(case):
+def plugin_entry_problems(case, stubs=STUBS):
     """Each entry of `plugins` must be a plugin folder. A .deps copy of a declared dependency also counts.
 
     A .deps copy of a plugin in EVAL_ONLY_DEPS for this plugin counts too.
+    An eval-stubs/<name> entry counts when tests/evals/stubs/<name> is a plugin folder.
 
     claude plugin eval refuses a plugin in the eval folder unless the plugin sits in its own subfolder of the case.
     """
@@ -546,12 +550,15 @@ def plugin_entry_problems(case):
             continue
         if (target / ".claude-plugin" / "plugin.json").is_file():
             continue
+        if target.parent == (case.plugin_root / "eval-stubs").resolve() and (stubs / target.name / ".claude-plugin" / "plugin.json").is_file():
+            continue
         deps = (case.plugin_root / ".deps").resolve()
         allowed = dependency_names(case.plugin_root) | EVAL_ONLY_DEPS.get(case.plugin_root.name, set())
         if target.parent == deps and target.name in allowed:
             continue
         problems.append(f"{case.label}: the plugins entry {entry} is not a plugin folder, and it is not a .deps copy "
-                        f"of a dependency of the plugin or of an eval-only dependency in EVAL_ONLY_DEPS")
+                        f"of a dependency of the plugin or of an eval-only dependency in EVAL_ONLY_DEPS, "
+                        f"and it is not a stand-in in tests/evals/stubs")
     return problems
 
 
@@ -928,17 +935,18 @@ class CaseCheckTests(CaseFiles):
         helper = self.tmp / "other" / "helper"
         (helper / ".claude-plugin").mkdir(parents=True)
         (helper / ".claude-plugin" / "plugin.json").write_text('{"name": "helper"}', encoding="utf-8")
-        for stub in (self.plugin / "eval-stubs" / "github", self.plugin / EVALS / "probes" / "own" / "github-stub"):
+        for stub in (self.tmp / "stubs" / "github", self.plugin / EVALS / "probes" / "own" / "github-stub"):
             (stub / ".claude-plugin").mkdir(parents=True)
             (stub / ".claude-plugin" / "plugin.json").write_text('{"name": "github"}', encoding="utf-8")
         entries = '["../../..", "../../../eval-stubs/github", "../../../.deps/helper"]'
         good = self.case("probes/good", prompt=f"---\nplugins: {entries}\n---\nx\n")
-        self.assertEqual(plugin_entry_problems(good), [])
+        stubs = self.tmp / "stubs"
+        self.assertEqual(plugin_entry_problems(good, stubs=stubs), [])
         own = self.case("probes/own", prompt='---\nplugins: ["../../..", "github-stub"]\n---\nx\n')
-        self.assertEqual(plugin_entry_problems(own), [])
+        self.assertEqual(plugin_entry_problems(own, stubs=stubs), [])
         entries = '["../../..", "../../../eval-stubs/missing", "../../../.deps/unknown"]'
         bad = self.case("probes/bad", prompt=f"---\nplugins: {entries}\n---\nx\n")
-        self.assertEqual(len(plugin_entry_problems(bad)), 2)
+        self.assertEqual(len(plugin_entry_problems(bad, stubs=stubs)), 2)
 
     def test_plugins_entry_allows_a_deps_copy_of_an_eval_only_dependency(self):
         entries = '["../../..", "../../../.deps/extra"]'

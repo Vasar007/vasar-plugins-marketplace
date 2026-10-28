@@ -35,4 +35,4 @@ Notes/
 */*/evals/results/
 
 # The stand-in plugin of the eval cases needs its .mcp.json.
-!essentials/dev-essentials/eval-stubs/github/.mcp.json
+!tests/evals/stubs/github/.mcp.json

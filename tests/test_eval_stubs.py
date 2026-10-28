@@ -1,6 +1,6 @@
 """Reports when an eval stand-in is older than the plugin that is installed.
 
-The stand-in essentials/doc-styles/eval-stubs/simple-english is a copy of the
+The stand-in tests/evals/stubs/simple-english is a copy of the
 plugin simple-english. Its SOURCE.txt names the copied version. The test reads
 the installed versions from plugins/cache/simple-english/simple-english/ in
 CLAUDE_CONFIG_DIR (default ~/.claude). The test fails if one is newer. It skips
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from support import REPO
 
-STUB = REPO / "essentials/doc-styles/eval-stubs/simple-english"
+STUB = REPO / "tests/evals/stubs/simple-english"
 CACHE = Path("plugins/cache/simple-english/simple-english")
 VERSION_LINE = re.compile(r"^Version:\s*(\d+)\.(\d+)\.(\d+)", re.MULTILINE)
 VERSION_NAME = re.compile(r"\d+\.\d+\.\d+")

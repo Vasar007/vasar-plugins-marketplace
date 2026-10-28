@@ -14,8 +14,8 @@ IN_CI = os.environ.get("CI") == "true"
 
 # Folders with copies of third-party text. The lint tests skip them, because the upstream project owns the text.
 VENDORED = {
-    "essentials/doc-styles/eval-stubs/simple-english/": "Byte copy of simple-english 2.1.1 (MIT) for the eval runs. "
-                                                        "The upstream project owns the text.",
+    "tests/evals/stubs/simple-english/": "Byte copy of simple-english 2.1.1 (MIT) for the eval runs. "
+                                         "The upstream project owns the text.",
 }
 
 

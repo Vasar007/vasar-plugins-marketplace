@@ -26,6 +26,9 @@ NOT_RECORDED = "not recorded"
 BASELINE_FILE = "baseline.json"
 DEPENDENCY_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 REPO = Path(__file__).resolve().parents[2]
+# The eval stand-ins live outside the plugins, because the claude.ai sync skips a plugin with a nested manifest.
+STUBS = Path("tests/evals/stubs")
+STUB_FOLDER = "eval-stubs"
 
 RULES = """\
 rules:
@@ -332,6 +335,19 @@ def add_dependencies(root, plugin, extra=()):
                         ignore=lambda where, names: [skip] if Path(where) == folder else [])
 
 
+def add_stubs(root, plugin):
+    """Copy each stand-in of <root>/tests/evals/stubs into <plugin>/eval-stubs/<name>. Root is an exported repository.
+
+    A commit with no such folder keeps the eval-stubs folder that its plugin has.
+    """
+    source = root / STUBS
+    if not source.is_dir():
+        return
+    target = plugin / STUB_FOLDER
+    shutil.rmtree(target, ignore_errors=True)
+    shutil.copytree(source, target, symlinks=True)
+
+
 def eval_command(args, plugin_dir, result, claude, suite):
     command = [claude, "plugin", "eval", str(plugin_dir), "--ablation", getattr(args, "ablation", "none"),
                "--runs", str(args.runs),
@@ -500,6 +516,8 @@ def run_suites(args, runner=subprocess.run):
         shutil.rmtree(plugins["base"] / suite, ignore_errors=True)
         shutil.copytree(plugins["head"] / suite, plugins["base"] / suite)
         for side in ("base", "head"):
+            add_stubs(Path(tmp) / "head", plugins[side])
+        for side in ("base", "head"):
             results[side] = out / f"{side}.json"
             run_eval(args, side, plugins[side], shas[side], results[side], claude, suite, runner)
     return results, shas
@@ -514,6 +532,7 @@ def run_baseline(args, runner=subprocess.run):
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="compare-versions-", ignore_cleanup_errors=True) as tmp:
         plugin, sha = export_plugin(args, tmp, "baseline", args.commit)
+        add_stubs(Path(tmp) / "baseline", plugin)
         suite = args.eval_dir or manifest_suite(plugin) or "evals"
         if not (plugin / suite).is_dir():
             raise InputError(f"{args.plugin}/{suite} does not exist at the baseline commit {sha[:12]}")
