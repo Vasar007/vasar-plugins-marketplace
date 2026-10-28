@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-### Added in kb 0.1.0
+### Added in kb
 
 - `kb`: a thin plugin that wires Claude Code to a personal knowledge base in git. Five hooks call the launcher `scripts/kb-hook.sh`, which runs the hook scripts of the local KB clone. The hooks are `SessionStart`, `SubagentStart`, `PreToolUse`, `Stop`, and `SessionEnd`. The skills `capture` and `close-task` point to the procedures in the KB. The skill `setup` runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The plugin needs a KB clone. If the hooks find none, they exit 0.
 

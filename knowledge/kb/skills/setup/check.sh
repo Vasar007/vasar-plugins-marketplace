@@ -13,17 +13,22 @@ echo "OS: $os"
 missing() { echo "MISSING: $1"; count=$((count + 1)); }
 count=0
 
+settings_kb_dir="$(grep -o '"KB_DIR" *: *"[^"]*"' "$settings" 2>/dev/null | sed 's/^[^:]*: *"//; s/"$//; s#\\\\#/#g')"
 kb=""
-for d in "$KB_DIR" "$HOME/projects/KB" "$HOME/Documents/GitHub/KB" "${CLAUDE_PROJECT_DIR:-$PWD}" "${CLAUDE_PROJECT_DIR:-$PWD}/KB"; do
+for d in "$settings_kb_dir" "$KB_DIR" "$HOME/projects/KB" "$HOME/Documents/GitHub/KB" "${CLAUDE_PROJECT_DIR:-$PWD}" "${CLAUDE_PROJECT_DIR:-$PWD}/KB"; do
   if [ -n "$d" ] && [ -f "$d/_claude/RULES.md" ]; then kb="$d"; break; fi
 done
-kb_fwd="${kb//\\//}"
+kb_fwd=""
+[ -n "$kb" ] && kb_fwd="$(cd "$kb" && (pwd -W 2>/dev/null || pwd))"
+kb_fwd="${kb_fwd//\\//}"
 
 if [ -z "$kb" ]; then
   missing "KB clone: no folder with _claude/RULES.md found. Clone the KB repository."
 fi
-if ! grep -qs '"KB_DIR"' "$settings"; then
+if [ -z "$settings_kb_dir" ]; then
   missing "KB_DIR: not set in the env block of $settings."
+elif [ ! -f "$settings_kb_dir/_claude/RULES.md" ]; then
+  missing "KB_DIR: $settings_kb_dir has no _claude/RULES.md. Set it to the KB clone."
 fi
 if ! grep -qsF 'Bash(bash _claude/tools/kb-search.sh *)' "$settings"; then
   missing "allow rule: Bash(bash _claude/tools/kb-search.sh *) is not in permissions.allow in $settings."
