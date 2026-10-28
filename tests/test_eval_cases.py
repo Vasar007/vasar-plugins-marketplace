@@ -58,8 +58,12 @@ EVAL_ONLY_DEPS = {"doc-styles": {"dev-essentials"}}
 
 PAIR_FOLDER = "style-compare"
 PAIR_ARMS = ("openbsd", "simple-english")
-PAIR_KEYS_THAT_DIFFER = {"name", "tags", "plugins", "append_system_prompt"}
+PAIR_KEYS_THAT_DIFFER = {"name", "tags", "plugins"}
 PAIR_GRADERS_THAT_DIFFER = {"loaded-style"}
+PAIR_SKILLS = {"openbsd": "openbsd-style-docs", "simple-english": "simple-english"}
+# The one allowed difference in a prompt text: the docs prompts (ids that start with d) of the first arm name the style.
+PAIR_STYLE_PHRASE = "In the OpenBSD man-page style, "
+PAIR_STYLE_PHRASE_ID_PREFIX = "d"
 
 LIBRARY_COPIES = {
     "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
@@ -551,12 +555,22 @@ def plugin_entry_problems(case):
     return problems
 
 
+def without_style_phrase(pair_id, body):
+    """The prompt text of the first arm, without the style phrase that a docs case may start with."""
+    body = body.strip()
+    if pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX) and body.startswith(PAIR_STYLE_PHRASE):
+        rest = body[len(PAIR_STYLE_PHRASE):]
+        return rest[:1].upper() + rest[1:]
+    return body
+
+
 def pair_problems(cases):
     """The two arms of a style comparison must differ in the style only.
 
     A pair is <PAIR_FOLDER>/<arm>/<id> for each arm in PAIR_ARMS. The prompt text, the other frontmatter keys, and
     the graders must be equal, except the keys in PAIR_KEYS_THAT_DIFFER and the graders in PAIR_GRADERS_THAT_DIFFER.
-    Each arm must have the graders in PAIR_GRADERS_THAT_DIFFER.
+    Each arm must have the graders in PAIR_GRADERS_THAT_DIFFER, and the loaded-style grader must name the skill of its arm.
+    The first arm may start the prompt text of a docs case with PAIR_STYLE_PHRASE. That phrase is the only allowed difference.
     """
     groups = {}
     for case in cases:
@@ -574,7 +588,7 @@ def pair_problems(cases):
             continue
         first, second = (arms[arm] for arm in PAIR_ARMS)
         where = f"{first.label} and {second.label}"
-        if first.prompt_body.strip() != second.prompt_body.strip():
+        if without_style_phrase(pair_id, first.prompt_body) != second.prompt_body.strip():
             problems.append(f"{where}: the prompt text differs")
         keys = [{k: v for k, v in case.prompt.items() if k not in PAIR_KEYS_THAT_DIFFER} for case in (first, second)]
         if keys[0] != keys[1]:
@@ -585,9 +599,13 @@ def pair_problems(cases):
         if graders[0] != graders[1]:
             different = sorted(n for n in set(graders[0]) | set(graders[1]) if graders[0].get(n) != graders[1].get(n))
             problems.append(f"{where}: the graders differ: {', '.join(different)}")
-        for case in (first, second):
+        for arm, case in zip(PAIR_ARMS, (first, second)):
             for name in sorted(PAIR_GRADERS_THAT_DIFFER - set(case.graders)):
                 problems.append(f"{case.label}: the arm needs the grader {name}")
+            loaded = case.graders.get("loaded-style")
+            if loaded and f'{PAIR_SKILLS[arm]}"' not in str(loaded[0].get("input_match", "")):
+                problems.append(f"{case.label}: the input_match of the grader loaded-style must name the skill "
+                                f"{PAIR_SKILLS[arm]}")
     return problems
 
 
@@ -994,17 +1012,19 @@ class CaseCheckTests(CaseFiles):
 class PairTests(CaseFiles):
     PROMPT = "---\nname: {name}\ntags: [{tag}]\nappend_system_prompt: {rule}\n{extra}---\nWrite the file.\n"
     OK = "---\ntype: regex\npattern: ok\n---\n"
-    LOADED = "---\ntype: tool_used\ntool: {tool}\n---\n"
+    LOADED = "---\ntype: tool_used\ntool: Skill\ninput_match: '\"skill\"\\s*:\\s*\"{skill}\"'\n---\n"
 
-    def pair(self, text="Write the file.", extra="", second_graders=None, drop_second=False):
-        graders = {"acc": self.OK, "loaded-style": self.LOADED.format(tool="Skill")}
-        first = self.PROMPT.format(name="a", tag="x", rule="one", extra="")
-        self.case(f"{PAIR_FOLDER}/openbsd/d1", prompt=first, graders=graders)
+    def pair(self, text="Write the file.", extra="", second_graders=None, drop_second=False,
+             first_text="Write the file.", pair_id="d1", second_rule="one"):
+        graders = {"acc": self.OK, "loaded-style": self.LOADED.format(skill="openbsd-style-docs")}
+        first = self.PROMPT.format(name="a", tag="x", rule="one", extra="").replace("Write the file.", first_text)
+        self.case(f"{PAIR_FOLDER}/openbsd/{pair_id}", prompt=first, graders=graders)
         if not drop_second:
-            second = self.PROMPT.format(name="b", tag="y", rule="two", extra=extra).replace("Write the file.", text)
+            second = self.PROMPT.format(name="b", tag="y", rule=second_rule, extra=extra)
+            second = second.replace("Write the file.", text)
             if second_graders is None:
-                second_graders = {"acc": self.OK, "loaded-style": self.LOADED.format(tool="Other")}
-            self.case(f"{PAIR_FOLDER}/simple-english/d1", prompt=second, graders=second_graders)
+                second_graders = {"acc": self.OK, "loaded-style": self.LOADED.format(skill="simple-english")}
+            self.case(f"{PAIR_FOLDER}/simple-english/{pair_id}", prompt=second, graders=second_graders)
         return pair_problems(load_cases(self.plugin))
 
     def test_arms_that_differ_in_the_style_only_pass(self):
@@ -1015,6 +1035,35 @@ class PairTests(CaseFiles):
         self.assertEqual(len(problems), 1)
         self.assertIn("the prompt text differs", problems[0])
 
+    def test_the_style_phrase_is_allowed_in_a_docs_prompt_of_the_first_arm(self):
+        self.assertEqual(self.pair(first_text="In the OpenBSD man-page style, write the file."), [])
+
+    def test_a_second_difference_next_to_the_style_phrase_fails(self):
+        problems = self.pair(first_text="In the OpenBSD man-page style, write the page.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_the_style_phrase_fails_in_a_case_that_is_not_a_docs_case(self):
+        problems = self.pair(first_text="In the OpenBSD man-page style, write the file.", pair_id="a1")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_the_style_phrase_fails_in_the_second_arm(self):
+        problems = self.pair(text="In the OpenBSD man-page style, write the file.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_a_different_system_prompt_fails(self):
+        problems = self.pair(second_rule="two")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the frontmatter differs", problems[0])
+
+    def test_a_loaded_style_grader_must_name_the_skill_of_its_arm(self):
+        wrong = self.LOADED.format(skill="openbsd-style-docs")
+        problems = self.pair(second_graders={"acc": self.OK, "loaded-style": wrong})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("must name the skill simple-english", problems[0])
+
     def test_a_different_frontmatter_key_fails(self):
         problems = self.pair(extra="max_turns: 5\n")
         self.assertEqual(len(problems), 1)
@@ -1022,7 +1071,7 @@ class PairTests(CaseFiles):
 
     def test_a_different_grader_fails(self):
         problems = self.pair(second_graders={"acc": "---\ntype: regex\npattern: other\n---\n",
-                                             "loaded-style": self.LOADED.format(tool="Other")})
+                                             "loaded-style": self.LOADED.format(skill="simple-english")})
         self.assertEqual(len(problems), 1)
         self.assertIn("the graders differ: acc", problems[0])
 

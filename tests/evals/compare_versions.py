@@ -295,7 +295,7 @@ def add_dependencies(root, plugin, extra=()):
 
     The eval session loads only the plugin under test, so a case lists the copies in its `plugins` field.
     A version range of a dependency is not checked, because the copy comes from the same commit.
-    Only the dependencies in plugin.json are copied, one level deep, not those of a dependency.
+    Only the dependencies in plugin.json and the names in extra are copied, one level deep, not those of a dependency.
     """
     manifest = plugin / ".claude-plugin" / "plugin.json"
     try:

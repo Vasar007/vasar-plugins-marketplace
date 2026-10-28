@@ -9,7 +9,7 @@ timeout_seconds: 600
 append_system_prompt: 'Writing rule: if a writing-style skill is installed for this kind of text, load it with the Skill tool before you write English text, and follow it. The rule covers files and your reply, not only documentation.'
 ---
 
-Write `README.md` for the project snapsync.
+In the OpenBSD man-page style, write `README.md` for the project snapsync.
 
 Build facts: `make` needs a C99 compiler and libssh 0.10 or later. `make install` puts the binary in `/usr/local/bin`. Bugs go to <https://example.org/snapsync/issues>.
 

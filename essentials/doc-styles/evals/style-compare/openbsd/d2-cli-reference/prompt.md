@@ -9,7 +9,7 @@ timeout_seconds: 600
 append_system_prompt: 'Writing rule: if a writing-style skill is installed for this kind of text, load it with the Skill tool before you write English text, and follow it. The rule covers files and your reply, not only documentation.'
 ---
 
-Write `docs/cli.md`, the command-line reference of snapsync.
+In the OpenBSD man-page style, write `docs/cli.md`, the command-line reference of snapsync.
 
 Facts about the tool:
 

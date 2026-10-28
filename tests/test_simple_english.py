@@ -141,9 +141,11 @@ class SimpleEnglishLintTest(unittest.TestCase):
         allowed = Counter(key(e["file"], e["rule"], e["text"]) for e in baseline["entries"])
 
         files = tracked_markdown_files()
-        prefixes = excluded_prefixes(baseline)
         for e in baseline.get("excluded", []):
+            self.assertTrue(e.get("path"), f"An excluded entry needs a path: {e}")
+            self.assertTrue(e["path"].endswith("/"), f"The excluded folder {e['path']} must end with a slash.")
             self.assertTrue(e.get("reason"), f"The excluded folder {e['path']} needs a reason.")
+        prefixes = excluded_prefixes(baseline)
         unused = unused_prefixes(files, prefixes)
         self.assertEqual(unused, [], "Excluded folders without a tracked .md file. Remove them from "
                          + BASELINE.name + ".")

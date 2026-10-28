@@ -501,6 +501,7 @@ class DependencyTests(CompareCase):
     git = RunTests.git
     run_main = RunTests.run_main
     run_args = RunTests.run_args
+    eval_with_one_worse_run = RunTests.eval_with_one_worse_run
 
     def setUp(self):
         super().setUp()
@@ -654,6 +655,14 @@ class DependencyTests(CompareCase):
         code, out, err = self.run_main(*self.run_args("--extra-dep", "helper", base="HEAD"))
         self.assertEqual(code, 0, out + err)
         self.assertEqual([c["deps"] for c in self.calls], [["helper"], ["helper"]])
+
+    def test_report_repeats_the_extra_dependency_in_the_rerun_command(self):
+        self.write_file("group/demo/.claude-plugin/plugin.json", self.manifest([]))
+        self.commit("no dependencies")
+        code, out, err = self.run_main(*self.run_args("--extra-dep", "helper", "--tag", "smoke", base="HEAD"),
+                                       runner=self.eval_with_one_worse_run)
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--extra-dep helper --tag smoke")
 
     def test_extra_dependency_that_is_not_in_the_marketplace_is_an_input_error(self):
         for name in ("no-such-plugin", "../evil"):
