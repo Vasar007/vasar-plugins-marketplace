@@ -1,5 +1,5 @@
 ---
-description: If the user asks for plain English for non-native readers, the openbsd-style-docs skill does not start.
+description: If the user asks for plain English for non-native readers, the openbsd-style-docs skill does not start, and the reply drops the jargon.
 tags: [triggers, openbsd-style-docs]
 plugins: ["../../..", "../../../.deps/dev-essentials", "../../../eval-stubs/simple-english"]
 allowed_tools: [Skill, Read, Glob, Grep]

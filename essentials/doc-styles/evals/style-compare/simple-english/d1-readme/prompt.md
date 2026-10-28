@@ -6,7 +6,7 @@ plugins: ["../../../../eval-stubs/simple-english"]
 allowed_tools: [Skill, Read, Glob, Grep]
 max_turns: 20
 timeout_seconds: 600
-append_system_prompt: 'Writing rule: before you write English text, load the simple-english:simple-english skill with the Skill tool, and follow it. The rule covers files and your reply.'
+append_system_prompt: 'Writing rule: if a writing-style skill is installed for this kind of text, load it with the Skill tool before you write English text, and follow it. The rule covers files and your reply, not only documentation.'
 ---
 
 Write `README.md` for the project snapsync.
