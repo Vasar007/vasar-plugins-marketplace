@@ -170,3 +170,12 @@ manage, remove.
 - "See the CONFIGURATION section for details."
 - "(see `login.conf(5)`)"
 - "For more information on <topic>, see `<page>(8)`."
+
+## Documents in other languages
+
+The same rules apply to Russian and to other languages. Use the present
+tense and make the thing the subject: "Утилита `logrot` сжимает журналы."
+Do not use "вы" in descriptions. Use the imperative mood for steps and
+options: "Вывести ...", "Использовать ...". Keep the same section order. If
+the project mixes languages, keep the section names in English uppercase.
+Otherwise, translate them and use the same translation everywhere.

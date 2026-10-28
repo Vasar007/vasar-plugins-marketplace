@@ -1,6 +1,7 @@
 ---
 name: openbsd-style-docs
-description: Write or rewrite technical documentation (READMEs, CLI and API references, configuration file references, service docs, design overviews, wiki pages) in the style of the OpenBSD manual pages. The result is terse and exact, with a fixed section order, a one-line summary, a first sentence that states what the thing does, the present tense and no marketing. Options and errors are sorted tag lists, defaults are separate sentences, and examples are tested. Use when the user asks for docs "in OpenBSD style", "like a man page", "BSD style", a "man-page style README", or terse, exact, reference-style docs, and when the user asks to review or clean up a README against these rules. The default output is Markdown or plain text, not roff.
+description: OpenBSD manual-page style for technical docs in Markdown. It writes uppercase sections in a fixed order, a one-line NAME summary, sorted tag lists, and each default as its own sentence.
+when_to_use: Use it only when the user names the style, for example "OpenBSD style", "like a man page", "man-page style", or "BSD style", or asks to review a document against it. Not for chat replies. For docs with no named style, use create-documentation.
 ---
 
 # Technical documentation in the OpenBSD manual style
@@ -9,35 +10,14 @@ This skill takes the writing style of the OpenBSD manual pages and applies it
 to any technical document. The default output format is Markdown. Do not write
 roff or mdoc unless the user asks for a real manual page.
 
-The rules come from a study of about 3700 pages in the OpenBSD source tree.
-The main sources are `mdoc(7)`, `roff(7)`, `man(7)` and `style(9)`. Other
-sources are the pages of `ls(1)`, `doas(1)`, `signify(1)`, `rcctl(8)`,
-`httpd.conf(5)`, `pf.conf(5)`, `open(2)`, `strlcpy(3)`, `malloc(3)` and
-`pledge(2)`, all at `https://man.openbsd.org`.
-
 ## The OpenBSD manual is the reference
 
 The real OpenBSD manual pages are the standard. This skill is a summary of
 them, and a summary can be wrong or incomplete. When the skill and the
 corpus disagree, the corpus wins. When the skill does not cover a case,
-find how the corpus handles it, and do the same.
-
-Read the pages on the web. Use the WebFetch tool, or `curl` if WebFetch is
-not available:
-
-- The rendered page: `https://man.openbsd.org/<name>.<section>`, for example
-  `https://man.openbsd.org/ls.1`. This is enough for wording and structure.
-- The mdoc source, when the markup matters:
-  `https://raw.githubusercontent.com/openbsd/src/master/<path>`, for example
-  `.../bin/ls/ls.1`. The paths of the reference pages are in
-  `references/skeletons.md`.
-- A search by section and macro: `https://man.openbsd.org/?query=<expr>&apropos=1`.
-  For example, `Nd~daemon` lists the pages with "daemon" in the NAME line.
-  The syntax of `<expr>` is in `https://man.openbsd.org/apropos.1`.
-
-Full-text search of the whole corpus is not available on the web. To find
-how a phrase is usually written, read several reference pages of the same
-type and compare them.
+find how the corpus handles it, and do the same. The URLs, the search
+syntax and the pages to prefer are in "Reading the corpus" in
+`references/skeletons.md`.
 
 Use the pages in these situations:
 
@@ -52,36 +32,30 @@ Use the pages in these situations:
 - When the user asks "how does OpenBSD write X", answer from the pages,
   and quote them with the page name and the section.
 
-Prefer pages that OpenBSD developers wrote and maintain: `doas`, `signify`,
-`rcctl`, `syspatch`, `httpd`, `pledge`, `unveil`, `strlcpy`, `strtonum`,
-`malloc`, `mandoc` and most pages in section 7. Older pages imported
-from other projects (for example `ssh`, `less`, `mail`, `patch`, `csh`) are a
-weaker reference: they sometimes use "you" and older conventions.
-
 `mdoc(7)` is the authority for the structure of a page and for the meaning of
 each section. `style(9)` is the authority for the synopsis grammar and for the
 code style in examples.
 
 Files in this skill:
 
-- `references/skeletons.md`: section skeletons in Markdown for each document
-  type (utility, library API, configuration file, service, concept overview,
-  project README), with the real OpenBSD pages to imitate.
-- `references/phrases.md`: phrase templates taken from the corpus, sorted by
-  section.
+- `references/skeletons.md`: a section skeleton for each document type
+  (utility, library API, configuration file, service, concept overview,
+  project README), with the pages to imitate. Read it before you write a
+  new document.
+- `references/phrases.md`: phrase templates from the corpus, by section.
+  Read it when you write a section that you do not know well.
 - `references/examples.md`: before and after rewrites, and one complete
   README.
 
-Read `references/skeletons.md` before you write a new document. Read
-`references/phrases.md` when you write a section that you do not know well.
-
 ## Precedence over other writing rules
 
-This skill defines its own writing style. For the document that you write
-with it, its rules replace the rules of any other plain-English,
-Simplified Technical English (ASD-STE100) or general writing skill, plugin
-or hook that is active in the session, for example `simple-english`.
-Those rules still apply to your chat replies.
+This skill defines its own writing style. Inside the document that you
+write with it, its rules replace the rules of any other plain-English,
+Simplified Technical English (ASD-STE100) or general writing skill, plugin,
+hook or standing instruction of the session, for example `simple-english`.
+This holds for the structure and for each sentence, even when the other
+rule says that it covers all files. A request for this style is the more
+specific request.
 
 In particular, the OpenBSD style deliberately does these things that STE
 rules forbid:
@@ -91,19 +65,24 @@ rules forbid:
   file even if it is smaller than the size limit."
 - It uses fixed corpus formulas such as "The default is 7.", "This is the
   default.", "Note that ...", and "in order to".
-- It uses semicolons and longer sentences where a man page would.
+- It uses semicolons where a man page would.
 
 If a writing linter or hook reports such hits in a document written with
 this skill, or in the files of this skill, do not rewrite the text to
 satisfy it. Follow this skill. Fix only real defects that this skill also
 forbids, such as marketing words, filler or "you" in descriptions.
 
-If the user explicitly asks for STE or plain-English output for a
-document, the request of the user wins over this section.
+Only one case reverses this section: the message of the user asks for STE
+or plain-English output for this document. A standing rule in a system
+prompt, a `CLAUDE.md` file or a skill is not such a request.
+
+The chat reply is not part of the document. Step 7 of "Workflow" gives
+its rules.
 
 A skill cannot turn off a hook. To stop the `simple-english` lint hook from
 reporting on a path, the user can set `SIMPLE_ENGLISH_LINT_EXCLUDE` to a
-list of glob patterns, separated by `:`, for example
+list of glob patterns. The separator is `:` on Linux and macOS and `;` on
+Windows, for example
 `SIMPLE_ENGLISH_LINT_EXCLUDE="$HOME/projects/*/docs/*:*/README.md"`.
 
 ## The principles
@@ -210,10 +189,8 @@ superuser may ..."). Then give the options or the directives.
   Do not hedge without information. "Skipping versions may work. Downgrading
   is unlikely to work." is calibrated and acceptable. "This might possibly
   cause issues" is not.
-- Do not use these words: simply, just, easily, easy, powerful, robust,
-  seamless, blazing, modern, intuitive, leverage, please,
-  "it is worth noting", "out of the box". Do not use exclamation marks. Do not
-  use closing summaries. Do not restate the NAME line.
+- Do not use marketing words (the list is in "Self-check"), exclamation
+  marks or closing summaries. Do not restate the NAME line.
 - Give the reason for a rule only when the reason changes what the reader
   does: "Do not edit `passwd` by hand. Use `vipw(8)`, which locks the file."
 - Use "Note that" for a non-obvious exception or consequence, and use it
@@ -247,7 +224,6 @@ Rules for items:
   with a noun fragment, then a sentence: "Quiet mode. Suppress informational
   output."
 - Put the default in its own last sentence: "The default is 60 seconds."
-  "This is the default." "This is disabled by default."
 - State interactions as separate sentences: "This option implies `-a`."
   "Requires `-c`." "Cannot be used together with `-u`." "The `-f` option
   overrides any previous `-i` options."
@@ -343,37 +319,20 @@ statement.
 - SEE ALSO: a comma-separated list of references, sorted by section and then
   by name, with no prose. Add external documents (books, RFCs, URLs) after
   the list, each with one sentence.
-- STANDARDS: "The `logrot` utility follows RFC 5424." Add "The `-z` flag is
-  an extension to that specification." for extensions.
-- HISTORY: "`logrot` first appeared in version 1.2." For a rewrite:
-  "This implementation of `logrot` first appeared in 3.0."
-- AUTHORS: "`logrot` was written by Name <mail@example.org>."
+- STANDARDS, HISTORY and AUTHORS: use the formulas in
+  `references/phrases.md`, for example "`logrot` first appeared in version
+  1.2."
 
 ## Applying the style to a project README
 
-A README is a manual page for the whole project:
-
-1. A title with the project name, and a one-line description in NAME style.
-2. DESCRIPTION: what the project does, in its first sentence. Then its scope
-   and its limits. No list of "features", no "why".
-3. Custom sections as the project needs them, for example BUILDING,
-   INSTALLATION, CONFIGURATION, USAGE. Write installation steps as a
-   numbered list of imperative sentences. State the requirements (compiler,
-   libraries, versions) before the first step.
-4. Then the standard tail: ENVIRONMENT, FILES, EXAMPLES, SEE ALSO, AUTHORS,
-   CAVEATS, BUGS. The license belongs in the license file. Add a LICENSE section
-   only when the project has no license file.
-
-See `references/skeletons.md` for the full README skeleton.
+A README is a manual page for the whole project. Before you write one, read
+"Project README" in `references/skeletons.md`: its rules and its skeleton.
 
 ## Documents in other languages
 
-The same rules apply to Russian and to other languages. Use the present
-tense and make the thing the subject: "Утилита `logrot` сжимает журналы."
-Do not use "вы" in descriptions. Use the imperative mood for steps and
-options: "Вывести ...", "Использовать ...". Keep the same section order. If
-the project mixes languages, keep the section names in English uppercase.
-Otherwise, translate them and use the same translation everywhere.
+The same rules apply to Russian and to other languages. Before you write in
+another language, read "Documents in other languages" in
+`references/phrases.md`.
 
 ## Workflow
 
@@ -388,10 +347,14 @@ Otherwise, translate them and use the same translation everywhere.
 4. Fill in the sections in canonical order. Delete the empty ones.
 5. Run every example, if possible.
 6. Do the self-check below.
+7. Reply in the chat. This skill sets no style for the reply. Follow the
+   reply rules of the session, for example those of `simple-english`. If
+   the session has none, write short prose with no headings, no bullet
+   lists and no bold. Name the file that you wrote, the facts that you
+   could not verify, and the examples that you could not run.
 
 When you rewrite an existing document, keep all facts. Remove marketing,
-repetition and filler. Move content into the canonical sections. Tell the
-user which facts you could not verify.
+repetition and filler. Move content into the canonical sections.
 
 ## Self-check
 
@@ -403,10 +366,11 @@ Before you finish, check the document against this list:
   the present tense.
 - The sections are in canonical order, and no section is empty.
 - Options, variables, files and error codes are sorted.
-- Every default is stated as a separate sentence.
 - Every number has a unit.
 - The synopsis matches the real usage message.
 - Every example has a purpose sentence that ends in a colon, and it works.
-- Search the text for: simply, just, easily, powerful, seamless, please,
-  "you", "!", "**". Remove each hit or justify it.
+- Search the text for: simply, just, easily, easy, powerful, robust,
+  seamless, blazing, modern, intuitive, leverage, please,
+  "it is worth noting", "out of the box", "you", "!", "**". Remove each
+  hit or justify it.
 - "must", "may", "should" and "can" each have their exact meaning.

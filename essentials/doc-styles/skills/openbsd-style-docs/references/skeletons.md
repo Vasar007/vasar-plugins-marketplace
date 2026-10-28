@@ -6,9 +6,32 @@
 Each skeleton gives the sections in canonical order. Delete a section that has
 no content. The placeholders are in angle brackets. The "Imitate" line names
 real pages that show the type well. Each entry is the path in the OpenBSD
-source tree. The page name is the file name: `bin/ls/ls.1` is `ls(1)`, at
-`https://man.openbsd.org/ls.1`. The mdoc source is at
-`https://raw.githubusercontent.com/openbsd/src/master/bin/ls/ls.1`.
+source tree. The page name is the file name: `bin/ls/ls.1` is `ls(1)`.
+
+## Reading the corpus
+
+Read the pages on the web. Use the WebFetch tool, or `curl` if WebFetch is
+not available:
+
+- The rendered page: `https://man.openbsd.org/<name>.<section>`, for example
+  `https://man.openbsd.org/ls.1`. This is enough for wording and structure.
+- The mdoc source, when the markup matters:
+  `https://raw.githubusercontent.com/openbsd/src/master/<path>`, for example
+  `https://raw.githubusercontent.com/openbsd/src/master/bin/ls/ls.1`. The
+  paths are in the "Imitate" lines below.
+- A search by section and macro: `https://man.openbsd.org/?query=<expr>&apropos=1`.
+  For example, `Nd~daemon` lists the pages with "daemon" in the NAME line.
+  The syntax of `<expr>` is in `https://man.openbsd.org/apropos.1`.
+
+Full-text search of the whole corpus is not available on the web. To find
+how a phrase is usually written, read several reference pages of the same
+type and compare them.
+
+Prefer pages that OpenBSD developers wrote and maintain: `doas`, `signify`,
+`rcctl`, `syspatch`, `httpd`, `pledge`, `unveil`, `strlcpy`, `strtonum`,
+`malloc`, `mandoc` and most pages in section 7. Older pages imported
+from other projects (for example `ssh`, `less`, `mail`, `patch`, `csh`) are a
+weaker reference: they sometimes use "you" and older conventions.
 
 ## Command-line utility
 
@@ -366,7 +389,18 @@ Rules specific to a concept document:
 
 ## Project README
 
-A README is the manual page of the whole project.
+A README is the manual page of the whole project:
+
+1. A title with the project name, and a one-line description in NAME style.
+2. DESCRIPTION: what the project does, in its first sentence. Then its scope
+   and its limits. No list of "features", no "why".
+3. Custom sections as the project needs them, for example BUILDING,
+   INSTALLATION, CONFIGURATION, USAGE. Write installation steps as a
+   numbered list of imperative sentences. State the requirements (compiler,
+   libraries, versions) before the first step.
+4. Then the standard tail: ENVIRONMENT, FILES, EXAMPLES, SEE ALSO, AUTHORS,
+   CAVEATS, BUGS. The license belongs in the license file. Add a LICENSE section
+   only when the project has no license file.
 
 ````markdown
 # <project>

@@ -18,7 +18,7 @@ PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 # The always-on cost is the names and descriptions that every session loads.
 LISTING_BUDGET = {
     "dev-essentials": 3100,
-    "doc-styles": 210,
+    "doc-styles": 127,
     "dotnet-backend-dev": 1250,
     "gop-pipeline": 550,
 }
