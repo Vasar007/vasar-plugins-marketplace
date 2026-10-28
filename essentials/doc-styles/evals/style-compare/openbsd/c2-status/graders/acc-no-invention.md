@@ -11,4 +11,4 @@ The text under test is about the tool snapsync. These are the facts that it can 
 - The release moves from 2026-10-30 to 2026-11-06.
 - The reader has nothing to do.
 
-Compare the text with the facts. If a value, default, limit, exit status, or date does not match, the result is FAIL. If the text states a fact that is not in the list, the result is FAIL. A retry count and a timeout are two examples. Otherwise the result is PASS.
+Compare the text with the facts. If a value, default, limit, exit status, or date does not match, the result is FAIL. If the text states a fact that is not in the list, the result is FAIL. A retry count and a timeout are two examples. A one-sentence definition of a term is not a new fact. An obvious inference from the listed facts is not a new fact either. Otherwise the result is PASS.

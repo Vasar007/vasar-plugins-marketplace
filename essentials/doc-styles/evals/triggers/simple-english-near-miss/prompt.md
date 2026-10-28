@@ -5,7 +5,7 @@ plugins: ["../../..", "../../../.deps/dev-essentials", "../../../eval-stubs/simp
 allowed_tools: [Skill, Read, Glob, Grep]
 ---
 
-Rewrite this README intro in plain English for non-native readers:
+Rewrite this README intro in plain English for non-native readers. Reply with only the rewritten intro.
 
 ```text
 snapsync leverages an SSH-based delta-transfer pipeline to idempotently materialize point-in-time snapshots of a source tree on a remote host, with a retention policy that garbage-collects the oldest snapshots once the configured cardinality is exceeded.

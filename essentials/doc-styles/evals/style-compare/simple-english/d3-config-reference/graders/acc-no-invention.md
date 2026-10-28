@@ -14,4 +14,4 @@ The text under test is about the tool snapsync. These are the facts that it can 
 - A `source path { ... }` block sets `keep` and `exclude` for one source.
 - An unknown directive stops `snapsync` with exit status 1 and the message `line N: unknown directive`.
 
-Compare the text with the facts. If a value, default, limit, exit status, or date does not match, the result is FAIL. If the text states a fact that is not in the list, the result is FAIL. A retry count and a timeout are two examples. Otherwise the result is PASS.
+Compare the text with the facts. If a value, default, limit, exit status, or date does not match, the result is FAIL. If the text states a fact that is not in the list, the result is FAIL. A retry count and a timeout are two examples. A one-sentence definition of a term is not a new fact. An obvious inference from the listed facts is not a new fact either. Otherwise the result is PASS.
