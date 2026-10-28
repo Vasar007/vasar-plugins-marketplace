@@ -36,15 +36,6 @@ EXPECTED_BRANCH = {
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
     "rl-pr-head-gate": "main",
-    "gop-e1-seeded-defects": "work/seeded-defects",
-    "gop-e1-clean-change": "work/clean-change",
-    "gop-e1-border-auth": "work/border-auth",
-    "gop-e2-untracked-file": "work/untracked-file",
-    "gop-e3-autonomous-main": "main",
-    "gop-e4-package-bump": "work/package-bump",
-    "gop-e5-breaking-change": "work/breaking-change",
-    "gop-e6-python-no-sln": "work/python-no-sln",
-    "gop-e8-rename-across-projects": "work/rename-across-projects",
     "fp-e1-seeded-defects": "work/seeded-defects",
     "fp-e1-clean-change": "work/clean-change",
     "fp-e1-border-auth": "work/border-auth",
@@ -59,7 +50,6 @@ EXPECTED_BRANCH = {
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
-    "gop-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
     "fp-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
 }
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
@@ -116,12 +106,12 @@ def branch_path_problems(case, branch):
 
 class GraderBranchTests(unittest.TestCase):
     def test_grader_paths_name_the_branch_of_the_scaffold(self):
-        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith(("gop-", "fp-"))]
-        self.assertTrue(cases, "No gop or fp case is listed in EXPECTED_BRANCH.")
+        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith("fp-")]
+        self.assertTrue(cases, "No fp case is listed in EXPECTED_BRANCH.")
         self.assertEqual([p for case in cases for p in branch_path_problems(case, EXPECTED_BRANCH[case.name])], [])
 
     def test_a_typo_in_a_branch_path_is_found(self):
-        case = SimpleNamespace(label="gop-x", graders={
+        case = SimpleNamespace(label="fp-x", graders={
             "committed": ({"type": "regex", "target": {"source": "file", "path": ".git/logs/refs/heads/work/a"}}, ""),
             "no-push": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/work/b"}, ""),
             "any-push": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/*/*"}, ""),
@@ -382,13 +372,6 @@ class LibraryTests(FixtureCase):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=project,
                               capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertEqual(done.returncode, 0, done.stderr)
-
-    def test_cli_repo_runs(self):
-        workspace = self.workspace()
-        self.run_snippet(workspace, self.libs("workflows/gop-pipeline", "py-fixture.sh"), "make_cli_repo")
-        done = subprocess.run([sys.executable, "cli.py", "--name", "Ada"], cwd=workspace, capture_output=True,
-                              text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
-        self.assertEqual(done.stdout.strip(), "Hello, Ada!")
 
     def test_pipeline_context_has_a_provider_section_only_for_with_provider(self):
         for variant, has_provider in (("with-provider", True), ("no-provider", False)):

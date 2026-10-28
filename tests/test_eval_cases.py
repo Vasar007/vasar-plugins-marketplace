@@ -66,8 +66,8 @@ PAIR_STYLE_PHRASE = "In the OpenBSD man-page style, "
 PAIR_STYLE_PHRASE_ID_PREFIX = "d"
 
 LIBRARY_COPIES = {
-    "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
-    "dotnet-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
+    "git-fixture.sh": ["essentials/dev-essentials", "dotnet/dotnet-backend-dev"],
+    "dotnet-fixture.sh": ["essentials/dev-essentials", "dotnet/dotnet-backend-dev"],
 }
 
 
@@ -996,12 +996,12 @@ class CaseCheckTests(CaseFiles):
         self.assertTrue(any("git mode is 100644" in p for p in mode_problems), mode_problems)
 
     def test_copies_must_be_equal(self):
-        for root in ("essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"):
+        for root in ("essentials/dev-essentials", "dotnet/dotnet-backend-dev"):
             for name in LIBRARY_COPIES:
                 if root in LIBRARY_COPIES[name]:
                     self.write(f"_lib/{name}", "same\n", plugin=self.tmp / root)
         self.assertEqual(copy_problems(self.tmp), [])
-        self.write("_lib/git-fixture.sh", "different\n", plugin=self.tmp / "workflows/gop-pipeline")
+        self.write("_lib/git-fixture.sh", "different\n", plugin=self.tmp / "dotnet/dotnet-backend-dev")
         self.assertEqual(len(copy_problems(self.tmp)), 1)
 
     def test_shell_file_problems(self):
@@ -1116,9 +1116,9 @@ class PairTests(CaseFiles):
 
 class ScratchTests(CaseFiles):
     def make(self, content, path):
-        self.case("gop-e2", graders={"scratch-not-staged": f"---\ntype: file_exists\npath: {path}\nexists: false\n---\n"},
+        self.case("fp-e2", graders={"scratch-not-staged": f"---\ntype: file_exists\npath: {path}\nexists: false\n---\n"},
                   extra={"scaffold.sh": f"#!/usr/bin/env bash\nSCRATCH_CONTENT='{content}'\n"})
-        return Case(self.plugin / EVALS / "gop-e2", self.plugin)
+        return Case(self.plugin / EVALS / "fp-e2", self.plugin)
 
     def test_blob_path_must_match_the_scaffold_content(self):
         if shutil.which("git") is None:
@@ -1180,9 +1180,9 @@ class RepositoryCasesTest(unittest.TestCase):
     def test_untracked_file_case_names_the_blob_of_its_scratch_file(self):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        found = [case for case in self.cases if case.name in ("gop-e2-untracked-file", "fp-e2-untracked-file")]
+        found = [case for case in self.cases if case.name == "fp-e2-untracked-file"]
         if not found:
-            self.skipTest("the case gop-e2-untracked-file does not exist yet")
+            self.skipTest("the case fp-e2-untracked-file does not exist yet")
         self.assertEqual([p for case in found for p in scratch_problems(case)], [])
 
 
