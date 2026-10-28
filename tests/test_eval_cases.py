@@ -570,7 +570,8 @@ def pair_problems(cases):
     A pair is <PAIR_FOLDER>/<arm>/<id> for each arm in PAIR_ARMS. The prompt text, the other frontmatter keys, and
     the graders must be equal, except the keys in PAIR_KEYS_THAT_DIFFER and the graders in PAIR_GRADERS_THAT_DIFFER.
     Each arm must have the graders in PAIR_GRADERS_THAT_DIFFER, and the loaded-style grader must name the skill of its arm.
-    The first arm may start the prompt text of a docs case with PAIR_STYLE_PHRASE. That phrase is the only allowed difference.
+    The first arm must start the prompt text of a docs case with PAIR_STYLE_PHRASE. That phrase is the only allowed difference.
+    In the first arm, the loaded-style grader of a case that is not a docs case must have min 0 and max 0.
     """
     groups = {}
     for case in cases:
@@ -606,6 +607,14 @@ def pair_problems(cases):
             if loaded and f'{PAIR_SKILLS[arm]}"' not in str(loaded[0].get("input_match", "")):
                 problems.append(f"{case.label}: the input_match of the grader loaded-style must name the skill "
                                 f"{PAIR_SKILLS[arm]}")
+        is_docs_case = pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX)
+        if is_docs_case and not first.prompt_body.strip().startswith(PAIR_STYLE_PHRASE):
+            problems.append(f"{first.label}: the prompt text of a docs case must start with {PAIR_STYLE_PHRASE!r}, "
+                            f"or the skill of the arm does not load")
+        loaded = first.graders.get("loaded-style")
+        if loaded and not is_docs_case and (loaded[0].get("min"), loaded[0].get("max")) != (0, 0):
+            problems.append(f"{first.label}: the grader loaded-style of a case that is not a docs case must have "
+                            f"min: 0 and max: 0, because the skill must not load")
     return problems
 
 
@@ -1014,9 +1023,16 @@ class PairTests(CaseFiles):
     OK = "---\ntype: regex\npattern: ok\n---\n"
     LOADED = "---\ntype: tool_used\ntool: Skill\ninput_match: '\"skill\"\\s*:\\s*\"{skill}\"'\n---\n"
 
+    LOADED_NEVER = LOADED.replace("\n---\n", "\nmin: 0\nmax: 0\n---\n")
+
     def pair(self, text="Write the file.", extra="", second_graders=None, drop_second=False,
-             first_text="Write the file.", pair_id="d1", second_rule="one"):
-        graders = {"acc": self.OK, "loaded-style": self.LOADED.format(skill="openbsd-style-docs")}
+             first_text=None, pair_id="d1", second_rule="one", first_loaded=None):
+        is_docs_case = pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX)
+        if first_text is None:
+            first_text = "In the OpenBSD man-page style, write the file." if is_docs_case else "Write the file."
+        if first_loaded is None:
+            first_loaded = self.LOADED if is_docs_case else self.LOADED_NEVER
+        graders = {"acc": self.OK, "loaded-style": first_loaded.format(skill="openbsd-style-docs")}
         first = self.PROMPT.format(name="a", tag="x", rule="one", extra="").replace("Write the file.", first_text)
         self.case(f"{PAIR_FOLDER}/openbsd/{pair_id}", prompt=first, graders=graders)
         if not drop_second:
@@ -1047,6 +1063,18 @@ class PairTests(CaseFiles):
         problems = self.pair(first_text="In the OpenBSD man-page style, write the file.", pair_id="a1")
         self.assertEqual(len(problems), 1)
         self.assertIn("the prompt text differs", problems[0])
+
+    def test_a_docs_prompt_of_the_first_arm_needs_the_style_phrase(self):
+        problems = self.pair(first_text="Write the file.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("must start with", problems[0])
+
+    def test_a_loaded_style_grader_of_a_non_docs_case_needs_min_and_max_zero(self):
+        for missing in ("max: 0\n", "min: 0\n"):
+            loaded = self.LOADED_NEVER.replace(missing, "")
+            problems = self.pair(pair_id="a1", first_loaded=loaded)
+            self.assertEqual(len(problems), 1, missing)
+            self.assertIn("min: 0 and max: 0", problems[0])
 
     def test_the_style_phrase_fails_in_the_second_arm(self):
         problems = self.pair(text="In the OpenBSD man-page style, write the file.")
