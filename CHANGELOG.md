@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.1.0 in release [4.1.0] - 2026-10-28
+
+This release adds the plugin `kb`. It wires Claude Code to a personal knowledge base that lives in a git repository. No other plugin changes its version.
+
+### Added in kb
+
+- `kb`: a thin plugin that wires Claude Code to a personal knowledge base in git. Five hooks call the launcher `scripts/kb-hook.sh`, which runs the hook scripts of the local KB clone. The hooks are `SessionStart`, `SubagentStart`, `PreToolUse`, `Stop`, and `SessionEnd`. The skills `capture` and `close-task` point to the procedures in the KB. The skill `setup` runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The plugin needs a KB clone. If the hooks find none, they exit 0.
+
+### Changed in the repository
+
+- `tests/test_kb_plugin.py`: unit tests for the launcher `kb-hook.sh`. They cover no clone, `KB_DIR`, a clone in a child folder, stdin, and the exit code of the guard. Other tests cover `check.sh` (always exit 0, one line for each missing piece) and the five hook entries.
+- `README.md`, `.claude-plugin/marketplace.json`, and `tests/test_plugin_cli.py`: the new plugin has a row in the plugin matrix and an install line. It also has an entry in the marketplace and an entry of 120 tokens in `LISTING_BUDGET`.
+- `.gitattributes`: `*.json` files keep LF on Windows, like `*.sh` files, so that a commit from a Windows PC stores LF.
+
 ## gop-pipeline removed in release [4.0.0] - 2026-10-28
 
 This release removes the `gop-pipeline` plugin (issue #71). The `feature-pipeline` skill in `dev-essentials` does the same job. The release is MAJOR because an install path goes away: `/plugin install gop-pipeline@vasar-plugins-marketplace` no longer works. No other plugin changes its version.
@@ -961,7 +975,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...v4.0.0
 [3.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...v3.9.0

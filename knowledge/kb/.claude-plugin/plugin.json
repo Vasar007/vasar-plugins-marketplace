@@ -1,0 +1,11 @@
+{
+  "name": "kb",
+  "version": "0.1.0",
+  "description": "Wiring for a personal knowledge base kept in git. Session hooks sync it, print its indexes, guard note writes, and brief subagents. Skills capture a solved problem and close a task.",
+  "author": {
+    "name": "Vasily Vasilyev",
+    "email": "vasar007@gmail.com"
+  },
+  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
+  "keywords": ["knowledge-base", "notes", "hooks", "git-sync"]
+}
