@@ -214,7 +214,8 @@ class CheckScriptTests(BashCase):
     def snapshot(self, *roots):
         found = {}
         for root in roots:
-            for path in sorted(Path(root).rglob("*")):
+            paths = [Path(root)] if Path(root).is_file() else sorted(Path(root).rglob("*"))
+            for path in paths:
                 stat = path.stat()
                 found[str(path)] = (stat.st_size, stat.st_mtime_ns)
         return found
@@ -264,6 +265,26 @@ class CheckScriptTests(BashCase):
         missing = self.missing_lines(done)
         self.assertEqual(len(missing), 1, missing)
         self.assertTrue(missing[0].startswith(f"MISSING: additionalDirectories: {self.WIN_KB} "), missing)
+
+    def test_windows_branch_reports_an_empty_list_when_kb_dir_has_the_same_path(self):
+        home, clone, gitconfig = self.complete_home()
+        (self.tmp / self.WIN_KB / "_claude").mkdir(parents=True)
+        (self.tmp / self.WIN_KB / "_claude/RULES.md").write_text("rules\n", encoding="utf-8")
+        (home / ".claude/settings.json").write_text(json.dumps({
+            "env": {"KB_DIR": self.WIN_KB},
+            "permissions": {"allow": ["Bash(bash _claude/tools/kb-search.sh *)"], "additionalDirectories": []},
+        }), encoding="utf-8")
+        bash_env = self.use_windows_stubs()
+        done = self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env)
+        missing = self.missing_lines(done)
+        self.assertEqual(len([line for line in missing if line.startswith("MISSING: additionalDirectories:")]), 1, missing)
+
+    def test_check_sees_a_write_to_the_global_git_config(self):
+        gitconfig = self.tmp / "gitconfig"
+        gitconfig.write_text("a\n", encoding="utf-8")
+        before = self.snapshot(gitconfig)
+        gitconfig.write_text("a\nb\n", encoding="utf-8")
+        self.assertNotEqual(self.snapshot(gitconfig), before)
 
     def test_windows_branch_reports_a_missing_scheduled_task(self):
         home, clone, gitconfig = self.complete_home(additional_dir=self.WIN_KB)

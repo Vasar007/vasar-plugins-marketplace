@@ -33,7 +33,8 @@ fi
 if ! grep -qsF 'Bash(bash _claude/tools/kb-search.sh *)' "$settings"; then
   missing "allow rule: Bash(bash _claude/tools/kb-search.sh *) is not in permissions.allow in $settings."
 fi
-if [ "$os" = windows ] && [ -n "$kb" ] && ! grep -qsF "$kb_fwd" "$settings"; then
+dirs="$(tr -d '\r\n' < "$settings" 2>/dev/null | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
+if [ "$os" = windows ] && [ -n "$kb" ] && ! printf '%s' "$dirs" | grep -qiF "\"$kb_fwd\""; then
   missing "additionalDirectories: $kb_fwd is not in permissions.additionalDirectories in $settings."
 fi
 if ! grep -qsE '^@.*/_claude/CLAUDE\.global\.md' "$global_md"; then
