@@ -11,6 +11,7 @@ This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marke
 | Plugin | Group | Purpose |
 |---|---|---|
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
+| [`doc-styles`](./essentials/doc-styles) | `essentials` | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
 | [`gop-pipeline`](./workflows/gop-pipeline) | `workflows` | A gated pipeline that takes one coding task from plan to commit. It plans, implements, builds, and tests the change, reviews it with five validator agents in parallel, and then commits it. Without --autonomous, the push waits for your approval. |
 
@@ -47,6 +48,7 @@ After you add the marketplace, install a single plugin by name:
 
 ```text
 /plugin install dev-essentials@vasar-plugins-marketplace
+/plugin install doc-styles@vasar-plugins-marketplace
 /plugin install dotnet-backend-dev@vasar-plugins-marketplace
 /plugin install gop-pipeline@vasar-plugins-marketplace
 ```
@@ -270,8 +272,13 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
 | `gop-work` | `gop-pipeline` | 9 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
+| `style-compare-openbsd` | `doc-styles` | 9 | Windows, because it grants no shell tool |
+| `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |
+| `style-compare-both` | `doc-styles` | 3 | Windows, because it grants no shell tool |
 
 The count is the number of behavior cases. If a skill has two trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag gop-work` runs 11 cases, and `--tag write-tests` runs 4 cases.
+
+The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `essentials/doc-styles/eval-stubs/simple-english`, a byte copy of simple-english 2.1.1. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
 
 Run the suites through the compare script, because the cases of `gop-pipeline` and `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 

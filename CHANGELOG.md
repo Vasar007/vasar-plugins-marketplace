@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.0.0 in release [3.9.0] - 2026-10-28
+
+This release adds the plugin `doc-styles` with the skill `openbsd-style-docs` (issue #73). The skill comes from a public source, and it is adapted for this marketplace. It owns the docs that the user asks for in the style of the OpenBSD manual pages. `simple-english` stays the default for other text and for chat replies.
+
+### Added in doc-styles
+
+- `openbsd-style-docs` (issue #73): writes and rewrites a technical document in the style of the OpenBSD manual pages, as Markdown. The user must name the style to start it. The names are "OpenBSD style", "like a man page", "man-page style", and "BSD style". The document has uppercase sections in a fixed order, a one-line NAME summary, sorted option and error lists, and each default as its own sentence. The chat reply follows the reply rules of the session.
+- Eval suites (issue #73): 5 trigger cases, 3 probes, and 21 style-comparison cases. The comparison runs the same prompts with the skill, with `simple-english`, and with both plugins loaded.
+- `eval-stubs/simple-english` (issue #73): a stand-in for `simple-english` that is used only in the eval runs. It is a byte copy of simple-english 2.1.1 (MIT).
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py` (issue #73): the new option `--extra-dep NAME` copies a plugin of the repository into the `.deps` folder of the bundle for a suite that needs it. `baseline` gets the options `--ablation` and `--keep-temp`. `tests/evals/test_compare_versions.py` tests the changes.
+- `tests/test_eval_cases.py` (issue #73): the list `EVAL_ONLY_DEPS` names the plugins that a suite can copy with `--extra-dep`. A new test checks that the two arms of a style comparison differ only in the style.
+- `tests/test_simple_english.py` and `tests/simple-english-baseline.json` (issue #73): the simple-english lint test can exclude a folder, with a reason for each folder. The skill `openbsd-style-docs` keeps its own style, so the test excludes its folder. The test also skips the stand-in copy of simple-english.
+- `README.md` and `.claude-plugin/marketplace.json` (issue #73): the new plugin has a row in the plugin matrix, an install line, and an entry in the marketplace. The Evals section lists the new suites and the option `--extra-dep`.
+
 ## dotnet-backend-dev 1.7.0 and dev-essentials 3.6.0 in release [3.8.0] - 2026-10-27
 
 This release makes seven large dotnet skills shorter. They move examples and rare sections into reference and example files. The skills that write code or Markdown now run a build or a lint loop until it passes (issue #78). Each loop stops after three failed fix attempts, or for an error outside the changed code. The moves keep the rules.
@@ -901,7 +918,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...HEAD
+[3.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.5...v3.7.0
 [3.6.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.6.4...v3.6.5
