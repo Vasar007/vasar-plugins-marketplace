@@ -40,7 +40,7 @@ Read these files to understand the intended behavior before the review.
 
 ## Scope
 
-Use the base branch from the Project Context section above. Fetch it, and get the diff relative to the merge base with `origin/<base-branch>`. Do not use the local `<base-branch>`, because it can be missing or stale:
+Use the base branch from the Project Context section above. Fetch it for the commit log, and use `origin/<base-branch>`. Do not use the local `<base-branch>`, because it can be missing or stale:
 
 ```bash
 # Refresh the remote-tracking ref

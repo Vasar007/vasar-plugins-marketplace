@@ -50,7 +50,7 @@ Stage 5 needs the external plugin `code-simplifier`. If it is missing, install i
 ## Arguments
 
 - Arguments of this run: `$ARGUMENTS`
-- The task: the text before the first flag. It is a task ID, for example `TASK-123`, or a plain request. Required. "Task input" in [references/setup.md](references/setup.md) says how the run tells them apart.
+- The task: the text before the flags at the end. It is a task ID, for example `TASK-123`, or a plain request. Required. "Task input" in [references/setup.md](references/setup.md) says how the run tells them apart.
 - `--dry-run`: make the plan only. Create no worktree and no branch, write no file, and run no stage.
 - `--no-worktree`: create no worktree. Work on the current branch in the current working directory.
 - `--start-from=<stage>`: resume the pipeline at the named stage.
@@ -177,7 +177,7 @@ Launch the stage `test-coverage`, then the stage `simplifier`.
 
 ### Steps 6, 7, and 8: Docs, Code Review, and Security Review (parallel)
 
-Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. Before the launch of the review, write its patch as "Review patch" in [references/stage-launch.md](references/stage-launch.md) says. If the fetch fails, stop and ask the user. Wait until all three are done, then update the checkpoint.
+Launch the stages `docs`, `review`, and `security-review` at the same time, with three `Agent` calls in one message. Before the launch of the two reviews, write their patch as "Review patch" in [references/stage-launch.md](references/stage-launch.md) says. If the fetch fails, stop and ask the user. Wait until all three are done, then update the checkpoint.
 
 ### Human Approve #2 (after Review)
 

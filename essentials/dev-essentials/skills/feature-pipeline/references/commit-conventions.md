@@ -55,8 +55,10 @@ Follow them exactly; do not invent your own format.
 - **Commit with paths.** Run `git commit -m <message> -- <path> ...`, with the
   paths that you staged. A change that the user staged before the run then
   stays staged and out of the commit. For a rename or a delete, put the old
-  path and the new path after `--`. List the staged paths with
-  `git diff --cached --name-only --no-renames`.
+  path and the new path after `--`. To find the old path of a rename, run
+  `git diff --cached --name-only --no-renames`. This command lists every
+  staged path, also a path that the user staged before the run. Commit only
+  your own paths from that list.
 - **NEVER `git add -f`.** If git says that a path is ignored, leave it out, and
   name it in your final reply. A `.gitignore` entry often keeps local secrets
   out of the repository.
