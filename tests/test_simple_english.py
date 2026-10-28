@@ -11,7 +11,9 @@ it in this order:
 If no linter is found, the test skips. In CI it fails.
 
 The test fails on each hit that simple-english-baseline.json does not list.
-It also fails on each baseline entry that has no hit. A baseline entry matches
+It also fails on each baseline entry that has no hit. The "excluded" key of the
+baseline lists folders, each with a reason. The test skips every file under such
+a folder. An excluded folder with no tracked .md file fails the test. A baseline entry matches
 by file, rule, and text, not by line, so that a line shift does not break it.
 The value of an argument-hint line in the frontmatter and the closing "---"
 of the frontmatter are not prose, so the test does not lint them.
@@ -77,6 +79,19 @@ def prepare(text):
     return "\n".join(out)
 
 
+def excluded_prefixes(baseline):
+    return [e["path"] for e in baseline.get("excluded", [])]
+
+
+def is_excluded(file, prefixes):
+    return any(file.startswith(p) for p in prefixes)
+
+
+def unused_prefixes(files, prefixes):
+    """The excluded folders that no file in the list is under."""
+    return [p for p in prefixes if not any(f.startswith(p) for f in files)]
+
+
 def key(file, rule, text):
     return (file, rule, " ".join(text.split()))
 
@@ -101,6 +116,19 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(prepare(text).split("\n")[4], "You should go.")
 
 
+class ExclusionTests(unittest.TestCase):
+    def test_a_file_under_an_excluded_folder_is_excluded(self):
+        baseline = {"excluded": [{"path": "a/b/", "reason": "x"}]}
+        prefixes = excluded_prefixes(baseline)
+        self.assertTrue(is_excluded("a/b/c/SKILL.md", prefixes))
+        self.assertFalse(is_excluded("a/bc/SKILL.md", prefixes))
+        self.assertEqual(excluded_prefixes({"entries": []}), [])
+
+    def test_an_excluded_folder_without_a_file_is_reported(self):
+        files = ["a/b/one.md", "c/two.md"]
+        self.assertEqual(unused_prefixes(files, ["a/b/", "d/"]), ["d/"])
+
+
 class SimpleEnglishLintTest(unittest.TestCase):
     def test_hits_match_the_baseline(self):
         root = find_linter_root()
@@ -112,8 +140,20 @@ class SimpleEnglishLintTest(unittest.TestCase):
         baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
         allowed = Counter(key(e["file"], e["rule"], e["text"]) for e in baseline["entries"])
 
+        files = tracked_markdown_files()
+        for e in baseline.get("excluded", []):
+            self.assertTrue(e.get("path"), f"An excluded entry needs a path: {e}")
+            self.assertTrue(e["path"].endswith("/"), f"The excluded folder {e['path']} must end with a slash.")
+            self.assertTrue(e.get("reason"), f"The excluded folder {e['path']} needs a reason.")
+        prefixes = excluded_prefixes(baseline)
+        unused = unused_prefixes(files, prefixes)
+        self.assertEqual(unused, [], "Excluded folders without a tracked .md file. Remove them from "
+                         + BASELINE.name + ".")
+
         new = []
-        for file in tracked_markdown_files():
+        for file in files:
+            if is_excluded(file, prefixes):
+                continue
             text = (REPO / file).read_text(encoding="utf-8")
             for hit in lint.lint_detail(prepare(text), "descriptive"):
                 k = key(file, hit["category"], hit["text"])

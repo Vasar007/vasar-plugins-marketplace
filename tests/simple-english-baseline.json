@@ -1,5 +1,11 @@
 {
   "version": "2.1.1",
+  "excluded": [
+    {
+      "path": "essentials/doc-styles/skills/openbsd-style-docs/",
+      "reason": "This skill writes the OpenBSD manual style, which breaks the simple-english rules on purpose: `may` and `should` with exact meanings, conditions after the command, semicolons, and fixed formulas. Its section \"Precedence over other writing rules\" states this."
+    }
+  ],
   "entries": [
     {
       "file": "dotnet/dotnet-backend-dev/skills/create-tests/SKILL.md",
@@ -102,6 +108,30 @@
       "rule": "synonym_rotation",
       "text": "check (check-verify)",
       "reason": "Heading text: the contents list repeats the words of the heading. The heading keeps its name, because other files and anchors use it."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/coexist/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/openbsd/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/openbsd/d3-config-reference/prompt.md",
+      "rule": "sentence_over_limit",
+      "text": "The rule covers files and your reply, not only documentation.' In the OpenBSD …",
+      "reason": "Linter artifact: the linter reads the last line of the frontmatter and the first sentence of the body as one sentence. The style phrase of the prompt is the same as in the coexist case, and the pair test needs it."
+    },
+    {
+      "file": "essentials/doc-styles/evals/style-compare/simple-english/d3-config-reference/prompt.md",
+      "rule": "synonym_rotation",
+      "text": "config (config-settings)",
+      "reason": "Case name from the plan of the suite (d3-config-reference). The name is an identifier, and the text uses `configuration` for the concept."
     }
   ]
 }

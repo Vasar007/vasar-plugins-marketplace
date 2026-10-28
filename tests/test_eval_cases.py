@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from support import REPO, tool_missing
 
@@ -50,6 +51,19 @@ TARGETS = {"last_message", "trace", "files", "mock_calls"}
 MATCH_VALUE = re.compile(r"not_contains|count:\d+")
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 IGNORED_REGEX_FLAGS = set("guyd")
+
+# Plugins whose eval runs load a .deps copy of a plugin that plugin.json does not declare.
+# compare_versions.py makes the copy with --extra-dep. The key is the plugin folder name.
+EVAL_ONLY_DEPS = {"doc-styles": {"dev-essentials"}}
+
+PAIR_FOLDER = "style-compare"
+PAIR_ARMS = ("openbsd", "simple-english")
+PAIR_KEYS_THAT_DIFFER = {"name", "tags", "plugins"}
+PAIR_GRADERS_THAT_DIFFER = {"loaded-style"}
+PAIR_SKILLS = {"openbsd": "openbsd-style-docs", "simple-english": "simple-english"}
+# The one allowed difference in a prompt text: the docs prompts (ids that start with d) of the first arm name the style.
+PAIR_STYLE_PHRASE = "In the OpenBSD man-page style, "
+PAIR_STYLE_PHRASE_ID_PREFIX = "d"
 
 LIBRARY_COPIES = {
     "git-fixture.sh": ["essentials/dev-essentials", "workflows/gop-pipeline", "dotnet/dotnet-backend-dev"],
@@ -512,6 +526,8 @@ def in_own_case_subfolder(target, case_dir):
 def plugin_entry_problems(case):
     """Each entry of `plugins` must be a plugin folder. A .deps copy of a declared dependency also counts.
 
+    A .deps copy of a plugin in EVAL_ONLY_DEPS for this plugin counts too.
+
     claude plugin eval refuses a plugin in the eval folder unless the plugin sits in its own subfolder of the case.
     """
     entries = case.field("plugins")
@@ -531,10 +547,74 @@ def plugin_entry_problems(case):
         if (target / ".claude-plugin" / "plugin.json").is_file():
             continue
         deps = (case.plugin_root / ".deps").resolve()
-        if target.parent == deps and target.name in dependency_names(case.plugin_root):
+        allowed = dependency_names(case.plugin_root) | EVAL_ONLY_DEPS.get(case.plugin_root.name, set())
+        if target.parent == deps and target.name in allowed:
             continue
-        problems.append(f"{case.label}: the plugins entry {entry} is not a plugin folder, "
-                        f"and it is not a .deps copy of a dependency of the plugin")
+        problems.append(f"{case.label}: the plugins entry {entry} is not a plugin folder, and it is not a .deps copy "
+                        f"of a dependency of the plugin or of an eval-only dependency in EVAL_ONLY_DEPS")
+    return problems
+
+
+def without_style_phrase(pair_id, body):
+    """The prompt text of the first arm, without the style phrase that a docs case may start with."""
+    body = body.strip()
+    if pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX) and body.startswith(PAIR_STYLE_PHRASE):
+        rest = body[len(PAIR_STYLE_PHRASE):]
+        return rest[:1].upper() + rest[1:]
+    return body
+
+
+def pair_problems(cases):
+    """The two arms of a style comparison must differ in the style only.
+
+    A pair is <PAIR_FOLDER>/<arm>/<id> for each arm in PAIR_ARMS. The prompt text, the other frontmatter keys, and
+    the graders must be equal, except the keys in PAIR_KEYS_THAT_DIFFER and the graders in PAIR_GRADERS_THAT_DIFFER.
+    Each arm must have the graders in PAIR_GRADERS_THAT_DIFFER, and the loaded-style grader must name the skill of its arm.
+    The first arm must start the prompt text of a docs case with PAIR_STYLE_PHRASE. That phrase is the only allowed difference.
+    In the first arm, the loaded-style grader of a case that is not a docs case must have min 0 and max 0.
+    """
+    groups = {}
+    for case in cases:
+        parts = case.path.parts
+        if PAIR_FOLDER not in parts:
+            continue
+        rest = parts[len(parts) - parts[::-1].index(PAIR_FOLDER):]
+        if len(rest) == 2 and rest[0] in PAIR_ARMS:
+            groups.setdefault((str(case.plugin_root), rest[1]), {})[rest[0]] = case
+    problems = []
+    for (root, pair_id), arms in sorted(groups.items()):
+        missing = [arm for arm in PAIR_ARMS if arm not in arms]
+        if missing:
+            problems.append(f"{PAIR_FOLDER}/{pair_id}: the arm {', '.join(missing)} is missing")
+            continue
+        first, second = (arms[arm] for arm in PAIR_ARMS)
+        where = f"{first.label} and {second.label}"
+        if without_style_phrase(pair_id, first.prompt_body) != second.prompt_body.strip():
+            problems.append(f"{where}: the prompt text differs")
+        keys = [{k: v for k, v in case.prompt.items() if k not in PAIR_KEYS_THAT_DIFFER} for case in (first, second)]
+        if keys[0] != keys[1]:
+            problems.append(f"{where}: the frontmatter differs in a key other than "
+                            f"{', '.join(sorted(PAIR_KEYS_THAT_DIFFER))}")
+        graders = [{n: g for n, g in case.graders.items() if n not in PAIR_GRADERS_THAT_DIFFER}
+                   for case in (first, second)]
+        if graders[0] != graders[1]:
+            different = sorted(n for n in set(graders[0]) | set(graders[1]) if graders[0].get(n) != graders[1].get(n))
+            problems.append(f"{where}: the graders differ: {', '.join(different)}")
+        for arm, case in zip(PAIR_ARMS, (first, second)):
+            for name in sorted(PAIR_GRADERS_THAT_DIFFER - set(case.graders)):
+                problems.append(f"{case.label}: the arm needs the grader {name}")
+            loaded = case.graders.get("loaded-style")
+            if loaded and f'{PAIR_SKILLS[arm]}"' not in str(loaded[0].get("input_match", "")):
+                problems.append(f"{case.label}: the input_match of the grader loaded-style must name the skill "
+                                f"{PAIR_SKILLS[arm]}")
+        is_docs_case = pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX)
+        if is_docs_case and not first.prompt_body.strip().startswith(PAIR_STYLE_PHRASE):
+            problems.append(f"{first.label}: the prompt text of a docs case must start with {PAIR_STYLE_PHRASE!r}, "
+                            f"or the skill of the arm does not load")
+        loaded = first.graders.get("loaded-style")
+        if loaded and not is_docs_case and (loaded[0].get("min"), loaded[0].get("max")) != (0, 0):
+            problems.append(f"{first.label}: the grader loaded-style of a case that is not a docs case must have "
+                            f"min: 0 and max: 0, because the skill must not load")
     return problems
 
 
@@ -860,6 +940,21 @@ class CaseCheckTests(CaseFiles):
         bad = self.case("probes/bad", prompt=f"---\nplugins: {entries}\n---\nx\n")
         self.assertEqual(len(plugin_entry_problems(bad)), 2)
 
+    def test_plugins_entry_allows_a_deps_copy_of_an_eval_only_dependency(self):
+        entries = '["../../..", "../../../.deps/extra"]'
+        case = self.case("probes/extra", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        self.assertEqual(len(plugin_entry_problems(case)), 1)
+        with mock.patch.dict(EVAL_ONLY_DEPS, {self.plugin.name: {"extra"}}):
+            self.assertEqual(plugin_entry_problems(case), [])
+
+    def test_plugins_entry_with_an_unlisted_deps_copy_still_fails(self):
+        entries = '["../../..", "../../../.deps/other"]'
+        case = self.case("probes/other", prompt=f"---\nplugins: {entries}\n---\nx\n")
+        with mock.patch.dict(EVAL_ONLY_DEPS, {self.plugin.name: {"extra"}, "elsewhere": {"other"}}):
+            problems = plugin_entry_problems(case)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("EVAL_ONLY_DEPS", problems[0])
+
     def test_plugins_entry_in_the_eval_folder_must_be_in_its_own_case_subfolder(self):
         stub = self.plugin / EVALS / "_stubs" / "github" / ".claude-plugin"
         stub.mkdir(parents=True)
@@ -923,6 +1018,102 @@ class CaseCheckTests(CaseFiles):
             self.assertTrue(any("bad.sh" in p and "bash -n" in p for p in problems), problems)
 
 
+class PairTests(CaseFiles):
+    PROMPT = "---\nname: {name}\ntags: [{tag}]\nappend_system_prompt: {rule}\n{extra}---\nWrite the file.\n"
+    OK = "---\ntype: regex\npattern: ok\n---\n"
+    LOADED = "---\ntype: tool_used\ntool: Skill\ninput_match: '\"skill\"\\s*:\\s*\"{skill}\"'\n---\n"
+
+    LOADED_NEVER = LOADED.replace("\n---\n", "\nmin: 0\nmax: 0\n---\n")
+
+    def pair(self, text="Write the file.", extra="", second_graders=None, drop_second=False,
+             first_text=None, pair_id="d1", second_rule="one", first_loaded=None):
+        is_docs_case = pair_id.startswith(PAIR_STYLE_PHRASE_ID_PREFIX)
+        if first_text is None:
+            first_text = "In the OpenBSD man-page style, write the file." if is_docs_case else "Write the file."
+        if first_loaded is None:
+            first_loaded = self.LOADED if is_docs_case else self.LOADED_NEVER
+        graders = {"acc": self.OK, "loaded-style": first_loaded.format(skill="openbsd-style-docs")}
+        first = self.PROMPT.format(name="a", tag="x", rule="one", extra="").replace("Write the file.", first_text)
+        self.case(f"{PAIR_FOLDER}/openbsd/{pair_id}", prompt=first, graders=graders)
+        if not drop_second:
+            second = self.PROMPT.format(name="b", tag="y", rule=second_rule, extra=extra)
+            second = second.replace("Write the file.", text)
+            if second_graders is None:
+                second_graders = {"acc": self.OK, "loaded-style": self.LOADED.format(skill="simple-english")}
+            self.case(f"{PAIR_FOLDER}/simple-english/{pair_id}", prompt=second, graders=second_graders)
+        return pair_problems(load_cases(self.plugin))
+
+    def test_arms_that_differ_in_the_style_only_pass(self):
+        self.assertEqual(self.pair(), [])
+
+    def test_a_different_prompt_text_fails(self):
+        problems = self.pair(text="Write the page.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_the_style_phrase_is_allowed_in_a_docs_prompt_of_the_first_arm(self):
+        self.assertEqual(self.pair(first_text="In the OpenBSD man-page style, write the file."), [])
+
+    def test_a_second_difference_next_to_the_style_phrase_fails(self):
+        problems = self.pair(first_text="In the OpenBSD man-page style, write the page.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_the_style_phrase_fails_in_a_case_that_is_not_a_docs_case(self):
+        problems = self.pair(first_text="In the OpenBSD man-page style, write the file.", pair_id="a1")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_a_docs_prompt_of_the_first_arm_needs_the_style_phrase(self):
+        problems = self.pair(first_text="Write the file.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("must start with", problems[0])
+
+    def test_a_loaded_style_grader_of_a_non_docs_case_needs_min_and_max_zero(self):
+        for missing in ("max: 0\n", "min: 0\n"):
+            loaded = self.LOADED_NEVER.replace(missing, "")
+            problems = self.pair(pair_id="a1", first_loaded=loaded)
+            self.assertEqual(len(problems), 1, missing)
+            self.assertIn("min: 0 and max: 0", problems[0])
+
+    def test_the_style_phrase_fails_in_the_second_arm(self):
+        problems = self.pair(text="In the OpenBSD man-page style, write the file.")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the prompt text differs", problems[0])
+
+    def test_a_different_system_prompt_fails(self):
+        problems = self.pair(second_rule="two")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the frontmatter differs", problems[0])
+
+    def test_a_loaded_style_grader_must_name_the_skill_of_its_arm(self):
+        wrong = self.LOADED.format(skill="openbsd-style-docs")
+        problems = self.pair(second_graders={"acc": self.OK, "loaded-style": wrong})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("must name the skill simple-english", problems[0])
+
+    def test_a_different_frontmatter_key_fails(self):
+        problems = self.pair(extra="max_turns: 5\n")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the frontmatter differs", problems[0])
+
+    def test_a_different_grader_fails(self):
+        problems = self.pair(second_graders={"acc": "---\ntype: regex\npattern: other\n---\n",
+                                             "loaded-style": self.LOADED.format(skill="simple-english")})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the graders differ: acc", problems[0])
+
+    def test_a_missing_arm_fails(self):
+        problems = self.pair(drop_second=True)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the arm simple-english is missing", problems[0])
+
+    def test_an_arm_needs_the_loaded_style_grader(self):
+        problems = self.pair(second_graders={"acc": self.OK})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("the arm needs the grader loaded-style", problems[0])
+
+
 class ScratchTests(CaseFiles):
     def make(self, content, path):
         self.case("gop-e2", graders={"scratch-not-staged": f"---\ntype: file_exists\npath: {path}\nexists: false\n---\n"},
@@ -982,6 +1173,9 @@ class RepositoryCasesTest(unittest.TestCase):
 
     def test_fixture_libraries_have_equal_copies(self):
         self.assertEqual(copy_problems(), [])
+
+    def test_style_compare_arms_differ_in_the_style_only(self):
+        self.assertEqual(pair_problems(self.cases), [])
 
     def test_untracked_file_case_names_the_blob_of_its_scratch_file(self):
         if shutil.which("git") is None:

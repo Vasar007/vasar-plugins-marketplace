@@ -12,6 +12,11 @@
       "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order."
     },
     {
+      "name": "doc-styles",
+      "source": "./essentials/doc-styles",
+      "description": "A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. It starts only when you name that style, and it sets no style for chat replies."
+    },
+    {
       "name": "dotnet-backend-dev",
       "source": "./dotnet/dotnet-backend-dev",
       "description": "Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types."

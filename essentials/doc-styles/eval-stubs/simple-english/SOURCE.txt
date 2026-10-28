@@ -1,0 +1,20 @@
+Source: https://github.com/AminBlg/SimpleEnglish
+Version: 2.1.1 (MIT, see LICENSE)
+Copied on: 2026-10-27
+Copied from: the plugin cache, plugins/cache/simple-english/simple-english/2.1.1
+
+This folder is a byte copy for the eval runs of the doc-styles plugin. Do not edit it.
+The upstream project owns the text.
+
+Left out, because no run uses them:
+- Folders: .agents/, .codex-plugin/, .github/, examples/, output-styles/, tools/.
+- Files: CHANGELOG.md, README.md, the tests, README.md and package.json in src/hooks/, and the rest of evals/.
+- Also left out: .claude-plugin/marketplace.json, .gitignore, and the cache marker files.
+
+The hooks need node and python3 on PATH.
+
+To update:
+- The test tests/test_eval_stubs.py fails when a newer simple-english is installed. It skips when none is installed.
+- Copy the plugin files from the installed copy again, and keep the left-out list above.
+- Set the Version, Copied on, and Copied from lines.
+- Run the style-compare suites of doc-styles again.

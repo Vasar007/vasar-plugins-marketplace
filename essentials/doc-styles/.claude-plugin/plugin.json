@@ -1,0 +1,11 @@
+{
+  "name": "doc-styles",
+  "version": "1.0.0",
+  "description": "A writing style for technical documents. Its skill writes docs in the style of the OpenBSD manual pages.",
+  "author": {
+    "name": "Vasily Vasilyev",
+    "email": "vasar007@gmail.com"
+  },
+  "repository": "https://github.com/Vasar007/vasar-plugins-marketplace",
+  "keywords": ["documentation", "technical-writing", "man-page", "openbsd", "readme"]
+}
