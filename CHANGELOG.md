@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.1.0 in release [4.1.0] - 2026-10-28
+
+This release adds the plugin `kb`. It wires Claude Code to a personal knowledge base that lives in a git repository. No other plugin changes its version.
+
 ### Added in kb
 
 - `kb`: a thin plugin that wires Claude Code to a personal knowledge base in git. Five hooks call the launcher `scripts/kb-hook.sh`, which runs the hook scripts of the local KB clone. The hooks are `SessionStart`, `SubagentStart`, `PreToolUse`, `Stop`, and `SessionEnd`. The skills `capture` and `close-task` point to the procedures in the KB. The skill `setup` runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The plugin needs a KB clone. If the hooks find none, they exit 0.
@@ -971,7 +975,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...v4.0.0
 [3.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.8.0...v3.9.0
