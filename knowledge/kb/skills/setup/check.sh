@@ -39,7 +39,7 @@ has_rule() { printf '%s' "$1" | grep -qF -- "\"$2\""; }
 kb_alt="$(printf '%s' "${kb_fwd:0:1}" | tr 'A-Z' 'a-z')${kb_fwd:1}"
 has_path_rule() {
   has_rule "$1" "$2" && return 0
-  [ "$os" = windows ] && has_rule "$1" "${2//"$kb_fwd"/$kb_alt}"
+  [ "$os" = windows ] && has_rule "$1" "${2//"$kb_fwd"/"$kb_alt"}"
 }
 for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
   if ! has_rule "$allow" "$rule"; then

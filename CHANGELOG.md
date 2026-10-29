@@ -19,10 +19,10 @@ This release lets KB sessions run the two text checks and read-only git in the K
 
 ### Changed in kb
 
-- `skills/setup/check.sh`: it checks the allow rules for the two text checks, the three `git -C <KB root>` allow rules (`status`, `log`, `show`), and the ask rule for `--output`. It reads the `allow` and `ask` lists separately and matches whole entries. On Windows, it accepts the path rule with the drive letter in upper case or in lower case (issue #91).
+- `skills/setup/check.sh`: it checks the allow rules for the two text checks and for three `git -C <KB root>` commands: `status`, `log`, and `show`. It also checks the ask rule for `--output`. It reads the `allow` and `ask` lists separately and matches whole entries. On Windows, it accepts the path rule with the drive letter in upper case or in lower case (issue #91).
 - `.claude-plugin/plugin.json`: the description names the approval of read-only commands (issue #91).
 - `skills/setup/SKILL.md`: step 2 names where the rules go and bans a rule for a git command that changes the KB (issue #91).
-- `README.md`: the hook table, the setup pieces, and a limit for a KB clone with no `allow-read` script, and a limit that explains why there is no plain `git diff` rule (issue #91).
+- `README.md`: the hook table and the setup pieces. It also has two limits: one for a KB clone with no `allow-read` script, and one that explains why there is no plain `git diff` rule (issue #91).
 
 ### Changed in the repository
 

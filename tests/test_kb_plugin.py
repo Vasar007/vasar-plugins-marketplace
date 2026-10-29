@@ -345,10 +345,11 @@ class CheckScriptTests(BashCase):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
         allow, ask = rules(str(clone))
-        longer = [f"{rule[:-1]} --extra)" if rule.startswith("Bash(git") else rule for rule in allow]
-        self.settings_with(home, clone, longer, ask)
+        longer_allow = [f"x{rule}" for rule in allow]
+        longer_ask = [f"x{rule}" for rule in ask]
+        self.settings_with(home, clone, longer_allow, longer_ask)
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
-        self.assertEqual(len(missing), len(GIT_SUBCOMMANDS), missing)
+        self.assertEqual(len(missing), 7, missing)
 
     def test_the_plain_git_diff_rule_is_not_asked_for(self):
         home, clone, gitconfig = self.complete_home()
@@ -376,6 +377,13 @@ class CheckScriptTests(BashCase):
         bash_env = self.use_windows_stubs()
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env))
         self.assertEqual(len(missing), 4, missing)
+
+    def test_windows_branch_accepts_an_ampersand_in_the_path_with_a_lower_case_drive_letter(self):
+        self.WIN_KB = "C:/Users/A&B/KB"
+        home, clone, gitconfig = self.complete_home(additional_dir=self.WIN_KB, rule_dir=self.WIN_KB.replace("C:", "c:", 1))
+        bash_env = self.use_windows_stubs()
+        done = self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env)
+        self.assertEqual(done.stdout.splitlines(), ["OS: windows", "All pieces are in place."])
 
     def test_missing_cron_line_is_reported(self):
         home, clone, gitconfig = self.complete_home()

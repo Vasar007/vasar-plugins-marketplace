@@ -49,5 +49,5 @@ Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing 
 
 - A session that signs in with a token or an API key does not load synced plugins, so it runs no KB hook.
 - If the KB clone has no `_claude/hooks/allow-read.sh` yet, `cd <KB root> && git ...` from a session outside the KB root asks. The plain rules then cover `git -C <KB root> ...` and the checks in the KB root.
-- There is no plain allow rule for `git diff`. A plain rule would also let `git diff <file outside the KB> /dev/null` print any file with no prompt. The `allow-read` script of the KB clone handles `git diff`.
+- There is no plain allow rule for `git diff`. A plain rule also lets `git diff <file outside the KB> /dev/null` print any file with no prompt. The `allow-read` script of the KB clone handles `git diff`.
 - Do not run these hooks and the same hooks from `~/.claude/settings.json` on one machine. Each hook then runs twice.
