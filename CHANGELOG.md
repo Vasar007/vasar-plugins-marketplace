@@ -15,10 +15,10 @@ This release moves the shared test setup into one helper module. No plugin chang
 
 ### Changed in the repository
 
-- `tests/testkit.py`: a new module with generic test helpers. It has a test case with a temporary folder, a copy of the environment without named keys, a runner for child processes, `git init`, a `pwd -W` stub for Git Bash, and `load_module`. It uses only the standard library and the syntax of Python 3.7, because another repository keeps a copy of it (issue #95).
+- `tests/testkit.py`: a new module with generic test helpers. It has a test case with a temporary folder and a copy of the environment without named keys. It also has a runner for child processes, `git init`, a `pwd -W` stub for Git Bash, and `load_module`. It uses only the standard library and the syntax of Python 3.7, because another repository keeps a copy of it (issue #95).
 - `tests/test_kb_plugin.py`, `tests/test_eval_scaffolds.py`, `tests/test_backup_move.py`, `tests/test_trim_report.py`, and `tests/test_check_report.py`: they use `tests/testkit.py` instead of their own copies of the setup code (issue #95).
 - `tests/support.py`: `load_module` moved to `tests/testkit.py`. `support.py` keeps the parts that are specific to this repository (issue #95).
-- `tests/test_testkit.py`: tests for the helpers. They also check as well as they can that `tests/testkit.py` has the syntax of Python 3.7, and they make sure that it has no type hints and imports from the standard library only (issue #95).
+- `tests/test_testkit.py`: tests for the helpers. They also make a best-effort check that `tests/testkit.py` has no syntax newer than Python 3.7. They make sure that it has no type hints and imports from the standard library only (issue #95).
 
 ## kb 0.2.0 in release [4.2.0] - 2026-10-29
 
