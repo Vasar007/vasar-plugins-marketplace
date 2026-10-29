@@ -30,8 +30,33 @@ if [ -z "$settings_kb_dir" ]; then
 elif [ ! -f "$settings_kb_dir/_claude/RULES.md" ]; then
   missing "KB_DIR: $settings_kb_dir has no _claude/RULES.md. Set it to the KB clone."
 fi
-if ! grep -qsF 'Bash(bash _claude/tools/kb-search.sh *)' "$settings"; then
-  missing "allow rule: Bash(bash _claude/tools/kb-search.sh *) is not in permissions.allow in $settings."
+rule_lists="$(tr -d '\r\n' < "$settings" 2>/dev/null)"
+entries='\[[[:space:]]*("([^"\\]|\\.)*"[[:space:]]*,?[[:space:]]*)*\]'
+allow="$(printf '%s' "$rule_lists" | grep -oE "\"allow\" *: *$entries")"
+ask="$(printf '%s' "$rule_lists" | grep -oE "\"ask\" *: *$entries")"
+has_rule() { printf '%s' "$1" | grep -qF -- "\"$2\""; }
+# On Windows the drive letter can differ in case, so a path rule also passes with a lower-case drive letter.
+kb_alt="$(printf '%s' "${kb_fwd:0:1}" | tr 'A-Z' 'a-z')${kb_fwd:1}"
+has_path_rule() {
+  has_rule "$1" "$2" && return 0
+  [ "$os" = windows ] && has_rule "$1" "${2//"$kb_fwd"/"$kb_alt"}"
+}
+for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
+  if ! has_rule "$allow" "$rule"; then
+    missing "allow rule: $rule is not in permissions.allow in $settings."
+  fi
+done
+if [ -n "$kb" ]; then
+  for sub in status log show; do
+    rule="Bash(git -C $kb_fwd $sub *)"
+    if ! has_path_rule "$allow" "$rule"; then
+      missing "allow rule: $rule is not in permissions.allow in $settings."
+    fi
+  done
+  rule="Bash(git -C $kb_fwd * --output*)"
+  if ! has_path_rule "$ask" "$rule"; then
+    missing "ask rule: $rule is not in permissions.ask in $settings."
+  fi
 fi
 dirs="$(tr -d '\r\n' < "$settings" 2>/dev/null | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
 if [ "$os" = windows ] && [ -n "$kb" ] && ! printf '%s' "$dirs" | grep -qiF "\"$kb_fwd\""; then

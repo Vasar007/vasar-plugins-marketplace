@@ -13,7 +13,7 @@ This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marke
 | [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
 | [`doc-styles`](./essentials/doc-styles) | `essentials` | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. |
 | [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
-| [`kb`](./knowledge/kb) | `knowledge` | Wiring for a personal knowledge base kept in git. Hooks sync the knowledge base, print its indexes, guard note writes, and brief subagents. Skills capture a solved problem and close a task. It needs a local clone of the knowledge base. |
+| [`kb`](./knowledge/kb) | `knowledge` | Wiring for a personal knowledge base kept in git. Hooks sync the knowledge base, print its indexes, guard note writes, approve read-only commands, and brief subagents. Skills capture a solved problem and close a task. It needs a local clone of the knowledge base. |
 
 ## Installing the marketplace
 

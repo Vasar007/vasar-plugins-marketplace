@@ -1,5 +1,5 @@
 {
-  "description": "KB wiring: sync and context at start, context for subagents, the write guard, sync after a turn, and claim cleanup.",
+  "description": "KB wiring: sync and context at start, context for subagents, the write guard, approval of read-only KB commands, sync after a turn, and claim cleanup.",
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/kb-hook.sh\" session-start" } ] }
@@ -9,7 +9,9 @@
     ],
     "PreToolUse": [
       { "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/kb-hook.sh\" guard" } ] }
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/kb-hook.sh\" guard" } ] },
+      { "matcher": "Bash",
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/kb-hook.sh\" allow-read" } ] }
     ],
     "Stop": [
       { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/kb-hook.sh\" stop", "async": true } ] }
