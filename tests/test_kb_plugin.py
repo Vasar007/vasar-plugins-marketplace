@@ -27,7 +27,7 @@ TEXT_CHECK_RULES = (
     "Bash(python3 -B _claude/tools/ste-check.py *)",
     "Bash(python3 -B _claude/tools/md-check.py *)",
 )
-GIT_SUBCOMMANDS = ("status", "log", "diff", "show")
+GIT_SUBCOMMANDS = ("status", "log", "show")
 
 
 def rules(kb_path):
@@ -138,9 +138,10 @@ class LauncherTests(BashCase):
         (clone / "_claude/hooks/session-start.sh").unlink()
         (clone / "_claude/hooks/session-end.sh").unlink()
         (clone / "_claude/kb-sync.sh").unlink()
+        (clone / "_claude/hooks/allow-read.sh").unlink()
         done = self.launch("session-start", self.tmp, KB_DIR=str(clone))
         self.assertEqual((done.returncode, len(done.stdout.splitlines()), done.stderr), (0, 1, ""))
-        for name in ("session-end", "stop"):
+        for name in ("session-end", "stop", "allow-read"):
             with self.subTest(hook=name):
                 done = self.launch(name, self.tmp, KB_DIR=str(clone))
                 self.assertEqual((done.returncode, done.stdout, done.stderr), (0, "", ""))
@@ -211,7 +212,7 @@ class CheckScriptTests(BashCase):
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": allow, "ask": ask,
                             "additionalDirectories": [additional_dir or str(clone)]},
-        }), encoding="utf-8")
+        }, indent=2), encoding="utf-8")
         (home / ".claude/CLAUDE.md").write_text(
             f"@{clone}/_claude/CLAUDE.global.md\n@{clone}/_claude/RULES.md\n\nKB root: `{clone}`\n", encoding="utf-8")
         gitconfig = self.tmp / "gitconfig"
@@ -277,7 +278,7 @@ class CheckScriptTests(BashCase):
         (home / ".claude/settings.json").write_text(json.dumps({
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": ["Bash(bash _claude/tools/kb-search.sh *)"], "additionalDirectories": [str(clone)]},
-        }), encoding="utf-8")
+        }, indent=2), encoding="utf-8")
         settings = f"{home}/.claude/settings.json"
         expected = [f"MISSING: allow rule: {rule} is not in permissions.allow in {settings}." for rule in TEXT_CHECK_RULES]
         expected += [f"MISSING: allow rule: Bash(git -C {clone} {sub} *) is not in permissions.allow in {settings}."
@@ -293,17 +294,75 @@ class CheckScriptTests(BashCase):
         (home / ".claude/settings.json").write_text(json.dumps({
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": allow + ask, "additionalDirectories": [str(clone)]},
-        }), encoding="utf-8")
+        }, indent=2), encoding="utf-8")
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
         self.assertEqual(len(missing), 1, missing)
         self.assertTrue(missing[0].startswith("MISSING: ask rule:"), missing)
+
+    def settings_with(self, home, clone, allow, ask=(), deny=(), newline="\n"):
+        text = json.dumps({
+            "env": {"KB_DIR": str(clone)},
+            "permissions": {"allow": allow, "ask": list(ask), "deny": list(deny), "additionalDirectories": [str(clone)]},
+        }, indent=2).replace("\n", newline)
+        with open(home / ".claude/settings.json", "w", encoding="utf-8", newline="") as handle:
+            handle.write(text)
+
+    def test_complete_settings_with_crlf_line_ends_are_in_place(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        allow, ask = rules(str(clone))
+        self.settings_with(home, clone, allow, ask, newline="\r\n")
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", "All pieces are in place."])
+
+    def test_rules_only_in_the_deny_list_are_reported(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        allow, ask = rules(str(clone))
+        self.settings_with(home, clone, [], deny=allow + ask)
+        missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
+        self.assertEqual(len(missing), len(allow) + 1, missing)
+        self.assertEqual(len([line for line in missing if line.startswith("MISSING: allow rule:")]), len(allow), missing)
+        self.assertEqual(len([line for line in missing if line.startswith("MISSING: ask rule:")]), 1, missing)
+
+    def test_path_rules_with_a_different_case_are_reported_on_linux(self):
+        home, clone, gitconfig = self.complete_home(rule_dir=str(self.tmp / "KB").upper())
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
+        self.assertEqual(len([line for line in missing if line.startswith("MISSING: allow rule: Bash(git -C ")]),
+                         len(GIT_SUBCOMMANDS), missing)
+        self.assertEqual(len([line for line in missing if line.startswith("MISSING: ask rule:")]), 1, missing)
+
+    def test_a_bracket_inside_an_earlier_allow_entry_hides_no_rule(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        allow, ask = rules(str(clone))
+        self.settings_with(home, clone, ["Bash(ls [a-z]*)", *allow], ask)
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", "All pieces are in place."])
+
+    def test_a_longer_entry_that_contains_a_rule_does_not_count(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        allow, ask = rules(str(clone))
+        longer = [f"{rule[:-1]} --extra)" if rule.startswith("Bash(git") else rule for rule in allow]
+        self.settings_with(home, clone, longer, ask)
+        missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
+        self.assertEqual(len(missing), len(GIT_SUBCOMMANDS), missing)
+
+    def test_the_plain_git_diff_rule_is_not_asked_for(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        self.settings_with(home, clone, [])
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertFalse(any(" diff *" in line for line in done.stdout.splitlines()), done.stdout)
 
     def test_windows_branch_names_the_windows_path_in_the_git_rules(self):
         home, clone, gitconfig = self.complete_home(additional_dir=self.WIN_KB)
         self.stub("crontab", 'echo "kb-sync.sh"')
         bash_env = self.use_windows_stubs()
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env))
-        self.assertEqual(len(missing), 5, missing)
+        self.assertEqual(len(missing), 4, missing)
         self.assertTrue(all(f"git -C {self.WIN_KB} " in line for line in missing), missing)
 
     def test_windows_branch_ignores_the_case_of_the_drive_letter_in_rules(self):
@@ -311,6 +370,12 @@ class CheckScriptTests(BashCase):
         bash_env = self.use_windows_stubs()
         done = self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env)
         self.assertEqual(done.stdout.splitlines(), ["OS: windows", "All pieces are in place."])
+
+    def test_windows_branch_reports_a_folder_name_with_a_different_case(self):
+        home, clone, gitconfig = self.complete_home(additional_dir=self.WIN_KB, rule_dir=self.WIN_KB.replace("KB", "kb"))
+        bash_env = self.use_windows_stubs()
+        missing = self.missing_lines(self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env))
+        self.assertEqual(len(missing), 4, missing)
 
     def test_missing_cron_line_is_reported(self):
         home, clone, gitconfig = self.complete_home()
@@ -342,7 +407,7 @@ class CheckScriptTests(BashCase):
         (home / ".claude/settings.json").write_text(json.dumps({
             "env": {"KB_DIR": self.WIN_KB},
             "permissions": {"allow": rules(self.WIN_KB)[0], "ask": rules(self.WIN_KB)[1], "additionalDirectories": []},
-        }), encoding="utf-8")
+        }, indent=2), encoding="utf-8")
         bash_env = self.use_windows_stubs()
         done = self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env)
         missing = self.missing_lines(done)

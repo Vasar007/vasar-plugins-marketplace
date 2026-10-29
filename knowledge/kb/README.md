@@ -43,10 +43,11 @@ If the launcher finds no clone, the `SessionStart` hook prints one line and ever
 
 ## Setup
 
-Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rules for `kb-search.sh` and for the two text checks. They also include the four `git -C <KB root>` allow rules (`status`, `log`, `diff`, `show`) and the ask rule for `--output`. Further pieces are the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes.
+Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rules for `kb-search.sh` and for the two text checks. They also include the three `git -C <KB root>` allow rules (`status`, `log`, `show`) and the ask rule for `--output`. Further pieces are the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes.
 
 ## Limits
 
 - A session that signs in with a token or an API key does not load synced plugins, so it runs no KB hook.
 - If the KB clone has no `_claude/hooks/allow-read.sh` yet, `cd <KB root> && git ...` from a session outside the KB root asks. The plain rules then cover `git -C <KB root> ...` and the checks in the KB root.
+- There is no plain allow rule for `git diff`. A plain rule would also let `git diff <file outside the KB> /dev/null` print any file with no prompt. The `allow-read` script of the KB clone handles `git diff`.
 - Do not run these hooks and the same hooks from `~/.claude/settings.json` on one machine. Each hook then runs twice.

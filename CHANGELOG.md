@@ -19,12 +19,14 @@ This release lets KB sessions run the two text checks and read-only git in the K
 
 ### Changed in kb
 
-- `skills/setup/check.sh`: it checks the allow rules for the two text checks, the four `git -C <KB root>` allow rules, and the ask rule for `--output`. On Windows, it compares the drive letter without case (issue #91).
+- `skills/setup/check.sh`: it checks the allow rules for the two text checks, the three `git -C <KB root>` allow rules (`status`, `log`, `show`), and the ask rule for `--output`. It reads the `allow` and `ask` lists separately and matches whole entries. On Windows, it accepts the path rule with the drive letter in upper case or in lower case (issue #91).
+- `.claude-plugin/plugin.json`: the description names the approval of read-only commands (issue #91).
 - `skills/setup/SKILL.md`: step 2 names where the rules go and bans a rule for a git command that changes the KB (issue #91).
-- `README.md`: the hook table, the setup pieces, and a limit for a KB clone with no `allow-read` script (issue #91).
+- `README.md`: the hook table, the setup pieces, and a limit for a KB clone with no `allow-read` script, and a limit that explains why there is no plain `git diff` rule (issue #91).
 
 ### Changed in the repository
 
+- `README.md`: the `kb` row names the approval of read-only commands (issue #91).
 - `tests/test_kb_plugin.py`: tests for the `allow-read` hook entry, the launcher, and the new rule checks (issue #91).
 
 ## dev-essentials 3.7.1 and doc-styles 1.0.1 in release [4.1.1] - 2026-10-28
