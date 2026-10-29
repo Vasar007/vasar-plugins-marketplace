@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.2.0 in release [4.2.0] - 2026-10-29
+
+This release lets KB sessions run the two text checks and read-only git in the KB with no prompt. It also adds plain allow rules as a fallback.
+
+### Added in kb
+
+- `hooks/hooks.json`: a second `PreToolUse` group with the matcher `Bash`. It calls the `allow-read` script of the KB clone, which approves the two text checks and read-only git in the KB. If the clone has no such script, the launcher exits 0 (issue #91).
+
+### Changed in kb
+
+- `skills/setup/check.sh`: it checks the allow rules for the two text checks, the four `git -C <KB root>` allow rules, and the ask rule for `--output`. On Windows, it compares the drive letter without case (issue #91).
+- `skills/setup/SKILL.md`: step 2 names where the rules go and bans a rule for a git command that changes the KB (issue #91).
+- `README.md`: the hook table, the setup pieces, and a limit for a KB clone with no `allow-read` script (issue #91).
+
+### Changed in the repository
+
+- `tests/test_kb_plugin.py`: tests for the `allow-read` hook entry, the launcher, and the new rule checks (issue #91).
+
 ## dev-essentials 3.7.1 and doc-styles 1.0.1 in release [4.1.1] - 2026-10-28
 
 This release moves the eval stand-in plugins out of the plugin folders. The claude.ai sync skipped `dev-essentials` and `doc-styles`, because each held a second `.claude-plugin/plugin.json` below its root. No skill, agent, or command changes.
@@ -994,7 +1012,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...v4.0.0

@@ -4,13 +4,14 @@ This plugin wires Claude Code to a personal knowledge base (KB). The KB is a pri
 
 ## What it does
 
-The plugin adds five hooks. Each hook calls the launcher `scripts/kb-hook.sh`, and the launcher runs the script of the same name from the KB clone.
+The plugin adds six hook entries. Each hook calls the launcher `scripts/kb-hook.sh`, and the launcher runs the script of the same name from the KB clone.
 
 | Hook event | What the KB script does |
 |---|---|
 | `SessionStart` | Syncs the KB, then prints the KB root and the index lines. |
 | `SubagentStart` | Gives each subagent the KB root and the core rule. |
 | `PreToolUse` (`Edit`, `Write`, `NotebookEdit`) | Guards note writes. It blocks notes outside the KB, and blocks two sessions that edit one KB folder. |
+| `PreToolUse` (`Bash`) | Approves the two KB text checks and read-only git in the KB, so they run with no prompt. It never blocks a call. |
 | `Stop` | If a file changed, syncs the KB after a turn. |
 | `SessionEnd` | Removes the folder claims of the session. |
 
@@ -42,9 +43,10 @@ If the launcher finds no clone, the `SessionStart` hook prints one line and ever
 
 ## Setup
 
-Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rule for `kb-search.sh`. They also include the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes.
+Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rules for `kb-search.sh` and for the two text checks. They also include the four `git -C <KB root>` allow rules (`status`, `log`, `diff`, `show`) and the ask rule for `--output`. Further pieces are the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes.
 
 ## Limits
 
 - A session that signs in with a token or an API key does not load synced plugins, so it runs no KB hook.
+- If the KB clone has no `_claude/hooks/allow-read.sh` yet, `cd <KB root> && git ...` from a session outside the KB root asks. The plain rules then cover `git -C <KB root> ...` and the checks in the KB root.
 - Do not run these hooks and the same hooks from `~/.claude/settings.json` on one machine. Each hook then runs twice.

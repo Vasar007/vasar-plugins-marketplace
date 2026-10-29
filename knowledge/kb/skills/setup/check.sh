@@ -30,8 +30,28 @@ if [ -z "$settings_kb_dir" ]; then
 elif [ ! -f "$settings_kb_dir/_claude/RULES.md" ]; then
   missing "KB_DIR: $settings_kb_dir has no _claude/RULES.md. Set it to the KB clone."
 fi
-if ! grep -qsF 'Bash(bash _claude/tools/kb-search.sh *)' "$settings"; then
-  missing "allow rule: Bash(bash _claude/tools/kb-search.sh *) is not in permissions.allow in $settings."
+rule_lists="$(tr -d '\r\n' < "$settings" 2>/dev/null)"
+allow="$(printf '%s' "$rule_lists" | grep -o '"allow" *: *\[[^]]*\]')"
+ask="$(printf '%s' "$rule_lists" | grep -o '"ask" *: *\[[^]]*\]')"
+# On Windows the drive letter can differ in case, so the path rules compare without case.
+grep_rule=-qF
+[ "$os" = windows ] && grep_rule=-qiF
+for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
+  if ! printf '%s' "$allow" | grep -qF -- "$rule"; then
+    missing "allow rule: $rule is not in permissions.allow in $settings."
+  fi
+done
+if [ -n "$kb" ]; then
+  for sub in status log diff show; do
+    rule="Bash(git -C $kb_fwd $sub *)"
+    if ! printf '%s' "$allow" | grep $grep_rule -- "$rule"; then
+      missing "allow rule: $rule is not in permissions.allow in $settings."
+    fi
+  done
+  rule="Bash(git -C $kb_fwd * --output*)"
+  if ! printf '%s' "$ask" | grep $grep_rule -- "$rule"; then
+    missing "ask rule: $rule is not in permissions.ask in $settings."
+  fi
 fi
 dirs="$(tr -d '\r\n' < "$settings" 2>/dev/null | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
 if [ "$os" = windows ] && [ -n "$kb" ] && ! printf '%s' "$dirs" | grep -qiF "\"$kb_fwd\""; then
