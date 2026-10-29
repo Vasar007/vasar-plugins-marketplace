@@ -9,6 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.2.1] - 2026-10-29
+
+This release moves the shared test setup into one helper module. No plugin changes.
+
+### Changed in the repository
+
+- `tests/testkit.py`: a new module with generic test helpers. It has a test case with a temporary folder and a copy of the environment without named keys. It also has a runner for child processes, `git init`, a `pwd -W` stub for Git Bash, and `load_module`. It uses only the standard library and the syntax of Python 3.7, because another repository keeps a copy of it (issue #95).
+- `tests/test_kb_plugin.py`, `tests/test_eval_scaffolds.py`, `tests/test_backup_move.py`, `tests/test_trim_report.py`, and `tests/test_check_report.py`: they use `tests/testkit.py` instead of their own copies of the setup code (issue #95).
+- `tests/support.py`: `load_module` moved to `tests/testkit.py`. `support.py` keeps the parts that are specific to this repository (issue #95).
+- `tests/test_testkit.py`: tests for the helpers. They also make a best-effort check that `tests/testkit.py` has no syntax newer than Python 3.7. They make sure that it has no type hints and imports from the standard library only (issue #95).
+
 ## kb 0.2.0 in release [4.2.0] - 2026-10-29
 
 This release lets KB sessions run the two text checks and read-only git in the KB with no prompt. It also adds plain allow rules as a fallback.
@@ -1014,7 +1025,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...v4.1.0

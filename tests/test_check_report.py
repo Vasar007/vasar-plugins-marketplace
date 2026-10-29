@@ -21,6 +21,7 @@ from pathlib import Path
 from unittest import mock
 
 from support import REPO, load_module, tool_missing
+from testkit import ScratchCase, run
 
 SCRIPT = REPO / "essentials/dev-essentials/skills/bug-hunt/scripts/check_report.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "bug-hunt"
@@ -38,10 +39,9 @@ def edit(text, old, new):
     return text.replace(old, new, 1)
 
 
-class CheckReportCase(unittest.TestCase):
+class CheckReportCase(ScratchCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.report_dir = self.tmp / "report"
         self.report_dir.mkdir()
         self.scratch = self.tmp / "scratch"
@@ -407,8 +407,7 @@ class RealProcessScanTests(unittest.TestCase):
 
 class CommandLineTests(unittest.TestCase):
     def run_script(self, *args):
-        return subprocess.run([sys.executable, "-I", str(SCRIPT), *map(str, args)],
-                              capture_output=True, text=True, timeout=120)
+        return run([sys.executable, "-I", SCRIPT, *args], timeout=120)
 
     def test_usage_error_exits_with_2(self):
         self.assertEqual(self.run_script().returncode, 2)

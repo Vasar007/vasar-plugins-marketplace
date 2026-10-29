@@ -4,24 +4,20 @@ Each test builds a before tree and an after tree in a temporary folder and runs
 the script as a child process, as the skill does.
 """
 import os
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
-from pathlib import Path
 
 from support import REPO
+from testkit import ScratchCase, run
 
 SCRIPT = REPO / "essentials/dev-essentials/skills/trim-artifacts/scripts/trim_report.py"
 DECISION = r"(?m)^## Decision \d+\n\nQuote: .*\nDecision: .*$"
 NOTES = "# Notes\n\nREQ-1 and REQ-2 are open.\n\n## Decision 1\n\nQuote: keep it\nDecision: keep the cache\n"
 
 
-class TrimReportCase(unittest.TestCase):
+class TrimReportCase(ScratchCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.before = self.tmp / "before"
         self.after = self.tmp / "after"
 
@@ -37,15 +33,7 @@ class TrimReportCase(unittest.TestCase):
         return self.run_script("--before", self.before, "--after", self.after, *args)
 
     def run_script(self, *args):
-        return subprocess.run([sys.executable, "-I", str(SCRIPT), *map(str, args)],
-                              capture_output=True, text=True, encoding="utf-8", errors="replace",
-                              timeout=60)
-
-    def assertResult(self, result, code, *texts):
-        output = result.stdout + result.stderr
-        self.assertEqual(result.returncode, code, output)
-        for text in texts:
-            self.assertIn(text, output)
+        return run([sys.executable, "-I", SCRIPT, *args])
 
 
 class SizeTableTests(TrimReportCase):
