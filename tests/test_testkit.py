@@ -1,10 +1,12 @@
 """Tests for testkit.py, the generic test helpers."""
 import ast
+import io
 import os
 import shutil
 import stat
 import subprocess
 import sys
+import tokenize
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -15,12 +17,26 @@ from testkit import ScratchCase, clean_env, git_bash_pwd_stub, git_init, load_mo
 
 SOURCE = Path(testkit.__file__).read_text(encoding="utf-8")
 WINDOWS_PATH = "C:/Users/A&B/Notes"
+TRICKY_PATH = r"\\server\share\$HOME\it's"
 
 
 class SourceTests(unittest.TestCase):
     @unittest.skipUnless(sys.version_info >= (3, 8), "ast.parse has feature_version from Python 3.8 on")
     def test_syntax_is_valid_for_python_3_7(self):
+        """A best-effort guard: ast.parse with feature_version (3, 7), and a token check for f"{x=}" below.
+
+        Some later forms still pass, for example a with in parentheses (3.9) and return *a, *b (3.8).
+        """
         ast.parse(SOURCE, feature_version=(3, 7))
+
+    @unittest.skipUnless(hasattr(tokenize, "FSTRING_START"), "before Python 3.12, an f-string is one STRING token")
+    def test_has_no_self_documenting_f_string(self):
+        # Python 3.12 and later accept f"{x=}" under feature_version (3, 7), so look at the tokens.
+        tokens = list(tokenize.generate_tokens(io.StringIO(SOURCE).readline))
+        flagged = [first.start[0] for first, second in zip(tokens, tokens[1:])
+                   if first.type == tokenize.OP and first.string == "="
+                   and second.type == tokenize.OP and second.string in ("}", "!", ":")]
+        self.assertEqual(flagged, [])
 
     def test_has_no_type_hints(self):
         # Python 3.7 evaluates a hint such as list[str] when it defines the function, and fails.
@@ -60,6 +76,25 @@ class ScratchCaseTests(unittest.TestCase):
 
 
 class RemoveTreeTests(ScratchCase):
+    def test_runs_the_handler_when_unlink_fails(self):
+        # On Linux a read-only file does not block unlink, so make the first unlink fail.
+        folder = self.tmp / "tree"
+        folder.mkdir()
+        (folder / "a.txt").write_text("x", encoding="utf-8")
+        real_unlink = os.unlink
+        calls = []
+
+        def unlink(*args, **kwargs):
+            calls.append(args)
+            if len(calls) == 1:
+                raise PermissionError("blocked")
+            return real_unlink(*args, **kwargs)
+
+        with mock.patch("os.unlink", side_effect=unlink):
+            remove_tree(folder)
+        self.assertFalse(folder.exists())
+        self.assertEqual(len(calls), 2)
+
     def test_removes_a_tree_with_a_read_only_file(self):
         folder = self.tmp / "tree"
         (folder / "sub").mkdir(parents=True)
@@ -111,11 +146,16 @@ class PwdStubTests(ScratchCase):
         bash = shutil.which("bash")
         if bash is None:
             tool_missing(self, "bash not found")
-        bash_env = git_bash_pwd_stub(self.tmp / "bash_env.sh", WINDOWS_PATH)
-        done = run([bash, "-c", "pwd -W; pwd"], env=clean_env(BASH_ENV=bash_env), cwd=self.tmp)
-        lines = done.stdout.splitlines()
-        self.assertEqual((done.returncode, lines[0]), (0, WINDOWS_PATH), done.stderr)
-        self.assertNotEqual(lines[1], WINDOWS_PATH)
+        for expected in (WINDOWS_PATH, TRICKY_PATH):
+            with self.subTest(expected=expected):
+                bash_env = git_bash_pwd_stub(self.tmp / "bash_env.sh", expected)
+                # A CR byte breaks bash, but Path.write_text adds it only on Windows.
+                self.assertNotIn(b"\r", Path(bash_env).read_bytes())
+                done = run([bash, "-c", "pwd -W; pwd"], env=clean_env(BASH_ENV=bash_env), cwd=self.tmp)
+                lines = done.stdout.splitlines()
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertEqual(lines[:1], [expected], done.stderr)
+                self.assertNotEqual(lines[1:2], [expected])
 
 
 class LoadModuleTests(ScratchCase):

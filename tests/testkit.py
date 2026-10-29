@@ -5,6 +5,7 @@ use only the standard library, name no path of this repository, and use no synta
 """
 import importlib.util
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -63,12 +64,13 @@ def git_init(path):
 
 
 def git_bash_pwd_stub(path, windows_path):
-    """Write a bash file in which "pwd -W" prints windows_path, as Git Bash prints the Windows form of the folder.
+    """Write a bash file in which "pwd -W" prints windows_path exactly, as Git Bash prints the Windows form of the folder.
 
     Give the returned path to bash in BASH_ENV. Plain pwd stays the builtin.
     """
-    Path(path).write_text(f'pwd() {{ if [ "$1" = -W ]; then echo "{windows_path}"; else builtin pwd "$@"; fi; }}\n',
-                          encoding="utf-8")
+    text = ("pwd() { if [ \"$1\" = -W ]; then printf '%s\\n' " + shlex.quote(windows_path)
+            + "; else builtin pwd \"$@\"; fi; }\n")
+    Path(path).write_bytes(text.encode("utf-8"))
     return str(path)
 
 
