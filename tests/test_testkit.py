@@ -155,7 +155,8 @@ class PwdStubTests(ScratchCase):
                 lines = done.stdout.splitlines()
                 self.assertEqual(done.returncode, 0, done.stderr)
                 self.assertEqual(lines[:1], [expected], done.stderr)
-                self.assertNotEqual(lines[1:2], [expected])
+                self.assertEqual(len(lines), 2, done.stderr)
+                self.assertNotEqual(lines[1], expected)
 
 
 class LoadModuleTests(ScratchCase):
