@@ -7,24 +7,23 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 from support import REPO, tool_missing
+from testkit import ScratchCase, git_init, run
 
 SCRIPT = REPO / "essentials/dev-essentials/scripts/backup_move.py"
 
 
-class BackupMoveCase(unittest.TestCase):
+class BackupMoveCase(ScratchCase):
     def setUp(self):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.ws = self.tmp / "ws"
         self.ws.mkdir()
-        subprocess.run(["git", "init", "-q", str(self.ws)], check=True, capture_output=True)
+        git_init(self.ws)
         self.backup = self.tmp / "backup"
 
     def write(self, rel, content="note\n"):
@@ -37,18 +36,10 @@ class BackupMoveCase(unittest.TestCase):
         subprocess.run(["git", "-C", str(self.ws), "add", "--", rel], check=True, capture_output=True)
 
     def run_script(self, *args, env=None):
-        return subprocess.run([sys.executable, "-I", str(SCRIPT), *map(str, args)],
-                              capture_output=True, text=True, encoding="utf-8", errors="replace",
-                              timeout=60, env=env)
+        return run([sys.executable, "-I", SCRIPT, *args], env=env)
 
     def run_move(self, *args):
         return self.run_script("--workspace", self.ws, "--backup", self.backup, *args)
-
-    def assertResult(self, result, code, *texts):
-        output = result.stdout + result.stderr
-        self.assertEqual(result.returncode, code, output)
-        for text in texts:
-            self.assertIn(text, output)
 
 
 class PlanAndApplyTests(BackupMoveCase):

@@ -12,17 +12,15 @@ import json
 import os
 import re
 import shutil
-import stat
 import subprocess
 import sys
-import tempfile
 import time
 import unittest
 from types import SimpleNamespace
-from pathlib import Path
 
 from support import REPO, tool_missing
 from test_eval_cases import load_cases, plugin_roots
+from testkit import ScratchCase, remove_tree, run
 
 SCAFFOLD_SECONDS = 120
 DOTNET_SECONDS = 900
@@ -71,15 +69,6 @@ public sealed class FailingProbeTests
 """
 
 
-def remove_tree(path):
-    """Delete a folder. Git makes read-only files on Windows."""
-    def fix(function, target, error):
-        os.chmod(target, stat.S_IWRITE)
-        function(target)
-
-    shutil.rmtree(path, onexc=fix)
-
-
 def scaffold_cases():
     """The (case, script path) pairs of every case that names a scaffold script."""
     pairs = []
@@ -121,7 +110,7 @@ class GraderBranchTests(unittest.TestCase):
         self.assertIn("no-push", problems[0])
 
 
-class FixtureCase(unittest.TestCase):
+class FixtureCase(ScratchCase):
     """Helpers to run bash and git in a temporary folder."""
 
     def setUp(self):
@@ -130,8 +119,7 @@ class FixtureCase(unittest.TestCase):
             tool_missing(self, "bash not found")
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(remove_tree, self.tmp)
+        super().setUp()
         self.home = self.tmp / "home"
         self.home.mkdir()
 
@@ -150,8 +138,7 @@ class FixtureCase(unittest.TestCase):
         return folder
 
     def run_bash(self, arguments, cwd, timeout=SCAFFOLD_SECONDS, skip_dotnet=True):
-        done = subprocess.run([self.bash, *arguments], cwd=cwd, env=self.environment(skip_dotnet), capture_output=True,
-                              text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        done = run([self.bash, *arguments], env=self.environment(skip_dotnet), cwd=cwd, timeout=timeout)
         self.assertEqual(done.returncode, 0, f"bash {arguments} failed:\n{done.stdout}\n{done.stderr}")
         return done.stdout
 

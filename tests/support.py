@@ -1,9 +1,10 @@
 """Paths and helpers that the repository tests share."""
-import importlib.util
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+from testkit import load_module  # Re-export: three test files import it from here.
 
 # Keep __pycache__ folders out of the plugin folders, which ship to users.
 sys.dont_write_bytecode = True
@@ -29,13 +30,6 @@ def tracked_markdown_files():
     out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", "*.md"],
                          capture_output=True, text=True, check=True).stdout
     return sorted(p for p in without_vendored(out.split("\0")) if p and (REPO / p).is_file())
-
-
-def load_module(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def tool_missing(test, message):

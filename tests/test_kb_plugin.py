@@ -6,11 +6,11 @@ import json
 import os
 import shutil
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 from support import REPO, tool_missing
+from testkit import ScratchCase, clean_env, git_bash_pwd_stub, git_init, run
 
 PLUGIN = REPO / "knowledge/kb"
 LAUNCHER = PLUGIN / "scripts/kb-hook.sh"
@@ -37,18 +37,15 @@ def rules(kb_path):
     return allow, [f"Bash(git -C {kb_path} * --output*)"]
 
 
-class BashCase(unittest.TestCase):
+class BashCase(ScratchCase):
     def setUp(self):
         self.bash = shutil.which("bash")
         if self.bash is None:
             tool_missing(self, "bash not found")
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
 
     def env(self, **extra):
-        env = {k: v for k, v in os.environ.items() if k not in ("KB_DIR", "CLAUDE_PROJECT_DIR")}
-        env.update(extra)
-        return env
+        return clean_env(("KB_DIR", "CLAUDE_PROJECT_DIR"), **extra)
 
     def make_clone(self, root):
         """A fake KB clone whose hook scripts print their name and their stdin, and exit with a set code."""
@@ -61,8 +58,7 @@ class BashCase(unittest.TestCase):
         return root
 
     def launch(self, name, cwd, stdin="", **env):
-        return subprocess.run([self.bash, str(LAUNCHER), name], cwd=cwd, env=self.env(**env), input=stdin,
-                              capture_output=True, text=True, timeout=30)
+        return run([self.bash, LAUNCHER, name], stdin=stdin, env=self.env(**env), cwd=cwd, timeout=30)
 
 
 class LauncherTests(BashCase):
@@ -190,15 +186,14 @@ class CheckScriptTests(BashCase):
         return self.env(**values)
 
     def run_check(self, home, **extra):
-        return subprocess.run([self.bash, str(CHECK)], cwd=self.tmp, env=self.check_env(home, **extra),
-                              capture_output=True, text=True, timeout=30)
+        return run([self.bash, CHECK], env=self.check_env(home, **extra), cwd=self.tmp, timeout=30)
 
     def make_clone_with_hooks_path(self, root):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
         (root / "_claude").mkdir(parents=True)
         (root / "_claude/RULES.md").write_text("rules\n", encoding="utf-8")
-        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        git_init(root)
         subprocess.run(["git", "-C", str(root), "config", "core.hooksPath", "_claude/git-hooks"], check=True)
         return root
 
@@ -223,15 +218,11 @@ class CheckScriptTests(BashCase):
     def use_windows_stubs(self, scheduled=True):
         self.stub("uname", "echo MINGW64_NT-10.0")
         self.stub("schtasks.exe", "exit 0" if scheduled else "exit 1")
-        # In Git Bash, "pwd -W" prints the Windows form of the current folder.
-        bash_env = self.tmp / "bash_env.sh"
-        bash_env.write_text(f'pwd() {{ if [ "$1" = -W ]; then echo "{self.WIN_KB}"; else builtin pwd "$@"; fi; }}\n',
-                            encoding="utf-8")
-        return str(bash_env)
+        return git_bash_pwd_stub(self.tmp / "bash_env.sh", self.WIN_KB)
 
     def run_complete(self, home, clone, gitconfig, **extra):
-        return subprocess.run([self.bash, str(CHECK)], cwd=self.tmp, capture_output=True, text=True, timeout=30,
-                              env=self.check_env(home, **{"KB_DIR": str(clone), "GIT_CONFIG_GLOBAL": str(gitconfig), **extra}))
+        env = self.check_env(home, **{"KB_DIR": str(clone), "GIT_CONFIG_GLOBAL": str(gitconfig), **extra})
+        return run([self.bash, CHECK], env=env, cwd=self.tmp, timeout=30)
 
     @staticmethod
     def missing_lines(done):
