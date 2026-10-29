@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.7.1 and doc-styles 1.0.1 in release [4.1.1] - 2026-10-28
+
+This release moves the eval stand-in plugins out of the plugin folders. The claude.ai sync skipped `dev-essentials` and `doc-styles`, because each held a second `.claude-plugin/plugin.json` below its root. No skill, agent, or command changes.
+
+### Fixed in dev-essentials
+
+- `eval-stubs/github`: the stand-in for the GitHub server moved to `tests/evals/stubs/github`. The claude.ai sync skipped the plugin from 3.4.2 on, because the stand-in had its own manifest. The cases that load it now run only through `tests/evals/compare_versions.py`.
+
+### Fixed in doc-styles
+
+- `eval-stubs/simple-english`: the stand-in moved to `tests/evals/stubs/simple-english` for the same reason. The claude.ai sync did not sync 1.0.0.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: `run` and `baseline` copy each folder of `tests/evals/stubs/` into `eval-stubs/` of the plugin copy. A `run` uses the stand-ins of the head on both sides. `tests/evals/test_compare_versions.py` tests the copy.
+- `tests/test_claude_ai_sync.py`: if a tracked file of a plugin is in a `.claude-plugin` folder below the plugin root, a new test fails.
+- `tests/test_eval_cases.py`: if `tests/evals/stubs/<name>` is a plugin folder, a `plugins` entry `eval-stubs/<name>` is valid.
+- `tests/test_eval_stubs.py`, `tests/support.py`, `.gitignore`, and `README.md`: the new path of the stand-ins.
+
 ## kb 0.1.0 in release [4.1.0] - 2026-10-28
 
 This release adds the plugin `kb`. It wires Claude Code to a personal knowledge base that lives in a git repository. No other plugin changes its version.
@@ -975,7 +994,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...HEAD
+[4.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.10.0...v4.0.0
 [3.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v3.9.0...v3.10.0

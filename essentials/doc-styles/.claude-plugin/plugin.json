@@ -1,6 +1,6 @@
 {
   "name": "doc-styles",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A writing style for technical documents. Its skill writes docs in the style of the OpenBSD manual pages.",
   "author": {
     "name": "Vasily Vasilyev",

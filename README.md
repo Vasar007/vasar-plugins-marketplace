@@ -173,7 +173,7 @@ These items at the repository root are not part of a plugin:
 - `.gitattributes` makes GitHub count the `.md` files in the language statistics of the repository.
 - `.github/workflows/tests.yml` runs the tests in CI.
 - `.markdownlint.jsonc` holds the markdownlint rules for the `.md` files.
-- `tests/` holds the tests of the repository.
+- `tests/` holds the tests of the repository. `tests/evals/stubs/` holds the stand-in plugins of the eval cases. They are outside the plugin folders, because the claude.ai sync skips a plugin that holds a second `.claude-plugin/plugin.json`.
 
 ### Rules for `marketplace.json`
 
@@ -181,7 +181,7 @@ Each plugin has one entry in `.claude-plugin/marketplace.json` with the fields `
 
 ### Rules for `plugin.json`
 
-Keep `plugin.json` to metadata and dependencies: `name`, `version`, `description`, `author`, `repository`, `keywords`, `dependencies`, and `userConfig`. A plugin can use a skill or an agent of another plugin of this marketplace. Then list that plugin in `dependencies` by its bare name, for example `"dependencies": ["dev-essentials"]`. Do not add a version range. A range resolves against release tags of the form `<plugin>--v<version>`, and this repository has no such tags. For the field, see [Plugin dependencies](https://code.claude.com/docs/en/plugins/dependencies). Do not set `$schema`. Claude Code accepts it, but the claude.ai sync strips it and shows a warning. Copy the values of `author` and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
+Keep `plugin.json` to metadata and dependencies: `name`, `version`, `description`, `author`, `repository`, `keywords`, `dependencies`, and `userConfig`. A plugin can use a skill or an agent of another plugin of this marketplace. Then list that plugin in `dependencies` by its bare name, for example `"dependencies": ["dev-essentials"]`. Do not add a version range. A range resolves against release tags of the form `<plugin>--v<version>`, and this repository has no such tags. For the field, see [Plugin dependencies](https://code.claude.com/docs/en/plugins/dependencies). A plugin folder holds no other `.claude-plugin` folder, because the claude.ai sync skips such a plugin. Do not set `$schema`. Claude Code accepts it, but the claude.ai sync strips it and shows a warning. Copy the values of `author` and `repository` from the `plugin.json` of an existing plugin of this marketplace, for example `essentials/dev-essentials/.claude-plugin/plugin.json`. The plugins of this marketplace do not set the fields `skills`, `agents`, or `commands`. Claude Code finds the components in their default folders. For all fields, see the [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference).
 
 ### Validating
 
@@ -244,6 +244,8 @@ A plugin with dependencies must run through this script. `claude plugin eval` lo
 
 To copy a plugin that the manifest does not list, pass `--extra-dep <name>` to `run` or `baseline` (repeat it for more plugins). The script copies it the same way, and a case lists it in `plugins`. The trigger cases of `doc-styles` use this for `dev-essentials`, because `doc-styles` must stay free of dependencies. The test `tests/test_eval_cases.py` accepts such a copy only for a plugin in `EVAL_ONLY_DEPS`. `baseline` also takes `--ablation none|with-without` (default `none`) and `--keep-temp`.
 
+The script also copies each folder of `tests/evals/stubs/` into `eval-stubs/` of each plugin copy. A `run` uses the stand-ins of the head commit on both sides. A case entry points to `eval-stubs/<name>` of the plugin under test, for example `../../../eval-stubs/github`, so the case loads only through the script.
+
 To record the result of one commit with no comparison, use `baseline`. It runs the suite at one commit with the same copy logic and writes `baseline.json` into the `--out` folder. If this file already exists, the script stops. This example records the trigger cases of `dotnet-backend-dev`:
 
 ```bash
@@ -279,7 +281,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 
 The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag feature-pipeline` runs 13 cases, and `--tag write-tests` runs 4 cases.
 
-The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `essentials/doc-styles/eval-stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
+The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `tests/evals/stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
 
 Run the suites through the compare script, because the cases of `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 
@@ -295,7 +297,7 @@ mkdir -p "$TMPDIR"
 python3 tests/evals/compare_versions.py baseline --plugin essentials/dev-essentials --commit <branch> --model <model id> --judge-model <model id> --scaffold --runs 3 --concurrency 3 --max-cost-usd <usd> --tag review-loop --out <folder> --allow-tools Bash Write Edit
 ```
 
-A `scaffold.sh` script builds the repository of a case. It sources the functions in `evals/_lib/` of its plugin. The repository has a bare remote in `.remote/origin.git`, and each fixture commit has a subject that starts with `fixture:`. The cases with `mocks` answer the calls to the GitHub tools with mock files. They load the stand-in plugin in `essentials/dev-essentials/eval-stubs/github`, which declares the name of the server. The stand-in is outside `evals/`, because `claude plugin eval` refuses a plugin that sits in the eval folder of the case.
+A `scaffold.sh` script builds the repository of a case. It sources the functions in `evals/_lib/` of its plugin. The repository has a bare remote in `.remote/origin.git`, and each fixture commit has a subject that starts with `fixture:`. The cases with `mocks` answer the calls to the GitHub tools with mock files. They load the stand-in plugin in `tests/evals/stubs/github`, which declares the name of the server. The compare script copies the stand-in into `eval-stubs/` of the plugin copy. It is not in the plugin folder, because the claude.ai sync skips a plugin with a nested manifest. It is not in `evals/`, because `claude plugin eval` refuses a plugin that sits in the eval folder of the case. `claude plugin eval` also loads only plugins below the plugin under test.
 
 The .NET cases need `-m:1`. The sandbox blocks the Unix sockets that the worker nodes of MSBuild need, so a plain `dotnet build` or `dotnet test` of a solution fails. With `-m:1`, MSBuild builds in one process, and the build works. So the prompt of each .NET case tells the agent to pass `-m:1`. The grader `route-plain-dotnet` counts the plain calls. A run has no network. The scaffold of a .NET case restores the packages into the shared folder `/tmp/plugin-evals/nuget`. Then it copies them into the home folder of the run, because the run cannot read `/tmp`.
 

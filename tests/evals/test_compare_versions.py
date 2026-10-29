@@ -541,8 +541,11 @@ class DependencyTests(CompareCase):
         """Stand-in for claude plugin eval: record the dependency copy that the plugin folder holds."""
         plugin = Path(command[3])
         copy_of_helper = plugin / ".deps" / "helper" / "skills" / "helper" / "SKILL.md"
+        stub_manifest = plugin / "eval-stubs" / "github" / ".claude-plugin" / "plugin.json"
         self.calls.append({"command": command, "helper": copy_of_helper.read_text() if copy_of_helper.is_file() else None,
-                           "deps": sorted(p.name for p in (plugin / ".deps").glob("*"))})
+                           "deps": sorted(p.name for p in (plugin / ".deps").glob("*")),
+                           "stubs": sorted(p.name for p in (plugin / "eval-stubs").glob("*")),
+                           "stub": stub_manifest.read_text() if stub_manifest.is_file() else None})
         Path(command[command.index("--json") + 1]).write_text(json.dumps(RESULT), encoding="utf-8")
         return SimpleNamespace(returncode=0)
 
@@ -604,6 +607,43 @@ class DependencyTests(CompareCase):
         self.assertEqual([c["helper"] for c in self.calls], ["new helper\n"])
         self.assertEqual(sorted(p.name for p in (self.tmp / "out").glob("*.json")), ["baseline.json"])
         self.assertIn(f"at {head_sha[:12]}", out)
+
+    def test_stubs_are_copied_into_the_plugin_copy(self):
+        self.write_file("tests/evals/stubs/github/.claude-plugin/plugin.json", '{"name": "github"}\n')
+        self.commit("stub")
+        code, out, err = self.run_main(*self.baseline_args())
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["stubs"] for c in self.calls], [["github"]])
+
+    def test_both_sides_of_a_run_get_the_stubs_of_the_head(self):
+        self.write_file("group/demo/eval-stubs/github/.claude-plugin/plugin.json", "old")
+        self.commit("old stub in the plugin")
+        base = self.git("rev-parse", "HEAD").strip()
+        self.git("rm", "-rq", "group/demo/eval-stubs")
+        self.write_file("tests/evals/stubs/github/.claude-plugin/plugin.json", "new")
+        self.commit("stub moves out")
+        code, out, err = self.run_main(*self.run_args(base=base))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["stub"] for c in self.calls], ["new", "new"])
+
+    def test_baseline_at_a_commit_without_the_stub_folder_keeps_the_stub_of_its_plugin(self):
+        self.write_file("group/demo/eval-stubs/github/.claude-plugin/plugin.json", "old")
+        self.commit("old stub in the plugin")
+        code, out, err = self.run_main(*self.baseline_args())
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["stub"] for c in self.calls], ["old"])
+
+    def test_a_run_with_an_old_head_gives_the_base_the_stub_of_the_head(self):
+        self.write_file("tests/evals/stubs/github/.claude-plugin/plugin.json", "new")
+        self.commit("stub moves out")
+        base = self.git("rev-parse", "HEAD").strip()
+        self.git("checkout", "-q", "-b", "old", self.base_sha)
+        self.write_file("group/demo/evals/triggers/fires/prompt.md", "Do the demo task.\n")
+        self.write_file("group/demo/eval-stubs/github/.claude-plugin/plugin.json", "old")
+        self.commit("head with the old layout")
+        code, out, err = self.run_main(*self.run_args(base=base))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["stub"] for c in self.calls], ["old", "old"])
 
     def test_copy_of_the_dependency_has_no_eval_cases(self):
         self.write_file("tools/helper/evals/triggers/helper-fires/prompt.md", "Do the helper task.\n")
