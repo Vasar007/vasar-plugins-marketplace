@@ -14,7 +14,6 @@ argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--ba
 
 # Bug hunt
 
-This skill finds new potential bugs in a whole project and saves one verified bug report.
 The main session is the orchestrator. It plans the run and dispatches the agents.
 
 Earlier runs forgot two rules most often: the orchestrator checks only the structure of the
@@ -128,7 +127,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 8. Run format
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
-meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the run format is accepted, rule 3
+meta-plan states it, and the table in "Autonomy" says what accepts it. After the run format is accepted, rule 3
 replaces tiers 1 and 2 of the section `Trust but verify` of
 `dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
 claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
@@ -174,16 +173,7 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 ### Step 0. Meta-plan and questions
 
-Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
-
-1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
-2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
-3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
-4. Look for `simple-english:simple-english` in the list of available skills.
-5. Write the meta-plan in chat, with every part that the reference file lists.
-6. Ask only questions that block the run.
-7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md), and follow its section "Step 0 procedure".
 
 ### Step 1. Isolation
 
@@ -235,8 +225,8 @@ at the end of the Summary. Then run the structure check for step 5.
 First, delete the scheduled jobs of the run: run `CronList`, and run `CronDelete` for each job
 ID that the session progress file records.
 
-Dispatch the cleanup helper. Give it the process IDs and start times from the WARN lines of the
-structure check. Give it the exact list of paths to delete:
+Dispatch the cleanup helper. Give it the process IDs and start times that the session progress file records from the WARN
+lines of the structure checks. Give it the exact list of paths to delete:
 
 - The scratch folder, with the snapshots, the digest, the tools folder, and every work folder.
 - Every `_bug-hunt-progress-*.md` file in the report folder.

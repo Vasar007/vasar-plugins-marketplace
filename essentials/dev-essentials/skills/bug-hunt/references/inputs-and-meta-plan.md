@@ -1,6 +1,17 @@
 # Inputs and meta-plan
 
-The orchestrator reads this file at step 0. After the OK of the user, or the default approval, the session progress file holds the approved values. Later steps do not need this file. Rule and step numbers refer to `SKILL.md`.
+The orchestrator reads this file at step 0 and follows "Step 0 procedure". After the OK of the user, or the default approval, the session progress file holds the approved values. Later steps do not need this file. A resume reads item 2 again only to pick a new scratch folder. Rule and step numbers refer to `SKILL.md`. Item numbers refer to "Step 0 procedure".
+
+## Step 0 procedure
+
+1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Take the GitHub repository as the Inputs table says. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
+2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
+3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
+4. Look for `simple-english:simple-english` in the list of available skills.
+5. Write the meta-plan in chat, with every part that "Parts of the meta-plan" lists.
+6. Ask only questions that block the run.
+7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
+8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" lists. If a start time is set, schedule the start as [pauses.md](pauses.md) says, and end the turn.
 
 ## Inputs
 
@@ -71,7 +82,7 @@ Ask a question in these cases:
 
 ## Session progress file
 
-At step 0 item 8 of `SKILL.md`, write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
+At item 8 of "Step 0 procedure", write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
 
 - The inputs, the commit SHAs, the base source, and the scratch folder.
 - The approved models and effort levels.
