@@ -120,7 +120,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
 - Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
-- Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
+- Pass `model` and `effort` on every dispatch of the plugin agents `dev-essentials:bug-hunter`, `dev-essentials:bug-verifier`, and `dev-essentials:bug-report-auditor`. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
