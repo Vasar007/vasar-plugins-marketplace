@@ -31,7 +31,7 @@ A reply about a fix posts right before the push (`commit-push-resolve.md` § "Wh
 3. Run this test for each thread that goes on to Phase 3: a `fresh-unhandled` thread, and a thread that the guard above sent to Phase 3. If a commit names the thread, derive `unconfirmed-commit-claim` instead. Set `claimSource` to `local-commit` and `claimedSha` to the newest such commit. Do not send the thread to Phase 3.
 4. Report: `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — push it and post its reply, or handle it separately?`
 
-With `no-commit` or `dry-run`, the run pushes no commit. So the report offers no "push it" option for this thread. It reports `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question. The commit stays local and its reply stays unposted.
+With `no-reply`, `no-commit`, or `dry-run`, the report is `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question (§ "Report modes").
 
 Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-resolve.md` § "Threads carried over from an earlier cycle").
 
@@ -39,9 +39,10 @@ Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-res
 
 These rules apply to the two outcomes below:
 
-- With neither `dry-run` nor `no-reply`, take the default action of the outcome.
+- With none of `dry-run`, `no-reply`, and `no-commit`, take the default action of the outcome.
 - With `no-reply`, ask the user no question. Print the report line of the outcome, and the human handles the thread.
 - With `dry-run`, print the same report line, with no question.
+- With `no-commit`, `cured` takes its default action. `unconfirmed-commit-claim` asks no question, because the run cannot push (Rules in `SKILL.md`). Print its report line, and the human handles the thread.
 
 ## `cured`
 
@@ -68,4 +69,4 @@ In each case, nothing shows yet that the commit claim is safe to report as ready
 - Do not treat the thread as fresh or unhandled, and do not implement anything new on it.
 - No flag skips this outcome, also not `autonomous`. An unconfirmed SHA needs the input of a human.
 - Report: `T#<id> already has an AI reply about a committed fix (commit <sha-or-"unspecified">) that can't be confirmed safe to report as ready — <hasn't landed on the remote yet | this checkout can't resolve the SHA locally | no SHA could be extracted from the reply>.`
-- Leave the thread as it is until the user answers. The orchestrating session asks the question (see "Dispatch model" in `SKILL.md`). Phase 4 uses the answer (see `commit-push-resolve.md`).
+- Leave the thread as it is until the user answers. The orchestrating session asks the question, unless § "Report modes" turns it into a report line (see "Dispatch model" in `SKILL.md`). Phase 4 uses the answer (see `commit-push-resolve.md`).
