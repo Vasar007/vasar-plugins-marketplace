@@ -87,7 +87,7 @@ The reviewer wants an explanation. A wrong public answer under the identity of t
 - Draft format: a claim, the reasoning, and a citation (file and line range, an existing test, or linked documentation).
 - Show the draft to the human in chat first. Ask: `Post this [Question] reply to T#<thread-id>? (yes / edit / skip)`.
 - Only after `yes`, post `**[AI][Draft]** <answer in 1–3 short sentences>. See <file:line> / <test> / <doc link>.\n\n*Draft pending author confirmation.*` The reply joins the batch, and it posts with the other replies of the cycle.
-- On `edit`, use the revision of the human, and ask again.
+- On `edit`, use the revision of the human, and ask again. If the `yes` comes after the batch posted, the reply follows the rule for a reply that misses its batch (Rules in `SKILL.md`).
 - On `skip`, add the comment to `processedCommentIds` with `action: "skipped"` and `replyPosted: false`. Do not post.
 - If you do not know the answer, say so. Show the uncertainty in chat, and ask the human. Never post a guess.
 
@@ -116,6 +116,10 @@ Issue flow:
 4. Use only the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.` The reply posts in the same batch.
 
 The `Tracked as issue` reply is the record that stops a second issue for the same thread. So the issue and its reply come at the same point. If the batch does not post, Task Composer creates no issue. A later run then finds no reply on the thread, and runs this flow again. If the `mode: create` call fails, the reply of this thread does not post, and the other replies of the batch still post.
+
+An issue can exist while its reply did not post. Then the entry of the thread keeps the issue number in `issueNumber` (`thread-state-schema.md`). The reply misses its batch (Rules in `SKILL.md`). The next try in the session uses that number, and Task Composer creates no second issue. Task Composer puts no thread link in the issue body. So a later run in a new session cannot find the issue, and can create a second one.
+
+With `no-reply`, no batch posts, so Task Composer creates no issue, also after an approval. The cycle log shows the thread as `issue pending` with the approved title, and says that `no-reply` held it.
 
 If the user declines, or wants to defer: reply `**[AI]** Noted — will not track separately yet.` Create no issue.
 

@@ -48,7 +48,7 @@ Repeat steps 1 to 4 for every thread of the cycle before the push.
 
 ## When replies post
 
-Every thread reply of the cycle is a pending reply, in every mode. Stage 2 writes it at once, and does not post it yet. All pending replies post in one batch. So the user sees each reply before it goes out, and a reply about code describes the code that the push sends. The batch holds these replies:
+Every thread reply of the cycle is a pending reply, in every mode. Stage 2 writes it at once, and does not post it yet. All pending replies post in one batch. With a push to make and without `autonomous`, the user sees the batch with the go-ahead question. A reply about code describes the code that the push sends. The batch holds these replies:
 
 - Each reply about a fix of this cycle (step 4), and the reply of a `deep-fix` thread (`deep-fix.md`).
 - Each `**[AI][Draft]**` reply of Phase 3b step 6 (`automated-review-verification.md`).
@@ -56,14 +56,15 @@ Every thread reply of the cycle is a pending reply, in every mode. Stage 2 write
 - The `**[AI][Draft]**` reply of a draft-first override (`show me a draft first`, `don't commit yet`, or `let me see the diff`, in `SKILL.md` Phase 3).
 - The `[Question]` and `[ToDiscuss]` replies (`tag-actions.md`).
 - The `[OutOfScope]` replies. Task Composer creates an approved issue right before the batch posts, so that the `Tracked as issue` reply can name it (`tag-actions.md` § "`[OutOfScope]`").
+- Each pending reply of an earlier cycle that missed its batch (Rules in `SKILL.md`).
 
-A reply that waits for an answer of the user joins the batch only after the answer. An example is a `[Question]` draft before its `yes`. Without an answer, the reply stays pending.
+A draft reply is in the batch as written, also while its open item waits for an answer. Only its code change waits. The one exception is a `[Question]` draft: it joins the batch only after its `yes` (`SKILL.md` § "Who talks to the user").
 
 The batch posts at one point of the cycle, after Stage 2 finished its open items (`SKILL.md` § "Who talks to the user"). The Rules in `SKILL.md` define a push to make and the rules of `no-commit` and `dry-run`:
 
-1. If the cycle has a push to make, they post after the go-ahead. With `autonomous`, they post at once. In the one case of the Rules that still asks, they post only after the user gives the go-ahead. The orchestrating session resumes Stage 2, and Stage 2 posts them. Then the orchestrating session pushes. On a `deep-fix` cycle, Stage 3b posts them (`deep-fix.md`).
+1. If the cycle has a push to make, they post after the go-ahead. With `autonomous`, they post after the answers to the open items. In the one case of the Rules that still asks, they post only after the user gives the go-ahead. The orchestrating session resumes Stage 2, and Stage 2 posts them. Then the orchestrating session pushes. On a `deep-fix` cycle, Stage 3b posts them (`deep-fix.md`).
 2. If the cycle has no push to make, Stage 2 posts them at the end of Phase 4, after its open items, before Phase 5. Stage 2 knows this, because it gets every step 5 answer in its brief (`SKILL.md` § "Who talks to the user"). `dry-run` is the one exception: it posts nothing.
-3. If the cycle has a push to make but the push does not come, they stay unposted. Examples are no go-ahead and a user who declines. The cycle log shows each one as `reply pending` or `draft pending`, with its text. Task Composer creates no issue. A later go-ahead in the same session posts them, and then pushes. If the session ends first, the replies are lost. Then a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply"). A thread with no fix and no posted reply is `fresh-unhandled` in a later run, so the run handles it again from the start.
+3. If the cycle has a push to make but the push does not come, they stay unposted. Examples are no go-ahead and a user who declines. The cycle log shows each one as `reply pending` or `draft pending`, with its text. Task Composer creates no issue. The replies then follow the rule for a reply that misses its batch (Rules in `SKILL.md`). For example, a later go-ahead in the same session posts them, and then pushes. If the session ends first, a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply"). A thread with no fix and no posted reply is `fresh-unhandled` in a later run, so the run handles it again from the start.
 
 A `deep-fix` run that ended `stop-blocked` is different. Bucket B in `SKILL.md` forbids any push of that cycle, so no later go-ahead posts the replies or pushes. The replies stay unposted. The way back is a fix forward, or a reset of the branch (`deep-fix.md`), and then a new invocation of the skill.
 
@@ -81,7 +82,7 @@ The orchestrating session pushes after steps 1 to 4 ran for every thread of the 
 
 ## Resolve threads and report
 
-This step runs after the push of this cycle succeeds. It covers two groups of threads: (a) the threads that this cycle committed and replied to, and (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle.
+This step runs after the push of this cycle succeeds. It covers two groups of threads: (a) the threads that this cycle committed and replied to, and (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle. Group (a) also holds a thread of an earlier cycle whose reply missed its batch and posted in this batch.
 
 **Group (a), the threads of this cycle**. Skip a thread with `openFindingsMarker: true` (see `deep-fix.md`). For each other thread, run the ancestry check (`thread-state-schema.md` § "Ancestry check") for its commit SHA against `<pushed-tip>`. `<pushed-tip>` is the commit or branch state that the push of this cycle produced, not the remote-tracking ref.
 

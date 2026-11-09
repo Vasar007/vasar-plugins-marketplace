@@ -39,7 +39,8 @@ The entry shape below is logical. Keep it in any form that works in the turn.
 Rules for writing to the set:
 
 - Add an entry only after the action of the comment, or an explicit decision to skip it, completed without error.
-- After a temporary failure (an MCP timeout, a rejected file write), leave the comment unprocessed, so that the next cycle tries again.
+- After a temporary failure (an MCP timeout, a rejected file write), leave the comment unprocessed, so that the next cycle tries again. A failed post of a pending reply is the case below, not this one.
+- A pending reply that missed its batch (Rules in `SKILL.md`) has an entry with `replyPosted: false`. The same session does not handle the comment again, and the reply joins the next batch of the session.
 - A skip because of the `tags` filter is not an "explicit skip". Do not add the comment to the set. A later invocation with other `tags` must see the comment again.
 - A skip of a `[Note]` or untagged comment with no action IS an "explicit skip". Add the comment to the set with `action: "noted"`.
 
@@ -56,7 +57,7 @@ Fields:
 | `replyPosted` | yes | `false` with `dry-run` or `no-reply`, and while the reply is pending (`commit-push-resolve.md` § "When replies post"). |
 | `replyCommentId` | optional | The ID that `add_reply_to_pull_request_comment` returns, for the user to look up. |
 | `editedFiles` | optional | The files that this action touched. Empty for drafts and notes. |
-| `issueNumber` | optional | Set after `[OutOfScope]` tracking created a GitHub issue. |
+| `issueNumber` | optional | Set right after `[OutOfScope]` tracking created a GitHub issue. This holds also for an issue whose reply did not post. A next try of that reply in the session uses this number, and creates no second issue (`tag-actions.md` § "`[OutOfScope]`"). |
 | `cycleNumber` | yes | Starts at 1, and goes up by one in each cycle. |
 | `timestamp` | yes | The time in ISO 8601 UTC at which the action completed. |
 
@@ -213,7 +214,7 @@ Stage 1 derives these states with the logic of `committed-fix-state.md`, exactly
 | `assessedState` | Step 5 outcome | What Stage 2 does |
 | --- | --- | --- |
 | `fresh-unhandled` | No `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. | The normal classification of Phase 3. |
-| `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, do not act on the thread in this cycle, and print the `unconfirmed-commit-claim` report line. The next cycle asks the question. If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
+| `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, do not act on the thread in this cycle, and print the `unconfirmed-commit-claim` report line. The next cycle derives the state again, and asks the question (or prints a report line, `committed-fix-state.md` § "Report modes"). If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
 | `unconfirmed-commit-claim` | The merged case of step 5: not yet an ancestor, or the SHA does not resolve in this checkout, or no clear SHA came out of the reply. Or an unpushed local commit names the thread with no reply about it (`claimSource: local-commit`). | The orchestrating session asks the question of step 5, and the thread waits for the answer. Or it prints a report line (`committed-fix-state.md` § "Report modes"). `autonomous` does not skip the question. Nothing new is implemented on this thread. |
 | `already-assessed` | The newest AI reply is final, but claims no commit (`**[AI][Draft]**`, `Tracked as issue #<id>`, a `[Note]` acknowledgement, and the like). | Leave the thread alone, unless `newerHumanReply` is `true`. |
 
@@ -245,7 +246,7 @@ Next cycle in <interval> (via /loop).
 | `answer drafted` | A `[Question]` answer is drafted as `**[AI][Draft]**`. After the `yes` of the user, it posts in the batch. |
 | `discussion flagged` | A `[ToDiscuss]` thread is shown to the user, with no reply. |
 | `verdict: <enum>` | The AutoReview path. Add the verdict and the confidence. |
-| `issue pending` | An `[OutOfScope]` issue is approved, and waits for the batch. Task Composer creates it right before the batch posts. |
+| `issue pending` | An `[OutOfScope]` issue is approved, and waits for the batch. Task Composer creates it right before the batch posts. With `no-reply`, the line adds the approved title and `held by no-reply`, and no issue is created. |
 | `tracked #<id>` | An `[OutOfScope]` issue is created. |
 | `noted` | A `[Note]` or untagged comment, summed up in chat. |
 | `pattern flagged` | A `[Repetition]` thread, shown with the count of occurrences. |
@@ -260,11 +261,11 @@ Next cycle in <interval> (via /loop).
 
 - `reply posted`: the `**[AI]**` reply was sent.
 - `draft posted`: the `**[AI][Draft]**` reply was sent, and waits for the approval of a human.
-- `reply pending`: the `**[AI]**` reply is written, and waits for the batch of the cycle (`commit-push-resolve.md` § "When replies post"). The batch waits for the push or for an answer of the user. The log prints its text.
+- `reply pending`: the `**[AI]**` reply is written, and waits for the batch of the cycle (`commit-push-resolve.md` § "When replies post"). A reply that missed its batch waits for the next batch of the session (Rules in `SKILL.md`). The log prints its text.
 - `draft pending`: the `**[AI][Draft]**` reply waits in the same way.
 - `no reply (dry-run)` or `no reply (no-reply)`: the parameter flag stopped the reply.
 - `no reply (awaiting approval)`: the action did not run, because it needs the approval of a human.
-- `reply failed — <short reason>`: an MCP error. The next cycle tries again.
+- `reply failed — <short reason>`: an MCP error. The reply stays pending, and joins the next batch of the session (Rules in `SKILL.md`).
 - `resolved (this cycle's push landed it)`: the fix is committed, replied to, and pushed, and the skill resolved the thread with `pull_request_review_write` `method: resolve_thread` (see `commit-push-resolve.md`).
 - `reply posted, pending push`: the reply posted right before the push, but the push failed. The thread is not resolved yet.
 - `pushed, resolve failed — <short reason>`: the commit is pushed and is on the remote, but the `resolve_thread` call failed. Resolve the thread in the GitHub UI. Phase 2 step 5 of each later cycle tries the resolve again.
