@@ -29,8 +29,8 @@ LISTING_BUDGET = {
 }
 # With no sign-in, `claude plugin details` reports an offline estimate (characters / 4), not the API count.
 # On 2026-11-09 (Claude Code 2.1.310), the signed-in count was at most 1.48 times the estimate.
-# A new default model can change the ratio. The kind of text changes it too: code and paths count denser.
-# The factor 1.5 does not cover a small new budget (under about 140 tokens).
+# A new default model can change the ratio. The kind of text changes it too: code and paths need more tokens for each character.
+# The factor 1.5 was measured only on the current budgets. Measure the ratio again for a much smaller new budget.
 SIGNED_IN_RATIO = 1.5
 # With one of these variables, claude signs in or uses a cloud provider, and the count comes from the API.
 SIGN_IN_VARIABLES = (
