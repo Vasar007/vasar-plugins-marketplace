@@ -1,15 +1,15 @@
 # Committed-fix state (Phase 2 step 5)
 
-Stage 1 runs this step for each thread of the active roster, in every cycle. No state persists between cycles. The step reads the thread history that Phase 2 already fetched, and real git ancestry. The text-match rules for a commit claim and for `openFindingsMarker` are in `thread-state-schema.md` § "Committed-fix detection".
+Stage 1 runs this step for each thread of the active roster, in every cycle. No state persists between cycles. The step reads the thread history that Phase 2 already fetched, and real git ancestry. It also reads the messages of the local commits that the PR head does not have yet (§ "Local commit with no reply"). The text-match rules for a commit claim and for `openFindingsMarker` are in `thread-state-schema.md` § "Committed-fix detection".
 
 ## Outcomes
 
 Find the newest reply of Claude in the thread: a reply that starts with `**[AI]**` or `**[AI][Draft]**`, in the bold form or in the old plain form. A reply with the phrase `Committed as <sha>` or `commit <sha>` next to the fix summary is an **affirmative commit claim**. The `no-commit` reply (`Diff staged locally, awaiting your commit.`) is not a commit claim. It reports an edit, but no commit.
 
-- **`fresh-unhandled`**: no `**[AI]**` or `**[AI][Draft]**` reply exists. Go on to Phase 3.
+- **`fresh-unhandled`**: no `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. Go on to Phase 3.
 - **`already-assessed`**: the newest such reply is not an affirmative commit claim. Examples: a `**[AI][Draft]**` reply, `Tracked as issue #<id>`, a `[Note]` or out-of-scope acknowledgement, or another reply that claims no commit. Leave the thread alone. One exception: a newer reply of a human or a reviewer exists after it. Then classify that newest human reply in Phase 3. Treat it like a thread with no earlier AI reply.
 - **`cured`**: an affirmative commit claim exists, and its SHA is already an ancestor of the remote branch. Resolve the thread, unless `openFindingsMarker` is `true`, and report it as resolved.
-- **`unconfirmed-commit-claim`**: an affirmative commit claim exists, but nothing shows yet that it is safe to report as ready.
+- **`unconfirmed-commit-claim`**: an affirmative commit claim exists, but nothing shows yet that it is safe to report as ready. Or an unpushed local commit names a thread with no reply about it (§ "Local commit with no reply").
 
 ## Guard: a newer reply of a human
 
@@ -21,14 +21,31 @@ If such a reply exists, run no catch-up branch on this thread, whatever the SHA 
 
 1. If the wording of the reply gives a commit SHA clearly, take it. Examples: `Committed as <sha>`, `commit <sha>`. An exact template match is not required.
 2. Run the ancestry check (`thread-state-schema.md` § "Ancestry check") for that SHA against `origin/pull/<prId>/head`. This ref holds the head of the PR, also for a PR from a fork. The command list of that section shows how to fetch it.
+3. If the SHA resolves locally but is not yet an ancestor of that ref, also run `git merge-base --is-ancestor <sha> HEAD`. Keep the result as `isAncestorOfHead`. Exit code `0` means that the commit is on the local branch, so a push can carry it. Only then is the claim a carried-over claim that can open a push (Rules in `SKILL.md`). Exit code `1` means that the commit is not on the local branch. A SHA that does not resolve, or a reply with no clear SHA, gets `isAncestorOfHead: false`.
+
+## Local commit with no reply
+
+A reply about a fix posts right before the push (`commit-push-resolve.md` § "When replies post"). If a run ended before the go-ahead, the fix has a local commit but no reply. The commit message is then the only record.
+
+1. Once per cycle, after the fetch of `thread-state-schema.md` § "Ancestry check" command 1, run `git log --format='%H%n%B' origin/pull/<prId>/head..HEAD`. It lists the local commits that the PR head does not have yet.
+2. If the message of a commit has `T#<commentId>` with no digit right after it, the commit names that thread. The subject of Phase 4 step 3 has it. The body of a `squash` commit has it for each thread.
+3. Run this test for each thread that goes on to Phase 3: a `fresh-unhandled` thread, and a thread that the guard above sent to Phase 3. If a commit names the thread, derive `unconfirmed-commit-claim` instead. Set `claimSource` to `local-commit` and `claimedSha` to the newest such commit. Set `shaResolvesLocally` and `isAncestorOfHead` to `true`, and `isAncestorOfRemote` to `false`. The `git log` range of step 1 holds only commits of `HEAD` that the PR head does not have. Do not send the thread to Phase 3. A comment in `processedCommentIds` of this session gets no such test. The session still holds its pending reply (Rules in `SKILL.md`).
+4. Report: `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — push it and post its reply, or handle it separately?`
+
+With `no-reply`, `no-commit`, or `dry-run`, the report is `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question (§ "Report modes"). A later cycle of a `/loop` session prints the same report.
+
+Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-resolve.md` § "Threads carried over from an earlier cycle").
 
 ## Report modes
 
 These rules apply to the two outcomes below:
 
-- With neither `dry-run` nor `no-reply`, take the default action of the outcome.
+- With none of `dry-run`, `no-reply`, and `no-commit`, take the default action of the outcome.
 - With `no-reply`, ask the user no question. Print the report line of the outcome, and the human handles the thread.
 - With `dry-run`, print the same report line, with no question.
+- With `no-commit`, `cured` takes its default action. `unconfirmed-commit-claim` asks no question, because the run cannot push (Rules in `SKILL.md`). Print its report line, and the human handles the thread.
+- In every mode, also with none of the flags above, an `unconfirmed-commit-claim` thread whose claim opens no push asks no question. Such a claim is not a carried-over claim (Rules in `SKILL.md`): its SHA does not resolve, no clear SHA exists, or the commit is not on the local branch (`isAncestorOfHead: false`). Print its report line, and add `No push can carry this commit. The human handles it.` No answer opens a push for such a claim, so the run asks no question.
+- In each later cycle of a `/loop` session (`thread-state-schema.md` § "Session lifecycle"), an `unconfirmed-commit-claim` thread asks no question. Nobody can be there to answer, and the question holds the whole cycle. Print its report line, and add `The human handles it.` The cycle goes on.
 
 ## `cured`
 
@@ -39,19 +56,20 @@ The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fi
 - On success, report: `T#<id> resolved — <file>:<line>, commit <sha>.`
 - On an MCP error, report: `T#<id> cured — <file>:<line>, commit <sha> — resolve failed (<short reason>), resolve manually via GitHub UI.`
 
-Stage 1 only derives `cured`. Stage 2 makes the resolve call after its own ancestry check (see "Dispatch model" in `SKILL.md`).
+Stage 1 only derives `cured`. Stage 2 makes the resolve call after its own ancestry check (see "Dispatch model" in `SKILL.md`). If that check disagrees, Stage 2 does not act on the thread in this cycle. It prints the `unconfirmed-commit-claim` report line below. Phase 2 step 5 of the next cycle derives the state again, and asks the question (or prints a report line, § "Report modes").
 
 ## `unconfirmed-commit-claim`
 
-This outcome covers three cases:
+This outcome covers four cases:
 
-- The SHA resolves locally, but it is not yet an ancestor of the remote.
+- The SHA resolves locally, but it is not yet an ancestor of the remote. The commit is on the local branch, or it is not (`isAncestorOfHead`).
 - The SHA does not resolve to a known commit in this checkout.
 - The reply claims a commit, but no SHA comes out of it clearly.
+- No reply claims the commit, but an unpushed local commit names the thread (§ "Local commit with no reply"). It uses the report line of that section.
 
 In each case, nothing shows yet that the commit claim is safe to report as ready.
 
 - Do not treat the thread as fresh or unhandled, and do not implement anything new on it.
 - No flag skips this outcome, also not `autonomous`. An unconfirmed SHA needs the input of a human.
-- Report: `T#<id> already has an AI reply about a committed fix (commit <sha-or-"unspecified">) that can't be confirmed safe to report as ready — <hasn't landed on the remote yet | this checkout can't resolve the SHA locally | no SHA could be extracted from the reply>.`
-- Leave the thread as it is until the user answers. The orchestrating session asks the question (see "Dispatch model" in `SKILL.md`). Phase 4 uses the answer (see `commit-push-resolve.md`).
+- Report: `T#<id> already has an AI reply about a committed fix (commit <sha-or-"unspecified">) that can't be confirmed safe to report as ready — <hasn't landed on the remote yet | the commit isn't on the local branch | this checkout can't resolve the SHA locally | no SHA could be extracted from the reply>.`
+- Leave the thread as it is until the user answers. The orchestrating session asks the question, unless § "Report modes" turns it into a report line (see "Dispatch model" in `SKILL.md`). Phase 4 uses the answer (see `commit-push-resolve.md`).

@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.8.0 in release [4.5.0] - 2026-11-09
+
+This release makes `process-pr-comments` post all thread replies of a cycle in one batch right before the push, not right after each commit or answer. With a push to make and without `autonomous`, the user sees the batch with the go-ahead question. A reply then describes the code that the push sends, also after the user changes a fix before the push.
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: every thread reply of a cycle waits as a pending reply, in every mode. This covers the replies about a fix, every `[AI][Draft]` reply, and the `[Question]`, `[ToDiscuss]`, and `[OutOfScope]` replies. After the go-ahead for the push, or with `autonomous`, Stage 2 posts them in one batch, and then the orchestrating session pushes. A draft reply is in the batch as written, and only its code change waits for the answer of the user. A `[Question]` draft joins the batch only after the `yes` of the user. With `autonomous`, the open items of Stage 2 are still asked before the batch. If the user changes a fix before the push, Stage 2 updates its pending reply first. With no go-ahead, the replies stay unposted, and the cycle log shows their text. A reply that misses its batch, also after a late answer or a failed post, joins the next batch of the same session. If the session ends first, a later run handles the comment again. A cycle with no push to make posts the batch at the end of Phase 4. `dry-run` posts none (issue #64).
+- `skills/process-pr-comments`: on a `deep-fix` cycle, Stage 2 hands back its open items. The orchestrating session asks them with the go-ahead. Stage 3b writes the approved `[Question]` replies and creates the approved issues before it posts the batch (issue #64).
+- `skills/process-pr-comments`: Task Composer creates an `[OutOfScope]` issue right before the batch posts, not at once. The `Tracked as issue` reply is the record that stops a second issue for the thread. So if the batch does not post, no issue exists, and a later run handles the thread again. The cycle log shows such a thread as `issue pending`. If the issue exists but its reply did not post, the session keeps the issue number, and the next try creates no second issue. The issue body ends with `Source: <thread comment URL>`, and a later run finds the issue by that link before it creates one. With `no-reply`, no issue is created, and the cycle log shows the approved title (issue #64).
+- `skills/process-pr-comments`: if the test of Stage 2 for a `cured` thread disagrees with Stage 1, Stage 2 does not act on the thread in this cycle. It prints the report line, and the next cycle asks the question or prints a report line. In each later cycle of a `/loop` session, a carried-over claim gets the report line. The cycle does not stop for a question (issue #64).
+- `skills/process-pr-comments`: Phase 2 step 5 also reads the local commits that the PR head does not have yet. If such a commit names a thread with no reply about it, the thread is `unconfirmed-commit-claim` with the new report field `claimSource: local-commit`. The human gets the question. A later run then does not fix the thread a second time (issue #64).
+- `skills/process-pr-comments`: the Rules state the push gate once. A cycle pushes only for a commit of this cycle, or for a carried-over claim on a local commit after a push-and-resolve answer. The unpushed commit of a reply that missed an earlier batch counts as a commit of this cycle. Stage 1 tests that the claimed commit is on the local branch and not on the PR head, with the new report field `isAncestorOfHead`. A claim that fails the test gets a report line, not the question. `no-commit` and `dry-run` never push, and print a report line for a carried-over claim instead of the question. The orchestrating session gets every answer to such a question before it dispatches Stage 2. The question for the go-ahead and the cycle log list the commits that the push sends. That list can hold a commit whose thread the user chose to handle separately, or whose thread a report line handed to the human. Then the run asks before the replies post, also with `autonomous` (issue #64).
+- `evals/process-pr-comments/ppc-tofix-default`: the grader `replied` is now `reply-waits`, and expects no reply before the go-ahead. The new grader `reply-drafted` expects the reply text in the last message (issue #64).
+- `evals/process-pr-comments/ppc-gated-threads`: the grader `no-question-reply` is now `no-reply`, and expects no reply at all. Every reply of the cycle waits for the answers of the user (issue #64).
+
 ## doc-styles 1.1.0 in release [4.4.0] - 2026-11-09
 
 This release adds a linter and a lint hook to the skill `openbsd-style-docs` (issue #82). The hook checks the rules that a script can test after each write of a document in this style. The model still checks the other rules.
@@ -1096,8 +1111,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...HEAD
-[4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.3.0...v4.4.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...v4.5.0
+[4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...v4.4.0
 [4.2.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...v4.2.5
 [4.2.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3

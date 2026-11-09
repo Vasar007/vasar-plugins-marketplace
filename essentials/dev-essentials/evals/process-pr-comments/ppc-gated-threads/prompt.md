@@ -1,5 +1,5 @@
 ---
-description: A reviewer asks a question and marks one thread as out of scope. In the default mode, the answer to the question stays a draft, and the new issue waits for the go-ahead. The run must not change code.
+description: A reviewer asks a question and marks one thread as out of scope. In the default mode, the answer to the question stays a draft, and the new issue waits for the go-ahead. All replies of the cycle wait for one batch after the answers of the user, so the run posts no reply. The run must not change code.
 tags: [process-pr-comments, mocks]
 plugins: ["../../..", "../../../eval-stubs/github"]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite]

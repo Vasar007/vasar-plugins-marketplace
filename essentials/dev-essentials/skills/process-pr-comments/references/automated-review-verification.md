@@ -109,7 +109,7 @@ If the conditions hold, treat the finding like `[ToFix]`: implement, commit (Pha
 
 ## Draft reply templates
 
-Each verdict has one draft template. Change the rationale, and keep the structure. Post each template in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the rest of the template.
+Each verdict has one draft template. Change the rationale, and keep the structure. Post each template in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the rest of the template. Each draft is a pending reply. It posts in the one batch of the cycle, right before the push (`commit-push-resolve.md` § "When replies post").
 
 ### `valid`
 
@@ -201,7 +201,7 @@ Every verdict also gets logged in the chat for the human:
 T#17 [AutoReview] Domain/User.cs:88
   Verdict: false-positive (confidence: high)
   Rationale: null-check unreachable after Guard.Against.Null on line 84.
-  Draft posted: yes.
+  Draft reply: pending, posts in the batch of the cycle.
   Awaiting: human approval before any code change.
 ```
 
