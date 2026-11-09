@@ -1,7 +1,8 @@
 """Runs `claude plugin validate` and `claude plugin details` on the marketplace and on each plugin.
 
-Each claude call gets an empty, temporary configuration folder and no sign-in variables.
+Each claude call gets an empty, temporary configuration folder and none of the known sign-in variables.
 So it needs no sign-in, loads no installed plugin, and gets the offline token estimate of `claude plugin details`.
+A Claude Code cloud session can still sign in through its token file. Then the budget test fails, and it does not hide an overrun.
 If the claude command is not found, the tests skip. In CI they fail.
 """
 import json
@@ -28,10 +29,23 @@ LISTING_BUDGET = {
 }
 # With no sign-in, `claude plugin details` reports an offline estimate (characters / 4), not the API count.
 # On 2026-11-09 (Claude Code 2.1.310), the signed-in count was at most 1.48 times the estimate.
+# A new default model can change the ratio. The kind of text changes it too: code and paths count denser.
+# The factor 1.5 does not cover a small new budget (under about 140 tokens).
 SIGNED_IN_RATIO = 1.5
 # With one of these variables, claude signs in or uses a cloud provider, and the count comes from the API.
-SIGN_IN_VARIABLES = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
-                     "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY")
+SIGN_IN_VARIABLES = (
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_REFRESH_TOKEN",
+    "CLAUDE_CODE_SESSION_ACCESS_TOKEN",
+    "CLAUDE_CODE_USE_ANTHROPIC_AWS",
+    "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
+    "CLAUDE_CODE_USE_BEDROCK",
+    "CLAUDE_CODE_USE_FOUNDRY",
+    "CLAUDE_CODE_USE_MANTLE",
+    "CLAUDE_CODE_USE_VERTEX",
+)
 ALWAYS_ON = re.compile(r"^\s*Always-on:\s+(?:~|<\s*)?([\d,]+)\s+tok", re.MULTILINE)
 
 

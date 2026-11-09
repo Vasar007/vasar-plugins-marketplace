@@ -15,8 +15,8 @@ This release makes the listing budget test match the always-on cost that a signe
 
 ### Changed in the repository
 
-- `tests/test_plugin_cli.py`: each budget in `LISTING_BUDGET` is now the cost that `claude plugin details` shows in a signed-in session. With no sign-in, the command shows an offline estimate: the number of characters divided by 4. The test runs with no sign-in, so it multiplies the estimate by the new `SIGNED_IN_RATIO` of 1.5 before it compares the result with the budget. The new budgets are the old ones times 1.5. So the test passes and fails for the same descriptions as before (issue #90).
-- `tests/test_plugin_cli.py`: each claude call now runs without the environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. Before, such a variable gave the test the API count, and the budget test failed for each plugin (issue #90).
+- `tests/test_plugin_cli.py`: each budget in `LISTING_BUDGET` is now the most always-on tokens that `claude plugin details` can show in a signed-in session. With no sign-in, the command shows an offline estimate: the number of characters divided by 4. The test runs with no sign-in, so it multiplies the estimate by the new `SIGNED_IN_RATIO` of 1.5 before it compares the result with the budget. The new budgets are the old ones times 1.5. So the test passes and fails for the same descriptions as before (issue #90).
+- `tests/test_plugin_cli.py`: each claude call now runs without the known environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. Before, such a variable gave the test the API count, and the budget test failed for each plugin. A Claude Code cloud session can still sign in through its token file. Then the budget test fails, and it does not hide an overrun (issue #90).
 - `docs/testing.md`: the text says what the budgets count, and why the test multiplies the estimate (issue #90).
 
 ## Repository changes only in release [4.2.3] - 2026-11-09
