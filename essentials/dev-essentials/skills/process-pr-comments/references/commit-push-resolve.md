@@ -53,13 +53,14 @@ A reply about code waits until right before the push, so that it describes the c
 - Each reply about a fix of this cycle (step 4), and the reply of a `deep-fix` thread (`deep-fix.md`).
 - Each `**[AI][Draft]**` reply of Phase 3b step 6 (`automated-review-verification.md`).
 - The `**[AI][Draft]**` reply of a non-trivial `[Suggestion]` or `[Optional]` (`tag-actions.md`).
+- The `**[AI][Draft]**` reply of a draft-first override (`show me a draft first`, `don't commit yet`, or `let me see the diff`, in `SKILL.md` Phase 3).
 
 Other replies post at once: the `[Question]` and `[ToDiscuss]` replies, and the `[OutOfScope]` replies. They describe no code of the push. The `Tracked as issue` reply is also the record that stops a second issue for the same thread.
 
 The pending replies post at one point of the cycle:
 
 1. If the cycle has a push, they post after the go-ahead, or at once with `autonomous`. The orchestrating session resumes Stage 2, and Stage 2 posts them. Then the orchestrating session pushes. On a `deep-fix` cycle, Stage 3b posts them (`deep-fix.md`).
-2. If the cycle has nothing to push, Stage 2 posts them at the end of Phase 4, before Phase 5. This is the case with no commit in the cycle, and with `no-commit`.
+2. If the cycle has nothing to push, Stage 2 posts them at the end of Phase 4, before Phase 5. This applies with `no-commit`, and with no local commit ahead of `origin/pull/<prId>/head`. A local commit from an earlier run counts as a push to make, so the cycle then follows item 1.
 3. If the push does not come, they stay unposted. Examples are no go-ahead, a user who declines, and a `deep-fix` run that ended `stop-blocked`. The cycle log shows each one as `reply pending` or `draft pending`, with its text. A later go-ahead in the same session posts them, and then pushes. If the session ends first, the replies are lost. Then a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply").
 
 If the user asks to change a fix before the push, Stage 2 makes the change as a new commit (steps 1 to 3). Then it updates the pending reply of the thread first: the summary, and the SHA of the newest commit of the thread. The orchestrating session shows the new text. The push still needs its own go-ahead (Rules in `SKILL.md`). If the answer of the user turns a pending draft into a fix, the fix reply replaces the draft. Each thread gets one reply for each push.
