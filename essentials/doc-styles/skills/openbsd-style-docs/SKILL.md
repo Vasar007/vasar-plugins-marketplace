@@ -6,14 +6,12 @@ when_to_use: Use it only when the user names the style, for example "OpenBSD sty
 
 # Technical documentation in the OpenBSD manual style
 
-This skill takes the writing style of the OpenBSD manual pages and applies it
-to any technical document. The default output format is Markdown. Do not write
-roff or mdoc unless the user asks for a real manual page.
+The default output format is Markdown. Do not write roff or mdoc unless the
+user asks for a real manual page.
 
 ## The OpenBSD manual is the reference
 
-The real OpenBSD manual pages are the standard. This skill is a summary of
-them, and a summary can be wrong or incomplete. When the skill and the
+The real OpenBSD manual pages are the standard. When the skill and the
 corpus disagree, the corpus wins. When the skill does not cover a case,
 find how the corpus handles it, and do the same. The URLs, the search
 syntax and the pages to prefer are in "Reading the corpus" in
@@ -46,6 +44,9 @@ Files in this skill:
   Read it when you write a section that you do not know well.
 - `references/examples.md`: before and after rewrites, and one complete
   README.
+- `scripts/openbsd_lint.py`: the linter for the rules that a script can
+  test. The hook of this plugin runs it after each write of a document in
+  this style. It needs Python 3 as `python3` on `PATH`.
 
 ## Precedence over other writing rules
 
@@ -67,10 +68,11 @@ rules forbid:
   default.", "Note that ...", and "in order to".
 - It uses semicolons where a man page would.
 
-If a writing linter or hook reports such hits in a document written with
-this skill, or in the files of this skill, do not rewrite the text to
-satisfy it. Follow this skill. Fix only real defects that this skill also
-forbids, such as marketing words, filler or "you" in descriptions.
+If another writing linter or hook, for example the `simple-english` lint
+hook, reports such hits in a document written with this skill, or in the
+files of this skill, do not rewrite the text to satisfy it. Follow this
+skill. Fix only real defects that this skill also forbids, such as
+marketing words, filler or "you" in descriptions.
 
 Only one case reverses this section: the message of the user asks for STE
 or plain-English output for this document. A standing rule in a system
@@ -79,10 +81,12 @@ prompt, a `CLAUDE.md` file or a skill is not such a request.
 The chat reply is not part of the document. Step 7 of "Workflow" gives
 its rules.
 
-A skill cannot turn off a hook. To stop the `simple-english` lint hook from
-reporting on a path, the user can set `SIMPLE_ENGLISH_LINT_EXCLUDE` to a
-list of glob patterns. The separator is `:` on Linux and macOS and `;` on
-Windows. For example, on Linux:
+A skill cannot turn off a hook. To stop a lint hook for some paths, the
+user can set an environment variable to a list of glob patterns:
+`SIMPLE_ENGLISH_LINT_EXCLUDE` for the `simple-english` lint hook, and
+`OPENBSD_STYLE_LINT_EXCLUDE` for the hook of this plugin. The separator is
+`:` on Linux and macOS and `;` on Windows. The pattern `*` turns the hook of
+this plugin off. For example, on Linux:
 `SIMPLE_ENGLISH_LINT_EXCLUDE="$HOME/projects/*/docs/*:*/README.md"`.
 
 ## The principles
@@ -106,9 +110,7 @@ Windows. For example, on Linux:
 
 ## Section order
 
-The canonical order, from `mdoc(7)`, is below. Use only the sections that
-apply. The skeletons in `references/skeletons.md` show the selection for
-each document type.
+The canonical order, from `mdoc(7)`, is below.
 
 ```text
 NAME            one line: name and what it does
@@ -189,9 +191,11 @@ superuser may ..."). Then give the options or the directives.
   Do not hedge without information. "Skipping versions may work. Downgrading
   is unlikely to work." is calibrated and acceptable. "This might possibly
   cause issues" is not.
-- Do not use the marketing and filler words of the search list in
-  "Self-check", exclamation marks or closing summaries. Do not restate the
-  NAME line.
+- Do not use the marketing and filler words simply, just, easily, easy,
+  powerful, robust, seamless, blazing, modern, intuitive, leverage and
+  please, the phrases "it is worth noting" and "out of the box",
+  exclamation marks, bold or closing summaries. Do not restate the NAME
+  line.
 - Give the reason for a rule only when the reason changes what the reader
   does: "Do not edit `passwd` by hand. Use `vipw(8)`, which locks the file."
 - Use "Note that" for a non-obvious exception or consequence, and use it
@@ -231,7 +235,7 @@ Rules for items:
 - Sort options alphabetically: digits first, then letters, uppercase before
   lowercase for the same letter (`-1 -A -a -B -b`). It does not matter whether
   an option takes an argument. Sort environment variables, files and error
-  codes alphabetically too. Sort SEE ALSO by section number, then by name.
+  codes alphabetically too.
 - Introduce a list with a sentence that ends in a colon: "The options are as
   follows:", "The following directives are available:".
 - A bullet list is for parallel items without a term. A numbered list is for
@@ -253,9 +257,6 @@ The OpenBSD pages use semantic markup. In Markdown, map it like this:
 | new term at its definition | `Em` | *italic*, one time |
 | critical word (not, never, only) | `Em` | *italic*, rarely |
 | multi-line display, output, configuration | `Bd -literal` | fenced code block |
-
-Do not use bold for emphasis. Bold is for syntax elements only, and it is
-almost never necessary in Markdown.
 
 ## SYNOPSIS
 
@@ -286,8 +287,8 @@ statement.
   root.
 - Do not write "Example 1" headings. Show the output only when the example
   is about the output.
-- Every example must work exactly as written. If you cannot run it, say so to
-  the user. Do not present an untested example as tested.
+- Every example must work exactly as written. Do not present an untested
+  example as tested.
 - For a dangerous idiom, show the wrong form, then the correct form: "Do not
   write this:" and "Write this instead:".
 - After the code, one sentence may state what the example guarantees: "This
@@ -332,17 +333,15 @@ skeleton.
 
 ## Documents in other languages
 
-The same rules apply to Russian and to other languages. Before you write or
-review a document in another language, read "Documents in other languages"
-in `references/phrases.md`.
+Before you write or review a document in a language other than English,
+read "Documents in other languages" in `references/phrases.md`.
 
 ## Workflow
 
 1. Find out the facts before you write. Read the code, `--help`, the parser
-   of the configuration, the error paths and the exit codes. The style
-   depends on exact facts. Do not invent defaults, limits or error codes. If
-   a fact is unknown, ask the user or mark it in your reply. Do not hide it
-   in vague words.
+   of the configuration, the error paths and the exit codes. Do not invent
+   defaults, limits or error codes. If a fact is unknown, ask the user or
+   mark it in your reply. Do not hide it in vague words.
 2. Pick the document type and its skeleton from `references/skeletons.md`.
 3. Write the NAME line and the first sentence of DESCRIPTION. If they are
    hard to write, the purpose of the thing is not clear yet. Ask.
@@ -360,19 +359,26 @@ repetition and filler. Move content into the canonical sections.
 
 ## Self-check
 
-Before you finish, check the document against this list:
+The hook of this plugin runs `scripts/openbsd_lint.py` after each write of
+a document in this style. The script checks the section names, their
+order and their content, the form of the NAME line, the sort order of
+options, variables, files and error codes, defaults in their own sentence,
+"you", and the words of "Sentence rules". Fix each hit, or keep it and
+give the reason in the reply. With a shell tool, the script also runs by
+hand: `python3 "${CLAUDE_SKILL_DIR}/scripts/openbsd_lint.py" <file>`.
 
-- The NAME line is lowercase, has no article and no period, and has about 5
-  words.
-- The first sentence of DESCRIPTION has the name as its subject and a verb in
-  the present tense.
-- The sections are in canonical order, and no section is empty.
-- Options, variables, files and error codes are sorted.
+The hook is silent for a document that it skips, or if `python3` is
+missing, the same as for a document with no hit. So if `## DESCRIPTION`
+is missing, is not uppercase, or is the only uppercase canonical heading,
+run the script by hand. If no shell tool is available, or if `python3` is
+missing, check the rules of the script by hand.
+
+Then check the rest by hand:
+
+- The NAME line has about 5 words and is not a full sentence.
+- The first sentence of DESCRIPTION has the name as its subject and a verb
+  in the present tense.
 - Every number has a unit.
 - The synopsis matches the real usage message.
 - Every example has a purpose sentence that ends in a colon, and it works.
-- Search the text for: simply, just, easily, easy, powerful, robust,
-  seamless, blazing, modern, intuitive, leverage, please,
-  "it is worth noting", "out of the box", "you", "!", "**". Remove each
-  hit or justify it.
 - "must", "may", "should" and "can" each have their exact meaning.

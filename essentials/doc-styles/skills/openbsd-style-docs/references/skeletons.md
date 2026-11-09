@@ -215,12 +215,12 @@ if ((fd = <func>(path, FLAG_A)) == -1)
 
 The `<func>()` function will fail if:
 
-- `[ENOENT]`\
-  The file *path* does not exist.
 - `[EINVAL]`\
   The *flags* argument is not valid.
 - `[EINVAL]`\
   <Second cause for the same code.>
+- `[ENOENT]`\
+  The file *path* does not exist.
 
 ## SEE ALSO
 
@@ -328,7 +328,7 @@ The following example <states the intent of each line in one sentence>:
 
 ## SEE ALSO
 
-`<name>(8)`, `<other>(5)`
+`<other>(5)`, `<name>(8)`
 ````
 
 Rules specific to a configuration file:

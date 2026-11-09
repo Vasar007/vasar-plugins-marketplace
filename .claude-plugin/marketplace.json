@@ -14,7 +14,7 @@
     {
       "name": "doc-styles",
       "source": "./essentials/doc-styles",
-      "description": "A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. It starts only when you name that style, and it sets no style for chat replies."
+      "description": "A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. It starts only when you name that style, and it sets no style for chat replies. A hook checks each document in that style after a write."
     },
     {
       "name": "dotnet-backend-dev",

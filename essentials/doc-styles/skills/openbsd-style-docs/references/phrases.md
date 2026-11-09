@@ -4,8 +4,7 @@
 # Phrase templates
 
 These phrases come from the OpenBSD manual pages. Each one is a fixed formula.
-Use the formula exactly. The reader will recognize it and read faster. The
-source page is given in parentheses.
+Use the formula exactly. The source page is given in parentheses.
 
 ## NAME line
 
