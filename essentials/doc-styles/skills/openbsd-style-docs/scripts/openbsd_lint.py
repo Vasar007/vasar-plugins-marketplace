@@ -49,6 +49,8 @@ DEFAULT_INLINE = re.compile(r"\(\s*default|[,;:]\s*(?:the\s+)?defaults?\b|\bwhic
                             r"\bdefaulting to\b|\bdefault\s*[:=]|.\bby default\b", re.I)
 TERM_LINE_REST = re.compile(r"^\s*\]?\s*(?:(?:\*[^*]*\*|_[^_]*_)\s*)*:")
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
+BARE_URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
+REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[[^\]]+\]:\s")
 CODE_SPAN = re.compile(r"`[^`]*`")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z`*\[])")
 MAX_HOOK_HITS = 12
@@ -75,13 +77,20 @@ def prose_lines(text):
             fence = match.group(1)
             continue
         if comment:
-            before, rest = "", line
-        else:
+            if "-->" not in line:
+                line = ""
+            else:
+                line = line.split("-->", 1)[1]
+                comment = False
+        while not comment:
             at = re.sub(r"`[^`]*`", lambda m: " " * len(m.group(0)), line).find("<!--")
-            before, rest = (line[:at], line[at + 4:]) if at >= 0 else (line, None)
-        if rest is not None:
-            comment = "-->" not in rest
-            line = before + ("" if comment else rest.split("-->", 1)[1])
+            if at < 0:
+                break
+            end = line.find("-->", at + 4)
+            if end < 0:
+                line, comment = line[:at], True
+                break
+            line = line[:at] + line[end + 3:]
         out.append((number, CODE_SPAN.sub("CODE", line), line))
     return out
 
@@ -101,11 +110,17 @@ def headings(lines):
     return title, heads
 
 
+def upper_outside_code(text):
+    """The text in uppercase, except for the code spans."""
+    parts = re.split(r"(`[^`]*`)", text)
+    return "".join(p if p.startswith("`") else p.upper() for p in parts)
+
+
 def check_headings(lines, heads, raw_lines):
     """Hits for heading-case, section-order and empty-section."""
     hits = []
     if any(text in CANONICAL for _, text in heads):
-        hits += [(n, "heading-case", f"write the heading in uppercase: {text.upper()}")
+        hits += [(n, "heading-case", f"write the heading in uppercase: {upper_outside_code(text)}")
                  for n, text in heads if CODE_SPAN.sub("", text) != CODE_SPAN.sub("", text).upper()]
     last, last_name, seen_description = -1, None, False
     has_description = any(text.upper() == "DESCRIPTION" for _, text in heads)
@@ -216,9 +231,11 @@ def check_words(lines):
     """Hits for you and word-list, outside code."""
     hits = []
     for number, prose, _ in lines:
-        clean = prose.replace("![", "[")
+        if REFERENCE_DEFINITION.match(prose):
+            continue
+        clean = BARE_URL.sub("", LINK_TARGET.sub("]()", prose.replace("![", "[")))
         hits += [(number, "you", f"'{m.group(0)}': describe the user as 'the user', or use the imperative")
-                 for m in YOU.finditer(LINK_TARGET.sub("]()", clean))]
+                 for m in YOU.finditer(clean)]
         hits += [(number, "word-list", f"remove '{m.group(0)}', or give the reason in the reply")
                  for m in WORD.finditer(clean)]
         if BANG.search(clean):

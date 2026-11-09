@@ -103,6 +103,11 @@ class HeadingTests(LintCase):
         text = HEAD + DESCRIPTION + "\n## `probe.conf` DIRECTIVES\n\nText.\n"
         self.assertRules(text)
 
+    def test_heading_hint_keeps_code_spans(self):
+        text = HEAD + DESCRIPTION + "\n## `probe.conf` directives\n\nText.\n"
+        messages = [m for _, rule, m in lint_module.lint(text) if rule == "heading-case"]
+        self.assertEqual(messages, ["write the heading in uppercase: `probe.conf` DIRECTIVES"])
+
     def test_hits_in_code_are_ignored(self):
         text = HEAD + DESCRIPTION + "\n```markdown\n## examples\n\n## FILES\n```\n"
         self.assertRules(text)
@@ -269,6 +274,18 @@ class WordTests(LintCase):
 
     def test_you_in_a_link_target(self):
         self.assertRules(self.body("See the [guide](https://example.com/your-first-run) first."))
+
+    def test_word_in_a_link_target(self):
+        self.assertRules(self.body("See [guide](https://example.com/your-easy-start) first."))
+
+    def test_words_in_a_bare_url(self):
+        self.assertRules(self.body("See https://example.com/your-easy-start first."))
+
+    def test_words_in_a_reference_definition(self):
+        self.assertRules(self.body("See [guide][1].\n\n[1]: https://example.com/your-faq-easy"))
+
+    def test_two_comments_on_one_line(self):
+        self.assertRules(self.body("a <!-- x --> b <!-- just --> c"))
 
     def test_you_in_the_link_text(self):
         self.assertRules(self.body("See [your guide](https://example.com/guide) first."), "you")

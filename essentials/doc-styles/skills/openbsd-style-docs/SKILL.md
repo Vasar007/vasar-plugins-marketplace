@@ -367,10 +367,11 @@ options, variables, files and error codes, defaults in their own sentence,
 give the reason in the reply. With a shell tool, the script also runs by
 hand: `python3 "${CLAUDE_SKILL_DIR}/scripts/openbsd_lint.py" <file>`.
 
-The hook is silent for a document that it skips, the same as for a
-document with no hit. So if `## DESCRIPTION` is missing, is not
-uppercase, or is the only uppercase canonical heading, run the script by
-hand. If no shell tool is available, check the rules of the script by hand.
+The hook is silent for a document that it skips, or if `python3` is
+missing, the same as for a document with no hit. So if `## DESCRIPTION`
+is missing, is not uppercase, or is the only uppercase canonical heading,
+run the script by hand. If no shell tool is available, or if `python3` is
+missing, check the rules of the script by hand.
 
 Then check the rest by hand:
 
