@@ -473,6 +473,10 @@ def export_plugin(args, tmp, side, revision):
     root = Path(tmp) / side
     sha = export_commit(args.repo, revision, root)
     plugin = root / args.plugin
+    # An absolute path or a path with .. can name the real plugin, and the steps below write into the plugin folder.
+    if not plugin.resolve().is_relative_to(root.resolve()):
+        raise InputError(f"the plugin folder {args.plugin} is not inside the repository. "
+                         "Pass a path relative to the repository root, for example group/plugin")
     if not (plugin / ".claude-plugin" / "plugin.json").is_file():
         raise InputError(f"{args.plugin} is not a plugin folder at the {side} commit {sha[:12]}")
     add_dependencies(root, plugin, args.extra_dep or [])

@@ -600,6 +600,46 @@ class DependencyTests(CompareCase):
                 self.assertFalse((self.tmp / "evil").exists())
                 shutil.rmtree(self.tmp / "out", ignore_errors=True)
 
+    def args_with_plugin(self, arguments, plugin):
+        """The arguments with another --plugin value."""
+        arguments = list(arguments)
+        arguments[arguments.index("--plugin") + 1] = plugin
+        return arguments
+
+    def test_plugin_path_outside_the_export_is_an_input_error(self):
+        self.write_file("tests/evals/stubs/github/.claude-plugin/plugin.json", '{"name": "github"}\n')
+        self.commit("stub")
+        self.write_file("group/demo/eval-stubs/mine/note.txt", "not committed\n")
+        real = self.repo / "group" / "demo"
+        exports = self.tmp / "exports"
+        exports.mkdir()
+        # The export root is <exports>/compare-versions-<random>/<side>, so three steps up reach self.tmp.
+        paths = (real.resolve().as_posix(), "../../../repo/group/demo")
+        for plugin in paths:
+            for arguments in (self.baseline_args(), self.run_args()):
+                with self.subTest(plugin=plugin, command=arguments[0]):
+                    shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                    self.calls = []
+                    with mock.patch.object(tempfile, "tempdir", str(exports)):
+                        code, _, err = self.run_main(*self.args_with_plugin(arguments, plugin))
+                    self.assertEqual(code, 2)
+                    self.assertIn("is not inside the repository", err)
+                    self.assertEqual(self.calls, [])
+                    self.assertFalse((real / ".deps").exists())
+                    self.assertEqual(sorted(p.name for p in (real / "eval-stubs").iterdir()), ["mine"])
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_plugin_path_with_a_link_or_dots_inside_the_export_is_allowed(self):
+        (self.repo / "group" / "alias").symlink_to("demo")
+        self.commit("link")
+        for plugin in ("group/alias", "group/../group/demo"):
+            with self.subTest(plugin=plugin):
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                self.calls = []
+                code, out, err = self.run_main(*self.args_with_plugin(self.baseline_args(), plugin))
+                self.assertEqual(code, 0, out + err)
+                self.assertEqual([c["helper"] for c in self.calls], ["new helper\n"])
+
     def test_baseline_writes_one_file_from_one_commit(self):
         head_sha = self.git("rev-parse", "HEAD").strip()
         code, out, err = self.run_main(*self.baseline_args(commit=head_sha))

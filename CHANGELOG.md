@@ -9,6 +9,15 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.2.4] - 2026-11-09
+
+This release makes `tests/evals/compare_versions.py` refuse a `--plugin` path outside the exported commit. No plugin changes.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: if the `--plugin` path is not inside the exported commit, `run` and `baseline` stop with exit code 2. An absolute path and a path with `..` are examples. Before the fix, such a path named the real plugin folder. The script then wrote `.deps/` into it, and `baseline` replaced its `eval-stubs/` folder (issue #89).
+- `tests/evals/test_compare_versions.py`: a new test runs `run` and `baseline` with an absolute path and with a `..` path to the real plugin. It makes sure that the exit code is 2, that no eval runs, and that the real plugin does not change. A second test makes sure that a link or a `..` path inside the export still works (issue #89).
+
 ## Repository changes only in release [4.2.3] - 2026-11-09
 
 This release moves the guides for contributors out of `README.md` into the new folder `docs/`. No plugin changes.
@@ -1057,7 +1066,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...HEAD
+[4.2.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
