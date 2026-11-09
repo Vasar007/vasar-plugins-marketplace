@@ -46,6 +46,11 @@ Files in this skill:
   Read it when you write a section that you do not know well.
 - `references/examples.md`: before and after rewrites, and one complete
   README.
+- `scripts/openbsd_lint.py`: the linter for the rules that a script can
+  test. The hook of this plugin runs it after each write of a document in
+  this style. It needs Python 3 as `python3` on `PATH`. To stop the hook for
+  some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, in the same
+  form as `SIMPLE_ENGLISH_LINT_EXCLUDE` below. The pattern `*` turns it off.
 
 ## Precedence over other writing rules
 
@@ -67,9 +72,9 @@ rules forbid:
   default.", "Note that ...", and "in order to".
 - It uses semicolons where a man page would.
 
-If a writing linter or hook reports such hits in a document written with
-this skill, or in the files of this skill, do not rewrite the text to
-satisfy it. Follow this skill. Fix only real defects that this skill also
+If another writing linter or hook, for example the `simple-english` lint
+hook, reports such hits in a document written with this skill, or in the
+files of this skill, do not rewrite the text to satisfy it. Follow this skill. Fix only real defects that this skill also
 forbids, such as marketing words, filler or "you" in descriptions.
 
 Only one case reverses this section: the message of the user asks for STE
@@ -189,9 +194,11 @@ superuser may ..."). Then give the options or the directives.
   Do not hedge without information. "Skipping versions may work. Downgrading
   is unlikely to work." is calibrated and acceptable. "This might possibly
   cause issues" is not.
-- Do not use the marketing and filler words of the search list in
-  "Self-check", exclamation marks or closing summaries. Do not restate the
-  NAME line.
+- Do not use the marketing and filler words simply, just, easily, easy,
+  powerful, robust, seamless, blazing, modern, intuitive, leverage and
+  please, the phrases "it is worth noting" and "out of the box",
+  exclamation marks, bold or closing summaries. Do not restate the NAME
+  line.
 - Give the reason for a rule only when the reason changes what the reader
   does: "Do not edit `passwd` by hand. Use `vipw(8)`, which locks the file."
 - Use "Note that" for a non-obvious exception or consequence, and use it
@@ -360,19 +367,20 @@ repetition and filler. Move content into the canonical sections.
 
 ## Self-check
 
-Before you finish, check the document against this list:
+The hook of this plugin runs `scripts/openbsd_lint.py` after each write of
+a document in this style. The script checks the section names, their
+order and their content, the form of the NAME line, the sort order of
+options, variables, files and error codes, defaults in their own sentence,
+"you", and the words of "Sentence rules". Fix each hit, or keep it and
+give the reason in the reply. With a shell tool, the script also runs by
+hand: `python3 "${CLAUDE_SKILL_DIR}/scripts/openbsd_lint.py" <file>`.
 
-- The NAME line is lowercase, has no article and no period, and has about 5
-  words.
-- The first sentence of DESCRIPTION has the name as its subject and a verb in
-  the present tense.
-- The sections are in canonical order, and no section is empty.
-- Options, variables, files and error codes are sorted.
+Then check the rest by hand:
+
+- The NAME line has about 5 words and is not a full sentence.
+- The first sentence of DESCRIPTION has the name as its subject and a verb
+  in the present tense.
 - Every number has a unit.
 - The synopsis matches the real usage message.
 - Every example has a purpose sentence that ends in a colon, and it works.
-- Search the text for: simply, just, easily, easy, powerful, robust,
-  seamless, blazing, modern, intuitive, leverage, please,
-  "it is worth noting", "out of the box", "you", "!", "**". Remove each
-  hit or justify it.
 - "must", "may", "should" and "can" each have their exact meaning.
