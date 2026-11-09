@@ -10,7 +10,7 @@ when_to_use: "Use it for 'process PR comments' or 'address review comments'. Use
 
 The skill acts as the PR author. In each cycle, it skips the threads that GitHub marks as resolved or outdated, and classifies each remaining comment by its review tag. Then it fixes, drafts, answers, or opens a tracking issue, and posts a short reply. Each reply starts with the bold marker `**[AI]**`, so that reviewers can tell the replies of Claude from the replies of the author. Reviewers bold their leading tags in the same way, for example `**[ToFix]**`.
 
-Each fix gets a local commit at once. Its `**[AI]** Fixed` reply names the local commit SHA, before any push. The push is a separate step that comes once per cycle, after every reply. It needs the go-ahead of the user, unless `autonomous` is set (see Rules). After the push lands, the skill resolves each thread that it fixed with `pull_request_review_write` (`method: resolve_thread`).
+Each fix gets a local commit at once. Its `**[AI]** Fixed` reply names the local commit SHA. The reply waits as a pending reply, and posts right before the push, so that it describes the code that the push sends. The push comes once per cycle. It needs the go-ahead of the user, unless `autonomous` is set (see Rules). After the push lands, the skill resolves each thread that it fixed with `pull_request_review_write` (`method: resolve_thread`).
 
 Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and changes nothing. Stage 2 acts. Only the orchestrating session talks to the user. Stage 2 returns its open questions. The orchestrating session asks the user, and then resumes the same Stage 2 agent with `SendMessage` (see "Dispatch model").
 
@@ -43,13 +43,13 @@ Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and 
   If the invocation has both `interactive` and `autonomous`, stop before Phase 1. Ask the user once which mode to use.
 
   **`deep-fix` is not a level of this order**. It selects the form of the action for one thread. `/research-implement-review-report` must edit and commit to run its arc. So each flag that forbids edits or commits declines the `deep-fix` routing, with a one-line reason. These flags are `dry-run`, `no-edit`, `strict`, and `no-commit`. The named thread then gets its normal Phase 3 or Phase 3b classification. The invocation does not stop, and no other thread of the cycle changes. `no-reply` still allows the run, and only suppresses the reply at the end, as on every other path.
-- **Each push needs its own explicit go-ahead. A commit does not**. Commits are automatic (see above). `git push` needs an explicit go-ahead of the user for that push, in the current turn. The approval of an earlier cycle does not carry over, so ask again for each new push. These count as approval: "push", "you can push", "push and reply", or an equally explicit instruction that names the push. These do not count: a bare "continue" or "ok" from an unrelated context, and any inferred or assumed consent. If you are not sure, ask. The gate applies only to a run that makes commits. `no-commit` already skips the commit and the push. **With `autonomous`, the push goes ahead without a question after every thread of the cycle is committed and replied to (with `no-reply`: committed)**. For this invocation, the skill asks for no go-ahead. A later invocation without the flag goes back to the gated default. See Phase 4.
+- **Each push needs its own explicit go-ahead. A commit does not**. Commits are automatic (see above). `git push` needs an explicit go-ahead of the user for that push, in the current turn. The approval of an earlier cycle does not carry over, so ask again for each new push. These count as approval: "push", "you can push", "push and reply", or an equally explicit instruction that names the push. These do not count: a bare "continue" or "ok" from an unrelated context, and any inferred or assumed consent. If you are not sure, ask. The gate applies only to a run that makes commits. `no-commit` already skips the commit and the push. **With `autonomous`, the push goes ahead without a question after every thread of the cycle is committed. The pending replies post right before it (Phase 4)**. For this invocation, the skill asks for no go-ahead. A later invocation without the flag goes back to the gated default. See Phase 4.
 - **`deep-fix` names exactly one thread per invocation**. `/research-implement-review-report` is a full arc with a plan gate partway through (a stop with `interactive`). The skill cannot run it for several threads in one cycle, and parallel single-commit squashes on one branch collide. To route another thread, invoke the skill again.
 - **`deep-fix` is not allowed together with `loop`**. A polling monitor cannot wait at a question or a sign-off gate for an unattended interval. If an invocation has both, stop and ask the user which one they meant. Do not guess.
 
 ## Done test
 
-At the end of a cycle, each active thread has an action, a waiting draft, or an open question for the user. Each fix has a local commit and a reply that names its SHA. A flag of "Flag precedence" can turn off the commit or the reply. The cycle log of Phase 5 ends with the line about the push state.
+At the end of a cycle, each active thread has an action, a waiting draft, or an open question for the user. Each fix has a local commit and a reply that names its SHA. The reply posted right before the push, or it is pending while the push waits. A flag of "Flag precedence" can turn off the commit or the reply. The cycle log of Phase 5 ends with the line about the push state.
 
 ## Autonomy
 
@@ -116,15 +116,15 @@ Each cycle runs as **two** one-shot, unnamed subagent dispatches, never one. Sta
 | Stage | Model | Phases | Mandate |
 | --- | --- | --- | --- |
 | **Stage 1: classifier** | **Haiku** | Phase 1 and Phase 2 | **Read-only**. Fetch the threads, drop the noise, classify, find the committed-fix state again, and return the Stage 1 report. No GitHub writes and no file edits. No git writes to the working tree, the index, or the history. `git fetch` is expected. No verdicts and no replies. |
-| **Stage 2: actor** | **Sonnet** | Phase 3, 3b, and Phase 4 steps 1 to 4. After the push of the orchestrating session, the resolve step of Phase 4 and Phase 5. With no push, Phase 5 only. On a `deep-fix` cycle: Phase 3, 3b, and Phase 4 steps 1 to 4 only. | The Stage 1 report is its only source of thread data. Every judgment call, code edit, commit, reply, and resolve happens here. The one exception is the `deep-fix` thread, which Stage 2 hands off. On a `deep-fix` cycle, Stage 2 ends after Phase 4 step 4, before the push (see `references/deep-fix.md`). Stage 2 never runs `git push`. |
+| **Stage 2: actor** | **Sonnet** | Phase 3, 3b, and Phase 4 steps 1 to 4. After the go-ahead, the post of the pending replies. After the push of the orchestrating session, the resolve step of Phase 4 and Phase 5. With no push, Phase 5 only. On a `deep-fix` cycle: Phase 3, 3b, and Phase 4 steps 1 to 4 only. | The Stage 1 report is its only source of thread data. Every judgment call, code edit, commit, reply, and resolve happens here. The one exception is the `deep-fix` thread, which Stage 2 hands off. On a `deep-fix` cycle, Stage 2 ends after Phase 4 step 4, before the push (see `references/deep-fix.md`). Stage 2 never runs `git push`. |
 | **Stage 3: deep-fix** (opt-in, `deep-fix` only) | *The orchestrating session itself, not a subagent dispatch* | `references/deep-fix.md` | Runs `/research-implement-review-report` with `--commit-mode=single` as its own next phase. That skill can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. |
-| **Stage 3b: deep-fix reply** | **Sonnet** | `references/deep-fix.md` | A one-shot GitHub dispatch (Rule 4). It posts the thread reply after Stage 3 reports its squash SHA, its review-loop stop verdict, and its round count. It does not resolve the thread. |
+| **Stage 3b: deep-fix reply** | **Sonnet** | `references/deep-fix.md` | A one-shot GitHub dispatch (Rule 4). It runs right before the push, after Stage 3 reports its squash SHA, its review-loop stop verdict, and its round count. It posts the reply of the `deep-fix` thread and the pending replies of the other threads. It does not resolve a thread. |
 
 Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching, thread-state filters, and git ancestry checks. Stage 2 does judgment work, which needs the judgment tier (see "Model selection" in `dev-essentials:subagent-orchestration`).
 
 **Who talks to the user**. Subagents do not talk to the user. The orchestrating session asks every question and owns every stop that waits for an answer. It runs these steps itself: Phase 1 steps 2, 5, and 6, and the push of the cycle with its go-ahead. It also runs Phase 6, Stage 3, and the question of Phase 2 step 5 for an `unconfirmed-commit-claim` thread. A Stage 2 step can need an answer of the user. Examples: a `[Question]` draft, a Bucket A2 draft, and an edit under `strict`. Then Stage 2 records the open item and goes on with the other threads. It returns all open items at the end of its work. The orchestrating session asks the user. It sends the answer to the same Stage 2 agent with `SendMessage`. Stage 2 then finishes the open items of the same task (`dev-essentials:subagent-orchestration` Rule 5).
 
-**Who pushes**. Stage 2 never runs `git push`. It returns after Phase 4 step 4 of every thread, with its commit SHAs. The orchestrating session asks for the go-ahead (unless `autonomous` is set) and pushes once. Then it resumes the same Stage 2 agent with `SendMessage` for the resolve step of Phase 4 and for Phase 5. If the push does not happen (no go-ahead, the user declines, or the push fails), resume the same Stage 2 agent for Phase 5 only. It runs no resolve step. On a `deep-fix` cycle, the orchestrating session keeps the resolve and Phase 5 (see `references/deep-fix.md`).
+**Who pushes**. Stage 2 never runs `git push`. It returns after Phase 4 step 4 of every thread, with its commit SHAs and its pending replies (Phase 4). The orchestrating session shows the pending replies with its question for the go-ahead. With `autonomous`, it asks nothing. After the go-ahead, it resumes the same Stage 2 agent with `SendMessage` to post the pending replies. Then it pushes once. Then it resumes Stage 2 again for the resolve step of Phase 4 and for Phase 5. If the user asks to change a fix before the push, the orchestrating session resumes Stage 2 first. Stage 2 makes the change and writes the new text of its pending reply. If the push does not happen (no go-ahead, or the user declines), resume the same Stage 2 agent for Phase 5 only. It runs no resolve step, and the pending replies stay unposted. If the push fails after the replies posted, also resume Stage 2 for Phase 5 only. On a `deep-fix` cycle, the orchestrating session keeps the post of the replies, the resolve, and Phase 5 (see `references/deep-fix.md`).
 
 **What Stage 2 returns about `processedCommentIds`**. At the end, Stage 2 also returns the `processedCommentIds` entries (`references/thread-state-schema.md` § "`processedCommentIds`") of the comments that it completed or explicitly skipped. The orchestrating session adds them to its set.
 
@@ -177,12 +177,12 @@ Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching,
    - A comment with no known tag counts as `[Note]`.
    - If `tags` is set and no parsed tag is in it, skip the comment. Do not add it to `processedCommentIds`.
 
-5. **Find the committed-fix state of each active thread again, in every cycle**. No state persists between cycles. Apply [references/committed-fix-state.md](references/committed-fix-state.md) to each thread of the active roster. The step looks for the newest reply of Claude with an affirmative commit claim, for example `Committed as <sha>`. It gives one of four outcomes:
+5. **Find the committed-fix state of each active thread again, in every cycle**. No state persists between cycles. Apply [references/committed-fix-state.md](references/committed-fix-state.md) to each thread of the active roster. The step looks for the newest reply of Claude with an affirmative commit claim, for example `Committed as <sha>`. It also looks for an unpushed local commit that names the thread, because a reply waits for the push. It gives one of four outcomes:
 
-   - `fresh-unhandled`: no `**[AI]**` or `**[AI][Draft]**` reply exists. Go on to Phase 3.
+   - `fresh-unhandled`: no `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. Go on to Phase 3.
    - `already-assessed`: the newest such reply claims no commit. Leave the thread alone, unless a newer human reply exists.
    - `cured`: the claimed SHA is already an ancestor of `origin/pull/<prId>/head`. Resolve the thread as a catch-up step, unless `openFindingsMarker` is `true`.
-   - `unconfirmed-commit-claim`: nothing shows yet that the commit claim is safe to report as ready. Ask the human, and implement nothing new on the thread. No flag skips this question, also not `autonomous`.
+   - `unconfirmed-commit-claim`: nothing shows yet that the commit claim is safe to report as ready. This also covers a thread with no reply and an unpushed local commit that names it. Ask the human, and implement nothing new on the thread. No flag skips this question, also not `autonomous`.
 
    A newer reply of a human after the commit claim stops every automatic catch-up action on the thread. The reference file has this guard, the report lines, and the rules for `dry-run` and `no-reply`.
 
@@ -217,7 +217,7 @@ Minimum steps:
    - It adds no new architecture and no new public contract.
 
    A confidence below `high` does not stop the fix. Implement your best fix, and state the open question in the chat report and in the reply (**ask and fix**). For a fix that meets the conditions, treat the finding like `[ToFix]`: implement, commit (Phase 4), and post a non-draft `**[AI]**` "Implemented fix" reply. This path has no draft stage. For a fix that fails a condition, go to step 6. With `autonomous`, implement two kinds of these fixes, as Bucket A2 says. The first is a fix at the rewrite-from-scratch exception that stays inside the PR diff. The second is a fix that fails the third condition but meets the second. If `deep-fix` names the thread, a fix at rewrite-from-scratch size goes to Stage 3 instead (the second exit, see [references/deep-fix.md](references/deep-fix.md)). `needs-clarification`, `false-positive`, and `not-applicable` never take this path. For them, go to step 6.
-6. Post a `**[AI][Draft]**` reply with one of the verdict templates in `references/automated-review-verification.md`. Each template ends with `*Draft pending author confirmation.*`. Keep this closing line.
+6. Write a `**[AI][Draft]**` reply as a pending reply (Phase 4), with one of the verdict templates in `references/automated-review-verification.md`. Each template ends with `*Draft pending author confirmation.*`. Keep this closing line.
 7. Report the draft to the human (see "Who talks to the user"). Do not edit code. Wait for approval before you implement.
 
 ### Phase 4 — Commit, reply, push, then flag for resolution
@@ -227,14 +227,15 @@ Phase 4 runs in Stage 2, except the push, which the orchestrating session runs (
 1. **Build and test**: build the affected projects and run the affected tests. If the build fails or a test regresses, do not commit.
 2. **Stage**: `git add` only the files of this thread. Never `git add -A` or `git add .`.
 3. **Commit**: one commit for each thread by default, with the subject `PR #<prId> T#<commentId>: <short imperative summary>`. `squash` makes one commit at the end of the cycle. `no-commit` skips the commit and the push.
-4. **Reply**: post the reply with the LOCAL commit SHA. The reply does not claim a push.
+4. **Reply**: write the reply with the LOCAL commit SHA as a pending reply. Do not post it yet. The reply does not claim a push.
 
 Then, once per cycle:
 
-- **Push**: the orchestrating session runs one `git push` for all commits of the cycle, after steps 1 to 4 ran for every thread. It needs the go-ahead of the user (see Rules), unless `autonomous` is set.
+- **Post the replies**: after the go-ahead for the push, or at once with `autonomous`, post every pending reply of the cycle. Each reply then describes the code that the push sends. If the user changes a fix before the push, update its pending reply first. A cycle with nothing to push posts its pending replies at the end of Phase 4. The rules are in `references/commit-push-resolve.md` § "When replies post".
+- **Push**: right after the replies posted, the orchestrating session runs one `git push` for all commits of the cycle. It needs the go-ahead of the user (see Rules), unless `autonomous` is set.
 - **Resolve threads and report**: after the push lands, run the ancestry check for each thread that this cycle fixed, and resolve it. Without a landed push, resolve nothing.
 
-The reply comes early and the resolve comes late. The reply claims only a local commit. The resolve tells the reviewer that the fix is visible, and that is true only after the push.
+The reply posts right before the push, and the resolve comes after it. The reply claims only a commit. The resolve tells the reviewer that the fix is visible, and that is true only after the push.
 
 #### Stage 3 — `deep-fix` brief and outcomes
 
@@ -256,7 +257,7 @@ After each cycle, print the cycle log of [references/thread-state-schema.md](ref
   - An automated-review fix that adds a new architecture or a new public contract.
 
   Use this form: `T#<commentId> <file>:<line>: <the decision>. Reason: <one line>.` A cycle with no such decision has no list.
-- A thread whose reply is live but whose commit is not pushed shows `reply posted, pending push`. It stays open until its push lands (see Phase 4).
+- A thread whose push did not come shows `reply pending` or `draft pending`, and the log prints the text of the reply. A thread whose reply posted but whose push failed shows `reply posted, pending push`. Both stay open until the push lands (see Phase 4).
 - On a `deep-fix` cycle, the orchestrating session prints this log, not Stage 2. See [references/deep-fix.md](references/deep-fix.md) for the rows.
 
 Stage 2 reports a comment ID as processed only after its action, or an explicit skip, completed without error. The orchestrating session then adds it to `processedCommentIds`. After a failure, leave the comment unprocessed, so that the next cycle tries again.
