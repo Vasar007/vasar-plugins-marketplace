@@ -1,6 +1,6 @@
 {
   "name": "kb",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Wiring for a personal knowledge base kept in git. Session hooks sync it, print its indexes, guard note writes, approve read-only commands, and brief subagents. Skills capture a solved problem and close a task.",
   "author": {
     "name": "Vasily Vasilyev",
