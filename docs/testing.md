@@ -1,0 +1,34 @@
+# Testing
+
+The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`.
+
+To run all tests, run this command from the repository root:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+The command runs these parts:
+
+- The tests of `check_report.py` (skill `bug-hunt`) and `trim_report.py` (skill `trim-artifacts`).
+- The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test. The `excluded` key of that file lists folders that the test skips as a whole, each with a reason. An `excluded` folder with no tracked `.md` file also fails the test.
+- markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+- `claude plugin validate --strict` on the marketplace and on each plugin.
+- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
+- The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
+- A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
+- A search of the `README.md` files and the files in `docs/` for counts of hooks, skills, agents, and commands. Such a count goes stale.
+- The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
+- The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
+- The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10. If a tool is missing, the test skips. In CI, it fails.
+- A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
+
+The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
+
+The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
+
+The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+
+The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
+
+The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also installs the .NET SDK 10 for the scaffold tests. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
