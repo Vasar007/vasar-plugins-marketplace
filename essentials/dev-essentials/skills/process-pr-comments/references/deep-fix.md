@@ -31,9 +31,9 @@ An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles
 - its `filePath` and line range, and the text of the reviewer word for word
 - its tags, or its automated-review verdict and confidence
 - the SHAs that Stage 2 committed in this cycle, or the one `squash` SHA
-- the threads that Stage 2 already replied to
+- the pending replies of the other threads, with their text (`commit-push-resolve.md` § "When replies post")
 
-The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the push, the resolve, and Phase 5 of this cycle, and Stage 2 does none of these. On a cycle without an eligible `deep-fix` thread, the orchestrating session still runs the push (see "Who pushes" in `SKILL.md`). Stage 2 runs Phase 4 steps 1 to 4, and after the push it runs the resolve and Phase 5.
+The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the post of the replies, the push, the resolve, and Phase 5 of this cycle, and Stage 2 does none of these. On a cycle without an eligible `deep-fix` thread, the orchestrating session still runs the push (see "Who pushes" in `SKILL.md`). Stage 2 runs Phase 4 steps 1 to 4. After the go-ahead, it posts the pending replies. After the push, it runs the resolve and Phase 5.
 
 ## Stage 3 — `deep-fix` brief and outcomes
 
@@ -53,7 +53,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
-**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It posts the reply after Stage 3 reports its squash SHA, its stop verdict, and its round count:
+**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It runs right before the push of the cycle: after the go-ahead, or at once with `autonomous`. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. Stage 3b posts the reply of the `deep-fix` thread and every pending reply that Stage 2 handed back:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |
@@ -89,6 +89,7 @@ Never link the report artifact of that skill from either reply. It is a pipeline
 
 - Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
 - **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
+- The pending replies of the other threads stay unposted, because the push of the cycle does not come.
 - In Phase 5, report it as `deep-fix — blocked (build red, not pushed)`.
 - Offer the two real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
 
