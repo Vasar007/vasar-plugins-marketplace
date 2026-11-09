@@ -41,7 +41,7 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{RUN_CONTEXT}` | Absolute path of `bug-hunt-context.md` in `{REPORT_DIR}` |
 | `{CHECK_CMD}` | The full structure check command for this agent from `references/structure-checks.md`, with `--allow` and the name of its progress file |
 | `{OPEN_NOTES}` | The output lines of the `open-notes` command for the areas of this verifier part, or "none" |
-| `{PID_LIST}` | Process IDs with their start times (`pid=` and `started=`) from the WARN lines of the structure check, or "none" |
+| `{PID_LIST}` | Process IDs with their start times (`pid=` and `started=`) from the WARN lines that the session progress file records, or "none" |
 | `{DIGEST}` | `{SCRATCH}/known-issues.md` |
 | `{REPORT_DIR}` | Absolute path of the report folder |
 | `{REPORT_PATH}` | Absolute path of the report file |

@@ -1,6 +1,17 @@
 # Inputs and meta-plan
 
-The orchestrator reads this file at step 0. After the OK of the user, or the default approval, the session progress file holds the approved values. Later steps do not need this file. Rule and step numbers refer to `SKILL.md`.
+The orchestrator reads this file at step 0 and follows "Step 0 procedure". After the OK of the user, or the default approval, the session progress file holds the approved values. Later steps do not need this file. A resume reads item 2 again only to pick a new scratch folder. Rule and step numbers refer to `SKILL.md`. Item numbers refer to "Step 0 procedure".
+
+## Step 0 procedure
+
+1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Take the GitHub repository as the Inputs table says. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
+2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
+3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
+4. Look for `simple-english:simple-english` in the list of available skills.
+5. Write the meta-plan in chat, with every part that "Parts of the meta-plan" lists.
+6. Ask only questions that block the run.
+7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
+8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" lists. If a start time is set, schedule the start as [pauses.md](pauses.md) says, and end the turn.
 
 ## Inputs
 
@@ -30,6 +41,8 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Verifier model and effort | `--verifier-model`, `--verifier-effort` | `opus`, `xhigh` |
 | Auditor model and effort | `--auditor-model`, `--auditor-effort` | `opus`, `xhigh` |
 
+The default hunter model `fable` is a flag value, so it stays a concrete name. If a newer model line replaces Fable, the strongest model that the `model` parameter of the `Agent` tool accepts takes its place.
+
 The context file is for orientation only. Do not read other files in its folder. If an agent
 needs one of them, the agent reads it.
 
@@ -47,7 +60,7 @@ For the defaults, use only these light read-only calls:
 1. Inputs: a table with each value and where it came from (argument or default).
 2. Areas: a table with the number, name, paths, file count, and size, in search order. Number the areas in the approved search order, so that area 1 is searched first. If the user changes the order, renumber the areas.
 3. Excluded paths, each with a reason, for example vendored or generated code.
-4. Agents: a table with the model and effort of each role. Say in one sentence how the Fable dispatches are approved (rule 7). If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files.
+4. Agents: a table with the model and effort of each role. Say in one sentence how the dispatches of Fable (or the strongest model) are approved (rule 7). If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files.
 5. Files: the report path, the run context file, the final summary file, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
 6. Verification: the split threshold and the split rule of step 4.
 7. Base: the base branch and its source. For a local base, give the date of its last commit. If the analyzed commit is the base, or the base is `none`, say so.
@@ -71,7 +84,7 @@ Ask a question in these cases:
 
 ## Session progress file
 
-At step 0 item 8 of `SKILL.md`, write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
+At item 8 of "Step 0 procedure", write `_bug-hunt-session-progress.md` in the report folder (rule 6). Record these values:
 
 - The inputs, the commit SHAs, the base source, and the scratch folder.
 - The approved models and effort levels.

@@ -16,7 +16,7 @@ for this run.
 
 ## Read-only rules
 
-Your brief gives these paths: the run context file, the live repository, and the two snapshots. It also gives the report folder and file, your work folder, the shared tools folder, and your progress file. If a CLAUDE.md file conflicts with these rules, these rules win.
+Your brief gives these paths: the run context file, the live repository, and the snapshots. It also gives the report folder and file, your work folder, the shared tools folder, and your progress file. If a CLAUDE.md file conflicts with these rules, these rules win.
 
 1. Read code only from the snapshots. Another session can work in the live repository at the same time. If your brief gives no snapshot path, stop and report this.
 2. Do not edit, build, test, or run anything in the live repository. Do not create files there. If the report folder is inside the live repository, it is the only exception (read-only rule 3).

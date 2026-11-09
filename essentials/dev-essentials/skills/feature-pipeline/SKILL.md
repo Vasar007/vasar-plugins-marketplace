@@ -114,7 +114,7 @@ Before you launch a stage, read [references/stage-launch.md](references/stage-la
 
 ## Checkpoints
 
-The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to date during the whole run. Read [references/checkpoint-protocol.md](references/checkpoint-protocol.md) at Step 0. It has the schema, the notes for each field, the updates during the run, and the two resume checks. After each write and at each load on a resume, check the file as that reference says. If the file is not valid JSON, stop. On a resume, "Updates during the run" in that file decides the first stage, and the gate or the comment that runs before it.
+The master agent keeps `{ARTIFACTS_DIR}/{TASK_ID}/pipeline-state.json` up to date during the whole run. Read [references/checkpoint-protocol.md](references/checkpoint-protocol.md) at Step 0. It has the schema, the notes for each field, the updates during the run, and the resume checks. After each write and at each load on a resume, check the file as that reference says. If the file is not valid JSON, stop. On a resume, "Updates during the run" in that file decides the first stage, and the gate or the comment that runs before it.
 
 ## Orchestration
 

@@ -14,7 +14,6 @@ argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--ba
 
 # Bug hunt
 
-This skill finds new potential bugs in a whole project and saves one verified bug report.
 The main session is the orchestrator. It plans the run and dispatches the agents.
 
 Earlier runs forgot two rules most often: the orchestrator checks only the structure of the
@@ -44,8 +43,8 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Gate | Default | `--interactive` | `--autonomous` |
 | --- | --- | --- | --- |
 | Step 0 and rule 8: the meta-plan and the run format | Continue, unless the user objects | Wait for the OK | Same as default |
-| Step 0 item 1: the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
-| Rule 7: Fable dispatches of the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
+| Step 0 item 1 in [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md): the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
+| Rule 7: Dispatches of Fable (or the strongest model) in the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
 | Step 6: cleanup | Delete only the paths that this run made, with no stop | Same | Same |
 
 The run never commits, pushes, or writes to GitHub.
@@ -119,8 +118,8 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
-- Pass `model` and `effort` on every dispatch of the three plugin agents. Their agent files default to Opus.
+- Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts, is never dispatched silently. The step-0 meta-plan names each dispatch of it and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch it. Without `--interactive`, the meta-plan approves them, because that model is the documented default of this skill for the hunter.
+- Pass `model` and `effort` on every dispatch of the plugin agents `dev-essentials:bug-hunter`, `dev-essentials:bug-verifier`, and `dev-essentials:bug-report-auditor`. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
 - Follow the skill `dev-essentials:subagent-orchestration` for everything else about dispatch.
@@ -128,7 +127,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 8. Run format
 
 The run format is the check scope in rule 3 plus the reporting rules below. The step-0
-meta-plan states it. With `--interactive`, the OK of the user accepts it. Without `--interactive`, the meta-plan accepts it unless the user objects. After the run format is accepted, rule 3
+meta-plan states it, and the table in "Autonomy" says what accepts it. After the run format is accepted, rule 3
 replaces tiers 1 and 2 of the section `Trust but verify` of
 `dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
 claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
@@ -174,16 +173,7 @@ fails, or a structure check fails, follow "Failure handling" in the same file.
 
 ### Step 0. Meta-plan and questions
 
-Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md) first.
-
-1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. With `--interactive`, do not take the GitHub repository from the remote without the user's OK. Without `--interactive`, take it from the remote and mark it in the Scope section. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
-2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
-3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
-4. Look for `simple-english:simple-english` in the list of available skills.
-5. Write the meta-plan in chat, with every part that the reference file lists.
-6. Ask only questions that block the run.
-7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" in the reference file lists. If a start time is set, schedule the start as [references/pauses.md](references/pauses.md) says, and end the turn.
+Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md), and follow its section "Step 0 procedure".
 
 ### Step 1. Isolation
 
@@ -235,8 +225,8 @@ at the end of the Summary. Then run the structure check for step 5.
 First, delete the scheduled jobs of the run: run `CronList`, and run `CronDelete` for each job
 ID that the session progress file records.
 
-Dispatch the cleanup helper. Give it the process IDs and start times from the WARN lines of the
-structure check. Give it the exact list of paths to delete:
+Dispatch the cleanup helper. Give it the process IDs and start times that the session progress file records from the WARN
+lines of the structure checks. Give it the exact list of paths to delete:
 
 - The scratch folder, with the snapshots, the digest, the tools folder, and every work folder.
 - Every `_bug-hunt-progress-*.md` file in the report folder.

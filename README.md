@@ -213,6 +213,7 @@ The command runs these parts:
 - A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
 - The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
+- A search of the `README.md` files for counts of hooks, skills, agents, and commands. Such a count goes stale.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
 - The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
 - The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10. If a tool is missing, the test skips. In CI, it fails.
@@ -279,9 +280,9 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-both` | `doc-styles` | 3 | Windows, because it grants no shell tool |
 
-The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop` runs 7 cases, `--tag feature-pipeline` runs 13 cases, and `--tag write-tests` runs 4 cases.
+The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, and `--tag write-tests` also run the trigger cases in `evals/triggers/` of their plugin.
 
-The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects all 21 cases. The suite `style-compare-openbsd` runs the skill on 9 documents. The suite `style-compare-se` runs the same 9 prompts with `simple-english`. The suite `style-compare-both` runs 3 documents with both plugins loaded. The `simple-english` side loads the stand-in in `tests/evals/stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The 5 trigger cases of `doc-styles` carry the tag `openbsd-style-docs`, and its 3 probes carry the tag `probe`.
+The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects the cases of all `style-compare-*` suites. The suite `style-compare-openbsd` runs the skill on the documents in `evals/style-compare/openbsd/` of `doc-styles`. The suite `style-compare-se` runs the same prompts with `simple-english`, from `evals/style-compare/simple-english/`. The suite `style-compare-both` runs the documents in `evals/style-compare/coexist/` with both plugins loaded. The `simple-english` side loads the stand-in in `tests/evals/stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The trigger cases of `doc-styles` in `evals/triggers/` carry the tag `openbsd-style-docs`, and its probes in `evals/probes/` carry the tag `probe`.
 
 Run the suites through the compare script, because the cases of `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 

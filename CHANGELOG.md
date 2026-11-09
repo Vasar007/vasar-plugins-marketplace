@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.2.1 and dev-essentials 3.7.2 in release [4.2.2] - 2026-11-09
+
+This release removes counts of hooks, skills, agents, and eval cases from the docs. When a unit is added or removed, such a count goes stale. It also shortens the `bug-hunt` skill. No behavior changes.
+
+### Changed in kb
+
+- `README.md`: the text names no count of hooks, skills, or text checks. It points to `hooks/hooks.json` and `skills/` instead. The hook table stays (issue #94).
+
+### Changed in dev-essentials
+
+- `skills/bug-hunt/SKILL.md`: rule 7 names the agents `bug-hunter`, `bug-verifier`, and `bug-report-auditor` instead of a count (issue #94).
+- `skills/bug-hunt`: a pass of `optimize-skill` shortened the skill with no change of behavior. Step 0 moved to the section "Step 0 procedure" of `references/inputs-and-meta-plan.md`, with the cuts and pointer fixes below. A repeated mode rule and the first sentence of `SKILL.md` were cut. Three pointers are clearer. `references/resume-and-failures.md` says "the cleanup helper". Step 6 names the source of the process list. The three bug hunt agent files say "the snapshots" (issue #94).
+- `skills/feature-pipeline/SKILL.md`: the text says "the resume checks" instead of a count (issue #94).
+- `skills/bug-hunt`: two pointers to step 0 now link to `references/inputs-and-meta-plan.md` (issue #94).
+- `skills/bug-hunt`: the skill now says "Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts" where it names the strongest model. A newer model line can then replace Fable. The default of `--hunter-model` stays `fable`. The rule of no dispatch without the OK of the user does not change (issue #94).
+
+### Changed in the repository
+
+- `README.md`: the text about the behavior suites names no case counts. The suite table keeps them. The list of test parts names the new count test (issue #94).
+- `tests/test_readme_counts.py`: a new test. If a `README.md` states a count of hooks, skills, agents, or commands, the test fails. The count pattern skips function words, so "step 3 of this skill" is not a count. An `ALLOWED` entry is keyed on the text of the line. An entry covers only lines with exactly that text. A hit on a line with other text is still reported (issue #94).
+
 ## Repository changes only in release [4.2.1] - 2026-10-29
 
 This release moves the shared test setup into one helper module. No plugin changes.
@@ -1025,7 +1046,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...HEAD
+[4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.0...v4.1.1
