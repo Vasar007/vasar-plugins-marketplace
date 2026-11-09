@@ -28,7 +28,7 @@ This release removes counts of hooks, skills, agents, and eval cases from the do
 ### Changed in the repository
 
 - `README.md`: the text about the behavior suites names no case counts. The suite table keeps them. The list of test parts names the new count test (issue #94).
-- `tests/test_readme_counts.py`: a new test. If a `README.md` states a count of hooks, skills, agents, or commands, the test fails. The count pattern skips function words, so "step 3 of this skill" is not a count. An `ALLOWED` entry is keyed on the text of the line, so it cannot hide a later identical hit (issue #94).
+- `tests/test_readme_counts.py`: a new test. If a `README.md` states a count of hooks, skills, agents, or commands, the test fails. The count pattern skips function words, so "step 3 of this skill" is not a count. An `ALLOWED` entry is keyed on the text of the line. An entry covers only lines with exactly that text. A hit on a line with other text is still reported (issue #94).
 
 ## Repository changes only in release [4.2.1] - 2026-10-29
 

@@ -9,14 +9,14 @@ import unittest
 from support import REPO, tracked_markdown_files
 
 NUMBER = r"(?:\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
-# Up to two words between the number and the unit. A function word ends the match, so that
+# Up to two words between the number and the unit. A function word or a few verbs end the match, so that
 # "step 3 of this skill" and "Rule 7 names the agents" are not counts.
-MODIFIER = r"(?:(?!(?:the|of|and|or|in|this|that|a|an|to|for|names|hits)\b)[\w`-]+\s+){0,2}"
+MODIFIER = r"(?:(?!(?:the|of|and|or|in|this|that|a|an|to|for|on|with|is|are|by|from|at|as|per|about|names|hits)\b)[\w`-]+\s+){0,2}"
 UNIT_COUNT = re.compile(
     r"(?<![\w.])" + NUMBER + r"\s+" + MODIFIER + r"(?:hook entries|hooks?|skills?|agent types|agents?|commands?)\b",
     re.IGNORECASE)
 # Counts that are fine, as (README path, stripped text of the line) -> reason: a fixed limit, or a count with its
-# list next to it. The key is the whole line, so a later identical hit on another line is still reported.
+# list next to it. An entry covers only lines with exactly that text, so a hit on a line with other text is still reported.
 ALLOWED = {}
 
 
@@ -56,6 +56,8 @@ class CountHitsTests(unittest.TestCase):
                 "It needs simple-english 2.1.1 and v2 skills.\n"
                 "See step 3 of this skill.\n"
                 "Rule 7 names the agents.\n"
+                "See section 4 on hooks.\n"
+                "Check 5 is about hooks.\n"
                 "Add one skill.\n"
                 "This follows the twelve-factor way.\n")
         self.assertEqual(count_hits(text), [])
