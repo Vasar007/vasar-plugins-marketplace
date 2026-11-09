@@ -1,4 +1,4 @@
-"""Keeps the README files free of counts of hooks, skills, agents, and commands.
+"""Keeps the README files and the files in docs/ free of counts of hooks, skills, agents, and commands.
 
 Such a count goes stale when a plugin adds or removes one of these units.
 Write "the hooks" instead, and point to the folder or the file that holds them.
@@ -34,7 +34,8 @@ def check_hits(hits, allowed):
 
 
 def readme_files():
-    return [p for p in tracked_markdown_files() if p.split("/")[-1] == "README.md"]
+    """The tracked README.md files and the .md files in docs/, which hold the text that moved out of README.md."""
+    return [p for p in tracked_markdown_files() if p.split("/")[-1] == "README.md" or p.startswith("docs/")]
 
 
 class CountHitsTests(unittest.TestCase):
@@ -80,6 +81,7 @@ class ReadmeTextTest(unittest.TestCase):
     def test_no_count_of_units(self):
         files = readme_files()
         self.assertIn("README.md", files)
+        self.assertIn("docs/authoring.md", files)
         hits = [(path, number, hit, line) for path in files
                 for number, hit, line in count_hits((REPO / path).read_text(encoding="utf-8"))]
         failures, stale = check_hits(hits, ALLOWED)
