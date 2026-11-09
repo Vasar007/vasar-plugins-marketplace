@@ -11,7 +11,7 @@ Stage 2 reads this file before it acts on a tagged comment. It has the action, t
 
 The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs, `SKILL.md` wins: `interactive` and `autonomous` change these gates as Bucket A1 and Bucket A2 say. Where this file says to ask the human or to wait, Stage 2 records the open item and goes on with the other threads. The orchestrating session asks the human (see "Who talks to the user" in `SKILL.md`).
 
-The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text.
+The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text. A reply about a fix, and the `**[AI][Draft]**` reply of a non-trivial `[Suggestion]` or `[Optional]`, are pending replies. Stage 2 writes them at once and posts them right before the push (`commit-push-resolve.md` § "When replies post").
 
 Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Pick one action with the rules of "When multiple tags combine". A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
 
@@ -31,7 +31,7 @@ These thresholds apply to `[ToFix]`, `[Performance]`, `[PX]`, and a trivial `[Su
 
 The reviewer requires a change. The PR does not get approval without it.
 
-- Small: implement the edit. Then run Phase 4 steps 1 to 4 (`commit-push-resolve.md`). Build and test, then commit at once, with no approval first. Reply at once with the local commit SHA: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` The push is a separate step later in the cycle. It needs the explicit go-ahead of the user, unless `autonomous` is set (Phase 4). To stage only, pass `no-commit`.
+- Small: implement the edit. Then run Phase 4 steps 1 to 4 (`commit-push-resolve.md`). Build and test, then commit at once, with no approval first. Write the reply with the local commit SHA as a pending reply: `**[AI]** Fixed: <one-line summary>. Committed as <short-sha>; will be included in the next push.` The reply posts right before the push, a separate step later in the cycle. The push needs the explicit go-ahead of the user, unless `autonomous` is set (Phase 4). To stage only, pass `no-commit`.
 - Medium / Large: if the comment or the existing code settles the approach, implement it (Bucket A1). Else prepare the diff in chat, explain the approach, and wait for the explicit go-ahead of the human. With `autonomous`, implement it instead, and name the approach in the reply (Bucket A2). With `interactive`, always draft and wait. If `deep-fix` names this thread, send it through `/research-implement-review-report` instead, in every mode (see `deep-fix.md`). On the draft path, do not edit files.
 - After the fix, the thread stays open until the push of its commit lands. Then the skill resolves the thread itself (`commit-push-resolve.md` § "Resolve threads and report"). A fix of this skill needs no manual step in the GitHub UI.
 
@@ -65,7 +65,7 @@ A concrete improvement. It does not block the approval of the PR.
 
 - Trivial and small: implement it like `[ToFix]`. Reply `**[AI]** Applied suggestion: <summary>. Committed as <short-sha>; will be included in the next push.`
 - Non-trivial, and the comment or the existing code settles the direction: implement it. State the direction and a one-line reason in the reply (Bucket A1).
-- Non-trivial, and nothing settles the direction: draft the trade-off in chat. Then post a `**[AI][Draft]**` reply that sums up the pros and the cons (Bucket A2). With `autonomous`, implement it instead, and name the direction and the reason in the reply. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
+- Non-trivial, and nothing settles the direction: draft the trade-off in chat. Then write a pending `**[AI][Draft]**` reply that sums up the pros and the cons (Bucket A2). With `autonomous`, implement it instead, and name the direction and the reason in the reply. Example reply: `**[AI][Draft]** Option A keeps the current shape; option B inlines the helper. Current preference: A because <one-line reason>. Happy to switch — your call.`
 - With `interactive`, draft in both non-trivial cases.
 
 ### `[Optional]`
