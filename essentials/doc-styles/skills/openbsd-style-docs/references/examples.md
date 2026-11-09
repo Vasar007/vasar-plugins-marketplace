@@ -169,7 +169,7 @@ $ logrot -n -s 10M /var/log/app/access.log
 
 ## SEE ALSO
 
-`gzip(1)`, `newsyslog(8)`, `logrot.conf(5)`
+`gzip(1)`, `logrot.conf(5)`, `newsyslog(8)`
 
 ## HISTORY
 

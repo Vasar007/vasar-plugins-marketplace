@@ -328,7 +328,7 @@ The following example <states the intent of each line in one sentence>:
 
 ## SEE ALSO
 
-`<name>(8)`, `<other>(5)`
+`<other>(5)`, `<name>(8)`
 ````
 
 Rules specific to a configuration file:

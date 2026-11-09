@@ -21,8 +21,8 @@ This release adds a linter and a lint hook to the skill `openbsd-style-docs` (is
 
 ### Changed in doc-styles
 
-- `skills/openbsd-style-docs/SKILL.md`: the self-check names the linter and keeps only the checks that a script cannot do. The word list moved to "Sentence rules". The precedence rule about other linters no longer covers the hook of this plugin (issue #82).
-- `skills/openbsd-style-docs/references/skeletons.md`: the ERRORS list of the library skeleton is sorted (issue #82).
+- `skills/openbsd-style-docs/SKILL.md`: the self-check names the linter and keeps only the checks that a script cannot do. It also names the documents that the hook skips, and the agent checks those by hand. The word list moved to "Sentence rules". The precedence rule about other linters no longer covers the hook of this plugin. Bold is not allowed in any case, the same as in the linter. Some sentences that repeated other text are removed (issue #82).
+- `skills/openbsd-style-docs/references/skeletons.md` and `references/examples.md`: the ERRORS list of the library skeleton is sorted. The SEE ALSO lists of the configuration file skeleton and of the complete README are sorted by section (issue #82).
 
 ### Changed in the repository
 

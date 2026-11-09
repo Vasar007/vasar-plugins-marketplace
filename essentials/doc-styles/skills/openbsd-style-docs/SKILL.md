@@ -6,14 +6,12 @@ when_to_use: Use it only when the user names the style, for example "OpenBSD sty
 
 # Technical documentation in the OpenBSD manual style
 
-This skill takes the writing style of the OpenBSD manual pages and applies it
-to any technical document. The default output format is Markdown. Do not write
-roff or mdoc unless the user asks for a real manual page.
+The default output format is Markdown. Do not write roff or mdoc unless the
+user asks for a real manual page.
 
 ## The OpenBSD manual is the reference
 
-The real OpenBSD manual pages are the standard. This skill is a summary of
-them, and a summary can be wrong or incomplete. When the skill and the
+The real OpenBSD manual pages are the standard. When the skill and the
 corpus disagree, the corpus wins. When the skill does not cover a case,
 find how the corpus handles it, and do the same. The URLs, the search
 syntax and the pages to prefer are in "Reading the corpus" in
@@ -48,9 +46,7 @@ Files in this skill:
   README.
 - `scripts/openbsd_lint.py`: the linter for the rules that a script can
   test. The hook of this plugin runs it after each write of a document in
-  this style. It needs Python 3 as `python3` on `PATH`. To stop the hook for
-  some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, in the same
-  form as `SIMPLE_ENGLISH_LINT_EXCLUDE` below. The pattern `*` turns it off.
+  this style. It needs Python 3 as `python3` on `PATH`.
 
 ## Precedence over other writing rules
 
@@ -84,10 +80,12 @@ prompt, a `CLAUDE.md` file or a skill is not such a request.
 The chat reply is not part of the document. Step 7 of "Workflow" gives
 its rules.
 
-A skill cannot turn off a hook. To stop the `simple-english` lint hook from
-reporting on a path, the user can set `SIMPLE_ENGLISH_LINT_EXCLUDE` to a
-list of glob patterns. The separator is `:` on Linux and macOS and `;` on
-Windows. For example, on Linux:
+A skill cannot turn off a hook. To stop a lint hook for some paths, the
+user can set an environment variable to a list of glob patterns:
+`SIMPLE_ENGLISH_LINT_EXCLUDE` for the `simple-english` lint hook, and
+`OPENBSD_STYLE_LINT_EXCLUDE` for the hook of this plugin. The separator is
+`:` on Linux and macOS and `;` on Windows. The pattern `*` turns the hook of
+this plugin off. For example, on Linux:
 `SIMPLE_ENGLISH_LINT_EXCLUDE="$HOME/projects/*/docs/*:*/README.md"`.
 
 ## The principles
@@ -111,9 +109,7 @@ Windows. For example, on Linux:
 
 ## Section order
 
-The canonical order, from `mdoc(7)`, is below. Use only the sections that
-apply. The skeletons in `references/skeletons.md` show the selection for
-each document type.
+The canonical order, from `mdoc(7)`, is below.
 
 ```text
 NAME            one line: name and what it does
@@ -238,7 +234,7 @@ Rules for items:
 - Sort options alphabetically: digits first, then letters, uppercase before
   lowercase for the same letter (`-1 -A -a -B -b`). It does not matter whether
   an option takes an argument. Sort environment variables, files and error
-  codes alphabetically too. Sort SEE ALSO by section number, then by name.
+  codes alphabetically too.
 - Introduce a list with a sentence that ends in a colon: "The options are as
   follows:", "The following directives are available:".
 - A bullet list is for parallel items without a term. A numbered list is for
@@ -260,9 +256,6 @@ The OpenBSD pages use semantic markup. In Markdown, map it like this:
 | new term at its definition | `Em` | *italic*, one time |
 | critical word (not, never, only) | `Em` | *italic*, rarely |
 | multi-line display, output, configuration | `Bd -literal` | fenced code block |
-
-Do not use bold for emphasis. Bold is for syntax elements only, and it is
-almost never necessary in Markdown.
 
 ## SYNOPSIS
 
@@ -293,8 +286,8 @@ statement.
   root.
 - Do not write "Example 1" headings. Show the output only when the example
   is about the output.
-- Every example must work exactly as written. If you cannot run it, say so to
-  the user. Do not present an untested example as tested.
+- Every example must work exactly as written. Do not present an untested
+  example as tested.
 - For a dangerous idiom, show the wrong form, then the correct form: "Do not
   write this:" and "Write this instead:".
 - After the code, one sentence may state what the example guarantees: "This
@@ -339,17 +332,15 @@ skeleton.
 
 ## Documents in other languages
 
-The same rules apply to Russian and to other languages. Before you write or
-review a document in another language, read "Documents in other languages"
-in `references/phrases.md`.
+Before you write or review a document in a language other than English,
+read "Documents in other languages" in `references/phrases.md`.
 
 ## Workflow
 
 1. Find out the facts before you write. Read the code, `--help`, the parser
-   of the configuration, the error paths and the exit codes. The style
-   depends on exact facts. Do not invent defaults, limits or error codes. If
-   a fact is unknown, ask the user or mark it in your reply. Do not hide it
-   in vague words.
+   of the configuration, the error paths and the exit codes. Do not invent
+   defaults, limits or error codes. If a fact is unknown, ask the user or
+   mark it in your reply. Do not hide it in vague words.
 2. Pick the document type and its skeleton from `references/skeletons.md`.
 3. Write the NAME line and the first sentence of DESCRIPTION. If they are
    hard to write, the purpose of the thing is not clear yet. Ask.
@@ -374,6 +365,13 @@ options, variables, files and error codes, defaults in their own sentence,
 "you", and the words of "Sentence rules". Fix each hit, or keep it and
 give the reason in the reply. With a shell tool, the script also runs by
 hand: `python3 "${CLAUDE_SKILL_DIR}/scripts/openbsd_lint.py" <file>`.
+
+The hook is silent for a document that it skips, the same as for a
+document with no hit. It skips a document with no uppercase
+`## DESCRIPTION` heading, for example one with sentence-case headings. It
+also skips a document with a wrong NAME line and no other uppercase
+canonical heading. For such a document, run the script by hand. If no shell
+tool is available, check the rules of the script by hand.
 
 Then check the rest by hand:
 
