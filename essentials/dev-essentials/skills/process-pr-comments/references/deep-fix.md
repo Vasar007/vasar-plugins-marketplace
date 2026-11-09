@@ -33,7 +33,7 @@ An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles
 - the SHAs that Stage 2 committed in this cycle, or the one `squash` SHA
 - the pending replies of the other threads, with their text (`commit-push-resolve.md` § "When replies post")
 
-The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the post of the replies, the push, the resolve, and Phase 5 of this cycle, and Stage 2 does none of these. On a cycle without an eligible `deep-fix` thread, the orchestrating session still runs the push (see "Who pushes" in `SKILL.md`). Stage 2 runs Phase 4 steps 1 to 4. After the go-ahead, it posts the pending replies. After the push, it runs the resolve and Phase 5.
+The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the post of the replies, the push, the resolve, and Phase 5 of this cycle, and Stage 2 does none of these.
 
 ## Stage 3 — `deep-fix` brief and outcomes
 

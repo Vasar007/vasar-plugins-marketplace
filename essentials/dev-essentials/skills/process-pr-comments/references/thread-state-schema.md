@@ -288,7 +288,7 @@ Next cycle in 15m (via /loop).
 
 ```text
 Cycle 2 @ 15:42 — PR #4421 (5 threads checked, 2 new comments)
-  T#9  [ToFix]  Retry.cs:17          → fixed (cycle 1), commit 9f3a1c2       | resolved (this cycle's push landed it)
+  T#9  [ToFix]  Retry.cs:17          → fixed (earlier run), commit 9f3a1c2  | resolved (this cycle's push landed it)
   T#12 [ToFix]  Auth.cs:42           → fixed (2 LoC), commit a1b2c3d        | resolved (this cycle's push landed it)
 
 2 commits pushed as a1b2c3d.
