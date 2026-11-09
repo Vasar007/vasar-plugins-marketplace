@@ -9,6 +9,16 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.2.5] - 2026-11-09
+
+This release makes the listing budget test match the always-on cost that a signed-in session shows. No plugin changes.
+
+### Changed in the repository
+
+- `tests/test_plugin_cli.py`: each budget in `LISTING_BUDGET` is now the most always-on tokens that `claude plugin details` can show in a signed-in session. With no sign-in, the command shows an offline estimate: the number of characters divided by 4. The test runs with no sign-in, so it multiplies the estimate by the new `SIGNED_IN_RATIO` of 1.5 before it compares the result with the budget. The new budgets are the old ones times 1.5. So the test passes and fails for the same descriptions as before (issue #90).
+- `tests/test_plugin_cli.py`: each claude call now runs without the known environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. Before, such a variable gave the test the API count, and the budget test failed for each plugin. A Claude Code cloud session can still sign in through its token file. Then the budget test fails, and it does not hide an overrun (issue #90).
+- `docs/testing.md`: the text says what the budgets count, and why the test multiplies the estimate (issue #90).
+
 ## Repository changes only in release [4.2.4] - 2026-11-09
 
 This release makes `tests/evals/compare_versions.py` refuse a `--plugin` path outside the exported commit. No plugin changes.
@@ -1066,7 +1076,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...HEAD
+[4.2.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...v4.2.5
 [4.2.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
