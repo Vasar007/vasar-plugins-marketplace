@@ -9,6 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.2.3] - 2026-11-09
+
+This release moves the guides for contributors out of `README.md` into the new folder `docs/`. No plugin changes.
+
+### Changed in the repository
+
+- `docs/authoring.md`, `docs/testing.md`, `docs/evals.md`, and `docs/permissions.md`: new files with the text that moved out of `README.md`. The text is the same, with these changes for the new place: the heading levels, the path of the link to `CLAUDE.md`, and "this section" became "this file". The folder list in `docs/authoring.md` names `docs/` (issue #93).
+- `README.md`: it keeps the plugin list, the install and update steps, the link to `CHANGELOG.md`, and the references. The new section "Contributing" gives a short summary of each guide in `docs/` and links to it. The section on the push rules keeps a short summary and links to `docs/permissions.md` (issue #93).
+- `CLAUDE.md`: step 3 of the workflow for new units points to `docs/evals.md` instead of the Evals section of `README.md` (issue #93).
+- `tests/test_readme_counts.py`: the test also reads the `.md` files in `docs/`. The moved text then stays free of counts of hooks, skills, agents, and commands (issue #93).
+
 ## kb 0.2.1 and dev-essentials 3.7.2 in release [4.2.2] - 2026-11-09
 
 This release removes counts of hooks, skills, agents, and eval cases from the docs. When a unit is added or removed, such a count goes stale. It also shortens the `bug-hunt` skill. No behavior changes.
@@ -1046,7 +1057,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...HEAD
+[4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.1.1...v4.2.0
