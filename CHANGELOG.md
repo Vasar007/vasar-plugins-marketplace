@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.0 in release [4.4.0] - 2026-11-09
+
+This release adds a linter and a lint hook to the skill `openbsd-style-docs` (issue #82). The hook checks the rules that a script can test after each write of a document in this style. The model still checks the other rules.
+
+### Added in doc-styles
+
+- `skills/openbsd-style-docs/scripts/openbsd_lint.py`: a linter for the rules that a script can test. It checks the section names, their order and their content, and the NAME line. It also checks the sort order of option, variable, file and error lists. It checks that a default has its own sentence. It looks for "you" and for the marketing and filler words of the skill. It uses only the standard library of Python 3 (issue #82).
+- `hooks/hooks.json`: a `PostToolUse` hook for `Write` and `Edit`. It runs the linter on a Markdown file that has the form of this style, and it shows the hits to Claude. It skips other files. It needs `python3` on `PATH`. If `python3` is missing, the hook exits at once and reports nothing. To stop it for some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, or to `*` (issue #82).
+- `evals/probes/probe-obsd-lint-hook`: a probe that shows whether the hook runs in an eval run (issue #82).
+
+### Changed in doc-styles
+
+- `skills/openbsd-style-docs/SKILL.md`: the self-check names the linter and keeps only the checks that a script cannot do. It also names the documents that the hook skips, and the agent checks those by hand. The word list moved to "Sentence rules". The precedence rule about other linters no longer covers the hook of this plugin. Bold is not allowed in any case, the same as in the linter. Some sentences that repeated other text are removed (issue #82).
+- `skills/openbsd-style-docs/references/skeletons.md` and `references/examples.md`: the ERRORS list of the library skeleton is sorted. The SEE ALSO lists of the configuration file skeleton and of the complete README are sorted by section (issue #82).
+
+### Changed in the repository
+
+- `tests/test_openbsd_lint.py`: tests for the linter, the hook mode, the hook file, and the word list of the skill (issue #82).
+- `README.md`, `.claude-plugin/marketplace.json`, and `docs/testing.md`: they name the hook and the new tests (issue #82).
+
 ## Repository changes only in release [4.2.5] - 2026-11-09
 
 This release makes the listing budget test match the always-on cost that a signed-in session shows. No plugin changes.
@@ -1076,7 +1096,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.3.0...v4.4.0
 [4.2.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...v4.2.5
 [4.2.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
