@@ -213,6 +213,7 @@ The command runs these parts:
 - A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
 - The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
+- A search of the `README.md` files for counts of hooks, skills, agents, and commands. Such a count goes stale.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
 - The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
 - The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10. If a tool is missing, the test skips. In CI, it fails.

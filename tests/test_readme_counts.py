@@ -10,7 +10,7 @@ from support import REPO, tracked_markdown_files
 
 NUMBER = r"(?:\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
 UNIT_COUNT = re.compile(
-    r"\b" + NUMBER + r"\s+(?:[\w`-]+\s+)?(?:hook entries|hooks?|skills?|agent types|agents?|commands?)\b",
+    r"(?<![\w.])" + NUMBER + r"\s+(?:[\w`-]+\s+){0,2}(?:hook entries|hooks?|skills?|agent types|agents?|commands?)\b",
     re.IGNORECASE)
 # Counts that are fine, as (README path, hit text) -> reason: a fixed limit, or a count with its list next to it.
 ALLOWED = {}
@@ -32,6 +32,7 @@ class CountHitsTests(unittest.TestCase):
                           ("The plugin adds six hook entries.", "six hook entries"),
                           ("The plugin also adds three skills:", "three skills"),
                           ("Pass it to the three plugin agents.", "three plugin agents"),
+                          ("Pass it to the three bug hunt agents.", "three bug hunt agents"),
                           ("It ships 2 commands.", "2 commands"),
                           ("Dispatch one of the Three agent types.", "Three agent types")):
             with self.subTest(line=line):

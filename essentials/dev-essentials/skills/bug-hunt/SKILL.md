@@ -43,7 +43,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Gate | Default | `--interactive` | `--autonomous` |
 | --- | --- | --- | --- |
 | Step 0 and rule 8: the meta-plan and the run format | Continue, unless the user objects | Wait for the OK | Same as default |
-| Step 0 item 1: the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
+| Step 0 item 1 in [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md): the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
 | Rule 7: Fable dispatches of the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
 | Step 6: cleanup | Delete only the paths that this run made, with no stop | Same | Same |
 

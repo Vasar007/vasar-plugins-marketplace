@@ -20,11 +20,13 @@ This release removes counts of hooks, skills, agents, and eval cases from the do
 ### Changed in dev-essentials
 
 - `skills/bug-hunt/SKILL.md`: rule 7 names the agents `bug-hunter`, `bug-verifier`, and `bug-report-auditor` instead of a count (issue #94).
-- `skills/bug-hunt`: a pass of `optimize-skill` shortened the skill with no change of behavior. Step 0 moved word for word to the section "Step 0 procedure" of `references/inputs-and-meta-plan.md`. A repeated mode rule and the first sentence of `SKILL.md` were cut. Three pointers are clearer. `references/resume-and-failures.md` says "the cleanup helper". Step 6 names the source of the process list. The three bug hunt agent files say "the snapshots" (issue #94).
+- `skills/bug-hunt`: a pass of `optimize-skill` shortened the skill with no change of behavior. Step 0 moved to the section "Step 0 procedure" of `references/inputs-and-meta-plan.md`, with the cuts and pointer fixes below. A repeated mode rule and the first sentence of `SKILL.md` were cut. Three pointers are clearer. `references/resume-and-failures.md` says "the cleanup helper". Step 6 names the source of the process list. The three bug hunt agent files say "the snapshots" (issue #94).
+- `skills/feature-pipeline/SKILL.md`: the text says "the resume checks" instead of a count (issue #94).
+- `skills/bug-hunt`: two pointers to step 0 now link to `references/inputs-and-meta-plan.md` (issue #94).
 
 ### Changed in the repository
 
-- `README.md`: the text about the behavior suites names no case counts. The suite table keeps them (issue #94).
+- `README.md`: the text about the behavior suites names no case counts. The suite table keeps them. The list of test parts names the new count test (issue #94).
 - `tests/test_readme_counts.py`: a new test. If a `README.md` states a count of hooks, skills, agents, or commands, the test fails (issue #94).
 
 ## Repository changes only in release [4.2.1] - 2026-10-29
