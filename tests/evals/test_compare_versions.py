@@ -623,7 +623,7 @@ class DependencyTests(CompareCase):
                     with mock.patch.object(tempfile, "tempdir", str(exports)):
                         code, _, err = self.run_main(*self.args_with_plugin(arguments, plugin))
                     self.assertEqual(code, 2)
-                    self.assertIn("is not inside the repository", err)
+                    self.assertIn("must be a path relative to the repository root", err)
                     self.assertEqual(self.calls, [])
                     self.assertFalse((real / ".deps").exists())
                     self.assertEqual(sorted(p.name for p in (real / "eval-stubs").iterdir()), ["mine"])
