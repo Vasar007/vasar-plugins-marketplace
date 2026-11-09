@@ -9,6 +9,16 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.8.0 in release [4.3.0] - 2026-11-09
+
+This release makes `process-pr-comments` post its thread replies right before the push, not right after each commit. A reply then describes the code that the push sends, also after the user changes a fix before the push.
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: a reply about a fix, and an `[AI][Draft]` reply about code, wait as pending replies. After the go-ahead for the push, or at once with `autonomous`, Stage 2 posts them, and then the orchestrating session pushes. If the user changes a fix before the push, Stage 2 updates its pending reply first. With no go-ahead, the replies stay unposted, and the cycle log shows their text. A cycle with nothing to push posts them at the end of Phase 4. `[Question]`, `[ToDiscuss]`, and `[OutOfScope]` replies still post at once (issue #64).
+- `skills/process-pr-comments`: Phase 2 step 5 also reads the local commits that the PR head does not have yet. If such a commit names a thread with no reply about it, the thread is `unconfirmed-commit-claim` with the new report field `claimSource: local-commit`. The human gets the question. A later run then does not fix the thread a second time (issue #64).
+- `evals/process-pr-comments/ppc-tofix-default`: the grader `replied` is now `reply-waits`, and expects no reply before the go-ahead. The new grader `reply-drafted` expects the reply text in the last message (issue #64).
+
 ## Repository changes only in release [4.2.3] - 2026-11-09
 
 This release moves the guides for contributors out of `README.md` into the new folder `docs/`. No plugin changes.
@@ -1057,7 +1067,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...v4.3.0
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
