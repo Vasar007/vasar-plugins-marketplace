@@ -57,7 +57,7 @@ Fields:
 | `replyPosted` | yes | `false` with `dry-run` or `no-reply`, and while the reply is pending (`commit-push-resolve.md` § "When replies post"). |
 | `replyCommentId` | optional | The ID that `add_reply_to_pull_request_comment` returns, for the user to look up. |
 | `editedFiles` | optional | The files that this action touched. Empty for drafts and notes. |
-| `issueNumber` | optional | Set right after `[OutOfScope]` tracking created a GitHub issue. This holds also for an issue whose reply did not post. A next try of that reply in the session uses this number, and creates no second issue (`tag-actions.md` § "`[OutOfScope]`"). |
+| `issueNumber` | optional | Set right after `[OutOfScope]` tracking created or found a GitHub issue. This holds also for an issue whose reply did not post. A next try of that reply in the session uses this number, and creates no second issue (`tag-actions.md` § "`[OutOfScope]`"). |
 | `cycleNumber` | yes | Starts at 1, and goes up by one in each cycle. |
 | `timestamp` | yes | The time in ISO 8601 UTC at which the action completed. |
 
