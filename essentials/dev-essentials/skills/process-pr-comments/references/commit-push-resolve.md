@@ -48,20 +48,22 @@ Repeat steps 1 to 4 for every thread of the cycle before the push.
 
 ## When replies post
 
-A reply about code waits until right before the push, so that it describes the code that the push sends. Stage 2 writes such a reply as a pending reply, and does not post it yet. These replies are pending:
+Every thread reply of the cycle is a pending reply, in every mode. Stage 2 writes it at once, and does not post it yet. All pending replies post in one batch. So the user sees each reply before it goes out, and a reply about code describes the code that the push sends. The batch holds these replies:
 
 - Each reply about a fix of this cycle (step 4), and the reply of a `deep-fix` thread (`deep-fix.md`).
 - Each `**[AI][Draft]**` reply of Phase 3b step 6 (`automated-review-verification.md`).
 - The `**[AI][Draft]**` reply of a non-trivial `[Suggestion]` or `[Optional]` (`tag-actions.md`).
 - The `**[AI][Draft]**` reply of a draft-first override (`show me a draft first`, `don't commit yet`, or `let me see the diff`, in `SKILL.md` Phase 3).
+- The `[Question]` and `[ToDiscuss]` replies (`tag-actions.md`).
+- The `[OutOfScope]` replies. Task Composer creates an approved issue right before the batch posts, so that the `Tracked as issue` reply can name it (`tag-actions.md` § "`[OutOfScope]`").
 
-Other replies post at once: the `[Question]` and `[ToDiscuss]` replies, and the `[OutOfScope]` replies. They describe no code of the push. The `Tracked as issue` reply is also the record that stops a second issue for the same thread.
+A reply that waits for an answer of the user joins the batch only after the answer. An example is a `[Question]` draft before its `yes`. Without an answer, the reply stays pending.
 
-The pending replies post at one point of the cycle. The Rules in `SKILL.md` define a push to make and the rules of `no-commit` and `dry-run`:
+The batch posts at one point of the cycle, after Stage 2 finished its open items (`SKILL.md` § "Who talks to the user"). The Rules in `SKILL.md` define a push to make and the rules of `no-commit` and `dry-run`:
 
 1. If the cycle has a push to make, they post after the go-ahead. With `autonomous`, they post at once. In the one case of the Rules that still asks, they post only after the user gives the go-ahead. The orchestrating session resumes Stage 2, and Stage 2 posts them. Then the orchestrating session pushes. On a `deep-fix` cycle, Stage 3b posts them (`deep-fix.md`).
-2. If the cycle has no push to make, Stage 2 posts them at the end of Phase 4, before Phase 5. Stage 2 knows this, because it gets every step 5 answer in its brief (`SKILL.md` § "Who talks to the user"). `dry-run` is the one exception: it posts nothing.
-3. If the cycle has a push to make but the push does not come, they stay unposted. Examples are no go-ahead and a user who declines. The cycle log shows each one as `reply pending` or `draft pending`, with its text. A later go-ahead in the same session posts them, and then pushes. If the session ends first, the replies are lost. Then a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply").
+2. If the cycle has no push to make, Stage 2 posts them at the end of Phase 4, after its open items, before Phase 5. Stage 2 knows this, because it gets every step 5 answer in its brief (`SKILL.md` § "Who talks to the user"). `dry-run` is the one exception: it posts nothing.
+3. If the cycle has a push to make but the push does not come, they stay unposted. Examples are no go-ahead and a user who declines. The cycle log shows each one as `reply pending` or `draft pending`, with its text. Task Composer creates no issue. A later go-ahead in the same session posts them, and then pushes. If the session ends first, the replies are lost. Then a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply"). A thread with no fix and no posted reply is `fresh-unhandled` in a later run, so the run handles it again from the start.
 
 A `deep-fix` run that ended `stop-blocked` is different. Bucket B in `SKILL.md` forbids any push of that cycle, so no later go-ahead posts the replies or pushes. The replies stay unposted. The way back is a fix forward, or a reset of the branch (`deep-fix.md`), and then a new invocation of the skill.
 
@@ -101,7 +103,7 @@ Then resolve and report as in group (a), in this cycle. Do not wait for a later 
 
 ## Threads carried over from an earlier cycle
 
-A fix can be committed and replied to in an earlier cycle or invocation whose push failed after the replies posted. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/pull/<prId>/head`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question. `no-reply`, `no-commit`, `dry-run`, and a claim that opens no push turn it into a report line (`committed-fix-state.md` § "Report modes").
+A fix can be committed and replied to in an earlier cycle or invocation whose push failed after the replies posted. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/pull/<prId>/head`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question. `no-reply`, `no-commit`, `dry-run`, and a claim that opens no push turn it into a report line (`committed-fix-state.md` § "Report modes"). A later cycle of a `/loop` session does the same.
 
 A fix can also be committed in an earlier run that ended before its go-ahead, with no reply. Phase 2 step 5 finds its commit by the `T#<commentId>` in the commit message. Then it asks the user (`committed-fix-state.md` § "Local commit with no reply"). After a push-and-resolve answer, Stage 2 adds a pending reply for the thread. The orchestrating session can still hold the pending reply of that thread from an earlier cycle. Then it puts that text in the Stage 2 brief with the answer, and Stage 2 uses it. Else Stage 2 writes the "Implemented fix" template with the summary and the SHA of the commit. The reply posts right before the push, and the resolve follows group (b) above.
 

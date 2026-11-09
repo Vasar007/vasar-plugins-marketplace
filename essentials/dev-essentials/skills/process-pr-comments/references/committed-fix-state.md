@@ -32,7 +32,7 @@ A reply about a fix posts right before the push (`commit-push-resolve.md` § "Wh
 3. Run this test for each thread that goes on to Phase 3: a `fresh-unhandled` thread, and a thread that the guard above sent to Phase 3. If a commit names the thread, derive `unconfirmed-commit-claim` instead. Set `claimSource` to `local-commit` and `claimedSha` to the newest such commit. Set `shaResolvesLocally` and `isAncestorOfHead` to `true`, and `isAncestorOfRemote` to `false`. The `git log` range of step 1 holds only commits of `HEAD` that the PR head does not have. Do not send the thread to Phase 3.
 4. Report: `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — push it and post its reply, or handle it separately?`
 
-With `no-reply`, `no-commit`, or `dry-run`, the report is `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question (§ "Report modes").
+With `no-reply`, `no-commit`, or `dry-run`, the report is `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question (§ "Report modes"). A later cycle of a `/loop` session prints the same report.
 
 Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-resolve.md` § "Threads carried over from an earlier cycle").
 
@@ -45,6 +45,7 @@ These rules apply to the two outcomes below:
 - With `dry-run`, print the same report line, with no question.
 - With `no-commit`, `cured` takes its default action. `unconfirmed-commit-claim` asks no question, because the run cannot push (Rules in `SKILL.md`). Print its report line, and the human handles the thread.
 - In every mode, also with none of the flags above, an `unconfirmed-commit-claim` thread whose claim opens no push asks no question. Such a claim is not a carried-over claim (Rules in `SKILL.md`): its SHA does not resolve, no clear SHA exists, or the commit is not on the local branch (`isAncestorOfHead: false`). Print its report line, and add `No push can carry this commit. The human handles it.` No answer opens a push for such a claim, so the run asks no question.
+- In each later cycle of a `/loop` session (`thread-state-schema.md` § "Session lifecycle"), an `unconfirmed-commit-claim` thread asks no question. Nobody can be there to answer, and the question holds the whole cycle. Print its report line, and add `The human handles it.` The cycle goes on.
 
 ## `cured`
 
@@ -55,7 +56,7 @@ The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fi
 - On success, report: `T#<id> resolved — <file>:<line>, commit <sha>.`
 - On an MCP error, report: `T#<id> cured — <file>:<line>, commit <sha> — resolve failed (<short reason>), resolve manually via GitHub UI.`
 
-Stage 1 only derives `cured`. Stage 2 makes the resolve call after its own ancestry check (see "Dispatch model" in `SKILL.md`).
+Stage 1 only derives `cured`. Stage 2 makes the resolve call after its own ancestry check (see "Dispatch model" in `SKILL.md`). If that check disagrees, Stage 2 does not act on the thread in this cycle. It prints the `unconfirmed-commit-claim` report line below. Phase 2 step 5 of the next cycle derives the state again, and asks the question (or prints a report line, § "Report modes").
 
 ## `unconfirmed-commit-claim`
 

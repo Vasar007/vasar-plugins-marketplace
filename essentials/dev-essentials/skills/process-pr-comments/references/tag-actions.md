@@ -11,7 +11,7 @@ Stage 2 reads this file before it acts on a tagged comment. It has the action, t
 
 The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs, `SKILL.md` wins: `interactive` and `autonomous` change these gates as Bucket A1 and Bucket A2 say. Where this file says to ask the human or to wait, Stage 2 records the open item and goes on with the other threads. The orchestrating session asks the human (see "Who talks to the user" in `SKILL.md`).
 
-The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text. A reply about a fix, and the `**[AI][Draft]**` reply of a non-trivial `[Suggestion]` or `[Optional]`, are pending replies. Stage 2 writes them at once and posts them right before the push (`commit-push-resolve.md` § "When replies post").
+The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text. Every reply in this file is a pending reply, in every mode. Stage 2 writes it at once. It posts in the one batch of the cycle (`commit-push-resolve.md` § "When replies post"). In this file, "post" means "add to the batch".
 
 Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Pick one action with the rules of "When multiple tags combine". A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
 
@@ -86,7 +86,7 @@ The reviewer wants an explanation. A wrong public answer under the identity of t
 - Read the related code before you answer. Do not build the answer from the comment alone.
 - Draft format: a claim, the reasoning, and a citation (file and line range, an existing test, or linked documentation).
 - Show the draft to the human in chat first. Ask: `Post this [Question] reply to T#<thread-id>? (yes / edit / skip)`.
-- Only after `yes`, post `**[AI][Draft]** <answer in 1–3 short sentences>. See <file:line> / <test> / <doc link>.\n\n*Draft pending author confirmation.*`
+- Only after `yes`, post `**[AI][Draft]** <answer in 1–3 short sentences>. See <file:line> / <test> / <doc link>.\n\n*Draft pending author confirmation.*` The reply joins the batch, and it posts with the other replies of the cycle.
 - On `edit`, use the revision of the human, and ask again.
 - On `skip`, add the comment to `processedCommentIds` with `action: "skipped"` and `replyPosted: false`. Do not post.
 - If you do not know the answer, say so. Show the uncertainty in chat, and ask the human. Never post a guess.
@@ -112,8 +112,10 @@ Issue flow:
 
 1. Invoke Task Composer (`dev-essentials:task-composer`) in `mode: response` with a short brief: the comment text, the file and the line, the reason that it is out of scope, and each priority hint from other tags. Task Composer drafts the title and the description in chat. It writes no file and makes no GitHub call yet.
 2. Ask the user to approve the title and the type. With `autonomous`, skip this step: take the title from the draft. If the reviewer or the user named a type, pass it. Else pass no type, and Task Composer leaves `type` out. Name the fields in the cycle log (Bucket A2).
-3. After the approval of the user, or with `autonomous`, invoke Task Composer again with `mode: create`, the approved fields, `owner`, and `repo`. Task Composer requires `owner` and `repo`. Pass them word for word, and never infer them (`dev-essentials:github-mcp-conventions` Rule 1). Task Composer creates the issue. If the brief gives a parent, Task Composer links the issue to it. Then it reads the issue back, and returns its ID and its URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which approves `mode: create`.
-4. Use only the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.`
+3. After the approval of the user, or with `autonomous`, keep the approved fields. Invoke Task Composer again right before the batch of the cycle posts (`commit-push-resolve.md` § "When replies post"). Pass `mode: create`, the approved fields, `owner`, and `repo`. Task Composer requires `owner` and `repo`. Pass them word for word, and never infer them (`dev-essentials:github-mcp-conventions` Rule 1). Task Composer creates the issue. If the brief gives a parent, Task Composer links the issue to it. Then it reads the issue back, and returns its ID and its URL. Never call `mcp__plugin_github_github__issue_write` directly from this skill. With `autonomous`, tell Task Composer that the user ran this skill with `autonomous`, which approves `mode: create`.
+4. Use only the ID and the URL that Task Composer returns after its read-back. Reply `**[AI]** Tracked as issue #<id>: <title>.` The reply posts in the same batch.
+
+The `Tracked as issue` reply is the record that stops a second issue for the same thread. So the issue and its reply come at the same point. If the batch does not post, Task Composer creates no issue. A later run then finds no reply on the thread, and runs this flow again. If the `mode: create` call fails, the reply of this thread does not post, and the other replies of the batch still post.
 
 If the user declines, or wants to defer: reply `**[AI]** Noted — will not track separately yet.` Create no issue.
 

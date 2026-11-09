@@ -62,7 +62,7 @@ Fields:
 
 ## Committed-fix detection — re-derived every cycle, not persisted
 
-No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 finds this state again in every cycle. It reads the thread history on GitHub, the messages of the unpushed local commits, and real git ancestry (`git merge-base --is-ancestor`). The steps, the outcomes, and the guard for a newer human reply are in `committed-fix-state.md`. In some cases, the question of step 5 becomes a report line (§ "Report modes" of that file). These cases are `dry-run`, `no-reply`, `no-commit`, and a claim that opens no push. This section has only the text-match rules that the step uses.
+No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 finds this state again in every cycle. It reads the thread history on GitHub, the messages of the unpushed local commits, and real git ancestry (`git merge-base --is-ancestor`). The steps, the outcomes, and the guard for a newer human reply are in `committed-fix-state.md`. In some cases, the question of step 5 becomes a report line (§ "Report modes" of that file). These cases are `dry-run`, `no-reply`, `no-commit`, a claim that opens no push, and a later cycle of a `/loop` session. This section has only the text-match rules that the step uses.
 
 **Affirmative commit claim**. The match is strict, not a loose prefix match. An affirmative commit claim is a reply of Claude with the phrase `Committed as <sha>` or `commit <sha>` next to the fix summary. The reply starts with `**[AI]**`, or with the old plain `[AI]` form. A `**[[T#<id>](<url>)]**` tag between the `**[AI]**` marker and the body is expected, and does not change the match.
 
@@ -90,7 +90,7 @@ The three steps use these commands in the same way. They differ in `<target-ref>
 | Step | `<target-ref>` | Fetch first? | SHA tested | On success | On failure or an unclear result |
 | --- | --- | --- | --- | --- | --- |
 | Phase 2 step 5, the first classification (Stage 1, `committed-fix-state.md`) | `origin/pull/<prId>/head` | Yes. Run the fetch of command 1 first. | The SHA from the existing affirmative commit claim of the thread. It becomes `claimedSha`. | Derive `assessedState: cured`. Stage 1 only derives this verdict. By default, Stage 2 makes the catch-up resolve after its own test (row 2), before Phase 3 and Phase 4 of this cycle. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Derive `assessedState: unconfirmed-commit-claim`. If the SHA resolves, also run command 2 against `HEAD` for `isAncestorOfHead`. The orchestrating session asks the human and waits, or prints a report line (`committed-fix-state.md` § "Report modes"). `autonomous` does not skip the question. |
-| Stage 2 test before the catch-up resolve (`SKILL.md` § "Dispatch model") | `origin/pull/<prId>/head` | No. Stage 1 already fetched it in this cycle. | The `claimedSha` field of the report for that thread. | Make the `cured` catch-up resolve as the first action of Stage 2, before Phase 3. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Do not resolve. Handle the thread as `unconfirmed-commit-claim`. |
+| Stage 2 test before the catch-up resolve (`SKILL.md` § "Dispatch model") | `origin/pull/<prId>/head` | No. Stage 1 already fetched it in this cycle. | The `claimedSha` field of the report for that thread. | Make the `cured` catch-up resolve as the first action of Stage 2, before Phase 3. If `openFindingsMarker` of the thread is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. | Do not resolve, and do not act on the thread in this cycle. Print the `unconfirmed-commit-claim` report line. The next cycle derives the state again. |
 | Phase 4 "Resolve threads and report", the test after the push (`commit-push-resolve.md`) | `<pushed-tip>`: the commit or branch state that the push of this cycle produced, not the remote-tracking ref | No. The push of this cycle is the newest state. | The SHA of the commit of this cycle for that thread. For a carried-over thread, the `claimedSha` that Phase 2 step 5 flagged earlier in this cycle. | Call `resolve_thread`, and report the thread as resolved. A carried-over thread also needs a push-and-resolve answer of the human in this session. See group (b) in `commit-push-resolve.md` § "Resolve threads and report". | Report the thread as still open. Do not guess. |
 
 The report fields `claimedSha`, `shaResolvesLocally`, `isAncestorOfHead`, and `isAncestorOfRemote` carry the result of Phase 2 step 5 forward (see § "Stage 1 report"). They go to the test of Stage 2. In the same cycle, they also go to the resolve step of Phase 4 for a carried-over thread. So no later step has to derive them again from the start. But each later step runs the test again against its own target ref, and does not trust the cached values.
@@ -213,7 +213,7 @@ Stage 1 derives these states with the logic of `committed-fix-state.md`, exactly
 | `assessedState` | Step 5 outcome | What Stage 2 does |
 | --- | --- | --- |
 | `fresh-unhandled` | No `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. | The normal classification of Phase 3. |
-| `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, handle the thread as `unconfirmed-commit-claim`. If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
+| `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, do not act on the thread in this cycle, and print the `unconfirmed-commit-claim` report line. The next cycle asks the question. If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
 | `unconfirmed-commit-claim` | The merged case of step 5: not yet an ancestor, or the SHA does not resolve in this checkout, or no clear SHA came out of the reply. Or an unpushed local commit names the thread with no reply about it (`claimSource: local-commit`). | The orchestrating session asks the question of step 5, and the thread waits for the answer. Or it prints a report line (`committed-fix-state.md` § "Report modes"). `autonomous` does not skip the question. Nothing new is implemented on this thread. |
 | `already-assessed` | The newest AI reply is final, but claims no commit (`**[AI][Draft]**`, `Tracked as issue #<id>`, a `[Note]` acknowledgement, and the like). | Leave the thread alone, unless `newerHumanReply` is `true`. |
 
@@ -242,9 +242,10 @@ Next cycle in <interval> (via /loop).
 | --- | --- |
 | `fixed (<N> LoC)` | The skill implemented the fix: a Small fix, or a larger fix under Bucket A1 or A2. |
 | `drafted` | A larger diff is drafted in chat, and waits for approval. |
-| `answer drafted` | A `[Question]` answer is drafted and posted as `**[AI][Draft]**`. |
+| `answer drafted` | A `[Question]` answer is drafted as `**[AI][Draft]**`. After the `yes` of the user, it posts in the batch. |
 | `discussion flagged` | A `[ToDiscuss]` thread is shown to the user, with no reply. |
 | `verdict: <enum>` | The AutoReview path. Add the verdict and the confidence. |
+| `issue pending` | An `[OutOfScope]` issue is approved, and waits for the batch. Task Composer creates it right before the batch posts. |
 | `tracked #<id>` | An `[OutOfScope]` issue is created. |
 | `noted` | A `[Note]` or untagged comment, summed up in chat. |
 | `pattern flagged` | A `[Repetition]` thread, shown with the count of occurrences. |
@@ -259,7 +260,7 @@ Next cycle in <interval> (via /loop).
 
 - `reply posted`: the `**[AI]**` reply was sent.
 - `draft posted`: the `**[AI][Draft]**` reply was sent, and waits for the approval of a human.
-- `reply pending`: the `**[AI]**` reply is written and waits for the push (`commit-push-resolve.md` § "When replies post"). The log prints its text.
+- `reply pending`: the `**[AI]**` reply is written, and waits for the batch of the cycle (`commit-push-resolve.md` § "When replies post"). The batch waits for the push or for an answer of the user. The log prints its text.
 - `draft pending`: the `**[AI][Draft]**` reply waits in the same way.
 - `no reply (dry-run)` or `no reply (no-reply)`: the parameter flag stopped the reply.
 - `no reply (awaiting approval)`: the action did not run, because it needs the approval of a human.
@@ -276,7 +277,7 @@ Next cycle in <interval> (via /loop).
 Cycle 2 @ 15:57 — PR #42 (8 threads, 3 new comments)
   T#12 [ToFix]       Auth.cs:42               → fixed (2 LoC)               | reply pending
   T#17 [AutoReview]  Domain/User.cs:88        → verdict: false-positive     | draft pending
-  T#22 [OutOfScope]  Sessions/Repo.cs:120     → tracked #876                | reply posted
+  T#22 [OutOfScope]  Sessions/Repo.cs:120     → issue pending               | reply pending
 
 1 commit ready, not yet pushed — push when ready.
 
