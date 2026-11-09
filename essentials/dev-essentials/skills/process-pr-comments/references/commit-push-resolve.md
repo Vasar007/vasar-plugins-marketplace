@@ -1,10 +1,11 @@
 # Commit, reply, push, and resolve (Phase 4)
 
-Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The orchestrating session runs it, after steps 1 to 4 of every thread, and then resumes Stage 2 for the resolve step. On a `deep-fix` cycle, Stage 2 runs steps 1 to 4 only. The orchestrating session then owns the push, the resolve, and Phase 5 (see `deep-fix.md`).
+Stage 2 runs steps 1 to 4, the post of the pending replies, and the resolve step. Stage 2 never runs the push. The orchestrating session runs it right after the replies posted, and then resumes Stage 2 for the resolve step. On a `deep-fix` cycle, Stage 2 runs steps 1 to 4 only. The orchestrating session then owns the post of the replies, the push, the resolve, and Phase 5 (see `deep-fix.md`).
 
 ## Contents
 
 - Steps for each thread
+- When replies post
 - Push, once per cycle
 - Resolve threads and report
 - Threads carried over from an earlier cycle
@@ -14,7 +15,7 @@ Stage 2 runs steps 1 to 4 and the resolve step. Stage 2 never runs the push. The
 - Thread resolution after a fix lands: the `no-reply` split
 - Which threads to resolve
 
-The reply comes right after the commit and before the push. So the reply never claims too much: it reports a local commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread only after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and replied to.
+Stage 2 writes the reply right after the commit, and the reply posts right before the push (§ "When replies post"). So the reply describes the code that the push sends, and it never claims too much: it reports a commit, not a change that a reviewer can already see. A resolve says more: it tells the reviewer that the fix is visible. That is true only after the push lands. So the skill resolves a thread only after the push of its fix landed, never before. The push needs an explicit go-ahead of the user for each push (see Rules in `SKILL.md`), unless `autonomous` is set. It comes once per cycle, after every thread below is built, tested, committed, and has its pending reply.
 
 To resolve a thread, call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId`. The schema of the tool also requires `owner`, `repo`, and `pullNumber` on every call, although `resolve_thread` does not use their values. Pass the values from Phase 1. A resolve of an already resolved thread does nothing.
 
@@ -41,17 +42,35 @@ Do these steps in order for each thread that this cycle fixes, before you go on 
    - With `squash`, do not run step 4 after each thread (see the exception above). First collect the fixes of steps 1 and 2 for every thread. Then make ONE commit at the end of the cycle, with every `T#<id>` in the body. Only then run step 4 for each thread.
    - With `no-commit`, skip the commit and the push. Leave the edits staged for the human, and reply with the "staged" template below.
    - **Do not ask the user to approve a commit**. Commits stay automatic. The push is different (see below). Feedback of the user on an earlier cycle, for example "LGTM, proceed", does not change the commit default to `no-commit`. A user who wants to inspect before the commit says so with the `no-commit` flag.
-4. **Reply** with `mcp__plugin_github_github__add_reply_to_pull_request_comment` and the templates below. Name the LOCAL commit SHA of step 3. The reply does not claim a push. The reply is the lasting record of the commit, and the skill writes no other state. In a later cycle, Phase 2 step 5 finds the committed-but-unpushed state again from this reply text. It runs `git merge-base --is-ancestor` against the remote. This works in the same invocation and in a later one.
+4. **Reply**: write the reply with the templates below, as a pending reply. Name the LOCAL commit SHA of step 3. The reply does not claim a push. Post it with `mcp__plugin_github_github__add_reply_to_pull_request_comment` at the time that § "When replies post" gives. The posted reply is the lasting record of the commit, and the skill writes no other state. In a later cycle, Phase 2 step 5 finds the committed-but-unpushed state again from this reply text. It runs `git merge-base --is-ancestor` against the remote. This works in the same invocation and in a later one. Until the reply posts, the commit message is the record: its `T#<commentId>` names the thread (`committed-fix-state.md` § "Local commit with no reply").
 
 Repeat steps 1 to 4 for every thread of the cycle before the push.
 
+## When replies post
+
+A reply about code waits until right before the push, so that it describes the code that the push sends. Stage 2 writes such a reply as a pending reply, and does not post it yet. These replies are pending:
+
+- Each reply about a fix of this cycle (step 4), and the reply of a `deep-fix` thread (`deep-fix.md`).
+- Each `**[AI][Draft]**` reply of Phase 3b step 6 (`automated-review-verification.md`).
+- The `**[AI][Draft]**` reply of a non-trivial `[Suggestion]` or `[Optional]` (`tag-actions.md`).
+
+Other replies post at once: the `[Question]` and `[ToDiscuss]` replies, and the `[OutOfScope]` replies. They describe no code of the push. The `Tracked as issue` reply is also the record that stops a second issue for the same thread.
+
+The pending replies post at one point of the cycle:
+
+1. If the cycle has a push, they post after the go-ahead, or at once with `autonomous`. The orchestrating session resumes Stage 2, and Stage 2 posts them. Then the orchestrating session pushes. On a `deep-fix` cycle, Stage 3b posts them (`deep-fix.md`).
+2. If the cycle has nothing to push, Stage 2 posts them at the end of Phase 4, before Phase 5. This is the case with no commit in the cycle, and with `no-commit`.
+3. If the push does not come, they stay unposted. Examples are no go-ahead, a user who declines, and a `deep-fix` run that ended `stop-blocked`. The cycle log shows each one as `reply pending` or `draft pending`, with its text. A later go-ahead in the same session posts them, and then pushes. If the session ends first, the replies are lost. Then a later run finds the fix from its commit (`committed-fix-state.md` § "Local commit with no reply").
+
+If the user asks to change a fix before the push, Stage 2 makes the change as a new commit (steps 1 to 3). Then it updates the pending reply of the thread first: the summary, and the SHA of the newest commit of the thread. The orchestrating session shows the new text. The push still needs its own go-ahead (Rules in `SKILL.md`). If the answer of the user turns a pending draft into a fix, the fix reply replaces the draft. Each thread gets one reply for each push.
+
 ## Push, once per cycle
 
-The orchestrating session pushes after steps 1 to 4 ran for every thread of the cycle. The push needs an explicit go-ahead of the user in the current turn (see Rules in `SKILL.md`). The approval of an earlier cycle does not carry over. With `autonomous`, push as soon as every thread of the cycle is committed and replied to (with `no-reply`: committed).
+The orchestrating session pushes after steps 1 to 4 ran for every thread of the cycle. The push needs an explicit go-ahead of the user in the current turn (see Rules in `SKILL.md`). The approval of an earlier cycle does not carry over. With `autonomous`, push as soon as every thread of the cycle is committed and its pending replies posted (with `no-reply`: committed).
 
 - Run `git push` once for all commits of the cycle. This holds for one commit for each thread and for one `squash` commit: exactly one push per cycle.
 - Never force-push. Never push to a protected branch, or to any branch other than the PR source branch.
-- If the go-ahead did not come before the cycle log, leave the commits unpushed. Say so in Phase 5: `N commits ready, not yet pushed — push when ready`. The posted replies stay correct, because they claim a commit, never a push. No thread of this cycle is resolved until the push lands.
+- If the go-ahead did not come before the cycle log, leave the commits unpushed and the pending replies unposted. Say so in Phase 5: `N commits ready, not yet pushed — push when ready`. No thread of this cycle is resolved until the push lands.
 - **Exception**: a `deep-fix` run of this cycle that ended `stop-blocked` cancels the whole push of the cycle, not only for that thread (see `deep-fix.md`).
 
 ## Resolve threads and report
@@ -77,11 +96,11 @@ Then resolve and report as in group (a), in this cycle. Do not wait for a later 
 
 ## Threads carried over from an earlier cycle
 
-A fix can be committed and replied to in an earlier cycle or invocation that ended before its push. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/pull/<prId>/head`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question.
+A fix can be committed and replied to in an earlier cycle or invocation whose push failed after the replies posted. No state file tracks such a thread. Instead, Phase 2 step 5 finds the state again at the start of each cycle. It reads the existing `**[AI]** Fixed: ... Committed as <sha>` reply of the thread, and runs the ancestry check against `origin/pull/<prId>/head`. If the check passes, because a later push landed the commit, Phase 2 resolves the thread as a catch-up step. If the check fails, Phase 2 asks the user and does not handle the thread again silently. `autonomous` does not skip this question. A fix can also be committed in an earlier run that ended before its go-ahead, with no reply. Phase 2 step 5 finds its commit by the `T#<commentId>` in the commit message. Then it asks the user (`committed-fix-state.md` § "Local commit with no reply"). After a push-and-resolve answer, Stage 2 adds a pending reply for the thread. It uses the text that the session still holds. Else it writes the "Implemented fix" template with the summary and the SHA of the commit. The reply posts right before the push, and the resolve follows group (b) above.
 
 In normal runs, this catch-up path is rare. After a resolve call succeeds, `is_resolved` of the thread becomes true on GitHub, and the Phase 2 filter drops the thread in each later fetch. The path exists for a failed resolve call, and for a reply from a time before the skill resolved threads. It works across sessions and invocations, because it depends on the thread history of GitHub and on real git ancestry, not on a file.
 
-If the push approval does not come in this cycle, or the push fails, no thread of this cycle is resolved. The threads stay open with their replies. After the push lands, Phase 2 step 5 of a later cycle finds the reply and resolves the thread. A new try of the same push does the same. The cycle log already shows `N commits ready, not yet pushed — push when ready`.
+If the push approval does not come in this cycle, no thread of this cycle is resolved. The pending replies stay unposted (§ "When replies post"). If the push fails after the replies posted, the threads stay open with their replies. After the push lands, Phase 2 step 5 of a later cycle finds the reply and resolves the thread. A new try of the same push does the same. The cycle log already shows `N commits ready, not yet pushed — push when ready`.
 
 ## One file, several threads
 
@@ -125,7 +144,7 @@ For the tone and the length of a reply, follow `review-principles.md`.
 
 ## Thread resolution after a fix lands: the `no-reply` split
 
-- **Without `no-reply` (default)**: reply, then resolve, with the steps above.
+- **Without `no-reply` (default)**: reply right before the push, then resolve after it, with the steps above.
 - **With `no-reply`**: do not post the `**[AI]** Fixed` reply, and do not resolve the thread automatically. The reply is the record of why the thread is resolved, so without it the skill does not resolve. Report the cured thread to the user in chat instead, with the file path, the line range, and the commit SHA. Example: `T#<id> cured — <file>:<line>, commit <sha> — resolve manually via the GitHub UI when ready`. The user resolves the thread after a review of the committed diff. This holds for a new fix in Phase 4 and for a catch-up in Phase 2 step 5.
 
 ## Which threads to resolve
