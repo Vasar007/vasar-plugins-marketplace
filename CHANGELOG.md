@@ -24,6 +24,25 @@ This release makes `process-pr-comments` post all thread replies of a cycle in o
 - `evals/process-pr-comments/ppc-tofix-default`: the grader `replied` is now `reply-waits`, and expects no reply before the go-ahead. The new grader `reply-drafted` expects the reply text in the last message (issue #64).
 - `evals/process-pr-comments/ppc-gated-threads`: the grader `no-question-reply` is now `no-reply`, and expects no reply at all. Every reply of the cycle waits for the answers of the user (issue #64).
 
+## Repository changes only in release [4.2.5] - 2026-11-09
+
+This release makes the listing budget test match the always-on cost that a signed-in session shows. No plugin changes.
+
+### Changed in the repository
+
+- `tests/test_plugin_cli.py`: each budget in `LISTING_BUDGET` is now the most always-on tokens that `claude plugin details` can show in a signed-in session. With no sign-in, the command shows an offline estimate: the number of characters divided by 4. The test runs with no sign-in, so it multiplies the estimate by the new `SIGNED_IN_RATIO` of 1.5 before it compares the result with the budget. The new budgets are the old ones times 1.5. So the test passes and fails for the same descriptions as before (issue #90).
+- `tests/test_plugin_cli.py`: each claude call now runs without the known environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. Before, such a variable gave the test the API count, and the budget test failed for each plugin. A Claude Code cloud session can still sign in through its token file. Then the budget test fails, and it does not hide an overrun (issue #90).
+- `docs/testing.md`: the text says what the budgets count, and why the test multiplies the estimate (issue #90).
+
+## Repository changes only in release [4.2.4] - 2026-11-09
+
+This release makes `tests/evals/compare_versions.py` refuse a `--plugin` path outside the exported commit. No plugin changes.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: if the `--plugin` path is not inside the exported commit, `run` and `baseline` stop with exit code 2. An absolute path and a path with `..` are examples. Before the fix, such a path named the real plugin folder. The script then wrote `.deps/` into it, and `baseline` replaced its `eval-stubs/` folder (issue #89).
+- `tests/evals/test_compare_versions.py`: a new test runs `run` and `baseline` with an absolute path and with a `..` path to the real plugin. It makes sure that the exit code is 2, that no eval runs, and that the real plugin does not change. A second test makes sure that a link or a `..` path inside the export still works (issue #89).
+
 ## Repository changes only in release [4.2.3] - 2026-11-09
 
 This release moves the guides for contributors out of `README.md` into the new folder `docs/`. No plugin changes.
@@ -1074,6 +1093,8 @@ This release ported and generalized several skills, commands, and rule additions
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.3.0...HEAD
 [4.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...v4.3.0
+[4.2.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...v4.2.5
+[4.2.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...v4.2.4
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
