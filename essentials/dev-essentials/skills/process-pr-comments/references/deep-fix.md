@@ -53,7 +53,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
-**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It runs right before the push of the cycle: after the go-ahead, or at once with `autonomous`. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. Stage 3b posts the reply of the `deep-fix` thread and every pending reply that Stage 2 handed back:
+**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It runs right before the push of the cycle: after the go-ahead, or with `autonomous` as the Rules in `SKILL.md` say. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. Stage 3b posts the reply of the `deep-fix` thread and every pending reply that Stage 2 handed back:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |
@@ -89,7 +89,7 @@ Never link the report artifact of that skill from either reply. It is a pipeline
 
 - Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
 - **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
-- The pending replies of the other threads stay unposted, because the push of the cycle does not come.
+- The pending replies of the other threads stay unposted, because the push of the cycle does not come. A later "push" of the user does not post them or push this cycle (Bucket B). The way back is a new invocation of the skill after the recovery below (`commit-push-resolve.md` § "When replies post").
 - In Phase 5, report it as `deep-fix — blocked (build red, not pushed)`.
 - Offer the two real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
 
