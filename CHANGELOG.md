@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.0 in release [4.4.0] - 2026-11-09
+
+This release adds a linter and a lint hook to the skill `openbsd-style-docs` (issue #82). The hook checks the rules that a script can test after each write of a document in this style. The model still checks the other rules.
+
+### Added in doc-styles
+
+- `skills/openbsd-style-docs/scripts/openbsd_lint.py`: a linter for the rules that a script can test. It checks the section names, their order and their content, and the NAME line. It also checks the sort order of option, variable, file and error lists. It checks that a default has its own sentence. It looks for "you" and for the marketing and filler words of the skill. It uses only the standard library of Python 3 (issue #82).
+- `hooks/hooks.json`: a `PostToolUse` hook for `Write` and `Edit`. It runs the linter on a Markdown file that has the form of this style, and it shows the hits to Claude. It skips other files. To stop it for some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, or to `*` (issue #82).
+- `evals/probes/probe-obsd-lint-hook`: a probe that shows whether the hook runs in an eval run (issue #82).
+
+### Changed in doc-styles
+
+- `skills/openbsd-style-docs/SKILL.md`: the self-check names the linter and keeps only the checks that a script cannot do. The word list moved to "Sentence rules". The precedence rule about other linters no longer covers the hook of this plugin (issue #82).
+- `skills/openbsd-style-docs/references/skeletons.md`: the ERRORS list of the library skeleton is sorted (issue #82).
+
+### Changed in the repository
+
+- `tests/test_openbsd_lint.py`: tests for the linter, the hook mode, the hook file, and the word list of the skill (issue #82).
+- `README.md`, `.claude-plugin/marketplace.json`, and `docs/testing.md`: they name the hook and the new tests (issue #82).
+
 ## Repository changes only in release [4.2.3] - 2026-11-09
 
 This release moves the guides for contributors out of `README.md` into the new folder `docs/`. No plugin changes.
@@ -1057,7 +1077,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.3.0...v4.4.0
 [4.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.2...v4.2.3
 [4.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.0...v4.2.1
