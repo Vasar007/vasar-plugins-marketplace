@@ -31,6 +31,8 @@ A reply about a fix posts right before the push (`commit-push-resolve.md` § "Wh
 3. Run this test for each thread that goes on to Phase 3: a `fresh-unhandled` thread, and a thread that the guard above sent to Phase 3. If a commit names the thread, derive `unconfirmed-commit-claim` instead. Set `claimSource` to `local-commit` and `claimedSha` to the newest such commit. Do not send the thread to Phase 3.
 4. Report: `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — push it and post its reply, or handle it separately?`
 
+With `no-commit` or `dry-run`, the run pushes no commit. So the report offers no "push it" option for this thread. It reports `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question. The commit stays local and its reply stays unposted.
+
 Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-resolve.md` § "Threads carried over from an earlier cycle").
 
 ## Report modes
