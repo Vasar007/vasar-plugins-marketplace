@@ -14,7 +14,7 @@ The command runs these parts:
 - The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test. The `excluded` key of that file lists folders that the test skips as a whole, each with a reason. An `excluded` folder with no tracked `.md` file also fails the test.
 - markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
 - `claude plugin validate --strict` on the marketplace and on each plugin.
-- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`.
+- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`. Each budget is the most always-on tokens that `claude plugin details` can show in a signed-in session.
 - The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 - A search of the `README.md` files and the files in `docs/` for counts of hooks, skills, agents, and commands. Such a count goes stale.
@@ -27,7 +27,9 @@ The two linters read only the files that git tracks. If you add a new `.md` file
 
 The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
 
-The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. They also remove the known environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+
+With no sign-in, `claude plugin details` cannot count the tokens with the API. It shows an estimate instead: the number of characters divided by 4. A signed-in session shows the API count, which is higher. So the budget test multiplies the estimate by `SIGNED_IN_RATIO` before it compares the result with the budget. A new default model can count more tokens for the same text. The ratio also depends on the kind of text, because code and paths need more tokens for each character. The factor 1.5 was measured only on the current budgets, so a much smaller new budget needs a new measurement. In these cases, compare the output of `claude plugin details <plugin>` in a signed-in session with the estimate of the test, and raise `SIGNED_IN_RATIO`.
 
 The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
 

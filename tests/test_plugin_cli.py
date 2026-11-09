@@ -1,27 +1,51 @@
 """Runs `claude plugin validate` and `claude plugin details` on the marketplace and on each plugin.
 
-Each claude call gets an empty, temporary configuration folder, so it needs no sign-in and loads no installed plugin.
+Each claude call gets an empty, temporary configuration folder and none of the known sign-in variables.
+So it needs no sign-in, loads no installed plugin, and gets the offline token estimate of `claude plugin details`.
+A Claude Code cloud session can still sign in through its token file. Then the budget test fails, and it does not hide an overrun.
 If the claude command is not found, the tests skip. In CI they fail.
 """
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from support import REPO, tool_missing
+from testkit import clean_env
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
-# The most always-on tokens that `claude plugin details` may report for each plugin.
+# The most always-on tokens that `claude plugin details` may report for each plugin in a signed-in session.
 # The always-on cost is the names and descriptions that every session loads.
 LISTING_BUDGET = {
-    "dev-essentials": 3100,
-    "doc-styles": 127,
-    "dotnet-backend-dev": 1250,
-    "kb": 120,
+    "dev-essentials": 4650,
+    "doc-styles": 191,
+    "dotnet-backend-dev": 1875,
+    "kb": 180,
 }
+# With no sign-in, `claude plugin details` reports an offline estimate (characters / 4), not the API count.
+# On 2026-11-09 (Claude Code 2.1.310), the signed-in count was at most 1.48 times the estimate.
+# A new default model can change the ratio. The kind of text changes it too: code and paths need more tokens for each character.
+# The factor 1.5 was measured only on the current budgets. Measure the ratio again for a much smaller new budget.
+SIGNED_IN_RATIO = 1.5
+# With one of these variables, claude signs in or uses a cloud provider, and the count comes from the API.
+SIGN_IN_VARIABLES = (
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_REFRESH_TOKEN",
+    "CLAUDE_CODE_SESSION_ACCESS_TOKEN",
+    "CLAUDE_CODE_USE_ANTHROPIC_AWS",
+    "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
+    "CLAUDE_CODE_USE_BEDROCK",
+    "CLAUDE_CODE_USE_FOUNDRY",
+    "CLAUDE_CODE_USE_MANTLE",
+    "CLAUDE_CODE_USE_VERTEX",
+)
 ALWAYS_ON = re.compile(r"^\s*Always-on:\s+(?:~|<\s*)?([\d,]+)\s+tok", re.MULTILINE)
 
 
@@ -39,12 +63,39 @@ def always_on_tokens(text):
     return int(match.group(1).replace(",", "")) if match else None
 
 
+def signed_in_tokens(estimate):
+    """The always-on tokens that a signed-in session can count for an offline estimate, rounded up."""
+    return math.ceil(estimate * SIGNED_IN_RATIO)
+
+
+def claude_env(config):
+    """The environment of a claude call: the configuration folder, no auto-update, and no sign-in variables."""
+    return clean_env(SIGN_IN_VARIABLES, CLAUDE_CONFIG_DIR=config, DISABLE_AUTOUPDATER="1")
+
+
 class AlwaysOnTokensTests(unittest.TestCase):
     def test_reads_the_projected_cost_line(self):
         text = "Projected token cost\n  Always-on:   ~2,770 tok   added to every session\n"
         self.assertEqual(always_on_tokens(text), 2770)
         self.assertEqual(always_on_tokens("  Always-on:   < 20 tok   added to every session\n"), 20)
         self.assertIsNone(always_on_tokens("Plugin \"x\" not found.\n"))
+
+
+class SignedInTokensTests(unittest.TestCase):
+    def test_scales_the_estimate_and_rounds_up(self):
+        self.assertEqual(signed_in_tokens(110), 165)
+        self.assertEqual(signed_in_tokens(127), 191)
+        self.assertEqual(signed_in_tokens(128), 192)
+
+
+class ClaudeEnvTests(unittest.TestCase):
+    def test_drops_the_sign_in_variables(self):
+        with mock.patch.dict(os.environ, {**dict.fromkeys(SIGN_IN_VARIABLES, "x"), "TEST_PLUGIN_CLI_KEEP": "kept"}):
+            env = claude_env("config")
+        self.assertEqual([key for key in SIGN_IN_VARIABLES if key in env], [])
+        self.assertEqual(env["CLAUDE_CONFIG_DIR"], "config")
+        self.assertEqual(env["DISABLE_AUTOUPDATER"], "1")
+        self.assertEqual(env["TEST_PLUGIN_CLI_KEEP"], "kept")
 
 
 class ClaudeCliCase(unittest.TestCase):
@@ -54,7 +105,7 @@ class ClaudeCliCase(unittest.TestCase):
             tool_missing(self, "claude not found. Install Claude Code to run claude plugin validate and details.")
         config = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, config, True)
-        self.env = {**os.environ, "CLAUDE_CONFIG_DIR": config, "DISABLE_AUTOUPDATER": "1"}
+        self.env = claude_env(config)
 
     def run_claude(self, *args):
         result = subprocess.run([self.claude, *map(str, args)], cwd=REPO, env=self.env, capture_output=True,
@@ -85,11 +136,13 @@ class ListingBudgetTests(ClaudeCliCase):
             with self.subTest(plugin=name):
                 code, output = self.run_claude("--plugin-dir", root, "plugin", "details", name)
                 self.assertEqual(code, 0, output)
-                tokens = always_on_tokens(output)
-                self.assertIsNotNone(tokens, f"No 'Always-on:' line in the output:\n{output}")
+                estimate = always_on_tokens(output)
+                self.assertIsNotNone(estimate, f"No 'Always-on:' line in the output:\n{output}")
+                tokens = signed_in_tokens(estimate)
                 self.assertLessEqual(tokens, LISTING_BUDGET[name],
-                                     f"{name} adds about {tokens} always-on tokens to every session, over its budget "
-                                     f"of {LISTING_BUDGET[name]}. Shorten the descriptions that the table below shows "
+                                     f"{name} adds about {tokens} always-on tokens to a signed-in session (the offline "
+                                     f"estimate {estimate} times {SIGNED_IN_RATIO}), over its budget of "
+                                     f"{LISTING_BUDGET[name]}. Shorten the descriptions that the table below shows "
                                      f"as the largest. Raise the budget only for a new component.\n{output}")
 
 
