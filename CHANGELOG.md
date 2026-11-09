@@ -23,6 +23,7 @@ This release removes counts of hooks, skills, agents, and eval cases from the do
 - `skills/bug-hunt`: a pass of `optimize-skill` shortened the skill with no change of behavior. Step 0 moved to the section "Step 0 procedure" of `references/inputs-and-meta-plan.md`, with the cuts and pointer fixes below. A repeated mode rule and the first sentence of `SKILL.md` were cut. Three pointers are clearer. `references/resume-and-failures.md` says "the cleanup helper". Step 6 names the source of the process list. The three bug hunt agent files say "the snapshots" (issue #94).
 - `skills/feature-pipeline/SKILL.md`: the text says "the resume checks" instead of a count (issue #94).
 - `skills/bug-hunt`: two pointers to step 0 now link to `references/inputs-and-meta-plan.md` (issue #94).
+- `skills/bug-hunt`: the skill now says "Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts" where it names the strongest model. A newer model line can then replace Fable. The default of `--hunter-model` stays `fable`. The rule of no dispatch without the OK of the user does not change (issue #94).
 
 ### Changed in the repository
 

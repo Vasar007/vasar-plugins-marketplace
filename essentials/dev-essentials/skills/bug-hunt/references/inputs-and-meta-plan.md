@@ -41,6 +41,8 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Verifier model and effort | `--verifier-model`, `--verifier-effort` | `opus`, `xhigh` |
 | Auditor model and effort | `--auditor-model`, `--auditor-effort` | `opus`, `xhigh` |
 
+The default hunter model `fable` is a flag value, so it stays a concrete name. If a newer model line replaces Fable, the strongest model that the `model` parameter of the `Agent` tool accepts takes its place.
+
 The context file is for orientation only. Do not read other files in its folder. If an agent
 needs one of them, the agent reads it.
 
@@ -58,7 +60,7 @@ For the defaults, use only these light read-only calls:
 1. Inputs: a table with each value and where it came from (argument or default).
 2. Areas: a table with the number, name, paths, file count, and size, in search order. Number the areas in the approved search order, so that area 1 is searched first. If the user changes the order, renumber the areas.
 3. Excluded paths, each with a reason, for example vendored or generated code.
-4. Agents: a table with the model and effort of each role. Say in one sentence how the Fable dispatches are approved (rule 7). If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files.
+4. Agents: a table with the model and effort of each role. Say in one sentence how the dispatches of Fable (or the strongest model) are approved (rule 7). If the `Agent` tool has no `effort` parameter, say that the agents run at the effort in their agent files.
 5. Files: the report path, the run context file, the final summary file, the artifacts folder, the progress file names, and the scratch folder. If the report folder is inside the analyzed repository, say so here. The run then creates new files in the project tree, and only there.
 6. Verification: the split threshold and the split rule of step 4.
 7. Base: the base branch and its source. For a local base, give the date of its last commit. If the analyzed commit is the base, or the base is `none`, say so.

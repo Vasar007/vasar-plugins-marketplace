@@ -44,7 +44,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | --- | --- | --- | --- |
 | Step 0 and rule 8: the meta-plan and the run format | Continue, unless the user objects | Wait for the OK | Same as default |
 | Step 0 item 1 in [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md): the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
-| Rule 7: Fable dispatches of the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
+| Rule 7: Dispatches of Fable (or the strongest model) in the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
 | Step 6: cleanup | Delete only the paths that this run made, with no stop | Same | Same |
 
 The run never commits, pushes, or writes to GitHub.
@@ -118,7 +118,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable is never dispatched silently. The step-0 meta-plan names each Fable dispatch and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch Fable. Without `--interactive`, the meta-plan approves them, because Fable is the documented default of this skill for the hunter.
+- Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts, is never dispatched silently. The step-0 meta-plan names each dispatch of it and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch it. Without `--interactive`, the meta-plan approves them, because that model is the documented default of this skill for the hunter.
 - Pass `model` and `effort` on every dispatch of the plugin agents `dev-essentials:bug-hunter`, `dev-essentials:bug-verifier`, and `dev-essentials:bug-report-auditor`. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.
