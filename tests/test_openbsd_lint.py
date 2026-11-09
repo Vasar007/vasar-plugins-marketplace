@@ -284,6 +284,12 @@ class WordTests(LintCase):
     def test_words_in_a_reference_definition(self):
         self.assertRules(self.body("See [guide][1].\n\n[1]: https://example.com/your-faq-easy"))
 
+    def test_words_in_a_footnote(self):
+        self.assertRules(self.body("Text[^1].\n\n[^1]: You can simply skip it."), "word-list", "you")
+
+    def test_bang_after_a_bare_url(self):
+        self.assertRules(self.body("Visit https://example.com!"), "word-list")
+
     def test_two_comments_on_one_line(self):
         self.assertRules(self.body("a <!-- x --> b <!-- just --> c"))
 

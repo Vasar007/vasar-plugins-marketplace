@@ -49,8 +49,8 @@ DEFAULT_INLINE = re.compile(r"\(\s*default|[,;:]\s*(?:the\s+)?defaults?\b|\bwhic
                             r"\bdefaulting to\b|\bdefault\s*[:=]|.\bby default\b", re.I)
 TERM_LINE_REST = re.compile(r"^\s*\]?\s*(?:(?:\*[^*]*\*|_[^_]*_)\s*)*:")
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
-BARE_URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
-REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[[^\]]+\]:\s")
+BARE_URL = re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s<>]*[^\s<>.,;:!?)\]'\"]", re.I)
+REFERENCE_DEFINITION = re.compile(r"^ {0,3}\[(?!\^)[^\]]+\]:\s")
 CODE_SPAN = re.compile(r"`[^`]*`")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z`*\[])")
 MAX_HOOK_HITS = 12
