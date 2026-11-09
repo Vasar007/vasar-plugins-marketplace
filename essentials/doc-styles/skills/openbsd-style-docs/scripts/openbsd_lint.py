@@ -46,7 +46,10 @@ TAG_ITEM = re.compile(r"^[-*+]\s+(?:\[)?`\[?([^`\]]+)\]?`")
 DEFAULT_OPENER = re.compile(r"^(?:The default(?: value)? is|This is the default|By default|"
                             r"If not (?:specified|set|given), \S+ defaults? to|It defaults to|Defaults to)\b")
 DEFAULT_INLINE = re.compile(r"\(\s*default|[,;:]\s*(?:the\s+)?defaults?\b|\bwhich defaults?\b|"
-                            r"\bdefaulting to\b|\bdefaults?\s*[:=]|.\bby default\b", re.I)
+                            r"\bdefaulting to\b|\bdefault\s*[:=]|.\bby default\b", re.I)
+TERM_LINE_REST = re.compile(r"^\s*\]?\s*(?:(?:\*[^*]*\*|_[^_]*_)\s*)*:")
+LINK_TARGET = re.compile(r"\]\([^)]*\)")
+CODE_SPAN = re.compile(r"`[^`]*`")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z`*\[])")
 MAX_HOOK_HITS = 12
 EXCLUDE_VAR = "OPENBSD_STYLE_LINT_EXCLUDE"
@@ -71,11 +74,15 @@ def prose_lines(text):
         if match:
             fence = match.group(1)
             continue
-        if comment or "<!--" in line:
-            before, _, rest = line.partition("<!--") if not comment else ("", "", line)
+        if comment:
+            before, rest = "", line
+        else:
+            at = re.sub(r"`[^`]*`", lambda m: " " * len(m.group(0)), line).find("<!--")
+            before, rest = (line[:at], line[at + 4:]) if at >= 0 else (line, None)
+        if rest is not None:
             comment = "-->" not in rest
-            line = before + (rest.split("-->", 1)[1] if not comment else "")
-        out.append((number, re.sub(r"`[^`]*`", "CODE", line), line))
+            line = before + ("" if comment else rest.split("-->", 1)[1])
+        out.append((number, CODE_SPAN.sub("CODE", line), line))
     return out
 
 
@@ -99,7 +106,7 @@ def check_headings(lines, heads, raw_lines):
     hits = []
     if any(text in CANONICAL for _, text in heads):
         hits += [(n, "heading-case", f"write the heading in uppercase: {text.upper()}")
-                 for n, text in heads if text != text.upper()]
+                 for n, text in heads if CODE_SPAN.sub("", text) != CODE_SPAN.sub("", text).upper()]
     last, last_name, seen_description = -1, None, False
     has_description = any(text.upper() == "DESCRIPTION" for _, text in heads)
     for n, text in heads:
@@ -144,6 +151,15 @@ def check_name_line(lines, title):
     return hits
 
 
+def item_text(prose):
+    """The description of a tag item: the prose after the term, without the argument placeholder of the term line."""
+    rest = prose.split("CODE", 1)[1] if "CODE" in prose else prose
+    if rest.rstrip().endswith("\\"):
+        return ""
+    colon = TERM_LINE_REST.match(rest)
+    return rest[colon.end():] if colon else rest
+
+
 def sort_key(term):
     return [(c.lower(), c.islower()) for c in term.lstrip("-")]
 
@@ -157,6 +173,8 @@ def tag_lists(lines):
     for number, prose, raw in lines:
         heading = HEADING.match(raw)
         tag = TAG_ITEM.match(raw)
+        if tag and not tag.group(1).split():
+            tag = None
         if heading or (raw.strip() and not raw[0].isspace() and not tag):
             if run:
                 runs.append((section, run))
@@ -165,7 +183,7 @@ def tag_lists(lines):
                 section = heading.group(2).strip().upper()
             continue
         if tag:
-            item = [number, tag.group(1).split()[0], [prose.split("CODE", 1)[1] if "CODE" in prose else prose]]
+            item = [number, tag.group(1).split()[0], [item_text(prose)]]
             run.append(item)
         elif item is not None and raw.strip():
             item[2].append(prose.strip())
@@ -200,7 +218,7 @@ def check_words(lines):
     for number, prose, _ in lines:
         clean = prose.replace("![", "[")
         hits += [(number, "you", f"'{m.group(0)}': describe the user as 'the user', or use the imperative")
-                 for m in YOU.finditer(clean)]
+                 for m in YOU.finditer(LINK_TARGET.sub("]()", clean))]
         hits += [(number, "word-list", f"remove '{m.group(0)}', or give the reason in the reply")
                  for m in WORD.finditer(clean)]
         if BANG.search(clean):

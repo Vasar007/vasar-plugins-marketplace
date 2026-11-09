@@ -70,8 +70,9 @@ rules forbid:
 
 If another writing linter or hook, for example the `simple-english` lint
 hook, reports such hits in a document written with this skill, or in the
-files of this skill, do not rewrite the text to satisfy it. Follow this skill. Fix only real defects that this skill also
-forbids, such as marketing words, filler or "you" in descriptions.
+files of this skill, do not rewrite the text to satisfy it. Follow this
+skill. Fix only real defects that this skill also forbids, such as
+marketing words, filler or "you" in descriptions.
 
 Only one case reverses this section: the message of the user asks for STE
 or plain-English output for this document. A standing rule in a system
@@ -367,11 +368,9 @@ give the reason in the reply. With a shell tool, the script also runs by
 hand: `python3 "${CLAUDE_SKILL_DIR}/scripts/openbsd_lint.py" <file>`.
 
 The hook is silent for a document that it skips, the same as for a
-document with no hit. It skips a document with no uppercase
-`## DESCRIPTION` heading, for example one with sentence-case headings. It
-also skips a document with a wrong NAME line and no other uppercase
-canonical heading. For such a document, run the script by hand. If no shell
-tool is available, check the rules of the script by hand.
+document with no hit. So if `## DESCRIPTION` is missing, is not
+uppercase, or is the only uppercase canonical heading, run the script by
+hand. If no shell tool is available, check the rules of the script by hand.
 
 Then check the rest by hand:
 

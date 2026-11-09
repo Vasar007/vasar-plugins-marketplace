@@ -1,6 +1,7 @@
 """Tests for skills/openbsd-style-docs/scripts/openbsd_lint.py of the doc-styles plugin."""
 import json
 import re
+import shutil
 import sys
 import unittest
 
@@ -98,6 +99,10 @@ class HeadingTests(LintCase):
         text = HEAD + DESCRIPTION + "\n## EXAMPLES\n\n```sh\nprobe file\n```\n"
         self.assertRules(text)
 
+    def test_code_span_in_a_custom_heading(self):
+        text = HEAD + DESCRIPTION + "\n## `probe.conf` DIRECTIVES\n\nText.\n"
+        self.assertRules(text)
+
     def test_hits_in_code_are_ignored(self):
         text = HEAD + DESCRIPTION + "\n```markdown\n## examples\n\n## FILES\n```\n"
         self.assertRules(text)
@@ -162,6 +167,18 @@ class SortTests(LintCase):
     def test_sorted_errors(self):
         self.assertRules(self.section("ERRORS", "[EINVAL]", "[ENOENT]"))
 
+    def test_error_code_with_brackets_outside_the_code(self):
+        text = HEAD + DESCRIPTION + "\n## ERRORS\n\n- [`ENOENT`]\\\n  Text.\n- [`EINVAL`]\\\n  Text.\n"
+        self.assertRules(text, "sort-order")
+
+    def test_tag_item_with_only_brackets(self):
+        text = HEAD + DESCRIPTION + "\nThe notation is:\n\n- `[ ]` marks an optional part.\n- `[]` marks nothing.\n"
+        self.assertRules(text)
+
+    def test_tag_item_with_only_a_space(self):
+        text = HEAD + DESCRIPTION + "\nThe notation is:\n\n- ` ` is a space.\n"
+        self.assertRules(text)
+
     def test_equal_error_codes(self):
         self.assertRules(self.section("ERRORS", "[EINVAL]", "[EINVAL]", "[ENOENT]"))
 
@@ -199,6 +216,31 @@ class DefaultTests(LintCase):
     def test_word_default_as_a_noun(self):
         self.assertRules(self.option("Restore the default value."))
 
+    def test_defaults_noun_with_a_colon(self):
+        self.assertRules(self.option("Reset the settings to their defaults: colors and keys."))
+
+    def test_defaults_to_opener(self):
+        self.assertRules(self.option("Set the number of lines. Defaults to 7."))
+
+    def test_if_not_specified_opener(self):
+        self.assertRules(self.option("Set the number of lines. If not specified, probe defaults to 7."))
+
+    def test_placeholder_before_the_default_sentence(self):
+        text = HEAD + DESCRIPTION + "\nThe options are as follows:\n\n- `-n` *count*\\\n  By default, 7 lines are printed.\n"
+        self.assertRules(text)
+
+    def test_one_line_form_with_a_placeholder(self):
+        text = HEAD + DESCRIPTION + "\nThe options are as follows:\n\n- `-n` *count*: The default is 7.\n"
+        self.assertRules(text)
+
+    def test_one_line_form_with_an_inline_default(self):
+        text = HEAD + DESCRIPTION + "\nThe options are as follows:\n\n- `-n` *count*: Set the lines, the default is 7.\n"
+        self.assertRules(text, "default-sentence")
+
+    def test_bracket_term_form(self):
+        text = HEAD + DESCRIPTION + "\n## ERRORS\n\n- [`EINVAL`]\\\n  The value is bad (default: 1).\n"
+        self.assertRules(text, "default-sentence")
+
 
 class WordTests(LintCase):
     def body(self, sentence):
@@ -224,6 +266,15 @@ class WordTests(LintCase):
         for word in ("you", "your", "yourself"):
             with self.subTest(word=word):
                 self.assertRules(self.body("Then " + word + " run it."), "you")
+
+    def test_you_in_a_link_target(self):
+        self.assertRules(self.body("See the [guide](https://example.com/your-first-run) first."))
+
+    def test_you_in_the_link_text(self):
+        self.assertRules(self.body("See [your guide](https://example.com/guide) first."), "you")
+
+    def test_comment_marker_in_inline_code(self):
+        self.assertRules(self.body("Write `<!--` to open a comment.\n\nThe tool is just fast."), "word-list")
 
     def test_word_in_a_longer_word(self):
         self.assertRules(self.body("The justice and easiest cases stay."))
@@ -253,7 +304,14 @@ class WordTests(LintCase):
 
 class CliTests(LintCase):
     def test_no_argument(self):
-        self.assertResult(run([sys.executable, "-I", SCRIPT]), 2)
+        result = run([sys.executable, "-I", SCRIPT])
+        self.assertResult(result, 2)
+        self.assertIn("Usage:", result.stderr)
+
+    def test_tag_item_with_only_brackets(self):
+        result = self.run_lint(HEAD + DESCRIPTION + "\nThe notation is:\n\n- `[ ]` marks an optional part.\n")
+        self.assertResult(result, 0)
+        self.assertEqual(result.stdout + result.stderr, "")
 
     def test_missing_file(self):
         self.assertResult(run([sys.executable, "-I", SCRIPT, self.tmp / "missing.md"]), 2, "missing.md")
@@ -268,9 +326,9 @@ class CliTests(LintCase):
 
 
 class HookTests(LintCase):
-    def hook(self, path, env=None, raw=None):
+    def hook(self, path, env=None, raw=None, tool="Write"):
         event = raw if raw is not None else json.dumps(
-            {"hook_event_name": "PostToolUse", "tool_name": "Write", "tool_input": {"file_path": str(path)}})
+            {"hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": {"file_path": str(path)}})
         return run([sys.executable, "-I", SCRIPT, "--hook"], stdin=event, env=env)
 
     def write(self, name, text):
@@ -308,6 +366,10 @@ class HookTests(LintCase):
         self.assertResult(result, 2, "openbsd-style-docs: page.md has 2 style hit(s).", "sort-order", "word-list",
                           "Fix each hit in the file, or keep it and give the reason in the reply.")
         self.assertEqual(result.stdout, "")
+
+    def test_edit_event(self):
+        path = self.write("page.md", HEAD + DESCRIPTION + "\nThe tool is just fast.\n")
+        self.assertResult(self.hook(path, tool="Edit"), 2, "word-list")
 
     def test_report_form(self):
         result = self.hook(self.write("page.md", HEAD + DESCRIPTION + "\nThe tool is just fast.\n"))
@@ -373,7 +435,7 @@ class SkillTextTests(unittest.TestCase):
                 self.assertIn(entry, section)
 
 
-class HookFileTests(unittest.TestCase):
+class HookFileTests(ScratchCase):
     def test_hook_file(self):
         config = json.loads(HOOKS_FILE.read_text(encoding="utf-8"))
         self.assertEqual(list(config["hooks"]), ["PostToolUse"])
@@ -384,6 +446,18 @@ class HookFileTests(unittest.TestCase):
         self.assertEqual(commands[0]["type"], "command")
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/skills/openbsd-style-docs/scripts/openbsd_lint.py", commands[0]["command"])
         self.assertTrue(commands[0]["command"].endswith("--hook"))
+
+    def test_hook_exits_quietly_without_python3(self):
+        shell = shutil.which("sh")
+        if not shell:
+            self.skipTest("no sh")
+        command = json.loads(HOOKS_FILE.read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        env = {"PATH": str(empty), "CLAUDE_PLUGIN_ROOT": str(PLUGIN)}
+        result = run([shell, "-c", command], stdin="{}", env=env)
+        self.assertResult(result, 0)
+        self.assertEqual(result.stdout + result.stderr, "")
 
     def test_script_exists(self):
         self.assertTrue(SCRIPT.is_file())

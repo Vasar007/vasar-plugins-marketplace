@@ -16,7 +16,7 @@ This release adds a linter and a lint hook to the skill `openbsd-style-docs` (is
 ### Added in doc-styles
 
 - `skills/openbsd-style-docs/scripts/openbsd_lint.py`: a linter for the rules that a script can test. It checks the section names, their order and their content, and the NAME line. It also checks the sort order of option, variable, file and error lists. It checks that a default has its own sentence. It looks for "you" and for the marketing and filler words of the skill. It uses only the standard library of Python 3 (issue #82).
-- `hooks/hooks.json`: a `PostToolUse` hook for `Write` and `Edit`. It runs the linter on a Markdown file that has the form of this style, and it shows the hits to Claude. It skips other files. To stop it for some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, or to `*` (issue #82).
+- `hooks/hooks.json`: a `PostToolUse` hook for `Write` and `Edit`. It runs the linter on a Markdown file that has the form of this style, and it shows the hits to Claude. It skips other files. It needs `python3` on `PATH`. If `python3` is missing, the hook exits at once and reports nothing. To stop it for some paths, set `OPENBSD_STYLE_LINT_EXCLUDE` to glob patterns, or to `*` (issue #82).
 - `evals/probes/probe-obsd-lint-hook`: a probe that shows whether the hook runs in an eval run (issue #82).
 
 ### Changed in doc-styles
