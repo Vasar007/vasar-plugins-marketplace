@@ -15,7 +15,7 @@ This release moves the guides for contributors out of `README.md` into the new f
 
 ### Changed in the repository
 
-- `docs/authoring.md`, `docs/testing.md`, `docs/evals.md`, and `docs/permissions.md`: new files with the text that moved out of `README.md`. The text is the same, with these changes for the new place: the heading levels, the path of the link to `CLAUDE.md`, and "this section" became "this file". The folder list in `docs/authoring.md` names `docs/` (issue #93).
+- `docs/authoring.md`, `docs/testing.md`, `docs/evals.md`, and `docs/permissions.md`: new files with the text that moved out of `README.md`. The text is the same, with these changes for the new place: the heading levels, the path of the link to `CLAUDE.md`, and "this section" became "this file". The list item in `docs/testing.md` also names the files in `docs/` now. The folder list in `docs/authoring.md` names `docs/` (issue #93).
 - `README.md`: it keeps the plugin list, the install and update steps, the link to `CHANGELOG.md`, and the references. The new section "Contributing" gives a short summary of each guide in `docs/` and links to it. The section on the push rules keeps a short summary and links to `docs/permissions.md` (issue #93).
 - `CLAUDE.md`: step 3 of the workflow for new units points to `docs/evals.md` instead of the Evals section of `README.md` (issue #93).
 - `tests/test_readme_counts.py`: the test also reads the `.md` files in `docs/`. The moved text then stays free of counts of hooks, skills, agents, and commands (issue #93).

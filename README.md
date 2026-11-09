@@ -117,7 +117,7 @@ Some skills of this marketplace push, and some of them say never to force-push o
 
 ## Contributing
 
-The files in `docs/` are for readers who change this marketplace or add a plugin. They give only the rules of this repository. The official documentation describes the rest.
+These guides in `docs/` are for readers who change this marketplace or add a plugin. They give only the rules of this repository. The official documentation describes the rest.
 
 - [Authoring reference](./docs/authoring.md): the folder structure, the rules for `marketplace.json` and `plugin.json`, the conventions, and the validator. Before you push, run `claude plugin validate .` from the repository root. Then run `claude plugin validate ./<group>/<plugin>` for each plugin that you changed.
 - [Testing](./docs/testing.md): the parts of the test run and the CI workflow `.github/workflows/tests.yml`. To run all tests, run `python3 -m unittest discover -s tests -v` from the repository root. If you add a new `.md` file, run `git add` on it first, because the linters read only the files that git tracks.

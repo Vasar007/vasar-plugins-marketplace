@@ -15,7 +15,7 @@ MODIFIER = r"(?:(?!(?:the|of|and|or|in|this|that|a|an|to|for|on|with|is|are|by|f
 UNIT_COUNT = re.compile(
     r"(?<![\w.])" + NUMBER + r"\s+" + MODIFIER + r"(?:hook entries|hooks?|skills?|agent types|agents?|commands?)\b",
     re.IGNORECASE)
-# Counts that are fine, as (README path, stripped text of the line) -> reason: a fixed limit, or a count with its
+# Counts that are fine, as (file path, stripped text of the line) -> reason: a fixed limit, or a count with its
 # list next to it. An entry covers only lines with exactly that text, so a hit on a line with other text is still reported.
 ALLOWED = {}
 
@@ -88,7 +88,7 @@ class ReadmeTextTest(unittest.TestCase):
         self.assertEqual(failures, [], "Write 'the hooks' (or the skills, the agents, the commands), and point to "
                                        "the folder or the file that holds them. A fixed limit or a count with its "
                                        "list next to it can go into ALLOWED, with a reason.")
-        self.assertEqual(stale, [], "Remove these ALLOWED entries. The README has no such count now.")
+        self.assertEqual(stale, [], "Remove these ALLOWED entries. The file has no such count now.")
 
 
 if __name__ == "__main__":
