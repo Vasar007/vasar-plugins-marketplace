@@ -676,6 +676,20 @@ class DependencyTests(CompareCase):
                     self.assertEqual(self.calls, [])
                     self.assertEqual((keep / "note.txt").read_text(), "keep\n")
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_eval_dir_link_outside_the_plugin_at_the_base_commit_is_an_input_error(self):
+        self.git("rm", "-rq", "group/demo/evals")
+        (self.repo / "group" / "demo" / "evals").symlink_to("../../tools/helper")
+        self.commit("evals is a link")
+        base = self.git("rev-parse", "HEAD").strip()
+        self.git("rm", "-q", "group/demo/evals")
+        self.write_file("group/demo/evals/triggers/fires/prompt.md", "Do the demo task.\n")
+        self.commit("evals is a folder")
+        code, _, err = self.run_main(*self.run_args(base=base))
+        self.assertEqual(code, 2)
+        self.assertIn("must be a folder below the plugin folder", err)
+        self.assertEqual(self.calls, [])
+
     def test_baseline_writes_one_file_from_one_commit(self):
         head_sha = self.git("rev-parse", "HEAD").strip()
         code, out, err = self.run_main(*self.baseline_args(commit=head_sha))
