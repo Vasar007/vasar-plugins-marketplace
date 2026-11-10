@@ -9,6 +9,16 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.5.1] - 2026-11-10
+
+This release makes `tests/evals/compare_versions.py` refuse an eval folder outside the plugin folder. No plugin changes.
+
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: if the eval folder is not below the plugin folder, `run` and `baseline` stop with exit code 2. An absolute `--eval-dir` and a value with `..` are examples. Before the fix, `run` deleted such a folder outside the export (issue #101).
+- `tests/evals/compare_versions.py`: if a commit has a link that points outside the export, `run` and `baseline` stop with exit code 2, not with a traceback (issue #101).
+- `tests/evals/test_compare_versions.py`: a new test runs `run` and `baseline` with an absolute `--eval-dir`, with a `..` value, and with `.`. It makes sure that the exit code is 2, that no eval runs, and that the folder outside the export does not change. A second test makes sure that a commit with a link outside the export gives exit code 2 and runs no eval (issue #101).
+
 ## dev-essentials 3.8.0 in release [4.5.0] - 2026-11-09
 
 This release makes `process-pr-comments` post all thread replies of a cycle in one batch right before the push, not right after each commit or answer. With a push to make and without `autonomous`, the user sees the batch with the go-ahead question. A reply then describes the code that the push sends, also after the user changes a fix before the push.
@@ -1111,7 +1121,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...HEAD
+[4.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...v4.4.0
 [4.2.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.4...v4.2.5

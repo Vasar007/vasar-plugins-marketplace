@@ -494,6 +494,23 @@ class RunTests(CompareCase):
         self.assertEqual(code, 2)
         self.assertIn("git rev-parse", err)
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_link_outside_the_export_is_an_input_error(self):
+        escape = self.repo / "group" / "demo" / "escape"
+        for target in ("../../../outside", "/abs/target"):
+            with self.subTest(target=target):
+                escape.unlink(missing_ok=True)
+                escape.symlink_to(target)
+                self.git("add", "-A")
+                self.git("commit", "-q", "-m", f"link to {target}")
+                head = self.git("rev-parse", "HEAD").strip()
+                shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                self.calls = []
+                code, _, err = self.run_main(*self.run_args())
+                self.assertEqual(code, 2)
+                self.assertIn(f"cannot export the commit {head[:12]}", err)
+                self.assertEqual(self.calls, [])
+
 
 class DependencyTests(CompareCase):
     """The plugin copy of a run holds the plugins that the manifest lists in dependencies."""
@@ -639,6 +656,25 @@ class DependencyTests(CompareCase):
                 code, out, err = self.run_main(*self.args_with_plugin(self.baseline_args(), plugin))
                 self.assertEqual(code, 0, out + err)
                 self.assertEqual([c["helper"] for c in self.calls], ["new helper\n"])
+
+    def test_eval_dir_outside_the_plugin_is_an_input_error(self):
+        keep = self.tmp / "keep-me"
+        keep.mkdir()
+        (keep / "note.txt").write_text("keep\n")
+        exports = self.tmp / "exports"
+        exports.mkdir()
+        # The plugin copy is <exports>/compare-versions-<random>/<side>/group/demo, so five steps up reach self.tmp.
+        for value in (keep.as_posix(), "../../../../../keep-me", "."):
+            for arguments in (self.baseline_args("--eval-dir", value), self.run_args("--eval-dir", value)):
+                with self.subTest(eval_dir=value, command=arguments[0]):
+                    shutil.rmtree(self.tmp / "out", ignore_errors=True)
+                    self.calls = []
+                    with mock.patch.object(tempfile, "tempdir", str(exports)):
+                        code, _, err = self.run_main(*arguments)
+                    self.assertEqual(code, 2)
+                    self.assertIn("must be a folder below the plugin folder", err)
+                    self.assertEqual(self.calls, [])
+                    self.assertEqual((keep / "note.txt").read_text(), "keep\n")
 
     def test_baseline_writes_one_file_from_one_commit(self):
         head_sha = self.git("rev-parse", "HEAD").strip()
