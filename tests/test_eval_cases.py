@@ -10,13 +10,12 @@ lists and maps. Block scalars (| and >) and anchors are not supported.
 import json
 import re
 import shutil
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from support import REPO, tool_missing
+from testkit import ScratchCase, run
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 EVALS = "evals"
@@ -676,7 +675,7 @@ def copy_problems(repo=REPO):
 
 def blob_id(content):
     """The git blob id of the bytes, as `git hash-object --stdin` prints it."""
-    done = subprocess.run(["git", "hash-object", "--stdin"], input=content, capture_output=True, check=True)
+    done = run(["git", "hash-object", "--stdin"], stdin=content, check=True, text=False)
     return done.stdout.decode().strip()
 
 
@@ -710,9 +709,9 @@ def scratch_problems(case):
 
 def tracked_modes(repo=REPO):
     """Map each tracked path to its git mode, from the index."""
-    out = subprocess.run(["git", "-C", str(repo), "ls-files", "-s", "-z"], capture_output=True, check=True).stdout
+    out = run(["git", "-C", repo, "ls-files", "-s", "-z"], check=True).stdout
     modes = {}
-    for entry in out.decode("utf-8", errors="replace").split("\0"):
+    for entry in out.split("\0"):
         meta, _, path = entry.partition("\t")
         if path:
             modes[path] = meta.split()[0]
@@ -731,7 +730,7 @@ def shell_file_problems(modes, repo=REPO, bash=None):
         if mode != EXECUTABLE_MODE:
             problems.append(f"{path}: the git mode is {mode}, but it must be {EXECUTABLE_MODE}")
         if bash:
-            done = subprocess.run([bash, "-n"], input=data, capture_output=True)
+            done = run([bash, "-n"], stdin=data, text=False)
             if done.returncode != 0:
                 problems.append(f"{path}: bash -n failed: {done.stderr.decode(errors='replace').strip()}")
     return problems
@@ -803,12 +802,11 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(blob_path(b"hello\n"), ".git/objects/ce/013625030ba8dba906f756967f9e9ca394464a")
 
 
-class CaseFiles(unittest.TestCase):
+class CaseFiles(ScratchCase):
     """Helpers that build a plugin with cases in a temporary folder."""
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.plugin = self.tmp / "group" / "demo"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text(
