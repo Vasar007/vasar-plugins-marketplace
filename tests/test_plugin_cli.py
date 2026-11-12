@@ -10,13 +10,11 @@ import math
 import os
 import re
 import shutil
-import subprocess
-import tempfile
 import unittest
 from unittest import mock
 
 from support import REPO, tool_missing
-from testkit import clean_env
+from testkit import ScratchCase, clean_env, run
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 # The most always-on tokens that `claude plugin details` may report for each plugin in a signed-in session.
@@ -98,18 +96,16 @@ class ClaudeEnvTests(unittest.TestCase):
         self.assertEqual(env["TEST_PLUGIN_CLI_KEEP"], "kept")
 
 
-class ClaudeCliCase(unittest.TestCase):
+class ClaudeCliCase(ScratchCase):
     def setUp(self):
         self.claude = shutil.which("claude")
         if self.claude is None:
             tool_missing(self, "claude not found. Install Claude Code to run claude plugin validate and details.")
-        config = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, config, True)
-        self.env = claude_env(config)
+        super().setUp()
+        self.env = claude_env(str(self.tmp))
 
     def run_claude(self, *args):
-        result = subprocess.run([self.claude, *map(str, args)], cwd=REPO, env=self.env, capture_output=True,
-                                text=True, encoding="utf-8", errors="replace", timeout=120)
+        result = run([self.claude, *args], cwd=REPO, env=self.env, timeout=120)
         return result.returncode, result.stdout + result.stderr
 
 

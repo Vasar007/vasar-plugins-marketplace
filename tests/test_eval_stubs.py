@@ -8,11 +8,11 @@ if none is installed, which is the case in CI.
 """
 import os
 import re
-import tempfile
 import unittest
 from pathlib import Path
 
 from support import REPO
+from testkit import ScratchCase
 
 STUB = REPO / "tests/evals/stubs/simple-english"
 CACHE = Path("plugins/cache/simple-english/simple-english")
@@ -62,11 +62,10 @@ class StandInVersionTests(unittest.TestCase):
         self.assertEqual(status, "ok", message)
 
 
-class CheckDriftTests(unittest.TestCase):
+class CheckDriftTests(ScratchCase):
     def setUp(self):
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        self.root = Path(tmp.name)
+        super().setUp()
+        self.root = self.tmp
         self.source = self.root / "SOURCE.txt"
         self.source.write_text("Source: x\nVersion: 2.1.1 (MIT, see LICENSE)\n", encoding="utf-8")
 
