@@ -272,7 +272,10 @@ def export_commit(repo, revision, dest):
     """Write the tree of one commit into dest. Return the full commit id."""
     sha = git(repo, "rev-parse", "--verify", f"{revision}^{{commit}}").decode().strip()
     with tarfile.open(fileobj=io.BytesIO(git(repo, "archive", "--format=tar", sha))) as tar:
-        tar.extractall(dest, filter="data")
+        try:
+            tar.extractall(dest, filter="data")
+        except tarfile.FilterError as exc:
+            raise InputError(f"cannot export the commit {sha[:12]}: {exc}") from exc
     return sha
 
 
@@ -383,6 +386,13 @@ def manifest_suite(plugin):
     if not isinstance(suite, str) or Path(suite).is_absolute() or suite.startswith(("/", "\\")) or ".." in Path(suite).parts:
         return None
     return suite
+
+
+def refuse_suite_outside(plugin, suite, name):
+    """Raise InputError if the eval folder is not a folder below the plugin folder."""
+    # An absolute path or a path with .. can name a folder outside the export, and run_suites deletes the base copy.
+    if plugin.resolve() not in (plugin / suite).resolve().parents:
+        raise InputError(f"the eval folder {suite} must be a folder below the plugin folder {name}, for example evals")
 
 
 def option_words(args):
@@ -510,6 +520,8 @@ def run_suites(args, runner=subprocess.run):
         for side, revision in (("head", args.head), ("base", args.base)):
             plugins[side], shas[side] = export_plugin(args, tmp, side, revision)
         suite = args.eval_dir or manifest_suite(plugins["head"]) or "evals"
+        for side in ("head", "base"):
+            refuse_suite_outside(plugins[side], suite, args.plugin)
         if not (plugins["head"] / suite).is_dir():
             raise InputError(f"{args.plugin}/{suite} does not exist at the head commit {shas['head'][:12]}")
         missing = sorted({p.name for p in (plugins["head"] / ".deps").glob("*")}
@@ -540,6 +552,7 @@ def run_baseline(args, runner=subprocess.run):
         plugin, sha = export_plugin(args, tmp, "baseline", args.commit)
         add_stubs(Path(tmp) / "baseline", plugin)
         suite = args.eval_dir or manifest_suite(plugin) or "evals"
+        refuse_suite_outside(plugin, suite, args.plugin)
         if not (plugin / suite).is_dir():
             raise InputError(f"{args.plugin}/{suite} does not exist at the baseline commit {sha[:12]}")
         result = out / BASELINE_FILE
