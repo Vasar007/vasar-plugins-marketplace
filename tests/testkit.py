@@ -56,8 +56,8 @@ def clean_env(drop=(), **values):
 def run(cmd, stdin=None, env=None, cwd=None, timeout=RUN_SECONDS, check=False, text=True):
     """Run cmd, and capture stdout and stderr. As text, a byte that is not UTF-8 becomes U+FFFD.
 
-    With text=False, stdin, stdout, and stderr are bytes. With check=True, an exit code other than 0 raises
-    CalledProcessError.
+    Text mode changes line ends, so pass text=False for exact bytes. With text=False, stdin, stdout, and stderr
+    are bytes. With check=True, an exit code other than 0 raises CalledProcessError.
     """
     decode = {"text": True, "encoding": "utf-8", "errors": "replace"} if text else {}
     return subprocess.run([str(part) for part in cmd], input=stdin, env=env, cwd=cwd, capture_output=True,

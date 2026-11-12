@@ -18,7 +18,7 @@ This release moves the repeated test setup of five more test files to `tests/tes
 - `tests/testkit.py`: `run` has two new options. With `check=True`, an exit code other than 0 raises an error. With `text=False`, stdin, stdout, and stderr are bytes. `git_init` also sets a local user name and email, so that a commit works with no global git identity. The docstring names the source of the file (issue #97).
 - `tests/test_version_bump.py`, `tests/test_eval_cases.py`, `tests/evals/test_compare_versions.py`, `tests/test_eval_stubs.py`, and `tests/test_plugin_cli.py`: they use `tests/testkit.py` instead of their own temporary folders, `git init` calls with an identity, and child process runners (issue #97).
 - `tests/test_testkit.py`: new tests for the two options of `run` and for the identity of `git_init` (issue #97).
-- `tests/evals/test_compare_versions.py`: a new test makes sure that a link `evals` outside the plugin at the head commit gives exit code 2 and runs no eval. Before, only the base commit had this test.
+- `tests/evals/test_compare_versions.py`: a new test makes sure that a link `evals` outside the plugin at the head commit gives exit code 2 and runs no eval. Before, only the base commit had this test (issue #97).
 
 ## Repository changes only in release [4.5.1] - 2026-11-10
 

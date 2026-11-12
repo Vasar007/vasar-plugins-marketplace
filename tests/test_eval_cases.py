@@ -709,9 +709,9 @@ def scratch_problems(case):
 
 def tracked_modes(repo=REPO):
     """Map each tracked path to its git mode, from the index."""
-    out = run(["git", "-C", repo, "ls-files", "-s", "-z"], check=True).stdout
+    out = run(["git", "-C", repo, "ls-files", "-s", "-z"], check=True, text=False).stdout
     modes = {}
-    for entry in out.split("\0"):
+    for entry in out.decode("utf-8", errors="replace").split("\0"):
         meta, _, path = entry.partition("\t")
         if path:
             modes[path] = meta.split()[0]
