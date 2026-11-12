@@ -131,6 +131,17 @@ class RunTests(ScratchCase):
         with self.assertRaises(subprocess.TimeoutExpired):
             run([sys.executable, "-c", "import time; time.sleep(30)"], timeout=1)
 
+    def test_check_raises_when_the_exit_code_is_not_0(self):
+        with self.assertRaises(subprocess.CalledProcessError) as caught:
+            run([sys.executable, "-c", "import sys; sys.exit(3)"], check=True)
+        self.assertEqual(caught.exception.returncode, 3)
+
+    def test_text_false_passes_and_returns_bytes(self):
+        code = "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"
+        done = run([sys.executable, "-c", code], stdin=b"a\r\nb\xff", text=False)
+        self.assertEqual(done.stdout, b"a\r\nb\xff")
+        self.assertEqual(done.stderr, b"")
+
 
 class GitInitTests(ScratchCase):
     def test_makes_a_repository_and_returns_the_path(self):
@@ -139,6 +150,18 @@ class GitInitTests(ScratchCase):
         repo = git_init(self.tmp / "repo")
         self.assertEqual(repo, self.tmp / "repo")
         self.assertTrue((repo / ".git").is_dir())
+
+    def test_a_commit_gets_the_local_identity(self):
+        if shutil.which("git") is None:
+            tool_missing(self, "git not found")
+        home = self.tmp / "home"
+        home.mkdir()
+        drop = [key for key in os.environ if key.startswith("GIT_")]
+        env = clean_env(drop, HOME=str(home), XDG_CONFIG_HOME=str(home), GIT_CONFIG_NOSYSTEM="1")
+        repo = git_init(self.tmp / "repo")
+        run(["git", "-C", repo, "commit", "--allow-empty", "-q", "-m", "x"], env=env, check=True)
+        done = run(["git", "-C", repo, "log", "-1", "--format=%an <%ae>"], env=env, check=True)
+        self.assertEqual(done.stdout.strip(), "Test <test@example.com>")
 
 
 class PwdStubTests(ScratchCase):
