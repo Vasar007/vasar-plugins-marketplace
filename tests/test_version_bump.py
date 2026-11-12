@@ -7,19 +7,18 @@ import json
 import os
 import re
 import shutil
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 from support import IN_CI, REPO, tool_missing
+from testkit import ScratchCase, git_init, run
 
 MANIFEST = ".claude-plugin/plugin.json"
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
 def git(repo, *args):
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, encoding="utf-8")
+    return run(["git", "-C", repo, *args])
 
 
 def parse_version(text):
@@ -96,26 +95,25 @@ class VersionRuleTests(unittest.TestCase):
                          ["essentials/dev-essentials", "essentials/dev-essentials-extra"])
 
 
-class BumpProblemsTests(unittest.TestCase):
+class BumpProblemsTests(ScratchCase):
     """bump_problems on a temporary repository with two plugins."""
 
     def setUp(self):
+        super().setUp()
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
-        self.repo = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.repo, True)
+        self.repo = self.tmp
         self.write("essentials/one/.claude-plugin/plugin.json", '{"name": "one", "version": "1.2.3"}\n')
         self.write("essentials/one/skills/a/SKILL.md", "first\n")
         self.write("dotnet/two/.claude-plugin/plugin.json", '{"name": "two", "version": "2.0.0"}\n')
         self.write("dotnet/two/agents/b.md", "first\n")
         self.write("README.md", "first\n")
-        self.git("init", "-q")
+        git_init(self.repo)
         self.commit("base")
         self.base = self.git("rev-parse", "HEAD").strip()
 
     def git(self, *args):
-        return subprocess.run(["git", "-C", str(self.repo), "-c", "user.name=Test", "-c", "user.email=test@example.com",
-                               *args], capture_output=True, text=True, check=True).stdout
+        return run(["git", "-C", self.repo, *args], check=True).stdout
 
     def write(self, rel, text):
         path = self.repo / rel
