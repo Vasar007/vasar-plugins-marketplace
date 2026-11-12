@@ -337,11 +337,11 @@ class CliTests(LintCase):
         self.assertIn("usage: ", result.stderr)
 
     def test_abbreviated_hook_option(self):
-        result = run([sys.executable, "-I", SCRIPT, "--ho"])
+        result = run([sys.executable, "-I", SCRIPT, "--ho"], stdin="")
         self.assertResult(result, 2, "unrecognized arguments: --ho")
 
     def test_hook_with_a_file(self):
-        result = run([sys.executable, "-I", SCRIPT, "--hook", self.tmp / "page.md"])
+        result = run([sys.executable, "-I", SCRIPT, "--hook", self.tmp / "page.md"], stdin="")
         self.assertResult(result, 2)
         self.assertIn("usage: ", result.stderr)
         self.assertEqual(result.stdout, "")

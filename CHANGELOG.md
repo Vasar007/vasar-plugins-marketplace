@@ -15,7 +15,7 @@ This release makes the OpenBSD docs linter of doc-styles read its arguments with
 
 ### Changed in doc-styles
 
-- `skills/openbsd-style-docs/scripts/openbsd_lint.py`: the script reads its arguments with `argparse`. A call with a bad argument still exits with code 2, but it now prints the usage line and one error line. Before, it printed the module docstring. `--help` and `-h` now print the help on stdout and exit with code 0. `--hook --hook` now runs the hook. `-- -file.md` now lints the file `-file.md` (issue #109).
+- `skills/openbsd-style-docs/scripts/openbsd_lint.py`: the script reads its arguments with `argparse`. A call with a bad argument still exits with code 2, but it now prints the usage line and one error line. Before, it printed the module docstring. `--help` and `-h` now print the help on stdout and exit with code 0. `--hook --hook` now runs the hook. `-` and every argument after `--` is now a file name. So `-- -file.md` lints the file `-file.md`, and `p.md -- ok.md` lints both files (issue #109).
 
 ### Changed in the repository
 
