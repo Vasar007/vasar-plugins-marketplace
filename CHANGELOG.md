@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.1 in release [4.5.3] - 2026-11-12
+
+This release makes the OpenBSD docs linter of doc-styles read its arguments with `argparse`. Every valid call works as before.
+
+### Changed in doc-styles
+
+- `skills/openbsd-style-docs/scripts/openbsd_lint.py`: the script reads its arguments with `argparse`. A call with a bad argument still exits with code 2, but it now prints the usage line and one error line. Before, it printed the module docstring. `--help` and `-h` now print the help on stdout and exit with code 0. `--hook --hook` now runs the hook. `-- -file.md` now lints the file `-file.md` (issue #109).
+
+### Changed in the repository
+
+- `tests/test_openbsd_lint.py`: the test for a call with no argument looks for the `argparse` usage line. New tests cover an unknown option, the abbreviated option `--ho`, `--hook` with a file, and `--help` (issue #109).
+
 ## Repository changes only in release [4.5.2] - 2026-11-12
 
 This release moves the repeated test setup of five more test files to `tests/testkit.py`. No plugin changes.
@@ -1132,7 +1144,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...HEAD
+[4.5.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...v4.5.3
 [4.5.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...v4.5.2
 [4.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...v4.5.0
