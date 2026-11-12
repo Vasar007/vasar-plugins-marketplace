@@ -329,7 +329,27 @@ class CliTests(LintCase):
     def test_no_argument(self):
         result = run([sys.executable, "-I", SCRIPT])
         self.assertResult(result, 2)
-        self.assertIn("Usage:", result.stderr)
+        self.assertIn("usage: ", result.stderr)
+
+    def test_unknown_option(self):
+        result = run([sys.executable, "-I", SCRIPT, "-x", self.tmp / "page.md"])
+        self.assertResult(result, 2, "unrecognized arguments: -x")
+        self.assertIn("usage: ", result.stderr)
+
+    def test_abbreviated_hook_option(self):
+        result = run([sys.executable, "-I", SCRIPT, "--ho"])
+        self.assertResult(result, 2, "unrecognized arguments: --ho")
+
+    def test_hook_with_a_file(self):
+        result = run([sys.executable, "-I", SCRIPT, "--hook", self.tmp / "page.md"])
+        self.assertResult(result, 2)
+        self.assertIn("usage: ", result.stderr)
+        self.assertEqual(result.stdout, "")
+
+    def test_help(self):
+        result = run([sys.executable, "-I", SCRIPT, "--help"])
+        self.assertResult(result, 0)
+        self.assertIn("usage: ", result.stdout)
 
     def test_tag_item_with_only_brackets(self):
         result = self.run_lint(HEAD + DESCRIPTION + "\nThe notation is:\n\n- `[ ]` marks an optional part.\n")

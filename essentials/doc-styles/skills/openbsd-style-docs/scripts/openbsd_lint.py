@@ -21,6 +21,7 @@ The hook skips a file that does not look like a document in this style, and each
 a glob in OPENBSD_STYLE_LINT_EXCLUDE (separator: os.pathsep). The pattern * turns the hook off.
 Standard library only.
 """
+import argparse
 import fnmatch
 import json
 import os
@@ -301,13 +302,20 @@ def hook():
 
 
 def main(argv):
-    if argv == ["--hook"]:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        allow_abbrev=False,
+    )
+    parser.add_argument("--hook", action="store_true", help="read a PostToolUse event on stdin")
+    parser.add_argument("files", nargs="*", metavar="FILE", help="a Markdown file to lint")
+    args = parser.parse_args(argv)
+    if args.hook == bool(args.files):
+        parser.error("use --hook alone, or give at least one FILE")
+    if args.hook:
         return hook()
-    if not argv or any(a.startswith("-") for a in argv):
-        print(__doc__, file=sys.stderr)
-        return 2
     found = False
-    for name in argv:
+    for name in args.files:
         try:
             text = Path(name).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as error:
