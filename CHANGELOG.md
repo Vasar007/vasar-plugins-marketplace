@@ -9,6 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## Repository changes only in release [4.5.2] - 2026-11-12
+
+This release moves the repeated test setup of five more test files to `tests/testkit.py`. No plugin changes.
+
+### Changed in the repository
+
+- `tests/testkit.py`: `run` has two new options. With `check=True`, an exit code other than 0 raises an error. With `text=False`, stdin, stdout, and stderr are bytes. `git_init` also sets a local user name and email, so that a commit works with no global git identity. The docstring names the source of the file (issue #97).
+- `tests/test_version_bump.py`, `tests/test_eval_cases.py`, `tests/evals/test_compare_versions.py`, `tests/test_eval_stubs.py`, and `tests/test_plugin_cli.py`: they use `tests/testkit.py` instead of their own temporary folders, `git init` calls with an identity, and child process runners (issue #97).
+- `tests/test_testkit.py`: new tests for the two options of `run` and for the identity of `git_init` (issue #97).
+- `tests/evals/test_compare_versions.py`: a new test makes sure that a link `evals` outside the plugin at the head commit gives exit code 2 and runs no eval. Before, only the base commit had this test (issue #97).
+
 ## Repository changes only in release [4.5.1] - 2026-11-10
 
 This release makes `tests/evals/compare_versions.py` refuse an eval folder outside the plugin folder. No plugin changes.
@@ -1121,7 +1132,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...HEAD
+[4.5.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...v4.5.2
 [4.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.2.5...v4.4.0

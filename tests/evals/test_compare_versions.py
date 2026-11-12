@@ -8,7 +8,6 @@ import io
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -17,6 +16,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from support import load_module, tool_missing
+from testkit import ScratchCase, git_init, run as run_command
 
 HERE = Path(__file__).resolve().parent
 SCRIPT = HERE / "compare_versions.py"
@@ -32,10 +32,9 @@ def grader(run, name):
     return next(g for g in run["graders"] if g["name"] == name)
 
 
-class CompareCase(unittest.TestCase):
+class CompareCase(ScratchCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.base = copy.deepcopy(RESULT)
         self.head = copy.deepcopy(RESULT)
 
@@ -286,7 +285,7 @@ class RunTests(CompareCase):
         (plugin / ".claude-plugin" / "plugin.json").write_text('{"name": "demo", "version": "1.0.0"}\n')
         (plugin / "skills" / "demo").mkdir(parents=True)
         (plugin / "skills" / "demo" / "SKILL.md").write_text("old skill\n")
-        self.git("init", "-q")
+        git_init(self.repo)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "base")
         self.base_sha = self.git("rev-parse", "HEAD").strip()
@@ -298,8 +297,7 @@ class RunTests(CompareCase):
         self.calls = []
 
     def git(self, *args):
-        return subprocess.run(["git", "-C", str(self.repo), "-c", "user.name=Test", "-c", "user.email=test@example.com",
-                               *args], capture_output=True, text=True, check=True).stdout
+        return run_command(["git", "-C", self.repo, *args], check=True).stdout
 
     def fake_eval(self, command, cwd):
         """Stand-in for claude plugin eval: record the call, and write the fixture as the result."""
@@ -533,7 +531,7 @@ class DependencyTests(CompareCase):
             "name": "test-market",
             "plugins": [{"name": "demo", "source": "./group/demo"}, {"name": "helper", "source": "./tools/helper"}],
         }))
-        self.git("init", "-q")
+        git_init(self.repo)
         self.commit("base")
         self.base_sha = self.git("rev-parse", "HEAD").strip()
         self.write_file("tools/helper/skills/helper/SKILL.md", "new helper\n")
@@ -685,6 +683,17 @@ class DependencyTests(CompareCase):
         self.git("rm", "-q", "group/demo/evals")
         self.write_file("group/demo/evals/triggers/fires/prompt.md", "Do the demo task.\n")
         self.commit("evals is a folder")
+        code, _, err = self.run_main(*self.run_args(base=base))
+        self.assertEqual(code, 2)
+        self.assertIn("must be a folder below the plugin folder", err)
+        self.assertEqual(self.calls, [])
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "needs a Linux symbolic link")
+    def test_eval_dir_link_outside_the_plugin_at_the_head_commit_is_an_input_error(self):
+        base = self.git("rev-parse", "HEAD").strip()
+        self.git("rm", "-rq", "group/demo/evals")
+        (self.repo / "group" / "demo" / "evals").symlink_to("../../tools/helper")
+        self.commit("evals is a link")
         code, _, err = self.run_main(*self.run_args(base=base))
         self.assertEqual(code, 2)
         self.assertIn("must be a folder below the plugin folder", err)
@@ -844,8 +853,7 @@ class DependencyTests(CompareCase):
 
 class CommandLineTests(unittest.TestCase):
     def run_script(self, *args):
-        return subprocess.run([sys.executable, "-I", str(SCRIPT), *map(str, args)],
-                              capture_output=True, text=True, encoding="utf-8", timeout=60)
+        return run_command([sys.executable, "-I", SCRIPT, *args])
 
     def test_compare_of_the_fixture_with_itself(self):
         fixture = HERE / "fixtures" / "result.json"
