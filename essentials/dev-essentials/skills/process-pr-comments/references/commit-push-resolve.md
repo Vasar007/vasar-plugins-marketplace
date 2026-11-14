@@ -98,7 +98,7 @@ This step runs after the push of this cycle succeeds. It covers two groups of th
 
 Then resolve and report as in group (a), in this cycle. Do not wait for a later cycle. In these cases, leave the thread open:
 
-- The human did not answer, or answered "handle separately" or the like. The push alone does not resolve the thread.
+- The human did not answer, or answered "handle separately" or the like. The push alone does not resolve the thread. If the push sends its commit, a later run finds it on the PR head. The run prints a report line (`committed-fix-state.md` § "Commit on the PR head with no reply").
 - The thread got a report line instead of the question (`committed-fix-state.md` § "Report modes").
 - The check still fails, because the push of this cycle did not carry the commit. Phase 2 step 5 of a later cycle tests it again.
 
@@ -120,7 +120,7 @@ If one file holds the edits of several threads, capture the final state of the f
 
 ## Threads with the same note
 
-If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit, and reply on each thread with the shared SHA.
+If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit, and reply on each thread with the shared SHA. This rule counts only threads that go on to Phase 3. A report-only thread, such as `pr-commit-no-reply`, is not part of it.
 
 ## Reply templates
 
