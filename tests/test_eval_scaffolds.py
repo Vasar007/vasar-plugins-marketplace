@@ -498,6 +498,27 @@ class CommitGraderTests(FixtureCase):
             self.run_git(workspace, "worktree", "add", "-q", str(tree), "-b", f"fix-{number}")
             self.commit(tree, [path], f"fix {number} in a worktree")
 
+    def merge_and_commit(self, workspace, branch):
+        """Merge with no commit, then commit. Git writes the line "commit (merge):"."""
+        self.run_git(workspace, "merge", "-q", "--no-ff", "--no-commit", branch)
+        self.run_git(workspace, "commit", "-q", "--no-edit")
+
+    def amend_the_fixture_commit(self, workspace, paths):
+        """Add a line to each file in the last fixture commit. Git writes the line "commit (amend):"."""
+        for path in paths:
+            with (workspace / path).open("a", encoding="utf-8") as stream:
+                stream.write("# changed on main\n")
+        self.run_git(workspace, "add", *paths)
+        self.run_git(workspace, "commit", "-q", "--amend", "--no-edit")
+
+    def cherry_pick_with_a_conflict(self, workspace, branch, path):
+        """Cherry-pick a commit that stops on a conflict, and commit the result. Git writes "commit (cherry-pick):"."""
+        code, output = self.git(workspace, "cherry-pick", branch)
+        self.assertNotEqual(code, 0, output)
+        self.run_git(workspace, "checkout", "--theirs", "--", path)
+        self.run_git(workspace, "add", path)
+        self.run_git(workspace, "commit", "-q", "--no-edit")
+
     def check_shapes(self, name, shapes):
         for shape, expected in shapes.items():
             with self.subTest(case=name, shape=shape.__name__):
@@ -515,13 +536,25 @@ class CommitGraderTests(FixtureCase):
             self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
             self.commit(workspace, path, "rename")
 
+        def a_commit_with_the_fixture_prefix(workspace):
+            self.commit(workspace, path, "fixture: rename")
+
         def a_worktree_commit_and_a_fast_forward_merge(workspace):
             self.worktree_commits(workspace, path)
             self.run_git(workspace, "merge", "-q", "--ff-only", "fix-1")
 
+        def a_worktree_commit_and_a_merge_that_stops_before_the_commit(workspace):
+            self.worktree_commits(workspace, path)
+            self.merge_and_commit(workspace, "fix-1")
+
         def a_worktree_commit_and_a_cherry_pick(workspace):
             self.worktree_commits(workspace, path)
             self.run_git(workspace, "cherry-pick", "fix-1")
+
+        def a_worktree_commit_and_a_cherry_pick_with_a_conflict(workspace):
+            self.worktree_commits(workspace, path)
+            self.amend_the_fixture_commit(workspace, path)
+            self.cherry_pick_with_a_conflict(workspace, "fix-1", path[0])
 
         def a_worktree_commit_only(workspace):
             self.worktree_commits(workspace, path)
@@ -533,8 +566,11 @@ class CommitGraderTests(FixtureCase):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,
+                a_commit_with_the_fixture_prefix: False,
                 a_worktree_commit_and_a_fast_forward_merge: True,
+                a_worktree_commit_and_a_merge_that_stops_before_the_commit: True,
                 a_worktree_commit_and_a_cherry_pick: True,
+                a_worktree_commit_and_a_cherry_pick_with_a_conflict: True,
                 a_worktree_commit_only: False,
                 an_amend_of_the_fixture_commit: False,
             })
@@ -548,19 +584,84 @@ class CommitGraderTests(FixtureCase):
         def one_commit_with_both_fixes(workspace):
             self.commit(workspace, fixes, "fix both")
 
+        def one_fix_commit_and_one_commit_with_the_fixture_prefix(workspace):
+            self.commit(workspace, fixes[:1], "fix 1")
+            self.commit(workspace, fixes[1:], "fixture: fix 2")
+
         def two_commits_on_a_new_branch(workspace):
             self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
             for number, path in enumerate(fixes, 1):
                 self.commit(workspace, [path], f"fix {number}")
+
+        def two_commits_on_a_new_branch_and_a_merge_to_main(workspace):
+            two_commits_on_a_new_branch(workspace)
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "merge", "-q", "--ff-only", "run-branch")
+
+        def one_combined_commit_on_a_new_branch_and_a_merge_to_main(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            self.commit(workspace, fixes, "fix both")
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "merge", "-q", "--ff-only", "run-branch")
+
+        def two_fix_commits_and_a_third_commit(workspace):
+            for number, path in enumerate(fixes, 1):
+                self.commit(workspace, [path], f"fix {number}")
+            self.commit(workspace, ["README.md"], "docs")
+
+        # A known limit: the grader cannot see the files of a commit.
+        def one_combined_commit_and_one_more_commit(workspace):
+            self.commit(workspace, fixes, "fix both")
+            self.commit(workspace, ["README.md"], "docs")
 
         def worktree_commits_and_a_merge_of_each(workspace):
             self.worktree_commits(workspace, fixes)
             self.run_git(workspace, "merge", "-q", "--no-edit", "fix-1")
             self.run_git(workspace, "merge", "-q", "--no-edit", "fix-2")
 
+        def worktree_commits_and_a_merge_of_each_that_stops_before_the_commit(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.merge_and_commit(workspace, "fix-1")
+            self.merge_and_commit(workspace, "fix-2")
+
         def worktree_commits_and_a_cherry_pick_of_each(workspace):
             self.worktree_commits(workspace, fixes)
             self.run_git(workspace, "cherry-pick", "fix-1", "fix-2")
+
+        def worktree_commits_and_a_cherry_pick_of_each_with_a_conflict(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.amend_the_fixture_commit(workspace, fixes)
+            for number, path in enumerate(fixes, 1):
+                self.cherry_pick_with_a_conflict(workspace, f"fix-{number}", path)
+
+        # A known limit: a combined commit and its merge give the same two lines.
+        def one_fix_commit_and_a_merge_of_a_worktree_commit(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.commit(workspace, fixes[:1], "fix 1 on main")
+            self.run_git(workspace, "merge", "-q", "--no-edit", "fix-2")
+
+        def two_commits_in_one_worktree(workspace):
+            tree = workspace / ".claude" / "worktrees" / "fixes"
+            self.run_git(workspace, "worktree", "add", "-q", str(tree), "-b", "fixes")
+            for number, path in enumerate(fixes, 1):
+                self.commit(tree, [path], f"fix {number} in a worktree")
+
+        def two_commits_in_one_worktree_and_one_fast_forward_merge(workspace):
+            two_commits_in_one_worktree(workspace)
+            self.run_git(workspace, "merge", "-q", "--ff-only", "fixes")
+
+        def two_commits_in_one_worktree_and_a_pull(workspace):
+            two_commits_in_one_worktree(workspace)
+            self.run_git(workspace, "push", "-q", "origin", "fixes")
+            self.run_git(workspace, "pull", "-q", "--ff-only", "origin", "fixes")
+
+        def two_commits_in_one_worktree_and_a_reset_of_main(workspace):
+            two_commits_in_one_worktree(workspace)
+            self.run_git(workspace, "reset", "-q", "--hard", "fixes")
+
+        def two_commits_in_one_worktree_and_a_rebase_of_main(workspace):
+            two_commits_in_one_worktree(workspace)
+            self.run_git(workspace, "rebase", "-q", "fixes")
 
         def worktree_commits_and_a_second_commit_of_each_fix(workspace):
             self.worktree_commits(workspace, fixes)
@@ -577,9 +678,21 @@ class CommitGraderTests(FixtureCase):
         self.check_shapes("so-two-fixes", {
             no_commit: False,
             one_commit_with_both_fixes: False,
+            one_fix_commit_and_one_commit_with_the_fixture_prefix: False,
             two_commits_on_a_new_branch: True,
+            two_commits_on_a_new_branch_and_a_merge_to_main: True,
+            one_combined_commit_on_a_new_branch_and_a_merge_to_main: False,
+            two_fix_commits_and_a_third_commit: True,
+            one_combined_commit_and_one_more_commit: True,
             worktree_commits_and_a_merge_of_each: True,
+            worktree_commits_and_a_merge_of_each_that_stops_before_the_commit: True,
             worktree_commits_and_a_cherry_pick_of_each: True,
+            worktree_commits_and_a_cherry_pick_of_each_with_a_conflict: True,
+            one_fix_commit_and_a_merge_of_a_worktree_commit: False,
+            two_commits_in_one_worktree_and_one_fast_forward_merge: False,
+            two_commits_in_one_worktree_and_a_pull: False,
+            two_commits_in_one_worktree_and_a_reset_of_main: False,
+            two_commits_in_one_worktree_and_a_rebase_of_main: False,
             worktree_commits_and_a_second_commit_of_each_fix: True,
             worktree_commits_and_one_combined_commit: False,
             worktree_commits_only: False,
