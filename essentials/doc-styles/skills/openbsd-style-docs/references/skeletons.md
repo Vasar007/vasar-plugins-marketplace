@@ -86,6 +86,7 @@ The options are as follows:
 ## EXIT STATUS
 
 The `<name>` utility exits 0 on success, and >0 if an error occurs.
+<Only after ">0", one sentence for each special code that the facts name:>
 In particular, <code> means <condition>.
 
 ## EXAMPLES
@@ -130,6 +131,11 @@ after, the options list: "The following commands are available:", then
 If the tool has modes, use two lists (as `signify(1)` does): "The mode of
 operation is selected with the following options:" and "The other options are
 as follows:".
+
+List only the exit codes that the facts name. If the facts give a number
+for errors in general, do not write ">0" or "In particular". Use a tag
+list instead, as `grep(1)` does: "The `<name>` utility exits with one of
+the following values:", then one item for each code.
 
 ## Daemon or service
 

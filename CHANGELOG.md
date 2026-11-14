@@ -9,6 +9,16 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.3 in release [4.7.2] - 2026-11-14
+
+This release changes the EXIT STATUS rule of the OpenBSD style. A document lists only the exit codes that the facts name. The sentence for a special code comes only after `>0`.
+
+### Changed in doc-styles
+
+- `skills/openbsd-style-docs/references/skeletons.md`: in the skeleton of a command-line utility, a note now limits the line that starts with `In particular`. Only a code that the facts name can use that line, and only after `>0`. A new rule after the skeleton covers a number for errors in general. If the facts give such a number, the document uses a tag list of the codes, as `grep(1)` does. The list has no `>0` and no `In particular`. Before, the model often changed `>0` to the error code of the facts and kept the line. So the README made the special code a case of the error code, but the facts give it its own code. In the eval case `obsd-d1-readme`, the grader `acc-no-invention` failed in 14 of 19 judged runs with that line. It failed in 0 of 18 runs without it (issue #114).
+- `skills/openbsd-style-docs/SKILL.md`: the EXIT STATUS item of "Failure, warnings and limits" adds only the special codes that the facts name. If the facts give a number for errors in general, the item asks for the tag list of `grep(1)` instead of the pair (issue #114).
+- `skills/openbsd-style-docs/references/examples.md`: the "Before" text of the example for error behavior now names the code 2. Before, the "After" text added a code that the "Before" text did not name (issue #114).
+
 ## doc-styles 1.1.2 in release [4.7.1] - 2026-11-14
 
 This release fixes the probe `probe-obsd-lint-hook` of doc-styles. The lint hook ran, but the probe still scored 0. Its grader looked for the hook message in the trace. In the three runs of issue #115, with Claude Code 2.1.310, the trace did not hold the output of the `PostToolUse` hook. The release also ships a new test that parses the YAML of every eval case file (issue #123).
@@ -1214,7 +1224,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...HEAD
+[4.7.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...v4.6.0
