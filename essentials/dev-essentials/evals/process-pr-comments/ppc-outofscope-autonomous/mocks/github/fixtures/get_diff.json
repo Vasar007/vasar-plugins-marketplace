@@ -1,0 +1,17 @@
+diff --git a/src/pager.py b/src/pager.py
+index 5dd762b..48af11a 100644
+--- a/src/pager.py
++++ b/src/pager.py
+@@ -14,3 +14,12 @@ def total_pages(total_items, size=DEFAULT_PAGE_SIZE):
+ def has_next_page(page, total_items, size=DEFAULT_PAGE_SIZE):
+     """Return True if a page after the given page (1-based) exists."""
+     return page < total_pages(total_items, size)
++
++
++def page_slice(items, page, size=DEFAULT_PAGE_SIZE):
++    """Return the items of a page (1-based, like page_numbers in ranges.py). A page holds at most size items."""
++    if size <= 0:
++        raise ValueError("size must be positive")
++    start = (page - 1) * size
++    end = start + size - 1
++    return items[start:end]
