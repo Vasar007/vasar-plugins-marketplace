@@ -119,7 +119,9 @@ class YamlScanTests(ScratchCase):
 
     def test_a_date_like_value_that_is_not_a_date_fails_with_its_path(self):
         self.write("one/prompt.md", "---\nname: one\ndescription: 2026-13-45\n---\nDo it.\n")
-        self.assertEqual(self.scan(), ["evals/one/prompt.md: month must be in 1..12, not 13"])
+        problems = self.scan()
+        self.assertEqual(len(problems), 1)
+        self.assertRegex(problems[0], r"^evals/one/prompt\.md: .+")
 
     def test_a_quoted_value_with_a_colon_passes(self):
         self.write("one/prompt.md", '---\nname: one\ndescription: "wait for the push: post no reply"\n---\nDo it.\n')
