@@ -28,6 +28,7 @@ This release fixes four defects in the eval cases of dev-essentials. It also add
 ### Changed in the repository
 
 - `tests/test_eval_scaffolds.py`: two new tests push a new commit to the pull request branch. They make sure that `refs/pull/<id>/head` of the remote moves to that commit, also with a global `core.hooksPath` (issue #112).
+- `tests/test_eval_scaffolds.py`: the two .NET probe tests need the .NET SDK 10 or newer and the .NET 10 runtime. Before, they needed SDK 10 exactly, and CI failed after the runner image got the .NET SDK 11 (issue #117).
 
 ## doc-styles 1.1.1 in release [4.5.3] - 2026-11-12
 
