@@ -146,7 +146,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 - `summary` lets the orchestrating session report the cycle counts to the user at once, without a wait for Stage 2.
 - `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `is_resolved` or `is_outdated` (Phase 2 step 2).
 - `summary.newComments` counts the comments of this cycle that are not yet in `processedCommentIds`. Stage 1 has every input that it needs for this count. The number feeds the "N new comments" figure in the header of the cycle log (`SKILL.md` Phase 5). So Stage 2 does not have to derive it from the `comments` arrays of the threads.
-- `summary.needsStage2Action` does not count a `pr-commit-no-reply` thread, because Stage 2 takes no action on it. Stage 2 still prints its report line in the cycle log (Phase 5), also when no other thread needs action.
+- `summary.needsStage2Action` does not count a `pr-commit-no-reply` thread, because Stage 2 takes no action on it. The cycle log (Phase 5) still prints its report line, also when no other thread needs action.
 - `blockers` lists in free text the stop conditions that Stage 1 met and did not settle on its own. These are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available. A failed fetch of the PR head ref (§ "Ancestry check") is one more. Subagents do not talk to the user. So Stage 1 reports the condition, and the orchestrating session asks.
 - If `blockers` is not empty and `threads` is empty, the orchestrating session does not dispatch Stage 2 in this cycle.
 
