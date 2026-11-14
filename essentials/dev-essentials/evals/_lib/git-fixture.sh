@@ -47,6 +47,7 @@ fixture_remote_init() {
 # fixture_publish <work-branch> [<pull-id>:<branch> ...]
 # Push every branch and each pull request ref, point origin/HEAD at main, and set the upstream of the work branch.
 # Then log the ref updates of the remote, so that a later push of the run leaves a reflog file.
+# As on GitHub, a hook of the remote moves each pull request ref to the new tip when a later push changes its branch.
 fixture_publish() {
     local work_branch="$1"
     shift
@@ -58,4 +59,18 @@ fixture_publish() {
     git remote set-head origin main > /dev/null
     git branch -q --set-upstream-to="origin/$work_branch" "$work_branch"
     git -C .remote/origin.git config core.logAllRefUpdates always
+    git -C .remote/origin.git config core.hooksPath hooks
+    [ $# -gt 0 ] || return 0
+    local hook=.remote/origin.git/hooks/post-receive
+    mkdir -p "$(dirname "$hook")"
+    {
+        printf '#!/bin/sh\nwhile read -r old new ref; do\n'
+        printf '    case "$new" in *[!0]*) ;; *) continue ;; esac\n'
+        for pull in "$@"; do
+            printf '    if [ "$ref" = "refs/heads/%s" ]; then git update-ref "refs/pull/%s/head" "$new"; fi\n' \
+                "${pull#*:}" "${pull%%:*}"
+        done
+        printf 'done\n'
+    } > "$hook"
+    chmod +x "$hook"
 }
