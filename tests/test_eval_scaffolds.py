@@ -5,7 +5,7 @@ EVAL_FIXTURE_SKIP_DOTNET=1. The tests need bash and git, and the Python tests of
 If bash or git is not found, the tests skip. In CI they fail.
 
 One test runs the .NET probe scaffolds with a real restore and build, and then runs dotnet test.
-It needs the .NET SDK 10 and network access for the first restore. As in a real run, the packages
+It needs the .NET SDK 10 or newer, the .NET 10 runtime, and network access for the first restore. As in a real run, the packages
 go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
 """
 import json
@@ -91,6 +91,20 @@ def branch_path_problems(case, branch):
         if found and "*" not in found.group(1) and found.group(1) != branch:
             problems.append(f"{case.label}/graders/{name}.md: the path names {found.group(1)}, but the scaffold branch is {branch}")
     return problems
+
+
+class DotnetVersionParseTests(unittest.TestCase):
+    def test_sdk_major_reads_the_first_number(self):
+        self.assertEqual(sdk_major("11.0.100"), 11)
+        self.assertEqual(sdk_major("10.0.100-rc.1.123"), 10)
+        self.assertEqual(sdk_major(""), 0)
+        self.assertEqual(sdk_major("error text"), 0)
+
+    def test_runtime_10_must_be_in_the_list(self):
+        listed = "Microsoft.AspNetCore.App 10.0.15 [x]\nMicrosoft.NETCore.App 9.0.23 [x]\nMicrosoft.NETCore.App 11.0.0 [x]\n"
+        self.assertFalse(has_runtime_10(listed))
+        self.assertTrue(has_runtime_10(listed + "Microsoft.NETCore.App 10.0.15 [x]\n"))
+        self.assertFalse(has_runtime_10(""))
 
 
 class GraderBranchTests(unittest.TestCase):
@@ -246,16 +260,34 @@ class ScaffoldTests(FixtureCase):
                 remove_tree(self.tmp / "workspace")
 
 
+def sdk_major(version):
+    """The major number of a `dotnet --version` output, or 0 if the output does not start with one."""
+    head = version.split(".", 1)[0]
+    return int(head) if head.isdigit() else 0
+
+
+def has_runtime_10(runtimes):
+    """True if the output of `dotnet --list-runtimes` lists a Microsoft.NETCore.App runtime of major version 10."""
+    return re.search(r"^Microsoft\.NETCore\.App 10\.", runtimes, re.MULTILINE) is not None
+
+
 class DotnetProbeTests(FixtureCase):
     """The .NET probe scaffolds with a real restore and build, then a test run with its marker files."""
 
-    def test_probe_scaffolds_build_and_leave_marker_files_after_dotnet_test(self):
+    def require_dotnet(self):
         dotnet = shutil.which("dotnet")
         if dotnet is None:
-            tool_missing(self, "dotnet not found. Install the .NET SDK 10 to run this test.")
+            tool_missing(self, "dotnet not found. Install the .NET SDK 10 or newer to run this test.")
         version = subprocess.run([dotnet, "--version"], capture_output=True, text=True).stdout.strip()
-        if not version.startswith("10."):
-            tool_missing(self, f"The .NET SDK 10 is needed, but dotnet --version prints {version!r}.")
+        if sdk_major(version) < 10:
+            tool_missing(self, f"The .NET SDK 10 or newer is needed, but dotnet --version prints {version!r}.")
+        runtimes = subprocess.run([dotnet, "--list-runtimes"], capture_output=True, text=True).stdout
+        if not has_runtime_10(runtimes):
+            tool_missing(self, "The .NET 10 runtime is needed, but dotnet --list-runtimes lists none.")
+        return dotnet
+
+    def test_probe_scaffolds_build_and_leave_marker_files_after_dotnet_test(self):
+        dotnet = self.require_dotnet()
         probes = {case.name: script for case, script in scaffold_cases() if case.name in DOTNET_PROBES}
         self.assertEqual(sorted(probes), sorted(DOTNET_PROBES))
         for name, script in probes.items():
@@ -274,12 +306,7 @@ class DotnetProbeTests(FixtureCase):
                 self.assertEqual(self.git(workspace, "status", "--porcelain")[1], "", "build files are not ignored")
 
     def test_run_marker_says_failed_when_a_test_fails(self):
-        dotnet = shutil.which("dotnet")
-        if dotnet is None:
-            tool_missing(self, "dotnet not found. Install the .NET SDK 10 to run this test.")
-        version = subprocess.run([dotnet, "--version"], capture_output=True, text=True).stdout.strip()
-        if not version.startswith("10."):
-            tool_missing(self, f"The .NET SDK 10 is needed, but dotnet --version prints {version!r}.")
+        dotnet = self.require_dotnet()
         script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
         workspace = self.workspace("probe-test-fixture")
         self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
