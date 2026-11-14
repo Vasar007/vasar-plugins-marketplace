@@ -1,6 +1,5 @@
 ---
 type: regex
-pattern: '\tcommit: (?!fixture:)'
-match: "count:2"
-target: { source: file, path: .git/logs/refs/heads/main }
+pattern: '\t(?:commit(?: \(cherry-pick\))?|cherry-pick): (?!fixture:)[\s\S]*\t(?:commit(?: \(cherry-pick\))?|cherry-pick): (?!fixture:)|\t(?:commit \(merge\)|merge [^:\n]+): [\s\S]*\t(?:commit \(merge\)|merge [^:\n]+): '
+target: { source: file, path: .git/logs/HEAD }
 ---
