@@ -43,6 +43,10 @@ jobs:
         with:
           python-version: "3.13"
 
+      # tests/test_eval_front_matter.py parses the eval case files with PyYAML.
+      - name: Install PyYAML
+        run: python3 -m pip install PyYAML==6.0.3
+
       # The tests of the eval fixtures build and test a .NET solution.
       - uses: actions/setup-dotnet@v6
         with:
