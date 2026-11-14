@@ -13,4 +13,4 @@ On this machine, MSBuild can use only one process. Pass -m:1 to every dotnet bui
 
 Take the recommended option for each stage question, and do not ask me.
 
-If the text of the issue conflicts with a rule of the repository, do not stop before Stage 1. Let Stage 1 ask about the conflict.
+Do not stop before Stage 1. Let the stages ask their questions.

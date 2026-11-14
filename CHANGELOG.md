@@ -15,11 +15,11 @@ This release fixes the eval case `fp-e1-seeded-defects` of the feature-pipeline 
 
 ### Changed in dev-essentials
 
-- `evals/feature-pipeline/fp-e1-seeded-defects`: Stage 1 finds the seven planted defects in the issue text and asks about them. With `--autonomous`, the run takes the recommended fix for each defect. So the defects never reach the review stages, and the graders `caught-bound`, `caught-key`, and `caught-typosquat` failed in every run. Each `caught-*` grader now also accepts a line of a stage question reply that names the defect. The new graders `fixed-bound`, `fixed-sql`, `fixed-key`, and `fixed-typosquat` read the final files. If a defect is still in its file, its grader fails. `caught-duplicate` and `caught-query-in-loop` no longer pass on a review entry about another problem. The prompt now tells the run to take the recommended option for each stage question, and not to stop before Stage 1 (issue #113).
+- `evals/feature-pipeline/fp-e1-seeded-defects`: Stage 1 finds the seven planted defects in the issue text and asks about them. With `--autonomous`, the run takes the recommended fix for each defect. So the defects never reach the review stages, and the graders `caught-bound`, `caught-key`, and `caught-typosquat` failed in every run. Each `caught-*` grader now also accepts a line of a stage reply that names the defect. The line must be in the final reply of a stage subagent, and that reply must hold a `QUESTIONS:` block with a recommended option. A brief, a note, or a stop message of the master agent does not count. The new graders `fixed-bound`, `fixed-sql`, `fixed-key`, and `fixed-typosquat` read the final files. If a defect is still in its file, its grader fails. In a run that changes no file, `fixed-key` and `fixed-typosquat` pass, because the fixture files are clean. `caught-duplicate` now needs a copy word next to `CleanSku` or `SkuFormatter.Normalize`. `caught-query-in-loop` no longer accepts the bare word `QueryMany`. The prompt now tells the run to take the recommended option for each stage question, not to ask the user, and not to stop before Stage 1 (issue #113).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the stage question lines and for the `fixed-*` graders. The issue text of the case, the skill text, and review text of real runs are samples that must not match (issue #113).
+- `tests/test_eval_cases.py`: new tests for the stage replies and for the `fixed-*` graders. Samples that must not match are the issue text of the case and the skill text. Other such samples are a brief and a stop message of the master agent, and a not-present text next to a question block (issue #113).
 
 ## dev-essentials 3.10.1 in release [4.7.3] - 2026-11-15
 
