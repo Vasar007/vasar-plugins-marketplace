@@ -13,7 +13,7 @@ The other numbers in a heading are plugin versions.
 
 This release adds one behavior case for `process-pr-comments`. The case covers a user who changes the shape of a fix before the push.
 
-### Changed in dev-essentials
+### Added in dev-essentials
 
 - `evals/process-pr-comments/ppc-reshaped-fix`: a new behavior case. The user changes the shape of a `[ToFix]` fix before the go-ahead of the push. The graders make sure that the thread gets exactly one reply. The reply posts after the change and right before the push. It names the pushed commit and the new shape (issue #64).
 
