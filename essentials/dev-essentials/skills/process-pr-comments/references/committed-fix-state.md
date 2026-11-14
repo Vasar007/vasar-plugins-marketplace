@@ -1,15 +1,16 @@
 # Committed-fix state (Phase 2 step 5)
 
-Stage 1 runs this step for each thread of the active roster, in every cycle. No state persists between cycles. The step reads the thread history that Phase 2 already fetched, and real git ancestry. It also reads the messages of the local commits that the PR head does not have yet (§ "Local commit with no reply"). The text-match rules for a commit claim and for `openFindingsMarker` are in `thread-state-schema.md` § "Committed-fix detection".
+Stage 1 runs this step for each thread of the active roster, in every cycle. No state persists between cycles. The step reads the thread history that Phase 2 already fetched, and real git ancestry. It also reads the messages of the local commits that the PR head does not have yet (§ "Local commit with no reply"). It reads the messages of the commits of the PR too (§ "Commit on the PR head with no reply"). The text-match rules for a commit claim and for `openFindingsMarker` are in `thread-state-schema.md` § "Committed-fix detection".
 
 ## Outcomes
 
 Find the newest reply of Claude in the thread: a reply that starts with `**[AI]**` or `**[AI][Draft]**`, in the bold form or in the old plain form. A reply with the phrase `Committed as <sha>` or `commit <sha>` next to the fix summary is an **affirmative commit claim**. The `no-commit` reply (`Diff staged locally, awaiting your commit.`) is not a commit claim. It reports an edit, but no commit.
 
-- **`fresh-unhandled`**: no `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. Go on to Phase 3.
+- **`fresh-unhandled`**: no `**[AI]**` or `**[AI][Draft]**` reply exists, and no commit names the thread: no unpushed local commit, and no commit of the PR. Go on to Phase 3.
 - **`already-assessed`**: the newest such reply is not an affirmative commit claim. Examples: a `**[AI][Draft]**` reply, `Tracked as issue #<id>`, a `[Note]` or out-of-scope acknowledgement, or another reply that claims no commit. Leave the thread alone. One exception: a newer reply of a human or a reviewer exists after it. Then classify that newest human reply in Phase 3. Treat it like a thread with no earlier AI reply.
 - **`cured`**: an affirmative commit claim exists, and its SHA is already an ancestor of the remote branch. Resolve the thread, unless `openFindingsMarker` is `true`, and report it as resolved.
 - **`unconfirmed-commit-claim`**: an affirmative commit claim exists, but nothing shows yet that it is safe to report as ready. Or an unpushed local commit names a thread with no reply about it (§ "Local commit with no reply").
+- **`pr-commit-no-reply`**: no `**[AI]**` or `**[AI][Draft]**` reply exists, but a commit of the PR names the thread (§ "Commit on the PR head with no reply"). Print the report line of that section. Ask no question, and do not act on the thread.
 
 ## Guard: a newer reply of a human
 
@@ -35,6 +36,18 @@ A reply about a fix posts right before the push (`commit-push-resolve.md` § "Wh
 With `no-reply`, `no-commit`, or `dry-run`, the report is `T#<id> has an unpushed local commit <sha> that names it, but no reply about it — the human handles it.` and asks no question (§ "Report modes"). A later cycle of a `/loop` session prints the same report.
 
 Phase 4 uses the answer of the human as for a claim in a reply (`commit-push-resolve.md` § "Threads carried over from an earlier cycle").
+
+## Commit on the PR head with no reply
+
+A commit can be on the PR head while its thread has no reply. `git push` sends every commit ahead of the PR head. So the commit of a thread that got the answer "handle separately" goes along with the push of the other fixes of the cycle. A human can also push a commit of the skill by hand. After such a push, no local commit names the thread, and the thread has no reply. Without this test, a later run takes the thread for a new one, and acts on it again against the answer of the user.
+
+1. Once per cycle, after the fetch of `thread-state-schema.md` § "Ancestry check" command 1, also fetch the base branch: `git fetch origin "+refs/heads/<baseRefName>:refs/remotes/origin/<baseRefName>"`. `baseRefName` is in the PR metadata of Phase 1. If the fetch fails, report it in the `blockers` list, as for command 1.
+2. Run `git log --format='%H%n%B' origin/<baseRefName>..origin/pull/<prId>/head`. It lists the commits of the PR.
+3. A commit names a thread by the rule of § "Local commit with no reply" step 2.
+4. Run this test for each thread that is still `fresh-unhandled` after § "Local commit with no reply". If a commit of the PR names the thread, derive `pr-commit-no-reply` instead. Set `claimSource` to `pr-commit` and `claimedSha` to the newest such commit. Set `shaResolvesLocally` and `isAncestorOfRemote` to `true`, and leave `isAncestorOfHead` as `null`. Do not send the thread to Phase 3. A comment in `processedCommentIds` of this session gets no such test.
+5. Report: `T#<id> has commit <sha> on the PR head that names it, but no reply about it — the human handles it.`
+
+This state is report-only in every mode, and no flag changes it, also not `autonomous`. The run asks no question about the thread, and makes no edit, commit, reply, or resolve for it. The thread opens no push. The commit is already on the PR head, so no answer changes what a push sends. The human already owns the thread, after a "handle separately" answer or a push by hand. Each later run prints the report line again, until the human resolves the thread. A resolved thread drops out at Phase 2 step 2.
 
 ## Report modes
 

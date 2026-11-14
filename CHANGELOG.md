@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.0 in release [4.7.0] - 2026-11-14
+
+This release keeps the record of a `process-pr-comments` fix whose commit is on the pull request head while its thread has no reply. A push sends every commit ahead of the PR head, so such a commit can go along with the fixes of a cycle. A later run no longer takes the thread for a new one.
+
+### Added in dev-essentials
+
+- `evals/process-pr-comments/ppc-ride-along-commit`: a new behavior case. A commit on the PR head names a `[ToFix]` thread that has no reply, and the run has `autonomous`. The graders make sure that the last message names the commit and the thread. They also make sure that the run makes no edit, no commit, no reply, no push, and no resolve (issue #105).
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: Phase 2 step 5 also reads the commits of the pull request (`origin/<base>..origin/pull/<prId>/head`). If a commit names a thread with no reply of Claude, the thread gets the new state `pr-commit-no-reply`. The run prints a report line that names the commit, and the human handles the thread. The run asks no question and does not act on the thread, in every mode (issue #105).
+- `skills/process-pr-comments`: with `autonomous`, the run asks before a push that sends a commit that no thread of the push names. The question lists each such commit. Before, the run asked only for a commit whose thread got a "handle separately" answer or a report line. A commit that named no thread went along with no question (issue #105).
+
 ## dev-essentials 3.9.0 in release [4.6.0] - 2026-11-14
 
 This release changes the duplicate check of `process-pr-comments` for an `[OutOfScope]` issue. The issue search tool of the GitHub server does not find an issue by the comment URL in its body. So the check is now a best effort. The skill asks the user before it creates an issue that the search did not find, also with `autonomous`.
@@ -1186,7 +1199,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...v4.6.0
 [4.5.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...v4.5.4

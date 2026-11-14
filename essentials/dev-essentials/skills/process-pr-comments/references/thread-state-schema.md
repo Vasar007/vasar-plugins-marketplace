@@ -63,7 +63,7 @@ Fields:
 
 ## Committed-fix detection — re-derived every cycle, not persisted
 
-No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 finds this state again in every cycle. It reads the thread history on GitHub, the messages of the unpushed local commits, and real git ancestry (`git merge-base --is-ancestor`). The steps, the outcomes, and the guard for a newer human reply are in `committed-fix-state.md`. In some cases, the question of step 5 becomes a report line (§ "Report modes" of that file). These cases are `dry-run`, `no-reply`, `no-commit`, a claim that opens no push, and a later cycle of a `/loop` session. This section has only the text-match rules that the step uses.
+No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 finds this state again in every cycle. It reads the thread history on GitHub and real git ancestry (`git merge-base --is-ancestor`). It also reads the messages of the unpushed local commits and of the commits of the PR. The steps, the outcomes, and the guard for a newer human reply are in `committed-fix-state.md`. In some cases, the question of step 5 becomes a report line (§ "Report modes" of that file). These cases are `dry-run`, `no-reply`, `no-commit`, a claim that opens no push, and a later cycle of a `/loop` session. This section has only the text-match rules that the step uses.
 
 **Affirmative commit claim**. The match is strict, not a loose prefix match. An affirmative commit claim is a reply of Claude with the phrase `Committed as <sha>` or `commit <sha>` next to the fix summary. The reply starts with `**[AI]**`, or with the old plain `[AI]` form. A `**[[T#<id>](<url>)]**` tag between the `**[AI]**` marker and the body is expected, and does not change the match.
 
@@ -133,7 +133,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
     "activeThreads": 8,
     "newComments": 2,
     "byTag": { "ToFix": 3, "AutoReview": 2, "Question": 1, "OutOfScope": 1, "Note": 1 },
-    "byAssessedState": { "fresh-unhandled": 5, "cured": 1, "unconfirmed-commit-claim": 1, "already-assessed": 1 },
+    "byAssessedState": { "fresh-unhandled": 5, "cured": 1, "unconfirmed-commit-claim": 1, "pr-commit-no-reply": 0, "already-assessed": 1 },
     "needsStage2Action": 5,
     "skippedNoTagMatch": 0,
     "newerHumanReplyFlagged": 1
@@ -197,9 +197,9 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 | `tags` | yes | The parsed leading bracket tags in order, without brackets, for example `["ToFix","Performance"]`. If no tag parses, `["Note"]` (the rule for untagged comments in Phase 2 step 4). |
 | `isAutomatedReview` | yes | `true` for a comment with an automated-review header or first-line marker. It sends Stage 2 to Phase 3b, which takes precedence over `tags`. |
 | `comments` | yes | The full chain, oldest first, with the **`text` word for word**, not a summary. Stage 2 needs the exact words of the reviewer for `[ToFix]`, `[Question]`, and `[ToDiscuss]` replies and for its judgment calls. Only this field cannot come back without a new fetch. `isAiAuthored` uses only the prefix test (`**[AI]**`, or the old plain `[AI]`), never the identity of the author (Phase 2 step 4). |
-| `assessedState` | yes | The outcome of Phase 2 step 5: `fresh-unhandled`, `cured`, `unconfirmed-commit-claim`, or `already-assessed`. See the mapping below. |
-| `claimedSha` | when any | The SHA from the affirmative commit claim, or of the newest unpushed local commit that names the thread. `null` for a reply that claims a commit without a clear SHA. |
-| `claimSource` | when any | `reply` for a commit claim in an AI reply. `local-commit` for an unpushed local commit that names a thread with no reply about it (`committed-fix-state.md` § "Local commit with no reply"). `null` with no claim. |
+| `assessedState` | yes | The outcome of Phase 2 step 5: `fresh-unhandled`, `cured`, `unconfirmed-commit-claim`, `pr-commit-no-reply`, or `already-assessed`. See the mapping below. |
+| `claimedSha` | when any | The SHA from the affirmative commit claim, or of the newest unpushed local commit or commit of the PR that names the thread. `null` for a reply that claims a commit without a clear SHA. |
+| `claimSource` | when any | `reply` for a commit claim in an AI reply. `local-commit` for an unpushed local commit that names a thread with no reply about it (`committed-fix-state.md` § "Local commit with no reply"). `pr-commit` for a commit of the PR that names a thread with no reply (`committed-fix-state.md` § "Commit on the PR head with no reply"). `null` with no claim. |
 | `shaResolvesLocally` / `isAncestorOfHead` / `isAncestorOfRemote` | when any | The raw results of three runs in Stage 1 (`committed-fix-state.md` § "SHA and ancestry check"). The first is the fetch of the PR head (§ "Ancestry check", command 1). The others are `git merge-base --is-ancestor <sha> HEAD` and `git merge-base --is-ancestor <sha> origin/pull/<prId>/head`. They stay next to `assessedState`. So Stage 2 can write the exact report words of Phase 2 step 5 without a new git run: `hasn't landed on the remote yet`, `the commit isn't on the local branch`, `this checkout can't resolve the SHA locally`, or `no SHA could be extracted`. If `shaResolvesLocally` and `isAncestorOfHead` are `true`, and `isAncestorOfRemote` is `false`, the claim can open a push (Rules in `SKILL.md`). |
 | `newerHumanReply` / `newerHumanReplyCommentId` | yes | The guard of Phase 2 step 5: a reply that is not an AI reply came after the newest AI reply. With `true`, Stage 2 runs no catch-up branch on this thread. It classifies that newest human reply instead. It treats the thread like a thread with no earlier AI commit claim. |
 | `overrideCandidates` | yes | Possible overrides of the reviewer for one thread, which Stage 1 found by a plain phrase match: `[{ "commentId": 94, "phrase": "just fix it", "direction": "fix-directly" }]`. `direction` is `fix-directly` or `draft-first`. **Candidates only**. Stage 1 does the cheap substring match. Stage 2 decides whether the override really applies, and whether the intent of the reviewer is clear (`SKILL.md` Phase 3). An empty array, never left out. |
@@ -213,9 +213,10 @@ Stage 1 derives these states with the logic of `committed-fix-state.md`, exactly
 
 | `assessedState` | Step 5 outcome | What Stage 2 does |
 | --- | --- | --- |
-| `fresh-unhandled` | No `**[AI]**` or `**[AI][Draft]**` reply exists, and no unpushed local commit names the thread. | The normal classification of Phase 3. |
+| `fresh-unhandled` | No `**[AI]**` or `**[AI][Draft]**` reply exists, and no commit names the thread: no unpushed local commit, and no commit of the PR. | The normal classification of Phase 3. |
 | `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, do not act on the thread in this cycle, and print the `unconfirmed-commit-claim` report line. The next cycle derives the state again, and asks the question (or prints a report line, `committed-fix-state.md` § "Report modes"). If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
 | `unconfirmed-commit-claim` | The merged case of step 5: not yet an ancestor, or the SHA does not resolve in this checkout, or no clear SHA came out of the reply. Or an unpushed local commit names the thread with no reply about it (`claimSource: local-commit`). | The orchestrating session asks the question of step 5, and the thread waits for the answer. Or it prints a report line (`committed-fix-state.md` § "Report modes"). `autonomous` does not skip the question. Nothing new is implemented on this thread. |
+| `pr-commit-no-reply` | No `**[AI]**` or `**[AI][Draft]**` reply exists, but a commit of the PR names the thread (`claimSource: pr-commit`). | Nothing. The cycle log prints the report line of `committed-fix-state.md` § "Commit on the PR head with no reply". No question, no edit, no reply, and no resolve, in every mode. |
 | `already-assessed` | The newest AI reply is final, but claims no commit (`**[AI][Draft]**`, `Tracked as issue #<id>`, a `[Note]` acknowledgement, and the like). | Leave the thread alone, unless `newerHumanReply` is `true`. |
 
 ## Cycle log — user-facing
@@ -256,6 +257,7 @@ Next cycle in <interval> (via /loop).
 | `deep-fix (<N> rounds, clean)` | A `deep-fix` thread whose review loop ended `stop-clean`. |
 | `deep-fix — open findings` | A `deep-fix` thread whose review loop ended `stop-max-rounds`. The thread stays open (`openFindingsMarker: true`). |
 | `deep-fix — blocked` | A `deep-fix` thread whose review loop ended `stop-blocked` (build red). The push of this cycle is cancelled. |
+| `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread. The human handles it. |
 
 ### `<reply status>` values
 
@@ -265,6 +267,7 @@ Next cycle in <interval> (via /loop).
 - `draft pending`: the `**[AI][Draft]**` reply waits in the same way.
 - `no reply (dry-run)` or `no reply (no-reply)`: the parameter flag stopped the reply.
 - `no reply (awaiting approval)`: the action did not run, because it needs the approval of a human.
+- `no reply (the human handles it)`: a `pr-commit-no-reply` thread. The run posts no reply for it.
 - `reply failed — <short reason>`: an MCP error. The reply stays pending, and joins the next batch of the session (Rules in `SKILL.md`).
 - `resolved (this cycle's push landed it)`: the fix is committed, replied to, and pushed, and the skill resolved the thread with `pull_request_review_write` `method: resolve_thread` (see `commit-push-resolve.md`).
 - `reply posted, pending push`: the reply posted right before the push, but the push failed. The thread is not resolved yet.
