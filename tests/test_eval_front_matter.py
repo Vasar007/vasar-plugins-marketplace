@@ -64,7 +64,7 @@ def yaml_problem(path):
         text = "\n" + "\n".join(lines)
     try:
         data = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
+    except (yaml.YAMLError, ValueError) as exc:
         return yaml_error_text(exc)
     if not isinstance(data, dict):
         return NOT_A_MAPPING
@@ -116,6 +116,10 @@ class YamlScanTests(ScratchCase):
     def test_front_matter_that_is_not_a_mapping_fails(self):
         self.write("one/prompt.md", "---\njust text\n---\nDo the task.\n")
         self.assertEqual(self.scan(), [f"evals/one/prompt.md: {NOT_A_MAPPING}"])
+
+    def test_a_date_like_value_that_is_not_a_date_fails_with_its_path(self):
+        self.write("one/prompt.md", "---\nname: one\ndescription: 2026-13-45\n---\nDo it.\n")
+        self.assertEqual(self.scan(), ["evals/one/prompt.md: month must be in 1..12, not 13"])
 
     def test_a_quoted_value_with_a_colon_passes(self):
         self.write("one/prompt.md", '---\nname: one\ndescription: "wait for the push: post no reply"\n---\nDo it.\n')
