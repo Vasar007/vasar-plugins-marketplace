@@ -9,6 +9,14 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.2 in release [4.7.1] - 2026-11-14
+
+This release fixes the probe `probe-obsd-lint-hook` of doc-styles. The lint hook ran, but the probe still scored 0. Its grader looked for the hook message in the trace, but the trace does not hold the output of a `PostToolUse` hook. The release also ships a new test that parses the YAML of every eval case file (issue #123).
+
+### Changed in doc-styles
+
+- `evals/probes/probe-obsd-lint-hook`: the prompt tells the agent to copy the hook message into its reply, word for word. The grader `lint-hook-ran` now reads the final reply. The new grader `hook-hit-quoted` makes sure that the reply also quotes the hit on line 7. A run with no hook cannot give these two lines, so it scores 0 (issue #115).
+
 ### Changed in the repository
 
 - `tests/test_eval_front_matter.py`: a new test parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. It fails with the path and the problem of each file that does not parse. If PyYAML gives a line number, the failure also names the line. The small parser of `tests/test_eval_cases.py` accepted a plain value with a colon and a space in it, but `claude plugin eval` did not load the case. The fixture `tests/fixtures/eval-front-matter/colon-in-plain-value.md` has this defect (issue #123).
@@ -1205,7 +1213,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...HEAD
+[4.7.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...v4.6.0
 [4.5.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...v4.5.5
