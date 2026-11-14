@@ -11,13 +11,14 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.8.1 and dotnet-backend-dev 1.7.1 in release [4.5.4] - 2026-11-14
 
-This release fixes three defects in the eval cases of dev-essentials. It also adds a pointer in `process-pr-comments`. The shared fixture library of dotnet-backend-dev gets the same change as the copy in dev-essentials.
+This release fixes four defects in the eval cases of dev-essentials. It also adds a pointer in `process-pr-comments`. The shared fixture library of dotnet-backend-dev gets the same change as the copy in dev-essentials.
 
 ### Changed in dev-essentials
 
 - `evals/subagent-orchestration/so-rename-small` and `evals/subagent-orchestration/so-rename-large`: the grader `committed` reads `.git/logs/HEAD`, not `.git/logs/refs/heads/main`. So a commit of the run in the main work tree counts on any branch (issue #112).
 - `evals/review-loop/rl-pr-head-gate`: the grader `asks-for-head` also matches "dry run" with a space (issue #112).
-- `evals/_lib/git-fixture.sh`: `fixture_publish` installs a `post-receive` hook in the bare remote. When a later push changes the branch of a pull request, the hook moves `refs/pull/<id>/head` to the new tip, as GitHub does. Before, the pull request ref stayed at the commit of the scaffold (issue #112).
+- `evals/process-pr-comments/ppc-tofix-default`: the `description` of `prompt.md` is in quotes. It holds ": ", so a YAML parser stopped, and `claude plugin eval` did not load the case (issue #112).
+- `evals/_lib/git-fixture.sh`: `fixture_publish` installs a `post-receive` hook in the bare remote. When a later push changes the branch of a pull request, the hook moves `refs/pull/<id>/head` to the new tip, as GitHub does. `fixture_publish` also sets `core.hooksPath` of the remote to its own `hooks` folder, so a global `core.hooksPath` does not stop the hook. Before, the pull request ref stayed at the commit of the scaffold (issue #112).
 - `skills/process-pr-comments`: Phase 4 names `<pushed-tip>` for the ancestry check and points to its definition in `references/commit-push-resolve.md` (issue #112).
 
 ### Changed in dotnet-backend-dev
@@ -26,7 +27,7 @@ This release fixes three defects in the eval cases of dev-essentials. It also ad
 
 ### Changed in the repository
 
-- `tests/test_eval_scaffolds.py`: a new test pushes a new commit to the pull request branch. It makes sure that `refs/pull/<id>/head` of the remote moves to that commit (issue #112).
+- `tests/test_eval_scaffolds.py`: two new tests push a new commit to the pull request branch. They make sure that `refs/pull/<id>/head` of the remote moves to that commit, also with a global `core.hooksPath` (issue #112).
 
 ## doc-styles 1.1.1 in release [4.5.3] - 2026-11-12
 
