@@ -10,6 +10,7 @@ lists and maps. Block scalars (| and >) and anchors are not supported.
 import json
 import re
 import shutil
+import sys
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -1308,6 +1309,61 @@ class FeaturePipelineGraderTests(unittest.TestCase):
         for stage in ("review.md", "security-review.md"):
             with self.subTest(stage=stage):
                 self.assertNotRegex(trace_form((FP_STAGES / stage).read_text(encoding="utf-8")), pattern)
+
+
+OBSD_ROOT = REPO / "essentials" / "doc-styles"
+OBSD_PROBE = OBSD_ROOT / "evals" / "probes" / "probe-obsd-lint-hook"
+OBSD_LINT = OBSD_ROOT / "skills" / "openbsd-style-docs" / "scripts" / "openbsd_lint.py"
+CLAUDE_CODE_PREFIX = 'PostToolUse:Write hook blocking error from command: "command hook 3": [command hook 3]: '
+
+
+class ObsdLintHookProbeGraderTests(ScratchCase):
+    """The graders of probe-obsd-lint-hook match the message of the real lint hook, and nothing that a run with no hook prints."""
+
+    def setUp(self):
+        super().setUp()
+        case = Case(OBSD_PROBE, OBSD_ROOT)
+        self.assertEqual(case.errors, [])
+        self.assertEqual(sorted(case.graders), ["hook-hit-quoted", "lint-hook-ran"])
+        self.patterns = {}
+        for name, (meta, _body) in case.graders.items():
+            self.assertEqual(meta["type"], "regex", name)
+            self.assertEqual(meta.get("target", "last_message"), "last_message", name)
+            self.assertNotIn("match", meta, name)
+            flags = sum(REGEX_FLAGS.get(f, 0) for f in meta.get("flags", ""))
+            self.patterns[name] = re.compile(meta["pattern"], flags)
+        body = case.prompt_body
+        start = body.index("```markdown\n") + len("```markdown\n")
+        self.probe = self.tmp / "probe.md"
+        self.probe.write_bytes((body[start:body.index("\n```", start)] + "\n").encode("utf-8"))
+
+    def hook_stderr(self):
+        event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Write",
+                            "tool_input": {"file_path": str(self.probe)}})
+        result = run([sys.executable, "-I", OBSD_LINT, "--hook"], stdin=event)
+        self.assertResult(result, 2)
+        self.assertEqual(result.stdout, "")
+        return result.stderr
+
+    def test_both_patterns_match_the_hook_message_with_and_without_the_prefix(self):
+        message = self.hook_stderr()
+        replies = {
+            "bare": f"```text\n{message}```\n",
+            "with prefix": f"```text\n{CLAUDE_CODE_PREFIX}{message}```\n",
+        }
+        for name, pattern in self.patterns.items():
+            for kind, reply in replies.items():
+                with self.subTest(grader=name, reply=kind):
+                    self.assertRegex(reply, pattern)
+
+    def test_neither_pattern_matches_a_run_with_no_hook(self):
+        file_mode = run([sys.executable, "-I", OBSD_LINT, self.probe])
+        self.assertResult(file_mode, 1)
+        replies = {"no hook answer": "No hook message.", "file mode output": file_mode.stdout}
+        for name, pattern in self.patterns.items():
+            for kind, reply in replies.items():
+                with self.subTest(grader=name, reply=kind):
+                    self.assertNotRegex(reply, pattern)
 
 
 if __name__ == "__main__":
