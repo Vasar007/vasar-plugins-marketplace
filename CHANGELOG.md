@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.9.0 in release [4.6.0] - 2026-11-14
+
+This release changes the duplicate check of `process-pr-comments` for an `[OutOfScope]` issue. The issue search tool of the GitHub server does not find an issue by the comment URL in its body. So the check is now a best effort. The skill asks the user before it creates an issue that the search did not find, also with `autonomous`.
+
+### Added in dev-essentials
+
+- `evals/process-pr-comments/ppc-outofscope-autonomous`: a new behavior case. A reviewer asks for a separate issue, the run has `autonomous`, and the issue search finds nothing. The graders make sure that the run searches, asks before it creates the issue, creates no issue, and posts no reply (issue #106).
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: before it creates an `[OutOfScope]` issue, the skill searches the issues of the repository with the words of the draft title. The search is a best effort. If the body of a result has the line `Source: <thread comment URL>`, the skill uses that issue and creates no new one. Else it tells the user that the search found no issue, and asks before it creates the issue. Without `autonomous`, this question also approves the title and the type. With `autonomous`, the question still comes, as an open item before the batch posts. If the search call fails, the skill says so and asks the same question. The user can also name an existing issue in the answer, and the skill reads that issue for its title. The issue body keeps the `Source` line as a required part, and the `Tracked as issue` reply names the issue. The skill no longer says that a search for the quoted comment URL finds the issue (issue #106).
+- `evals/process-pr-comments/ppc-gated-threads`: a mock for `search_issues` that finds no issue, the new grader `searched`, and the tag `outofscope`. The graders `issue-waits` and `question-drafted` match the new question and do not take it for the draft of a `[Question]` reply (issue #106).
+
 ## dev-essentials 3.8.2 in release [4.5.5] - 2026-11-14
 
 This release adds one behavior case for `process-pr-comments`. The case covers a user who changes the shape of a fix before the push.
@@ -1173,7 +1186,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...v4.6.0
 [4.5.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...v4.5.3

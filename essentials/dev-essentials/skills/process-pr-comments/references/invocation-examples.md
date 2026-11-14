@@ -27,7 +27,7 @@ These examples show the parameters of `references/parameters.md` in use.
 # Bundle all fixes from this cycle under a single commit; push still needs your explicit go-ahead
 /process-pr-comments pr=42 owner=my-org repo=my-repo squash
 
-# Full autonomy: implement, decide, reply, create issues, push, with no pauses (a human still reviews and approves the PR before merge)
+# Full autonomy: implement, decide, reply, push. A new issue that the search did not find, and a few named questions, still ask (a human still reviews and approves the PR before merge)
 /process-pr-comments pr=42 owner=my-org repo=my-repo autonomous
 
 # Route one Medium/Large [ToFix] thread through research-implement-review-report instead of drafting it
