@@ -20,7 +20,7 @@ The command runs these parts:
 - A search of the `README.md` files and the files in `docs/` for counts of hooks, skills, agents, and commands. Such a count goes stale.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
 - The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
-- The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10. If a tool is missing, the test skips. In CI, it fails.
+- The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10 or newer and the .NET 10 runtime. If a tool is missing, the test skips. In CI, it fails.
 - A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
