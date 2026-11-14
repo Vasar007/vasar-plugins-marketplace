@@ -1,5 +1,5 @@
 ---
 type: regex
 pattern: '\tcommit: (?!fixture:)'
-target: { source: file, path: .git/logs/HEAD }
+target: { source: file, path: .git/run-commits.log }
 ---

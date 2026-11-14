@@ -53,6 +53,8 @@ START_CONTENT = {
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
+# The commit grader of each case whose scaffold calls fixture_log_commits.
+COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits"}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -449,6 +451,62 @@ class LibraryTests(FixtureCase):
                          "printf 'b\\n' > b.txt\nfixture_commit 'fixture: two'")
         subjects = self.git(workspace, "log", "--format=%s|%at|%ct", "--reverse")[1].splitlines()
         self.assertEqual(subjects, ["fixture: one|1767225660|1767225660", "fixture: two|1767225720|1767225720"])
+
+
+class RunCommitLogTests(FixtureCase):
+    """The commit graders read .git/run-commits.log, so a commit of the run counts in every work tree."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
+        cls.cases = {name: (cases[name], cases[name].graders[grader][0]) for name, grader in COMMIT_GRADERS.items()}
+
+    def scaffold(self, name):
+        case, _options = self.cases[name]
+        workspace = self.workspace(name)
+        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def needed(self, name):
+        """The number of run commits that the grader needs: N for the match "count:N", else 1."""
+        match = self.cases[name][1].get("match")
+        return int(match.split(":")[1]) if match else 1
+
+    def passes(self, name, workspace):
+        """The verdict of the regex grader on its target file. A missing file has no match."""
+        options = self.cases[name][1]
+        target = workspace / options["target"]["path"]
+        text = target.read_text(encoding="utf-8") if target.is_file() else ""
+        count = len(re.findall(options["pattern"], text))
+        return count == self.needed(name) if options.get("match") else count > 0
+
+    def commit(self, cwd, message):
+        code, output = self.git(cwd, "commit", "-q", "--allow-empty", "-m", message)
+        self.assertEqual(code, 0, output)
+
+    def test_commits_in_the_main_work_tree_count_on_a_new_branch(self):
+        for name in COMMIT_GRADERS:
+            with self.subTest(case=name):
+                workspace = self.scaffold(name)
+                self.assertEqual(self.git(workspace, "checkout", "-q", "-b", "run-branch")[0], 0)
+                for number in range(1, self.needed(name) + 1):
+                    self.assertFalse(self.passes(name, workspace), "the grader passes before the last run commit")
+                    self.commit(workspace, f"change {number}")
+                self.assertTrue(self.passes(name, workspace))
+
+    def test_commits_in_linked_worktrees_count(self):
+        for name in COMMIT_GRADERS:
+            with self.subTest(case=name):
+                workspace = self.scaffold(name)
+                for number in range(1, self.needed(name) + 1):
+                    self.assertFalse(self.passes(name, workspace), "the grader passes before the last run commit")
+                    tree = f".claude/worktrees/wt-{number}"
+                    code, output = self.git(workspace, "worktree", "add", "-q", tree, "-b", f"wt-{number}")
+                    self.assertEqual(code, 0, output)
+                    self.commit(workspace / tree, f"change {number} in a worktree")
+                self.assertTrue(self.passes(name, workspace))
+                main_log = (workspace / ".git" / "logs" / "HEAD").read_text(encoding="utf-8")
+                self.assertNotIn("in a worktree", main_log, "the commit is in .git/logs/HEAD, so the test shows nothing")
 
 
 if __name__ == "__main__":

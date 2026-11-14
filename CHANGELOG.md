@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.1 in release [4.7.3] - 2026-11-15
+
+This release fixes the commit graders of three `subagent-orchestration` eval cases. A commit that the run makes in a linked worktree now counts.
+
+### Changed in dev-essentials
+
+- `evals/_lib/commit-log.sh`: a new fixture library with the function `fixture_log_commits`. It installs a `post-commit` hook in the common git folder of the fixture repository. The hook copies the HEAD reflog line of each new commit to `.git/run-commits.log`, also for a commit in a linked worktree. Git writes the HEAD reflog of a linked worktree to `.git/worktrees/<name>/logs/HEAD`, so `.git/logs/HEAD` does not show that commit (issue #127).
+- `evals/subagent-orchestration/so-rename-small`, `evals/subagent-orchestration/so-rename-large`, and `evals/subagent-orchestration/so-two-fixes`: the scaffold calls `fixture_log_commits` after the last fixture commit. The graders `committed` and `two-commits` read `.git/run-commits.log`. Before, `committed` read `.git/logs/HEAD`, and `two-commits` read `.git/logs/refs/heads/main`. So a commit in a linked worktree did not count. The grader `two-commits` also did not count a commit on a new branch of the main work tree (issue #127).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: the new class `RunCommitLogTests` runs the three scaffolds. It makes the commits of a run on a new branch of the main work tree and in linked worktrees. It reads the pattern and the target file of each commit grader from the grader file. It makes sure that the grader counts each commit of the run and no fixture commit (issue #127).
+
 ## doc-styles 1.1.3 in release [4.7.2] - 2026-11-14
 
 This release changes the EXIT STATUS rule of the OpenBSD style. A document lists only the exit codes that the facts name. The sentence for a special code comes only after `>0`.
@@ -1224,7 +1237,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...HEAD
+[4.7.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...v4.7.1
 [4.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.6.0...v4.7.0
