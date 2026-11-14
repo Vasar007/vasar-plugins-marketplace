@@ -299,8 +299,8 @@ statement.
 - EXIT STATUS for a program: "The `logrot` utility exits 0 on success, and >0
   if an error occurs." Then add each special code that the facts name:
   "In particular, 2 means that there was nothing to rotate." If the facts
-  give an exact code for each error, use a tag list instead, as `grep(1)`
-  does.
+  give a number for errors in general, do not use this pair. Use a tag list
+  of the codes instead, as `grep(1)` does.
 - RETURN VALUES for a function: give success, failure and the edge cases
   separately. "If successful, `cfg_parse()` returns a pointer to the tree.
   Otherwise, it returns `NULL` and sets `errno` to indicate the error."

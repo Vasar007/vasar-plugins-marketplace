@@ -46,7 +46,8 @@ Limit.
 
 Error behavior.
 
-> Before: If something goes wrong, logrot will let you know and exit.
+> Before: If something goes wrong, logrot will let you know and exit. If no
+> file needs rotation, it exits with 2.
 >
 > After: The `logrot` utility exits 0 on success, and >0 if an error occurs.
 > In particular, 2 means that no file needed rotation.
