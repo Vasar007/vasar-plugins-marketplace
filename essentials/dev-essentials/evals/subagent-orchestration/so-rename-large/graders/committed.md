@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '\tcommit: (?!fixture:)'
-target: { source: file, path: .git/run-commits.log }
+pattern: '\t(?:commit(?: \(merge\))?|cherry-pick|merge [^:\n]+): (?!fixture:)'
+target: { source: file, path: .git/logs/HEAD }
 ---

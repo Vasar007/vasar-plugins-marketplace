@@ -53,7 +53,7 @@ START_CONTENT = {
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
-# The commit grader of each case whose scaffold calls fixture_log_commits.
+# The commit grader of each subagent-orchestration case that asks for a commit.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits"}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
@@ -453,60 +453,137 @@ class LibraryTests(FixtureCase):
         self.assertEqual(subjects, ["fixture: one|1767225660|1767225660", "fixture: two|1767225720|1767225720"])
 
 
-class RunCommitLogTests(FixtureCase):
-    """The commit graders read .git/run-commits.log, so a commit of the run counts in every work tree."""
+class CommitGraderTests(FixtureCase):
+    """The commit graders read the HEAD reflog of the main work tree. As in an eval run, git runs no hook."""
 
     @classmethod
     def setUpClass(cls):
         cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
         cls.cases = {name: (cases[name], cases[name].graders[grader][0]) for name, grader in COMMIT_GRADERS.items()}
 
-    def scaffold(self, name):
-        case, _options = self.cases[name]
-        workspace = self.workspace(name)
-        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+    def environment(self, skip_dotnet=True):
+        env = super().environment(skip_dotnet)
+        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/dev/null"})
+        return env
+
+    def scaffold(self, name, folder):
+        workspace = self.workspace(folder)
+        self.run_bash([(self.cases[name][0].path / "scaffold.sh").as_posix()], workspace)
         return workspace
 
-    def needed(self, name):
-        """The number of run commits that the grader needs: N for the match "count:N", else 1."""
-        match = self.cases[name][1].get("match")
-        return int(match.split(":")[1]) if match else 1
-
     def passes(self, name, workspace):
-        """The verdict of the regex grader on its target file. A missing file has no match."""
+        """The verdict of the regex grader on its target file, for the default match or "count:N"."""
         options = self.cases[name][1]
-        target = workspace / options["target"]["path"]
-        text = target.read_text(encoding="utf-8") if target.is_file() else ""
+        text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
         count = len(re.findall(options["pattern"], text))
-        return count == self.needed(name) if options.get("match") else count > 0
+        match = options.get("match")
+        return count == int(match.split(":")[1]) if match else count > 0
 
-    def commit(self, cwd, message):
-        code, output = self.git(cwd, "commit", "-q", "--allow-empty", "-m", message)
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
         self.assertEqual(code, 0, output)
 
-    def test_commits_in_the_main_work_tree_count_on_a_new_branch(self):
-        for name in COMMIT_GRADERS:
-            with self.subTest(case=name):
-                workspace = self.scaffold(name)
-                self.assertEqual(self.git(workspace, "checkout", "-q", "-b", "run-branch")[0], 0)
-                for number in range(1, self.needed(name) + 1):
-                    self.assertFalse(self.passes(name, workspace), "the grader passes before the last run commit")
-                    self.commit(workspace, f"change {number}")
-                self.assertTrue(self.passes(name, workspace))
+    def commit(self, tree, paths, message):
+        """Add a line to each file, and commit only these files."""
+        for path in paths:
+            with (tree / path).open("a", encoding="utf-8") as stream:
+                stream.write(f"# {message}\n")
+        self.run_git(tree, "add", *paths)
+        self.run_git(tree, "commit", "-q", "-m", message)
 
-    def test_commits_in_linked_worktrees_count(self):
-        for name in COMMIT_GRADERS:
-            with self.subTest(case=name):
-                workspace = self.scaffold(name)
-                for number in range(1, self.needed(name) + 1):
-                    self.assertFalse(self.passes(name, workspace), "the grader passes before the last run commit")
-                    tree = f".claude/worktrees/wt-{number}"
-                    code, output = self.git(workspace, "worktree", "add", "-q", tree, "-b", f"wt-{number}")
-                    self.assertEqual(code, 0, output)
-                    self.commit(workspace / tree, f"change {number} in a worktree")
-                self.assertTrue(self.passes(name, workspace))
-                main_log = (workspace / ".git" / "logs" / "HEAD").read_text(encoding="utf-8")
-                self.assertNotIn("in a worktree", main_log, "the commit is in .git/logs/HEAD, so the test shows nothing")
+    def worktree_commits(self, workspace, paths):
+        """Commit each file in its own linked worktree on the branch fix-<n>."""
+        for number, path in enumerate(paths, 1):
+            tree = workspace / ".claude" / "worktrees" / f"fix-{number}"
+            self.run_git(workspace, "worktree", "add", "-q", str(tree), "-b", f"fix-{number}")
+            self.commit(tree, [path], f"fix {number} in a worktree")
+
+    def check_shapes(self, name, shapes):
+        for shape, expected in shapes.items():
+            with self.subTest(case=name, shape=shape.__name__):
+                workspace = self.scaffold(name, f"{name}-{shape.__name__}")
+                shape(workspace)
+                self.assertEqual(self.passes(name, workspace), expected)
+
+    def test_the_rename_graders_count_a_commit_that_reaches_the_main_work_tree(self):
+        path = ["app/users.py"]
+
+        def no_commit(workspace):
+            pass
+
+        def a_commit_on_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            self.commit(workspace, path, "rename")
+
+        def a_worktree_commit_and_a_fast_forward_merge(workspace):
+            self.worktree_commits(workspace, path)
+            self.run_git(workspace, "merge", "-q", "--ff-only", "fix-1")
+
+        def a_worktree_commit_and_a_cherry_pick(workspace):
+            self.worktree_commits(workspace, path)
+            self.run_git(workspace, "cherry-pick", "fix-1")
+
+        def a_worktree_commit_only(workspace):
+            self.worktree_commits(workspace, path)
+
+        def an_amend_of_the_fixture_commit(workspace):
+            self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
+
+        for name in ("so-rename-small", "so-rename-large"):
+            self.check_shapes(name, {
+                no_commit: False,
+                a_commit_on_a_new_branch: True,
+                a_worktree_commit_and_a_fast_forward_merge: True,
+                a_worktree_commit_and_a_cherry_pick: True,
+                a_worktree_commit_only: False,
+                an_amend_of_the_fixture_commit: False,
+            })
+
+    def test_the_fix_grader_needs_one_commit_for_each_fix_in_the_main_work_tree(self):
+        fixes = ["app/billing.py", "app/shipping.py"]
+
+        def no_commit(workspace):
+            pass
+
+        def one_commit_with_both_fixes(workspace):
+            self.commit(workspace, fixes, "fix both")
+
+        def two_commits_on_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            for number, path in enumerate(fixes, 1):
+                self.commit(workspace, [path], f"fix {number}")
+
+        def worktree_commits_and_a_merge_of_each(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.run_git(workspace, "merge", "-q", "--no-edit", "fix-1")
+            self.run_git(workspace, "merge", "-q", "--no-edit", "fix-2")
+
+        def worktree_commits_and_a_cherry_pick_of_each(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.run_git(workspace, "cherry-pick", "fix-1", "fix-2")
+
+        def worktree_commits_and_a_second_commit_of_each_fix(workspace):
+            self.worktree_commits(workspace, fixes)
+            for number, path in enumerate(fixes, 1):
+                self.commit(workspace, [path], f"fix {number} on main")
+
+        def worktree_commits_and_one_combined_commit(workspace):
+            self.worktree_commits(workspace, fixes)
+            self.commit(workspace, fixes, "fix both")
+
+        def worktree_commits_only(workspace):
+            self.worktree_commits(workspace, fixes)
+
+        self.check_shapes("so-two-fixes", {
+            no_commit: False,
+            one_commit_with_both_fixes: False,
+            two_commits_on_a_new_branch: True,
+            worktree_commits_and_a_merge_of_each: True,
+            worktree_commits_and_a_cherry_pick_of_each: True,
+            worktree_commits_and_a_second_commit_of_each_fix: True,
+            worktree_commits_and_one_combined_commit: False,
+            worktree_commits_only: False,
+        })
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@ set -euo pipefail
 
 lib="$(dirname "${BASH_SOURCE[0]}")/../../_lib"
 source "$lib/git-fixture.sh"
-source "$lib/commit-log.sh"
 
 fixture_init
 fixture_write .gitignore <<'FIX_EOF'
@@ -85,4 +84,3 @@ FIX_EOF
 fixture_commit "add the orders app with two failing tests"
 fixture_remote_init
 fixture_publish main
-fixture_log_commits
