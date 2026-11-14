@@ -37,7 +37,7 @@ Each cycle runs as two subagent dispatches. Stage 1 fetches and classifies, and 
   2. `dry-run` or `no-commit`: nothing is committed or pushed.
   3. `no-reply`: the skill posts no thread replies, and creates no `[OutOfScope]` issue (`references/tag-actions.md` § "`[OutOfScope]`"). Edits and commits can go on.
   4. `strict` or `no-edit`: no edit without an approval for that edit.
-  5. `interactive` or `autonomous`. If no flag above blocks an action, `autonomous` stops no gate. This includes the go-ahead for each push, with the one exception in the push-gate item below.
+  5. `interactive` or `autonomous`. If no flag above blocks an action, `autonomous` removes the stops of Bucket A1 and Bucket A2, and the go-ahead for each push. Three questions still stop (see "Autonomy"). They are the one in the push-gate item below and the one of Phase 2 step 5. The third is the question before a new `[OutOfScope]` issue that the search did not find.
   6. The default behavior. Bucket A1 gates are approved. Bucket A2 gates draft and wait. Each push waits for its go-ahead.
 
   If the invocation has both `interactive` and `autonomous`, stop before Phase 1. Ask the user once which mode to use.
@@ -79,7 +79,7 @@ Without `interactive`, the agent decides and goes on at these gates. It does not
 
 ### Bucket A2: gates that only `autonomous` bypasses
 
-Without `autonomous`, each gate in this bucket drafts and waits for the approval of the user, in every phase. With `autonomous`, the agent decides and goes on at these gates:
+Without `autonomous`, each gate in this bucket drafts and waits for the approval of the user, in every phase. With `autonomous`, the agent decides and goes on at these gates. The one exception is the question before a new `[OutOfScope]` issue that the search did not find (see the `[OutOfScope]` item below):
 
 - **`[ToFix]` Medium or Large where nothing settles the approach, and `[Suggestion]` or `[Optional]` non-trivial where nothing settles the direction**. That choice is a critical decision, so the default drafts and waits. With `autonomous`, implement it directly, and choose the approach yourself. Name the approach and the reason in one line of the reply.
 - **`[Question]`**: put the answer in the batch of pending replies, with no question to the user. Without `autonomous`, `tag-actions.md` forbids a post without an explicit go-ahead of a human. The answer keeps the quality of the draft format: a claim, the reasoning, and a citation (file and line, test, or doc). A wrong public answer under the identity of the author misleads reviewers. So the cycle report (Phase 5) states each Question reply that the skill posted without a stop.
