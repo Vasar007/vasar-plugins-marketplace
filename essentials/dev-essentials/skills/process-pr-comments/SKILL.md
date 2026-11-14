@@ -238,7 +238,7 @@ Then, once per cycle:
 
 - **Post the replies**: post every pending reply of the cycle in one batch, at the time that the Rules give. With a push to make, that is after the go-ahead, or with `autonomous` as the Rules say. With no push to make, it is the end of Phase 4, after the open items of Stage 2, and `dry-run` posts nothing. The list of pending replies is in `references/commit-push-resolve.md` § "When replies post".
 - **Push**: only a cycle with a push to make pushes (see Rules). Right after the replies posted, the orchestrating session runs one `git push`. It needs the go-ahead of the user, unless `autonomous` is set. "Who pushes" has the commit list, and the push-gate item of Rules has the one exception.
-- **Resolve threads and report**: after the push lands, run the ancestry check for each thread that this cycle fixed, and resolve it. Without a landed push, resolve nothing.
+- **Resolve threads and report**: after the push lands, run the ancestry check for each thread that this cycle fixed, and resolve it. The check compares with `<pushed-tip>`, which `references/commit-push-resolve.md` § "Resolve threads and report" defines. Without a landed push, resolve nothing.
 
 #### Stage 3 — `deep-fix` brief and outcomes
 

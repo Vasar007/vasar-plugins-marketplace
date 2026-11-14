@@ -418,6 +418,16 @@ class LibraryTests(FixtureCase):
         self.assertTrue((bare / "logs" / "refs" / "heads" / "feature" / "x").is_file(),
                         "a push after the scaffold must leave a reflog file")
 
+    def test_a_push_of_the_pull_request_branch_moves_the_pull_ref(self):
+        workspace = self.workspace()
+        self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
+                         "make_pager_repo\ngit checkout -q -b feature/x\n"
+                         "printf 'x\\n' > x.txt\nfixture_commit 'add x'\nfixture_publish feature/x 42:feature/x")
+        bare = workspace / ".remote" / "origin.git"
+        self.run_snippet(workspace, [], "git commit -q --allow-empty -m 'run commit'\ngit push -q origin feature/x")
+        tip = self.git(workspace, "rev-parse", "HEAD")[1]
+        self.assertEqual(self.git(bare, "rev-parse", "refs/pull/42/head")[1], tip)
+
     def test_fixture_commit_uses_the_prefix_and_fixed_dates(self):
         workspace = self.workspace()
         self.run_snippet(workspace, self.libs("essentials/dev-essentials"),

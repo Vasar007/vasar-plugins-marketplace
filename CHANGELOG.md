@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.8.1 and dotnet-backend-dev 1.7.1 in release [4.5.4] - 2026-11-14
+
+This release fixes three defects in the eval cases of dev-essentials. It also adds a pointer in `process-pr-comments`. The shared fixture library of dotnet-backend-dev gets the same change as the copy in dev-essentials.
+
+### Changed in dev-essentials
+
+- `evals/subagent-orchestration/so-rename-small` and `evals/subagent-orchestration/so-rename-large`: the grader `committed` reads `.git/logs/HEAD`, not `.git/logs/refs/heads/main`. So a commit of the run on any branch of the work tree counts (issue #112).
+- `evals/review-loop/rl-pr-head-gate`: the grader `asks-for-head` also matches "dry run" with a space (issue #112).
+- `evals/_lib/git-fixture.sh`: `fixture_publish` installs a `post-receive` hook in the bare remote. When a later push changes the branch of a pull request, the hook moves `refs/pull/<id>/head` to the new tip, as GitHub does. Before, the pull request ref stayed at the commit of the scaffold (issue #112).
+- `skills/process-pr-comments`: Phase 4 names `<pushed-tip>` for the ancestry check and points to its definition in `references/commit-push-resolve.md` (issue #112).
+
+### Changed in dotnet-backend-dev
+
+- `evals/_lib/git-fixture.sh`: the same hook as in dev-essentials, because a test makes sure that the two copies are equal (issue #112).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: a new test pushes a new commit to the pull request branch. It makes sure that `refs/pull/<id>/head` of the remote moves to that commit (issue #112).
+
 ## doc-styles 1.1.1 in release [4.5.3] - 2026-11-12
 
 This release makes the OpenBSD docs linter of doc-styles read its arguments with `argparse`. Every valid call works as before.
@@ -1144,7 +1163,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...HEAD
+[4.5.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...v4.5.3
 [4.5.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...v4.5.2
 [4.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.0...v4.5.1
