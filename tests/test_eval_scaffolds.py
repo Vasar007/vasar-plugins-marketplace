@@ -428,6 +428,20 @@ class LibraryTests(FixtureCase):
         tip = self.git(workspace, "rev-parse", "HEAD")[1]
         self.assertEqual(self.git(bare, "rev-parse", "refs/pull/42/head")[1], tip)
 
+    def test_the_pull_ref_hook_runs_when_the_global_hooks_path_is_set(self):
+        workspace = self.workspace()
+        other_hooks = self.tmp / "other-hooks"
+        other_hooks.mkdir()
+        global_config = self.tmp / "global.gitconfig"
+        global_config.write_text(f"[core]\n\thooksPath = {other_hooks.as_posix()}\n", encoding="utf-8")
+        self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
+                         f"export GIT_CONFIG_GLOBAL='{global_config.as_posix()}'\n"
+                         "make_pager_repo\ngit checkout -q -b feature/x\n"
+                         "printf 'x\n' > x.txt\nfixture_commit 'add x'\nfixture_publish feature/x 42:feature/x\n"
+                         "git commit -q --allow-empty -m 'run commit'\ngit push -q origin feature/x")
+        tip = self.git(workspace, "rev-parse", "HEAD")[1]
+        self.assertEqual(self.git(workspace / ".remote" / "origin.git", "rev-parse", "refs/pull/42/head")[1], tip)
+
     def test_fixture_commit_uses_the_prefix_and_fixed_dates(self):
         workspace = self.workspace()
         self.run_snippet(workspace, self.libs("essentials/dev-essentials"),

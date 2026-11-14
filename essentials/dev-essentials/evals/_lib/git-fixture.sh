@@ -59,6 +59,7 @@ fixture_publish() {
     git remote set-head origin main > /dev/null
     git branch -q --set-upstream-to="origin/$work_branch" "$work_branch"
     git -C .remote/origin.git config core.logAllRefUpdates always
+    git -C .remote/origin.git config core.hooksPath hooks
     [ $# -gt 0 ] || return 0
     local hook=.remote/origin.git/hooks/post-receive
     mkdir -p "$(dirname "$hook")"

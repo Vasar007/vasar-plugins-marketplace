@@ -15,7 +15,7 @@ This release fixes three defects in the eval cases of dev-essentials. It also ad
 
 ### Changed in dev-essentials
 
-- `evals/subagent-orchestration/so-rename-small` and `evals/subagent-orchestration/so-rename-large`: the grader `committed` reads `.git/logs/HEAD`, not `.git/logs/refs/heads/main`. So a commit of the run on any branch of the work tree counts (issue #112).
+- `evals/subagent-orchestration/so-rename-small` and `evals/subagent-orchestration/so-rename-large`: the grader `committed` reads `.git/logs/HEAD`, not `.git/logs/refs/heads/main`. So a commit of the run in the main work tree counts on any branch (issue #112).
 - `evals/review-loop/rl-pr-head-gate`: the grader `asks-for-head` also matches "dry run" with a space (issue #112).
 - `evals/_lib/git-fixture.sh`: `fixture_publish` installs a `post-receive` hook in the bare remote. When a later push changes the branch of a pull request, the hook moves `refs/pull/<id>/head` to the new tip, as GitHub does. Before, the pull request ref stayed at the commit of the scaffold (issue #112).
 - `skills/process-pr-comments`: Phase 4 names `<pushed-tip>` for the ancestry check and points to its definition in `references/commit-push-resolve.md` (issue #112).
