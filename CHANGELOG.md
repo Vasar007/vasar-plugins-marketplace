@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tests/test_eval_front_matter.py`: a new test parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. It fails with the path, the line, and the problem of each file that does not parse. The small parser of `tests/test_eval_cases.py` accepted a plain value with `: ` in it, but `claude plugin eval` did not load the case. The fixture `tests/fixtures/eval-front-matter/colon-in-plain-value.md` has this defect (issue #123).
+- `tests/test_eval_front_matter.py`: a new test parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. It fails with the path and the problem of each file that does not parse. If PyYAML gives a line number, the failure also names the line. The small parser of `tests/test_eval_cases.py` accepted a plain value with `: ` in it, but `claude plugin eval` did not load the case. The fixture `tests/fixtures/eval-front-matter/colon-in-plain-value.md` has this defect (issue #123).
 - `.github/workflows/tests.yml`: CI installs PyYAML 6.0.3 for the new test. If PyYAML is not installed, the test fails. It does not skip (issue #123).
 - `docs/testing.md`: the file names the new test and the PyYAML package (issue #123).
 
