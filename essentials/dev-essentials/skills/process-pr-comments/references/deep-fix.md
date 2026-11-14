@@ -17,6 +17,7 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 | `**[OutOfScope]**` | Never implement in this PR (the tag matrix, and Bucket B). |
 | `**[Question]**`, `**[Note]**`, or untagged | These tags allow no code change at all. |
 | `unconfirmed-commit-claim` | No flag skips this outcome, and the skill implements nothing new on it (Phase 2 step 5). |
+| `pr-commit-no-reply` | A commit of the PR already names the thread, and the human owns it. No flag changes this (`committed-fix-state.md` § "Commit on the PR head with no reply"). The decline prints the report line of that section. It does not send the thread to Phase 3. |
 | `cured` or `already-assessed`, with no newer human reply | The thread is already final. `deep-fix` does not reopen a settled thread. |
 | A fix that reaches outside the diff of the current PR | PR-scope discipline. No flag skips it (Bucket B). |
 | `dry-run`, `no-edit`, `strict`, or `no-commit` set for this invocation | These flags forbid edits or commits. `/research-implement-review-report` needs both to run its arc (see the flag precedence in Rules). |

@@ -120,7 +120,7 @@ If one file holds the edits of several threads, capture the final state of the f
 
 ## Threads with the same note
 
-If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit, and reply on each thread with the shared SHA.
+If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit, and reply on each thread with the shared SHA. This rule counts only threads that go on to Phase 3. A report-only thread, such as `pr-commit-no-reply`, is not part of it.
 
 ## Reply templates
 

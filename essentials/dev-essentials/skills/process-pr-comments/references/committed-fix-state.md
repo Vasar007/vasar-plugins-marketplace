@@ -47,7 +47,7 @@ A commit can be on the PR head while its thread has no reply. `git push` sends e
 4. Run this test for each thread that is still `fresh-unhandled` after § "Local commit with no reply". If a commit of the PR names the thread, derive `pr-commit-no-reply` instead. Set `claimSource` to `pr-commit` and `claimedSha` to the newest such commit. Set `shaResolvesLocally` and `isAncestorOfRemote` to `true`, and leave `isAncestorOfHead` as `null`. Do not send the thread to Phase 3. A comment in `processedCommentIds` of this session gets no such test.
 5. Report: `T#<id> has commit <sha> on the PR head that names it, but no reply about it — the human handles it.`
 
-This state is report-only in every mode, and no flag changes it, also not `autonomous`. The run asks no question about the thread, and makes no edit, commit, reply, or resolve for it. The thread opens no push. The commit is already on the PR head, so no answer changes what a push sends. The human already owns the thread, after a "handle separately" answer or a push by hand. Each later run prints the report line again, until the human resolves the thread. A resolved thread drops out at Phase 2 step 2.
+This state is report-only in every mode, and no flag changes it, also not `autonomous`. The run asks no question about the thread, and makes no edit, commit, reply, or resolve for it. The thread opens no push. The commit is already on the PR head, so no answer changes what a push sends. The human already owns the thread, after a "handle separately" answer or a push by hand. Each later run prints the report line again, until the human resolves the thread. A resolved thread drops out at Phase 2 step 2, unless `include-resolved` keeps it in the roster.
 
 ## Report modes
 
