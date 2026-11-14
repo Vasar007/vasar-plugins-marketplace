@@ -1,5 +1,5 @@
 ---
-description: Probe of the hooks. It shows whether the PostToolUse lint hook of doc-styles runs after a Write. The reply quotes the hook message, because the trace does not hold it.
+description: Probe of the hooks. It shows whether the PostToolUse lint hook of doc-styles runs after a Write. The reply quotes the hook message, because the trace of Claude Code 2.1.310 did not hold it.
 tags: [probe]
 plugins: ["../../.."]
 allowed_tools: [Read]

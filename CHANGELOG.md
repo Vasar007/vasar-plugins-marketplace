@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## doc-styles 1.1.2 in release [4.7.1] - 2026-11-14
 
-This release fixes the probe `probe-obsd-lint-hook` of doc-styles. The lint hook ran, but the probe still scored 0. Its grader looked for the hook message in the trace, but the trace does not hold the output of a `PostToolUse` hook. The release also ships a new test that parses the YAML of every eval case file (issue #123).
+This release fixes the probe `probe-obsd-lint-hook` of doc-styles. The lint hook ran, but the probe still scored 0. Its grader looked for the hook message in the trace. In the three runs of issue #115, with Claude Code 2.1.310, the trace did not hold the output of the `PostToolUse` hook. The release also ships a new test that parses the YAML of every eval case file (issue #123).
 
 ### Changed in doc-styles
 
@@ -19,6 +19,7 @@ This release fixes the probe `probe-obsd-lint-hook` of doc-styles. The lint hook
 
 ### Changed in the repository
 
+- `tests/test_eval_cases.py`: a new test runs the lint hook on the probe text of `probe-obsd-lint-hook`. It makes sure that both graders match the hook message, and that neither matches a reply with no hook (issue #115).
 - `tests/test_eval_front_matter.py`: a new test parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. It fails with the path and the problem of each file that does not parse. If PyYAML gives a line number, the failure also names the line. The small parser of `tests/test_eval_cases.py` accepted a plain value with a colon and a space in it, but `claude plugin eval` did not load the case. The fixture `tests/fixtures/eval-front-matter/colon-in-plain-value.md` has this defect (issue #123).
 - `.github/workflows/tests.yml`: CI installs PyYAML 6.0.3 for the new test. If PyYAML is not installed, the test fails. It does not skip (issue #123).
 - `docs/testing.md`: the file names the new test and the PyYAML package (issue #123).
