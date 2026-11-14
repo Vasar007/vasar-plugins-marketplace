@@ -9,6 +9,14 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.8.2 in release [4.5.5] - 2026-11-14
+
+This release adds one behavior case for `process-pr-comments`. The case covers a user who changes the shape of a fix before the push.
+
+### Changed in dev-essentials
+
+- `evals/process-pr-comments/ppc-reshaped-fix`: a new behavior case. The user changes the shape of a `[ToFix]` fix before the go-ahead of the push. The graders make sure that the thread gets exactly one reply. The reply posts after the change and right before the push. It names the pushed commit and the new shape (issue #64).
+
 ## dev-essentials 3.8.1 and dotnet-backend-dev 1.7.1 in release [4.5.4] - 2026-11-14
 
 This release fixes four defects in the eval cases of dev-essentials. It also adds a pointer in `process-pr-comments`. The shared fixture library of dotnet-backend-dev gets the same change as the copy in dev-essentials.
@@ -1165,7 +1173,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.5...HEAD
+[4.5.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.2...v4.5.3
 [4.5.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.5.1...v4.5.2
