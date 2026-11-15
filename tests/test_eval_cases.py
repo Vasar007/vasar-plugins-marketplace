@@ -1271,9 +1271,10 @@ def trace_record(record):
 
 
 def stage_reply(text):
-    """The record that ends a stage subagent: a task notification with the final reply as its summary."""
+    """The record that ends a stage subagent: a task notification with the final reply and then a usage object."""
     return trace_record({"type": "system", "subtype": "task_notification", "task_id": "a1",
-                         "tool_use_id": "toolu_1", "status": "completed", "summary": text})
+                         "tool_use_id": "toolu_1", "status": "completed", "summary": text,
+                         "usage": {"total_tokens": 1}})
 
 
 def agent_result(reply, prompt="The brief of the stage."):
@@ -1414,6 +1415,17 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 "line in the brief of the Agent call": agent_result(
                     FP_QUESTION_BLOCK, prompt=f"{line}\n\n{FP_QUESTION_TEMPLATE}"
                 ),
+                "template after a blank line": stage_reply(
+                    line + "\n\n" + FP_QUESTION_TEMPLATE.replace("QUESTIONS:\n", "QUESTIONS:\n\n")
+                ),
+                "command of a Bash notification": trace_record({
+                    "type": "system", "subtype": "task_notification", "task_id": "b1", "status": "completed",
+                    "summary": f"cat > notes.md <<'X'\n{line}\n{FP_QUESTION_BLOCK}X",
+                }),
+                "line in a string after the reply": trace_record({"type": "user", "tool_use_result": {
+                    "agentType": "general-purpose", "content": [{"type": "text", "text": FP_QUESTION_BLOCK}],
+                    "prompt": line,
+                }}),
             }
             for other, other_line in FP_QUESTION_LINES.items():
                 if other != name:
@@ -1486,6 +1498,54 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 with self.subTest(grader=name, text=text):
                     self.assertNotRegex(trace_form(text), self.graders[name])
 
+    def test_a_review_entry_that_reports_no_defect_does_not_match(self):
+        entries = {
+            "caught-review-rule": (
+                "- [ ] [compliance] The new XML docs have only `<summary>`. They have no `<param>` tags. "
+                "This meets REVIEW.md, so it does not break a repo rule. — `src/Inventory/StockQuery.cs:3` "
+                "(confidence: medium)",
+                "- [ ] [compliance] The members have only a `<summary>`. The REVIEW.md rule (\"Each public method "
+                "has an XML doc comment.\") is met. — `src/Inventory/StockQuery.cs:16` (confidence: medium)",
+                "- [ ] [compliance] No public member is without an XML doc comment, so the `REVIEW.md` rule holds. "
+                "\u2014 `src/Inventory/StockQuery.cs:3` (confidence: low)",
+            ),
+            "caught-sql": (
+                "- [ ] **[LOW]** Batch query safety — `src/Inventory/StockQuery.cs:8` (confidence: 0.2)\n"
+                "  - **Description:** The skus go to `QueryMany` as a list, so the diff itself has no injection.",
+                "- [ ] **[LOW]** Query text — `src/Inventory/StockQuery.cs:8` (confidence: 0.2)\n"
+                "  - **Description:** The SQL is a constant, so it is not open to SQL injection.",
+            ),
+        }
+        for name, texts in entries.items():
+            for text in texts:
+                with self.subTest(grader=name, text=text):
+                    self.assertNotRegex(trace_form(text), self.graders[name])
+
+    def test_a_review_entry_in_another_word_order_matches(self):
+        entries = {
+            "caught-duplicate": (
+                "- [ ] [reuse] The logic of `SkuFormatter.Normalize` is duplicated here "
+                "— `src/Inventory/StockQuery.cs:29` (confidence: high)",
+            ),
+            "caught-review-rule": (
+                "- [ ] [compliance] `CleanSku` has no XML doc comment, which REVIEW.md requires "
+                "— `src/Inventory/StockQuery.cs:29` (confidence: high)",
+                "- [ ] [compliance] REVIEW.md asks for an XML doc comment on each public method of "
+                "`StockQuery.cs`, and `FindQuantity` has none — `src/Inventory/StockQuery.cs:12` (confidence: high)",
+            ),
+            "caught-sql": (
+                "- [ ] **[HIGH]** SQL injection — `src/Inventory/StockQuery.cs:14` (confidence: 0.9)\n"
+                "  - **Description:** `FindQuantity` joins the raw sku into the SQL text. It is not parameterized.",
+                "- [ ] **[HIGH]** SQL injection in `FindQuantity` \u2014 `src/Inventory/StockQuery.cs:14` (confidence: 0.9)\n"
+                "  - **Description:** `FindQuantity` joins the raw sku into the SQL text.\n"
+                "  - **Recommendation:** Bind the sku as a parameter (`@sku`), so that there is no injection path.",
+            ),
+        }
+        for name, texts in entries.items():
+            for text in texts:
+                with self.subTest(grader=name, text=text):
+                    self.assertRegex(trace_form(text), self.graders[name])
+
     def test_each_outcome_grader_reads_its_file(self):
         for name, path in FP_FIXED.items():
             with self.subTest(grader=name):
@@ -1513,6 +1573,27 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 self.assertRegex(defect, self.graders[name])
                 self.assertNotRegex(fixed, self.graders[name])
                 self.assertNotRegex(other, self.graders[name])
+
+    def test_each_outcome_grader_reads_other_forms_of_the_code(self):
+        samples = {
+            "fixed-sql": (
+                ("var text = $\"SELECT quantity FROM stock WHERE sku = '{sku}'\";\n",
+                 "var text = string.Format(\"SELECT quantity FROM stock WHERE sku = '{0}'\", sku);\n"),
+                ("throw new ArgumentException(\"Unknown sku '\" + sku + \"'\");\n",
+                 "throw new ArgumentException($\"Unknown sku '{sku}'\");\n"),
+            ),
+            "fixed-bound": (
+                ("while (i <= skus.Length)\n{\n    i++;\n}\n",),
+                ("for (var i = 0; i <= skus.Length - 1; i++)\n{\n}\n",),
+            ),
+        }
+        for name, (defects, clean) in samples.items():
+            for text in defects:
+                with self.subTest(grader=name, text=text):
+                    self.assertRegex(text, self.graders[name])
+            for text in clean:
+                with self.subTest(grader=name, text=text):
+                    self.assertNotRegex(text, self.graders[name])
 
     def test_no_blocking_finds_a_real_entry_and_skips_the_templates(self):
         pattern = self.graders["no-blocking"]

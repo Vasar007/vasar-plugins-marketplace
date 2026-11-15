@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.4 in release [4.7.7] - 2026-11-15
+
+This release fixes the graders of the eval case `fp-e1-seeded-defects` of the feature-pipeline suite. The prompt and the skill text do not change.
+
+### Changed in dev-essentials
+
+- `evals/feature-pipeline/fp-e1-seeded-defects`: the review frame of `caught-review-rule` and `caught-sql` no longer matches the five review entries of the kept runs that say that the defect is absent. Other wordings of such an entry can still match, for example "safe from SQL injection". `caught-review-rule` now needs a defect word and a doc word in one sentence of the entry, for example "no XML doc comment". Before, an entry about missing `<param>` tags passed. Such an entry can say that the code meets `REVIEW.md`. `caught-sql` skips an entry that says "no injection" or "not open to SQL injection". `caught-review-rule` also skips an entry that says that the rule is met or holds. The review frame of `caught-duplicate` also accepts `SkuFormatter.Normalize` before the copy word. In a `task_notification` record, a `usage` object must now follow the stage reply. The record of a Bash command has no such object, so a question block in a command text does not count. The template item of the stage text does not count after a blank line either. `fixed-sql` now needs an SQL word before the quote on the line. So it ignores an exception text that joins the sku in quotes. It also finds SQL that puts the sku in quotes with `$"..."` or `string.Format`. `fixed-bound` also reads a `while` loop, and it accepts `<= skus.Length - 1` (issue #146).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new samples for review entries that report no defect, for other word orders of a review entry, and for other forms of the outcome code. More new samples are a Bash notification, the template after a blank line, and a defect line in a string after the reply. The sample stage reply now has a `usage` object (issue #146).
+
 ## doc-styles 1.1.5 in release [4.7.6] - 2026-11-15
 
 This release fixes the probe `probe-se-lint-hook` of doc-styles. The probe tests the lint hook of the stand-in for simple-english. Its grader looked for the hook message in the trace. In the runs of issue #115, the trace of Claude Code 2.1.310 did not hold the output of a `PostToolUse` hook. Release 4.7.1 fixed the probe `probe-obsd-lint-hook` for that reason. With Claude Code 2.1.325 in WSL2, the probe now scores 1.00 with the stand-in and 0.00 without it. On native Windows, it scored 0 with the stand-in. The reply of one kept run ended with the line `No hook message.` and quoted no hook text.
@@ -1289,7 +1301,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...HEAD
+[4.7.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...v4.7.7
 [4.7.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...v4.7.6
 [4.7.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...v4.7.5
 [4.7.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...v4.7.4
