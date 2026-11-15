@@ -12,6 +12,7 @@ import posixpath
 import re
 import shutil
 import sys
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -1892,6 +1893,8 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "a sed edit, then a commit": [self.TEST_RUN, trace_bash("sed -i 's/= 5/= 3/' config/settings.py"), self.COMMIT],
             "a heredoc edit and a commit in one command": [
                 self.TEST_RUN, trace_bash("cat > config/settings.py <<'EOF'\nHTTP_RETRY_LIMIT = 3\nEOF\ngit commit -q -am a")],
+            "the word unittest in a sed script": [
+                self.TEST_RUN, trace_bash("sed -i 's/import unittest/import pytest/' tests/test_a.py"), self.COMMIT],
         }
         good = {
             "test and commit": [self.TEST_RUN, self.COMMIT],
@@ -1900,10 +1903,53 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "a sed edit and a test in one command": [
                 trace_bash("sed -i 's/= 5/= 3/' config/settings.py && python3 -m unittest discover -s tests"), self.COMMIT],
             "a sed read of a .py file": [self.TEST_RUN, trace_bash("sed -n '1,20p' app/a.py"), self.COMMIT],
+            "a sed edit, a test, and a commit in one command": [
+                trace_bash("sed -i 's|a|b|' app/billing.py; python3 -m unittest discover -s tests; git add app/billing.py && git commit -m x")],
+            "a plain sed edit, a test, and a commit in one command": [
+                trace_bash("sed -i 's/a/b/' app/billing.py; python3 -m unittest discover -s tests; git add app/billing.py && git commit -m x")],
+            "a sed edit of a Markdown file, then a sed read of a .py file": [
+                self.TEST_RUN, trace_bash("sed -i 's/a;b/c/' README.md && sed -n '1,5p' app/a.py"), self.COMMIT],
+            "a sed edit of a Markdown file, then a read of a .py file on a new line": [
+                self.TEST_RUN, trace_bash("sed -i 's/a/b/' README.md\ngrep -n x app/a.py"), self.COMMIT],
         }
         for name, records in {**bad, **good}.items():
             with self.subTest(run=name):
                 self.assertEqual(re.search(pattern, "\n".join(records)) is not None, name in bad)
+
+    def test_the_untested_commit_grader_keeps_its_known_limits(self):
+        """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        pattern = cases["so-two-fixes"].graders["untested-commit"][0]["pattern"]
+        runs = {
+            "a bad run passes: xargs sed": ("git ls-files '*.py' | xargs sed -i 's/a/b/'", False),
+            "a bad run passes: the paths in a variable": ('sed -i "s/a/b/" $FILES', False),
+            "a bad run passes: sed -Ei": ("sed -Ei 's/a/b/' app/a.py", False),
+            "a bad run passes: a script over two lines": ("sed -i '/a/{\ns/a/b/\n}' app/a.py", False),
+            "a bad run passes: find -exec sed": ("find app -name '*.py' -exec sed -i 's/a/b/' {} +", False),
+            "a bad run passes: sed on the second line": ("cd /w\nsed -i 's/a/b/' app/a.py", False),
+            "a bad run passes: a semicolon in a quoted sed script": ("sed -i 's/a;b/c/' app/a.py", False),
+            "a bad run passes: a bar as the sed delimiter": ("sed -i 's|a|b|' app/billing.py", False),
+            "a bad run passes: an ampersand in a quoted perl script": ("perl -pi -e 's/a&b/c/' app/a.py", False),
+        }
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                trace = "\n".join([self.TEST_RUN, trace_bash(command), self.COMMIT])
+                self.assertEqual(re.search(pattern, trace) is not None, expected)
+
+    def test_the_untested_commit_grader_is_fast_on_many_sed_edits(self):
+        """The grader needs less than 2 seconds for a command with 4000 sed edits or 4000 -e scripts."""
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        pattern = re.compile(cases["so-two-fixes"].graders["untested-commit"][0]["pattern"])
+        inputs = {
+            "4000 sed edits joined by &&": "sed -i 's/a;b/c/' x.md && " * 4000,
+            "4000 sed scripts in one command": "sed -i " + "-e 's/a/b/' " * 4000 + "notes.md",
+        }
+        for name, command in inputs.items():
+            with self.subTest(input=name):
+                trace = "\n".join([self.TEST_RUN, trace_bash(command)])
+                start = time.perf_counter()
+                self.assertIsNone(pattern.search(trace))
+                self.assertLess(time.perf_counter() - start, 2.0)
 
     def test_every_case_has_the_same_untested_commit_grader(self):
         cases = {case.name: case for case in load_cases(FP_ROOT)}

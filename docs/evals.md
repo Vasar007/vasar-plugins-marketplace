@@ -79,6 +79,12 @@ The .NET cases need `-m:1`. The sandbox blocks the Unix sockets that the worker 
 
 The probes are cheap cases that test the run environment, not a skill. They are in `evals/probes/` of each plugin, and the tag is `probe`. Run them with the same command and `--tag probe` before the first paid suite run on a new machine.
 
+The grader `untested-commit` of seven `dev-essentials` cases reads the trace. It fails a run that edits a `.py` file and then makes a `git commit` with no `unittest` run between them. An `Edit`, `Write`, or `MultiEdit` call on a `.py` file is an edit. A Bash command that writes a `.py` path with `>`, `>>`, or `tee` is an edit. A `sed -i` or `perl -pi` command with a `.py` path is an edit. The path must come before the next `;`, `&`, `|`, or line end. The grader does not read shell quotes. So a bad run can pass in these forms:
+
+- The grader misses a `;`, `&`, or `|` inside a quoted script, such as `sed -i 's/a;b/c/' app/a.py` or `sed -i 's|a|b|' app/a.py`. It also misses `xargs sed -i`, `find -exec sed -i`, and the paths in a shell variable. It also misses `sed -Ei` and a script over more than one line. It also misses a `sed -i` at the start of the second line of a command. This list is not complete.
+
+Four tries at a pattern that reads the script each brought a new wrong verdict, so the grader stays as it is (issue #162). The class `TestsBeforeCommitGraderTests` in `tests/test_eval_cases.py` pins each of these forms. It also makes sure that the grader needs less than 2 seconds for one command with 4000 `sed` edits or 4000 `-e` scripts.
+
 Do not commit baseline files. A result file holds local temporary paths, so keep the baselines outside git.
 
 ## Clean the temp folder
