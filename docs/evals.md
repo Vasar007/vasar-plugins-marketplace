@@ -44,6 +44,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
 | `feature-pipeline` | `dev-essentials` | 9 | WSL |
+| `research-implement-review-report` | `dev-essentials` | 1 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | Windows, because it grants no shell tool |
 | `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |

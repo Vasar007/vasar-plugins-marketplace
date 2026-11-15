@@ -35,10 +35,33 @@ The opposite failure is to trust a green LSP where the compiler finds an error. 
 ### Quick filter for verbose build output
 
 ```bash
-dotnet build <path-to-solution>.sln -c Debug 2>&1 | grep -E "(CS[0-9]+|Build succ|Build FAIL|error|Warning\(s\)|Error\(s\))" | head -30
+log="$(mktemp)"
+dotnet build <path-to-solution>.sln -c Debug > "$log" 2>&1
+ec=$?
+grep -E "(CS[0-9]+|Build succ|Build FAIL|error|Warning\(s\)|Error\(s\))" "$log" | grep -v ": warning " | head -30
+echo "exit code: $ec"
+rm -f "$log"
 ```
 
-The filter keeps the compiler errors (`CS####`), the build result lines, and the warning and error counts. It drops the per-project "Started" and "Done Building" lines. The filter needs a POSIX shell with `grep` and `head`. On Windows, run it in Git Bash.
+The filter keeps the compiler errors (`CS####`), the build result lines, and the warning and error counts. It drops the per-project "Started" and "Done Building" lines. It also drops each warning line, so that the errors and the result lines stay in the output. The warning count stays. The filter needs a POSIX shell with `grep` and `head`. On Windows, run it in Git Bash.
+
+Run the whole block in one Bash call. The block keeps the exit code of `dotnet build` in `ec`, because a pipe returns the exit code of its last command.
+
+### Quick filter for test output
+
+The build filter drops the test result line and the names of the failed tests. For a test run, use this filter. It keeps the exit code of `dotnet test`. The first `grep` keeps the errors and the failed tests, each with the three lines after it. The second `grep` keeps the result lines and the line that says that no test matches the filter. It also keeps the count lines of Microsoft.Testing.Platform (`total:`, `failed:`, `succeeded:`, `skipped:`). The second `grep` has no `head`, so a long list of failed tests does not cut the result lines:
+
+```bash
+log="$(mktemp)"
+dotnet test <path> -c Debug --filter "<filter>" > "$log" 2>&1
+ec=$?
+grep -iE -A3 "(CS[0-9]+|error|build fail|^ *failed )" "$log" | grep -v ": warning " | grep -v "^--$" | head -40
+grep -iE "(failed!|passed!|no test matches|^ *(total|failed|succeeded|skipped): [0-9])" "$log"
+echo "exit code: $ec"
+rm -f "$log"
+```
+
+If the exit code is 0 and the result line shows zero failed tests, the run is green. Any other result is not green.
 
 ## Rule 2: Avoid `dotnet build --no-incremental` for verification
 

@@ -74,8 +74,8 @@ These rules apply in every mode:
 
 Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rules apply to every dispatch. A bare "Rule N" in this file is one of them. This command adds these:
 
-- The orchestrating session only resolves the arguments, asks the Phase 0 questions, creates the worktree, dispatches, and reads the reports. It also writes the Phase 2 context document, does the git bookkeeping (SHA records and the Phase 4 commit), and talks to the user.
-- It never reads source code, fetches a PR or an issue, edits product code, or reviews a diff. A subagent does this work, also a small read (Rule 1). Pass the context of the user verbatim (Rule 2).
+- The orchestrating session resolves the arguments, asks the Phase 0 questions, creates the worktree, dispatches, and reads the reports. It also writes the Phase 2 context document, does the git bookkeeping (SHA records and the Phase 4 commit), and talks to the user.
+- It does not fetch a PR or an issue, or review a diff. Outside Phase 3, it does not edit product code. The Phase 2 subagents and the Phase 4 subagent do that work. In Phase 3, RIRR decides by its own rules which work runs in the main loop. Pass the context of the user verbatim (Rule 2).
 - Each brief asks for a short structured report: verdicts, `file:line` anchors, and the commands that ran with their real results. Never ask for pasted diffs, file dumps, or comment HTML.
 - Phase 2 names its models, and RIRR keeps its own. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
@@ -146,7 +146,7 @@ Skip this phase only with `--no-simplify`. `/simplify` is an external skill that
 2. Tell the skill to look for complexity that this run added. Examples: a guard that no failure needs, an abstraction with one caller, logic that a helper already covers, useless indirection, or code at the wrong altitude.
 3. Scope: a simpler diff with the same behavior. Out of scope: code that this run did not change, and a change of behavior or of a public contract. Also out of scope: a deleted or weaker test, and a swallowed error path. If a cleanup needs one of these, stop that cleanup. Put the question in your report, so that the caller asks the user (`dev-essentials:engineering-discipline` Rule 2). With `--autonomous`, keep the code and list the skipped cleanup in the report.
 4. Build and test again. A test that the cleanup breaks is a regression of this session (Rule 1 of the same skill). For .NET, follow `dev-essentials:dotnet-build-test`.
-5. When the subagent reports, dispatch `dev-essentials:test-runner` with the absolute worktree path and the build and test commands. Follow item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. It covers the test filter, a STOPPED status, and the comparison of the result with the report of the subagent. If they differ, or the status is not GREEN, resume the subagent with the report of the test runner. Do not commit before the status is GREEN.
+5. When the subagent reports, read the verbatim result lines of its build and test run. Then run the build and the tests one time in the worktree, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the result differs from the report, or the run is red, resume the subagent with the error lines. Do not commit before the run is green.
 6. Commit the cleanup as **a separate commit on top**. Stage explicit paths, never `git add -A` or `git add .`.
 
    ```bash
@@ -166,6 +166,6 @@ Return control to **Phase 4 (Report)** of RIRR. It writes the report through `de
 - The absolute worktree path and the branch name.
 - Each gate that this run or RIRR passed without a stop.
 
-Print the report only. Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
+Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
 **Do not push.** Wait for the review of the user. Push only with `--push` in this invocation, and only after the report.

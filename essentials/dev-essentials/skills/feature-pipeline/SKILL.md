@@ -164,9 +164,9 @@ Launch the stage `implementation`.
 
 ### Build Gate (after Implementation)
 
-The master agent runs this gate. It gives the build to the agent type `dev-essentials:test-runner`, and reads only its report. The gate is not a stage, so `--model-override` does not apply to it.
+The master agent runs this gate itself, in the main session. The gate is not a stage, so `--model-override` does not apply to it.
 
-1. Dispatch `dev-essentials:test-runner` with the absolute path `{WORKTREE_PATH}` and the words "build only". Also give it the build command from the project context, for example the `dotnet build ...` line under Commands.
+1. In `{WORKTREE_PATH}`, run the build command from the project context, for example the `dotnet build ...` line under Commands. Build only, with no tests. Filter the output to the error lines and the result line. For .NET, use the filter of `dev-essentials:dotnet-build-test`. Keep the exit code of the build command. If the command exits with code 0 and the output shows no error line, the status is GREEN. A warning line is not an error line. Any other result is RED.
 2. If the status is GREEN, update the checkpoint, and continue with Step 4.
 3. If the status is RED, do the steps of "Build Gate retry" in [references/stage-launch.md](references/stage-launch.md). If the build fails after 2 attempts in total, stop the pipeline, and report the build errors to the user. Do not continue to `test-coverage` with broken code.
 4. Record the result of the gate (`pass`, `pass-after-retry`, or `fail`) in `buildGate` of `pipeline-state.json`.

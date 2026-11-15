@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Runs the build and test commands of a brief, and reports the result with the verbatim result lines and the errors. It never edits code and never fixes a failure. Use it for "run the build and the tests", "is the build green", or "check the tests after this fix".
+description: Runs the build and test commands of a brief, and reports the result with the verbatim result lines and the errors. It never edits code and never fixes a failure. Use it for a test run too long for the main loop, or for runs in several worktrees at the same time.
 tools: [Bash, Read, Grep, Skill]
 model: haiku
 effort: low
