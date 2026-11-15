@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.2 in release [4.7.4] - 2026-11-15
+
+This release fixes the eval case `fp-e1-seeded-defects` of the feature-pipeline suite. The skill text does not change.
+
+### Changed in dev-essentials
+
+- `evals/feature-pipeline/fp-e1-seeded-defects`: Stage 1 finds the seven planted defects in the issue text and asks about them. With `--autonomous`, the run takes the recommended fix for each defect. So the defects never reach the review stages, and the graders `caught-bound`, `caught-key`, and `caught-typosquat` failed in every run. Each `caught-*` grader now also accepts a line of a stage reply that names the defect. The line must be in the final reply of a stage subagent, and that reply must hold a `QUESTIONS:` block with a recommended option. A brief, a note, or a stop message of the master agent does not count. The new graders `fixed-bound`, `fixed-sql`, `fixed-key`, and `fixed-typosquat` read the final files. If a defect is still in its file, its grader fails. In a run that changes no file, `fixed-key` and `fixed-typosquat` pass, because the fixture files are clean. `caught-duplicate` now needs a copy word next to `CleanSku` or `SkuFormatter.Normalize`. `caught-query-in-loop` no longer accepts the bare word `QueryMany`. The prompt now tells the run to take the recommended option for each stage question, and not to ask the user. It also tells the run not to stop before Stage 1 (issue #113).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the stage replies and for the `fixed-*` graders. Samples that must not match are the issue text of the case and the skill text. Other such samples are a brief and a stop message of the master agent, and a not-present text next to a question block (issue #113).
+
 ## dev-essentials 3.10.1 in release [4.7.3] - 2026-11-15
 
 This release fixes the commit graders of three `subagent-orchestration` eval cases. If the run merges or cherry-picks a linked worktree commit into the main work tree, the commit now counts. Claude Code turns git hooks off in an eval run, so the graders read `.git/logs/HEAD`, a reflog that git writes itself. Each linked worktree has its own HEAD reflog. So a commit that stays in a linked worktree and never reaches the main work tree does not count.
@@ -1237,7 +1249,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...HEAD
+[4.7.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...v4.7.4
 [4.7.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.0...v4.7.1

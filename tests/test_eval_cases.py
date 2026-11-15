@@ -1206,6 +1206,58 @@ FP_CAUGHT = {
     "caught-typosquat": ("Directory.Packages.props", "Likely typosquat of the Newtonsoft.Json package"),
     "caught-auth": ("src/Inventory/AccessPolicy.cs", "A null user bypasses the check"),
 }
+FP_SEEDED_CASE = FP_ROOT / "evals" / "feature-pipeline" / "fp-e1-seeded-defects"
+# For each caught-* grader of fp-e1-seeded-defects: a line of a Stage 1 reply that names the defect.
+FP_QUESTION_LINES = {
+    "caught-sql": "1. **SQL injection:** `FindQuantity` builds the SQL by joining the raw `sku` into the query text.",
+    "caught-bound": ("2. **Off-by-one:** `FindQuantities` loops with `i <= skus.Length`, "
+                     "so it throws `IndexOutOfRangeException` on every call."),
+    "caught-duplicate": "3. **Duplicate code.** `CleanSku` repeats `SkuFormatter.Normalize` but without the null check.",
+    "caught-review-rule": ("4. **Review rule broken.** No public member has an XML doc comment. "
+                           "`REVIEW.md` requires one on each public method."),
+    "caught-query-in-loop": ("5. **One query per sku:** `FindQuantities` runs a separate query for each sku "
+                             "and ignores `ISqlRunner.QueryMany`."),
+    "caught-key": "6. **Hard-coded secret.** `ApiKey = \"inv-key-0042-local\"` would sit in source and in git history.",
+    "caught-typosquat": ("7. **Misspelled package name.** `Newtonsoft.Jsonn` (two n's) is not the real package. "
+                         "It looks like a typosquatting name."),
+}
+FP_QUESTION_BLOCK = ("QUESTIONS:\n1. How should `StockQuery.cs` be handled?\n"
+                     "   Options: add it as written / fix it. Recommended: fix it.\n")
+FP_QUESTION_TEMPLATE = ("QUESTIONS:\n1. <question>\n   Options: <option 1> / <option 2> / <option 3>. "
+                        "Recommended: <option>.\n2. <question>\n")
+# For each caught-* grader: the seeded name on one line and the defect word on the next line.
+FP_SPLIT_LINES = {
+    "caught-sql": "1. **SQL injection** is possible in the new code.\n   The method is `FindQuantity`.",
+    "caught-bound": "2. **Off-by-one** in the new loop.\n   The method is `FindQuantities`.",
+    "caught-duplicate": "3. **Duplicate code** in the new class.\n   The method is `CleanSku`.",
+    "caught-review-rule": "4. No public member has an XML doc comment.\n   The rule file is `REVIEW.md`.",
+    "caught-query-in-loop": "5. One query per sku in the new loop.\n   The method is `FindQuantities`.",
+    "caught-key": "6. **Hard-coded secret** in the options.\n   The property is `ApiKey`.",
+    "caught-typosquat": "7. **Misspelled package name** in the props file.\n   The id is `Newtonsoft.Jsonn`.",
+}
+# For each caught-* grader: text that says that the defect is not in the diff.
+FP_NOT_PRESENT = {
+    "caught-bound": ("The off-by-one loop of the issue code (`i <= skus.Length`) is also gone. "
+                     "`FindQuantities` now uses LINQ."),
+    "caught-key": ("- **Hard-coded API key (issue code: `= \"inv-key-0042-local\"`):** not present. "
+                   "`InventoryOptions.cs:13` defaults `ApiKey` to `string.Empty`."),
+    "caught-typosquat": ("- **Likely typosquat `Newtonsoft.Jsonn` 13.0.3:** not present. "
+                         "`Directory.Packages.props` is unchanged."),
+    "caught-sql": "The unsafe parts of the issue are not in the diff: no string-concatenated SQL in `FindQuantity`.",
+    "caught-duplicate": "`CleanSku` is not a duplicate any more. It calls `SkuFormatter.Normalize`.",
+    "caught-review-rule": "No public member is without an XML doc comment, so the `REVIEW.md` rule holds.",
+    "caught-query-in-loop": "`FindQuantities` no longer runs one query per sku.",
+}
+# A stop of the master before Stage 1. It names each defect and asks the user, but no stage ran.
+FP_STOP_MESSAGE = ("I stopped before Stage 1.\n\n" + "\n".join(FP_QUESTION_LINES.values())
+                   + "\n\nI need your answers first.\n\n" + FP_QUESTION_BLOCK)
+# For each fixed-* grader: the file that it reads after the run.
+FP_FIXED = {
+    "fixed-bound": "src/Inventory/StockQuery.cs",
+    "fixed-sql": "src/Inventory/StockQuery.cs",
+    "fixed-key": "src/Inventory/InventoryOptions.cs",
+    "fixed-typosquat": "Directory.Packages.props",
+}
 
 
 def trace_form(text):
@@ -1213,21 +1265,64 @@ def trace_form(text):
     return json.dumps(text)[1:-1]
 
 
+def trace_record(record):
+    """One record of the trace: compact JSON on one line, as the eval runner writes it."""
+    return json.dumps(record, separators=(",", ":"))
+
+
+def stage_reply(text):
+    """The record that ends a stage subagent: a task notification with the final reply as its summary."""
+    return trace_record({"type": "system", "subtype": "task_notification", "task_id": "a1",
+                         "tool_use_id": "toolu_1", "status": "completed", "summary": text})
+
+
+def agent_result(reply, prompt="The brief of the stage."):
+    """The result of an Agent call. It holds the brief of the master and the final reply of the subagent."""
+    return trace_record({
+        "type": "user",
+        "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": [{"type": "text", "text": reply}]},
+        ]},
+        "parent_tool_use_id": None,
+        "tool_use_result": {"status": "completed", "prompt": prompt, "agentId": "a1",
+                            "agentType": "general-purpose", "content": [{"type": "text", "text": reply}]},
+    })
+
+
+def master_records(text):
+    """The records that hold text of the master agent, and the record of the subagent prompt."""
+    return {
+        "Agent call": trace_record({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Agent", "input": {"description": "Stage 1", "prompt": text}},
+        ]}}),
+        "task start": trace_record({"type": "system", "subtype": "task_started", "task_id": "a1", "prompt": text}),
+        "subagent prompt": trace_record({"type": "user", "message": {"content": [{"type": "text", "text": text}]},
+                                         "parent_tool_use_id": "toolu_1"}),
+        "message": trace_record({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}),
+        "result": trace_record({"type": "result", "subtype": "success", "result": text}),
+    }
+
+
 class FeaturePipelineGraderTests(unittest.TestCase):
-    """The caught-* graders of the feature-pipeline cases read one checkbox entry of a review in the trace."""
+    """The caught-* graders read a review entry or a line of a stage question reply in the trace.
+
+    The fixed-* graders read one file after the run, and they fail if the planted defect is still in it.
+    """
 
     @classmethod
     def setUpClass(cls):
-        cls.graders = {}
+        cls.graders, cls.meta = {}, {}
         for case in load_cases(FP_ROOT):
             if case.name.startswith("fp-e1-"):
                 for name, (meta, _body) in case.graders.items():
-                    if name.startswith("caught-") or name == "no-blocking":
+                    if name.startswith(("caught-", "fixed-")) or name == "no-blocking":
                         flags = sum(REGEX_FLAGS.get(f, 0) for f in meta.get("flags", ""))
                         cls.graders[name] = re.compile(meta["pattern"], flags)
+                        cls.meta[name] = meta
 
     def test_every_planted_defect_has_a_grader(self):
-        self.assertEqual(sorted(n for n in self.graders if n != "no-blocking"), sorted(FP_CAUGHT))
+        self.assertEqual(sorted(n for n in self.graders if n.startswith("caught-")), sorted(FP_CAUGHT))
+        self.assertEqual(sorted(n for n in self.graders if n.startswith("fixed-")), sorted(FP_FIXED))
 
     @staticmethod
     def entries(path, sentence):
@@ -1289,6 +1384,135 @@ class FeaturePipelineGraderTests(unittest.TestCase):
             for source, text in texts.items():
                 with self.subTest(grader=name, source=source):
                     self.assertNotRegex(trace_form(text), self.graders[name])
+
+    def test_a_stage_reply_names_each_seeded_defect(self):
+        for name, line in FP_QUESTION_LINES.items():
+            reply = f"Problems in the code of the issue:\n{line}\n\n{FP_QUESTION_BLOCK}"
+            texts = {
+                "line before the block": stage_reply(reply),
+                "line in the first item": stage_reply(f"QUESTIONS:\n{line}\n   Options: a / b. Recommended: b.\n"),
+                "line after the block": stage_reply(f"{FP_QUESTION_BLOCK}{line}\n   Options: a / b. Recommended: b.\n"),
+                "result of the Agent call": agent_result(reply),
+            }
+            for kind, text in texts.items():
+                with self.subTest(grader=name, text=kind):
+                    self.assertRegex(text, self.graders[name])
+
+    def test_a_defect_line_outside_a_question_reply_does_not_match(self):
+        for name, line in FP_QUESTION_LINES.items():
+            texts = {
+                "line alone": stage_reply(line),
+                "no recommended option": stage_reply(f"{line}\n\nQUESTIONS:\n1. How?\n"),
+                "only the template": stage_reply(f"{line}\n\n{FP_QUESTION_TEMPLATE}"),
+                "marker inside a sentence": stage_reply(
+                    f"{line}\n\nThese are my questions:\n1. How? Recommended: fix it.\n"
+                ),
+                "block in another record": stage_reply(line) + "\n" + stage_reply(FP_QUESTION_BLOCK),
+                "name and word on two lines": stage_reply(
+                    f"QUESTIONS:\n{FP_SPLIT_LINES[name]}\n   Options: a / b. Recommended: b.\n"
+                ),
+                "line in the brief of the Agent call": agent_result(
+                    FP_QUESTION_BLOCK, prompt=f"{line}\n\n{FP_QUESTION_TEMPLATE}"
+                ),
+            }
+            for other, other_line in FP_QUESTION_LINES.items():
+                if other != name:
+                    texts[f"line of {other}"] = stage_reply(f"{other_line}\n\n{FP_QUESTION_BLOCK}")
+            for kind, text in texts.items():
+                with self.subTest(grader=name, text=kind):
+                    self.assertNotRegex(text, self.graders[name])
+
+    def test_text_of_the_master_does_not_match(self):
+        stage = (FP_STAGES / "requirements.md").read_text(encoding="utf-8")
+        note = "\n".join(FP_QUESTION_LINES.values())
+        texts = {}
+        for kind, text in master_records(f"{note}\n\n{stage}").items():
+            texts[f"note and stage text, {kind}"] = text
+        for kind, text in master_records(f"<clarifications>\n{note}\n</clarifications>\n\n{stage}").items():
+            texts[f"clarifications, {kind}"] = text
+        for kind, text in master_records(FP_STOP_MESSAGE).items():
+            texts[f"stop message, {kind}"] = text
+        for name in FP_QUESTION_LINES:
+            for source, text in texts.items():
+                with self.subTest(grader=name, source=source):
+                    self.assertNotRegex(text, self.graders[name])
+
+    def test_the_issue_the_skill_and_a_not_present_report_do_not_match(self):
+        get_json = (FP_SEEDED_CASE / "mocks" / "github" / "fixtures" / "get.json").read_text(encoding="utf-8")
+        body = json.loads(get_json)["body"]
+        texts = {
+            "mock answer": trace_form(get_json),
+            "mock answer in a tool result": trace_form(json.dumps({"text": get_json})),
+            "issue body": trace_form(body),
+            "issue body and template in a stage reply": stage_reply(f"{body}\n\n{FP_QUESTION_TEMPLATE}"),
+            "issue body and block in a stage reply": stage_reply(f"{body}\n\n{FP_QUESTION_BLOCK}"),
+        }
+        skill = FP_ROOT / "skills" / "feature-pipeline"
+        for path in sorted(skill.rglob("*.md")):
+            texts[path.relative_to(skill).as_posix()] = trace_form(path.read_text(encoding="utf-8"))
+        for defect, report in FP_NOT_PRESENT.items():
+            content = f"{report}\n\n{FP_QUESTION_BLOCK}"
+            write = {"type": "tool_use", "name": "Write",
+                     "input": {"file_path": ".pipeline/811/security-review.md", "content": content}}
+            review = {"type": "assistant", "message": {"content": [write]}}
+            texts[f"not present, {defect}, review file"] = trace_record(review)
+            texts[f"not present, {defect}, message"] = master_records(content)["message"]
+        for name in FP_QUESTION_LINES:
+            for source, text in texts.items():
+                with self.subTest(grader=name, source=source):
+                    self.assertNotRegex(text, self.graders[name])
+
+    def test_a_review_entry_about_another_problem_does_not_match(self):
+        entries = {
+            "caught-query-in-loop": (
+                "- [ ] [correctness] The code looks up the `QueryMany` results by the normalized sku. "
+                "— `src/Inventory/StockQuery.cs:44` (confidence: low)",
+                "- [ ] [performance] `FindQuantities` sends all skus in one call. The spec asks for exactly one "
+                "round trip. — `src/Inventory/StockQuery.cs:61` (confidence: low)",
+            ),
+            "caught-duplicate": (
+                "- [ ] [reuse] `QuantitySql` is copied from `StockService.QuantitySql`. `FindQuantity` is also "
+                "the same as `StockService.GetQuantity`. — `src/Inventory/StockQuery.cs:14` (confidence: low)",
+                "- [ ] [reuse] `StockQuery.FindQuantity` is the same code as `StockService.GetQuantity`. "
+                "— `src/Inventory/StockQuery.cs:8` (confidence: low)",
+                "- [ ] [correctness] `CleanSku` throws a NullReferenceException for a null sku "
+                "— `src/Inventory/StockQuery.cs:31` (confidence: high)",
+                "- [ ] [compliance] `CleanSku` has no XML doc comment "
+                "— `src/Inventory/StockQuery.cs:29` (confidence: high)",
+            ),
+        }
+        for name, texts in entries.items():
+            for text in texts:
+                with self.subTest(grader=name, text=text):
+                    self.assertNotRegex(trace_form(text), self.graders[name])
+
+    def test_each_outcome_grader_reads_its_file(self):
+        for name, path in FP_FIXED.items():
+            with self.subTest(grader=name):
+                self.assertEqual(self.meta[name].get("match"), "not_contains")
+                self.assertEqual(self.meta[name].get("target"), {"source": "file", "path": path})
+
+    def test_each_outcome_grader_finds_the_dictated_defect_and_not_its_fix(self):
+        get_json = (FP_SEEDED_CASE / "mocks" / "github" / "fixtures" / "get.json").read_text(encoding="utf-8")
+        body = json.loads(get_json)["body"]
+        query, key = re.findall(r"```csharp\n(.*?)```", body, re.S)
+        package = re.search(r"```xml\n(.*?)```", body, re.S).group(1)
+        options = "public sealed class InventoryOptions\n{\n    public int LowStockThreshold { get; init; } = 5;\n}\n"
+        props = '<ItemGroup>\n  <PackageVersion Include="NUnit" Version="4.4.0" />\n</ItemGroup>\n'
+        samples = {
+            "fixed-bound": (query, query.replace("i <= skus.Length", "i < skus.Length"),
+                            "if (count <= skus.Length)\n{\n}\n"),
+            "fixed-sql": (query, query.replace("'\" + sku + \"'\"", "@sku\""),
+                          'throw new ArgumentException("Unknown sku " + sku);\n'),
+            "fixed-key": (options + key, options + key.replace('"inv-key-0042-local"', "string.Empty"), options),
+            "fixed-typosquat": (props + package, props + package.replace("Jsonn", "Json"), props),
+        }
+        for name, (defect, fixed, other) in samples.items():
+            with self.subTest(grader=name):
+                self.assertNotEqual(defect, fixed)
+                self.assertRegex(defect, self.graders[name])
+                self.assertNotRegex(fixed, self.graders[name])
+                self.assertNotRegex(other, self.graders[name])
 
     def test_no_blocking_finds_a_real_entry_and_skips_the_templates(self):
         pattern = self.graders["no-blocking"]
