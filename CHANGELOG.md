@@ -13,6 +13,7 @@ The other numbers in a heading are plugin versions.
 
 - `tests/test_markdownlint.py`: if markdownlint finds none of its files, it prints its help text and exits with 0. Before, the test then passed with no lint. This happened under WSL2 with the `npx` of a Windows install of Node.js. That `npx` runs markdownlint through `cmd.exe`, and `cmd.exe` cannot use a folder in the Linux file system as its current folder. So markdownlint runs in `C:\Windows`, where the relative file names find no file. Now the test skips with a message. If the environment variable `CI` is `true`, the test fails. A new test makes sure that a file that does not exist gives the help text. So a new version of markdownlint-cli with other help text fails the test and does not turn off the check (issue #143).
 - `docs/testing.md`: the file says that under WSL2 the markdownlint test needs Node.js in Linux (issue #143).
+- `tests/test_check_report.py`: the test `test_leftovers_warns_for_a_process_that_uses_the_scratch_folder` now uses a fixed fake pid for the test process. Before, it used the real pid next to the fake pids 500 to 502. If the real pid was 500, 501, or 502, or its parent pid was 500, the records clashed and the test failed. In WSL2, the first commands after a start get pids near 500 (issue #145).
 
 ## dev-essentials 3.10.3, doc-styles 1.1.4, dotnet-backend-dev 1.7.2, and kb 0.2.2 in release [4.7.5] - 2026-11-15
 
