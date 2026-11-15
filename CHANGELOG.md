@@ -9,6 +9,12 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/evals.md`: the new section "Clean the temp folder" says how to clean the temp folder of the eval runs in WSL2 or Linux. A dry run lists the entries that stay and the entries that go. A run folder that one of your notes names stays (issue #165).
+- `docs/evals.md`: a new paragraph names some edits that the eval grader `untested-commit` misses. One of them is a `sed -i` or `perl -pi` edit with a `;`, `&`, or `|` inside its quoted script. Four tries at a pattern that reads the script each brought a new wrong verdict, so the grader stays as it is (issue #162).
+- `tests/test_eval_cases.py`: a new test pins each wrong verdict that `docs/evals.md` names. Another new test makes sure that the grader needs less than 2 seconds for a command with 4000 `sed` edits (issue #162).
+
 ## dev-essentials 3.11.3 in release [4.8.4] - 2026-11-15
 
 This release adds one behavior case for `process-pr-comments`. The case covers an `[OutOfScope]` issue search that finds the issue. The skill text does not change.
@@ -21,7 +27,6 @@ This release adds one behavior case for `process-pr-comments`. The case covers a
 
 - `docs/evals.md`: the table of behavior suites gives 7 cases for `process-pr-comments` (issue #126).
 - `docs/evals.md`: the `style-compare-*` suites of `doc-styles` run in WSL2 or on Linux, not on native Windows. Their hooks need `python3`, and the hooks of the simple-english stand-in also need `node` (Node.js 22 or later). On native Windows, the lint hooks of `doc-styles` and of the stand-in gave no message in an eval run. So the old scores of these suites came from runs with no lint hook message. The file names the tools, a setup step for WSL2, and the results of the hook probes (issue #151).
-- `docs/evals.md`: the new section "Clean the temp folder" says how to clean the temp folder of the eval runs in WSL2 or Linux. A dry run lists the entries that stay and the entries that go. A run folder that one of your notes names stays (issue #165).
 
 ## dev-essentials 3.11.2 in release [4.8.3] - 2026-11-15
 
