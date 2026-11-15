@@ -10,7 +10,11 @@
 # All runs share one download folder, /tmp/plugin-evals/nuget. Only the first restore downloads packages.
 # The sandbox of a run cannot read /tmp. So dotnet_warm copies the shared folder into $HOME/.nuget/packages of the run,
 # and nuget.config names that folder. If the shared folder is a link or another user owns it, dotnet_warm stops.
-# The scaffold never runs the tests. If EVAL_FIXTURE_SKIP_DOTNET=1, dotnet_warm does nothing. Only a test sets it.
+# Each run has its own TMPDIR, so the file locks of NuGet do not guard the shared folder. So dotnet_warm holds
+# a lock on /tmp/plugin-evals/nuget.lock while it restores into the shared folder and copies it. The lock needs flock (util-linux).
+# The dotnet commands write their output to stderr. In the failed runs of issue 147, the error message of the scaffold was empty, and dotnet writes its errors to stdout.
+# The scaffold never runs the tests. If EVAL_FIXTURE_SKIP_DOTNET=1, dotnet_warm does nothing.
+# EVAL_FIXTURE_DOTNET_CACHE replaces the folder /tmp/plugin-evals. Only a test sets these two variables.
 #
 # This file is copied into each plugin that has .NET fixtures. A test makes sure that the copies are equal.
 set -euo pipefail
@@ -125,9 +129,10 @@ public sealed class RunMarker
 DOTNET_EOF
 }
 
+# dotnet_prepare_cache <cache folder>
 dotnet_prepare_cache() {
     local folder
-    for folder in /tmp/plugin-evals /tmp/plugin-evals/nuget; do
+    for folder in "$1" "$1/nuget"; do
         mkdir -p "$folder" || return 1
         if [ -L "$folder" ] || [ ! -O "$folder" ]; then
             printf '%s is a link or another user owns it. Remove it, then run the scaffold again.\n' "$folder" >&2
@@ -141,12 +146,17 @@ dotnet_warm() {
     if [ "${EVAL_FIXTURE_SKIP_DOTNET:-}" = "1" ]; then
         return 0
     fi
-    dotnet_prepare_cache || return 1
+    local cache="${EVAL_FIXTURE_DOTNET_CACHE:-/tmp/plugin-evals}"
+    dotnet_prepare_cache "$cache" || return 1
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-    dotnet restore "$1" --packages /tmp/plugin-evals/nuget --verbosity quiet
-    mkdir -p "$HOME/.nuget/packages"
-    cp -R /tmp/plugin-evals/nuget/. "$HOME/.nuget/packages/"
+    (
+        flock 9
+        # dotnet does not get the lock descriptor, because an MSBuild node that lives on keeps the lock.
+        dotnet restore "$1" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+        mkdir -p "$HOME/.nuget/packages"
+        cp -R "$cache/nuget/." "$HOME/.nuget/packages/"
+    ) 9>"$cache/nuget.lock"
     # The agent builds with the same nuget.config, so its restore finds every package and needs no network.
-    dotnet restore "$1" --verbosity quiet
-    dotnet build "$1" --no-restore --verbosity quiet
+    dotnet restore "$1" --verbosity quiet >&2
+    dotnet build "$1" --no-restore --verbosity quiet >&2
 }

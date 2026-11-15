@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.5 and dotnet-backend-dev 1.7.3 in release [4.7.8] - 2026-11-15
+
+This release fixes the shared .NET fixture library of the eval cases. Scaffolds that ran at the same time with an empty NuGet folder failed, and the record showed no error text. The skill text does not change.
+
+### Changed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: `dotnet_warm` holds a lock on `/tmp/plugin-evals/nuget.lock` while it restores into the shared folder `/tmp/plugin-evals/nuget` and copies that folder. Each eval run has its own `TMPDIR`, so the file locks of NuGet did not guard the shared folder. Before, two scaffolds or a unit test run that restored the same package at the same time into an empty folder broke each other. One restore deleted a temporary file of the other, and the scaffold failed. The dotnet commands now write their output to stderr. Before, the error message of a failed scaffold was empty, and dotnet writes its errors to stdout. The new variable `EVAL_FIXTURE_DOTNET_CACHE` replaces `/tmp/plugin-evals`. Only a test sets it (issue #147).
+- `evals/feature-pipeline/fp-e4-package-bump/scaffold.sh`: the prefetch of the new NUnit version passes the cache folder to `dotnet_prepare_cache`. It holds the same lock as `dotnet_warm` (issue #147).
+
+### Changed in dotnet-backend-dev
+
+- `evals/_lib/dotnet-fixture.sh`: the same change as in dev-essentials, because a test makes sure that the two copies are equal (issue #147).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: the new class `DotnetWarmTests` runs `dotnet_warm` with a fake `dotnet` and a cache folder of the test. One test starts two runs at the same time. It makes sure that their restores into the shared folder do not overlap, and that dotnet does not get the lock. The second test makes sure that the error text of a dotnet command reaches stderr. A third test runs each .NET scaffold with the fake `dotnet` (issue #147).
+- `docs/evals.md`: the text about the .NET cases names the lock on the shared NuGet folder. The setup list for WSL2 names `flock` (issue #147).
+
 ## dev-essentials 3.10.4 in release [4.7.7] - 2026-11-15
 
 This release fixes the graders of the eval case `fp-e1-seeded-defects` of the feature-pipeline suite. The prompt and the skill text do not change.
@@ -1301,7 +1319,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...HEAD
+[4.7.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...v4.7.8
 [4.7.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...v4.7.7
 [4.7.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...v4.7.6
 [4.7.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...v4.7.5

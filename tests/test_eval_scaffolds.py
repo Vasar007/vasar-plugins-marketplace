@@ -7,6 +7,8 @@ If bash or git is not found, the tests skip. In CI they fail.
 One test runs the .NET probe scaffolds with a real restore and build, and then runs dotnet test.
 It needs the .NET SDK 10 or newer, the .NET 10 runtime, and network access for the first restore. As in a real run, the packages
 go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
+
+Three tests run dotnet_warm with a fake dotnet on PATH and a cache folder of the test. They need flock (util-linux).
 """
 import json
 import os
@@ -68,6 +70,20 @@ public sealed class FailingProbeTests
         Assert.That(1, Is.EqualTo(2));
     }
 }
+"""
+
+
+FAKE_DOTNET = """#!/usr/bin/env bash
+# A fake dotnet: a restore into the shared folder logs its start and its end, and prints FAKE_DOTNET_ERROR as dotnet does.
+case " $* " in
+    *" --packages "*)
+        if [ -e /dev/fd/9 ]; then echo lock-descriptor-open >>"$FAKE_DOTNET_LOG"; fi
+        echo start >>"$FAKE_DOTNET_LOG"
+        sleep 1
+        echo end >>"$FAKE_DOTNET_LOG"
+        if [ -n "${FAKE_DOTNET_ERROR:-}" ]; then echo "$FAKE_DOTNET_ERROR"; exit 1; fi
+        ;;
+esac
 """
 
 
@@ -322,6 +338,66 @@ class DotnetProbeTests(FixtureCase):
         runs = workspace / ".test-runs"
         self.assertTrue(list(runs.glob("started-*")), "the run left no start file")
         self.assertEqual((runs / "last.txt").read_text(encoding="utf-8"), "Failed")
+
+
+class DotnetWarmTests(FixtureCase):
+    """dotnet_warm with a fake dotnet on PATH and a cache folder of the test, so that the tests need no .NET SDK."""
+
+    def setUp(self):
+        super().setUp()
+        if shutil.which("flock") is None:
+            tool_missing(self, "flock not found")
+        folder = self.tmp / "bin"
+        folder.mkdir()
+        (folder / "dotnet").write_bytes(FAKE_DOTNET.encode("utf-8"))
+        (folder / "dotnet").chmod(0o755)
+        self.log = self.tmp / "dotnet.log"
+
+    def start_warm(self, name, error=""):
+        """Start dotnet_warm with its own HOME, as each eval run has."""
+        home = self.tmp / name
+        home.mkdir()
+        env = self.environment(skip_dotnet=False)
+        env.update({
+            "HOME": home.as_posix(),
+            "PATH": f"{(self.tmp / 'bin').as_posix()}{os.pathsep}{env['PATH']}",
+            "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
+            "FAKE_DOTNET_LOG": self.log.as_posix(),
+            "FAKE_DOTNET_ERROR": error,
+        })
+        library = REPO / "essentials" / "dev-essentials" / "evals" / "_lib" / "dotnet-fixture.sh"
+        return subprocess.Popen([self.bash, "-c", f'source "{library.as_posix()}"\ndotnet_warm Fake.sln'], cwd=self.tmp,
+                                env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def test_two_scaffolds_restore_into_the_shared_folder_one_after_the_other(self):
+        processes = [self.start_warm("run-1"), self.start_warm("run-2")]
+        for process in processes:
+            _out, err = process.communicate(timeout=SCAFFOLD_SECONDS)
+            self.assertEqual(process.returncode, 0, err)
+        self.assertEqual(self.log.read_text(encoding="utf-8").split(), ["start", "end", "start", "end"])
+
+    def test_the_error_of_a_dotnet_command_goes_to_stderr(self):
+        process = self.start_warm("run-1", "error : planted restore failure")
+        _out, err = process.communicate(timeout=SCAFFOLD_SECONDS)
+        self.assertNotEqual(process.returncode, 0)
+        self.assertIn("planted restore failure", err)
+
+    def test_every_dotnet_scaffold_runs_with_the_fake_dotnet(self):
+        pairs = [(case, script) for case, script in scaffold_cases() if "dotnet_warm" in script.read_text(encoding="utf-8")]
+        self.assertTrue(pairs, "No scaffold calls dotnet_warm.")
+        for case, script in pairs:
+            with self.subTest(case=case.name):
+                home = self.tmp / f"home-{case.name}"
+                home.mkdir()
+                env = self.environment(skip_dotnet=False)
+                env.update({
+                    "HOME": home.as_posix(),
+                    "PATH": f"{(self.tmp / 'bin').as_posix()}{os.pathsep}{env['PATH']}",
+                    "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
+                    "FAKE_DOTNET_LOG": self.log.as_posix(),
+                })
+                done = run([self.bash, script.as_posix()], env=env, cwd=self.workspace(case.name), timeout=SCAFFOLD_SECONDS)
+                self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
 
 class LibraryTests(FixtureCase):
