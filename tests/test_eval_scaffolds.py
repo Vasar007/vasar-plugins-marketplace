@@ -444,6 +444,21 @@ class LibraryTests(FixtureCase):
         tip = self.git(workspace, "rev-parse", "HEAD")[1]
         self.assertEqual(self.git(workspace / ".remote" / "origin.git", "rev-parse", "refs/pull/42/head")[1], tip)
 
+    def test_the_pull_ref_hook_runs_when_hooks_are_pinned_off_for_the_push(self):
+        """An eval run pins hooks off in the environment of git. Git drops that environment for the receiving side of a local remote."""
+        workspace = self.workspace()
+        self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
+                         "make_pager_repo\ngit checkout -q -b feature/x\n"
+                         "printf 'x\\n' > x.txt\nfixture_commit 'add x'\nfixture_publish feature/x 42:feature/x")
+        pins = ("export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null "
+                "GIT_CONFIG_KEY_1=hook.post-receive.enabled GIT_CONFIG_VALUE_1=false\n")
+        for push in ("git push -q origin feature/x",
+                     "git -c core.hooksPath=/dev/null -c hook.post-receive.enabled=false push -q origin feature/x"):
+            with self.subTest(push=push):
+                self.run_snippet(workspace, [], f"{pins}git commit -q --allow-empty -m 'run commit'\n{push}")
+                tip = self.git(workspace, "rev-parse", "HEAD")[1]
+                self.assertEqual(self.git(workspace / ".remote" / "origin.git", "rev-parse", "refs/pull/42/head")[1], tip)
+
     def test_fixture_commit_uses_the_prefix_and_fixed_dates(self):
         workspace = self.workspace()
         self.run_snippet(workspace, self.libs("essentials/dev-essentials"),
