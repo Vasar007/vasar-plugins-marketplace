@@ -1,6 +1,6 @@
 # Testing
 
-The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`. The YAML test of the eval cases also needs the Python package PyYAML. The step `Install PyYAML` of `.github/workflows/tests.yml` names the version.
+The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`. Under WSL2, install Node.js in Linux. The `npx` of a Windows install runs markdownlint in `C:\Windows`, so markdownlint finds no file. The test then skips, and in CI it fails. The YAML test of the eval cases also needs the Python package PyYAML. The step `Install PyYAML` of `.github/workflows/tests.yml` names the version.
 
 To run all tests, run this command from the repository root:
 
