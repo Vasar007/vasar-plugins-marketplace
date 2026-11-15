@@ -9,8 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.4 in release [4.8.5] - 2026-11-16
+
+This release closes the open edge cases of the report-only state `pr-commit-no-reply` of `process-pr-comments`. It also adds a behavior case for a local commit that goes along with an `autonomous` push.
+
+### Added in dev-essentials
+
+- `evals/process-pr-comments/ppc-autonomous-ride-along`: a new behavior case. One `[ToFix]` thread has no reply, and the run has `autonomous`. The local branch has a commit of the author that is not pushed yet, and only the body of that commit names the thread. The graders make sure that the run fixes and commits the thread and names the commit of the author in its last message. They also make sure that the run posts no reply and does not push before the go-ahead (issue #124).
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: only the subject line of a commit names a thread. A `T#<id>` in the body no longer counts. A `squash` commit and a commit for threads with the same note put every `T#<id>` in the subject (issue #124).
+- `skills/process-pr-comments`: if the fetch of the base branch fails, each thread with no reply gets the report-only state `pr-commit-no-reply` in that cycle. The run asks no question about the failed fetch, and these threads open no push. Before, the failed fetch went to the `blockers` list, and the state of these threads was not defined (issue #124).
+- `skills/process-pr-comments`: with `autonomous`, a later cycle of a `/loop` session asks the push question again only for a new list. The list holds the commits that no thread of the push names. With the same list, the cycle holds the push and the replies, and prints the list (issue #124).
+- `skills/process-pr-comments`: the text names two more ways into `pr-commit-no-reply`: a push by hand, and a push after a failed reply post in a session that then ended (issue #124).
+
 ### Changed in the repository
 
+- `docs/evals.md`: the table of behavior suites gives 8 cases for `process-pr-comments` (issue #124).
 - `docs/evals.md`: the new section "Clean the temp folder" says how to clean the temp folder of the eval runs in WSL2 or Linux. A dry run lists the entries that stay and the entries that go. A run folder that one of your notes names stays (issue #165).
 - `docs/evals.md`: a new paragraph names some edits that the eval grader `untested-commit` misses. One of them is a `sed -i` or `perl -pi` edit with a `;`, `&`, or `|` inside its quoted script. Four tries at a pattern that reads the script each brought a new wrong verdict, so the grader stays as it is (issue #162).
 - `tests/test_eval_cases.py`: a new test pins each wrong verdict that `docs/evals.md` names. Another new test makes sure that the grader needs less than 2 seconds for a command with 4000 `sed` edits (issue #162).
@@ -1414,7 +1430,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...HEAD
+[4.8.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...v4.8.5
 [4.8.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...v4.8.4
 [4.8.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...v4.8.3
 [4.8.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...v4.8.2

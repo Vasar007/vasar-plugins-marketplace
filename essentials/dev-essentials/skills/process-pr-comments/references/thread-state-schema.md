@@ -217,7 +217,7 @@ Stage 1 derives these states with the logic of `committed-fix-state.md`, exactly
 | `fresh-unhandled` | No `**[AI]**` or `**[AI][Draft]**` reply exists, and no commit names the thread: no unpushed local commit, and no commit of the PR. | The normal classification of Phase 3. |
 | `cured` | An affirmative commit claim whose SHA is already an ancestor of `origin/pull/<prId>/head`. | Run the ancestry check again (§ "Ancestry check", row 2). Then make the catch-up resolve as the first action of Stage 2. If the result disagrees, do not act on the thread in this cycle, and print the `unconfirmed-commit-claim` report line. The next cycle derives the state again, and asks the question (or prints a report line, `committed-fix-state.md` § "Report modes"). If `openFindingsMarker` is `true`, skip the catch-up resolve. Report `T#<id> cured (open findings) — left open` instead. |
 | `unconfirmed-commit-claim` | The merged case of step 5: not yet an ancestor, or the SHA does not resolve in this checkout, or no clear SHA came out of the reply. Or an unpushed local commit names the thread with no reply about it (`claimSource: local-commit`). | The orchestrating session asks the question of step 5, and the thread waits for the answer. Or it prints a report line (`committed-fix-state.md` § "Report modes"). `autonomous` does not skip the question. Nothing new is implemented on this thread. |
-| `pr-commit-no-reply` | No `**[AI]**` or `**[AI][Draft]**` reply exists, but a commit of the PR names the thread (`claimSource: pr-commit`). | Nothing. The cycle log prints the report line of `committed-fix-state.md` § "Commit on the PR head with no reply". No question, no edit, no reply, and no resolve, in every mode. |
+| `pr-commit-no-reply` | No `**[AI]**` or `**[AI][Draft]**` reply exists, but a commit of the PR names the thread (`claimSource: pr-commit`). Or Stage 1 cannot read the commits of the PR (`claimedSha: null`). | Nothing. The cycle log prints the report line of `committed-fix-state.md` § "Commit on the PR head with no reply". No question, no edit, no reply, and no resolve, in every mode. |
 | `already-assessed` | The newest AI reply is final, but claims no commit (`**[AI][Draft]**`, `Tracked as issue #<id>`, a `[Note]` acknowledgement, and the like). | Leave the thread alone, unless `newerHumanReply` is `true`. |
 
 ## Cycle log — user-facing
@@ -258,7 +258,7 @@ Next cycle in <interval> (via /loop).
 | `deep-fix (<N> rounds, clean)` | A `deep-fix` thread whose review loop ended `stop-clean`. |
 | `deep-fix — open findings` | A `deep-fix` thread whose review loop ended `stop-max-rounds`. The thread stays open (`openFindingsMarker: true`). |
 | `deep-fix — blocked` | A `deep-fix` thread whose review loop ended `stop-blocked` (build red). The push of this cycle is cancelled. |
-| `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread. The human handles it. |
+| `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread. The human handles it. With `claimedSha: null`, write `report only — PR commits not read`. |
 
 ### `<reply status>` values
 
