@@ -9,9 +9,30 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.10.3, doc-styles 1.1.4, dotnet-backend-dev 1.7.2, and kb 0.2.2 in release [4.7.5] - 2026-11-15
+
+This release gives each plugin an icon for a listing in Anthropic's directory. So `claude plugin validate --strict` no longer reports `ICON_MISSING` for a plugin.
+
+### Changed in dev-essentials
+
+- `assets/icon.png`: new icon, a square PNG of 1024 px with code chevrons on a blue rounded square. The `icon` field of `plugin.json` names it (issue #140).
+
+### Changed in doc-styles
+
+- `assets/icon.png`: new icon, a square PNG of 1024 px with a page of text lines on a green rounded square. The `icon` field of `plugin.json` names it (issue #140).
+
+### Changed in dotnet-backend-dev
+
+- `assets/icon.png`: new icon, a square PNG of 1024 px with three stacked layers on a teal rounded square. The `icon` field of `plugin.json` names it (issue #140).
+
+### Changed in kb
+
+- `assets/icon.png`: new icon, a square PNG of 1024 px with an open book on a raspberry rounded square. The `icon` field of `plugin.json` names it (issue #140).
+
 ### Changed in the repository
 
 - `tests/test_eval_scaffolds.py`: new test `test_the_pull_ref_hook_runs_when_hooks_are_pinned_off_for_the_push`. If the push runs with the hook pins of an eval run, the `post-receive` hook of `git-fixture.sh` must still move `refs/pull/<id>/head`. The test sets the pins in the environment and as `-c` arguments. The hook still runs because git removes the pins of the pushing process before it starts `receive-pack` for a local remote (issue #141).
+- `CLAUDE.md`: a new convention says that each plugin has an icon at `assets/icon.png`, and that the `icon` field of `plugin.json` names it (issue #140).
 
 ## dev-essentials 3.10.2 in release [4.7.4] - 2026-11-15
 
@@ -1253,7 +1274,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...HEAD
+[4.7.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...v4.7.5
 [4.7.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...v4.7.4
 [4.7.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.1...v4.7.2

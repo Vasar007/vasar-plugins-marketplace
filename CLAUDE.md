@@ -31,6 +31,7 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 - This is a **personal** Claude Code marketplace. Keep all artifacts (skills, agents, commands, READMEs) generic and stack-neutral. No employer/product branding, no internal hostnames, no internal URLs.
 - Skill / agent names use lowercase-kebab-case without organization prefixes.
 - Each plugin lives at `<group>/<plugin>/` with its own `.claude-plugin/plugin.json`.
+- Each plugin has an icon at `assets/icon.png` in its folder: a square PNG of 512 to 2048 px on each side, under 2 MB. The `icon` field of `plugin.json` names it. Without it, `claude plugin validate --strict` reports `ICON_MISSING`.
 - New plugins must be registered in `.claude-plugin/marketplace.json` and the matrix in `README.md`.
 - If a behavior depends on a specific tool or runtime (for example .NET, PowerShell, or AWS), document the assumption explicitly inside the skill. Do not spread it across files.
 
