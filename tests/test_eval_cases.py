@@ -1915,12 +1915,25 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
 
 
 class RouteReportedGraderTests(unittest.TestCase):
-    """The grader route-reported of the case rirr-retry-limit accepts a Route line that names a workflow dispatch."""
+    """The graders route-reported accept a Route line that names a delegation test, the main loop, or a label of Rule 1."""
+
+    SO_CASES = ("so-lookup", "so-rename-large", "so-rename-small", "so-two-fixes")
+    LABEL_LINES = {
+        "a workflow dispatch": "Route: stage 2 (workflow).",
+        "a stronger model": "Route: plan (stronger model).",
+        "a Rule 4 dispatch": "Route: PR threads (outside system).",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def matches(self, name, reply):
+        grader = self.cases[name].graders["route-reported"][0]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], reply, flags) is not None
 
     def test_the_route_line_may_name_the_reviewer_or_the_main_session(self):
-        case = {case.name: case for case in load_cases(FP_ROOT)}["rirr-retry-limit"]
-        grader = case.graders["route-reported"][0]
-        flags = re.I if "i" in grader.get("flags", "") else 0
         runs = {
             "a reviewer and the main session": ("Route: research and the edit in the main session; one Opus reviewer subagent.", True),
             "a reviewer subagent only": ("Route: one reviewer subagent (Opus); all other work in the main session.", True),
@@ -1931,7 +1944,37 @@ class RouteReportedGraderTests(unittest.TestCase):
         }
         for name, (reply, expected) in runs.items():
             with self.subTest(run=name):
-                self.assertEqual(re.search(grader["pattern"], reply, flags) is not None, expected)
+                self.assertEqual(self.matches("rirr-retry-limit", reply), expected)
+
+    def test_every_so_case_has_the_same_route_reported_grader(self):
+        graders = [self.cases[name].graders["route-reported"][0] for name in self.SO_CASES]
+        self.assertEqual(len({grader["pattern"] for grader in graders}), 1)
+        for name, grader in zip(self.SO_CASES, graders):
+            with self.subTest(case=name):
+                self.assertEqual((grader.get("target"), grader.get("flags")), ("last_message", "i"))
+
+    def test_the_so_grader_accepts_each_test_and_each_label(self):
+        runs = {
+            "the main loop": ("Route: main loop", True),
+            "two tests": ("Route: code search (context), two fixes (parallel work)", True),
+            "a review": ("Route: review of the diff (independent view)", True),
+            "read-only tools": ("Route: audit (tool isolation)", True),
+            **{name: (line, True) for name, line in self.LABEL_LINES.items()},
+            "no Route line": ("The retry limit is now 3.", False),
+            "a Route line with no reason": ("Route: one subagent", False),
+            "a reason that is no label": ("Route: plan (a better model)", False),
+            "a label with no Route line": ("Stage 2 ran in the workflow (stronger model).", False),
+            "the colon on another line": ("Route\nworkflow", False),
+            "a longer word": ("Route: stage 2 (workflows)", False),
+        }
+        for name, (reply, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.matches("so-lookup", reply), expected)
+
+    def test_the_rirr_grader_accepts_each_label(self):
+        for name, line in self.LABEL_LINES.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches("rirr-retry-limit", line))
 
 
 if __name__ == "__main__":
