@@ -1590,5 +1590,68 @@ class ObsdLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
+SE_STUB = STUBS / "simple-english"
+SE_PROBE = OBSD_ROOT / "evals" / "probes" / "probe-se-lint-hook"
+SE_HOOK = SE_STUB / "src" / "hooks" / "lint_hook.py"
+SE_LINT = SE_STUB / "evals" / "ste_lint.py"
+
+
+class SeLintHookProbeGraderTests(ScratchCase):
+    """The graders of probe-se-lint-hook match the message of the stand-in lint hook, and nothing that a run with no hook prints."""
+
+    def setUp(self):
+        super().setUp()
+        case = Case(SE_PROBE, OBSD_ROOT)
+        self.assertEqual(case.errors, [])
+        self.assertEqual(sorted(case.graders), ["hook-hit-quoted", "lint-hook-ran"])
+        self.patterns = {}
+        for name, (meta, _body) in case.graders.items():
+            self.assertEqual(meta["type"], "regex", name)
+            self.assertEqual(meta.get("target", "last_message"), "last_message", name)
+            self.assertNotIn("match", meta, name)
+            flags = sum(REGEX_FLAGS.get(f, 0) for f in meta.get("flags", ""))
+            # In hook-hit-quoted, the class [l] hides the plain word from the linter. The match is the same.
+            self.patterns[name] = re.compile(meta["pattern"], flags)
+        body = self.prompt_body = case.prompt_body
+        start = body.index("```text\n") + len("```text\n")
+        self.probe = self.tmp / "probe.md"
+        self.probe.write_bytes((body[start:body.index("\n```", start)] + "\n").encode("utf-8"))
+
+    def hook_stderr(self):
+        event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Write",
+                            "tool_input": {"file_path": str(self.probe)}})
+        result = run([sys.executable, "-I", SE_HOOK], stdin=event)
+        self.assertResult(result, 2)
+        self.assertEqual(result.stdout, "")
+        return result.stderr
+
+    def test_both_patterns_match_the_hook_message_with_and_without_the_prefix(self):
+        message = self.hook_stderr()
+        replies = {
+            "bare": f"```text\n{message}```\n",
+            "with prefix": f"```text\n{CLAUDE_CODE_PREFIX}{message}```\n",
+        }
+        for name, pattern in self.patterns.items():
+            for kind, reply in replies.items():
+                with self.subTest(grader=name, reply=kind):
+                    self.assertRegex(reply, pattern)
+
+    def test_neither_pattern_matches_a_run_with_no_hook(self):
+        linter = run([sys.executable, "-I", SE_LINT, self.probe])
+        self.assertResult(linter, 0, '"banned_modal": 1')
+        file_text = self.probe.read_text(encoding="utf-8")
+        replies = {
+            "no hook answer": "No hook message.",
+            "line 1 and no hook answer": "The modal on line 1 is a hit. No hook message.",
+            "linter output": linter.stdout,
+            "prompt": self.prompt_body,
+            "file content and no hook answer": f"I wrote probe.md:\n\n```text\n{file_text}```\n\nNo hook message.",
+        }
+        for name, pattern in self.patterns.items():
+            for kind, reply in replies.items():
+                with self.subTest(grader=name, reply=kind):
+                    self.assertNotRegex(reply, pattern)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,11 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.5 in release [4.7.6] - 2026-11-15
+
+This release fixes the probe `probe-se-lint-hook` of doc-styles. The probe tests the lint hook of the stand-in for simple-english. Its grader looked for the hook message in the trace. In the runs of issue #115, the trace of Claude Code 2.1.310 did not hold the output of a `PostToolUse` hook. Release 4.7.1 fixed the probe `probe-obsd-lint-hook` for that reason. With Claude Code 2.1.325 in WSL2, the probe now scores 1.00 with the stand-in and 0.00 without it. On native Windows, it scored 0 with the stand-in. The reply of one kept run ended with the line `No hook message.` and quoted no hook text.
+
+### Changed in doc-styles
+
+- `evals/probes/probe-se-lint-hook`: the prompt tells the agent to copy the hook message into its reply, word for word. The grader `lint-hook-ran` now reads the final reply and matches the full first line of the hook message. The new grader `hook-hit-quoted` makes sure that the reply also quotes the hit on line 1. A run with no hook cannot give these two lines, so it scores 0 (issue #142).
+
 ### Changed in the repository
 
 - `tests/test_markdownlint.py`: if markdownlint finds none of its files, it prints its help text and exits with 0. Before, the test then passed with no lint. This happened under WSL2 with the `npx` of a Windows install of Node.js. That `npx` runs markdownlint through `cmd.exe`, and `cmd.exe` cannot use a folder in the Linux file system as its current folder. So markdownlint runs in `C:\Windows`, where the relative file names find no file. Now the test skips with a message. If the environment variable `CI` is `true`, the test fails. A new test makes sure that a file that does not exist gives the help text. So a new version of markdownlint-cli with other help text fails the test and does not turn off the check (issue #143).
 - `docs/testing.md`: the file says that under WSL2 the markdownlint test needs Node.js in Linux (issue #143).
 - `tests/test_check_report.py`: the test `test_leftovers_warns_for_a_process_that_uses_the_scratch_folder` now uses a fixed fake pid for the test process. Before, it used the real pid next to the fake pids 500 to 502. If the real pid was 500, 501, or 502, or its parent pid was 500, the records clashed and the test failed. In WSL2, the first commands after a start get pids near 500 (issue #145).
+- `tests/test_eval_cases.py`: a new test runs the lint hook of the stand-in in `tests/evals/stubs/simple-english` on the probe text of `probe-se-lint-hook`. It makes sure that both graders match the hook message. It also makes sure that neither grader matches a reply with no hook, or the output of the linter script (issue #142).
 
 ## dev-essentials 3.10.3, doc-styles 1.1.4, dotnet-backend-dev 1.7.2, and kb 0.2.2 in release [4.7.5] - 2026-11-15
 
@@ -1280,7 +1289,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...HEAD
+[4.7.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...v4.7.6
 [4.7.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.4...v4.7.5
 [4.7.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.3...v4.7.4
 [4.7.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.2...v4.7.3
