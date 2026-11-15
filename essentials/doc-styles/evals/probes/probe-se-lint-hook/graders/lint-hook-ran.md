@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'STE violations'
-target: trace
+pattern: 'simple-english: probe\.md has \d+ STE violations\.'
+target: last_message
 ---
