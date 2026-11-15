@@ -12,6 +12,7 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `docs/evals.md`: the `style-compare-*` suites of `doc-styles` run in WSL2 or on Linux, not on native Windows. Their hooks need `python3`, and the hooks of the simple-english stand-in also need `node` (Node.js 22 or later). On native Windows, the lint hooks of `doc-styles` and of the stand-in gave no message in an eval run. So the old scores of these suites came from runs with no lint hook message. The file names the tools, a setup step for WSL2, and the results of the hook probes (issue #151).
+- `docs/evals.md`: the new section "Clean the temp folder" says how to clean the temp folder of the eval runs in WSL2 or Linux. A dry run lists the entries that stay and the entries that go. A run folder that one of your notes names stays (issue #165).
 
 ## dev-essentials 3.11.2 in release [4.8.3] - 2026-11-15
 
