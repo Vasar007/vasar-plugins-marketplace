@@ -9,6 +9,38 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.0 in release [4.8.0] - 2026-11-15
+
+This release changes how the orchestrator picks the route of each piece of work. Five delegation tests in `subagent-orchestration` decide each dispatch, and the main loop keeps small lookups and the small tasks of a plan. Before a commit, the main loop runs the build and the tests one time, in place of a `test-runner` dispatch. The final reply names the route in a `Route:` line.
+
+### Changed in dev-essentials
+
+- `subagent-orchestration`: behavior change: Rule 1 has five delegation tests: context, parallel work, independent view, tool isolation, and else the main loop. The main loop does small lookups and the small tasks of a plan itself. A workflow skill keeps the dispatches that it names. The final reply has a `Route:` line that names each dispatch and its test (issue #134).
+- `subagent-orchestration`: behavior change: in the check of a subagent report, the first tier reads the verbatim result lines and adds no run after each report. Before a commit or a push, the main loop runs the build and the tests one time. It uses one filtered command and keeps the exit code. If a run can take longer than 10 minutes or runs in several worktrees, the main loop dispatches `test-runner` (issue #134).
+- `subagent-orchestration`: `references/model-selection.md` has no fork exception in "Plan → execute split" any more. A task that passes a test of Rule 1 goes to a Sonnet subagent. The session dispatches a subagent for a model that a skill or the user names, or for a stronger model of the matrix. It does not dispatch a subagent to reach a cheaper model (issue #134).
+- `subagent-orchestration`: behavior change: Rule 7 gives the receiver of a bounded task one rule. The rule replaces a size test and a fan-out list with a test of its own. The receiver never dispatches its whole task again. It dispatches a part only for a reason of Rule 1: a delegation test, a stronger model, or a high-volume read of an outside system (issue #144).
+- `review-loop`: behavior change: Phase 6 runs the build and the tests one time in the main loop before the Phase 7 commit. It uses one filtered command that keeps the exit code, and for .NET the two filters of `dotnet-build-test`. If the test run can take longer than 10 minutes, it dispatches `test-runner`. After a red run, each later run of a build or test command uses the same method (issue #134).
+- `feature-pipeline`: behavior change: the master agent runs the build of the Build Gate itself, with no `test-runner` dispatch. It filters the output to the error lines and the result line, and keeps the exit code. If the build exits with code 0 and shows no error line, the status is GREEN. The Build Gate retry in `references/stage-launch.md` runs the same build again after the implementation stage (issue #134).
+- `research-implement-review-report`: behavior change: Phase 1 finds the facts of a small task in the main loop. For independent questions that each read many files, it dispatches fact gatherers. Phase 2 implements a small task in the main loop, and runs the build and the tests there before each commit. The final report ends with the `Route:` line (issue #134).
+- `implement-batch`: behavior change: before the commit of each task, the main loop runs the build and the tests one time. Before, a `test-runner` dispatch did this run. The text names the delegation test of each dispatch: the planners pass the parallel test, and the implementers pass the context test. The other dispatches do not change (issue #134).
+- `process-pr-comments`: the dispatch model cites Rule 1 for a workflow skill that names its own dispatches. The dispatches do not change (issue #134).
+- `implement-task`: behavior change: after the `/simplify` subagent reports, the command runs the build and the tests one time in the worktree. Before, a `test-runner` dispatch did this run. The orchestrating session has no ban on a read of source code any more, but outside Phase 3 it still edits no product code. The report ends with the `Route:` line (issue #134).
+- `code-locator`: the description names a broad search whose many reads the main context does not need, and several searches at the same time (issue #134).
+- `test-runner`: the description names a test run too long for the main loop, and runs in several worktrees at the same time (issue #134).
+- `dotnet-build-test`: behavior change: the build filter is now a block that writes the output to a log file and keeps the exit code of `dotnet build`. It drops each warning line and keeps the warning count. A new test filter keeps the errors, the failed tests, the result lines, and the exit code of `dotnet test`. If the exit code is 0 and the result line shows zero failed tests, the run is green (issue #134).
+- `evals`: the new graders `route-test-runner-0` and `route-agent-count` go into six cases. These cases are `fp-e1-clean-change`, `fp-e8-rename-across-projects`, `fp-free-text`, `rl-null-guard`, `rl-off-by-one`, and `rl-unbounded-query`. `route-test-runner-0` passes at zero `test-runner` dispatches, and `route-agent-count` records the count of `Agent` calls (issue #134).
+- `evals/subagent-orchestration`: the cases `so-rename-large`, `so-rename-small`, and `so-two-fixes` get the grader `route-test-runner-0`. These three cases and `so-lookup` get `route-reported`, which reads the `Route:` line of the last message (issue #134).
+- `evals`: the new graders `tests-before-commit` and `untested-commit` go into the three review-loop cases above and the three `so-` cases above. `tests-before-commit` makes sure that the trace has a `unittest` run before a `git commit`, with no edit of a Python file between them. Take a trace with an edit of a Python file, then a commit with no `unittest` run between them. `untested-commit` fails such a trace, also for an edit by a Bash command (issue #134).
+- `evals/research-implement-review-report/rirr-retry-limit`: a new behavior case. The task lowers the HTTP retry limit from 5 to 3, and a test in another file then turns red. The run must save a plan, run `review-loop`, make the test follow the new limit, and test before the commit. It must not push or dispatch `test-runner`, and the last message names the test file and the route (issue #134).
+- `evals/triggers/code-locator-fires` is now `code-locator-lookup-near-miss`. The user asks where a class is defined and who calls it. The main loop searches, and the `code-locator` agent does not start (issue #134).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new classes `TestsBeforeCommitGraderTests` and `RouteReportedGraderTests` run the patterns of `tests-before-commit`, `untested-commit`, and `route-reported` on sample traces and messages. They also make sure that each case has the same pattern of `tests-before-commit` and of `untested-commit` (issue #134).
+- `tests/test_eval_scaffolds.py`: the commit grader tests cover `rirr-retry-limit`. A new test makes sure that the retry limit change turns the HTTP client test of that scaffold red (issue #134).
+- `tests/simple-english-baseline.json`: one accepted hit for the file path in the grader `limit-lowered` (issue #134).
+- `docs/evals.md`: the table of behavior suites has a row for `research-implement-review-report`, with 1 case (issue #134).
+
 ## dev-essentials 3.10.5 and dotnet-backend-dev 1.7.3 in release [4.7.8] - 2026-11-15
 
 This release fixes the shared .NET fixture library of the eval cases. Scaffolds that ran at the same time with an empty NuGet folder failed, and the record showed no error text. The skill text does not change.
@@ -1319,7 +1351,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...HEAD
+[4.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...v4.8.0
 [4.7.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...v4.7.8
 [4.7.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...v4.7.7
 [4.7.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.5...v4.7.6
