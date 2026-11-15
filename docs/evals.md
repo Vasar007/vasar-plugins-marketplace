@@ -83,11 +83,11 @@ Do not commit baseline files. A result file holds local temporary paths, so keep
 
 ## Clean the temp folder
 
-The temp folder of your eval runs is the folder that `TMPDIR` names, for example `~/.cache/plugin-evals/tmp`. Nothing cleans this folder. `claude plugin eval` makes one `claude-eval-*` run folder in it for each run. At the end of the run, it deletes the run folder. With `--keep-temp`, it keeps the run folder and prints its path. A kept run folder holds the trace of the run in `out/trace.jsonl`. The kept folder is read-only, and its `sealed/` folder has no permissions, so a plain `rm -rf` cannot delete it.
+The temp folder of your eval runs is the folder that `TMPDIR` names, for example `~/.cache/plugin-evals/tmp`. Nothing cleans this folder. `claude plugin eval` makes one `claude-eval-*` run folder in it for each run. At the end of the run, it deletes the run folder. With `--keep-temp`, it keeps the run folder and prints its path. A finished kept run folder holds the trace of the run in `out/trace.jsonl`. The kept folder is read-only, and its `sealed/` folder has no permissions, so a plain `rm -rf` cannot delete it.
 
 The folder also collects leftovers. The run folders of stopped runs stay, and so do the `compare-versions-*` copies of the compare script. The .NET SDK, MSBuild, NuGet, and Python also leave temporary files there. After some weeks of runs, the folder can hold thousands of entries and several GB.
 
-If one of your notes names an entry of the folder, the entry stays. If no eval run is active, each other entry can go. A note is a Markdown or text file in which you wrote the path of a run folder, for example to read its trace later. The result files and the logs of `claude plugin eval` name every run, so the commands below read only `.md` and `.txt` files.
+If one of your notes names an entry of the folder, the entry stays. If no eval run is active, each other entry can go. A note is a Markdown or text file in which you wrote the path of a run folder, for example to read its trace later. The result files and the logs of `claude plugin eval` name almost every run, so the commands below read only `.md` and `.txt` files. The commands do not read a note that is not UTF-8 text or whose name does not end in a lowercase `.md` or `.txt`. If a note is a link, the commands do not follow it. If a letter, digit, or `_` touches a name, the commands do not find it.
 
 Do these steps in one shell of WSL2 or Linux:
 
@@ -105,13 +105,14 @@ Do these steps in one shell of WSL2 or Linux:
    pgrep -af '[p]lugin eval|[c]ompare_versions\.py (run|baseline)' || echo "No eval run is active."
    ```
 
-3. Make the lists. `keep.txt` holds the entries that stay, and `delete.txt` holds the entries that go. If `EVAL_TMP` holds no `claude-eval-*` folder, the command stops. If `EVAL_TMP` is `/`, your home folder, or a system temp folder, the command also stops.
+3. Make the lists. First the command deletes the lists of an earlier cleanup. `keep.txt` holds the entries that stay, and `delete.txt` holds the entries that go. If `EVAL_TMP` holds no `claude-eval-*` folder, the command stops. If `EVAL_TMP` is `/`, your home folder, or a system temp folder, the command also stops. The lists leave out a name with a line break. If the command prints the `Stop:` line, do not do steps 4 and 5.
 
    ```bash
+   rm -f -- "${LISTS:?}/all.txt" "$LISTS/keep.txt" "$LISTS/delete.txt"
    if [ -n "$(find "${EVAL_TMP:?}" -maxdepth 1 -name 'claude-eval-*' -print -quit)" ] && [ -d "${NOTES:?}" ] \
      && ! printf '%s\n' / /tmp /var/tmp /dev/shm /run/shm "$(realpath -- "$HOME")" | grep -qxF -- "$(realpath -- "$EVAL_TMP")"; then
      mkdir -p "${LISTS:?}"
-     find "$EVAL_TMP" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort > "$LISTS/all.txt"
+     find "$EVAL_TMP" -mindepth 1 -maxdepth 1 ! -name "$(printf '*\n*')" -printf '%f\n' | sort > "$LISTS/all.txt"
      grep -rhoFw -f "$LISTS/all.txt" --include='*.md' --include='*.txt' "$NOTES" | sort -u | comm -12 "$LISTS/all.txt" - > "$LISTS/keep.txt"
      comm -23 "$LISTS/all.txt" "$LISTS/keep.txt" > "$LISTS/delete.txt"
      wc -l "$LISTS/keep.txt" "$LISTS/delete.txt"
