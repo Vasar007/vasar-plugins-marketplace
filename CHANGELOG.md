@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.2 in release [4.8.3] - 2026-11-15
+
+This release gives the `Route:` line of `subagent-orchestration` a label for each kind of dispatch that no delegation test decides.
+
+### Changed in dev-essentials
+
+- `subagent-orchestration`: Rule 1 gives the `Route:` line three labels for a dispatch that no test decides: `workflow` for a dispatch that a workflow skill names, `stronger model`, and `outside system` for a Rule 4 dispatch. Before, a reply had to invent a word or name a test that did not decide the dispatch (issue #161).
+- `evals/subagent-orchestration` and `evals/research-implement-review-report/rirr-retry-limit`: the graders `route-reported` accept the three labels (issue #161).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `RouteReportedGraderTests` runs the `route-reported` patterns of the so cases and of `rirr-retry-limit` on sample lines with each label. It also makes sure that the four so cases have the same pattern (issue #161).
+
 ## dev-essentials 3.11.1 in release [4.8.2] - 2026-11-15
 
 This release fixes small gaps that the review loops of batch 2 left open. One eval grader gave a false pass, and some tests and docs lines were not exact. The skill text does not change.
@@ -1382,7 +1395,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...HEAD
+[4.8.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...v4.8.3
 [4.8.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...v4.8.0

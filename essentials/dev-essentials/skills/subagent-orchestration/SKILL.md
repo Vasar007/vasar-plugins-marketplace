@@ -41,7 +41,7 @@ So the main loop does small lookups and the small tasks of a plan itself. Exampl
 
 A workflow skill can name its own dispatches, for example the stages of `dev-essentials:feature-pipeline` or the reviewer of `dev-essentials:review-loop`. Keep those dispatches. The tests decide where the skill leaves the choice open.
 
-In the final reply, add one line that starts with `Route:`. Name each dispatch and its test, for example `Route: code search (context), two fixes (parallel work)`. If no work went to a subagent, write `Route: main loop`.
+In the final reply, add one line that starts with `Route:`. Name each dispatch and its test, for example `Route: code search (context), two fixes (parallel work)`. If no test decided a dispatch, name its reason instead: `workflow` (a workflow skill names the dispatch), `stronger model`, or `outside system` (Rule 4). An example is `Route: reviewer (workflow), PR threads (outside system)`. If no work went to a subagent, write `Route: main loop`.
 
 PR-comment work (anything that maps to `dev-essentials:process-pr-comments`) has its own dispatches. Do not dispatch a subagent that runs the skill. The skill asks the user questions and waits for the go-ahead for each push, and a subagent cannot reach the user.
 
