@@ -22,7 +22,7 @@ This release closes the open edge cases of the report-only state `pr-commit-no-r
 - `skills/process-pr-comments`: only the subject line of a commit names a thread. A `T#<id>` in the body no longer counts. A `squash` commit and a commit for threads with the same note put every `T#<id>` in the subject (issue #124).
 - `skills/process-pr-comments`: if the fetch of the base branch fails, each thread with no reply gets the report-only state `pr-commit-no-reply` in that cycle. The run asks no question about the failed fetch, and these threads open no push. Before, the failed fetch went to the `blockers` list, and the state of these threads was not defined (issue #124).
 - `skills/process-pr-comments`: with `autonomous`, a later cycle of a `/loop` session asks the push question again only for a new list. The list holds the commits that no thread of the push names. With the same list, the cycle holds the push and the replies, and prints the list (issue #124).
-- `skills/process-pr-comments`: the text names two more ways into `pr-commit-no-reply`: a push by hand, and a push after a failed reply post in a session that then ended (issue #124).
+- `skills/process-pr-comments`: the text names one more way into `pr-commit-no-reply`: a push after a failed reply post, in a session that then ended. Both this way and a push by hand need no "handle separately" answer (issue #124).
 
 ### Changed in the repository
 
