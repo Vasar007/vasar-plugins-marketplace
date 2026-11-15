@@ -376,7 +376,8 @@ class ProcessListTests(unittest.TestCase):
         scratch = r"C:\work\bh-scratch"
         # A fixed own pid, so that a real pid such as 501 cannot clash with the fake records.
         records = [(100, 99, "", f"python3 runner.py {scratch}"),
-                   (99, 1, "", f"bash -c cd {scratch}"),
+                   (99, 98, "", f"bash -c cd {scratch}"),
+                   (98, 1, "", f"claude --add-dir {scratch}"),
                    (500, 1, "2026-10-15T09:00:00", "dotnet test C:/work/bh-scratch/app.sln"),
                    (501, 1, "", f"python3 check_report.py --scratch {scratch}"),
                    (502, 1, "", "unrelated")]
