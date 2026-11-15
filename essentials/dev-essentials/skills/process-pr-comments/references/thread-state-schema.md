@@ -258,7 +258,7 @@ Next cycle in <interval> (via /loop).
 | `deep-fix (<N> rounds, clean)` | A `deep-fix` thread whose review loop ended `stop-clean`. |
 | `deep-fix — open findings` | A `deep-fix` thread whose review loop ended `stop-max-rounds`. The thread stays open (`openFindingsMarker: true`). |
 | `deep-fix — blocked` | A `deep-fix` thread whose review loop ended `stop-blocked` (build red). The push of this cycle is cancelled. |
-| `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread. The human handles it. With `claimedSha: null`, write `report only — PR commits not read`. |
+| `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread that a commit of the PR names. The human handles it. With `claimedSha: null`, write `report only — PR commits not read`. Then the fetch of the base branch failed, and the next cycle or run tests the thread again. |
 
 ### `<reply status>` values
 
@@ -268,7 +268,7 @@ Next cycle in <interval> (via /loop).
 - `draft pending`: the `**[AI][Draft]**` reply waits in the same way.
 - `no reply (dry-run)` or `no reply (no-reply)`: the parameter flag stopped the reply.
 - `no reply (awaiting approval)`: the action did not run, because it needs the approval of a human.
-- `no reply (the human handles it)`: a `pr-commit-no-reply` thread. The run posts no reply for it. With `claimedSha: null`, write `no reply (PR commits not read)`.
+- `no reply (the human handles it)`: a `pr-commit-no-reply` thread that a commit of the PR names. The run posts no reply for it. With `claimedSha: null`, write `no reply (PR commits not read)`.
 - `reply failed — <short reason>`: an MCP error. The reply stays pending, and joins the next batch of the session (Rules in `SKILL.md`).
 - `resolved (this cycle's push landed it)`: the fix is committed, replied to, and pushed, and the skill resolved the thread with `pull_request_review_write` `method: resolve_thread` (see `commit-push-resolve.md`).
 - `reply posted, pending push`: the reply posted right before the push, but the push failed. The thread is not resolved yet.
