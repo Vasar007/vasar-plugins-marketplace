@@ -119,7 +119,7 @@ These parameters take a value: `pr`, `owner`, `repo`, `interval`, `tags`, `bots`
 
 ### Dispatch model — two stages by default, two models
 
-Each cycle runs as **two** one-shot, unnamed subagent dispatches, never one. Stage 1 does the mechanical extraction, and Stage 2 does the work that needs judgment. Different work gets its own dispatch. See `dev-essentials:subagent-orchestration` Rule 1 (each logical work unit goes to a subagent) and Rule 4 (GitHub MCP work goes to a subagent by default). If `deep-fix` names an eligible thread, the cycle also runs Stage 3 and Stage 3b. These stages are opt-in additions to the two stages, not a replacement (see `references/deep-fix.md`).
+Each cycle runs as **two** one-shot, unnamed subagent dispatches, never one. Stage 1 does the mechanical extraction, and Stage 2 does the work that needs judgment. Different work gets its own dispatch. See `dev-essentials:subagent-orchestration` Rule 1 (a workflow skill names its own dispatches) and Rule 4 (GitHub MCP work goes to a subagent by default). If `deep-fix` names an eligible thread, the cycle also runs Stage 3 and Stage 3b. These stages are opt-in additions to the two stages, not a replacement (see `references/deep-fix.md`).
 
 | Stage | Model | Phases | Mandate |
 | --- | --- | --- | --- |

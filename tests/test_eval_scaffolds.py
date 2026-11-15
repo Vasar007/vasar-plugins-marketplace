@@ -55,8 +55,9 @@ START_CONTENT = {
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
-# The commit grader of each subagent-orchestration case that asks for a commit.
-COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits"}
+# The commit grader of each case that asks for a commit on the users repo.
+COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
+                  "rirr-retry-limit": "committed"}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -655,7 +656,7 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
 
-        for name in ("so-rename-small", "so-rename-large"):
+        for name in ("so-rename-small", "so-rename-large", "rirr-retry-limit"):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,
@@ -790,6 +791,17 @@ class CommitGraderTests(FixtureCase):
             worktree_commits_and_one_combined_commit: False,
             worktree_commits_only: False,
         })
+
+    def test_the_retry_limit_change_turns_the_http_client_test_red(self):
+        workspace = self.scaffold("rirr-retry-limit", "rirr-red")
+        settings = workspace / "config" / "settings.py"
+        settings.write_text(settings.read_text(encoding="utf-8").replace("HTTP_RETRY_LIMIT = 5", "HTTP_RETRY_LIMIT = 3"),
+                            encoding="utf-8")
+        done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                              env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+        self.assertNotEqual(done.returncode, 0, done.stderr)
+        self.assertIn("test_get_uses_the_retry_limit_of_the_settings", done.stderr)
 
 
 if __name__ == "__main__":

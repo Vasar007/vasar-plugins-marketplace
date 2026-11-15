@@ -105,9 +105,9 @@ The master agent writes `review-feedback.md` before it runs `implementation` aga
 
 If the status of the Build Gate is RED:
 
-1. Write the error lines of the report (at most 50) to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`, with an instruction to fix the compilation only: no new features and no refactoring.
+1. Write the error lines of the build (at most 50) to `{ARTIFACTS_DIR}/{TASK_ID}/review-feedback.md`, with an instruction to fix the compilation only: no new features and no refactoring.
 2. Run the implementation stage again. It finds the feedback file.
-3. Dispatch the test runner again with the same brief.
+3. Run the build of the gate again, with the same command and filter.
 
 The limit of 2 attempts and the stop are in "Build Gate" in `SKILL.md`.
 

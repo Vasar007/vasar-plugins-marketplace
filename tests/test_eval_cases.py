@@ -1734,5 +1734,126 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
+TBC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
+             "rl-unbounded-query", "rirr-retry-limit")
+
+
+def trace_bash(command):
+    return f'{{"type":"tool_use","id":"t","name":"Bash","input":{{"command":"{trace_form(command)}"}}}}'
+
+
+def trace_edit(path, tool="Edit"):
+    return f'{{"type":"tool_use","id":"t","name":"{tool}","input":{{"replace_all":false,"file_path":"{path}","old_string":"a"}}}}'
+
+
+def trace_write(path):
+    return f'{{"type":"tool_use","id":"t","name":"Write","input":{{"file_path":"{path}","content":"x"}}}}'
+
+
+def trace_result(text):
+    return f'{{"type":"tool_result","content":"{trace_form(text)}"}}'
+
+
+class TestsBeforeCommitGraderTests(unittest.TestCase):
+    """The grader tests-before-commit needs a test run, then a commit, with no edit of a .py file between them."""
+
+    TEST_RUN = trace_bash("cd /w && python3 -m unittest discover -s tests 2>&1 | tail -5")
+    COMMIT = trace_bash('git -C "/x y" commit -q -m "Rename"')
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.patterns = {name: cases[name].graders["tests-before-commit"][0]["pattern"] for name in TBC_CASES}
+
+    def matches(self, *records):
+        return re.search(next(iter(self.patterns.values())), "\n".join(records)) is not None
+
+    def test_every_case_has_the_same_pattern_and_the_trace_target(self):
+        self.assertEqual(len(set(self.patterns.values())), 1)
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        for name in TBC_CASES:
+            with self.subTest(case=name):
+                self.assertEqual(cases[name].graders["tests-before-commit"][0]["target"], "trace")
+
+    def test_a_test_run_before_a_commit_matches(self):
+        edit = trace_edit("app/a.py")
+        runs = {
+            "test and commit": [self.TEST_RUN, trace_result("OK"), self.COMMIT],
+            "a Markdown write between them": [self.TEST_RUN, trace_write("Notes/Reviews/c-1.md"), self.COMMIT],
+            "an edit before the test": [edit, self.TEST_RUN, trace_bash("git add -A"), self.COMMIT],
+            "one shell command": [trace_bash("python3 -m unittest discover -s tests && git add a.py && git commit -m x")],
+            "a later test and commit": [self.TEST_RUN, edit, self.COMMIT, self.TEST_RUN, self.COMMIT],
+            "a commit on a new line of the command": [self.TEST_RUN, trace_bash('python3 -c "import app"\ngit commit -q -m x')],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_other_orders_do_not_match(self):
+        runs = {
+            "commit and then test": [self.COMMIT, self.TEST_RUN],
+            "commit only": [self.COMMIT],
+            "unittest in the message of a commit": [trace_bash('git commit -m "run unittest later"')],
+            "an Edit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py"), self.COMMIT],
+            "a MultiEdit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py", "MultiEdit"), self.COMMIT],
+            "a Write of a .py file between them": [self.TEST_RUN, trace_write("app/b.py"), self.COMMIT],
+            "the word commit in a tool result": [self.TEST_RUN, trace_result("nothing to commit, use git add")],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.matches(*records))
+
+    def test_the_untested_commit_grader_finds_an_edit_then_a_commit(self):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        pattern = cases["so-two-fixes"].graders["untested-commit"][0]["pattern"]
+        edit = trace_edit("app/a.py")
+        bad = {
+            "edit and commit": [edit, self.COMMIT],
+            "a later test and commit": [self.TEST_RUN, edit, self.COMMIT, self.TEST_RUN, self.COMMIT],
+            "a sed edit, then a commit": [self.TEST_RUN, trace_bash("sed -i 's/= 5/= 3/' config/settings.py"), self.COMMIT],
+            "a heredoc edit and a commit in one command": [
+                self.TEST_RUN, trace_bash("cat > config/settings.py <<'EOF'\nHTTP_RETRY_LIMIT = 3\nEOF\ngit commit -q -am a")],
+        }
+        good = {
+            "test and commit": [self.TEST_RUN, self.COMMIT],
+            "an edit before the test": [edit, self.TEST_RUN, self.COMMIT],
+            "one shell command": [edit, trace_bash("python3 -m unittest discover -s tests && git commit -m x")],
+            "a sed edit and a test in one command": [
+                trace_bash("sed -i 's/= 5/= 3/' config/settings.py && python3 -m unittest discover -s tests"), self.COMMIT],
+            "a sed read of a .py file": [self.TEST_RUN, trace_bash("sed -n '1,20p' app/a.py"), self.COMMIT],
+        }
+        for name, records in {**bad, **good}.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(pattern, "\n".join(records)) is not None, name in bad)
+
+    def test_every_case_has_the_same_untested_commit_grader(self):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        graders = [cases[name].graders["untested-commit"][0] for name in TBC_CASES]
+        self.assertEqual(len({grader["pattern"] for grader in graders}), 1)
+        for name, grader in zip(TBC_CASES, graders):
+            with self.subTest(case=name):
+                self.assertEqual((grader.get("target"), grader.get("match")), ("trace", "not_contains"))
+
+
+class RouteReportedGraderTests(unittest.TestCase):
+    """The grader route-reported of the case rirr-retry-limit accepts a Route line that names a workflow dispatch."""
+
+    def test_the_route_line_may_name_the_reviewer_or_the_main_session(self):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["rirr-retry-limit"]
+        grader = case.graders["route-reported"][0]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        runs = {
+            "a reviewer and the main session": ("Route: research and the edit in the main session; one Opus reviewer subagent.", True),
+            "a reviewer subagent only": ("Route: one reviewer subagent (Opus); all other work in the main session.", True),
+            "the main loop": ("Route: research, plan and tests ran in the main loop.", True),
+            "no Route line": ("The retry limit is now 3.", False),
+            "a Route line with no reason": ("Route: n/a", False),
+            "the colon on another line": ("Route\nreviewer", False),
+        }
+        for name, (reply, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(grader["pattern"], reply, flags) is not None, expected)
+
+
 if __name__ == "__main__":
     unittest.main()

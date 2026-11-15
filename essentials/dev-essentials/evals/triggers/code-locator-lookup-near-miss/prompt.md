@@ -1,5 +1,5 @@
 ---
-description: If the user asks where code is defined and who calls it, the code-locator agent starts.
+description: If the user asks where a class is defined and who calls it, the main loop searches. The code-locator agent does not start.
 tags: [triggers, code-locator]
 allowed_tools: [Skill, Agent, Read, Glob, Grep]
 ---

@@ -25,31 +25,30 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 
 The rest of this section is in `references/model-selection.md`. It covers how a model gets applied, the model of the orchestrating session, the plan → execute split, and the Haiku scope. Read it before the first dispatch that sets a `model`.
 
-## Rule 1 — Orchestrate aggressively; delegate even small research
+## Rule 1 — Use a subagent only when a delegation test holds
 
-For multi-step, long-running, or complex work, the main agent is the orchestrator, not the implementer. Each logical work unit goes to a subagent. Research is not exempt. If the parent task is multi-stage, even a "quick" `Grep` or two `Read` calls for the plan belong in a subagent.
+Before you give work to a subagent, find the test that sends it there:
 
-Self-test before any tool call inside a multi-stage session: ask "Can a subagent do this with a 5-line brief?".
+1. Context. The work puts many file reads or long tool output into the main context, but the later steps need only a short result.
+2. Parallel work. The parts are independent and can run at the same time (Rule 3).
+3. Independent view. The work is a review of work that the main agent wrote. The review is the product, or the run is unattended. A fresh context gives the reviewer its own view.
+4. Tool isolation. The work needs a different tool set, for example read-only tools.
+5. Else, do the work in the main loop.
 
-- If yes, delegate.
-- If no, do it inline. This applies to a step that really needs the parent context: a reply to the user, a memory update, or the dispatch of another subagent.
+The tests name a kind of work, not a size, so they hold on any model. Two more reasons send work to a subagent. One is a step that needs a stronger model than the session runs (see "The model of the orchestrating session" in `references/model-selection.md`). The other is a high-volume read of an outside system (Rule 4). Never dispatch work only to reach a cheaper model.
 
-Reason: subagents keep the main context small and run in parallel. An inline `Grep` or `Read` in an orchestration session fills the main context and lowers the cache hit rate of later stages.
+So the main loop does small lookups and the small tasks of a plan itself. Examples are a `Grep` and two `Read` calls that find a file or a value. Other examples are a one-line edit on a known path and a plan task that edits a few files that the session already read. A dispatch costs a brief, a cold start, and a report that can lose detail. If no test holds, a dispatch does not pay off.
 
-What inlines: a standalone single-step request, such as a one-line edit on a known path, a status check, or a file that the user just named. Also the orchestration verbs themselves: the brief for the next subagent, talking to the user, and a memory update.
+A workflow skill can name its own dispatches, for example the stages of `dev-essentials:feature-pipeline` or the reviewer of `dev-essentials:review-loop`. Keep those dispatches. The tests decide where the skill leaves the choice open.
 
-The orchestrator does not implement a small task of a plan itself either. If a small task needs the context of the session, use the fork exception of "Plan → execute split" in `references/model-selection.md`. A fork is still a dispatch.
+In the final reply, add one line that starts with `Route:`. Name each dispatch and its test, for example `Route: code search (context), two fixes (parallel work)`. If no work went to a subagent, write `Route: main loop`.
 
-What delegates:
+PR-comment work (anything that maps to `dev-essentials:process-pr-comments`) has its own dispatches. Do not dispatch a subagent that runs the skill. The skill asks the user questions and waits for the go-ahead for each push, and a subagent cannot reach the user.
 
-- Multi-commit fix stacks: one subagent for each commit. They run one after the other by default. If the units are really independent, they can run in parallel (see Rule 3).
-- Audits, sweeps, or cross-cutting refactors over the codebase: a subagent.
-- Research that locks the plan inside a multi-stage session (find a pattern, test a hypothesis, find a file): a subagent. The answer can feel close. Do not do it inline anyway.
-- PR-comment retrieval, classification, and research (anything that maps to `dev-essentials:process-pr-comments`): subagents, which that skill dispatches itself. In both cases below, invoke the skill in the main session. Do not dispatch a subagent that runs the skill. The skill asks the user questions and waits for the go-ahead for each push, and a subagent cannot reach the user.
-  - **User asks raw** ("process PR comments", "give me a fix plan", "handle review feedback"): invoke the skill in the main session. If the user asked only for a plan, pass `dry-run`.
-  - **User explicitly invokes `/dev-essentials:process-pr-comments`**: the skill orchestrates from the main agent. Its internal phases (thread fetch, classification, research for each thread) still go to subagents. The main agent never runs the high-volume MCP reads on the outside system inline.
+- **User asks raw** ("process PR comments", "give me a fix plan", "handle review feedback"): invoke the skill in the main session. If the user asked only for a plan, pass `dry-run`.
+- **User explicitly invokes `/dev-essentials:process-pr-comments`**: the skill orchestrates from the main agent. The main agent never runs the high-volume MCP reads on the outside system inline.
 
-**A phase that itself orchestrates is its own dispatch**. A step whose own execution model is "dispatch N further subagents and coordinate their output" is a separate phase. The orchestrating session dispatches it after the report of the previous phase arrives. Never fold it into the brief of the previous phase to save a round trip. The canonical case is `dev-essentials:review-loop`. It is not "more implementation work", because it dispatches its own reviewer and its own fixer. A brief that says "implement this, then review-loop it" gives that second layer of fan-out to the implementer (`main → implementer → its own reviewer/fixer`). This removes the one checkpoint that matters: the orchestrator reads the implementation report and checks the commit before the review starts. This follows the grain of this rule: more dispatches, each one phase wide.
+**A phase that itself orchestrates is its own dispatch**. A step whose own execution model is "dispatch N further subagents and coordinate their output" is a separate phase. The orchestrating session dispatches it after the report of the previous phase arrives. Never fold it into the brief of the previous phase to save a round trip. The canonical case is `dev-essentials:review-loop`. It is not "more implementation work", because it dispatches its own reviewer and its own fixer. A brief that says "implement this, then review-loop it" gives that second layer of fan-out to the implementer (`main → implementer → its own reviewer/fixer`). This removes the one checkpoint that matters: the orchestrator reads the implementation report and checks the commit before the review starts. Each dispatch stays one phase wide.
 
 The pattern to copy already ships in this plugin. `dev-essentials:research-implement-review-report` keeps Phase 2 (Implement) and Phase 3 (Review loop) as two separate phases, and the orchestrating session drives both, for this reason. Follow that shape. Do not invent a bundled variant of it.
 
@@ -180,20 +179,13 @@ This rule is about the briefs of dispatched subagents. The mechanics of worktree
 
 An agent with a concrete, bounded task DOES that task. A re-dispatch of the task to a fresh subagent, with only a relay of its report, is a hop that does nothing. It buys no parallelism and protects nothing, because the context of the parent was already sized for the job. It costs a full brief rewrite and another notification round trip. This binds every level: the main session, and any subagent that got a concrete task.
 
-Self-test before any dispatch that you make as the receiver of a bounded task: does my own bounded task description already tell me to do the concrete work? Or does the scope really not fit one agent?
+As the receiver of a bounded task, never dispatch your whole task again. Do the concrete work yourself. Dispatch a part of it only for one of the reasons of Rule 1:
 
-- If the description already tells you to do the work, do it yourself.
-- Decompose further only in one case: the work truly exceeds a single dispatch.
+- A test of Rule 1 sends that part to a subagent.
+- The part needs a stronger model than you run.
+- The part is a high-volume read of an outside system (Rule 4).
 
-Rule 1 is not a license for a second hop. Rule 1 decides what the orchestrator hands OFF. Rule 7 decides what the receiver does with it. "Delegate even small research" applies to an orchestrator with an undivided multi-stage task. It never applies to an agent that already got the one thing to do.
-
-More fan-out IS legitimate for a received task that is really large:
-
-- Broad research or an audit over many files or areas that one context cannot hold.
-- A multi-step sweep with independent branches that can run at the same time (see Rule 3).
-- A stage that splits into separate deliverables that need different skills or models.
-
-The test is whether each child dispatch owns real, separable work. A parent that prefers that someone else types the commands is no reason.
+Never dispatch a part only to reach a cheaper model. If your brief forbids further dispatches, follow the brief.
 
 **Brief accordingly**. If the task really needs fan-out, say so in the brief. For concrete work, write this line in the brief: "do this work yourself. Do not dispatch further subagents for it." A brief that says neither produced the worktree-cleanup failure in [references/worked-examples.md](references/worked-examples.md).
 
@@ -216,7 +208,7 @@ A 10-line brief that prevents one wrong dispatch is worth more than three 3-line
 
 Check a subagent report in three tiers:
 
-1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, dispatch a repair or a re-check. To check a build or test claim without filling the main context, dispatch `dev-essentials:test-runner` with the commands. Give it the same test filter that the subagent ran. If the subagent ran the whole test suite, say so in words. Then both runs cover the same tests. If the subagent ran only a build, say "build only" in the brief. If the subagent ran no tests, give it a test filter, or say in words that the whole test suite must run. If its status is STOPPED, answer its question and dispatch it again, or ask the user. Compare only the status, the error count, and the Failed, Passed, and Total counts with the report. Ignore the duration and the warning count, because they differ between runs.
+1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, fix it or dispatch a repair. Read the verbatim result lines that the subagent reports. Do not add a run after each report. Before a commit or a push, run the build and the tests one time in the main loop. That run is the check of all reports since the last run. Use one command whose output holds only the result lines and the errors, and keep its exit code (for .NET, the filters of `dev-essentials:dotnet-build-test`). If each command exits with code 0 and the result line shows zero failed tests, the run is green. Any other result is not green. Run the tests that the subagent ran. If it ran none, run the tests that cover the changed files. A green run of the main loop after the last edit counts. If the run is red, fix the cause or send the error lines back, and run again. Compare only the status, the error count, and the Failed, Passed, and Total counts with the report. Ignore the duration and the warning count, because they differ between runs. If a run can take longer than 10 minutes, dispatch `dev-essentials:test-runner`. Its brief gives the absolute worktree path, the commands, and the test filter or the words that the whole test suite runs. It also says that the run can take longer than 10 minutes. If its status is STOPPED, answer its question and dispatch it again, or ask the user. Also dispatch it for runs in several worktrees at the same time (test 2).
 2. Content, by an agent: a verifier or reviewer agent checks whether a finding, a cited line, or a claimed behavior is true. If the workflow has no such agent and the next step depends on the content, dispatch one. Do not redo its work. Every re-read stays in the main context for the rest of the run.
 3. Spot-check, by the orchestrator, only before a high-risk action: a push, a deletion, a post to an outside system, or a recommendation that the user acts on. Re-read only the lines that the action depends on. If a subagent claimed a green build or green tests after a rebase, run them again (for .NET, see `dev-essentials:dotnet-build-test`).
 

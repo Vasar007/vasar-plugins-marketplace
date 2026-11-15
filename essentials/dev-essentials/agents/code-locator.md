@@ -1,6 +1,6 @@
 ---
 name: code-locator
-description: Read-only code search. It finds where code lives and returns file paths, line numbers, symbols, and short excerpts, not whole files or conclusions. Use it for "where is X defined", "find the callers of X", or "find code like X".
+description: Read-only code search. It finds where code lives and returns file paths, line numbers, symbols, and short excerpts, not whole files or conclusions. Use it for a broad search whose many reads the main context does not need, or for several searches at the same time.
 tools: [Read, Grep, Glob]
 model: haiku
 effort: low
