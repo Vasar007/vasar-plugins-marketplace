@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/evals.md`: the `style-compare-*` suites of `doc-styles` run in WSL2 or on Linux, not on native Windows. Their hooks need `python3`, and the hooks of the simple-english stand-in also need `node` (Node.js 22 or later). On native Windows, the lint hooks of `doc-styles` and of the stand-in gave no message in an eval run. So the old scores of these suites came from runs with no lint hook message. The file names the tools, a setup step for WSL2, and the results of the hook probes (issue #151).
+
 ## dev-essentials 3.11.2 in release [4.8.3] - 2026-11-15
 
 This release gives the `Route:` line of `subagent-orchestration` a label for each kind of dispatch that no delegation test decides.
