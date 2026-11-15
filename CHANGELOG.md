@@ -38,6 +38,7 @@ This release gives each plugin an icon for a listing in Anthropic's directory. S
 
 - `tests/test_eval_scaffolds.py`: new test `test_the_pull_ref_hook_runs_when_hooks_are_pinned_off_for_the_push`. If the push runs with the hook pins of an eval run, the `post-receive` hook of `git-fixture.sh` must still move `refs/pull/<id>/head`. The test sets the pins in the environment and as `-c` arguments. The hook still runs because git removes the pins of the pushing process before it starts `receive-pack` for a local remote (issue #141).
 - `CLAUDE.md`: a new convention says that each plugin has an icon at `assets/icon.png`, and that the `icon` field of `plugin.json` names it (issue #140).
+- `tests/test_check_report.py`: the test `test_leftovers_warns_for_a_process_that_uses_the_scratch_folder` now uses a fixed fake pid for the test process. Before, it used the real pid next to the fake pids 500 to 502. If the real pid was 500, 501, or 502, the records clashed and the test failed. In WSL2, the first commands after a start get pids near 500 (issue #145).
 
 ## dev-essentials 3.10.2 in release [4.7.4] - 2026-11-15
 

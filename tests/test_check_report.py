@@ -374,15 +374,16 @@ class ProcessListTests(unittest.TestCase):
 
     def test_leftovers_warns_for_a_process_that_uses_the_scratch_folder(self):
         scratch = r"C:\work\bh-scratch"
-        me, parent = os.getpid(), os.getppid()
-        records = [(me, parent, "", f"python3 runner.py {scratch}"),
-                   (parent, 1, "", f"bash -c cd {scratch}"),
+        # A fixed own pid, so that a real pid such as 501 cannot clash with the fake records.
+        records = [(100, 99, "", f"python3 runner.py {scratch}"),
+                   (99, 1, "", f"bash -c cd {scratch}"),
                    (500, 1, "2026-10-15T09:00:00", "dotnet test C:/work/bh-scratch/app.sln"),
                    (501, 1, "", f"python3 check_report.py --scratch {scratch}"),
                    (502, 1, "", "unrelated")]
         out = io.StringIO()
-        with mock.patch.object(cr, "list_processes", return_value=records), contextlib.redirect_stdout(out):
-            cr.leftovers(scratch)
+        with mock.patch.object(cr.os, "getpid", return_value=100):
+            with mock.patch.object(cr, "list_processes", return_value=records), contextlib.redirect_stdout(out):
+                cr.leftovers(scratch)
         self.assertEqual(out.getvalue().splitlines(), [
             "WARN: process uses the scratch folder: pid=500 started=2026-10-15T09:00:00 "
             "command=dotnet test C:/work/bh-scratch/app.sln"])
