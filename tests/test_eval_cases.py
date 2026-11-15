@@ -1963,6 +1963,9 @@ class RouteReportedGraderTests(unittest.TestCase):
             "no Route line": ("The retry limit is now 3.", False),
             "a Route line with no reason": ("Route: one subagent", False),
             "a reason that is no label": ("Route: plan (a better model)", False),
+            "a label with no Route line": ("Stage 2 ran in the workflow (stronger model).", False),
+            "the colon on another line": ("Route\nworkflow", False),
+            "a longer word": ("Route: stage 2 (workflows)", False),
         }
         for name, (reply, expected) in runs.items():
             with self.subTest(run=name):

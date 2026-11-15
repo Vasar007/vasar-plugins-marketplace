@@ -15,7 +15,7 @@ This release gives the `Route:` line of `subagent-orchestration` a label for eac
 
 ### Changed in dev-essentials
 
-- `subagent-orchestration`: Rule 1 gives the `Route:` line three labels for a dispatch that no test decides: `workflow` for a dispatch that a workflow skill names, `stronger model`, and `outside system` for a Rule 4 dispatch. Before, a reply had to invent a word or name a test that did not decide the dispatch (issue #161).
+- `subagent-orchestration`: Rule 1 gives the `Route:` line three labels for a dispatch that no test decides. The label `workflow` is for a dispatch that a workflow skill names. The label `outside system` is for a Rule 4 dispatch, and the label `stronger model` is the third. Before, a reply had to invent a word or name a test that did not decide the dispatch (issue #161).
 - `evals/subagent-orchestration` and `evals/research-implement-review-report/rirr-retry-limit`: the graders `route-reported` accept the three labels (issue #161).
 
 ### Changed in the repository
