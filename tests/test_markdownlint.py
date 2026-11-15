@@ -2,9 +2,11 @@
 
 The rules are in .markdownlint.jsonc at the repository root. The test runs a
 pinned markdownlint-cli through npx, so it needs Node.js 22 or later. If npx is
-not found, the test skips. In CI it fails. If markdownlint finds none of the
-files, it prints its help text and exits with 0. The test then also skips, and
-in CI it fails. The Windows npx under WSL2 does this.
+not found, the test skips. If the environment variable CI is true, it fails. If
+markdownlint finds none of the files, it prints its help text and exits with 0.
+The test then also skips, and it fails if CI is true. The Windows npx under WSL2
+does this when the clone is in the Linux file system, because cmd.exe cannot
+use that folder as its current folder.
 """
 import shutil
 import subprocess
@@ -54,6 +56,8 @@ class LintedNothingTests(unittest.TestCase):
         self.assertTrue(linted_nothing(subprocess.CompletedProcess([], 0, help_text, "")))
         self.assertFalse(linted_nothing(subprocess.CompletedProcess([], 0, "", "")))
         self.assertFalse(linted_nothing(subprocess.CompletedProcess([], 1, "", hit)))
+        self.assertFalse(linted_nothing(subprocess.CompletedProcess([], 1, help_text, "")))
+        self.assertFalse(linted_nothing(subprocess.CompletedProcess([], 0, "", help_text)))
 
 
 class MarkdownlintTest(unittest.TestCase):
@@ -78,8 +82,9 @@ class MarkdownlintTest(unittest.TestCase):
             result = self.markdownlint(batch)
             if linted_nothing(result):
                 tool_missing(self, f"{MARKDOWNLINT} found none of the files and printed its help text, so it linted "
-                                   f"nothing. Under WSL2, the Windows npx does this: cmd.exe cannot use a WSL folder "
-                                   f"as its current folder. Install Node.js 22 or later in Linux. npx: {self.npx}\n"
+                                   f"nothing. One known cause is the Windows npx under WSL2, when the clone is in "
+                                   f"the Linux file system: cmd.exe cannot use that folder as its current folder. "
+                                   f"In that case, install Node.js 22 or later in Linux. npx: {self.npx}\n"
                                    f"{result.stderr}")
             if result.returncode != 0:
                 failures.append(f"{MARKDOWNLINT} exited with {result.returncode}:\n{result.stdout}{result.stderr}")
