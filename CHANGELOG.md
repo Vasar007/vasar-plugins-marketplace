@@ -9,8 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.3 in release [4.8.4] - 2026-11-15
+
+This release adds one behavior case for `process-pr-comments`. The case covers an `[OutOfScope]` issue search that finds the issue. The skill text does not change.
+
+### Added in dev-essentials
+
+- `evals/process-pr-comments/ppc-outofscope-search-hit`: a new behavior case. A reviewer asks for a separate issue, and the run has `autonomous`. The issue search returns two issues. The body of one issue has the line `Source:` with the URL of the thread. The graders make sure that the run searches and creates no issue. They make sure that the run asks no question about a new issue. They also make sure that the run posts the `Tracked as issue` reply that names the found issue. The case `ppc-outofscope-autonomous` still covers a search that finds nothing (issue #126).
+
 ### Changed in the repository
 
+- `docs/evals.md`: the table of behavior suites gives 7 cases for `process-pr-comments` (issue #126).
 - `docs/evals.md`: the `style-compare-*` suites of `doc-styles` run in WSL2 or on Linux, not on native Windows. Their hooks need `python3`, and the hooks of the simple-english stand-in also need `node` (Node.js 22 or later). On native Windows, the lint hooks of `doc-styles` and of the stand-in gave no message in an eval run. So the old scores of these suites came from runs with no lint hook message. The file names the tools, a setup step for WSL2, and the results of the hook probes (issue #151).
 
 ## dev-essentials 3.11.2 in release [4.8.3] - 2026-11-15
@@ -1399,7 +1408,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...HEAD
+[4.8.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...v4.8.4
 [4.8.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...v4.8.3
 [4.8.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...v4.8.1
