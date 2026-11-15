@@ -12,7 +12,7 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `tests/test_eval_scaffolds.py`: new test `test_the_pull_ref_hook_runs_when_hooks_are_pinned_off_for_the_push`. If the push runs with the hook pins of an eval run, the `post-receive` hook of `git-fixture.sh` must still move `refs/pull/<id>/head`. The test sets the pins in the environment and as `-c` arguments. The hook still runs because git removes the pins of the pushing process before it starts `receive-pack` for a local remote (issue #141).
-- `CLAUDE.md`: the validator note names `ICON_MISSING` as the one expected finding of `claude plugin validate --strict`. Claude Code prints it for each plugin in the block "Plugin directory checks", because no plugin has an icon for a listing in Anthropic's directory. That block does not change the exit code. Any other code in that block counts as real (issue #140).
+- `CLAUDE.md`: the validator note names `ICON_MISSING` as the one expected finding of `claude plugin validate --strict`. Claude Code prints it for each plugin in the block "Plugin directory checks", because no plugin has an icon for a listing in Anthropic's directory. The run with `--strict` still passes. Any other code in that block counts as real (issue #140).
 
 ## dev-essentials 3.10.2 in release [4.7.4] - 2026-11-15
 

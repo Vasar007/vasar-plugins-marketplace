@@ -24,7 +24,7 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 
 **How users receive updates**: after the new version lands on `main`, users run `/plugin marketplace update vasar-plugins-marketplace` (or have auto-update enabled), then `/reload-plugins`. Claude Code compares the resolved `version` against its cached copy and pulls only the bumped plugins.
 
-**Validator note**: `claude plugin validate` accepts `version`. If a plugin manifest sets `version`, the validator gives no warning for it. So expect no warnings on the plugin manifests. The one expected exception is `ICON_MISSING` in the "Plugin directory" block of the output. No plugin has an icon for a listing in Anthropic's directory, and that block does not change the exit code. Treat any other code in that block as real.
+**Validator note**: `claude plugin validate` accepts `version`. If a plugin manifest sets `version`, the validator gives no warning for it. So expect no warnings on the plugin manifests. The one expected exception is `ICON_MISSING` in the "Plugin directory" block of the output. No plugin has an icon, and `claude plugin validate --strict` still passes. Treat any other code in that block as real.
 
 ## Repo conventions
 
