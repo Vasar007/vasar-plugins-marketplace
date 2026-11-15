@@ -24,13 +24,14 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 
 **How users receive updates**: after the new version lands on `main`, users run `/plugin marketplace update vasar-plugins-marketplace` (or have auto-update enabled), then `/reload-plugins`. Claude Code compares the resolved `version` against its cached copy and pulls only the bumped plugins.
 
-**Validator note**: `claude plugin validate` accepts `version`. If a plugin manifest sets `version`, the validator gives no warning for it. So expect no warnings on the plugin manifests. The one expected exception is `ICON_MISSING` in the "Plugin directory" block of the output. No plugin has an icon, and `claude plugin validate --strict` still passes. Treat any other code in that block as real.
+**Validator note**: `claude plugin validate` accepts `version`. If a plugin manifest sets `version`, the validator gives no warning for it. So expect no warnings on the plugin manifests.
 
 ## Repo conventions
 
 - This is a **personal** Claude Code marketplace. Keep all artifacts (skills, agents, commands, READMEs) generic and stack-neutral. No employer/product branding, no internal hostnames, no internal URLs.
 - Skill / agent names use lowercase-kebab-case without organization prefixes.
 - Each plugin lives at `<group>/<plugin>/` with its own `.claude-plugin/plugin.json`.
+- Each plugin has an icon at `assets/icon.png` in its folder: a square PNG of 512 to 2048 px on each side, under 2 MB. The `icon` field of `plugin.json` names it. Without it, `claude plugin validate --strict` reports `ICON_MISSING`.
 - New plugins must be registered in `.claude-plugin/marketplace.json` and the matrix in `README.md`.
 - If a behavior depends on a specific tool or runtime (for example .NET, PowerShell, or AWS), document the assumption explicitly inside the skill. Do not spread it across files.
 
