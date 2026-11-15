@@ -12,11 +12,15 @@ INVENTORY_NUNIT_VERSION="4.6.1"
 # The run has no network. So the new version goes into the shared folder before dotnet_warm copies it.
 prefetch_package() {
     [ "${EVAL_FIXTURE_SKIP_DOTNET:-}" = "1" ] && return 0
-    dotnet_prepare_cache
+    local cache="${EVAL_FIXTURE_DOTNET_CACHE:-/tmp/plugin-evals}"
+    dotnet_prepare_cache "$cache"
     local folder
     folder="$(mktemp -d)"
     printf '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="%s" Version="%s" /></ItemGroup></Project>\n' "$1" "$2" > "$folder/prefetch.csproj"
-    dotnet restore "$folder/prefetch.csproj" --packages /tmp/plugin-evals/nuget --verbosity quiet
+    (
+        flock 9
+        dotnet restore "$folder/prefetch.csproj" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+    ) 9>"$cache/nuget.lock"
     rm -rf "$folder"
 }
 
