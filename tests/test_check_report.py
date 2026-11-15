@@ -382,7 +382,7 @@ class ProcessListTests(unittest.TestCase):
                    (501, 1, "", f"python3 check_report.py --scratch {scratch}"),
                    (502, 1, "", "unrelated")]
         out = io.StringIO()
-        with mock.patch.object(cr.os, "getpid", return_value=100):
+        with mock.patch.object(cr.os, "getpid", return_value=100), mock.patch.object(cr.Path, "is_dir", return_value=False):
             with mock.patch.object(cr, "list_processes", return_value=records), contextlib.redirect_stdout(out):
                 cr.leftovers(scratch)
         self.assertEqual(out.getvalue().splitlines(), [
@@ -391,8 +391,9 @@ class ProcessListTests(unittest.TestCase):
 
     def test_leftovers_warns_when_processes_cannot_be_listed(self):
         out = io.StringIO()
-        with mock.patch.object(cr, "list_processes", return_value=None), contextlib.redirect_stdout(out):
-            cr.leftovers(r"C:\work\bh-scratch")
+        with mock.patch.object(cr.Path, "is_dir", return_value=False):
+            with mock.patch.object(cr, "list_processes", return_value=None), contextlib.redirect_stdout(out):
+                cr.leftovers(r"C:\work\bh-scratch")
         self.assertEqual(out.getvalue().splitlines(), ["WARN: cannot list processes"])
 
 

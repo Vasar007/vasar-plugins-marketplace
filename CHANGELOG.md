@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.1 in release [4.8.2] - 2026-11-15
+
+This release fixes small gaps that the review loops of batch 2 left open. One eval grader gave a false pass, and some tests and docs lines were not exact. The skill text does not change.
+
+### Changed in dev-essentials
+
+- `evals/feature-pipeline/fp-e1-seeded-defects`: the grader `fixed-sql` also reads the SQL words `select`, `where`, `from`, and `values` in lower case. Before, a lower-case line with the defect passed (issue #159).
+- `evals/_lib`: the comments of `git-fixture.sh` and `dotnet-fixture.sh` say that `dotnet-backend-dev` has a git symlink to each file. Before, they said that the file is copied into each plugin (issue #159).
+
+### Changed in the repository
+
+- `tests/test_claude_ai_sync.py`: the new class `PluginIconTest` makes sure that each plugin names `./assets/icon.png` in `plugin.json`. It also makes sure that the file is a square PNG of 512 to 2048 px, under 2 MB (issue #159).
+- `tests/test_check_report.py`: the two leftovers tests no longer read a folder of the machine. Before, a folder `C:\work\bh-scratch\work` that was not empty made them fail. On Linux, that path is relative to the current folder (issue #159).
+- `tests/test_eval_cases.py`: new samples for lower-case SQL (issue #159).
+- `tests/test_eval_scaffolds.py`: the docstring of the pull ref test names the one pin that the test proves (issue #159).
+- `CLAUDE.md`: the icon convention says what the validator reports without the icon file, and names the new test (issue #159).
+- `docs/testing.md`: the sentence about `cmd.exe` names the folder that it cannot use (issue #159).
+
 ## dotnet-backend-dev 1.7.4 in release [4.8.1] - 2026-11-15
 
 This release removes the copies of two eval fixture libraries. The skill text does not change.
@@ -1364,7 +1382,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...HEAD
+[4.8.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...v4.8.0
 [4.7.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...v4.7.8

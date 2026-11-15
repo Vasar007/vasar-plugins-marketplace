@@ -5,6 +5,7 @@ It also reads text in angle brackets in a description as an XML tag, and removes
 It skips a plugin that holds a .claude-plugin folder below its root.
 """
 import json
+import struct
 import subprocess
 import unittest
 from pathlib import PurePosixPath
@@ -13,6 +14,7 @@ from support import REPO
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 ENTITY_GLOBS = ("skills/*/SKILL.md", "agents/*.md", "commands/*.md")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def plugin_roots():
@@ -99,6 +101,26 @@ class ClaudeAiSyncTest(unittest.TestCase):
                     if description and ("<" in description or ">" in description.lstrip(">")):
                         failures.append(str(path.relative_to(REPO)))
         self.assertEqual(failures, [], "Remove the angle brackets from the description. claude.ai reads them as XML tags.")
+
+
+class PluginIconTest(unittest.TestCase):
+    """Each plugin has the icon that CLAUDE.md asks for: a square PNG of 512 to 2048 px, under 2 MB."""
+
+    def test_each_plugin_names_a_square_png_icon(self):
+        roots = plugin_roots()
+        self.assertTrue(roots, f"No plugin manifest matches {PLUGIN_GLOB}.")
+        for root in roots:
+            with self.subTest(plugin=root.relative_to(REPO).as_posix()):
+                manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+                self.assertEqual(manifest.get("icon"), "./assets/icon.png")
+                icon = root / "assets" / "icon.png"
+                self.assertTrue(icon.is_file(), f"{icon} is missing.")
+                data = icon.read_bytes()
+                self.assertEqual((data[:8], data[12:16]), (PNG_SIGNATURE, b"IHDR"))
+                width, height = struct.unpack(">II", data[16:24])
+                self.assertEqual(width, height)
+                self.assertTrue(512 <= width <= 2048, f"The icon is {width} px wide.")
+                self.assertLess(len(data), 2 * 1024 * 1024)
 
 
 if __name__ == "__main__":
