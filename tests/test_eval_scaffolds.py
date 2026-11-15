@@ -523,7 +523,7 @@ class LibraryTests(FixtureCase):
 
     def test_the_pull_ref_hook_runs_when_hooks_are_pinned_off_for_the_push(self):
         """An eval run pins hooks off in the environment of git. Git drops that environment for the receiving side of a local remote.
-        A failing pre-push hook in the workspace shows that the pins work for the pushing side."""
+        A failing pre-push hook in the workspace shows that the core.hooksPath pin works for the pushing side."""
         workspace = self.workspace()
         self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
                          "make_pager_repo\ngit checkout -q -b feature/x\n"

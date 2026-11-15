@@ -6,7 +6,7 @@
 # fixture_publish: push every branch, then turn on the reflogs that the graders read.
 # Every commit has the subject prefix "fixture:", so that a grader can tell it from a commit of the run.
 #
-# This file is copied into each plugin that has fixtures. A test makes sure that the copies are equal.
+# dotnet-backend-dev has a git symlink to this file. A test makes sure that the link is there.
 set -euo pipefail
 
 FIXTURE_CLOCK="${FIXTURE_CLOCK:-1767225600}"

@@ -1655,9 +1655,11 @@ class FeaturePipelineGraderTests(unittest.TestCase):
         samples = {
             "fixed-sql": (
                 ("var text = $\"SELECT quantity FROM stock WHERE sku = '{sku}'\";\n",
-                 "var text = string.Format(\"SELECT quantity FROM stock WHERE sku = '{0}'\", sku);\n"),
+                 "var text = string.Format(\"SELECT quantity FROM stock WHERE sku = '{0}'\", sku);\n",
+                 "var text = \"select quantity from stock where sku = '\" + sku + \"'\";\n"),
                 ("throw new ArgumentException(\"Unknown sku '\" + sku + \"'\");\n",
-                 "throw new ArgumentException($\"Unknown sku '{sku}'\");\n"),
+                 "throw new ArgumentException($\"Unknown sku '{sku}'\");\n",
+                 "var text = \"select quantity from stock where sku = @sku\";\n"),
             ),
             "fixed-bound": (
                 ("while (i <= skus.Length)\n{\n    i++;\n}\n",),

@@ -16,7 +16,7 @@
 # The scaffold never runs the tests. If EVAL_FIXTURE_SKIP_DOTNET=1, dotnet_warm does nothing.
 # EVAL_FIXTURE_DOTNET_CACHE replaces the folder /tmp/plugin-evals. Only a test sets these two variables.
 #
-# This file is copied into each plugin that has .NET fixtures. A test makes sure that the copies are equal.
+# dotnet-backend-dev has a git symlink to this file. A test makes sure that the link is there.
 set -euo pipefail
 
 dotnet_write_common_files() {
