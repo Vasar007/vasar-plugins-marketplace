@@ -8,6 +8,7 @@ block mappings, block lists of scalars, quoted and plain scalars, and inline
 lists and maps. Block scalars (| and >) and anchors are not supported.
 """
 import json
+import posixpath
 import re
 import shutil
 import sys
@@ -16,7 +17,7 @@ from pathlib import Path
 from unittest import mock
 
 from support import REPO, tool_missing
-from testkit import ScratchCase, run
+from testkit import ScratchCase, git_init, run
 
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 EVALS = "evals"
@@ -28,6 +29,8 @@ MAX_SECONDS = 3600
 SCAFFOLD_SHEBANG = "#!/usr/bin/env bash"
 SCAFFOLD_STRICT = "set -euo pipefail"
 EXECUTABLE_MODE = "100755"
+LINK_MODE = "120000"
+LIBRARY_SOURCE = "essentials/dev-essentials"
 
 PROMPT_KEYS = {"schema_version", "name", "description", "tags", "plugins", "runs", "expected_outcome", "model",
                "max_turns", "timeout_seconds", "allowed_tools", "append_system_prompt", "env"}
@@ -674,6 +677,31 @@ def copy_problems(repo=REPO):
     return problems
 
 
+def link_target(path, repo=REPO):
+    """The repo path that the git symlink at path names, read from the index, so a checkout with no links works too."""
+    text = run(["git", "-C", repo, "cat-file", "blob", f":{path}"], check=True).stdout
+    return posixpath.normpath(posixpath.join(posixpath.dirname(path), text))
+
+
+def link_problems(modes, repo=REPO):
+    """Each shared library outside dev-essentials must be a git symlink to the file of the same name in dev-essentials."""
+    problems = []
+    for name, roots in LIBRARY_COPIES.items():
+        source = f"{LIBRARY_SOURCE}/{EVALS}/_lib/{name}"
+        for root in roots:
+            if root == LIBRARY_SOURCE:
+                continue
+            path = f"{root}/{EVALS}/_lib/{name}"
+            if modes.get(path) != LINK_MODE:
+                problems.append(f"{path}: the git mode is {modes.get(path)}, but it must be {LINK_MODE}, a link to {source}")
+            elif link_target(path, repo) != source:
+                problems.append(f"{path}: the link names {link_target(path, repo)}, but it must name {source}")
+            elif not (Path(repo) / path).is_symlink():
+                problems.append(f"{path}: git checked out the link as a plain file. Run: git config core.symlinks true, "
+                                f"turn on the Developer Mode of Windows, then run: git checkout -- {path}")
+    return problems
+
+
 def blob_id(content):
     """The git blob id of the bytes, as `git hash-object --stdin` prints it."""
     done = run(["git", "hash-object", "--stdin"], stdin=content, check=True, text=False)
@@ -720,10 +748,23 @@ def tracked_modes(repo=REPO):
 
 
 def shell_file_problems(modes, repo=REPO, bash=None):
-    """Each tracked .sh file under an eval folder: LF only, executable in the index, and valid Bash syntax."""
+    """Each tracked .sh file under an eval folder: LF only, executable in the index, and valid Bash syntax.
+
+    A git symlink is accepted only in an evals/_lib folder, to an executable .sh file in an evals/_lib folder.
+    The loop checks the target under its own path.
+    """
+    lib = f"/{EVALS}/_lib/"
     problems = []
     for path, mode in sorted(modes.items()):
-        if not (path.endswith(".sh") and f"/{EVALS}/" in path and (Path(repo) / path).is_file()):
+        if not (path.endswith(".sh") and f"/{EVALS}/" in path):
+            continue
+        if mode == LINK_MODE:
+            target = link_target(path, repo)
+            if lib not in path or lib not in target or modes.get(target) != EXECUTABLE_MODE:
+                problems.append(f"{path}: a link must sit in an {EVALS}/_lib folder and name an executable .sh file "
+                                f"in an {EVALS}/_lib folder, but it names {target}")
+            continue
+        if not (Path(repo) / path).is_file():
             continue
         data = (Path(repo) / path).read_bytes()
         if b"\r" in data:
@@ -1011,6 +1052,37 @@ class CaseCheckTests(CaseFiles):
         self.write("_lib/git-fixture.sh", "different\n", plugin=self.tmp / "dotnet/dotnet-backend-dev")
         self.assertEqual(len(copy_problems(self.tmp)), 1)
 
+    GOOD_LINK = "../../../../essentials/dev-essentials/evals/_lib/git-fixture.sh"
+
+    def link_repo(self, target_text, link="dotnet/dotnet-backend-dev/evals/_lib/git-fixture.sh"):
+        """A git repository in self.tmp with the dev-essentials libraries, and one link that only the index holds."""
+        if shutil.which("git") is None:
+            tool_missing(self, "git not found")
+        git_init(self.tmp)
+        for name in LIBRARY_COPIES:
+            source = self.tmp / LIBRARY_SOURCE / EVALS / "_lib" / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_bytes(b"#!/usr/bin/env bash\necho hi\n")
+            run(["git", "-C", self.tmp, "add", "--chmod=+x", source.relative_to(self.tmp).as_posix()], check=True)
+        blob = run(["git", "-C", self.tmp, "hash-object", "-w", "--stdin"], stdin=target_text, check=True).stdout.strip()
+        run(["git", "-C", self.tmp, "update-index", "--add", "--cacheinfo", f"{LINK_MODE},{blob},{link}"], check=True)
+        return tracked_modes(self.tmp)
+
+    def test_link_problems_name_a_plain_file_and_a_link_that_is_not_on_disk(self):
+        modes = self.link_repo(self.GOOD_LINK)
+        problems = link_problems(modes, self.tmp)
+        self.assertTrue(any("dotnet-fixture.sh: the git mode is None, but it must be 120000" in p for p in problems), problems)
+        self.assertTrue(any("git-fixture.sh: git checked out the link as a plain file" in p for p in problems), problems)
+        self.assertEqual(shell_file_problems(modes, self.tmp), [])
+
+    def test_a_link_to_another_file_or_outside_a_lib_folder_is_a_problem(self):
+        modes = self.link_repo("../../../../essentials/dev-essentials/evals/_lib/dotnet-fixture.sh")
+        self.assertTrue(any("the link names essentials/dev-essentials/evals/_lib/dotnet-fixture.sh" in p
+                            for p in link_problems(modes, self.tmp)))
+        modes = self.link_repo(self.GOOD_LINK, link="dotnet/dotnet-backend-dev/evals/demo/scaffold.sh")
+        problems = shell_file_problems(modes, self.tmp)
+        self.assertTrue(any("demo/scaffold.sh: a link must sit in an evals/_lib folder" in p for p in problems), problems)
+
     def test_shell_file_problems(self):
         good = self.write("_lib/good.sh", "#!/usr/bin/env bash\necho hi\n")
         bad = self.write("_lib/bad.sh", "if then\r\n")
@@ -1180,6 +1252,11 @@ class RepositoryCasesTest(unittest.TestCase):
 
     def test_fixture_libraries_have_equal_copies(self):
         self.assertEqual(copy_problems(), [])
+
+    def test_shared_libraries_of_dotnet_backend_dev_are_links(self):
+        if shutil.which("git") is None:
+            tool_missing(self, "git not found")
+        self.assertEqual(link_problems(tracked_modes()), [])
 
     def test_style_compare_arms_differ_in_the_style_only(self):
         self.assertEqual(pair_problems(self.cases), [])

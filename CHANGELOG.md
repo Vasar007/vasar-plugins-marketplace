@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.7.4 in release [4.8.1] - 2026-11-15
+
+This release removes the copies of two eval fixture libraries. The skill text does not change.
+
+### Changed in dotnet-backend-dev
+
+- `evals/_lib/git-fixture.sh` and `evals/_lib/dotnet-fixture.sh` are now git symlinks to the files of the same name in `dev-essentials`. A change to one of these libraries now edits one file and bumps only `dev-essentials`. When Claude Code copies the plugin from the git-hosted marketplace, it copies the content of each link into the plugin cache (issue #156).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: a new test makes sure that the two libraries of `dotnet-backend-dev` are links to the files of `dev-essentials`. A link that git checked out as a plain file fails with the fix in the message. `shell_file_problems` accepts a link between two `evals/_lib` folders (issue #156).
+- `docs/evals.md`: the text names the links and the setup that Windows needs for them (issue #156).
+
 ## dev-essentials 3.11.0 in release [4.8.0] - 2026-11-15
 
 This release changes how the orchestrator picks the route of each piece of work. Five delegation tests in `subagent-orchestration` decide each dispatch, and the main loop keeps small lookups and the small tasks of a plan. Before a commit, the main loop runs the build and the tests one time, in place of a `test-runner` dispatch. The final reply names the route in a `Route:` line.
@@ -1351,7 +1364,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.1...HEAD
+[4.8.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.8...v4.8.0
 [4.7.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.7...v4.7.8
 [4.7.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.7.6...v4.7.7
