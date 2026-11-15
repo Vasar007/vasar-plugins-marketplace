@@ -46,19 +46,22 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `feature-pipeline` | `dev-essentials` | 9 | WSL |
 | `research-implement-review-report` | `dev-essentials` | 1 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
-| `style-compare-openbsd` | `doc-styles` | 9 | Windows, because it grants no shell tool |
-| `style-compare-se` | `doc-styles` | 9 | Windows, because it grants no shell tool |
-| `style-compare-both` | `doc-styles` | 3 | Windows, because it grants no shell tool |
+| `style-compare-openbsd` | `doc-styles` | 9 | WSL2 or Linux, because its hook needs `python3` |
+| `style-compare-se` | `doc-styles` | 9 | WSL2 or Linux, because its hooks need `python3` and `node` |
+| `style-compare-both` | `doc-styles` | 3 | WSL2 or Linux, because its hooks need `python3` and `node` |
 
 The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, and `--tag write-tests` also run the trigger cases in `evals/triggers/` of their plugin.
 
 The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects the cases of all `style-compare-*` suites. The suite `style-compare-openbsd` runs the skill on the documents in `evals/style-compare/openbsd/` of `doc-styles`. The suite `style-compare-se` runs the same prompts with `simple-english`, from `evals/style-compare/simple-english/`. The suite `style-compare-both` runs the documents in `evals/style-compare/coexist/` with both plugins loaded. The `simple-english` side loads the stand-in in `tests/evals/stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The trigger cases of `doc-styles` in `evals/triggers/` carry the tag `openbsd-style-docs`, and its probes in `evals/probes/` carry the tag `probe`.
+
+The hooks of these suites run as commands on the `PATH` of the run. The `PostToolUse` lint hook of `doc-styles` runs `python3`. The stand-in runs `node` in its `SessionStart` hook, and `python3` in its `PostToolUse` and `Stop` hooks. So run the `style-compare-*` suites and the probes of `doc-styles` in WSL2 or on Linux. There, install Python 3 as `python3` and Node.js 22 or later as `node`. In WSL2, `probe-obsd-lint-hook` and `probe-se-lint-hook` scored 1.00 with the plugin and 0.00 without it. On native Windows, a Python hook can give no message in an eval run. With Claude Code 2.1.325 on native Windows, `probe-se-lint-hook` scored 0.00 with the plugin, and `probe-obsd-lint-hook` scored 0.00. Issue [#151](https://github.com/Vasar007/vasar-plugins-marketplace/issues/151) has the evidence. The cause is not proven.
 
 Run the suites through the compare script, because the cases of `dotnet-backend-dev` load `dev-essentials` from a `.deps` copy. A suite that grants `Bash` needs the sandbox of Claude Code, so run it in WSL2. Prepare WSL2 first:
 
 1. Install `bubblewrap` and `socat`. The sandbox needs both.
 2. For the `feature-pipeline` and `write-tests` suites, install the .NET SDK 10 outside your home folder. The sandbox cannot read your home folder, so an SDK in `~/.dotnet` does not work. On Ubuntu 26.04, the package `dotnet-sdk-10.0` works. The scaffolds of these suites also need `flock` from util-linux. Ubuntu installs it by default.
 3. Set `TMPDIR` to a folder outside `/tmp`, `/var/tmp`, `/dev/shm`, and `/run/shm`, and make that folder. The sandbox of a run denies these four folders, and the run folder follows `TMPDIR`. If `TMPDIR` points to one of them, no Bash write works in the run. This is a bug of Claude Code ([anthropics/claude-code#104631](https://github.com/anthropics/claude-code/issues/104631)). The `run` and `baseline` commands stop with a message in this case.
+4. For the `style-compare-*` suites and the probes of `doc-styles`, install Node.js 22 or later in Linux. For example, unpack the tarball of nodejs.org into `~/.local`. Put `node` and `python3` on the `PATH` of Linux. The `node.exe` of a Windows install does not help, because WSL2 does not find it for the command `node`.
 
 This example runs the `review-loop` suite in WSL2. Pass `--scaffold`, because each case builds its repository with its `scaffold.sh`. Pass `--allow-tools`, because a run asks for no permission and grants no shell tool by default. If the shell does not find `claude`, pass its path with `--claude`.
 
