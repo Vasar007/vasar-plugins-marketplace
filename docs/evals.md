@@ -80,3 +80,62 @@ The .NET cases need `-m:1`. The sandbox blocks the Unix sockets that the worker 
 The probes are cheap cases that test the run environment, not a skill. They are in `evals/probes/` of each plugin, and the tag is `probe`. Run them with the same command and `--tag probe` before the first paid suite run on a new machine.
 
 Do not commit baseline files. A result file holds local temporary paths, so keep the baselines outside git.
+
+## Clean the temp folder
+
+The temp folder of your eval runs is the folder that `TMPDIR` names, for example `~/.cache/plugin-evals/tmp`. Nothing cleans this folder. `claude plugin eval` makes one `claude-eval-*` run folder in it for each run. At the end of the run, it deletes the run folder. With `--keep-temp`, it keeps the run folder and prints its path. A finished kept run folder holds the trace of the run in `out/trace.jsonl`. The kept folder is read-only, and its `sealed/` folder has no permissions, so a plain `rm -rf` cannot delete it.
+
+The folder also collects leftovers. The run folders of stopped runs stay, and so do the `compare-versions-*` copies of the compare script. The .NET SDK, MSBuild, NuGet, and Python also leave temporary files there. After some weeks of runs, the folder can hold thousands of entries and several GB.
+
+If one of your notes names an entry of the folder, the entry stays. If no eval run is active, each other entry can go. A note is a Markdown or text file in which you wrote the path of a run folder, for example to read its trace later. The result files and the logs of `claude plugin eval` name almost every run, so the commands below read only `.md` and `.txt` files. The commands do not read a note that is not UTF-8 text or whose name does not end in a lowercase `.md` or `.txt`. If a note is a link, the commands do not follow it. If a letter, digit, or `_` touches a name, the commands do not find it.
+
+Do these steps in one shell of WSL2 or Linux:
+
+1. Set the three folders. `EVAL_TMP` is the temp folder of your eval runs. `NOTES` is the folder of your notes. `LISTS` is a folder for the lists of the cleanup, outside `EVAL_TMP`.
+
+   ```bash
+   EVAL_TMP="$HOME/.cache/plugin-evals/tmp"
+   NOTES="$HOME/eval-notes"
+   LISTS="$HOME/.cache/plugin-evals/clean"
+   ```
+
+2. Make sure that no eval run is active. If the command prints a process, wait until that process ends.
+
+   ```bash
+   pgrep -af '[p]lugin eval|[c]ompare_versions\.py (run|baseline)' || echo "No eval run is active."
+   ```
+
+3. Make the lists. First the command deletes the lists of an earlier cleanup. `keep.txt` holds the entries that stay, and `delete.txt` holds the entries that go. If `EVAL_TMP` holds no `claude-eval-*` folder, the command stops. If `EVAL_TMP` is `/`, your home folder, or a system temp folder, the command also stops. The lists leave out a name with a line break. If the command prints the `Stop:` line, do not do steps 4 and 5.
+
+   ```bash
+   rm -f -- "${LISTS:?}/all.txt" "$LISTS/keep.txt" "$LISTS/delete.txt"
+   if [ -n "$(find "${EVAL_TMP:?}" -maxdepth 1 -name 'claude-eval-*' -print -quit)" ] && [ -d "${NOTES:?}" ] \
+     && ! printf '%s\n' / /tmp /var/tmp /dev/shm /run/shm "$(realpath -- "$HOME")" | grep -qxF -- "$(realpath -- "$EVAL_TMP")"; then
+     mkdir -p "${LISTS:?}"
+     find "$EVAL_TMP" -mindepth 1 -maxdepth 1 ! -name "$(printf '*\n*')" -printf '%f\n' | sort > "$LISTS/all.txt"
+     grep -rhoFw -f "$LISTS/all.txt" --include='*.md' --include='*.txt' "$NOTES" | sort -u | comm -12 "$LISTS/all.txt" - > "$LISTS/keep.txt"
+     comm -23 "$LISTS/all.txt" "$LISTS/keep.txt" > "$LISTS/delete.txt"
+     wc -l "$LISTS/keep.txt" "$LISTS/delete.txt"
+   else
+     echo "Stop: EVAL_TMP is not the temp folder of your eval runs, or NOTES is not a folder."
+   fi
+   ```
+
+4. Read `keep.txt` and `delete.txt`. This command prints the size of the entries in `delete.txt`. The command cannot read the `sealed/` folders, so the real size is larger.
+
+   ```bash
+   (cd -- "${EVAL_TMP:?}" && tr '\n' '\0' < "${LISTS:?}/delete.txt" | du -sch --files0-from=- 2>/dev/null | tail -n 1)
+   ```
+
+5. Delete the entries in `delete.txt`. The command works only in `EVAL_TMP`. If an eval run is active, the command stops. It gives each listed folder write permission, and then it deletes the folder. It does not follow a symbolic link out of `EVAL_TMP`.
+
+   ```bash
+   (
+     cd -- "${EVAL_TMP:?}" || exit 1
+     if pgrep -f '[p]lugin eval|[c]ompare_versions\.py (run|baseline)' > /dev/null; then echo "An eval run is active. Nothing is deleted."; exit 1; fi
+     while IFS= read -r name; do
+       if [ -d "$name" ] && [ ! -L "$name" ]; then chmod -R u+rwX -- "$name"; fi
+       rm -rf -- "$name"
+     done < "${LISTS:?}/delete.txt"
+   )
+   ```
