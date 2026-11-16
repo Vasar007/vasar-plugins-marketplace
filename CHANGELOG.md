@@ -1613,8 +1613,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
-[4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...HEAD
+[4.11.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...v4.11.3
