@@ -1,6 +1,6 @@
 # Stage 9: Finalization + PR
 
-The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
+The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is the absolute path `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
 
 ## Contents
 
@@ -12,9 +12,9 @@ The master agent does these steps itself, in the main session, at Step 9 of `SKI
 
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/requirements.md`: for the summary and the rationale
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`: for the summary and the rationale
-- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If the run skipped the `review` stage, this file does not exist. Then continue without it.
+- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If `--skip` removed the `review` stage, this file does not exist. Then continue without it.
 - The project guidance files, the base branch, and all workflow commands of the project context
-- The start changes: the paths of `startChanges` in `pipeline-state.json`, and the paths that "After the stage" in `references/stage-launch.md` noted as edits of earlier stages. On a resume or after a compaction, these notes are gone, so the edited paths are "unknown".
+- The start changes: the paths of `startChanges` in `pipeline-state.json`, and the paths that "After the stage" in `references/stage-launch.md` noted as edits of earlier stages. If a resume or a compaction lost these notes, the edited paths are "unknown".
 - The `<commit-conventions>` block of `references/commit-conventions.md`, with the cadence line of `{COMMIT_MODE}`
 
 ## Process
