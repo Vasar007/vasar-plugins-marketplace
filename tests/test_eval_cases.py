@@ -2024,7 +2024,10 @@ class RouteReportedGraderTests(unittest.TestCase):
 
 
 class PpcOpenItemsGraderTests(unittest.TestCase):
-    """The graders of ppc-open-items-answered read the mocked calls, one JSON line for each call."""
+    """The graders of ppc-open-items-answered read the mocked calls, one JSON line for each call.
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
 
     CASE = "ppc-open-items-answered"
     SOURCE = "Source: https://github.com/example-org/pager/pull/42#discussion_r9103"
@@ -2035,7 +2038,8 @@ class PpcOpenItemsGraderTests(unittest.TestCase):
 
     @staticmethod
     def call(tool, **fields):
-        return json.dumps({"server": "github", "tool": tool, "input": fields, "verdict": "ok"}, separators=(",", ":"))
+        call = {"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": "{}", "verdict": "ok"}
+        return json.dumps(call, separators=(",", ":"))
 
     def right_run(self):
         return [
