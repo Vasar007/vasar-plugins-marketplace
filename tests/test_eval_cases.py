@@ -2047,8 +2047,11 @@ class PpcQuestionGraderTests(unittest.TestCase):
                                                    "can miss one.\n\n" + draft + "\n**Create this issue?**", True),
             "none found": ("Issue search: none found.\n\nShould I create the issue?", True),
             "found nothing": ("The issue search found nothing that tracks this.\n\n" + self.CREATE_QUESTION, True),
+            "neither search found one": ("I searched twice. Neither search found one.\n\n**Create this issue?**", True),
             "the question first": (self.CREATE_QUESTION + "\n\nThe search found none.", True),
             "an issue with no question": ("I searched and found none. I created issue #7 and posted the reply.", False),
+            "another question": ("I searched for an existing issue and found none.\n\n"
+                                 "Should I open a follow-up PR for the index instead?", False),
             "a question with no search result": (self.CREATE_QUESTION, False),
             "the question far from the search result": ("The search found none.\n\n" + draft * 3 + self.CREATE_QUESTION, False),
         }
@@ -2060,12 +2063,14 @@ class PpcQuestionGraderTests(unittest.TestCase):
         runs = {
             "post this answer": ("### 1. T#9102 `[Question]` at `src/pager.py:21`: post this answer?\n\n" + self.DRAFT
                                  + "**yes / edit / skip?**", True),
-            "post this reply": (self.DRAFT + "Post this reply?", True),
+            "post this reply": (self.DRAFT + "Post this reply to T#9102?", True),
             "the draft tag": ("[AI][Draft] The check comes first.", True),
             "the question of the skill": ("Post this [Question] reply to T#9102?", True),
             "a reply question with the choices": ("Reply to T#9102 with this text? (yes / edit / skip)", True),
             "only the issue question": (self.CREATE_QUESTION, False),
             "a plan with no question": ("I post this reply after your answer about the issue.", False),
+            "only the reply of the issue thread": ("T#9102 `[Question]`: I left it for you.\n\nT#9103 `[OutOfScope]`: reply "
+                                                   "`**[AI]** Tracked as issue #<id>.` Create the issue and post this reply?", False),
             "no draft": ("Nothing is posted, and no issue exists yet.", False),
         }
         for name, (reply, expected) in runs.items():

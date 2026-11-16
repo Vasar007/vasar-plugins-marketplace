@@ -15,8 +15,8 @@ This release fixes two graders of the `process-pr-comments` eval suite. Each one
 
 ### Fixed in dev-essentials
 
-- `evals/process-pr-comments/ppc-outofscope-autonomous`: the grader `asks-create` also reads "found none" and "none found" as an empty search. The search result and the create question can now be up to 1500 characters apart. Before, the limit was 400, and a run that showed the issue draft between them failed (issue #173).
-- `evals/process-pr-comments/ppc-gated-threads`: the grader `question-drafted` also reads the question "post this answer?" or "post this reply?" as the offer of a drafted `[Question]` reply (issue #173).
+- `evals/process-pr-comments/ppc-outofscope-autonomous`: the grader `asks-create` also reads "found none", "none found", and "neither ... found" as an empty search. The create question must name the issue, for example "create this issue?" or "create one?". The search result and the create question can now be up to 1500 characters apart. Before, the limit was 400, and a run that showed the issue draft between them failed (issue #173).
+- `evals/process-pr-comments/ppc-gated-threads`: the grader `question-drafted` also reads the question "post this answer?" as the offer of a drafted `[Question]` reply. It reads "post this reply?" the same way, but only next to `T#9102` or `[Question]` (issue #173).
 
 ### Changed in the repository
 
