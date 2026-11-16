@@ -9,6 +9,8 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.16.0 in release [4.13.0] - 2026-11-16
+
 ## dev-essentials 3.15.2 in release [4.12.2] - 2026-11-16
 
 This release settles the deferred review findings of the PRs #175, #176, #177, and #179. It makes seven eval graders read more right wordings and fewer wrong runs. The skill text does not change.
@@ -63,6 +65,7 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 - `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands (issue #197).
 - `docs/testing.md`: names the tests of the two scripts (issue #197).
 - `.github/workflows/tests.yml`: the job `test-windows` also runs `test_failure_check` and `test_group_diff` (issue #197).
+- `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).
 
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
 
@@ -1700,7 +1703,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...HEAD
+[4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.13.0
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.12.1
