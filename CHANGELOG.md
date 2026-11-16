@@ -15,7 +15,8 @@ This release corrects the description of the skill `feature-pipeline`. The pipel
 
 ### Fixed in dev-essentials
 
-- `skills/feature-pipeline`: the description says that a subagent runs each stage up to the reviews, and that the session itself makes the commit, the push, and the PR. Before, it said that one subagent runs each stage to the PR. That is not true for the last stage since release 4.9.0 (issue #196).
+- `skills/feature-pipeline`: the description says that subagents run the stages from the requirements to the reviews, and that the session pushes and opens the PR. Before, it said that one subagent runs each stage to the PR. That is not true for the last stage since release 4.9.0 (issue #196).
+- `skills/implement-batch`, `skills/research-implement-review-report`, and `commands/implement-task`: the note about `feature-pipeline` no longer says that it has one subagent for each stage (issue #196).
 
 ## doc-styles 1.1.7 in release [4.11.4] - 2026-11-16
 

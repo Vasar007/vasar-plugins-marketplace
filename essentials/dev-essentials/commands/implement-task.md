@@ -12,7 +12,7 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 - `dev-essentials:research-implement-review-report` (RIRR) works one task: research, a plan, the implementation, a review loop, and a report.
 - `dev-essentials:implement-task` wraps RIRR for one task. It adds a sweep of extra context first and a `/simplify` commit at the end.
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
-- `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. It has one subagent for each stage and its own approval gates.
+- `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. Subagents run its stages from the requirements to the reviews, the session pushes and opens the PR, and it has its own approval gates.
 
 This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
 
