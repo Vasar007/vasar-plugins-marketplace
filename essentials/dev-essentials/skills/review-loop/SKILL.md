@@ -285,7 +285,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/failure_check.py" --fix-commit <fix-comm
 - Give one `--ignore` for each kind of file that this loop wrote in this run, as a glob relative to the repository root: the cycle reports and the summary (`<reviews folder>/<target-slug>-*`) and any progress file of the loop. Leave out a file outside the repository.
 - The script makes each temporary worktree in a folder outside the repository, and removes it in every case. It stops each run of the command after 280 seconds. So give the Bash call a `timeout` of 600000. If the failed Phase 6 run took longer than 4 minutes, run the script with the Bash option `run_in_background: true`. Then add `--timeout <seconds>` with the time limit of one run, and wait for the notification that the script ended.
 - A `MADE <path>` line with no `REMOVED <path>` line names a worktree that is still there. Remove it with `git worktree remove --force <path>`.
-- A `WARN:` line names a worktree or a folder that the script cannot delete, often because a process of the build still runs. List each `WARN` line in the Phase 9 summary.
+- A `WARN:` line names a worktree or a folder that the script cannot delete, often because a process of the build still runs. On Windows, a background program of the command can live on after the time limit. After that process ends, delete the folder by hand. List each `WARN` line in the Phase 9 summary.
 - If `python3` is not available, the script exits with code 2, or its output has no `VERDICT:` line, end the loop with `stop-blocked`. In the Phase 9 summary, list the failure and the error of the script.
 
 Act on the `VERDICT:` line. The `RUN`, `ERROR`, `TAIL`, and `CHANGED` lines are the evidence:

@@ -28,6 +28,9 @@ The last two lines are the verdict and its reason:
                            command that cannot start
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
 names a worktree that is still there. Remove it with `git worktree remove --force`.
+A WARN line names a worktree or a folder that the script cannot delete. On Windows, the stop
+at the time limit does not reach a Git Bash program that a background subshell of the command
+starts, for example `sleep`. Such a program can keep the folder until it ends.
 
 Exit codes: 0 = a verdict is printed, 2 = usage error, setup error, or stop by a signal.
 

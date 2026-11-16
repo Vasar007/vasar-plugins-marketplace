@@ -62,7 +62,7 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands (issue #197).
+- `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands. On Windows, `taskkill` does not reach a Git Bash program that a background subshell starts. So on Windows, the test of the time limit accepts a `WARN` line for the folder that this program keeps. The test then stops the program and deletes the folder (issue #197).
 - `docs/testing.md`: names the tests of the two scripts (issue #197).
 - `.github/workflows/tests.yml`: the job `test-windows` also runs `test_failure_check` and `test_group_diff` (issue #197).
 - `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).

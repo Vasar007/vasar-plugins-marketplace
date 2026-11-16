@@ -18,7 +18,7 @@ from pathlib import Path
 from unittest import mock
 
 from support import REPO, load_module, tool_missing
-from testkit import ScratchCase, clean_env, git_init, run
+from testkit import ScratchCase, clean_env, git_init, remove_tree, run
 
 SCRIPT = REPO / "essentials/dev-essentials/skills/review-loop/scripts/failure_check.py"
 fc = load_module("failure_check", SCRIPT)
@@ -399,17 +399,55 @@ class SignalTests(FailureCheckCase):
 
 
 class TreeKillTests(FailureCheckCase):
-    """On Windows, taskkill does not reach every child of the shell, so only Linux checks the child."""
+    """The child is a bash loop that ends when the stop file exists, and then writes the flag file.
+
+    On Windows, taskkill does not reach a Git Bash program that a background subshell starts. That child
+    keeps the log open, so the script can print a WARN line and leave its folder. Only Linux checks the kill.
+    """
+
+    CHILD_STEPS = 600
+    REPLY_SECONDS = 3
+    FREE_SECONDS = 30
+
+    def stop_child(self, stop):
+        """Create the stop file. Then delete each item of the temporary folder when the child lets go of it."""
+        stop.touch()
+        deadline = time.monotonic() + self.FREE_SECONDS
+        for item in list(self.temp.iterdir()):
+            while item.exists():
+                try:
+                    remove_tree(item)
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.2)
 
     def test_time_limit_stops_a_background_child_of_the_command(self):
         self.write("sub/value.txt", "bad\n")
         fix = self.commit("fix")
-        flag = self.tmp / "flag.txt"
-        command = f"(sleep 4; echo alive > {shlex.quote(flag.as_posix())}) & wait"
-        self.check(fix, command, "--timeout", "1")
+        stop, flag = self.tmp / "stop", self.tmp / "flag.txt"
+        quoted = shlex.quote(stop.as_posix())
+        loop = (f"for i in $(seq {self.CHILD_STEPS}); do [ -e {quoted} ] && break; sleep 0.1; done; "
+                f"[ -e {quoted} ] && echo alive > {shlex.quote(flag.as_posix())}")
+        self.addCleanup(self.stop_child, stop)
+        args = [sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command",
+                f'("$BASH" -c {shlex.quote(loop)}; true) & wait', "--cwd", self.repo / "sub", "--timeout", "1"]
+        result = run(args, env=self.env, timeout=120)
+        self.assertResult(result, 0, "stopped after the time limit of 1 s", "VERDICT: OTHER")
+        self.assertEqual(self.git("worktree", "list", "--porcelain").count("worktree "), 1, "a worktree is left")
+        left = list(self.temp.iterdir())
+        warned = re.findall(r"^WARN: could not delete the folder (.+)$", result.stdout, re.M)
+        if os.name == "nt" and warned:
+            self.assertEqual(len(left), 1, result.stdout)
+            self.assertEqual([Path(path).resolve() for path in warned], [left[0].resolve()])
+        else:
+            self.assertEqual(left, [], "a temporary folder is left")
+            self.assertNotIn("WARN", result.stdout)
+        self.stop_child(stop)
+        self.assertEqual(list(self.temp.iterdir()), [], "the folder stays after the child ends")
         if os.name == "nt":
             return
-        deadline = time.monotonic() + 8
+        deadline = time.monotonic() + self.REPLY_SECONDS
         while not flag.exists() and time.monotonic() < deadline:
             time.sleep(0.2)
         self.assertFalse(flag.exists(), "the child of the command ran on after the time limit")
