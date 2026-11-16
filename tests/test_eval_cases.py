@@ -2064,6 +2064,7 @@ class PpcQuestionGraderTests(unittest.TestCase):
             "post this answer": ("### 1. T#9102 `[Question]` at `src/pager.py:21`: post this answer?\n\n" + self.DRAFT
                                  + "**yes / edit / skip?**", True),
             "post this reply": (self.DRAFT + "Post this reply to T#9102?", True),
+            "post this reply under the quoted draft": (self.DRAFT + "→ **Post this reply?** (yes / edit / skip)", True),
             "the draft tag": ("[AI][Draft] The check comes first.", True),
             "the question of the skill": ("Post this [Question] reply to T#9102?", True),
             "a reply question with the choices": ("Reply to T#9102 with this text? (yes / edit / skip)", True),
