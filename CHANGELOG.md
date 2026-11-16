@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## doc-styles 1.1.7 in release [4.11.4] - 2026-11-16
+
+This release stops a hook error of doc-styles on a Windows PC where `python3` is an alias of the Microsoft Store that cannot start Python. A stub showed this case, not a PC with the real alias. It also adds a CI job that runs the tests of the plugin scripts on Windows (issue #182).
+
+### Fixed in doc-styles
+
+- `hooks/hooks.json`: the `PostToolUse` hook now tests for Python with `python3 -c ''` instead of `command -v python3`. On Windows, Git Bash finds the `python3` alias of the Microsoft Store in `WindowsApps`. If the Store Python is not installed, the alias exits with an error. Before, the hook then exited with that error. The hooks page of Claude Code says that such an exit code gives a hook error notice. Now the hook exits with 0 and stays silent. A test with a stub `python3` shows this. No test ran on a PC with the real alias. If `python3` is missing, the hook also exits with 0 and stays silent (issue #182).
+
+### Changed in the repository
+
+- `.github/workflows/tests.yml`: the new job `test-windows` runs the tests of the plugin scripts and of the test helpers on `windows-latest` in Git Bash (issue #182).
+- `tests/test_kb_plugin.py`: the tests of `check.sh` pass on Windows. A `uname` stub picks the Linux branch on every OS. The path rules use the `C:/...` form that `check.sh` prints, and the tests read the path of `settings.json` from the `$HOME` of bash. A new test runs the real Windows branch in Git Bash. It skips on other systems (issue #182).
+- `tests/test_openbsd_lint.py`: a new test runs the hook command with a `python3` that cannot start (issue #182).
+- `docs/testing.md`: names the job `test-windows` and the tests that it runs (issue #182).
+
 ## dev-essentials 3.14.3, doc-styles 1.1.6, dotnet-backend-dev 1.7.6, and kb 0.2.4 in release [4.11.3] - 2026-11-16
 
 This release removes the `icon` key from each `plugin.json`, so the claude.ai sync no longer shows a warning for it. The icon files stay, and `claude plugin validate` still finds them. New tests catch a known sync warning before a merge.
@@ -1564,7 +1579,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...HEAD
+[4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...v4.11.1

@@ -172,6 +172,13 @@ class HooksFileTests(unittest.TestCase):
 class CheckScriptTests(BashCase):
     WIN_KB = "C:/Users/me/Documents/GitHub/KB"
 
+    def setUp(self):
+        super().setUp()
+        # pwd -W of Git Bash prints the long form of an 8.3 short name, such as RUNNER~1 in TEMP.
+        self.tmp = self.tmp.resolve()
+        # The Linux branch on every OS. A test of the Windows branch replaces this stub.
+        self.stub("uname", "echo Linux")
+
     def stub(self, name, body):
         bin_dir = self.tmp / "bin"
         bin_dir.mkdir(exist_ok=True)
@@ -188,6 +195,10 @@ class CheckScriptTests(BashCase):
     def run_check(self, home, **extra):
         return run([self.bash, CHECK], env=self.check_env(home, **extra), cwd=self.tmp, timeout=30)
 
+    def bash_home(self, home):
+        """The value of $HOME in bash. Git Bash shows a Windows path in its own form, such as /tmp/tmpx/home."""
+        return run([self.bash, "-c", 'printf %s "$HOME"'], env=self.env(HOME=str(home)), timeout=30).stdout
+
     def make_clone_with_hooks_path(self, root):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
@@ -202,7 +213,7 @@ class CheckScriptTests(BashCase):
         home = self.tmp / "home"
         (home / ".claude").mkdir(parents=True)
         clone = self.make_clone_with_hooks_path(self.tmp / "KB")
-        allow, ask = rules(rule_dir or str(clone))
+        allow, ask = rules(rule_dir or clone.as_posix())
         (home / ".claude/settings.json").write_text(json.dumps({
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": allow, "ask": ask,
@@ -215,10 +226,10 @@ class CheckScriptTests(BashCase):
                              encoding="utf-8")
         return home, clone, gitconfig
 
-    def use_windows_stubs(self, scheduled=True):
+    def use_windows_stubs(self, scheduled=True, windows_path=None):
         self.stub("uname", "echo MINGW64_NT-10.0")
         self.stub("schtasks.exe", "exit 0" if scheduled else "exit 1")
-        return git_bash_pwd_stub(self.tmp / "bash_env.sh", self.WIN_KB)
+        return git_bash_pwd_stub(self.tmp / "bash_env.sh", windows_path or self.WIN_KB)
 
     def run_complete(self, home, clone, gitconfig, **extra):
         env = self.check_env(home, **{"KB_DIR": str(clone), "GIT_CONFIG_GLOBAL": str(gitconfig), **extra})
@@ -253,8 +264,9 @@ class CheckScriptTests(BashCase):
             with self.subTest(piece=piece):
                 self.assertTrue(any(line.startswith(f"MISSING: {piece}") for line in missing), missing)
         self.assertNotIn("All pieces are in place.", lines)
+        settings = f"{self.bash_home(home)}/.claude/settings.json"
         for rule in TEXT_CHECK_RULES:
-            self.assertIn(f"MISSING: allow rule: {rule} is not in permissions.allow in {home}/.claude/settings.json.", missing)
+            self.assertIn(f"MISSING: allow rule: {rule} is not in permissions.allow in {settings}.", missing)
         self.assertFalse(any("git -C" in line for line in missing), missing)
 
     def test_complete_home_on_linux_reports_all_pieces_in_place(self):
@@ -271,18 +283,19 @@ class CheckScriptTests(BashCase):
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": ["Bash(bash _claude/tools/kb-search.sh *)"], "additionalDirectories": [str(clone)]},
         }, indent=2), encoding="utf-8")
-        settings = f"{home}/.claude/settings.json"
+        settings = f"{self.bash_home(home)}/.claude/settings.json"
+        kb = clone.as_posix()
         expected = [f"MISSING: allow rule: {rule} is not in permissions.allow in {settings}." for rule in TEXT_CHECK_RULES]
-        expected += [f"MISSING: allow rule: Bash(git -C {clone} {sub} *) is not in permissions.allow in {settings}."
+        expected += [f"MISSING: allow rule: Bash(git -C {kb} {sub} *) is not in permissions.allow in {settings}."
                      for sub in GIT_SUBCOMMANDS]
-        expected.append(f"MISSING: ask rule: Bash(git -C {clone} * --output*) is not in permissions.ask in {settings}.")
+        expected.append(f"MISSING: ask rule: Bash(git -C {kb} * --output*) is not in permissions.ask in {settings}.")
         done = self.run_complete(home, clone, gitconfig)
         self.assertEqual(self.missing_lines(done), expected)
 
     def test_ask_rule_in_the_allow_list_is_reported_once(self):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
-        allow, ask = rules(str(clone))
+        allow, ask = rules(clone.as_posix())
         (home / ".claude/settings.json").write_text(json.dumps({
             "env": {"KB_DIR": str(clone)},
             "permissions": {"allow": allow + ask, "additionalDirectories": [str(clone)]},
@@ -302,7 +315,7 @@ class CheckScriptTests(BashCase):
     def test_complete_settings_with_crlf_line_ends_are_in_place(self):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
-        allow, ask = rules(str(clone))
+        allow, ask = rules(clone.as_posix())
         self.settings_with(home, clone, allow, ask, newline="\r\n")
         done = self.run_complete(home, clone, gitconfig)
         self.assertEqual(done.stdout.splitlines(), ["OS: linux", "All pieces are in place."])
@@ -310,7 +323,7 @@ class CheckScriptTests(BashCase):
     def test_rules_only_in_the_deny_list_are_reported(self):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
-        allow, ask = rules(str(clone))
+        allow, ask = rules(clone.as_posix())
         self.settings_with(home, clone, [], deny=allow + ask)
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
         self.assertEqual(len(missing), len(allow) + 1, missing)
@@ -318,7 +331,7 @@ class CheckScriptTests(BashCase):
         self.assertEqual(len([line for line in missing if line.startswith("MISSING: ask rule:")]), 1, missing)
 
     def test_path_rules_with_a_different_case_are_reported_on_linux(self):
-        home, clone, gitconfig = self.complete_home(rule_dir=str(self.tmp / "KB").upper())
+        home, clone, gitconfig = self.complete_home(rule_dir=(self.tmp / "KB").as_posix().upper())
         self.stub("crontab", 'echo "kb-sync.sh"')
         missing = self.missing_lines(self.run_complete(home, clone, gitconfig))
         self.assertEqual(len([line for line in missing if line.startswith("MISSING: allow rule: Bash(git -C ")]),
@@ -328,7 +341,7 @@ class CheckScriptTests(BashCase):
     def test_a_bracket_inside_an_earlier_allow_entry_hides_no_rule(self):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
-        allow, ask = rules(str(clone))
+        allow, ask = rules(clone.as_posix())
         self.settings_with(home, clone, ["Bash(ls [a-z]*)", *allow], ask)
         done = self.run_complete(home, clone, gitconfig)
         self.assertEqual(done.stdout.splitlines(), ["OS: linux", "All pieces are in place."])
@@ -336,7 +349,7 @@ class CheckScriptTests(BashCase):
     def test_a_longer_entry_that_contains_a_rule_does_not_count(self):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
-        allow, ask = rules(str(clone))
+        allow, ask = rules(clone.as_posix())
         longer_allow = [f"x{rule}" for rule in allow]
         longer_ask = [f"x{rule}" for rule in ask]
         self.settings_with(home, clone, longer_allow, longer_ask)
@@ -402,13 +415,14 @@ class CheckScriptTests(BashCase):
 
     def test_windows_branch_reports_an_empty_list_when_kb_dir_has_the_same_path(self):
         home, clone, gitconfig = self.complete_home()
-        (self.tmp / self.WIN_KB / "_claude").mkdir(parents=True)
-        (self.tmp / self.WIN_KB / "_claude/RULES.md").write_text("rules\n", encoding="utf-8")
+        (self.tmp / "settings-kb/_claude").mkdir(parents=True)
+        (self.tmp / "settings-kb/_claude/RULES.md").write_text("rules\n", encoding="utf-8")
+        kb = (self.tmp / "settings-kb").as_posix()
         (home / ".claude/settings.json").write_text(json.dumps({
-            "env": {"KB_DIR": self.WIN_KB},
-            "permissions": {"allow": rules(self.WIN_KB)[0], "ask": rules(self.WIN_KB)[1], "additionalDirectories": []},
+            "env": {"KB_DIR": kb},
+            "permissions": {"allow": rules(kb)[0], "ask": rules(kb)[1], "additionalDirectories": []},
         }, indent=2), encoding="utf-8")
-        bash_env = self.use_windows_stubs()
+        bash_env = self.use_windows_stubs(windows_path=kb)
         done = self.run_complete(home, clone, gitconfig, BASH_ENV=bash_env)
         missing = self.missing_lines(done)
         self.assertEqual(len([line for line in missing if line.startswith("MISSING: additionalDirectories:")]), 1, missing)
@@ -432,12 +446,33 @@ class CheckScriptTests(BashCase):
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
         settings = home / ".claude/settings.json"
-        settings.write_text(settings.read_text(encoding="utf-8").replace(str(clone), "/nonexistent/KB", 1),
-                            encoding="utf-8")
+        data = json.loads(settings.read_text(encoding="utf-8"))
+        data["env"]["KB_DIR"] = "/nonexistent/KB"
+        settings.write_text(json.dumps(data, indent=2), encoding="utf-8")
         done = self.run_complete(home, clone, gitconfig)
         missing = self.missing_lines(done)
         self.assertTrue(any(line.startswith("MISSING: KB_DIR: /nonexistent/KB has no _claude/RULES.md") for line in missing),
                         missing)
+
+    def test_stale_kb_dir_value_with_backslashes_is_reported_with_slashes(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        settings = home / ".claude/settings.json"
+        data = json.loads(settings.read_text(encoding="utf-8"))
+        data["env"]["KB_DIR"] = "C:\\nonexistent\\KB"
+        settings.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        done = self.run_complete(home, clone, gitconfig)
+        missing = self.missing_lines(done)
+        self.assertTrue(any(line.startswith("MISSING: KB_DIR: C:/nonexistent/KB has no _claude/RULES.md") for line in missing),
+                        missing)
+
+    @unittest.skipUnless(os.name == "nt", "the real uname and pwd -W of Git Bash exist only on Windows")
+    def test_git_bash_takes_the_windows_branch_with_the_windows_form_of_the_path(self):
+        (self.tmp / "bin/uname").unlink()
+        self.stub("schtasks.exe", "exit 0")
+        home, clone, gitconfig = self.complete_home()
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: windows", "All pieces are in place."])
 
     def test_check_changes_nothing(self):
         home, clone, gitconfig = self.complete_home()
