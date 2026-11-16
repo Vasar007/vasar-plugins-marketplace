@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.0 in release [4.11.0] - 2026-11-16
+
+This release moves the bodies of the three composer agents into skills. Each agent stays as a thin wrapper that preloads its skill, so each old dispatch still works.
+
+### Added in dev-essentials
+
+- `evals/composers`: the new behavior case `cmp-pr-from-diff`. It plants a decoy plan, a scratch note, and a plan step that the diff does not hold (issue #172).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr`: the command `compose-pr` is now a skill with the body of the agent `pr-composer`. It writes the PR description in the session, with no subagent. `/dev-essentials:compose-pr` works as before. The examples are in `references/examples.md` (issue #172).
+- `agents/pr-composer`: a thin wrapper that preloads the skill `compose-pr` (issue #172).
+- `review-loop`: names the skill `compose-pr` for a PR description (issue #172).
+
 ## dev-essentials 3.13.0 in release [4.10.0] - 2026-11-16
 
 This release runs Stage 2 of `process-pr-comments` in the orchestrating session. The skill no longer resumes a Stage 2 subagent with `SendMessage`. A new behavior case covers the open items of a cycle after the answers of the user.
@@ -1470,7 +1484,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...HEAD
+[4.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...v4.11.0
 [4.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...v4.9.0
 [4.8.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...v4.8.6

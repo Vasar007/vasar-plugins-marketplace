@@ -30,7 +30,7 @@ These rules hold for the whole run.
 ## When not to use
 
 - To act on pull-request review comments from human reviewers, use `dev-essentials:process-pr-comments`.
-- To write or update a PR description, use the `dev-essentials:pr-composer` agent.
+- To write or update a PR description, use the `dev-essentials:compose-pr` skill.
 - For one review pass with no fixes and no loop, use `dev-essentials:help-review-pr` for a pull request, or ask Claude to review the diff inline.
 
 ## Parameters
