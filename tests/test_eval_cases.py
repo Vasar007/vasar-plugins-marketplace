@@ -2369,6 +2369,18 @@ class ComposerGraderTests(unittest.TestCase):
                                          "- **Store**: index.\n\n## Testing\n\nA unit test.\n", False),
             "crlf line ends": (self.PR_RIGHT.replace("\n", "\r\n"), True),
             "a title between what and why": ("## What\n\nAn index.\n\n# Title\n\n## Why\n\nFaster reads.\n\n" + tail, False),
+            "a title between why and changes": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n# Title\n\n" + tail, False),
+            "a subsection between what and why": ("## What\n\nAn index.\n\n### Detail\n\nMore.\n\n## Why\n\nFaster reads.\n\n"
+                                                  + tail, False),
+            "a subsection between why and changes": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n### Detail\n\nMore.\n\n"
+                                                     + tail, False),
+            "a longer what heading": ("## What Changed\n\nAn index.\n\n## Why\n\nFaster reads.\n\n" + tail, False),
+            "a longer why heading": ("## What\n\nAn index.\n\n## Why It Matters\n\nFaster reads.\n\n" + tail, False),
+            "a line that starts with an issue number": ("## What\n\n#12 asks for an index.\n\n## Why\n\nFaster reads.\n\n" + tail,
+                                                        True),
+            # Known limit: a line of a code block that starts with "# " counts as a heading.
+            "a comment line in a code block": ("## What\n\n```bash\n# add the index\n```\n\n## Why\n\nFaster reads.\n\n" + tail,
+                                               False),
         })
 
     def test_no_modified_components_finds_the_old_section(self):
@@ -2380,6 +2392,10 @@ class ComposerGraderTests(unittest.TestCase):
             "lower-case heading": (self.PR_RIGHT + "\n## Modified components\n\n- **Store**: index.\n", False),
             "a bold label": (self.PR_RIGHT + "\n**Modified Components**\n\n- **Store**: index.\n", False),
             "an indented heading": (self.PR_RIGHT + "\n   ## Modified Components\n\n- **Store**: index.\n", False),
+            "another heading level": (self.PR_RIGHT + "\n### Modified Components\n\n- **Store**: index.\n", False),
+            "bold words inside a sentence": (self.PR_RIGHT + "- The **modified components** keep their API.\n", True),
+            # Known limit: a sentence that starts with the bold words counts as the old section.
+            "bold words at the start of a sentence": (self.PR_RIGHT + "\n**Modified components** keep their API.\n", False),
         })
 
     def test_no_closing_keyword_finds_the_forms_that_github_accepts(self):
