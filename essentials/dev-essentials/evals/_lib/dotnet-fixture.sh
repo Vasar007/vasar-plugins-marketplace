@@ -42,7 +42,8 @@ DOTNET_EOF
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
   <Target Name="MarkTestOutcomeStale" BeforeTargets="CoreCompile"
-          Inputs="$(MSBuildAllProjects);@(Compile);@(ReferencePathWithRefAssemblies)" Outputs="@(IntermediateAssembly)"
+          Inputs="$(MSBuildAllProjects);@(Compile);@(ReferencePathWithRefAssemblies);@(CustomAdditionalCompileInputs)"
+          Outputs="@(IntermediateAssembly)"
           Condition="Exists('$(MSBuildThisFileDirectory).test-runs/last.txt')">
     <WriteLinesToFile File="$(MSBuildThisFileDirectory).test-runs/last.txt" Lines="Stale" Overwrite="true" />
   </Target>
@@ -102,9 +103,14 @@ dotnet_write_solution() {
 # At setup, the marker makes .test-runs/started-<ticks> in the repo root and writes Started to .test-runs/last.txt.
 # At teardown, it writes the outcome of the run (Passed or Failed) to last.txt. It finds the repo root by a walk up to a .git entry.
 # So a test run that stops before the teardown, for example on a crash or a timeout, leaves Started.
-# The target MarkTestOutcomeStale in Directory.Build.props runs before a compile. If a source file, a project file, or a referenced
-# assembly is newer than the compiled assembly, it writes Stale to last.txt. So a failed build after a test run leaves Stale,
-# and a build with no change keeps the outcome. Limit: an edit with no later build keeps the outcome of the last test run.
+# The target MarkTestOutcomeStale in Directory.Build.props runs before a compile. It writes Stale to last.txt in two cases.
+# Case one: a source file, a project file, or a referenced assembly is newer than the compiled assembly.
+# Case two: the list of source files changed, for example a source file was deleted.
+# So a failed compile after a test run leaves Stale. A build that compiles nothing keeps the outcome.
+# A rebuild, a clean and a build, or a new file time (touch, git checkout) writes Stale, also with no change of the code.
+# Limits: an edit with no later build, a failed restore, and a change of only .editorconfig keep the outcome.
+# A change of only .editorconfig is not an input of the target.
+# dotnet test --no-build runs the last good binaries and writes their outcome.
 # A grader reads these files, also when the tests ran in a subagent.
 dotnet_write_run_marker() {
     fixture_write "$1/RunMarker.cs" <<'DOTNET_EOF'

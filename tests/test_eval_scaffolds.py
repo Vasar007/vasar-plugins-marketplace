@@ -412,7 +412,7 @@ class DotnetProbeTests(FixtureCase):
         self.assertEqual((runs / "last.txt").read_text(encoding="utf-8"), "Failed")
 
     def test_run_marker_follows_the_last_build_and_test_run(self):
-        """A failed build after a passing run leaves Stale. A test host that stops before the teardown leaves Started."""
+        """A failed build after a passing run, or after a deleted source file, leaves Stale. A test host that stops early leaves Started."""
         dotnet = self.require_dotnet()
         script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
         workspace = self.workspace("probe-test-fixture")
@@ -441,6 +441,14 @@ class DotnetProbeTests(FixtureCase):
         code, output = dotnet_run("test")
         self.assertNotEqual(code, 0, output)
         self.assertEqual(last.read_text(encoding="utf-8").strip(), "Started", "a crash before the teardown must not keep Passed")
+        (workspace / "tests" / "Billing.Domain.Tests" / "CrashingProbeTests.cs").unlink()
+        code, output = dotnet_run("test")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Passed")
+        (workspace / "src" / "Billing.Domain" / "Money.cs").unlink()
+        code, output = dotnet_run("build")
+        self.assertNotEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Stale", "a deleted source file must not keep Passed")
 
 
 class DotnetWarmTests(FixtureCase):
@@ -493,12 +501,20 @@ class DotnetWarmTests(FixtureCase):
         self.assertNotEqual(process.returncode, 0)
         self.assertIn("planted restore failure", err)
 
-    def test_a_named_package_goes_into_the_shared_folder_under_the_same_lock(self):
+    def test_a_named_package_goes_into_the_shared_folder_before_the_solution(self):
         process = self.start_warm("run-1", packages=("NUnit@5.0.0",))
         _out, err = process.communicate(timeout=SCAFFOLD_SECONDS)
         self.assertEqual(process.returncode, 0, err)
         self.assertEqual(self.log.read_text(encoding="utf-8").split(),
                          ['Include="NUnit"', 'Version="5.0.0"', "start", "end", "start", "end"])
+
+    def test_two_scaffolds_with_a_named_package_restore_one_after_the_other(self):
+        processes = [self.start_warm(f"run-{number}", packages=("NUnit@5.0.0",)) for number in (1, 2)]
+        for process in processes:
+            _out, err = process.communicate(timeout=SCAFFOLD_SECONDS)
+            self.assertEqual(process.returncode, 0, err)
+        one_run = ['Include="NUnit"', 'Version="5.0.0"', "start", "end", "start", "end"]
+        self.assertEqual(self.log.read_text(encoding="utf-8").split(), one_run + one_run)
 
     def test_a_failed_package_restore_of_a_scaffold_leaves_no_temporary_folder(self):
         script = next(script for case, script in scaffold_cases() if case.name == "fp-e4-package-bump")
