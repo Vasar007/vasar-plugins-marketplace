@@ -40,6 +40,7 @@ MAX_FILES = 10
 MAX_LINES = 800
 HEADER_LINES = 10
 HEADER = re.compile(r"^\s*(#|//|/\*|\*|<!--|--|;|')(.*?)(auto-?generated|do not edit)", re.IGNORECASE | re.MULTILINE)
+MARKDOWN_HEADER = re.compile(r"^\s*<!--(.*?)(auto-?generated|do not edit)", re.IGNORECASE | re.MULTILINE)
 LOCK_FILES = {
     "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Cargo.lock", "poetry.lock",
     "Gemfile.lock", "composer.lock", "packages.lock.json", "go.sum",
@@ -153,7 +154,8 @@ def mark_skipped(repo, changes):
             except OSError:
                 data = b""
         head = "\n".join(data.decode("utf-8", "replace").splitlines()[:HEADER_LINES])
-        if HEADER.search(head):
+        rule = MARKDOWN_HEADER if c.path.lower().endswith((".md", ".markdown")) else HEADER
+        if rule.search(head):
             c.skip = "generated header"
 
 

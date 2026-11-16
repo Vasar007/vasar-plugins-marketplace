@@ -56,7 +56,7 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 
 - `skills/review-loop/SKILL.md`: Phase 6 runs `failure_check.py` and acts on its verdict. Without Python 3, the check ends the loop with `stop-blocked` (issue #197).
 - `skills/review-loop/references/orchestrated-review.md`: the orchestrator runs `group_diff.py` before the Target Explorer. The Target Explorer no longer groups the files, and the map has no section "Areas". Without Python 3, the caller uses its default flow (issue #197).
-- `commands/help-review-pr.md`: names the folder of the skill `review-loop` for the script of the orchestrated mode (issue #197).
+- `commands/help-review-pr.md`: names the folder of the skill `review-loop` for the script of the orchestrated mode. Before the script runs, the orchestrator mode fetches the base branch and the head of the PR (issue #197).
 
 ### Changed in the repository
 

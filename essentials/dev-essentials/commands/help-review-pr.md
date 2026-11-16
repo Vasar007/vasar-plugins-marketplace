@@ -92,7 +92,7 @@ For a large PR, delegate the phases that need much context (2 to 4) to subagents
 
 Read that reference file directly. This command does not copy its subagent prompts. In that file, `{REVIEW_LOOP_DIR}` stands for `${CLAUDE_PLUGIN_ROOT}/skills/review-loop`.
 
-Before the area step, run Phase 2 and the `git fetch` of Phase 3 in the main agent, but do not read the diff. Then give `group_diff.py` the range `origin/<baseRefName>...origin/pull/<number>/head`.
+Before Role 1, run Phase 2 and the `git fetch` of Phase 3 in the main agent, but do not read the diff. Then give `group_diff.py` the range `origin/<baseRefName>...origin/pull/<number>/head`.
 
 The one difference: the synthesis does not feed a fixer. It feeds Phase 5 (the HTML artifact). If `--mode` asks for posts, it also feeds Phase 6 (the post of **new** findings as PR review comments).
 

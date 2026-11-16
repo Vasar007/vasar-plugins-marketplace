@@ -22,7 +22,8 @@ in a new folder below the system temporary folder, outside the repository.
 The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
-  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error lines, and the same last lines
+  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error
+                           lines, and the same last lines after the first error line
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
@@ -113,11 +114,12 @@ class Run:
 
     def signature(self, roots):
         found = set()
-        tail = self.lines[-TAIL_LINES:]
+        first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), len(self.lines))
+        tail = self.lines[max(first, len(self.lines) - TAIL_LINES):]
         for line in self.lines:
             if ERROR.search(line) or line in tail:
                 for root in roots:
-                    line = line.replace(root, "<root>")
+                    line = re.sub(r"[^\s'\"]*" + re.escape(root), "<root>", line)
                 for pattern, token in NOISE:
                     line = pattern.sub(token, line)
                 found.add(line.strip())
@@ -204,12 +206,13 @@ class Worktrees:
 
     def add(self, name, sha):
         path = self.root / name
-        code, _, err = git(self.top, "worktree", "add", "--detach", str(path), sha, check=False)
-        if code != 0:
-            return None, err.strip()
-        self.made.append(path)
-        print(f"MADE {path}", flush=True)
-        return path, None
+        try:
+            code, _, err = git(self.top, "worktree", "add", "--detach", str(path), sha, check=False)
+        finally:
+            if path.exists():
+                self.made.append(path)
+                print(f"MADE {path}", flush=True)
+        return (path, None) if code == 0 else (None, err.strip())
 
     def remove(self):
         failed = []
@@ -218,15 +221,16 @@ class Worktrees:
             if code == 0:
                 print(f"REMOVED {path}", flush=True)
             else:
-                failed.append(path)
-                print(f"WARN: could not remove the worktree {path}: {err.strip()}", flush=True)
+                failed.append((path, err.strip()))
         self.made = []
         shutil.rmtree(self.root, ignore_errors=True)
         if self.root.exists():
             print(f"WARN: could not delete the folder {self.root}", flush=True)
-        for path in failed:
+        for path, err in failed:
             if not path.exists() and git(self.top, "worktree", "remove", "--force", str(path), check=False)[0] == 0:
                 print(f"REMOVED {path}", flush=True)
+            else:
+                print(f"WARN: could not remove the worktree {path}: {err}", flush=True)
 
 
 def verdict(clean, fix, parent, roots):
@@ -243,8 +247,8 @@ def verdict(clean, fix, parent, roots):
     same = (parent.runnable_failure and parent.code == fix.code
             and fix.signature(roots) and fix.signature(roots) == parent.signature(roots))
     if same:
-        return "SAME-AT-PARENT", "the command fails at both commits with the same exit code and the same error lines."
-    return "OTHER", "the command fails at both commits, but the exit code or the error lines differ."
+        return "SAME-AT-PARENT", "the command fails at both commits with the same exit code, error lines, and last lines."
+    return "OTHER", "the command fails at both commits, but the exit code, the error lines, or the last lines differ."
 
 
 def check(args, bash):
@@ -285,7 +289,7 @@ def check(args, bash):
                                   logs / "fix.log")
         else:
             path, err = trees.add("fix", fix)
-            fix_run = Run("fix", fix, path / rel if path else cwd, "temporary worktree")
+            fix_run = Run("fix", fix, (path or trees.root / "fix") / rel, "temporary worktree")
             if path is None:
                 fix_run.start_error = f"git worktree add failed: {err}"
             else:
@@ -294,7 +298,7 @@ def check(args, bash):
         parent_run = None
         if fix_run.runnable_failure:
             path, err = trees.add("parent", parent_sha)
-            parent_run = Run("parent", parent_sha, path / rel if path else cwd, "temporary worktree")
+            parent_run = Run("parent", parent_sha, (path or trees.root / "parent") / rel, "temporary worktree")
             if path is None:
                 parent_run.start_error = f"git worktree add failed: {err}"
             else:

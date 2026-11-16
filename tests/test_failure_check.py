@@ -4,6 +4,7 @@ Each test builds a git repository in a temporary folder with a base commit and
 a fix commit, and runs the script as a child process, as Phase 6 of review-loop
 does. The commands are short bash lines, so no test builds a project.
 """
+import io
 import os
 import re
 import shlex
@@ -14,6 +15,7 @@ import sys
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from support import REPO, load_module, tool_missing
 from testkit import ScratchCase, clean_env, git_init, run
@@ -132,8 +134,8 @@ class VerdictTests(FailureCheckCase):
         self.assertEqual(self.verdict(self.check(fix, FAIL_WITH)), "OTHER")
 
     def test_two_failures_that_differ_only_in_the_last_lines_are_not_the_same(self):
-        fix = self.fail_with("* math > adds\nTests: 1 failed, 3 passed, 4 total\n",
-                             "* parser > reads\nTests: 1 failed, 3 passed, 4 total\n")
+        fix = self.fail_with("FAIL src/a.test.js\n* math > adds\nTests: 1 failed, 3 passed, 4 total\n",
+                             "FAIL src/a.test.js\n* parser > reads\nTests: 1 failed, 3 passed, 4 total\n")
         self.assertEqual(self.verdict(self.check(fix, FAIL_WITH)), "OTHER")
 
     def test_same_error_with_another_exit_code_is_other(self):
@@ -196,7 +198,6 @@ class IgnoreAndLimitTests(FailureCheckCase):
         self.assertIn("stopped after the time limit of 2 s", out)
         self.assertEqual(self.verdict(out), "OTHER")
 
-
     def test_worktree_of_the_user_that_moved_stays_listed(self):
         self.write("sub/value.txt", "bad\n")
         fix = self.commit("fix")
@@ -208,6 +209,27 @@ class IgnoreAndLimitTests(FailureCheckCase):
         self.assertResult(run(args, env=self.env, timeout=120), 0, "VERDICT: REGRESSION")
         self.assertIn("away", self.git("worktree", "list", "--porcelain"))
         self.assertEqual(list(self.temp.iterdir()), [])
+
+    def test_worktree_whose_hook_fails_is_removed(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("sub/dirty.txt", "x\n")
+        hooks = self.tmp / "hooks"
+        hooks.mkdir()
+        (hooks / "post-checkout").write_bytes(b"#!/bin/sh\nexit 1\n")
+        os.chmod(hooks / "post-checkout", 0o755)
+        self.git("config", "core.hooksPath", hooks.as_posix())
+        out = self.check(fix)
+        self.assertIn("git worktree add failed", out)
+        self.assertEqual(self.verdict(out), "OTHER")
+
+    def test_worktree_with_no_git_file_is_removed(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("sub/dirty.txt", "x\n")
+        out = self.check(fix, "rm -f ../.git; exit 1")
+        self.assertEqual(out.count("REMOVED "), 2)
+        self.assertNotIn("WARN", out)
 
     def test_rename_in_the_work_tree_is_one_changed_path(self):
         self.write("sub/aaa.txt", "x\n")
@@ -266,6 +288,37 @@ class UnitTests(unittest.TestCase):
         b.lines = ["FAIL test_x (9 s) at 0x1 in /tmp/review-loop-fc-ab12/parent/src/a.py"]
         self.assertEqual(a.signature({"/work/repo"}), b.signature({"/work/repo"}))
         self.assertEqual(len(a.signature({"/work/repo"})), 1)
+
+    def test_signature_ignores_the_text_before_a_folder(self):
+        a = fc.Run("fix", "a" * 40, "x", "main")
+        a.lines = ["a.cs(5,6): error CS0246 [/work/repo/a.csproj]", "at f (file:///work/repo/x.mjs:4:31)"]
+        b = fc.Run("parent", "b" * 40, "y", "temp")
+        b.lines = ["a.cs(5,6): error CS0246 [/tmp/review-loop-fc-ab12/parent/a.csproj]",
+                   "at f (file:///tmp/review-loop-fc-ab12/parent/x.mjs:4:31)"]
+        self.assertEqual(a.signature({"/work/repo"}), b.signature({"/work/repo"}))
+
+    def test_lines_before_the_first_error_line_do_not_count(self):
+        a = fc.Run("fix", "a" * 40, "x", "main")
+        a.lines = ["  All projects are up-to-date for restore.", "a.cs(5,6): error CS0246"]
+        b = fc.Run("parent", "b" * 40, "y", "temp")
+        b.lines = ["  Restored /tmp/a.csproj (in 191 ms).", "a.cs(5,6): error CS0246"]
+        self.assertEqual(a.signature(set()), b.signature(set()))
+
+    def test_error_rule_matches_class_names_and_plural_forms(self):
+        for line in ("KeyError: 'x'", "System.InvalidOperationException: y", "3 exceptions", "test_x fails"):
+            self.assertTrue(fc.ERROR.search(line), line)
+
+    def test_output_survives_a_path_that_is_not_utf8(self):
+        raw = io.BytesIO()
+        out = io.TextIOWrapper(raw, encoding="ascii", newline="\n")
+        with (mock.patch.object(fc, "check", lambda args, bash: print("CHANGED: a\udcffb")),
+              mock.patch.object(fc, "find_bash", lambda: "bash"),
+              mock.patch.object(signal, "signal"),
+              mock.patch.object(sys, "stdout", out)):
+            code = fc.main(["--fix-commit", "x", "--command", "y"])
+        out.flush()
+        self.assertEqual(code, 0)
+        self.assertEqual(raw.getvalue(), b"CHANGED: a\\udcffb\n")
 
     def test_bash_is_not_a_wsl_launcher(self):
         bash = fc.find_bash()
