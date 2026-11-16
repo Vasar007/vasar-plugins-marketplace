@@ -150,14 +150,16 @@ class ReplayTests(ReplayCase):
         folder.mkdir(parents=True)
         (folder / "issue-closed.md").write_text("---\ntype: regex\ntarget: mock_calls\n---\n\"state\":\"closed\"\n",
                                                 encoding="utf-8")
+        (folder / "one-reply.md").write_text("---\ntype: regex\nmatch: count:1\n---\n\nReplied\n", encoding="utf-8")
         result = self.replay("--case", folder.parent, RUN)
-        self.assertResult(result, 1, "replay-run\tissue-closed\tfail\tpattern not found in mock_calls")
+        self.assertResult(result, 1, "replay-run\tissue-closed\tfail\tpattern not found in mock_calls",
+                          "replay-run\tone-reply\tpass\tfound 1 matches (expected 1)")
 
     def test_the_front_matter_is_split_as_claude_code_splits_it(self):
         folder = self.tmp / "case" / "graders"
         folder.mkdir(parents=True)
         (folder / "README.md").write_text("Notes about the graders.\n", encoding="utf-8")
-        (folder / "bom.md").write_text("﻿---\ntype: regex\npattern: Replied\n---\n", encoding="utf-8")
+        (folder / "bom.md").write_text("\ufeff---\ntype: regex\npattern: Replied\n---\n", encoding="utf-8")
         (folder / "dash.md").write_text("---\ntype: regex\npattern: Replied---x\n---\n", encoding="utf-8")
         result = self.replay("--case", folder.parent, RUN)
         self.assertResult(result, 0, "replay-run\tbom\tpass\tmatched Replied", "replay-run\tdash\tpass\tmatched Replied")
@@ -194,11 +196,28 @@ class InputErrorTests(ReplayCase):
         self.assertResult(self.replay("--case", self.write_case(graders), RUN), 2,
                           "plain value that the replay cannot read: 1 # at least one")
 
+    def test_a_plain_value_that_yaml_does_not_read_as_text_gives_exit_2(self):
+        for value in ("#8", "Error:", "- x", "a: b", "@x"):
+            with self.subTest(value=value):
+                shutil.rmtree(self.tmp / "case", ignore_errors=True)
+                case = self.write_case({"named": f"type: regex\npattern: {value}\n"})
+                self.assertResult(self.replay("--case", case, RUN), 2, f"plain value that the replay cannot read: {value}")
+
+    def test_a_front_matter_without_a_closing_line_gives_exit_2(self):
+        folder = self.tmp / "case" / "graders"
+        folder.mkdir(parents=True)
+        (folder / "open.md").write_text("---\ntype: regex\npattern: Replied\n", encoding="utf-8")
+        self.assertResult(self.replay("--case", folder.parent, RUN), 2, "the front matter has no closing --- line")
+
     def test_graders_in_case_yaml_give_exit_2(self):
         case = self.write_case({"agent-used": GRADERS["agent-used"]})
         (case / "case.yaml").write_text('schema_version: "1.1"\nname: c\ngraders:\n  - name: x\n    type: llm\n'
                                         '    criteria: x\n', encoding="utf-8")
         self.assertResult(self.replay("--case", case, RUN), 2, "lists graders")
+
+    def test_a_grader_without_a_type_gives_exit_2(self):
+        graders = {"typo": "typ: regex\npattern: Replied\n"}
+        self.assertResult(self.replay("--case", self.write_case(graders), RUN), 2, "the front matter has no type key")
 
     def test_a_graders_folder_without_a_grader_gives_exit_2(self):
         self.assertResult(self.replay("--case", self.write_case({}), RUN), 2, "no grader file with front matter")

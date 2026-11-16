@@ -15,7 +15,7 @@ const FRONT_MATTER = /^---\s*\n([\s\S]*?)---\s*\n?/;
 // The field that the body of a grader file fills when the front matter does not set it.
 const BODY_FIELD = { llm: 'criteria', baseline: 'criteria', regex: 'pattern' };
 // A plain value that YAML reads in another way: a comment, a mapping, or an indicator character.
-const PLAIN_UNSAFE = /\s#|:\s|^[[\]{}&*!|>%@`]/;
+const PLAIN_UNSAFE = /\s#|:(?:\s|$)|^[[\]{}#&*!|>%@`,]|^[-?](?:\s|$)/;
 
 export class InputError extends Error {}
 
@@ -238,6 +238,7 @@ export function readGraders(caseDir) {
       const fields = readFrontMatter(text);
       if (fields === null) continue;
       const grader = { name: name.slice(0, -3), ...fields };
+      if (typeof grader.type !== 'string') throw new InputError('the front matter has no type key');
       const field = BODY_FIELD[grader.type];
       const body = splitFrontMatter(text).body.trim();
       if (field && grader[field] === undefined && body.length > 0) grader[field] = body;
