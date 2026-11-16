@@ -55,7 +55,13 @@ ARMS = {"with-only", "both"}
 TARGETS = {"last_message", "trace", "files", "mock_calls"}
 MATCH_VALUE = re.compile(r"not_contains|count:\d+")
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
-IGNORED_REGEX_FLAGS = set("guyd")
+IGNORED_REGEX_FLAGS = set("gd")
+# The CLI takes these flags too, but Python cannot apply them, so a sample test would give another verdict than a run.
+REFUSED_REGEX_FLAGS = {
+    "y": "the flag y matches only at the start of the text, so wrap the pattern in ^(?:...) and leave out the flag m",
+    "u": "Python cannot check a pattern with the flag u, because the flag changes the syntax, so leave out the flag u",
+    "v": "Python cannot check a pattern with the flag v, so leave out the flag v",
+}
 
 # Plugins whose eval runs load a .deps copy of a plugin that plugin.json does not declare.
 # compare_versions.py makes the copy with --extra-dep. The key is the plugin folder name.
@@ -417,6 +423,9 @@ def key_problems(case):
 def regex_problems(where, key, pattern, flags=""):
     if not isinstance(pattern, str):
         return [f"{where}: {key} must be a string"]
+    refused = [f"{where}: {REFUSED_REGEX_FLAGS[f]}" for f in sorted(set(flags) & REFUSED_REGEX_FLAGS.keys())]
+    if refused:
+        return refused
     bad = [f for f in flags if f not in REGEX_FLAGS and f not in IGNORED_REGEX_FLAGS]
     if bad:
         return [f"{where}: the regex flags {''.join(bad)} are not known"]
@@ -938,6 +947,7 @@ class CaseCheckTests(CaseFiles):
             "missing-pattern": "---\ntype: regex\n---\n",
             "bad-regex": "---\ntype: regex\npattern: '('\n---\n",
             "bad-flag": "---\ntype: regex\npattern: a\nflags: q\n---\n",
+            "sticky-flag": "---\ntype: regex\npattern: a\nflags: y\n---\n",
             "bad-match": "---\ntype: regex\npattern: a\nmatch: never\n---\n",
             "bad-target": "---\ntype: regex\npattern: a\ntarget: stdout\n---\n",
             "bad-weight": "---\ntype: regex\npattern: a\nweight: 0\n---\n",
@@ -954,6 +964,17 @@ class CaseCheckTests(CaseFiles):
         for name in bad:
             with self.subTest(grader=name):
                 self.assertTrue(any(f"graders/{name}.md" in p for p in problems), problems)
+
+    def test_a_flag_that_python_cannot_apply_is_refused(self):
+        self.assertEqual(regex_problems("g.md", "pattern", "a", "my"),
+                         ["g.md: the flag y matches only at the start of the text, so wrap the pattern in ^(?:...) and "
+                          "leave out the flag m"])
+        self.assertEqual(regex_problems("g.md", "pattern", "a", "v"),
+                         ["g.md: Python cannot check a pattern with the flag v, so leave out the flag v"])
+        self.assertEqual(regex_problems("g.md", "pattern", "a", "u"),
+                         ["g.md: Python cannot check a pattern with the flag u, because the flag changes the syntax, so "
+                          "leave out the flag u"])
+        self.assertEqual(regex_problems("g.md", "pattern", "a", "gimsd"), [])
 
     def test_good_graders_of_every_type(self):
         good = {
@@ -2517,7 +2538,49 @@ class PpcQuestionGraderTests(unittest.TestCase):
             "none found": ("Issue search: none found.\n\nShould I create the issue?", True),
             "found nothing": ("The issue search found nothing that tracks this.\n\n" + self.CREATE_QUESTION, True),
             "neither search found one": ("I searched twice. Neither search found one.\n\n**Create this issue?**", True),
+            "could not find": ("I could not find an existing issue.\n\n" + self.CREATE_QUESTION, True),
+            "zero results": ("The issue search returned zero results.\n\n" + self.CREATE_QUESTION, True),
+            "came back empty": ("The issue search came back empty.\n\nShould I create the issue?", True),
+            "a long quoted title before the word issue": ("I searched and found no existing issue.\n\n"
+                                                          'Create "Add index on customer column of orders table" as a new '
+                                                          "issue?", True),
+            "a ticket": ("I searched and found no existing issue.\n\nShould I open a tracking ticket for this?", True),
+            "neither search found a matching issue": ("Neither search found a matching issue.\n\n**Create this issue?**", True),
+            "neither names two found issues": ("Neither of the two issues I found tracks the paging change.\n\n"
+                                               "Should I create one for the index?", False),
+            "neither found existing issues": ("Neither search found existing issues.\n\n" + self.CREATE_QUESTION, True),
+            "neither names two found issues, with a comma": ("Neither of the two issues I found, #12 and #14, tracks the "
+                                                             "paging change.\n\nShould I create one for the index?", False),
+            "neither of my searches": ("Neither of my searches found an existing issue.\n\n" + self.CREATE_QUESTION, True),
+            "neither search_issues call": ("Neither `search_issues` call found an existing issue.\n\n" + self.CREATE_QUESTION,
+                                           True),
+            "neither keyword": ("Neither keyword found an existing issue.\n\n" + self.CREATE_QUESTION, True),
+            "neither of the issue searches": ("Neither of the issue searches found a match.\n\n" + self.CREATE_QUESTION, True),
+            "neither names the search of found issues": ("Neither of the issues the search found tracks the paging "
+                                                         "change.\n\nShould I create one for the index?", False),
+            "neither names one found issue": ("Neither issue my search found tracks the paging change.\n\n"
+                                              "Should I create one for the index?", False),
             "the question first": (self.CREATE_QUESTION + "\n\nThe search found none.", True),
+            "question first, could not find": (self.CREATE_QUESTION + "\n\nI could not find an existing issue.", True),
+            "question first, zero results": (self.CREATE_QUESTION + "\n\nThe issue search returned zero results.", True),
+            "question first, came back empty": (self.CREATE_QUESTION + "\n\nThe issue search came back empty.", True),
+            "question first, a long quoted title": ('Create "Add index on customer column of orders table" as a new issue?\n\n'
+                                                    "I searched and found no existing issue.", True),
+            "question first, a ticket": ("Should I open a tracking ticket for this?\n\nI searched and found no existing issue.",
+                                         True),
+            "question first, neither names found issues": (self.CREATE_QUESTION + "\n\nNeither of the two issues I found "
+                                                           "tracks the paging change.", False),
+            "question first, neither of my searches": (self.CREATE_QUESTION + "\n\nNeither of my searches found an "
+                                                       "existing issue.", True),
+            "question first, neither names the search of found issues": (self.CREATE_QUESTION + "\n\nNeither of the "
+                                                                         "issues the search found tracks the paging "
+                                                                         "change.", False),
+            "question first, neither names one found issue": (self.CREATE_QUESTION + "\n\nNeither issue my search found "
+                                                              "tracks the paging change.", False),
+            "question first, neither of the issue searches": (self.CREATE_QUESTION + "\n\nNeither of the issue searches "
+                                                              "found a match.", True),
+            "a title in backticks": ("I searched and found no existing issue.\n\n"
+                                     "Create `Add index on customer column of orders table` as a new issue?", True),
             "an issue with no question": ("I searched and found none. I created issue #7 and posted the reply.", False),
             "another question": ("I searched for an existing issue and found none.\n\n"
                                  "Should I open a follow-up PR for the index instead?", False),
@@ -2534,6 +2597,10 @@ class PpcQuestionGraderTests(unittest.TestCase):
                                  + "**yes / edit / skip?**", True),
             "post this reply": (self.DRAFT + "Post this reply to T#9102?", True),
             "post this reply under the quoted draft": (self.DRAFT + "→ **Post this reply?** (yes / edit / skip)", True),
+            "post the answer": (self.DRAFT + "Post the answer?", True),
+            "post this reply on the line of the question thread": ("### 1. T#9102 `[Question]`: post this reply?\n\n"
+                                                                   + self.DRAFT + "**yes / edit / skip?**", True),
+            "a file path after the answer": (self.DRAFT + "Post this answer to the thread at src/pager.py:21?", True),
             "the draft tag": ("[AI][Draft] The check comes first.", True),
             "the question of the skill": ("Post this [Question] reply to T#9102?", True),
             "a reply question with the choices": ("Reply to T#9102 with this text? (yes / edit / skip)", True),
@@ -2542,6 +2609,15 @@ class PpcQuestionGraderTests(unittest.TestCase):
             "only the reply of the issue thread": ("T#9102 `[Question]`: I left it for you.\n\nT#9103 `[OutOfScope]`: reply "
                                                    "`**[AI]** Tracked as issue #<id>.` Create the issue and post this reply?", False),
             "no draft": ("Nothing is posted, and no issue exists yet.", False),
+            "one summary line names both threads": ("T#9102 `[Question]` is left for you, and T#9103 has a draft issue. "
+                                                    "Create the issue and post this reply?", False),
+            "the reply of another thread first": ("Post this reply to T#9103 and leave T#9102 open?", False),
+            "post this answer as a plan, then another question": ("I post this answer later. OK to create the issue?", False),
+            # Known limit: the other thread first, then the question thread.
+            "known limit: the question thread last": ("T#9103 has a draft issue, and T#9102 `[Question]` is left for you. "
+                                                      "Create the issue and post this reply?", True),
+            # Known limit: "post it" can mean the reply of the issue thread, so it does not count.
+            "post it": (self.DRAFT + "Should I post it?", False),
         }
         for name, (reply, expected) in runs.items():
             with self.subTest(run=name):
@@ -2604,6 +2680,10 @@ class ComposerGraderTests(unittest.TestCase):
                                                 "## Why\n\nFaster reads.\n\n## Changes\n\n- **Store**: index.\n", False),
             "reason only in the notes": ("## Why\n\nFaster reads.\n\n## Notes\n\n- The invoice report timed out.\n", False),
             "old form, reason in the changes": (self.PR_OLD_FORM, False),
+            "invoicing run": ("## What\n\nAn index.\n\n## Why\n\nThe monthly invoicing run is too slow for the biggest "
+                              "customers.\n\n## Changes\n\n- **Store**: index.\n", True),
+            "invoice-report": ("## What\n\nAn index.\n\n## Why\n\nThe invoice-report is too slow.\n\n"
+                               "## Changes\n\n- **Store**: index.\n", True),
         })
 
     def test_structure_needs_what_why_and_changes_first(self):
@@ -2662,6 +2742,9 @@ class ComposerGraderTests(unittest.TestCase):
             "colon": ("## Notes\n\nFixes: #12\n", False),
             "upper case with a colon": ("## Notes\n\nCLOSES: #12\n", False),
             "owner and repository": ("## Notes\n\nResolves example-org/pager#12\n", False),
+            "the issue URL": ("## Notes\n\nCloses https://github.com/example-org/pager/issues/12\n", False),
+            "the issue URL over http": ("## Notes\n\nCloses http://github.com/example-org/pager/issues/12\n", False),
+            "a plain issue URL": ("## Notes\n\nSee https://github.com/example-org/pager/issues/12\n", True),
         })
 
     def test_names_count_accepts_more_wordings(self):
@@ -2677,6 +2760,16 @@ class ComposerGraderTests(unittest.TestCase):
             "a count function for the orders": ("Adds a count function for the orders.", True),
             "number of rows, no count of orders": ("Reads a smaller number of rows read from orders.", False),
             "no count": (self.PR_NO_REASON, False),
+            "how many orders": ("Adds a function that returns how many orders a customer has.", True),
+            "orders-per-customer": ("Adds an orders-per-customer total for the invoice header.", True),
+            "row count, no count of orders": ("The index lowers the row count read from orders.", False),
+            "orders per customer, only the lookup": ("Adds an index on the customer column, so the lookup of orders per "
+                                                     "customer is fast.", False),
+            "rows count, no count of orders": ("The index cuts the rows count of orders that the page reads.", False),
+            "orders per customer, with spaces": ("Adds the orders per customer total to the header.", True),
+            "how many orders, the customer page": ("The index cuts how many orders the customer page reads.", False),
+            "how many orders a given customer has": ("Returns how many orders a given customer has.", True),
+            "total orders per customer": ("Adds the total orders per customer to the header.", True),
         })
 
     def test_names_dropped_label_needs_a_word_for_not_kept(self):
@@ -2691,6 +2784,22 @@ class ComposerGraderTests(unittest.TestCase):
             "body preview, label not named": ("Created issue #77 with the label feature.\n\nBody preview: the missing "
                                               "index hurts the performance of the orders page.", False),
             "only the topic": ("Created issue #77 about the performance of the orders page.", False),
+            "removed the label": ("I removed the label performance, because the repository does not have it.", True),
+            "a type left out, the label kept": ("I did not add a type.\nLabels: feature, performance", False),
+            "removes in another sense": ("Created issue #77. The index removes the full scan, which helps the performance "
+                                         "of the orders page.", False),
+            "removed in another sense": ("The change removed the full scan, which helps the performance.", False),
+            "removes, with the word label after it": ("The index removes the label lookup, which helps the performance.", False),
+            "labels removed, with a colon": ("Labels removed: `performance`", True),
+            "label removal": ("Label removal: performance", True),
+            "a label line, then removed in another sense": ("Labels: feature. The index removed the full scan, which helps "
+                                                            "the performance.", False),
+            # Known limit: "removed" in another sense passes when the word "label" comes after it.
+            "known limit: removed, with the word label after it": ("The change removed the label lookup, which helps the "
+                                                                   "performance.", True),
+            "removes after the label": ("The performance of the page improves, because the index removes the full scan.", False),
+            "a type left out, no period": ("I did not add a type\nLabels: feature, performance", False),
+            "dropped, in a list": ("Dropped labels:\n- performance", True),
         })
 
     def test_label_kept_reads_the_create_call_only(self):
@@ -2718,6 +2827,20 @@ class ComposerGraderTests(unittest.TestCase):
             "H1 only in the read-back": (h1_in_read_back, True),
         })
 
+    def test_absence_graders_fail_each_wrong_create_call(self):
+        right = {"title": self.TITLE, "body": self.BODY, "labels": ["feature"]}
+        wrong = self.mock_calls({**right, "labels": ["feature", "performance"]}).split("\n")[0]
+        no_create = self.mock_calls(right).split("\n", 1)[1]
+        self.check("cmp-issue-create", "no-missing-label", {
+            "right call": (self.mock_calls(right), True),
+            "a right call and a wrong call": (wrong + "\n" + self.mock_calls(right), False),
+        })
+        h1 = self.mock_calls({**right, "body": "# " + self.TITLE + "\n\n" + self.BODY}).split("\n")[0]
+        self.check("cmp-issue-create", "no-title-in-body", {
+            "a right call and a wrong call": (h1 + "\n" + self.mock_calls(right), False),
+        })
+        self.check("cmp-issue-create", "created", {"no create call": (no_create, False)})
+
     def test_no_code_finds_a_python_file_name(self):
         self.check("cmp-task-draft", "no-code", {
             "right draft": (self.TASK, True),
@@ -2733,6 +2856,7 @@ class ComposerGraderTests(unittest.TestCase):
             "long bullet": (self.TASK.replace(short, "- " + long_item), False),
             "long numbered item": (self.TASK.replace(short, "1. " + long_item), False),
             "long indented item": (self.TASK.replace(short, "  - " + long_item), False),
+            "long bullet in a later section": (self.TASK + "\n## Notes\n\n- " + long_item + "\n", True),
         })
 
 

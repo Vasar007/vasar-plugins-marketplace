@@ -57,6 +57,8 @@ START_CONTENT = {
 # A literal commit id in a grader pattern: \b, then 7 to 40 hex characters.
 COMMIT_LITERAL = re.compile(r"\\b([0-9a-f]{7,40})(?![0-9a-f])")
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
+# compose-pr saves Notes/PRs/PR-<branch>.md, with each / of the branch as -. A pattern writes the dot as \.
+PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
@@ -146,6 +148,19 @@ def branch_path_problems(case, branch):
     return problems
 
 
+def pr_file_problems(case, branch):
+    """A grader that names the PR file of compose-pr must name the file of the scaffold branch."""
+    expected = branch.replace("/", "-")
+    problems = []
+    for name, (options, _body) in sorted(case.graders.items()):
+        target = options.get("target")
+        texts = [options.get("path"), options.get("pattern"), target.get("path") if isinstance(target, dict) else None]
+        for text in (t for t in texts if isinstance(t, str)):
+            problems += [f"{case.label}/graders/{name}.md: the PR file names {found}, but the scaffold branch gives {expected}"
+                         for found in PR_FILE_NAME.findall(text) if found != expected]
+    return problems
+
+
 def shared_form_problems(case):
     """A "no push" grader must read every branch of the remote. A "no commit" grader of a branch must fail on each move of it."""
     problems = []
@@ -196,6 +211,24 @@ class GraderBranchTests(unittest.TestCase):
         cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH and case.name.startswith("fp-")]
         self.assertTrue(cases, "No fp case is listed in EXPECTED_BRANCH.")
         self.assertEqual([p for case in cases for p in branch_path_problems(case, EXPECTED_BRANCH[case.name])], [])
+
+    def test_the_pr_file_of_a_grader_names_the_branch_of_the_scaffold(self):
+        cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH]
+        self.assertEqual([p for case in cases for p in pr_file_problems(case, EXPECTED_BRANCH[case.name])], [])
+        composer = next((case for case in cases if case.name == "cmp-pr-from-diff"), None)
+        self.assertIsNotNone(composer, "No case cmp-pr-from-diff is listed in EXPECTED_BRANCH.")
+        self.assertTrue(pr_file_problems(composer, "user/tasks/13-other"), "The check reads no PR file of cmp-pr-from-diff.")
+
+    def test_a_pr_file_of_another_branch_is_found(self):
+        case = SimpleNamespace(label="cmp-x", graders={
+            "saved": ({"type": "file_exists", "path": "Notes/PRs/PR-user-tasks-13-index.md"}, ""),
+            "reported": ({"type": "regex", "pattern": "PR-user-tasks-13-index\\.md"}, ""),
+            "read": ({"type": "regex", "target": {"source": "file", "path": "Notes/PRs/PR-main.md"}}, ""),
+        })
+        problems = pr_file_problems(case, "user/tasks/12-index")
+        self.assertEqual(len(problems), 3, problems)
+        self.assertTrue(any("saved" in p for p in problems) and any("reported" in p for p in problems)
+                        and any("read" in p for p in problems), problems)
 
     def test_a_typo_in_a_branch_path_is_found(self):
         case = SimpleNamespace(label="fp-x", graders={
