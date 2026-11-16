@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.16.0 in release [4.13.0] - 2026-11-16
+## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-16
 
 This release lets `process-pr-comments` read the hand-off file of the earlier work on the PR branch. A new session then keeps the decisions that the user made in the build session (issue #199).
 
@@ -24,6 +24,8 @@ This release lets `process-pr-comments` read the hand-off file of the earlier wo
 - `tests/test_eval_cases.py`: the new class `PpcBuildContextGraderTests` gives right and wrong samples to the graders of `ppc-build-context`. It also makes sure that the hand-off file of the scaffold names the branch of the PR mock (issue #199).
 - `tests/test_eval_scaffolds.py`: the "no commit" grader of `ppc-build-context` runs on its scaffold (issue #199).
 - `docs/evals.md`: the suite `process-pr-comments` has 10 behavior cases (issue #199).
+
+
 
 
 
@@ -1716,7 +1718,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.13.0
 
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
