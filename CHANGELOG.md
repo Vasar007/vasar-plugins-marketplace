@@ -30,6 +30,7 @@ This release moves the bodies of the three composer agents into skills. Each age
 - `skills/create-documentation`: the new section "Guide Drafts and Publishing" points to the reference file. The description names the guide draft and the publish rule (issue #172).
 - `github-mcp-conventions`: names the create steps of the skill `compose-task` as the standard for a verified create (issue #172).
 - `evals/triggers/compose-pr-fires` and `compose-pr-near-miss`: the near-miss expects the skill `compose-task` for an issue request, and `compose-pr-fires` makes sure that `compose-task` does not start (issue #172).
+- `skills/process-pr-comments`: Task Composer is now the skill `compose-task`. The session loads it for the draft of an `[OutOfScope]` issue, and runs its create steps right before the batch posts. The best-effort search, the question before a new issue, the `Source:` line, and the state `pr-commit-no-reply` stay the same (issue #172).
 
 ### Changed in the repository
 

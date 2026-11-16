@@ -17,14 +17,14 @@ Each cycle runs in two stages. Stage 1 is a subagent that fetches and classifies
 ## When not to use
 
 - Review of code that someone else wrote. That is the reviewer side, and other workflows handle it.
-- Creation of a PR, a change to its description, or a change of reviewers. These are out of scope for this skill. To write the PR description text, use `dev-essentials:pr-composer` (or `/compose-pr`).
+- Creation of a PR, a change to its description, or a change of reviewers. These are out of scope for this skill. To write the PR description text, use the skill `dev-essentials:compose-pr`.
 - Resolve or unresolve of a thread that this skill did not fix (see Bucket B).
 
 ## Prerequisites
 
 1. The GitHub MCP tools (`mcp__plugin_github_github__*`) must be available. If they are missing, stop. Ask the user to reconnect them with `/mcp`, then try again (see `dev-essentials:github-mcp-conventions` Rule 5).
 2. The user must give the explicit **`owner`** and **`repo`** values, or a full GitHub PR URL that holds them. Never infer them from the git remote or from the session context (see `dev-essentials:github-mcp-conventions` Rule 1).
-3. To create an issue for an `[OutOfScope]` comment, the Task Composer agent (`task-composer` from `dev-essentials`) must be loaded.
+3. To create an issue for an `[OutOfScope]` comment, the skill `compose-task` of this plugin must be available. This skill calls it Task Composer.
 4. `deep-fix` also needs the skill `/research-implement-review-report` of this plugin. If the skill is not available, decline the `deep-fix` routing with a one-line reason. The thread then gets its normal Phase 3 or Phase 3b classification (see Rules).
 
 ## Rules
@@ -98,7 +98,7 @@ These rules are not approval gates. They are safety invariants, the contract of 
 - Never `git add -A` or `git add .`. Stage explicit paths only.
 - Never amend, rebase, or squash pushed history or a commit that this run did not make. Always make new commits. Never force-push. One exception: `deep-fix` can squash or reset the unpushed commits of its own arc (`references/deep-fix.md`).
 - Never push to a branch other than the PR source branch. Never push to `master`, to a `release/*` target branch, or to any protected ref.
-- Never call `mcp__plugin_github_github__issue_write` directly. `[OutOfScope]` tracking always goes through the `mode: create` flow of Task Composer. Never invent issue fields.
+- Call `mcp__plugin_github_github__issue_write` only in the `mode: create` steps of Task Composer: create, then read back. `[OutOfScope]` tracking always goes through these steps. Never invent issue fields.
 - Never touch code that the comment of the reviewer does not cover (PR-scope discipline).
 - Never call a GitHub MCP tool with an inferred `owner` or `repo`. Pass the values of the user or of the URL word for word (see `dev-essentials:github-mcp-conventions` Rules 1 and 2).
 - Never reprocess a comment that is already in `processedCommentIds` in the same session.
