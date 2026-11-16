@@ -1,0 +1,9 @@
+{
+  "labels": [
+    {"name": "bug", "color": "d73a4a", "description": "Something does not work"},
+    {"name": "documentation", "color": "0075ca", "description": "Changes to the docs"},
+    {"name": "feature", "color": "a2eeef", "description": "A new feature or a request"},
+    {"name": "question", "color": "d876e3", "description": "More information is needed"}
+  ],
+  "totalCount": 4
+}

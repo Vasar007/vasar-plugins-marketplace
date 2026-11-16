@@ -47,6 +47,8 @@ EXPECTED_BRANCH = {
     "fp-free-text": "work/free-text",
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
+    "cmp-pr-from-diff": "user/tasks/12-customer-index",
+    "cmp-task-draft": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {

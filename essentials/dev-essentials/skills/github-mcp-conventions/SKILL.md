@@ -103,7 +103,7 @@ A create call can report that it also set up a relationship: `issue_write` with 
 
 - After `issue_write` or `sub_issue_write` (or any create call whose response echoes a parent or child link), call `issue_read` with `method: "get_parent"` on the new issue. Make sure that it returns the expected parent.
 - If `get_parent` returns no parent or a different one, the attach did not land. Set up the link explicitly with `sub_issue_write` (`method: "add"`). Then read it again with `get_parent`. Do not report the link before a `get_parent` read shows it.
-- The `mode: create` workflow of `dev-essentials:task-composer` already works this way. Treat it as the standard for every GitHub MCP call that creates a relationship, not as a rule of that agent only.
+- The `mode: create` steps of the skill `dev-essentials:compose-task` already work this way. Treat them as the standard for every GitHub MCP call that creates a relationship, not as a rule of that skill only.
 
 **Anti-patterns**:
 

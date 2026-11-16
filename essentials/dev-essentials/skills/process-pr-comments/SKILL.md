@@ -17,14 +17,14 @@ Each cycle runs in two stages. Stage 1 is a subagent that fetches and classifies
 ## When not to use
 
 - Review of code that someone else wrote. That is the reviewer side, and other workflows handle it.
-- Creation of a PR, a change to its description, or a change of reviewers. These are out of scope for this skill. To write the PR description text, use `dev-essentials:pr-composer` (or `/compose-pr`).
+- Creation of a PR, a change to its description, or a change of reviewers. These are out of scope for this skill. To write the PR description text, use the skill `dev-essentials:compose-pr`.
 - Resolve or unresolve of a thread that this skill did not fix (see Bucket B).
 
 ## Prerequisites
 
 1. The GitHub MCP tools (`mcp__plugin_github_github__*`) must be available. If they are missing, stop. Ask the user to reconnect them with `/mcp`, then try again (see `dev-essentials:github-mcp-conventions` Rule 5).
 2. The user must give the explicit **`owner`** and **`repo`** values, or a full GitHub PR URL that holds them. Never infer them from the git remote or from the session context (see `dev-essentials:github-mcp-conventions` Rule 1).
-3. To create an issue for an `[OutOfScope]` comment, the Task Composer agent (`task-composer` from `dev-essentials`) must be loaded.
+3. To create an issue for an `[OutOfScope]` comment, the skill `compose-task` of this plugin must be available. This skill calls it Task Composer.
 4. `deep-fix` also needs the skill `/research-implement-review-report` of this plugin. If the skill is not available, decline the `deep-fix` routing with a one-line reason. The thread then gets its normal Phase 3 or Phase 3b classification (see Rules).
 
 ## Rules
@@ -98,7 +98,7 @@ These rules are not approval gates. They are safety invariants, the contract of 
 - Never `git add -A` or `git add .`. Stage explicit paths only.
 - Never amend, rebase, or squash pushed history or a commit that this run did not make. Always make new commits. Never force-push. One exception: `deep-fix` can squash or reset the unpushed commits of its own arc (`references/deep-fix.md`).
 - Never push to a branch other than the PR source branch. Never push to `master`, to a `release/*` target branch, or to any protected ref.
-- Never call `mcp__plugin_github_github__issue_write` directly. `[OutOfScope]` tracking always goes through the `mode: create` flow of Task Composer. Never invent issue fields.
+- Call `mcp__plugin_github_github__issue_write` only in the `mode: create` steps of Task Composer: create, then read back. `[OutOfScope]` tracking always goes through these steps. Never invent issue fields.
 - Never touch code that the comment of the reviewer does not cover (PR-scope discipline).
 - Never call a GitHub MCP tool with an inferred `owner` or `repo`. Pass the values of the user or of the URL word for word (see `dev-essentials:github-mcp-conventions` Rules 1 and 2).
 - Never reprocess a comment that is already in `processedCommentIds` in the same session.
@@ -144,7 +144,7 @@ Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching,
 - The `cured` branch of Phase 2 step 5 is the one GitHub write in Phase 2 (the catch-up resolve). Stage 1 only derives and reports that verdict. **Stage 2 tests it again first, and makes the write as its first action, before Phase 3**. Stage 2 runs the ancestry check itself (see `references/thread-state-schema.md` § "Ancestry check") against `origin/pull/<prId>/head`, with the `claimedSha` field of the report. No new MCP call is needed. If its result agrees with the report, Stage 2 makes the catch-up resolve. This keeps the order of step 5: the catch-up comes before Phase 3 and Phase 4 of this cycle. If its result disagrees, Stage 2 does not resolve the thread, and does not act on it in this cycle. The question of step 5 must come before Stage 2 starts, so Stage 2 does not ask it. It reports the thread with the `unconfirmed-commit-claim` report line of `references/committed-fix-state.md`. The thread opens no push in this cycle. Phase 2 step 5 of the next cycle derives its state again, and asks the question (or prints a report line, `references/committed-fix-state.md` § "Report modes"). A premature resolve misleads a human reviewer. For the same reason, the resolve step of Phase 4 always runs the ancestry check again (against another target ref).
 - The `unconfirmed-commit-claim` branch of step 5 asks the human a question. Stage 1 reports the state in its report, and the orchestrating session asks the question.
 
-**What Stage 2 can still call**. Stage 2 does not call `pull_request_read` `method: get_review_comments` again, because Stage 1 already did that work. Stage 2 makes only the calls that Stage 1 had no reason to make: `mcp__plugin_github_github__add_reply_to_pull_request_comment`, `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`), and the extra context that the judgment on one thread needs. The main case is Phase 3b steps 1 and 2: read the real code, and widen the lens. Stage 1 did not do this, because it sets no verdicts. Two exceptions allow a new fetch:
+**What Stage 2 can still call**. Stage 2 does not call `pull_request_read` `method: get_review_comments` again, because Stage 1 already did that work. Stage 2 makes only the calls that Stage 1 had no reason to make: `mcp__plugin_github_github__add_reply_to_pull_request_comment`, `mcp__plugin_github_github__pull_request_review_write` (`method: resolve_thread`), and the extra context that the judgment on one thread needs. The main case is Phase 3b steps 1 and 2: read the real code, and widen the lens. Stage 1 did not do this, because it sets no verdicts. The `mode: create` steps of Task Composer add their own calls (see `references/tag-actions.md`). Two exceptions allow a new fetch:
 
 - The file or line context of a thread in the report is stale or contradictory. Then a read-only subagent fetches the current data of that one thread. Do not guess. This exception does not cover `filePath: null`, which is normal for a PR-level summary banner of an automated review.
 - `add_reply_to_pull_request_comment` reports a failure for a reply. Then a read-only subagent finds out whether the reply landed, before you retry (`dev-essentials:github-mcp-conventions` Rule 4). A blind retry posts a duplicate. If the reply is there, treat the action as done. Do not retry, and do not leave it for the next cycle. If the reply is not there, post it again.

@@ -2144,5 +2144,135 @@ class PpcQuestionGraderTests(unittest.TestCase):
                 self.assertEqual(self.matches("ppc-gated-threads", "question-drafted", reply), expected)
 
 
+class ComposerGraderTests(unittest.TestCase):
+    """Regex graders of the composers suite give the right verdict on right and wrong runs."""
+
+    TITLE = "Add an index on customer to the orders table"
+    BODY = ("## Current State Analysis\n\nThe orders page of a big customer is slow. The orders table has no index on the "
+            "customer column. This hurts the performance of the page.\n\n## Changes to Do\n\n- Add an index on customer\n")
+
+    PR_RIGHT = ("## Changes\n\nAdds an index on the customer column of the orders table, and `orders_count` for the invoice "
+                "header. The monthly invoice report reads the orders of each customer, and its job timed out.\n\n"
+                "## Notes\n\n- The plan also caches the invoice header. This PR does not hold that step.\n")
+    PR_NO_REASON = ("## Changes\n\nAdds an index on the customer column of the orders table.\n\n"
+                    "## Notes\n\n- Caching the invoice header is planned, but this PR does not hold it.\n")
+    TASK = ("# Add an index\n\n## Current State Analysis\n\nThe orders page is slow.\n\n## Changes to Do\n\n"
+            "- Add an index on the customer column of orders\n- Add an order count for each customer\n")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def passes(self, case, grader, text):
+        meta = self.cases[case].graders[grader][0]
+        flags = (re.I if "i" in meta.get("flags", "") else 0) | (re.M if "m" in meta.get("flags", "") else 0)
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def check(self, case, grader, runs):
+        for name, (text, expected) in runs.items():
+            with self.subTest(grader=grader, run=name):
+                self.assertEqual(self.passes(case, grader, text), expected)
+
+    def mock_calls(self, create_input, read_body=None):
+        """The lines have the form of the mock_calls target of the CLI: the full tool name, the input, the output, and the verdict."""
+        def line(tool, tool_input, output):
+            return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": tool_input, "output": output,
+                               "verdict": "ok"}, separators=(",", ":"), ensure_ascii=False)
+        owner = {"owner": "example-org", "repo": "pager"}
+        lines = [line("issue_write", {"method": "create", **owner, **create_input}, '{"number": 77}')]
+        answer = json.dumps({"number": 77, "title": self.TITLE, "body": read_body or self.BODY,
+                             "labels": [{"name": "feature"}]}, indent=2)
+        lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
+        return "\n".join(lines) + "\n"
+
+    def test_reason_from_plan_needs_a_word_of_the_reason(self):
+        self.check("cmp-pr-from-diff", "reason-from-plan", {
+            "reason in the changes": (self.PR_RIGHT, True),
+            "only the invoice header in the notes": (self.PR_NO_REASON, False),
+        })
+
+    def test_no_closing_keyword_finds_the_forms_that_github_accepts(self):
+        self.check("cmp-pr-from-diff", "no-closing-keyword", {
+            "no keyword": (self.PR_RIGHT, True),
+            "a plain reference": ("## Notes\n\nPart of issue #12.\n", True),
+            "closes": ("## Notes\n\nCloses #12\n", False),
+            "colon": ("## Notes\n\nFixes: #12\n", False),
+            "upper case with a colon": ("## Notes\n\nCLOSES: #12\n", False),
+            "owner and repository": ("## Notes\n\nResolves example-org/pager#12\n", False),
+        })
+
+    def test_names_count_accepts_more_wordings(self):
+        self.check("cmp-pr-from-diff", "names-count", {
+            "function name": (self.PR_RIGHT, True),
+            "count of the orders": ("Adds the count of the orders.", True),
+            "counts the orders of a customer": ("Adds a function that counts the orders of a customer.", True),
+            "count of a customer's orders": ("Adds the count of a customer's orders.", True),
+            "number of a customer's orders": ("Adds the number of a customer's orders.", True),
+            "count a customer's orders": ("Adds a function to count a customer's orders.", True),
+            "counts how many orders": ("Adds a query that counts how many orders a customer has.", True),
+            "order-count": ("Adds the order-count of each customer.", True),
+            "a count function for the orders": ("Adds a count function for the orders.", True),
+            "number of rows, no count of orders": ("Reads a smaller number of rows read from orders.", False),
+            "no count": (self.PR_NO_REASON, False),
+        })
+
+    def test_names_dropped_label_needs_a_word_for_not_kept(self):
+        self.check("cmp-issue-create", "names-dropped-label", {
+            "does not exist": ("The label performance does not exist in the repository, so I left it out.", True),
+            "no such label": ("Not added: **performance** (no such label in example-org/pager).", True),
+            "dropped": ("Dropped label: `performance`", True),
+            "no label": ("The repository has no `performance` label, so I did not create it.", True),
+            "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
+            "is not a label": ("`performance` is not a label in this repository.", True),
+            "does not have the label": ("The repository does not have a `performance` label, so the issue has only `feature`.", True),
+            "body preview, label not named": ("Created issue #77 with the label feature.\n\nBody preview: the missing "
+                                              "index hurts the performance of the orders page.", False),
+            "only the topic": ("Created issue #77 about the performance of the orders page.", False),
+        })
+
+    def test_label_kept_reads_the_create_call_only(self):
+        title = {"title": self.TITLE, "body": self.BODY}
+        self.check("cmp-issue-create", "label-kept", {
+            "labels after the body": (self.mock_calls({**title, "labels": ["feature"]}), True),
+            "labels before the body": (self.mock_calls({"title": self.TITLE, "labels": ["feature"], "body": self.BODY}), True),
+            "no labels, read-back has them": (self.mock_calls(title), False),
+        })
+
+    def test_body_sections_reads_the_create_call_only(self):
+        self.check("cmp-issue-create", "body-sections", {
+            "both sections": (self.mock_calls({"title": self.TITLE, "body": self.BODY, "labels": ["feature"]}), True),
+            "no sections, read-back has them": (self.mock_calls({"title": self.TITLE, "body": "The page is slow.",
+                                                                 "labels": ["feature"]}), False),
+        })
+
+    def test_no_title_in_body_reads_the_create_call_only(self):
+        right = {"title": self.TITLE, "body": self.BODY, "labels": ["feature"]}
+        h1 = {**right, "body": "# " + self.TITLE + "\n\n" + self.BODY}
+        h1_in_read_back = self.mock_calls(right, read_body="# " + self.TITLE + "\n\n" + self.BODY)
+        self.check("cmp-issue-create", "no-title-in-body", {
+            "right call": (self.mock_calls(right), True),
+            "H1 in the create call": (self.mock_calls(h1), False),
+            "H1 only in the read-back": (h1_in_read_back, True),
+        })
+
+    def test_no_code_finds_a_python_file_name(self):
+        self.check("cmp-task-draft", "no-code", {
+            "right draft": (self.TASK, True),
+            "file name with a folder": (self.TASK.replace("order count", "order count in src/store.py"), False),
+            "file name alone": (self.TASK.replace("order count", "order count in store.py"), False),
+        })
+
+    def test_short_items_checks_numbered_and_bullet_items(self):
+        short = "- Add an index on the customer column of orders"
+        long_item = "Add an index on the customer column of the orders table in the store module"
+        self.check("cmp-task-draft", "short-items", {
+            "right draft": (self.TASK, True),
+            "long bullet": (self.TASK.replace(short, "- " + long_item), False),
+            "long numbered item": (self.TASK.replace(short, "1. " + long_item), False),
+            "long indented item": (self.TASK.replace(short, "  - " + long_item), False),
+        })
+
+
 if __name__ == "__main__":
     unittest.main()
