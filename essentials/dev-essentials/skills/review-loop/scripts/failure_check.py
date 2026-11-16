@@ -2,8 +2,9 @@
 """Find out whether the fix commit of a review round broke a build or a test command.
 
 Phase 6 of the review-loop skill runs this script after a failed build or test
-run and after the Phase 7 commit. It uses only the standard library, git, and
-bash. On Windows, it runs the command with the bash of Git for Windows.
+run and after the Phase 7 commit. It needs Python 3.7 or later, git, and bash,
+and uses only the standard library. On Windows, it runs the command with the
+bash of Git for Windows.
 
 Steps:
   1. Read `git status` of the main worktree. Paths that match an --ignore glob
@@ -19,6 +20,26 @@ The command runs with `bash -c`, in the same folder relative to the work tree
 root as --cwd, and stops after --timeout seconds. The temporary worktrees are
 in a new folder below the system temporary folder, outside the repository.
 
+Output on stdout, in this order. Each line holds one fact:
+  FIX <sha> PARENT <sha>      the fix commit and the commit before it
+  MAIN WORKTREE: <state>      clean or not clean, and the commit of HEAD
+  CHANGED: <path>             a path that git status lists
+  MADE <path>                 a temporary worktree that this run made
+  RUN <side> <sha> in <folder>: <result>
+                              a run of the command, with its exit code or its stop
+    ERROR | <line>            an error line of that run
+    TAIL  | <line>            one of the last 15 lines of that run
+  REMOVED <path>              a temporary worktree that this run removed
+  WARN: <text>                a worktree or a folder that the script cannot delete
+  VERDICT: <token>
+  REASON: <text>
+The MADE, RUN, ERROR, and TAIL lines come one time for each run. After 20
+CHANGED lines, and after 20 ERROR lines of a run, one more line of that kind
+gives the count of the other paths or lines. An ERROR or TAIL line shows at
+most 300 characters of an output line, and then the count of the other
+characters. A path with a character that is not printable prints as a JSON
+string. Each error message of the script goes to stderr.
+
 The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
@@ -32,14 +53,17 @@ A WARN line names a worktree or a folder that the script cannot delete. On Windo
 at the time limit does not reach a Git Bash program that a background subshell of the command
 starts, for example `sleep`. Such a program can keep the folder until it ends.
 
-Exit codes: 0 = a verdict is printed, 2 = usage error, setup error, or stop by a signal.
+Exit codes: 0 = a verdict is printed, 1 = the script failed with a Python traceback,
+2 = usage error, setup error, or stop by a signal.
 
 Example:
   python3 -I failure_check.py --fix-commit 1a2b3c4 --command "python3 -m unittest" \\
       --cwd /path/to/repo --ignore "Notes/Reviews/my-branch-*"
 """
 import argparse
+import contextlib
 import fnmatch
+import json
 import os
 import re
 import shutil
@@ -54,32 +78,53 @@ from pathlib import Path
 ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
 PATH_START = r"(?<![^\s'\"])[^\s'\"]*"
 NOISE = [
-    (re.compile(PATH_START + r"review-loop-fc-[^/\\\s]+[/\\](fix|parent)"), "<root>"),
+    (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
     (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
 ]
 NOT_STARTED = (126, 127)
+CHANGED_LINES = 20
 ERROR_LINES = 20
 TAIL_LINES = 15
+LINE_CHARS = 300
 DEFAULT_TIMEOUT = 280
 
 
 class Stop(Exception):
-    pass
+    """A usage error or a setup error. main() prints its text and returns exit code 2."""
 
 
 class Interrupted(BaseException):
-    pass
+    """A stop signal. It is not an Exception, so only main() catches it."""
 
 
-def git(cwd, *args, check=True):
-    result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True)
-    out = result.stdout.decode("utf-8", "surrogateescape")
-    if check and result.returncode != 0:
-        raise Stop(f"git {args[0]} failed: {result.stderr.decode('utf-8', 'replace').strip()}")
-    return out if check else (result.returncode, out, result.stderr.decode("utf-8", "replace"))
+def git_result(cwd, *args):
+    """Run git with no input. Return its exit code, its stdout, and its stderr as one line."""
+    result = subprocess.run(["git", "-C", str(cwd), *args], stdin=subprocess.DEVNULL, capture_output=True)
+    err = " ".join(result.stderr.decode("utf-8", "replace").split())
+    return result.returncode, result.stdout.decode("utf-8", "surrogateescape"), err
+
+
+def git(cwd, *args):
+    """Run git and return its stdout. A git command that fails stops the script."""
+    code, out, err = git_result(cwd, *args)
+    if code != 0:
+        raise Stop(f"git {args[0]} failed: {err}")
+    return out
+
+
+def show(path):
+    """The path for one output line. A path with a character that is not printable becomes a JSON string."""
+    return path if path.isprintable() else json.dumps(path)
+
+
+def cut(line):
+    """The line for the report, with at most LINE_CHARS characters of it."""
+    if len(line) <= LINE_CHARS:
+        return line
+    return f"{line[:LINE_CHARS]} ... {len(line) - LINE_CHARS} more characters"
 
 
 def find_bash():
@@ -114,9 +159,15 @@ def changed_paths(top, ignore):
 
 
 class Run:
+    """One run of the command at one commit, and its result."""
+
     def __init__(self, side, sha, folder, where):
         self.side, self.sha, self.folder, self.where = side, sha, folder, where
-        self.code, self.timed_out, self.start_error, self.seconds, self.lines = None, False, None, 0.0, []
+        self.code = None
+        self.timed_out = False
+        self.start_error = None
+        self.seconds = 0.0
+        self.lines = []
         self.limit = None
 
     @property
@@ -128,21 +179,24 @@ class Run:
         return not self.passed and not self.timed_out and self.start_error is None and self.code not in NOT_STARTED
 
     def signature(self, roots):
+        """The error lines and the last lines, with a token for each root folder, time, and address."""
+        # The longest root comes first, because one root can be the start of another root.
+        ordered = sorted(roots, key=lambda root: (-len(root), root))
+        rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE
         found = set()
         first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), len(self.lines))
         tail = self.lines[max(first, len(self.lines) - TAIL_LINES):]
         for line in self.lines:
             if ERROR.search(line) or line in tail:
-                for root in roots:
-                    line = re.sub(PATH_START + re.escape(root), "<root>", line)
-                for pattern, token in NOISE:
-                    line = pattern.sub(token, line)
-                found.add(line.strip())
+                text = line
+                for pattern, token in rules:
+                    text = pattern.sub(token, text)
+                found.add(text.strip())
         return found
 
     def report(self):
         if self.start_error:
-            state = f"could not start: {self.start_error}"
+            state = f"could not start: {cut(self.start_error)}"
         elif self.timed_out:
             state = f"stopped after the time limit of {self.limit} s ({self.seconds:.0f} s with the stop)"
         else:
@@ -150,21 +204,20 @@ class Run:
         print(f"RUN {self.side} {self.sha[:12]} in {self.where} {self.folder}: {state}")
         errors = [line for line in self.lines if ERROR.search(line)]
         for line in errors[:ERROR_LINES]:
-            print(f"  ERROR | {line}")
+            print(f"  ERROR | {cut(line)}")
         if len(errors) > ERROR_LINES:
             print(f"  ERROR | ... {len(errors) - ERROR_LINES} more error lines")
         for line in self.lines[-TAIL_LINES:]:
-            print(f"  TAIL  | {line}")
+            print(f"  TAIL  | {cut(line)}")
 
 
 def kill_tree(proc):
+    """Stop the process and its children. A kill that fails means that they ended before it."""
     if os.name == "nt":
         subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
     else:
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
     proc.wait()
 
 
@@ -211,53 +264,53 @@ class Worktrees:
     def __init__(self, top):
         self.top, self.made = top, []
         self.root = Path(tempfile.mkdtemp(prefix="review-loop-fc-")).resolve()
-        if self.root.is_relative_to(Path(top).resolve()):
+        if Path(top).resolve() in self.root.parents:
             self.remove()
             raise Stop(f"the temporary folder {self.root} is inside the repository. Set TMPDIR to another folder")
 
     def add(self, name, sha):
         path = self.root / name
         try:
-            code, _, err = git(self.top, "worktree", "add", "--detach", str(path), sha, check=False)
+            code, _, err = git_result(self.top, "worktree", "add", "--detach", str(path), sha)
         finally:
             if path.exists():
                 self.made.append(path)
                 print(f"MADE {path}", flush=True)
-        return (path, None) if code == 0 else (None, err.strip())
+        return (path, None) if code == 0 else (None, err)
 
     def remove(self):
         failed = []
         for path in self.made:
-            code, _, err = git(self.top, "worktree", "remove", "--force", str(path), check=False)
+            code, _, err = git_result(self.top, "worktree", "remove", "--force", str(path))
             if code == 0:
                 print(f"REMOVED {path}", flush=True)
             else:
-                failed.append((path, err.strip()))
+                failed.append((path, err))
         self.made = []
         shutil.rmtree(self.root, ignore_errors=True)
         if self.root.exists():
             print(f"WARN: could not delete the folder {self.root}", flush=True)
         for path, err in failed:
-            if not path.exists() and git(self.top, "worktree", "remove", "--force", str(path), check=False)[0] == 0:
+            if not path.exists() and git_result(self.top, "worktree", "remove", "--force", str(path))[0] == 0:
                 print(f"REMOVED {path}", flush=True)
             else:
                 print(f"WARN: could not remove the worktree {path}: {err}", flush=True)
 
 
 def verdict(clean, fix, parent, roots):
+    """The verdict token and its reason. The parent run exists only after a fix run that failed with an exit code."""
     if fix.passed:
         if clean:
             return "OTHER", "the command passed in a second run in the clean main worktree."
         return "UNCOMMITTED", "the command passes at the fix commit, so the state of the main worktree causes the failure."
     if not fix.runnable_failure:
         return "OTHER", "the command did not run to an end at the fix commit."
-    if parent is None:
-        return "OTHER", "the command did not run at the commit before the fix commit."
     if parent.passed:
         return "REGRESSION", "the command fails at the fix commit and passes at the commit before it."
-    same = (parent.runnable_failure and parent.code == fix.code
-            and fix.signature(roots) and fix.signature(roots) == parent.signature(roots))
-    if same:
+    if not parent.runnable_failure:
+        return "OTHER", "the command did not run to an end at the commit before the fix commit."
+    signature = fix.signature(roots)
+    if signature and parent.code == fix.code and signature == parent.signature(roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
                                   "and the same last lines after the first error line.")
     return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
@@ -280,14 +333,14 @@ def check(args, bash):
     try:
         rel = cwd.relative_to(top)
     except ValueError:
-        raise Stop(f"the folder {cwd} is not inside the work tree {top}")
+        raise Stop(f"the folder {cwd} is not inside the work tree {top}") from None
     if args.fix_commit.startswith("-"):
         raise Stop("the fix commit must not start with '-'")
-    code, out, _ = git(top, "rev-parse", "--verify", "--quiet", args.fix_commit + "^{commit}", check=False)
+    code, out, _ = git_result(top, "rev-parse", "--verify", "--quiet", args.fix_commit + "^{commit}")
     if code != 0:
         raise Stop(f"the fix commit {args.fix_commit} is not a commit")
     fix = out.strip()
-    code, out, _ = git(top, "rev-parse", "--verify", "--quiet", fix + "^1^{commit}", check=False)
+    code, out, _ = git_result(top, "rev-parse", "--verify", "--quiet", fix + "^1^{commit}")
     if code != 0:
         if git(top, "rev-parse", "--is-shallow-repository").strip() == "true":
             raise Stop("the commit before the fix commit is not in this shallow clone. Run git fetch --deepen=1")
@@ -299,8 +352,10 @@ def check(args, bash):
     print(f"FIX {fix[:12]} PARENT {parent_sha[:12]}")
     print(f"MAIN WORKTREE: {'clean' if clean else 'not clean'}, HEAD is {head[:12]}"
           + ("" if head == fix else ", not the fix commit"))
-    for path in changed:
-        print(f"CHANGED: {path}")
+    for path in changed[:CHANGED_LINES]:
+        print(f"CHANGED: {show(path)}")
+    if len(changed) > CHANGED_LINES:
+        print(f"CHANGED: ... {len(changed) - CHANGED_LINES} more paths")
     trees = Worktrees(top)
     roots = path_forms(top) | path_forms(trees.root / "fix") | path_forms(trees.root / "parent")
     try:
@@ -351,7 +406,7 @@ def main(argv=None):
         print(f"error: {error}", file=sys.stderr)
         return 2
     except (Interrupted, KeyboardInterrupt):
-        print("error: stopped by a signal. The temporary worktrees are removed", file=sys.stderr)
+        print("error: stopped by a signal, so there is no verdict", file=sys.stderr)
         return 2
     return 0
 

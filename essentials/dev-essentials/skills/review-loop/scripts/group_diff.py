@@ -3,7 +3,7 @@
 
 The large-target mode of the review-loop skill gives one Area Explorer to each
 area. The script reads `git diff --numstat` and `git diff --raw` of the range.
-It changes nothing in the repository.
+It changes nothing in the repository. It needs Python 3.7 or later.
 
 Rules, in this order:
   1. A lock file, a file that .gitattributes marks linguist-generated, and a
@@ -19,11 +19,19 @@ Rules, in this order:
 Changed lines are added plus deleted lines. A binary file counts 0 lines.
 In each area, production files come before test files.
 
-Output: one TOTAL line, then for each area an AREA line and one line for each
-file: the change kind, +added, -deleted, the path, and the old path of a
-rename. A path with a control character prints as a JSON string.
+Output on stdout: one TOTAL line, then for each area an AREA line and one line
+for each file. The areas and the files have a fixed order:
+  TOTAL files=<n> added=<n> deleted=<n> areas=<n>
+  AREA <number> <name> files=<n> lines=<n>
+    <kind> +<added> -<deleted> <path>[ <- <old path>][ [<mark>]]
+The kind is added, copied, deleted, modified, renamed, or type-changed. A
+binary file has "bin" for both counts. The old path is the source of a rename.
+The mark is "test", or the reason why the file is in the area "skipped". A
+path with a character that is not printable prints as a JSON string. Each
+error message goes to stderr.
 
-Exit codes: 0 = the areas are printed, 2 = usage error or git error.
+Exit codes: 0 = the areas are printed, 1 = the script failed with a Python
+traceback, 2 = usage error or git error.
 
 Example:
   python3 -I group_diff.py --repo /path/to/repo --range origin/main...HEAD
@@ -58,7 +66,8 @@ def fail(message):
     sys.exit(2)
 
 
-def git(repo, *args, data=None):
+def git(repo, *args, data=b""):
+    """Run git with data as its input, and return its stdout. A git command that fails ends the script."""
     result = subprocess.run(["git", "-C", repo, *args], input=data, capture_output=True)
     if result.returncode != 0:
         fail(f"git {args[0]} failed: {result.stderr.decode('utf-8', 'replace').strip()}")
@@ -153,6 +162,7 @@ def mark_skipped(repo, changes):
                 with open(PurePosixPath(top, c.path), "rb") as handle:
                     data = handle.read(HEADER_BYTES)
             except OSError:
+                # A file that the script cannot read has no header.
                 data = b""
         head = "\n".join(data.decode("utf-8", "replace").splitlines()[:HEADER_LINES])
         rule = MARKDOWN_HEADER if c.path.lower().endswith((".md", ".markdown")) else HEADER
@@ -221,7 +231,8 @@ def build_areas(changes):
 
 
 def show(path):
-    return json.dumps(path) if any(ord(ch) < 32 or ord(ch) == 127 for ch in path) else path
+    """The path for one output line. A path with a character that is not printable becomes a JSON string."""
+    return path if path.isprintable() else json.dumps(path)
 
 
 def count_text(n):
@@ -256,9 +267,8 @@ def main(argv=None):
     deleted = sum(c.deleted or 0 for c in changes)
     print(f"TOTAL files={len(changes)} added={added} deleted={deleted} areas={len(areas)}")
     for number, (name, files) in enumerate(areas, 1):
-        files = sorted(files, key=lambda c: (c.is_test, c.path))
         print(f"AREA {number} {show(name)} files={len(files)} lines={sum(f.lines for f in files)}")
-        for c in files:
+        for c in sorted(files, key=lambda f: (f.is_test, f.path)):
             print(file_line(c))
     return 0
 
