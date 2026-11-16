@@ -54,6 +54,8 @@ EXPECTED_BRANCH = {
 START_CONTENT = {
     "fp-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
 }
+# A literal commit id in a grader pattern: \b, then 7 to 40 hex characters.
+COMMIT_LITERAL = re.compile(r"\\b([0-9a-f]{7,40})(?![0-9a-f])")
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
@@ -114,6 +116,21 @@ def branch_path_problems(case, branch):
     return problems
 
 
+def commit_literal_problems(case, commits):
+    """A commit id in a regex grader pattern must start a commit of the scaffold repository."""
+    problems = []
+    for name, (options, _body) in sorted(case.graders.items()):
+        pattern = options.get("pattern")
+        if options.get("type") != "regex" or not isinstance(pattern, str):
+            continue
+        for literal in COMMIT_LITERAL.findall(pattern):
+            if any(c.isdigit() for c in literal) and any(c.isalpha() for c in literal) \
+                    and not any(commit.startswith(literal) for commit in commits):
+                problems.append(f"{case.label}/graders/{name}.md: the pattern names the commit {literal}, "
+                                "but no commit of the scaffold starts with it")
+    return problems
+
+
 class DotnetVersionParseTests(unittest.TestCase):
     def test_sdk_major_reads_the_first_number(self):
         self.assertEqual(sdk_major("11.0.100"), 11)
@@ -143,6 +160,33 @@ class GraderBranchTests(unittest.TestCase):
         problems = branch_path_problems(case, "work/a")
         self.assertEqual(len(problems), 1)
         self.assertIn("no-push", problems[0])
+
+
+class CommitLiteralTests(unittest.TestCase):
+    COMMITS = ["804a1380000000000000000000000000000000aa", "7a99d1e0000000000000000000000000000000bb"]
+
+    @staticmethod
+    def case(**patterns):
+        graders = {name: ({"type": "regex", "pattern": pattern}, "") for name, pattern in patterns.items()}
+        return SimpleNamespace(label="ppc-x", graders=graders)
+
+    def test_a_literal_that_starts_a_commit_passes(self):
+        case = self.case(a=r"\b804a138", b=r"\b9101\b[\s\S]{0,400}\b7a99d1e|\b7a99d1e[\s\S]{0,400}\b9101\b")
+        self.assertEqual(commit_literal_problems(case, self.COMMITS), [])
+
+    def test_a_wrong_literal_is_found(self):
+        problems = commit_literal_problems(self.case(names=r"\b804a139"), self.COMMITS)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("ppc-x/graders/names.md", problems[0])
+        self.assertIn("804a139", problems[0])
+
+    def test_words_and_numbers_are_not_commit_literals(self):
+        case = self.case(a=r"\bdefaced\b", b=r"\b1234567\b", c=r"\bfeature/paging")
+        self.assertEqual(commit_literal_problems(case, self.COMMITS), [])
+
+    def test_a_grader_of_another_type_is_skipped(self):
+        case = SimpleNamespace(label="ppc-x", graders={"a": ({"type": "file_exists", "pattern": r"\b804a139"}, "")})
+        self.assertEqual(commit_literal_problems(case, self.COMMITS), [])
 
 
 class FixtureCase(ScratchCase):
@@ -207,6 +251,7 @@ class ScaffoldTests(FixtureCase):
         self.assertNotEqual(branch, "HEAD", "the checkout is detached")
         self.assertEqual(self.git(repo, "diff", "--quiet", "HEAD")[0], 0, "a tracked file has a change")
         self.check_report_folders(case, workspace)
+        self.check_commit_literals(case, repo)
 
         text = script.read_text(encoding="utf-8")
         if case.name in START_CONTENT:
@@ -233,6 +278,10 @@ class ScaffoldTests(FixtureCase):
         prompt = (case.path / "prompt.md").read_text(encoding="utf-8") if (case.path / "prompt.md").is_file() else ""
         for folder in re.findall(r"--report-dir=\./(\S+?)(?=\s|$)", prompt):
             self.assertTrue((workspace / folder).is_dir(), f"the prompt names the report folder {folder}, but the scaffold made none")
+
+    def check_commit_literals(self, case, repo):
+        commits = self.git(repo, "log", "--all", "--format=%H")[1].splitlines()
+        self.assertEqual(commit_literal_problems(case, commits), [])
 
     def check_remote(self, workspace, bare, script_text):
         self.assertEqual(self.git(bare, "rev-parse", "--is-bare-repository")[1], "true")

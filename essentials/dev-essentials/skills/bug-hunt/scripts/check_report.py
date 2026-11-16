@@ -138,11 +138,13 @@ def list_processes():
             cmd = ["powershell.exe", "-NoProfile", "-Command", script]
         else:
             cmd = ["ps", "-eo", "pid=,ppid=,lstart=,args="]
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
+        done = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError):
         return None
+    if done.returncode != 0:
+        return None
     records = []
-    for line in out.splitlines():
+    for line in done.stdout.splitlines():
         if os.name == "nt":
             parts = line.split("\t", 3)
             ok = len(parts) == 4 and parts[0].strip().isdigit() and parts[1].strip().isdigit()
@@ -155,14 +157,26 @@ def list_processes():
     return records
 
 
+def fenced(text):
+    """Yield each line with True when it is part of a fenced code block, as CommonMark reads it."""
+    fence, marker = False, ""
+    for line in text.split("\n"):
+        opener = re.match(r"^ {0,3}(```|~~~)(.*)$", line)
+        if not fence and opener and not (opener.group(1) == "```" and "`" in opener.group(2)):
+            fence, marker = True, opener.group(1)
+            yield line, True
+            continue
+        if fence and re.match(r"^ {0,3}" + re.escape(marker) + r"\s*$", line):
+            fence = False
+            yield line, True
+            continue
+        yield line, fence
+
+
 def sections(text):
     """Split the report into H2 sections. Lines in fenced code blocks are not headings."""
-    result, name, body, fence, marker = [], None, [], False, ""
-    for n, line in enumerate(text.split("\n"), 1):
-        if not fence and (line.startswith("```") or line.startswith("~~~")):
-            fence, marker = True, line[:3]
-        elif fence and line.startswith(marker):
-            fence = False
+    result, name, body = [], None, []
+    for n, (line, fence) in enumerate(fenced(text), 1):
         if not fence and line.startswith("## "):
             if name is not None:
                 result.append((name, body))
@@ -204,6 +218,8 @@ def open_notes(secs):
             continue
         area, inside = int(m.group(1)), False
         for n, line, fence in body:
+            if fence:
+                continue
             if line.startswith("### "):
                 inside = line.startswith("### Notes for other areas")
                 continue
@@ -330,7 +346,7 @@ def check_report(a):
     if a.stage == "final":
         if not re.search(r"^### For the owner's review$", summary, re.M):
             defect("Summary has no 'For the owner's review' subsection")
-        plain = re.sub(r"`[^`\n]*`", "", re.sub(r"```.*?```", "", text, flags=re.S))
+        plain = re.sub(r"`[^`\n]*`", "", "\n".join(line for line, fence in fenced(text) if not fence))
         for m in re.finditer(r"^Pending (search|verification|the first search)\.$|\{[A-Z0-9_]+\}",
                              plain, re.M):
             defect(f"placeholder left: {m.group(0)}")
@@ -414,7 +430,7 @@ def main():
     elif a.cmd == "report":
         check_report(a)
     elif a.cmd == "next-id":
-        ids = [int(x) for x in re.findall(r"^### BH-(\d+): ", read(a.report), re.M)]
+        ids = [e[0] for e in entries(sections(read(a.report)))]
         print(f"BH-{(max(ids) + 1) if ids else 1:02d}")
     elif a.cmd == "open-notes":
         for area, src, n, line in open_notes(sections(read(a.report))):

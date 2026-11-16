@@ -3,9 +3,12 @@
 The stand-in tests/evals/stubs/simple-english is a copy of the
 plugin simple-english. Its SOURCE.txt names the copied version. The test reads
 the installed versions from plugins/cache/simple-english/simple-english/ in
-CLAUDE_CONFIG_DIR (default ~/.claude). The test fails if one is newer. It skips
-if none is installed, which is the case in CI.
+CLAUDE_CONFIG_DIR (default ~/.claude). It also reads the synced copies, which
+are the folders plugins/synced/*/simple-english and plugins/synced/*/simple-english~g<N>.
+Their version is in .claude-plugin/plugin.json. The test fails if one is newer.
+It skips if none is installed, which is the case in CI.
 """
+import json
 import os
 import re
 import unittest
@@ -18,19 +21,35 @@ STUB = REPO / "tests/evals/stubs/simple-english"
 CACHE = Path("plugins/cache/simple-english/simple-english")
 VERSION_LINE = re.compile(r"^Version:\s*(\d+)\.(\d+)\.(\d+)", re.MULTILINE)
 VERSION_NAME = re.compile(r"\d+\.\d+\.\d+")
+SYNCED = Path("plugins/synced")
+SYNCED_NAME = re.compile(r"simple-english(~g\d+)?")
 
 
 def dotted(version):
     return ".".join(map(str, version))
 
 
-def newest_installed(config_dir):
-    """The newest version folder in the plugin cache, as a tuple of integers, or None."""
-    folder = Path(config_dir) / CACHE
-    if not folder.is_dir():
+def synced_version(folder):
+    """The version in the plugin.json of a synced copy, as a tuple of integers, or None."""
+    try:
+        manifest = json.loads((folder / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
         return None
-    versions = [tuple(map(int, p.name.split("."))) for p in folder.iterdir()
-                if p.is_dir() and VERSION_NAME.fullmatch(p.name)]
+    text = manifest.get("version") if isinstance(manifest, dict) else None
+    return tuple(map(int, text.split("."))) if isinstance(text, str) and VERSION_NAME.fullmatch(text) else None
+
+
+def newest_installed(config_dir):
+    """The newest version in the plugin cache and in the synced copies, as a tuple of integers, or None."""
+    versions = []
+    cache = Path(config_dir) / CACHE
+    if cache.is_dir():
+        versions += [tuple(map(int, p.name.split("."))) for p in cache.iterdir()
+                     if p.is_dir() and VERSION_NAME.fullmatch(p.name)]
+    synced = Path(config_dir) / SYNCED
+    if synced.is_dir():
+        versions += [v for p in synced.glob("*/simple-english*")
+                     if p.is_dir() and SYNCED_NAME.fullmatch(p.name) and (v := synced_version(p))]
     return max(versions, default=None)
 
 
@@ -98,6 +117,41 @@ class CheckDriftTests(ScratchCase):
     def test_folder_names_that_are_not_versions_are_ignored(self):
         self.install("latest", "9.9", "2.1.1")
         self.assertEqual(check_drift(self.source, self.root)[0], "ok")
+
+    def install_synced(self, name, version, group="abc_def"):
+        manifest = self.root / SYNCED / group / name / ".claude-plugin/plugin.json"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text(json.dumps({"name": "simple-english", "version": version}), encoding="utf-8")
+
+    def test_a_newer_synced_copy_fails(self):
+        self.install_synced("simple-english", "2.2.0")
+        status, message = check_drift(self.source, self.root)
+        self.assertEqual(status, "fail")
+        self.assertIn("2.2.0", message)
+
+    def test_an_equal_synced_copy_passes(self):
+        self.install_synced("simple-english", "2.1.1")
+        self.assertEqual(check_drift(self.source, self.root)[0], "ok")
+
+    def test_a_synced_copy_with_a_g_suffix_counts(self):
+        self.install_synced("simple-english~g2", "2.3.0")
+        self.assertEqual(check_drift(self.source, self.root)[0], "fail")
+
+    def test_a_synced_copy_with_no_readable_version_is_skipped(self):
+        self.install_synced("simple-english", "latest")
+        (self.root / SYNCED / "abc_def" / "simple-english~g2").mkdir()
+        self.assertEqual(check_drift(self.source, self.root)[0], "skip")
+
+    def test_a_synced_copy_whose_manifest_is_not_an_object_is_skipped(self):
+        manifest = self.root / SYNCED / "abc_def" / "simple-english" / ".claude-plugin/plugin.json"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text("[]", encoding="utf-8")
+        self.assertEqual(check_drift(self.source, self.root)[0], "skip")
+
+    def test_a_synced_folder_of_another_plugin_is_ignored(self):
+        self.install_synced("simple-english-extra", "9.0.0")
+        self.install_synced("other-plugin", "9.0.0", group="ghi_jkl")
+        self.assertEqual(check_drift(self.source, self.root)[0], "skip")
 
     def test_no_installed_copy_skips(self):
         status, message = check_drift(self.source, self.root)

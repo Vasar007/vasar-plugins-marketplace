@@ -30,7 +30,7 @@ if [ -z "$settings_kb_dir" ]; then
 elif [ ! -f "$settings_kb_dir/_claude/RULES.md" ]; then
   missing "KB_DIR: $settings_kb_dir has no _claude/RULES.md. Set it to the KB clone."
 fi
-rule_lists="$(tr -d '\r\n' < "$settings" 2>/dev/null)"
+rule_lists="$(tr -d '\r\n' 2>/dev/null < "$settings")"
 entries='\[[[:space:]]*("([^"\\]|\\.)*"[[:space:]]*,?[[:space:]]*)*\]'
 allow="$(printf '%s' "$rule_lists" | grep -oE "\"allow\" *: *$entries")"
 ask="$(printf '%s' "$rule_lists" | grep -oE "\"ask\" *: *$entries")"
@@ -58,7 +58,7 @@ if [ -n "$kb" ]; then
     missing "ask rule: $rule is not in permissions.ask in $settings."
   fi
 fi
-dirs="$(tr -d '\r\n' < "$settings" 2>/dev/null | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
+dirs="$(tr -d '\r\n' 2>/dev/null < "$settings" | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
 if [ "$os" = windows ] && [ -n "$kb" ] && ! printf '%s' "$dirs" | grep -qiF "\"$kb_fwd\""; then
   missing "additionalDirectories: $kb_fwd is not in permissions.additionalDirectories in $settings."
 fi

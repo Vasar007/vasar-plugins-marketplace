@@ -2,6 +2,7 @@
 
 The base is the merge base with origin/<GITHUB_BASE_REF> in a CI pull request, else with $VERSION_BUMP_BASE or origin/main.
 A CI run with no pull request skips the check, because the pull request already ran it.
+A new file that git does not track yet counts as a change, as in a pull request.
 """
 import json
 import os
@@ -55,6 +56,7 @@ def version_at(repo, root, revision=None):
 def bump_problems(repo, base):
     """One line for each changed plugin whose version did not go up since the base commit."""
     changed = git(repo, "diff", "--name-only", "--no-renames", "-z", base).stdout.split("\0")
+    changed += git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout.split("\0")
     roots = sorted(set(plugin_roots(repo)) | set(plugin_roots(repo, base)))
     problems = []
     for root in changed_plugins([p for p in changed if p], roots):
@@ -164,6 +166,12 @@ class BumpProblemsTests(ScratchCase):
     def test_uncommitted_change_counts(self):
         self.write("dotnet/two/agents/b.md", "second\n")
         self.assertEqual(len(bump_problems(self.repo, self.base)), 1)
+
+    def test_untracked_new_file_counts(self):
+        self.write("essentials/one/skills/new/SKILL.md", "new\n")
+        self.assertEqual(bump_problems(self.repo, self.base), [
+            "essentials/one: files changed, but the version is 1.2.3, and it was 1.2.3 at the base. "
+            "Raise the version in essentials/one/.claude-plugin/plugin.json."])
 
     def test_new_and_removed_plugins_need_no_bump(self):
         self.write("workflows/three/.claude-plugin/plugin.json", '{"name": "three", "version": "1.0.0"}\n')
