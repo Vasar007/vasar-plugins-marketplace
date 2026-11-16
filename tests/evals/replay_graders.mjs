@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 const USAGE = 'Usage: node tests/evals/replay_graders.mjs --case <case folder> <run folder>...';
 // The prefix of the output of a call that a mock stopped. The nonce of the run follows it.
 const ABORT_PREFIX = 'eval aborted by mock';
-const KEY_LINE = /^([A-Za-z_][\w-]*):(?:\s+(.*))?$/;
+// The value starts at a character that is not a space. So a long line of spaces does not cost square time.
+const KEY_LINE = /^([A-Za-z_][\w-]*):(?:\s+(\S.*)?)?$/;
 // The front matter rule of Claude Code 2.1.325. The closing --- can also be inside a line.
 const FRONT_MATTER = /^---\s*\n([\s\S]*?)---\s*\n?/;
 // The field that the body of a grader file fills when the front matter does not set it.
@@ -310,4 +311,10 @@ function isScript() {
   return fs.realpathSync(script) === fs.realpathSync(fileURLToPath(import.meta.url));
 }
 
-if (isScript()) process.exitCode = main(process.argv.slice(2));
+if (isScript()) {
+  // A reader that closes the pipe early, for example `head`, is not an error of the replay.
+  process.stdout.on('error', (error) => {
+    if (error.code !== 'EPIPE') throw error;
+  });
+  process.exitCode = main(process.argv.slice(2));
+}

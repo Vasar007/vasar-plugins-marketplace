@@ -4,13 +4,14 @@ The tests replay graders on the hand-made run in fixtures/replay-run and call no
 """
 import json
 import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
 from support import tool_missing
 from test_eval_cases import plugin_roots, split_frontmatter
 from test_eval_front_matter import require_yaml, yaml, yaml_files
-from testkit import ScratchCase, run
+from testkit import RUN_SECONDS, ScratchCase, run
 
 HERE = Path(__file__).resolve().parent
 TOOL = HERE / "replay_graders.mjs"
@@ -179,6 +180,26 @@ class ReplayTests(ReplayCase):
         result = run([self.node, link, "--case", self.write_case({"agent-used": GRADERS["agent-used"]}), RUN])
         self.assertResult(result, 0, "replay-run\tagent-used\tpass\t")
 
+    def test_an_import_from_another_script_runs_nothing(self):
+        script = self.tmp / "importer.mjs"
+        script.write_text(f"import {json.dumps(TOOL.as_uri())};\nconsole.log('imported');\n", encoding="utf-8")
+        result = run([self.node, script, "--case", self.write_case(GRADERS), RUN])
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "imported\n", ""))
+
+    def test_a_reader_that_closes_the_pipe_early_gets_no_error(self):
+        # 20 graders on 400 runs print more text than a pipe holds. So the tool still writes when the reader closes.
+        case = self.write_case({f"agent-used-{number}": GRADERS["agent-used"] for number in range(20)})
+        command = [str(part) for part in (self.node, TOOL, "--case", case, *[RUN.name] * 400)]
+        with (self.tmp / "stderr.txt").open("w+b") as errors:
+            tool = subprocess.Popen(command, cwd=RUN.parent, stdout=subprocess.PIPE, stderr=errors)
+            self.addCleanup(tool.kill)
+            first = tool.stdout.readline()
+            tool.stdout.close()
+            code = tool.wait(timeout=RUN_SECONDS)
+            errors.seek(0)
+            self.assertEqual((code, errors.read()), (0, b""))
+        self.assertEqual(first, b"replay-run\tagent-used-0\tpass\tAgent called 1x (expected 1..1)\n")
+
 
 class InputErrorTests(ReplayCase):
     def test_no_case_gives_exit_2(self):
@@ -243,6 +264,12 @@ class InputErrorTests(ReplayCase):
 
     def test_a_graders_folder_without_a_grader_gives_exit_2(self):
         self.assertResult(self.replay("--case", self.write_case({}), RUN), 2, "no grader file with front matter")
+
+    def test_an_input_error_has_its_name_and_its_cause(self):
+        case = self.write_case({"typo": "typ: regex\n"})
+        caught = self.module_call("(() => { try { return t.readGraders(" + json.dumps(str(case)) + "); } catch (error) "
+                                  "{ return [error.name, error instanceof t.InputError, error.cause?.message]; } })()")
+        self.assertEqual(caught, ["InputError", True, "the front matter has no type key"])
 
 
 class FrontMatterTest(ReplayCase):
