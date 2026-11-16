@@ -108,6 +108,20 @@ The grader `route-plain-dotnet` of each .NET case reads the JSON text of the inp
 
 This list is not complete. The class `RoutePlainDotnetGraderTests` in `tests/test_eval_cases.py` pins each of these forms.
 
+The `tests-passed` graders of the .NET cases read the outcome of the last test run from the file `.test-runs/last.txt` of the workspace. The scaffold function `dotnet_write_run_marker` adds a test fixture that writes this file. At setup, the fixture makes the file `.test-runs/started-<ticks>` and writes `Started`. At teardown, it writes `Passed` or `Failed`. So a test run that stops before the teardown, for example on a crash or a timeout, leaves `Started`. The `tests-ran` graders look for a `started-` file.
+
+The target `MarkTestOutcomeStale` in `Directory.Build.props` runs before a compile. It writes `Stale` to the file in two cases. In the first case, a source file, a project file, or a referenced assembly is newer than the compiled assembly. In the second case, the list of source files changed, for example by a deleted file. So a failed compile after a passing test run does not keep `Passed`. A build that compiles nothing keeps the outcome.
+
+The marker has these limits:
+
+- A rebuild, or a clean and a build, writes `Stale` with no change of the code.
+- A new file time (`touch`, `git checkout`) also writes `Stale`.
+- A first build of another configuration, for example `-c Release`, also writes `Stale`.
+- An edit with no later build of its project keeps the outcome.
+- A failed restore keeps the outcome.
+- A change of only `.editorconfig` keeps the outcome, because that file is not an input of the target.
+- `dotnet test --no-build` runs the last good binaries and writes their outcome.
+
 The probes are cheap cases that test the run environment, not a skill. They are in `evals/probes/` of each plugin, and the tag is `probe`. Run them with the same command and `--tag probe` before the first paid suite run on a new machine.
 
 The grader `untested-commit` of seven `dev-essentials` cases reads the trace. It fails a run that edits a `.py` file and then makes a `git commit` with no `unittest` run between them. An `Edit`, `Write`, or `MultiEdit` call on a `.py` file is an edit. A Bash command that writes a `.py` path with `>`, `>>`, or `tee` is an edit. A `sed -i` or `perl -pi` command with a `.py` path is an edit. The path must come before the next `;`, `&`, `|`, or line end. The grader does not read shell quotes. So a bad run can pass in these forms:

@@ -8,9 +8,6 @@
 # A scaffold checks out its work branch and calls dotnet_warm Billing.sln.
 set -euo pipefail
 
-BILLING_TEST_SDK_VERSION="18.11.0"
-BILLING_NUNIT_VERSION="5.0.0"
-BILLING_NUNIT_ADAPTER_VERSION="6.3.1"
 BILLING_FLUENT_ASSERTIONS_VERSION="7.2.2"
 BILLING_NSUBSTITUTE_VERSION="5.3.0"
 BILLING_AUTOFIXTURE_VERSION="4.18.1"
@@ -24,9 +21,9 @@ make_billing_repo() {
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$BILLING_TEST_SDK_VERSION" />
-    <PackageVersion Include="NUnit" Version="$BILLING_NUNIT_VERSION" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="$BILLING_NUNIT_ADAPTER_VERSION" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$DOTNET_TEST_SDK_VERSION" />
+    <PackageVersion Include="NUnit" Version="$DOTNET_NUNIT_VERSION" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="$DOTNET_NUNIT_ADAPTER_VERSION" />
     <PackageVersion Include="FluentAssertions" Version="$BILLING_FLUENT_ASSERTIONS_VERSION" />
     <PackageVersion Include="NSubstitute" Version="$BILLING_NSUBSTITUTE_VERSION" />
     <PackageVersion Include="AutoFixture" Version="$BILLING_AUTOFIXTURE_VERSION" />

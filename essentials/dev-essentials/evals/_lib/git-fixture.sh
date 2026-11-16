@@ -2,7 +2,7 @@
 # Git setup for eval fixtures. A scaffold sources this file. It is not meant to run alone.
 #
 # fixture_init, fixture_commit, fixture_write: build a repo in the current folder.
-# fixture_remote_init: add a bare remote at .remote/origin.git inside the workspace.
+# fixture_remote_init: add a bare remote at .remote/origin.git inside the workspace. The remote URL is an absolute path.
 # fixture_publish: push every branch, then turn on the reflogs that the graders read.
 # Every commit has the subject prefix "fixture:", so that a grader can tell it from a commit of the run.
 #
@@ -37,9 +37,11 @@ fixture_commit() {
 }
 
 # Add the bare remote origin inside the workspace. A sandboxed run can write only there.
+# The URL is absolute, so that a push or a fetch from a linked worktree finds the remote. A relative URL starts at the
+# top folder of the current worktree. The agent works in the folder of the scaffold, so the path stays right for the run.
 fixture_remote_init() {
     git init -q --bare -b main .remote/origin.git
-    git remote add origin .remote/origin.git
+    git remote add origin "$PWD/.remote/origin.git"
     mkdir -p .git/info
     printf '.remote/\n' >> .git/info/exclude
 }

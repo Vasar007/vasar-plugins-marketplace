@@ -7,9 +7,8 @@
 # restore or build. A scaffold adds its branch, calls fixture_publish, and then calls dotnet_warm Inventory.sln.
 set -euo pipefail
 
-INVENTORY_TEST_SDK_VERSION="18.11.0"
-INVENTORY_NUNIT_VERSION="5.0.0"
-INVENTORY_NUNIT_ADAPTER_VERSION="6.3.1"
+# fp-e4-package-bump sets an older NUnit version after it sources this file.
+INVENTORY_NUNIT_VERSION="$DOTNET_NUNIT_VERSION"
 
 make_inventory_repo() {
     fixture_init
@@ -20,9 +19,9 @@ make_inventory_repo() {
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$INVENTORY_TEST_SDK_VERSION" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$DOTNET_TEST_SDK_VERSION" />
     <PackageVersion Include="NUnit" Version="$INVENTORY_NUNIT_VERSION" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="$INVENTORY_NUNIT_ADAPTER_VERSION" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="$DOTNET_NUNIT_ADAPTER_VERSION" />
   </ItemGroup>
 </Project>
 DOTNET_EOF

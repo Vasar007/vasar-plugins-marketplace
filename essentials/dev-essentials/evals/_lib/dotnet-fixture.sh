@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # .NET setup for eval fixtures. A scaffold sources this file after git-fixture.sh.
 #
+# DOTNET_TEST_SDK_VERSION, DOTNET_NUNIT_VERSION, DOTNET_NUNIT_ADAPTER_VERSION: the test packages of each .NET fixture.
+# RunMarker.cs uses the NUnit API, so the NUnit version is set in this file.
 # dotnet_write_common_files: .gitignore, Directory.Build.props, and nuget.config.
 # Directory.Build.props turns off the git queries of the SDK, because the sandbox of a run denies reads of .gitmodules.
+# It also has the target MarkTestOutcomeStale of the run marker.
 # dotnet_write_solution <file> <project>...: a classic .sln file, so that the scaffold needs no dotnet command.
 # dotnet_write_run_marker <folder>: RunMarker.cs for an NUnit test project.
-# dotnet_warm <solution>: restore and build once, so that the packages and the first-run files of dotnet exist before the agent starts.
+# dotnet_warm <solution> [<package>@<version>...]: restore and build once, so that the packages and the first-run files of dotnet
+# exist before the agent starts. Each named package also goes into the shared folder, so that a run with no network can use it.
 #
 # All runs share one download folder, /tmp/plugin-evals/nuget. Only the first restore downloads packages.
 # The sandbox of a run cannot read /tmp. So dotnet_warm copies the shared folder into $HOME/.nuget/packages of the run,
@@ -18,6 +22,10 @@
 #
 # dotnet-backend-dev has a git symlink to this file. A test makes sure that the link is there.
 set -euo pipefail
+
+DOTNET_TEST_SDK_VERSION="18.11.0"
+DOTNET_NUNIT_VERSION="5.0.0"
+DOTNET_NUNIT_ADAPTER_VERSION="6.3.1"
 
 dotnet_write_common_files() {
     fixture_write .gitignore <<'DOTNET_EOF'
@@ -33,6 +41,12 @@ DOTNET_EOF
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
+  <Target Name="MarkTestOutcomeStale" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildAllProjects);@(Compile);@(ReferencePathWithRefAssemblies);@(CustomAdditionalCompileInputs)"
+          Outputs="@(IntermediateAssembly)"
+          Condition="Exists('$(MSBuildThisFileDirectory).test-runs/last.txt')">
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory).test-runs/last.txt" Lines="Stale" Overwrite="true" />
+  </Target>
 </Project>
 DOTNET_EOF
     fixture_write nuget.config <<'DOTNET_EOF'
@@ -86,9 +100,9 @@ dotnet_write_solution() {
 }
 
 # dotnet_write_run_marker <folder>
-# At setup, the marker makes .test-runs/started-<ticks> in the repo root. At teardown, it writes the outcome
-# of the run (Passed or Failed) to .test-runs/last.txt. It finds the repo root by a walk up to a .git entry.
-# A grader reads these files, also when the tests ran in a subagent.
+# The marker writes Started at setup, and Passed or Failed at teardown, to .test-runs/last.txt in the repo root.
+# The target MarkTestOutcomeStale in Directory.Build.props writes Stale there before a compile of changed code.
+# A grader reads the file, also when the tests ran in a subagent. docs/evals.md lists the limits of the marker.
 dotnet_write_run_marker() {
     fixture_write "$1/RunMarker.cs" <<'DOTNET_EOF'
 using NUnit.Framework;
@@ -102,6 +116,7 @@ public sealed class RunMarker
     {
         var folder = GetMarkerFolder();
         File.WriteAllText(Path.Combine(folder, $"started-{DateTime.UtcNow.Ticks}"), string.Empty);
+        File.WriteAllText(Path.Combine(folder, "last.txt"), "Started");
     }
 
     [OneTimeTearDown]
@@ -142,21 +157,32 @@ dotnet_prepare_cache() {
     done
 }
 
+# dotnet_warm <solution> [<package>@<version>...]
 dotnet_warm() {
     if [ "${EVAL_FIXTURE_SKIP_DOTNET:-}" = "1" ]; then
         return 0
     fi
+    local solution="$1"
+    shift
     local cache="${EVAL_FIXTURE_DOTNET_CACHE:-/tmp/plugin-evals}"
     dotnet_prepare_cache "$cache" || return 1
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
     (
         flock 9
         # dotnet does not get the lock descriptor, because an MSBuild node that lives on keeps the lock.
-        dotnet restore "$1" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+        local folder package
+        folder="$(mktemp -d)"
+        trap 'rm -rf "$folder"' EXIT
+        for package in "$@"; do
+            printf '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="%s" Version="%s" /></ItemGroup></Project>\n' \
+                "${package%@*}" "${package#*@}" > "$folder/prefetch.csproj"
+            dotnet restore "$folder/prefetch.csproj" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+        done
+        dotnet restore "$solution" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
         mkdir -p "$HOME/.nuget/packages"
         cp -R "$cache/nuget/." "$HOME/.nuget/packages/"
     ) 9>"$cache/nuget.lock"
     # The agent builds with the same nuget.config, so its restore finds every package and needs no network.
-    dotnet restore "$1" --verbosity quiet >&2
-    dotnet build "$1" --no-restore --verbosity quiet >&2
+    dotnet restore "$solution" --verbosity quiet >&2
+    dotnet build "$solution" --no-restore --verbosity quiet >&2
 }
