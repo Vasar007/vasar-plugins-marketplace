@@ -94,7 +94,7 @@ The grader `route-plain-dotnet` of each .NET case reads the JSON text of the inp
 
 This list is not complete. The class `RoutePlainDotnetGraderTests` in `tests/test_eval_cases.py` pins each of these forms.
 
-The `tests-passed` graders of the .NET cases read the outcome of the last test run from the file `.test-runs/last.txt` of the workspace. The scaffold function `dotnet_write_run_marker` adds a test fixture that writes this file. At setup, the fixture writes `Started`, and it makes the file `.test-runs/started-<ticks>`. At teardown, it writes `Passed` or `Failed`. So a test run that stops before the teardown, for example on a crash or a timeout, leaves `Started`.
+The `tests-passed` graders of the .NET cases read the outcome of the last test run from the file `.test-runs/last.txt` of the workspace. The scaffold function `dotnet_write_run_marker` adds a test fixture that writes this file. At setup, the fixture makes the file `.test-runs/started-<ticks>` and writes `Started`. At teardown, it writes `Passed` or `Failed`. So a test run that stops before the teardown, for example on a crash or a timeout, leaves `Started`. The `tests-ran` graders look for a `started-` file.
 
 The target `MarkTestOutcomeStale` in `Directory.Build.props` runs before a compile. It writes `Stale` to the file in two cases. In the first case, a source file, a project file, or a referenced assembly is newer than the compiled assembly. In the second case, the list of source files changed, for example by a deleted file. So a failed compile after a passing test run does not keep `Passed`. A build that compiles nothing keeps the outcome.
 
