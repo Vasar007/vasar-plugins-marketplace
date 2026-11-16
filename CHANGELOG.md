@@ -9,6 +9,28 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.1 and kb 0.2.3 in release [4.11.1] - 2026-11-16
+
+This release fixes four bugs that a code review found in two plugin scripts. It also closes four gaps in the repository tests and stops a superseded CI run (issue #110).
+
+### Fixed in dev-essentials
+
+- `skills/bug-hunt/scripts/check_report.py`: the command `next-id` now reads the entries with the same parser as the report check. Before, it counted a `### BH-NN:` heading inside a code fence. Then it printed another ID than the `next=` value of the report check (issue #110).
+- `skills/bug-hunt/scripts/check_report.py`: the command `open-notes` and the report check skip a note line inside a code fence (issue #110).
+- `skills/bug-hunt/scripts/check_report.py`: if the process command exits with a nonzero code, the process scan returns no result. Before, the scan read the empty output as an empty process list. So the warning `cannot list processes` never appeared (issue #110).
+
+### Fixed in kb
+
+- `skills/setup/check.sh`: the error of a missing `settings.json` no longer prints on stderr. The `2>/dev/null` now comes before the `< "$settings"` redirect on both lines that read the file (issue #110).
+
+### Changed in the repository
+
+- `tests/test_version_bump.py`: a new file that git does not track yet now counts as a change of its plugin. Before, a local run passed and the CI run failed (issue #110).
+- `tests/test_eval_stubs.py`: the drift test of the `simple-english` stand-in also reads the synced copies of the plugin, with the folder names `simple-english` and `simple-english~g<N>`. On a machine with synced plugins, the test always skipped before (issue #110).
+- `tests/test_openbsd_lint.py`: a new test makes sure that the hook joins a relative `file_path` with the `cwd` of the event (issue #110).
+- `tests/test_eval_scaffolds.py`: a new check makes sure that each commit id in a regex grader pattern starts a commit of the scaffold repository (issue #110).
+- `.github/workflows/tests.yml`: a new push to a pull request cancels the test run that the earlier push started. A push to `main` still runs to the end (issue #110).
+
 ## dev-essentials 3.14.0 in release [4.11.0] - 2026-11-16
 
 This release moves the bodies of the three composer agents into skills. Each agent stays as a thin wrapper that preloads its skill, so each old dispatch still works.
@@ -1497,7 +1519,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...HEAD
+[4.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...v4.11.1
 [4.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...v4.11.0
 [4.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...v4.9.0
