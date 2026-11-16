@@ -9,6 +9,15 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
+
+This release corrects the description of the skill `feature-pipeline`, and the note about it in two other skills and one command. The pipeline itself does not change.
+
+### Fixed in dev-essentials
+
+- `skills/feature-pipeline`: the description says that subagents run the stages from the requirements to the reviews, and that the session pushes and opens the PR. Before, it said that one subagent runs each stage to the PR. That is not true for the last stage since release 4.9.0 (issue #196).
+- `skills/implement-batch`, `skills/research-implement-review-report`, and `commands/implement-task`: the note about `feature-pipeline` no longer says that it has one subagent for each stage (issue #196).
+
 ## doc-styles 1.1.7 in release [4.11.4] - 2026-11-16
 
 This release stops a hook error of doc-styles on a Windows PC where `python3` is an alias of the Microsoft Store that cannot start Python. A stub showed this case, not a PC with the real alias. It also adds a CI job that runs the tests of the plugin scripts on Windows (issue #182).
@@ -1579,7 +1588,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...HEAD
+[4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...v4.11.2

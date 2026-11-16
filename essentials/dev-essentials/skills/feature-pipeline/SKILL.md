@@ -1,6 +1,6 @@
 ---
 name: feature-pipeline
-description: Runs one task, from a task provider or a plain request, through a gated pipeline. One subagent runs each stage from requirements to the PR, in an isolated git worktree.
+description: Runs one task, from a task provider or a plain request, through a gated pipeline in an isolated git worktree. Subagents run the stages from the requirements to the reviews, and the session pushes and opens the PR.
 argument-hint: <task-id or "request"> [--dry-run] [--no-worktree] [--start-from=<stage>] [--skip=<stage>] [--model-override=<stage>:<model>] [--commit-mode=<per-step|finalization>] [--interactive] [--autonomous]
 when_to_use: "If the user names the feature pipeline, for example 'run the feature pipeline on issue 123', use it. Otherwise, do not use it, also not for a small edit. For one task without the pipeline, use research-implement-review-report or implement-task. For N related tasks, use implement-batch."
 ---
