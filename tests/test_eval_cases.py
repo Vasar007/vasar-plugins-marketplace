@@ -57,9 +57,11 @@ MATCH_VALUE = re.compile(r"not_contains|count:\d+")
 REGEX_FLAGS = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 IGNORED_REGEX_FLAGS = set("gd")
 # The CLI takes these flags too, but Python cannot apply them, so a sample test would give another verdict than a run.
-REFUSED_REGEX_FLAGS = {"y": "the flag y matches only at the start of the text, so start the pattern with ^ and leave out the flag m instead",
-                       "u": "Python cannot check a pattern with the flag u, because the flag changes the syntax",
-                       "v": "Python cannot check a pattern with the flag v"}
+REFUSED_REGEX_FLAGS = {
+    "y": "the flag y matches only at the start of the text, so wrap the pattern in ^(?:...) and leave out the flag m",
+    "u": "Python cannot check a pattern with the flag u, because the flag changes the syntax, so leave out the flag u",
+    "v": "Python cannot check a pattern with the flag v, so leave out the flag v",
+}
 
 # Plugins whose eval runs load a .deps copy of a plugin that plugin.json does not declare.
 # compare_versions.py makes the copy with --extra-dep. The key is the plugin folder name.
@@ -965,11 +967,13 @@ class CaseCheckTests(CaseFiles):
 
     def test_a_flag_that_python_cannot_apply_is_refused(self):
         self.assertEqual(regex_problems("g.md", "pattern", "a", "my"),
-                         ["g.md: the flag y matches only at the start of the text, so start the pattern with ^ and leave out "
-                          "the flag m instead"])
-        self.assertEqual(regex_problems("g.md", "pattern", "a", "v"), ["g.md: Python cannot check a pattern with the flag v"])
+                         ["g.md: the flag y matches only at the start of the text, so wrap the pattern in ^(?:...) and "
+                          "leave out the flag m"])
+        self.assertEqual(regex_problems("g.md", "pattern", "a", "v"),
+                         ["g.md: Python cannot check a pattern with the flag v, so leave out the flag v"])
         self.assertEqual(regex_problems("g.md", "pattern", "a", "u"),
-                         ["g.md: Python cannot check a pattern with the flag u, because the flag changes the syntax"])
+                         ["g.md: Python cannot check a pattern with the flag u, because the flag changes the syntax, so "
+                          "leave out the flag u"])
         self.assertEqual(regex_problems("g.md", "pattern", "a", "gimsd"), [])
 
     def test_good_graders_of_every_type(self):
@@ -2547,6 +2551,15 @@ class PpcQuestionGraderTests(unittest.TestCase):
             "neither found existing issues": ("Neither search found existing issues.\n\n" + self.CREATE_QUESTION, True),
             "neither names two found issues, with a comma": ("Neither of the two issues I found, #12 and #14, tracks the "
                                                              "paging change.\n\nShould I create one for the index?", False),
+            "neither of my searches": ("Neither of my searches found an existing issue.\n\n" + self.CREATE_QUESTION, True),
+            "neither search_issues call": ("Neither `search_issues` call found an existing issue.\n\n" + self.CREATE_QUESTION,
+                                           True),
+            "neither keyword": ("Neither keyword found an existing issue.\n\n" + self.CREATE_QUESTION, True),
+            "neither of the issue searches": ("Neither of the issue searches found a match.\n\n" + self.CREATE_QUESTION, True),
+            "neither names the search of found issues": ("Neither of the issues the search found tracks the paging "
+                                                         "change.\n\nShould I create one for the index?", False),
+            "neither names one found issue": ("Neither issue my search found tracks the paging change.\n\n"
+                                              "Should I create one for the index?", False),
             "the question first": (self.CREATE_QUESTION + "\n\nThe search found none.", True),
             "question first, could not find": (self.CREATE_QUESTION + "\n\nI could not find an existing issue.", True),
             "question first, zero results": (self.CREATE_QUESTION + "\n\nThe issue search returned zero results.", True),
@@ -2557,6 +2570,15 @@ class PpcQuestionGraderTests(unittest.TestCase):
                                          True),
             "question first, neither names found issues": (self.CREATE_QUESTION + "\n\nNeither of the two issues I found "
                                                            "tracks the paging change.", False),
+            "question first, neither of my searches": (self.CREATE_QUESTION + "\n\nNeither of my searches found an "
+                                                       "existing issue.", True),
+            "question first, neither names the search of found issues": (self.CREATE_QUESTION + "\n\nNeither of the "
+                                                                         "issues the search found tracks the paging "
+                                                                         "change.", False),
+            "question first, neither names one found issue": (self.CREATE_QUESTION + "\n\nNeither issue my search found "
+                                                              "tracks the paging change.", False),
+            "question first, neither of the issue searches": (self.CREATE_QUESTION + "\n\nNeither of the issue searches "
+                                                              "found a match.", True),
             "a title in backticks": ("I searched and found no existing issue.\n\n"
                                      "Create `Add index on customer column of orders table` as a new issue?", True),
             "an issue with no question": ("I searched and found none. I created issue #7 and posted the reply.", False),
@@ -2745,6 +2767,9 @@ class ComposerGraderTests(unittest.TestCase):
                                                      "customer is fast.", False),
             "rows count, no count of orders": ("The index cuts the rows count of orders that the page reads.", False),
             "orders per customer, with spaces": ("Adds the orders per customer total to the header.", True),
+            "how many orders, the customer page": ("The index cuts how many orders the customer page reads.", False),
+            "how many orders a given customer has": ("Returns how many orders a given customer has.", True),
+            "total orders per customer": ("Adds the total orders per customer to the header.", True),
         })
 
     def test_names_dropped_label_needs_a_word_for_not_kept(self):
@@ -2765,6 +2790,13 @@ class ComposerGraderTests(unittest.TestCase):
                                          "of the orders page.", False),
             "removed in another sense": ("The change removed the full scan, which helps the performance.", False),
             "removes, with the word label after it": ("The index removes the label lookup, which helps the performance.", False),
+            "labels removed, with a colon": ("Labels removed: `performance`", True),
+            "label removal": ("Label removal: performance", True),
+            "a label line, then removed in another sense": ("Labels: feature. The index removed the full scan, which helps "
+                                                            "the performance.", False),
+            # Known limit: "removed" in another sense passes when the word "label" comes after it.
+            "known limit: removed, with the word label after it": ("The change removed the label lookup, which helps the "
+                                                                   "performance.", True),
             "removes after the label": ("The performance of the page improves, because the index removes the full scan.", False),
             "a type left out, no period": ("I did not add a type\nLabels: feature, performance", False),
             "dropped, in a list": ("Dropped labels:\n- performance", True),
@@ -2802,6 +2834,10 @@ class ComposerGraderTests(unittest.TestCase):
         self.check("cmp-issue-create", "no-missing-label", {
             "right call": (self.mock_calls(right), True),
             "a right call and a wrong call": (wrong + "\n" + self.mock_calls(right), False),
+        })
+        h1 = self.mock_calls({**right, "body": "# " + self.TITLE + "\n\n" + self.BODY}).split("\n")[0]
+        self.check("cmp-issue-create", "no-title-in-body", {
+            "a right call and a wrong call": (h1 + "\n" + self.mock_calls(right), False),
         })
         self.check("cmp-issue-create", "created", {"no create call": (no_create, False)})
 
