@@ -243,6 +243,7 @@ class CheckScriptTests(BashCase):
         self.stub("crontab", "exit 1")
         done = self.run_check(home)
         self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stderr, "")
         lines = done.stdout.splitlines()
         self.assertTrue(lines[0].startswith("OS: "), lines)
         missing = self.missing_lines(done)
