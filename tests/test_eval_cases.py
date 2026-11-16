@@ -2107,6 +2107,9 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
             "a plain call is missed: another word before it": ("nice dotnet build Inventory.sln", False),
             "a plain call is missed: a timeout option with a value": ("timeout -k 5 300 dotnet build Inventory.sln", False),
             "a plain call is missed: a space in an assignment value": ('X="a b" dotnet build Inventory.sln', False),
+            "a plain call is missed: a pipe in an assignment value": ("F='A|B' dotnet test Inventory.sln", False),
+            "a plain call is missed: an ampersand in an assignment value": ("F='A&B' dotnet test Inventory.sln", False),
+            "a plain call is missed: a semicolon in an assignment value": ("F='A;B' dotnet test Inventory.sln", False),
             "a plain call is missed: a path before dotnet": ("$HOME/.dotnet/dotnet build Inventory.sln", False),
             "a plain call is missed: a call in backticks": ("out=`dotnet test Inventory.sln`", False),
             "a plain call is missed: -m:1 of a later command": (
