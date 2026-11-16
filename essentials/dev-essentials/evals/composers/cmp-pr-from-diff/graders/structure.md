@@ -1,6 +1,5 @@
 ---
 type: regex
-pattern: '^## Changes\b[\s\S]*^## Modified Components\b[\s\S]*^## Testing\b'
-flags: m
+pattern: '^\s*## What[ \t\r]*(?:\n(?!#{1,6} )[^\n]*)*\n## Why[ \t\r]*(?:\n(?!#{1,6} )[^\n]*)*\n## Changes[ \t\r]*\n[\s\S]*\n## Testing\b'
 target: { source: file, path: Notes/PRs/PR-user-tasks-12-customer-index.md }
 ---

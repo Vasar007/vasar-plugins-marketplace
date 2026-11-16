@@ -69,7 +69,7 @@ Look for artifacts in this order. Use each one that belongs to this branch:
 3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
 4. **Decision records**: ADR files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
-Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. Do not add a closing keyword to the PR description.
+Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. If the input gives a closing line, keep it, and put it where step 5 says. Do not add another closing keyword, for example one from a commit message.
 
 If you find several artifacts, use all of them. If they disagree about the intent, the first artifact in the order above wins. If you find no artifact, use the git diff only, and skip to step 3.
 
@@ -100,15 +100,18 @@ Group files by purpose, with the folder layout of the project. Common groups:
 
 ### 5. Generate PR Description
 
-Use this structure:
+Use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
 
 ```md
-## Changes
-[2-3 sentence summary of what changed architecturally]
+## What
+[1-2 sentences: the task and the core of the change]
 
-## Modified Components
-- **[Component]**: [what changed and why - 1 line]
-- **[Component]**: [what changed and why - 1 line]
+## Why
+[1-2 sentences: the problem that the change solves, and what it makes better]
+
+## Changes
+- **[Component]**: [what changed - 1 line]
+- **[Component]**: [what changed - 1 line]
 
 ## Testing
 [Brief testing approach - 1 sentence]
@@ -119,14 +122,16 @@ Use this structure:
 
 Writing rules:
 
+- **Why** gives the reason of the change, not a list of files. Take it from the artifacts of step 2. If no artifact gives a reason, take it from the diff and the commit messages. If a source names a gain in time, resources, or cost, name it too. Do not invent a number.
 - **Omit** obvious changes, for example "updated tests to match".
 - **Combine** related changes, for example "Added discount validation to the pricing service and the order model".
 - **Skip** implementation details (how it works). Do not describe every file change, and do not explain code line by line.
 - **Focus** on architectural impact (what capabilities changed).
-- Use **bullet points**, not paragraphs.
+- In `## Changes`, use **bullet points**, not paragraphs.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
-- Stay within the character limits above.
+- Stay within the character limits above. The limits count the whole description.
+- If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
 
 For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
 

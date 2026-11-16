@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
+
+This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
+
+### Changed in dev-essentials
+
+- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same template lines, and the length limits stay the same. The rule for bullet points now covers only `## Changes`. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
+- `skills/compose-pr/references/examples.md`: the three examples have the new sections (issue #190).
+- `evals/composers/cmp-pr-from-diff`: the grader `structure` needs `## What`, `## Why`, and `## Changes` first, and `## Testing` after them. The grader `reason-from-plan` needs the reason of the plan in the section `## Why`. The new grader `no-modified-components` fails a run that still writes the old section (issue #190).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests make sure that the graders `structure`, `reason-from-plan`, and `no-modified-components` pass the new form and fail the old form (issue #190).
+
 ## dev-essentials 3.14.6 in release [4.11.7] - 2026-11-16
 
 This release fixes two kinds of eval graders that passed some wrong runs: the `no-push` graders and the "no commit" graders. The skill text does not change.
@@ -1631,7 +1645,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...HEAD
+[4.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...v4.12.0
 [4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
 [4.11.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
