@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
-This release corrects the description of the skill `feature-pipeline`. The pipeline itself does not change.
+This release corrects the description of the skill `feature-pipeline`, and the note about it in two other skills and one command. The pipeline itself does not change.
 
 ### Fixed in dev-essentials
 
