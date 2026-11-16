@@ -19,11 +19,12 @@ NO_NODE = "node not found. Install Node.js 22 or later to test the replay tool."
 
 # One grader for each form that the replay must read, and one for each grader kind that it skips.
 GRADERS = {
-    "agent-used": "type: tool_used\ntool: Agent\nmin: 1\nmax: 1\n",
+    "agent-used": "# One Agent call.\ntype: tool_used\ntool: Agent\nmin: 1\nmax: 1\n",
     "create-error": "type: regex\ntarget: mock_calls\npattern: '\"isError\":true,\"verdict\":\"tool_error\"'\n",
     "issue-closed": "type: regex\ntarget: mock_calls\npattern: '\"state\":\"closed\"'\n",
     "issue-written-twice": ("type: regex\ntarget: mock_calls\npattern: '\"tool\":\"(?:\\w*__)?issue_write\"'\n"
                             "match: \"count:2\"\n"),
+    "issue-read": "type: tool_used\ntool: mcp__plugin_github_github__issue_read\n",
     "judge": "type: llm\ncriteria: The reply names the issue.\n",
     "no-apology": "type: regex\npattern: 'can''t'\nmatch: not_contains\n",
     "no-push": "type: tool_used\ntool: Bash\ninput_match: 'git push'\nmin: 0\nmax: 0\n",
@@ -36,13 +37,16 @@ GRADERS = {
                         "'add_reply_to_pull_request_comment\",\"input\":\\{[^}]*\\},\"verdict\":\"no_result\"'\n"),
     "review-aborted": "type: regex\ntarget: mock_calls\npattern: '\"verdict\":\"abort\"'\n",
     "subagent-lines": "type: regex\ntarget: trace\npattern: '\"parent_tool_use_id\":\"tu_2\"'\nmatch: \"count:5\"\n",
+    "tab-in-reason": "type: regex\npattern: \"Created issue|\\t\"\n",
     "touched-files": "type: regex\ntarget: files\npattern: README\n",
+    "trace-lines": "type: regex\ntarget: trace\npattern: '\\}\\n\\{'\nmatch: \"count:16\"\n",
 }
 
 EXPECTED = [
     "replay-run\tagent-used\tpass\tAgent called 1x (expected 1..1)",
     "replay-run\tcreate-error\tpass\tmatched \"isError\":true,\"verdict\":\"tool_error\"",
     "replay-run\tissue-closed\tfail\tpattern not found in mock_calls",
+    "replay-run\tissue-read\tpass\tmcp__plugin_github_github__issue_read called 1x (expected 1..\u221e)",
     "replay-run\tissue-written-twice\tpass\tfound 2 matches (expected 2)",
     "replay-run\tjudge\tskip\tthe replay does not run llm graders",
     "replay-run\tno-apology\tpass\tpattern absent as expected",
@@ -56,7 +60,9 @@ EXPECTED = [
     "\"verdict\":\"no_result\"",
     "replay-run\treview-aborted\tpass\tmatched \"verdict\":\"abort\"",
     "replay-run\tsubagent-lines\tpass\tfound 5 matches (expected 5)",
+    "replay-run\ttab-in-reason\tpass\tmatched Created issue| ",
     "replay-run\ttouched-files\tskip\tthe kept run does not hold the target \"files\"",
+    "replay-run\ttrace-lines\tpass\tfound 16 matches (expected 16)",
 ]
 
 # The mock_calls text of the fixture run, as Claude Code 2.1.325 builds it. Bash and the tool of the server
@@ -124,7 +130,38 @@ class ReplayTests(ReplayCase):
         (bare / "out").mkdir(parents=True)
         shutil.copy(RUN / "out" / "trace.jsonl", bare / "out" / "trace.jsonl")
         result = self.replay("--case", self.write_case({"review-aborted": GRADERS["review-aborted"]}), bare)
-        self.assertResult(result, 1, "bare-run\treview-aborted\tfail\tno mock stand-ins were active in this run")
+        self.assertResult(result, 1, "bare-run\treview-aborted\tfail\tno mock stand-ins were active in this run "
+                          "(--mocks off, or no mocks/ directory applies to this case) \u2014 a mock_calls grader "
+                          "has nothing to check")
+
+    def test_a_skipped_grader_does_not_change_the_exit_code(self):
+        graders = {"agent-used": GRADERS["agent-used"], "judge": GRADERS["judge"]}
+        result = self.replay("--case", self.write_case(graders), RUN)
+        self.assertResult(result, 0, "replay-run\tjudge\tskip\t")
+
+    def test_an_abort_text_with_another_nonce_is_a_tool_error(self):
+        run = ("{toolCalls: [{name: 'x', input: {}, output: 'eval aborted by mock ffffffffffff: stop', isError: true}], "
+               "mocked: new Set(['x']), nonce: '0123456789ab'}")
+        text = self.module_call(f"t.mockCallsText({run})")
+        self.assertIn('"verdict":"tool_error"', text)
+
+    def test_a_regex_grader_takes_its_pattern_from_the_body(self):
+        folder = self.tmp / "case" / "graders"
+        folder.mkdir(parents=True)
+        (folder / "issue-closed.md").write_text("---\ntype: regex\ntarget: mock_calls\n---\n\"state\":\"closed\"\n",
+                                                encoding="utf-8")
+        result = self.replay("--case", folder.parent, RUN)
+        self.assertResult(result, 1, "replay-run\tissue-closed\tfail\tpattern not found in mock_calls")
+
+    def test_the_front_matter_is_split_as_claude_code_splits_it(self):
+        folder = self.tmp / "case" / "graders"
+        folder.mkdir(parents=True)
+        (folder / "README.md").write_text("Notes about the graders.\n", encoding="utf-8")
+        (folder / "bom.md").write_text("﻿---\ntype: regex\npattern: Replied\n---\n", encoding="utf-8")
+        (folder / "dash.md").write_text("---\ntype: regex\npattern: Replied---x\n---\n", encoding="utf-8")
+        result = self.replay("--case", folder.parent, RUN)
+        self.assertResult(result, 0, "replay-run\tbom\tpass\tmatched Replied", "replay-run\tdash\tpass\tmatched Replied")
+        self.assertNotIn("README", result.stdout)
 
     def test_a_bad_pattern_fails_its_grader_only(self):
         graders = {"bad": "type: regex\npattern: '[unclosed'\n", "agent-used": GRADERS["agent-used"]}
@@ -151,6 +188,20 @@ class InputErrorTests(ReplayCase):
         graders = {"order": "type: tool_order\nbefore:\n  tool: Bash\nafter:\n  tool: Agent\n"}
         self.assertResult(self.replay("--case", self.write_case(graders), RUN), 2,
                           "front matter line that the replay cannot read:   tool: Bash")
+
+    def test_a_comment_after_a_plain_value_gives_exit_2(self):
+        graders = {"agent-used": "type: tool_used\ntool: Agent\nmin: 1 # at least one\n"}
+        self.assertResult(self.replay("--case", self.write_case(graders), RUN), 2,
+                          "plain value that the replay cannot read: 1 # at least one")
+
+    def test_graders_in_case_yaml_give_exit_2(self):
+        case = self.write_case({"agent-used": GRADERS["agent-used"]})
+        (case / "case.yaml").write_text('schema_version: "1.1"\nname: c\ngraders:\n  - name: x\n    type: llm\n'
+                                        '    criteria: x\n', encoding="utf-8")
+        self.assertResult(self.replay("--case", case, RUN), 2, "lists graders")
+
+    def test_a_graders_folder_without_a_grader_gives_exit_2(self):
+        self.assertResult(self.replay("--case", self.write_case({}), RUN), 2, "no grader file with front matter")
 
 
 class FrontMatterTest(ReplayCase):

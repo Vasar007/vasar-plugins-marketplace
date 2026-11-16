@@ -10,6 +10,12 @@ const USAGE = 'Usage: node tests/evals/replay_graders.mjs --case <case folder> <
 // The prefix of the output of a call that a mock stopped. The nonce of the run follows it.
 const ABORT_PREFIX = 'eval aborted by mock';
 const KEY_LINE = /^([A-Za-z_][\w-]*):(?:\s+(.*))?$/;
+// The front matter rule of Claude Code 2.1.325. The closing --- can also be inside a line.
+const FRONT_MATTER = /^---\s*\n([\s\S]*?)---\s*\n?/;
+// The field that the body of a grader file fills when the front matter does not set it.
+const BODY_FIELD = { llm: 'criteria', baseline: 'criteria', regex: 'pattern' };
+// A plain value that YAML reads in another way: a comment, a mapping, or an indicator character.
+const PLAIN_UNSAFE = /\s#|:\s|^[[\]{}&*!|>%@`]/;
 
 export class InputError extends Error {}
 
@@ -25,6 +31,7 @@ function scalar(text) {
       throw new InputError(`double-quoted value that JSON cannot read: ${text}`);
     }
   }
+  if (PLAIN_UNSAFE.test(text)) throw new InputError(`plain value that the replay cannot read: ${text}`);
   if (text === 'true' || text === 'false') return text === 'true';
   if (/^-?\d+$/.test(text)) return Number(text);
   return text;
@@ -40,15 +47,22 @@ function flowMapping(text) {
   return fields;
 }
 
+function splitFrontMatter(text) {
+  const clean = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const found = clean.match(FRONT_MATTER);
+  if (found) return { front: found[1], body: clean.slice(found[0].length) };
+  if (/^---\s*\n/.test(clean)) throw new InputError('the front matter has no closing --- line');
+  return null;
+}
+
 // Read the YAML front matter of a grader file. It reads only the forms that the grader files use:
 // one key on each line, with a plain, single-quoted, or double-quoted value, or a one-line flow mapping.
+// Returns null for a file without front matter. Claude Code skips such a grader file.
 export function readFrontMatter(text) {
-  const lines = text.replace(/\r/g, '').split('\n');
-  if (lines[0] !== '---') throw new InputError('the file does not start with a --- line');
-  const end = lines.indexOf('---', 1);
-  if (end === -1) throw new InputError('the front matter has no closing --- line');
+  const parts = splitFrontMatter(text);
+  if (parts === null) return null;
   const fields = {};
-  for (const line of lines.slice(1, end)) {
+  for (const line of parts.front.replace(/\r/g, '').split('\n')) {
     if (line.trim() === '' || line.startsWith('#')) continue;
     const pair = KEY_LINE.exec(line);
     if (!pair) throw new InputError(`front matter line that the replay cannot read: ${line}`);
@@ -156,7 +170,10 @@ function targetText(target, run) {
   if (target === 'last_message') return run.lastMessage;
   if (target === 'trace') return run.trace.map((entry) => JSON.stringify(entry)).join('\n');
   if (target === 'mock_calls') {
-    if (run.mocked.size === 0) return { unavailable: 'no mock stand-ins were active in this run' };
+    if (run.mocked.size === 0) {
+      return { unavailable: 'no mock stand-ins were active in this run (--mocks off, or no mocks/ directory '
+        + 'applies to this case) \u2014 a mock_calls grader has nothing to check' };
+    }
     return mockCallsText(run);
   }
   return null;
@@ -207,15 +224,30 @@ export function grade(grader, run) {
 }
 
 export function readGraders(caseDir) {
+  const caseYaml = path.join(caseDir, 'case.yaml');
+  if (fs.existsSync(caseYaml) && /^graders\s*:/m.test(fs.readFileSync(caseYaml, 'utf8'))) {
+    throw new InputError(`${caseYaml} lists graders, and the replay reads only graders/*.md`);
+  }
   const dir = path.join(caseDir, 'graders');
   if (!fs.existsSync(dir)) throw new InputError(`no graders folder: ${dir}`);
-  return fs.readdirSync(dir).filter((name) => name.endsWith('.md')).sort().map((name) => {
+  const graders = [];
+  for (const name of fs.readdirSync(dir).filter((file) => file.endsWith('.md')).sort()) {
+    const file = path.join(dir, name);
     try {
-      return { name: name.slice(0, -3), ...readFrontMatter(fs.readFileSync(path.join(dir, name), 'utf8')) };
+      const text = fs.readFileSync(file, 'utf8');
+      const fields = readFrontMatter(text);
+      if (fields === null) continue;
+      const grader = { name: name.slice(0, -3), ...fields };
+      const field = BODY_FIELD[grader.type];
+      const body = splitFrontMatter(text).body.trim();
+      if (field && grader[field] === undefined && body.length > 0) grader[field] = body;
+      graders.push(grader);
     } catch (error) {
-      throw new InputError(`${path.join(dir, name)}: ${error.message}`);
+      throw new InputError(`${file}: ${error.message}`);
     }
-  });
+  }
+  if (graders.length === 0) throw new InputError(`no grader file with front matter in ${dir}`);
+  return graders;
 }
 
 function oneLine(text) {
