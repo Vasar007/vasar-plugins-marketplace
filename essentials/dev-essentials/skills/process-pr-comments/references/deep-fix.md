@@ -2,7 +2,7 @@
 
 Read this file for a run in which the `deep-fix` parameter names a thread. The parameter row and the rules for `deep-fix` are in `references/parameters.md` and in `SKILL.md` (Rules).
 
-Contents: the override and the ineligible cases, and the place of Stage 3 in the cycle. Then the hand-back of Stage 2, the brief and the outcomes of Stage 3, and the cycle log.
+Contents: the override and the ineligible cases, and the place of Stage 3 in the cycle. Then the brief and the outcomes of Stage 3, and the cycle log.
 
 ## `deep-fix` override
 
@@ -24,25 +24,15 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 
 ## Place in the cycle
 
-An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles it separately, last in the cycle. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs before the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
+An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles it separately, after the other threads. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs before the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
 
-**Hand-back of Stage 2**. Stage 3 runs in the orchestrating session, not in a dispatch. So on such a cycle, **the dispatch of Stage 2 ends** after steps 1 to 4 of every other thread. For a run with `squash`, it ends after the `squash` commit. It always ends before the push. Stage 2 returns these items to the orchestrating session:
-
-- the `commentId` of the `deep-fix` thread (at minimum)
-- its `filePath` and line range, and the text of the reviewer word for word
-- its tags, or its automated-review verdict and confidence
-- the SHAs that Stage 2 committed in this cycle, or the one `squash` SHA
-- the pending replies of the other threads, with their text (`commit-push-resolve.md` § "When replies post")
-- the approved fields of each `[OutOfScope]` issue that waits for the batch (`tag-actions.md` § "`[OutOfScope]`")
-- its open items with their drafts, for example a `[Question]` reply or the fields of an `[OutOfScope]` issue
-
-The orchestrating session then runs Stage 3. It does the post of the replies, the push, the resolve, and Phase 5 of this cycle itself, and Stage 2 does none of these. It asks the open items of Stage 2 with its question for the go-ahead (with `autonomous`, before the post). It uses the answers in the post: the approved `[Question]` replies and the approved issue fields. An answer that asks for a code change waits for a later invocation, because Stage 2 already ended. The draft reply of that thread posts as written.
+**Stage 2 around Stage 3**. Stage 2 and Stage 3 both run in the orchestrating session. On such a cycle, Stage 2 first runs steps 1 to 4 of every other thread. For a run with `squash`, it also makes the `squash` commit. Then Stage 3 runs. The post of the replies, the push, the resolve, and Phase 5 of this cycle come after Stage 3. The session asks the open items of Stage 2 with its question for the go-ahead (with `autonomous`, before the post). It uses the answers in the post: the approved `[Question]` replies and the approved issue fields. If an answer asks for a code change, the rule for a changed fix applies (`commit-push-resolve.md` § "When replies post").
 
 ## Stage 3 — `deep-fix` brief and outcomes
 
 **Pre-flight: find the checkout root before any dispatch**. Get the local checkout root with `git rev-parse --show-toplevel`. Use that absolute path as the worktree path in the brief below. Then find out whether `git rev-parse --abbrev-ref HEAD` in that root equals the `headRefName` of the PR. Phase 2 step 5 does not assume this. If a command fails or the branch differs, stop. Ask the user before you check out or switch a branch, or create anything.
 
-**Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the Stage 2 brief, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). It never goes to a subagent. That skill can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
+**Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the brief of a subagent, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). That skill can stop on a question, and with `interactive` on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
 
 1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That skill needs these two facts for its pre-existing-branch verification step.
 2. `--base=<baseRefName>`: the target branch of the PR, which Phase 1 cached.
@@ -56,7 +46,7 @@ The orchestrating session then runs Stage 3. It does the post of the replies, th
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
-**Reply and resolve, by stop verdict**. The orchestrating session posts the batch itself, right before the push of the cycle: after the go-ahead, or with `autonomous` as the Rules in `SKILL.md` say. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. First, the session has Task Composer create each `[OutOfScope]` issue whose fields Stage 2 or the answers approved. Then it posts the batch: the reply of the `deep-fix` thread, every pending reply that Stage 2 handed back, and the replies of the approved open items. A failed post follows the second exception of `SKILL.md` § "What Stage 2 can still call". The table gives the reply of the `deep-fix` thread:
+**Reply and resolve, by stop verdict**. The orchestrating session posts the batch itself, right before the push of the cycle: after the go-ahead, or with `autonomous` as the Rules in `SKILL.md` say. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. First, the session has Task Composer create each `[OutOfScope]` issue whose fields Stage 2 or the answers approved. Then it posts the batch: the reply of the `deep-fix` thread, every pending reply of Stage 2, and the replies of the approved open items. A failed post follows the second exception of `SKILL.md` § "What Stage 2 can still call". The table gives the reply of the `deep-fix` thread:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |
@@ -100,4 +90,4 @@ Never link the report artifact of that skill from either reply. It is a pipeline
 
 The row of a `deep-fix` thread shows one of these outcomes: `deep-fix (N rounds, clean)`, `deep-fix — open findings`, or `deep-fix — blocked`. See `thread-state-schema.md` § "Cycle log" for the full list. A cycle whose `deep-fix` run ended `stop-blocked` prints `deep-fix — blocked (build red, not pushed)` in place of the usual line about the push state. The push of that cycle is cancelled.
 
-**On a `deep-fix` cycle, the ORCHESTRATING SESSION prints the whole cycle log, not Stage 2**. The dispatch of Stage 2 already ended after Phase 4 step 4. The orchestrating session builds the rows from the results that Stage 2 returned. It adds the squash SHA, the stop verdict, and the round count of Stage 3.
+On a `deep-fix` cycle, the cycle log also gives the squash SHA, the stop verdict, and the round count of Stage 3.

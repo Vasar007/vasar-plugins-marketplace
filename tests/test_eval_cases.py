@@ -2023,6 +2023,71 @@ class RouteReportedGraderTests(unittest.TestCase):
                 self.assertTrue(self.matches("rirr-retry-limit", line))
 
 
+class PpcOpenItemsGraderTests(unittest.TestCase):
+    """The graders of ppc-open-items-answered read the mocked calls, one JSON line for each call.
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
+
+    CASE = "ppc-open-items-answered"
+    SOURCE = "Source: https://github.com/example-org/pager/pull/42#discussion_r9103"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graders = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE].graders
+
+    @staticmethod
+    def call(tool, **fields):
+        call = {"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": "{}", "verdict": "ok"}
+        return json.dumps(call, separators=(",", ":"))
+
+    def right_run(self):
+        return [
+            self.call("search_issues", query="Add an index on the customer column"),
+            self.call("issue_write", method="create", title="Add an index", body="## Current State Analysis\n\n" + self.SOURCE),
+            self.call("issue_read", method="get", issue_number=77),
+            self.call("add_reply_to_pull_request_comment", commentId=9102, body="**[AI]** The check comes first."),
+            self.call("add_reply_to_pull_request_comment", commentId=9103, body="**[AI]** Tracked as issue #77: Add an index."),
+        ]
+
+    def passes(self, grader, calls):
+        meta = self.graders[grader][0]
+        self.assertEqual(meta.get("target"), "mock_calls")
+        found = sum(1 for _ in re.finditer(meta["pattern"], "\n".join(calls)))
+        match = meta.get("match", "contains")
+        if match == "not_contains":
+            return found == 0
+        if match.startswith("count:"):
+            return found == int(match[len("count:"):])
+        return found > 0
+
+    def test_a_right_run_passes_each_grader_of_the_mocked_calls(self):
+        names = [name for name, graders in self.graders.items() if graders[0].get("target") == "mock_calls"]
+        self.assertEqual(len(names), 8)
+        for name in names:
+            with self.subTest(grader=name):
+                self.assertTrue(self.passes(name, self.right_run()))
+
+    def test_each_wrong_run_fails_its_grader(self):
+        search, issue, read, question, tracked = self.right_run()
+        no_source = self.call("issue_write", method="create", title="Add an index", body="## Current State Analysis")
+        runs = {
+            "the source line only in the search query": ("issue-source", [self.call("search_issues", query=self.SOURCE), no_source, read]),
+            "no issue": ("issue-created", [search, question]),
+            "a reply before the issue": ("issue-before-batch", [search, question, issue, read, tracked]),
+            "a resolve of a thread": ("no-resolve", [*self.right_run(), self.call("pull_request_review_write", method="resolve_thread")]),
+            "one reply": ("two-replies", [search, issue, read, tracked]),
+            "three replies": ("two-replies", [*self.right_run(), question]),
+            "no reply on the question thread": ("question-replied", [search, issue, read, tracked]),
+            "a reply that names no issue": ("reply-names-issue", [search, issue, read, question,
+                                                                  self.call("add_reply_to_pull_request_comment", commentId=9103, body="Noted.")]),
+            "no search": ("searched", [issue, read, question, tracked]),
+        }
+        for name, (grader, calls) in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes(grader, calls))
+
+
 class PpcQuestionGraderTests(unittest.TestCase):
     """Two graders of the process-pr-comments suite read a question of the last message in more than one wording."""
 

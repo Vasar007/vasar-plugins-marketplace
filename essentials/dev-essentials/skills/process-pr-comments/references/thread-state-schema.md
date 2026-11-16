@@ -117,7 +117,7 @@ Each later cycle runs only the PR-status recheck of Phase 1 (see § "Session lif
 
 ## Stage 1 report — the Phase 2 → Phase 3 handoff
 
-This report is the contract between the two dispatches of `SKILL.md` § "Dispatch model". Stage 1 (Phases 1 and 2) returns exactly this shape. Stage 2 (Phases 3 to 5) uses it as its only source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
+This report is the contract between Stage 1 and Stage 2 of `SKILL.md` § "Dispatch model". Stage 1 (Phases 1 and 2) returns exactly this shape. Stage 2 (Phases 3 to 5) uses it as its only source of thread data. Stage 2 does not call `pull_request_read` `method: get_review_comments` again. Each field exists so that Stage 2 never has to read a raw review-comment payload of GitHub to act.
 
 The report is not stored and not cached across cycles. Each cycle of a `/loop` run runs Stage 1 again from the start, because the thread state changes between cycles: new replies of reviewers, or a push that lands an earlier SHA. § "Committed-fix detection" follows the same rule.
 
@@ -143,12 +143,12 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 }
 ```
 
-- `summary` lets the orchestrating session report the cycle counts to the user at once, without a wait for Stage 2.
+- `summary` lets the orchestrating session report the cycle counts to the user at once, before Stage 2 starts.
 - `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `is_resolved` or `is_outdated` (Phase 2 step 2).
 - `summary.newComments` counts the comments of this cycle that are not yet in `processedCommentIds`. Stage 1 has every input that it needs for this count. The number feeds the "N new comments" figure in the header of the cycle log (`SKILL.md` Phase 5). So Stage 2 does not have to derive it from the `comments` arrays of the threads.
 - `summary.needsStage2Action` does not count a `pr-commit-no-reply` thread, because Stage 2 takes no action on it. The cycle log (Phase 5) still prints its report line. This holds also for a cycle in which no other thread needs action.
 - `blockers` lists in free text the stop conditions that Stage 1 met and did not settle on its own. These are: `owner` or `repo` not given and not in a URL, the target PR not found, and MCP not available. A failed fetch of the PR head ref (§ "Ancestry check") is one more. Subagents do not talk to the user. So Stage 1 reports the condition, and the orchestrating session asks.
-- If `blockers` is not empty and `threads` is empty, the orchestrating session does not dispatch Stage 2 in this cycle.
+- If `blockers` is not empty and `threads` is empty, the orchestrating session does not start Stage 2 in this cycle.
 
 ### Per-thread entry
 
