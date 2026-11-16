@@ -2070,6 +2070,9 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
             "in a subshell": ("(cd src && dotnet build)", True),
             "in braces": ("{ dotnet build Inventory.sln; } 2>&1", True),
             "after a pipe": ("echo x | dotnet test Inventory.sln", True),
+            "indented with a tab": ("if true; then\n\tdotnet test Inventory.sln\nfi", True),
+            "after an assignment with a double-quoted value": ('DOTNET_CLI_HOME="$HOME" dotnet build Inventory.sln', True),
+            "after env with a double-quoted value": ('env DOTNET_NOLOGO="1" dotnet test Inventory.sln', True),
             "with -m:2": ("dotnet build Inventory.sln -m:2", True),
             "a plain test after a build with -m:1": ("dotnet build Inventory.sln -m:1; dotnet test Inventory.sln", True),
         })
@@ -2103,6 +2106,9 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
             "a plain call is missed: bash -c": ('bash -c "dotnet build Inventory.sln"', False),
             "a plain call is missed: another word before it": ("nice dotnet build Inventory.sln", False),
             "a plain call is missed: a timeout option with a value": ("timeout -k 5 300 dotnet build Inventory.sln", False),
+            "a plain call is missed: a space in an assignment value": ('X="a b" dotnet build Inventory.sln', False),
+            "a plain call is missed: a path before dotnet": ("$HOME/.dotnet/dotnet build Inventory.sln", False),
+            "a plain call is missed: a call in backticks": ("out=`dotnet test Inventory.sln`", False),
             "a plain call is missed: -m:1 of a later command": (
                 "dotnet build Inventory.sln && dotnet test Inventory.sln -m:1", False),
             "text counts: a heredoc line that starts with the command": (
@@ -2111,16 +2117,17 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
         })
 
     def test_the_grader_is_fast_on_long_commands(self):
-        """The grader needs less than 2 seconds for a command with 4000 assignments, 4000 timeout options, or 4000 echo texts."""
+        """The grader needs less than 2 seconds for a command with 4000 assignments, 4000 timeout options, 16000 joined assignments, or 4000 echo texts with -m:1."""
         inputs = {
             "4000 assignments": "X=1 " * 4000 + "echo",
             "4000 timeout options": "timeout " + "-k " * 4000 + "echo",
-            "4000 echo texts that name the command": "echo 'a; dotnet build is slow'; " * 4000,
+            "16000 assignments joined by semicolons": "X=a\x3b" * 16000 + " echo",
+            "4000 echo texts that name the command": "echo 'a; dotnet build -m:1 is slow'; " * 4000,
         }
         for name, command in inputs.items():
             with self.subTest(input=name):
                 start = time.perf_counter()
-                self.pattern.search(bash_input(command))
+                self.assertIsNone(self.pattern.search(bash_input(command)))
                 self.assertLess(time.perf_counter() - start, 2.0)
 
 

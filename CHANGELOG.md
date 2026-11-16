@@ -16,7 +16,7 @@ This release fixes two eval graders that matched text outside the call that they
 ### Fixed in dev-essentials
 
 - `evals/feature-pipeline/fp-e2-untracked-file`: the grader `pr-created` reads only the `tool` field of each mocked call. Before, another call that named the PR tool in its input or its answer made a run with no PR call pass (issue #183).
-- `evals/feature-pipeline`: the grader `route-plain-dotnet` of the nine .NET cases counts a `dotnet build` or `dotnet test` command only at the start of a command. Before, it counted a sentence that named the command, for example in a heredoc that writes a prompt or a review file. That failed the grader in 2 of 3 kept runs of `fp-e2-untracked-file` and in 3 kept runs of `fp-e8-rename-across-projects`. The grader also no longer counts `dotnet build-server` (issue #183).
+- `evals/feature-pipeline`: the grader `route-plain-dotnet` of the nine .NET cases counts a `dotnet build` or `dotnet test` command only at the start of a command. Before, it counted a sentence that named the command, for example in a heredoc that writes a prompt or a review file. That failed the grader in 2 of 6 kept runs of `fp-e2-untracked-file` and in 3 kept runs of `fp-e8-rename-across-projects`. The grader also no longer counts `dotnet build-server` (issue #183).
 
 ### Fixed in dotnet-backend-dev
 
