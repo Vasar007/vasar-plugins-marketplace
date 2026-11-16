@@ -2178,8 +2178,8 @@ MOCK_CALL_FIELD = '"tool":"(?:[\\w-]*__)?'
 BOUND_TOOL_FIELD = re.compile(re.escape(MOCK_CALL_FIELD) + r'(?:\w+|\(\?:\w+(?:\\w\*)?(?:\|\w+(?:\\w\*)?)*\))"')
 # The only piece that can join two tool fields across lines: a grader of the order of two calls.
 CALL_ORDER_SPANS = {r"[\s\S]*", r"[\s\S]*?"}
-# Two items of one class that together match each character, also a line end.
-ANY_CHARACTER_PAIRS = ({"\\s", "\\S"}, {"\\w", "\\W"}, {"\\d", "\\D"})
+# The escapes that also match a line end, outside a negated class.
+LINE_END_ESCAPES = {"\\n", "\\s", "\\W", "\\D"}
 
 
 def alternatives(pattern):
@@ -2204,11 +2204,11 @@ def alternatives(pattern):
 
 
 def crosses_line_end(piece):
-    """True if the piece holds \\n, a class with \\n or with a pair such as \\s\\S, or a negated class without \\n."""
+    """True if the piece holds \\n, \\s, \\W, or \\D outside a negated class, or a negated class without \\n."""
     index = 0
     while index < len(piece):
         if piece[index] == "\\":
-            if piece[index + 1:index + 2] == "n":
+            if piece[index:index + 2] in LINE_END_ESCAPES:
                 return True
             index += 2
         elif piece[index] == "[":
@@ -2221,7 +2221,7 @@ def crosses_line_end(piece):
             if items[:1] == ["^"]:
                 if "\\n" not in items:
                     return True
-            elif "\\n" in items or any(pair <= set(items) for pair in ANY_CHARACTER_PAIRS):
+            elif LINE_END_ESCAPES & set(items):
                 return True
         else:
             index += 1
@@ -2248,8 +2248,10 @@ def mock_calls_problems(case, tools):
                 problems.append(f"{where}: the pattern {pattern} does not start with {MOCK_CALL_FIELD}<tool>\"")
                 continue
             pieces = BOUND_TOOL_FIELD.split(pattern)[1:]
+            # An escape such as \b or \W before a name is not a letter of a word.
+            words = [re.sub(r"\\.", " ", piece) for piece in pieces]
             named = sorted(tool for tool in tools if any(
-                re.search(rf"(?<![A-Za-z0-9]){re.escape(tool)}(?![A-Za-z0-9_])", piece) for piece in pieces))
+                re.search(rf"(?<![A-Za-z0-9]){re.escape(tool)}(?![A-Za-z0-9_])", word) for word in words))
             if named:
                 problems.append(f"{where}: the pattern names {', '.join(named)} outside the tool field")
             for index, piece in enumerate(pieces):
@@ -2321,12 +2323,21 @@ class MockCallsGraderTests(unittest.TestCase):
             "a bare method after a bar": (issue + "|resolve_thread", "does not start with"),
             "a class [\\w\\W]": (reply + "[\\w\\W]{0,400}AI", "can cross the end"),
             "a line end": (reply + "[^\\n]*\\n[^\\n]*AI", "can cross the end"),
+            "a tool name after \\b": (reply + "[^\\n]*\\bissue_read\\b", "names issue_read outside"),
+            "a class [\\d\\D]": (reply + "[\\d\\D]{0,400}AI", "can cross the end"),
+            "a class with a line end": (reply + "[^\\n]*[ \\n]AI", "can cross the end"),
+            "a bare \\s": (issue + "[^\\n]*\\s[^\\n]*AI", "can cross the end"),
+            "a bare \\D": (reply + "[^\\n]*?commentId\\D*9102", "can cross the end"),
             "a right call": (issue, None),
             "a right bar between two calls": (issue + "|" + reply, None),
             "a right method get_labels": (MOCK_CALL_FIELD + 'issue_read"[^\\n]*?"method":"get_labels"', None),
             "a right escaped line end in a body": (issue + "[^\\n]*Analysis\\\\n", None),
+            "a right escaped bar": (issue + "[^\\n]*\\|AI", None),
+            "a right bar in a class": (issue + "[^\\n]*[a|b]AI", None),
+            "a right name with more after an underscore": (MOCK_CALL_FIELD + 'issue_read"[^\\n]*?get_label_names', None),
+            "a right word that ends with a tool name": (issue + "[^\\n]*?budget_label", None),
             "a right group of names": (MOCK_CALL_FIELD + '(?:issue_write|create_\\w*)"', None),
-            "a right input": (reply + '[^\\n]{0,400}?commentId\\W{1,4}9102\\b', None),
+            "a right input": (reply + '[^\\n]{0,400}?commentId[^\\w\\n]{1,4}9102\\b', None),
             "a right order of two calls": (reply + "[\\s\\S]*" + issue, None),
         }
         for name, (pattern, expected) in forms.items():

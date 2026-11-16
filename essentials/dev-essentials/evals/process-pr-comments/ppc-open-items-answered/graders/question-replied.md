@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '"tool":"(?:[\w-]*__)?add_reply_to_pull_request_comment"[^\n]{0,300}?commentId\W{1,4}9102\b'
+pattern: '"tool":"(?:[\w-]*__)?add_reply_to_pull_request_comment"[^\n]{0,300}?commentId[^\w\n]{1,4}9102\b'
 target: mock_calls
 ---

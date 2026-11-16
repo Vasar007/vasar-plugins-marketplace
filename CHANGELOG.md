@@ -17,7 +17,7 @@ This release makes the eval graders that read the mocked GitHub calls find a too
 
 - `evals`: 32 regex graders on `mock_calls` named a tool or a method without the `tool` field. Now each one starts at the `tool` field, in the form `"tool":"(?:[\w-]*__)?<tool>"`. Before, a tool name in the input or the output of another call also matched. With such a name, a `contains` grader can pass a run with no such call. A `not_contains` grader can fail a right run, and a count can be too high. No kept run had such a name. The suites are `bug-hunt`, `composers`, `feature-pipeline`, `probes`, and `process-pr-comments` (issue #189).
 - `evals/process-pr-comments`: the three graders on the method `resolve_thread` now read it only in a call of `pull_request_review_write`. The graders that read the text or the comment id of a reply now read only the line of that reply. Before, they also read the next call (issue #189).
-- `evals`: the five graders that already read the `tool` field now use `(?:[\w-]*__)?` in place of `\w*`. So the name `issue_write` no longer matches the tool `sub_issue_write`. The graders `label-kept` and `no-missing-label` of `cmp-issue-create` no longer read past the end of the create call (issue #189).
+- `evals`: the five graders that already read the `tool` field now use `(?:[\w-]*__)?` in place of `\w*`. So the name `issue_write` no longer matches the tool `sub_issue_write`. The graders `label-kept`, `no-missing-label`, and `no-title-in-body` of `cmp-issue-create` no longer read past the end of the create call (issue #189).
 - A replay of the new patterns on 170 kept runs gave the stored verdict of each run (issue #189).
 
 ### Changed in the repository
