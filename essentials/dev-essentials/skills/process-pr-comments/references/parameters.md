@@ -1,6 +1,6 @@
 # Process PR Comments Parameters
 
-Phase 1 of `SKILL.md` reads this file. The orchestrating session names it in each Stage 1 and Stage 2 brief.
+Phase 1 of `SKILL.md` reads this file. The orchestrating session names it in each Stage 1 brief.
 
 Pass the parameters as free-form `key=value` pairs and standalone flags in the skill arguments. `pr` is required. `owner` and `repo` are required for a PR number. All other parameters are optional.
 

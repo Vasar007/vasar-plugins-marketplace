@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.13.0 in release [4.10.0] - 2026-11-16
+
+This release runs Stage 2 of `process-pr-comments` in the orchestrating session. The skill no longer resumes a Stage 2 subagent with `SendMessage`. A new behavior case covers the open items of a cycle after the answers of the user.
+
+### Added in dev-essentials
+
+- `evals/process-pr-comments/ppc-open-items-answered`: a new behavior case. A reviewer asks a question and marks one thread as out of scope. The prompt gives the answers of the user in advance. The graders make sure that the run creates the issue with the `Source:` line of the thread before any reply posts. They also make sure that the run posts both replies and makes no commit. They make sure too that the out-of-scope reply names the new issue (issue #171, issue #122).
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: Stage 2 runs in the orchestrating session, not in a subagent. Stage 2 records its open items, and the session asks all of them in one message. After the answers, Stage 2 finishes them. The post of the batch, the push, and the resolve need no `SendMessage` resume. Stage 1 and the Task Composer dispatches stay. A new paragraph says how Stage 2 keeps the main context small (issue #171).
+- `skills/process-pr-comments`: on a `deep-fix` cycle, an answer that asks for a code change follows the rule for a changed fix. Before, it waited for a later invocation, because the Stage 2 subagent had ended (issue #171).
+
+### Changed in the repository
+
+- `docs/evals.md`: the table of behavior suites gives 9 cases for `process-pr-comments`. A new paragraph says that a run sends one prompt and has no `SendMessage` tool. So a case gives the answers of the user in advance in its prompt (issue #122).
+
 ## dev-essentials 3.12.0 in release [4.9.0] - 2026-11-16
 
 This release folds three dispatches into the main session. On a `deep-fix` cycle of `process-pr-comments`, the orchestrating session posts the replies and resolves the threads itself. `feature-pipeline` runs its finalization stage in the main session, with one build and test run before the push.
@@ -1453,7 +1470,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...HEAD
+[4.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...v4.9.0
 [4.8.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...v4.8.6
 [4.8.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...v4.8.5
