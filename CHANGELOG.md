@@ -15,14 +15,14 @@ This release makes the eval graders that read the mocked GitHub calls find a too
 
 ### Fixed in dev-essentials
 
-- `evals`: 32 regex graders on `mock_calls` named a tool or a method without the `tool` field. Now each one starts at the `tool` field, in the form `"tool":"(?:\w*__)?<tool>"`. Before, a tool name in the input or the output of another call also matched. With such a name, a `contains` grader passed a run with no such call. A `not_contains` grader failed a right run, and a count was too high. No kept run had such a name. The suites are `bug-hunt`, `composers`, `feature-pipeline`, `probes`, and `process-pr-comments` (issue #189).
+- `evals`: 32 regex graders on `mock_calls` named a tool or a method without the `tool` field. Now each one starts at the `tool` field, in the form `"tool":"(?:[\w-]*__)?<tool>"`. Before, a tool name in the input or the output of another call also matched. With such a name, a `contains` grader can pass a run with no such call. A `not_contains` grader can fail a right run, and a count can be too high. No kept run had such a name. The suites are `bug-hunt`, `composers`, `feature-pipeline`, `probes`, and `process-pr-comments` (issue #189).
 - `evals/process-pr-comments`: the three graders on the method `resolve_thread` now read it only in a call of `pull_request_review_write`. The graders that read the text or the comment id of a reply now read only the line of that reply. Before, they also read the next call (issue #189).
-- `evals`: the five graders that already read the `tool` field now use `(?:\w*__)?` in place of `\w*`. So the name `issue_write` no longer matches the tool `sub_issue_write`. The grader `label-kept` of `cmp-issue-create` no longer reads past the end of the create call (issue #189).
+- `evals`: the five graders that already read the `tool` field now use `(?:[\w-]*__)?` in place of `\w*`. So the name `issue_write` no longer matches the tool `sub_issue_write`. The graders `label-kept` and `no-missing-label` of `cmp-issue-create` no longer read past the end of the create call (issue #189).
 - A replay of the new patterns on 170 kept runs gave the stored verdict of each run (issue #189).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new test class `MockCallsGraderTests` makes sure that each regex grader on `mock_calls` starts at the `tool` field and names a mocked tool only there. The part after a `tool` field must not read past the end of the call line, except a span to a second `tool` field. Samples for each kind of grader test a tool name in another call and the real call (issue #189).
+- `tests/test_eval_cases.py`: the new test class `MockCallsGraderTests` makes sure that each regex grader on `mock_calls` starts at the `tool` field and names a mocked tool only there. The part after a `tool` field must not read past the end of the call line, except a span to a second `tool` field. Each side of a `|` outside a group must also start at a `tool` field. Samples for each kind of grader test a tool name in another call and the real call (issue #189).
 - `docs/evals.md`: a new paragraph says that a pattern on `mock_calls` starts at the `tool` field and reads only the line of its call. It names the test that checks this (issue #189).
 - `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).
 

@@ -2173,12 +2173,59 @@ class PrCreatedGraderTests(unittest.TestCase):
 
 
 # The start of a mock_calls pattern: the tool field, with or without the prefix of the server.
-MOCK_CALL_FIELD = '"tool":"(?:\\w*__)?'
+MOCK_CALL_FIELD = '"tool":"(?:[\\w-]*__)?'
 # The field, then one tool name or a group (?:a|b) of names, then the closing quote. A name can end with \w*.
 BOUND_TOOL_FIELD = re.compile(re.escape(MOCK_CALL_FIELD) + r'(?:\w+|\(\?:\w+(?:\\w\*)?(?:\|\w+(?:\\w\*)?)*\))"')
 # The only piece that can join two tool fields across lines: a grader of the order of two calls.
 CALL_ORDER_SPANS = {r"[\s\S]*", r"[\s\S]*?"}
-NEGATED_CLASS = re.compile(r"\[\^(?:\\.|[^\]\\])*\]")
+# Two items of one class that together match each character, also a line end.
+ANY_CHARACTER_PAIRS = ({"\\s", "\\S"}, {"\\w", "\\W"}, {"\\d", "\\D"})
+
+
+def alternatives(pattern):
+    """The parts of a pattern between the | signs that are outside each group and each class."""
+    parts, start, depth, index, in_class = [], 0, 0, 0, False
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "\\":
+            index += 2
+            continue
+        if in_class:
+            in_class = char != "]"
+        elif char == "[":
+            in_class = True
+        elif char in "()":
+            depth += 1 if char == "(" else -1
+        elif char == "|" and depth == 0:
+            parts.append(pattern[start:index])
+            start = index + 1
+        index += 1
+    return parts + [pattern[start:]]
+
+
+def crosses_line_end(piece):
+    """True if the piece holds \\n, a class with \\n or with a pair such as \\s\\S, or a negated class without \\n."""
+    index = 0
+    while index < len(piece):
+        if piece[index] == "\\":
+            if piece[index + 1:index + 2] == "n":
+                return True
+            index += 2
+        elif piece[index] == "[":
+            items, index = [], index + 1
+            while index < len(piece) and piece[index] != "]":
+                step = 2 if piece[index] == "\\" else 1
+                items.append(piece[index:index + step])
+                index += step
+            index += 1
+            if items[:1] == ["^"]:
+                if "\\n" not in items:
+                    return True
+            elif "\\n" in items or any(pair <= set(items) for pair in ANY_CHARACTER_PAIRS):
+                return True
+        else:
+            index += 1
+    return False
 
 
 def mocked_tools(repo=REPO):
@@ -2195,19 +2242,21 @@ def mock_calls_problems(case, tools):
     for name, (meta, _body) in sorted(case.graders.items()):
         if meta.get("type") != "regex" or meta.get("target") != "mock_calls":
             continue
-        where, pattern = f"{case.label}/graders/{name}.md", str(meta.get("pattern", ""))
-        if not BOUND_TOOL_FIELD.match(pattern):
-            problems.append(f"{where}: the pattern does not start with {MOCK_CALL_FIELD}<tool>\"")
-            continue
-        pieces = BOUND_TOOL_FIELD.split(pattern)[1:]
-        named = sorted(tool for tool in tools if any(tool in piece for piece in pieces))
-        if named:
-            problems.append(f"{where}: the pattern names {', '.join(named)} outside the tool field")
-        for index, piece in enumerate(pieces):
-            if index < len(pieces) - 1 and piece in CALL_ORDER_SPANS:
+        where = f"{case.label}/graders/{name}.md"
+        for pattern in alternatives(str(meta.get("pattern", ""))):
+            if not BOUND_TOOL_FIELD.match(pattern):
+                problems.append(f"{where}: the pattern {pattern} does not start with {MOCK_CALL_FIELD}<tool>\"")
                 continue
-            if "[\\s\\S]" in piece or any("\\n" not in found for found in NEGATED_CLASS.findall(piece)):
-                problems.append(f"{where}: the piece {piece} can cross the end of a call line")
+            pieces = BOUND_TOOL_FIELD.split(pattern)[1:]
+            named = sorted(tool for tool in tools if any(
+                re.search(rf"(?<![A-Za-z0-9]){re.escape(tool)}(?![A-Za-z0-9_])", piece) for piece in pieces))
+            if named:
+                problems.append(f"{where}: the pattern names {', '.join(named)} outside the tool field")
+            for index, piece in enumerate(pieces):
+                if index < len(pieces) - 1 and piece in CALL_ORDER_SPANS:
+                    continue
+                if crosses_line_end(piece):
+                    problems.append(f"{where}: the piece {piece} can cross the end of a call line")
         if "s" in str(meta.get("flags", "")):
             problems.append(f"{where}: the flag s lets . cross the end of a call line")
     return problems
@@ -2256,7 +2305,7 @@ class MockCallsGraderTests(unittest.TestCase):
         self.assertEqual([problem for case in self.all_cases for problem in mock_calls_problems(case, self.tools)], [])
 
     def test_the_check_finds_each_bad_form(self):
-        tools = {"issue_write", "issue_read", "add_reply_to_pull_request_comment"}
+        tools = {"issue_write", "issue_read", "get_label", "add_reply_to_pull_request_comment"}
         reply = MOCK_CALL_FIELD + 'add_reply_to_pull_request_comment"'
         issue = MOCK_CALL_FIELD + 'issue_write"'
         forms = {
@@ -2269,7 +2318,13 @@ class MockCallsGraderTests(unittest.TestCase):
             "an order of two calls with an unbound end": (reply + "[\\s\\S]*issue_write", "names issue_write outside"),
             "an order span at the end": (issue + "[\\s\\S]*", "can cross the end"),
             "the flag s": (issue + ".*AI", "the flag s"),
+            "a bare method after a bar": (issue + "|resolve_thread", "does not start with"),
+            "a class [\\w\\W]": (reply + "[\\w\\W]{0,400}AI", "can cross the end"),
+            "a line end": (reply + "[^\\n]*\\n[^\\n]*AI", "can cross the end"),
             "a right call": (issue, None),
+            "a right bar between two calls": (issue + "|" + reply, None),
+            "a right method get_labels": (MOCK_CALL_FIELD + 'issue_read"[^\\n]*?"method":"get_labels"', None),
+            "a right escaped line end in a body": (issue + "[^\\n]*Analysis\\\\n", None),
             "a right group of names": (MOCK_CALL_FIELD + '(?:issue_write|create_\\w*)"', None),
             "a right input": (reply + '[^\\n]{0,400}?commentId\\W{1,4}9102\\b', None),
             "a right order of two calls": (reply + "[\\s\\S]*" + issue, None),
