@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.11.5 in release [4.8.6] - 2026-11-16
+
+This release fixes two graders of the `process-pr-comments` eval suite. Each one failed a right run because of the wording of its last message. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals/process-pr-comments/ppc-outofscope-autonomous`: the grader `asks-create` also reads "found none" and "none found" as an empty search. The search result and the create question can now be up to 1500 characters apart. Before, the limit was 400, and a run that showed the issue draft between them failed (issue #173).
+- `evals/process-pr-comments/ppc-gated-threads`: the grader `question-drafted` also reads the question "post this answer?" or "post this reply?" as the offer of a drafted `[Question]` reply (issue #173).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: two new tests pin the wordings that the two graders accept and the replies that they refuse (issue #173).
+
 ## dev-essentials 3.11.4 in release [4.8.5] - 2026-11-16
 
 This release closes the open edge cases of the report-only state `pr-commit-no-reply` of `process-pr-comments`. It also adds a behavior case for a local commit that goes along with an `autonomous` push.
@@ -1430,7 +1443,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...HEAD
+[4.8.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...v4.8.6
 [4.8.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...v4.8.5
 [4.8.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...v4.8.4
 [4.8.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.2...v4.8.3
