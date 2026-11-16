@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'docs/drafts/run-tests-locally\.md'
+pattern: '\bdocs/drafts\b[\s\S]*\brun-tests-locally\.md|\brun-tests-locally\.md[\s\S]*\bdocs/drafts\b'
 target: last_message
 ---

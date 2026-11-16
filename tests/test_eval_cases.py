@@ -2990,9 +2990,22 @@ class ComposerGraderTests(unittest.TestCase):
         meta = self.cases["cmp-guide-draft"].graders["route-create-documentation-skill"][0]
         self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Skill"))
         self.assertNotIn("max", meta)
+        self.assertGreaterEqual(meta.get("min", 1), 1)
         pattern = re.compile(meta["input_match"])
         self.assertIsNotNone(pattern.search('{"skill":"dev-essentials:create-documentation"}'))
         self.assertIsNone(pattern.search('{"skill":"dev-essentials:compose-task"}'))
+
+    def test_guide_file_graders_read_the_draft_in_the_repository_folder(self):
+        graders = self.cases["cmp-guide-draft"].graders
+        draft = "docs/drafts/run-tests-locally.md"
+        self.assertEqual(graders["draft-file"][0]["path"], draft)
+        self.assertNotIn("exists", graders["draft-file"][0])
+        no_default = graders["no-default-folder"][0]
+        self.assertEqual((no_default["path"], no_default["exists"]), ("Notes/Docs/**", False))
+        for name in ("structure", "intro", "numbered-steps", "code-tag", "test-command", "warning-quote"):
+            with self.subTest(grader=name):
+                self.assertEqual(graders[name][0]["target"], {"source": "file", "path": draft})
+        self.assertEqual(graders["reported-path"][0]["target"], "last_message")
 
     def test_guide_structure_needs_a_title_first_and_a_section(self):
         self.check("cmp-guide-draft", "structure", {
@@ -3002,12 +3015,16 @@ class ComposerGraderTests(unittest.TestCase):
             "a line before the title": ("Draft\n" + self.GUIDE, False),
             "no section": ("# Run the tests\n\nRun `python3 -m unittest discover -s tests`.\n", False),
             "a subsection only": ("# Run the tests\n\nShort.\n\n### Steps\n\n1. Run it.\n", False),
+            "known limit: a flat guide with steps and no H2": ("# Run the tests\n\nShort.\n\n1. Run it.\n2. Read it.\n", False),
         })
 
     def test_guide_intro_needs_text_after_the_title(self):
         self.check("cmp-guide-draft", "intro", {
             "right guide": (self.GUIDE, True),
             "a code name first": ("# Run the tests\n\n`pager` has unit tests.\n\n## Steps\n", True),
+            "a bold start": ("# Run the tests\n\n**New developers** can run the tests locally.\n", True),
+            "an italic start": ("# Run the tests\n\n_This guide_ shows the test run.\n", True),
+            "a star bullet": ("# Run the tests\n\n* Python 3.11\n", False),
             "a section right after the title": ("# Run the tests\n\n## Steps\n\n1. Run it.\n", False),
             "a numbered list right after the title": ("# Run the tests\n\n1. Run it.\n", False),
             "a bullet right after the title": ("# Run the tests\n\n- Python 3.11\n", False),
@@ -3021,6 +3038,8 @@ class ComposerGraderTests(unittest.TestCase):
             "bullets only": (self.GUIDE.replace("1. ", "- ").replace("2. ", "- "), False),
             "one step": (self.GUIDE.replace("2. Run all tests:", "Then run all tests:"), False),
             "indented steps": ("  1. Open a terminal.\n  2. Run the tests.\n", True),
+            "lazy numbering": ("1. Open a terminal.\n1. Run the tests.\n", True),
+            "a 2. inside a line": ("1. Use Python 3.12. Then run the tests.\n", False),
         })
 
     def test_guide_code_tag_needs_a_shell_language(self):
@@ -3030,6 +3049,7 @@ class ComposerGraderTests(unittest.TestCase):
             "a tilde fence": (self.GUIDE.replace("```shell", "~~~sh"), True),
             "no tag": (self.GUIDE.replace("```shell", "```"), False),
             "another language": (self.GUIDE.replace("```shell", "```python"), False),
+            "a longer word": (self.GUIDE.replace("```shell", "```shellx"), False),
         })
 
     def test_guide_test_command_needs_the_start_folder(self):
@@ -3038,6 +3058,7 @@ class ComposerGraderTests(unittest.TestCase):
             "the long option": (self.GUIDE.replace("-s tests", "--start-directory tests"), True),
             "python": (self.GUIDE.replace("python3 -m", "python -m"), True),
             "no start folder": (self.GUIDE.replace(" -s tests", ""), False),
+            "another folder": (self.GUIDE.replace("-s tests", "-s tests_old"), False),
         })
 
     def test_guide_warning_quote_needs_the_root_folder_in_a_blockquote(self):
@@ -3047,6 +3068,8 @@ class ComposerGraderTests(unittest.TestCase):
             "the root folder on the second quote line": ("> **Warning:** Run the command in the\n> root folder.\n", True),
             "an empty line in the quote": ("> **Note:** Mind the folder.\n>\n> Use the root folder.\n", True),
             "top-level folder": ("> Run it in the top-level folder of the repository.\n", True),
+            "Root in upper case": ("> Run it in the Root folder.\n", True),
+            "a greater-than sign inside a line": ("Use a > b in the root folder.\n", False),
             "a quote about another thing": ("> You need Python 3.11.\n\nRun it in the root folder.\n", False),
         })
 
@@ -3054,6 +3077,10 @@ class ComposerGraderTests(unittest.TestCase):
         self.check("cmp-guide-draft", "reported-path", {
             "the draft path": ("Created `docs/drafts/run-tests-locally.md`.", True),
             "the default folder": ("Created `Notes/Docs/run-tests-locally.md`.", False),
+            "the folder and the name apart": ("Created `run-tests-locally.md` in `docs/drafts/`.", True),
+            "the folder first": ("The repository keeps drafts in `docs/drafts/`, so I created `run-tests-locally.md` there.", True),
+            "the name only": ("Created `run-tests-locally.md`.", False),
+            "the name and the default folder": ("Created `run-tests-locally.md` in `Notes/Docs/`.", False),
         })
 
 
