@@ -69,10 +69,12 @@ The docs do not say what starts it. It is not a warning, and no test checks it. 
 | --- | --- | --- | --- |
 | release 4.11.1 | dev-essentials | the version in `plugin.json`, and one Python script of a skill | yes |
 | release 4.11.1 | kb | the version in `plugin.json`, and one shell script of a skill | no |
-| release 4.11.3 | all four plugins | only `plugin.json`: the `icon` key is gone, and the version is new | yes |
+| release 4.11.1 | doc-styles and dotnet-backend-dev | none | no |
+| release 4.11.3 | doc-styles and kb | only `plugin.json`: the `icon` key is gone, and the version is new | yes |
+| release 4.11.3 | dev-essentials and dotnet-backend-dev | the same change of `plugin.json`. If the sync compares with release 4.11.1, also the eval files and the version of release 4.11.2 | yes |
 | release 4.11.4 | doc-styles | the version in `plugin.json`, and `hooks/hooks.json` | yes |
 | release 4.11.4 | the three other plugins | none | no |
 
-So a plugin with no change gets no notice. A changed hook file came with a notice, and so did a removed key of `plugin.json`. A new version alone does not explain the notice, because kb got one in release 4.11.1 with no notice. A script change alone does not explain it either: the Python script came with a notice, and the shell script did not. The notice tells that a plugin changed. It asks for no fix.
+So a plugin with no change gets no notice. A changed hook file came with a notice, and so did a removed key of `plugin.json`. A new version alone does not explain the notice, because kb got a new version in release 4.11.1 and no notice. A script change alone does not explain it either: the Python script came with a notice, and the shell script did not. The notice tells that a plugin changed. It asks for no fix.
 
 The table does not show which commit a sync compares with. If a sync shows the notice for a plugin with no change, add the result to the table.
