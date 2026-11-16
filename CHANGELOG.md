@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.14.4, doc-styles 1.1.7, dotnet-backend-dev 1.7.6, and kb 0.2.4 in release [4.11.5] - 2026-11-16
+## dev-essentials 3.14.3, doc-styles 1.1.6, dotnet-backend-dev 1.7.6, and kb 0.2.4 in release [4.11.3] - 2026-11-16
 
 This release removes the `icon` key from each `plugin.json`, so the claude.ai sync no longer shows a warning for it. The icon files stay, and `claude plugin validate` still finds them. New tests catch a known sync warning before a merge.
 
@@ -1564,8 +1564,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...HEAD
-[4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...HEAD
+[4.11.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...v4.11.1
 [4.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...v4.11.0
