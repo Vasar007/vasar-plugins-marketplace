@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
+
+This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
+
+### Changed in dev-essentials
+
+- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same template lines, and the length limits stay the same. The rule for bullet points now covers only `## Changes`. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
+- `skills/compose-pr/references/examples.md`: the three examples have the new sections (issue #190).
+- `evals/composers/cmp-pr-from-diff`: the grader `structure` needs `## What`, `## Why`, and `## Changes` first, and `## Testing` after them. The grader `reason-from-plan` needs the reason of the plan in the section `## Why`. The new grader `no-modified-components` fails a run that still writes the old section (issue #190).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests make sure that the graders `structure`, `reason-from-plan`, and `no-modified-components` pass the new form and fail the old form (issue #190).
+
 ## dev-essentials 3.14.6 in release [4.11.7] - 2026-11-16
 
 This release fixes two kinds of eval graders that passed some wrong runs: the `no-push` graders and the "no commit" graders. The skill text does not change.
@@ -51,20 +65,6 @@ This release fixes two gaps in the shared eval fixtures. A .NET test run that st
 - `docs/evals.md`: a new step of the WSL2 preparation says to keep the clone for the eval runs in the Linux file system. It also says how that clone gets a branch of a Windows clone through a git bundle (issue #198).
 - `tests/evals/replay_graders.mjs`: a new tool replays the graders of an eval case on kept runs for free. It builds the `last_message`, `mock_calls`, and `trace` texts by the rules of Claude Code 2.1.325. It runs the regex graders on these texts and the `tool_used` graders. `docs/evals.md` says how to run it (issue #186).
 - `tests/evals/test_replay_graders.py`: new tests pin the verdicts and the `mock_calls` text of the tool on a hand-made run. A test also makes sure that the tool reads each grader file of the repository as PyYAML does (issue #186).
-
-## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
-
-This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
-
-### Changed in dev-essentials
-
-- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same template lines, and the length limits stay the same. The rule for bullet points now covers only `## Changes`. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
-- `skills/compose-pr/references/examples.md`: the three examples have the new sections (issue #190).
-- `evals/composers/cmp-pr-from-diff`: the grader `structure` needs `## What`, `## Why`, and `## Changes` first, and `## Testing` after them. The grader `reason-from-plan` needs the reason of the plan in the section `## Why`. The new grader `no-modified-components` fails a run that still writes the old section (issue #190).
-
-### Changed in the repository
-
-- `tests/test_eval_cases.py`: new tests make sure that the graders `structure`, `reason-from-plan`, and `no-modified-components` pass the new form and fail the old form (issue #190).
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
