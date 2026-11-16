@@ -170,6 +170,15 @@ class ReplayTests(ReplayCase):
         result = self.replay("--case", self.write_case(graders), RUN)
         self.assertResult(result, 1, "replay-run\tagent-used\tpass\t", "replay-run\tbad\tfail\tgrader threw: ")
 
+    def test_a_symbolic_link_to_the_tool_runs_the_tool(self):
+        link = self.tmp / "link.mjs"
+        try:
+            link.symlink_to(TOOL)
+        except OSError:
+            self.skipTest("this system cannot make a symbolic link")
+        result = run([self.node, link, "--case", self.write_case({"agent-used": GRADERS["agent-used"]}), RUN])
+        self.assertResult(result, 0, "replay-run\tagent-used\tpass\t")
+
 
 class InputErrorTests(ReplayCase):
     def test_no_case_gives_exit_2(self):
@@ -185,6 +194,19 @@ class InputErrorTests(ReplayCase):
         result = self.replay("--case", self.write_case(GRADERS), self.tmp)
         self.assertResult(result, 2, "no trace: ")
         self.assertEqual(result.stdout, "")
+
+    def test_a_mock_spec_that_the_tool_cannot_read_gives_exit_2_with_its_path(self):
+        case = self.write_case({"agent-used": GRADERS["agent-used"]})
+        specs = {"cut.json": ('{"nonce": ', "cut.json: "),
+                 "no-name.json": ('{"tools": []}', "no-name.json: the mock spec has no registeredName text")}
+        for name, (text, message) in specs.items():
+            with self.subTest(name=name):
+                kept = self.tmp / name
+                shutil.copytree(RUN, kept)
+                (kept / "out" / "mocks" / name).write_text(text, encoding="utf-8")
+                result = self.replay("--case", case, kept)
+                self.assertResult(result, 2, message)
+                self.assertEqual(result.stdout, "")
 
     def test_a_nested_front_matter_block_gives_exit_2(self):
         graders = {"order": "type: tool_order\nbefore:\n  tool: Bash\nafter:\n  tool: Agent\n"}

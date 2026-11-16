@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const USAGE = 'Usage: node tests/evals/replay_graders.mjs --case <case folder> <run folder>...';
 // The prefix of the output of a call that a mock stopped. The nonce of the run follows it.
@@ -17,7 +17,9 @@ const BODY_FIELD = { llm: 'criteria', baseline: 'criteria', regex: 'pattern' };
 // A plain value that YAML reads in another way: a comment, a mapping, or an indicator character.
 const PLAIN_UNSAFE = /\s#|:(?:\s|$)|^[[\]{}#&*!|>%@`,]|^[-?](?:\s|$)/;
 
-export class InputError extends Error {}
+export class InputError extends Error {
+  name = 'InputError';
+}
 
 function scalar(text) {
   if (text.startsWith("'")) {
@@ -55,8 +57,8 @@ function splitFrontMatter(text) {
   return null;
 }
 
-// Read the YAML front matter of a grader file. It reads only the forms that the grader files use:
-// one key on each line, with a plain, single-quoted, or double-quoted value, or a one-line flow mapping.
+// Read the YAML front matter of a grader file. It reads only the forms that the grader files use.
+// Each line has one key. Its value is plain, single-quoted, double-quoted, or a one-line flow mapping.
 // Returns null for a file without front matter. Claude Code skips such a grader file.
 export function readFrontMatter(text) {
   const parts = splitFrontMatter(text);
@@ -85,6 +87,7 @@ function inputText(input) {
   try {
     return JSON.stringify(input) ?? '';
   } catch {
+    // Claude Code also gives an empty text for an input that JSON cannot write.
     return '';
   }
 }
@@ -93,9 +96,7 @@ function serverName(name) {
   return name.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
-// Read the trace and the mock specs of a kept run folder.
-export function readRun(runDir) {
-  const tracePath = path.join(runDir, 'out', 'trace.jsonl');
+function readTrace(tracePath) {
   if (!fs.existsSync(tracePath)) throw new InputError(`no trace: ${tracePath}`);
   const trace = [];
   for (const line of fs.readFileSync(tracePath, 'utf8').split('\n')) {
@@ -107,12 +108,18 @@ export function readRun(runDir) {
       // Claude Code also skips a line that is not JSON.
     }
   }
+  return trace;
+}
+
+// Collect the tool calls of a trace with their results, and the text of the last assistant message.
+function readCalls(trace) {
   const toolCalls = [];
   const byId = new Map();
   let lastMessage = '';
   for (const entry of trace) {
     const content = entry?.message?.content;
-    if (entry?.type === 'assistant' && Array.isArray(content)) {
+    if (!Array.isArray(content)) continue;
+    if (entry.type === 'assistant') {
       const texts = [];
       for (const part of content) {
         if (part?.type === 'tool_use') {
@@ -124,7 +131,7 @@ export function readRun(runDir) {
         }
       }
       if (texts.length > 0) lastMessage = texts.join('\n');
-    } else if (entry?.type === 'user' && Array.isArray(content)) {
+    } else if (entry.type === 'user') {
       for (const part of content) {
         const call = part?.type === 'tool_result' ? byId.get(part.tool_use_id) : undefined;
         if (call === undefined) continue;
@@ -133,17 +140,33 @@ export function readRun(runDir) {
       }
     }
   }
+  return { toolCalls, lastMessage };
+}
+
+// Read the mock specs of a kept run: the names of the mocked tools, and the nonce of the run.
+function readMocks(mocksDir) {
   const mocked = new Set();
   let nonce = null;
-  const mocksDir = path.join(runDir, 'out', 'mocks');
   const specs = fs.existsSync(mocksDir) ? fs.readdirSync(mocksDir).filter((name) => name.endsWith('.json')) : [];
   for (const name of specs.sort()) {
-    const spec = JSON.parse(fs.readFileSync(path.join(mocksDir, name), 'utf8'));
-    nonce = spec.nonce ?? nonce;
-    const server = serverName(spec.registeredName);
-    for (const tool of spec.tools ?? []) mocked.add(`mcp__${server}__${serverName(tool.name)}`);
+    const file = path.join(mocksDir, name);
+    try {
+      const spec = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (typeof spec?.registeredName !== 'string') throw new InputError('the mock spec has no registeredName text');
+      nonce = spec.nonce ?? nonce;
+      const server = serverName(spec.registeredName);
+      for (const tool of spec.tools ?? []) mocked.add(`mcp__${server}__${serverName(tool.name)}`);
+    } catch (error) {
+      throw new InputError(`${file}: ${error.message}`, { cause: error });
+    }
   }
-  return { trace, toolCalls, lastMessage, mocked, nonce };
+  return { mocked, nonce };
+}
+
+// Read the trace and the mock specs of a kept run folder.
+export function readRun(runDir) {
+  const trace = readTrace(path.join(runDir, 'out', 'trace.jsonl'));
+  return { trace, ...readCalls(trace), ...readMocks(path.join(runDir, 'out', 'mocks')) };
 }
 
 function verdictOf(call, nonce) {
@@ -237,14 +260,14 @@ export function readGraders(caseDir) {
       const text = fs.readFileSync(file, 'utf8');
       const fields = readFrontMatter(text);
       if (fields === null) continue;
-      const grader = { name: name.slice(0, -3), ...fields };
+      const grader = { name: path.basename(name, '.md'), ...fields };
       if (typeof grader.type !== 'string') throw new InputError('the front matter has no type key');
       const field = BODY_FIELD[grader.type];
       const body = splitFrontMatter(text).body.trim();
       if (field && grader[field] === undefined && body.length > 0) grader[field] = body;
       graders.push(grader);
     } catch (error) {
-      throw new InputError(`${file}: ${error.message}`);
+      throw new InputError(`${file}: ${error.message}`, { cause: error });
     }
   }
   if (graders.length === 0) throw new InputError(`no grader file with front matter in ${dir}`);
@@ -280,6 +303,11 @@ export function main(argv, write = (line) => process.stdout.write(`${line}\n`)) 
   return failed ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  process.exitCode = main(process.argv.slice(2));
+// Node.js loads a script by its real path. So the real paths tell if this file is the script, also through a symlink.
+function isScript() {
+  const script = process.argv[1];
+  if (!script || !fs.existsSync(script)) return false;
+  return fs.realpathSync(script) === fs.realpathSync(fileURLToPath(import.meta.url));
 }
+
+if (isScript()) process.exitCode = main(process.argv.slice(2));
