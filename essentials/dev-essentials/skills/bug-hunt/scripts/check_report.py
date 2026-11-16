@@ -157,15 +157,26 @@ def list_processes():
     return records
 
 
+def fenced(text):
+    """Yield each line with True when it is part of a fenced code block, as CommonMark reads it."""
+    fence, marker = False, ""
+    for line in text.split("\n"):
+        opener = re.match(r"^ {0,3}(```|~~~)(.*)$", line)
+        if not fence and opener and not (opener.group(1) == "```" and "`" in opener.group(2)):
+            fence, marker = True, opener.group(1)
+            yield line, True
+            continue
+        if fence and re.match(r"^ {0,3}" + re.escape(marker) + r"\s*$", line):
+            fence = False
+            yield line, True
+            continue
+        yield line, fence
+
+
 def sections(text):
     """Split the report into H2 sections. Lines in fenced code blocks are not headings."""
-    result, name, body, fence, marker = [], None, [], False, ""
-    for n, line in enumerate(text.split("\n"), 1):
-        opener = re.match(r"^ {0,3}(```|~~~)", line)
-        if not fence and opener:
-            fence, marker = True, opener.group(1)
-        elif fence and re.match(r"^ {0,3}" + marker, line):
-            fence = False
+    result, name, body = [], None, []
+    for n, (line, fence) in enumerate(fenced(text), 1):
         if not fence and line.startswith("## "):
             if name is not None:
                 result.append((name, body))
@@ -335,7 +346,7 @@ def check_report(a):
     if a.stage == "final":
         if not re.search(r"^### For the owner's review$", summary, re.M):
             defect("Summary has no 'For the owner's review' subsection")
-        plain = re.sub(r"`[^`\n]*`", "", re.sub(r"```.*?```", "", text, flags=re.S))
+        plain = re.sub(r"`[^`\n]*`", "", "\n".join(line for line, fence in fenced(text) if not fence))
         for m in re.finditer(r"^Pending (search|verification|the first search)\.$|\{[A-Z0-9_]+\}",
                              plain, re.M):
             defect(f"placeholder left: {m.group(0)}")

@@ -249,6 +249,20 @@ class StructureDefectTests(CheckReportCase):
         self.write(text)
         self.assertEqual(self.run_main("open-notes", "--report", self.report), (0, []))
 
+    def test_an_inline_triple_backtick_span_opens_no_fence(self):
+        lines = [line for line, fence in cr.fenced("   ```a``` text\n## Next\nbody") if fence]
+        self.assertEqual(lines, [])
+
+    def test_a_fence_that_closes_with_an_indent_ends_at_that_line(self):
+        marks = [fence for _, fence in cr.fenced("```\ncode\n  ```\n## Next")]
+        self.assertEqual(marks, [True, True, True, False])
+
+    def test_a_placeholder_inside_a_tilde_fence_is_no_defect(self):
+        text = edit(fixture("final.md"), "### Notes for other areas\n\nNone.",
+                    "### Notes for other areas\n\nNone.\n\n~~~\nPending search.\n~~~")
+        code, lines = self.check_text(text)
+        self.assertEqual(code, 0, lines)
+
 
 class ArtifactTests(CheckReportCase):
     def setUp(self):
