@@ -1,6 +1,6 @@
 # Stage 9: Finalization + PR
 
-The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
+The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
 
 ## Contents
 
@@ -14,14 +14,14 @@ The master agent does these steps itself, in the main session, at Step 9 of `SKI
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`: for the summary and the rationale
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If the run skipped the `review` stage, this file does not exist. Then continue without it.
 - The project guidance files, the base branch, and all workflow commands of the project context
-- The start changes: the paths of `startChanges` in `pipeline-state.json`, and the paths that "After the stage" in `references/stage-launch.md` noted as edits of earlier stages. On a resume, these notes are gone, so the edited paths are "unknown".
+- The start changes: the paths of `startChanges` in `pipeline-state.json`, and the paths that "After the stage" in `references/stage-launch.md` noted as edits of earlier stages. On a resume or after a compaction, these notes are gone, so the edited paths are "unknown".
 - The `<commit-conventions>` block of `references/commit-conventions.md`, with the cadence line of `{COMMIT_MODE}`
 
 ## Process
 
 ### Step 1: Record the Start
 
-Write the output of `git -C "{WORKTREE_PATH}" rev-parse HEAD` into `stageStartSha` (`{"finalization": "<sha>"}`), as launch step 3 of `references/stage-launch.md` says. The other launch steps compose a prompt, so skip them.
+Do launch step 1 of `references/stage-launch.md`: make sure that each file of the "Reads" column exists. Then write the output of `git -C "{WORKTREE_PATH}" rev-parse HEAD` into `stageStartSha` (`{"finalization": "<sha>"}`), as launch step 3 says. Skip launch steps 2, 4, 5, and 6, because they pick a model and compose a prompt.
 
 ### Step 2: Discover Finalization Workflow
 
@@ -41,7 +41,7 @@ If a critical step is still ambiguous after this comparison, stop, and report th
 ### Step 3: Make Sure That the State Is Clean
 
 1. Run the build command and then the test command of the project context, one time each. This is the build and test run before the push that item 1 of "Trust but verify" in `dev-essentials:subagent-orchestration` asks for. That item gives the output filter, the exit code, and the rule for a run that can take longer than 10 minutes.
-   - If the build or a test fails, stop, and report the failure.
+   - If the build or a test fails, stop, and report the failure. Do not fix the cause in this stage.
    - If no test command is available, say so in the final report.
 
 2. If the project context lists a lint command:
@@ -52,7 +52,7 @@ If a critical step is still ambiguous after this comparison, stop, and report th
 3. Look at the git status:
 
    ```bash
-   git status
+   git -C "{WORKTREE_PATH}" status
    ```
 
    - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from the start changes, the change is from this run, so stage it. If the start changes name the path as an edit of an earlier stage, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
@@ -64,7 +64,7 @@ If a critical step is still ambiguous after this comparison, stop, and report th
 
 On a resume, this stage can run again after its commit, because you mark it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 5.
 
-The `<commit-conventions>` block gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. List them with `git diff --cached --name-only --no-renames`, so that a rename lists the old path and the new path. A staged path of the start changes is a path of this run only in one case: the start changes name it as an edit of an earlier stage. If the edited paths are "unknown", leave such a path out, and list it under "Not committed".
+The `<commit-conventions>` block gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. List them with `git -C "{WORKTREE_PATH}" diff --cached --name-only --no-renames`, so that a rename lists the old path and the new path. A staged path of the start changes is a path of this run only in one case: the start changes name it as an edit of an earlier stage. If the edited paths are "unknown", leave such a path out, and list it under "Not committed".
 
 The body gives the reason for the change. Take it from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the block against pipeline-internal references governs the wording.
 
@@ -82,7 +82,7 @@ If the project context gives no PR command, skip this step. Report the branch st
 
 ### Step 7: Link the Tracking Issue
 
-The task URL can point to a tracking item of the PR provider, for example a GitHub issue for a PR on GitHub. If the provider has a linking tool, load it with `ToolSearch`, and link the PR to the item. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
+If Step 6 created no PR, skip this step. The task URL can point to a tracking item of the PR provider, for example a GitHub issue for a PR on GitHub. If the provider has a linking tool, load it with `ToolSearch`, and link the PR to the item. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
 
 ## Rules
 
