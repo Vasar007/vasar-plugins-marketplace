@@ -49,8 +49,8 @@ This release fixes two kinds of eval graders that passed some wrong runs: the `n
 
 ### Changed in the repository
 
-- `tests/test_eval_scaffolds.py`: a new check makes sure that each `no-push` grader and each "no commit" grader of a branch uses the shared form. New tests run each "no commit" grader on its scaffold. They also run the graders on the reflog lines of an amend, a reset, a merge, a cherry-pick, a rebase, and a revert (issue #180).
-- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the five forms that they still miss (issue #180).
+- `tests/test_eval_scaffolds.py`: a new check makes sure that each `no-push` grader and each "no commit" grader of a branch uses the shared form. New tests run each "no commit" grader on its scaffold. They also run the graders on the reflog lines of an amend, a reset, a merge, a cherry-pick, a rebase, and a revert. Another test runs five pushes on a scaffold (issue #180).
+- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the six forms that they still miss (issue #180).
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 

@@ -756,7 +756,7 @@ class CommitGraderTests(FixtureCase):
     def passes(self, name, workspace, grader=None):
         """The verdict of the regex grader on its target file, for the match modes contains, not_contains, and "count:N"."""
         options = self.cases[name][1] if grader is None else self.graders[name, grader]
-        flags = sum(REGEX_FLAGS[flag] for flag in options.get("flags", ""))
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in options.get("flags", ""))
         text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
         count = len(re.findall(options["pattern"], text, flags))
         match = options.get("match", "contains")
@@ -943,6 +943,14 @@ class CommitGraderTests(FixtureCase):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
             self.run_git(workspace, "checkout", "-q", "work/clean-change")
 
+        def a_rename_of_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "work/813")
+            self.run_git(workspace, "branch", "-m", "work/813-fix")
+
+        def a_checkout_of_an_older_commit_and_back(workspace):
+            self.run_git(workspace, "checkout", "-q", "HEAD~1")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
+
         # Known limits: the grader skips a subject with the fixture prefix, and it cannot see the HEAD of a linked worktree.
         def a_commit_with_the_fixture_prefix_on_a_new_branch(workspace):
             self.run_git(workspace, "checkout", "-q", "-b", "work/813")
@@ -956,12 +964,32 @@ class CommitGraderTests(FixtureCase):
             a_checkout_away_and_back: True,
             a_reset_to_the_same_commit: True,
             a_stash: True,
+            a_rename_of_a_new_branch: True,
+            a_checkout_of_an_older_commit_and_back: True,
             a_commit_on_the_case_branch: False,
             a_commit_on_a_new_branch: False,
             an_amend_on_main: False,
             a_commit_with_the_fixture_prefix_on_a_new_branch: True,
             a_commit_in_a_worktree_on_a_new_branch: True,
         }, "no-commit-any-branch")
+
+    def test_only_a_push_of_a_branch_writes_a_log_below_the_no_push_path(self):
+        """A no-push grader reads logs/refs/heads/** of the remote. A tag push, a push that deletes a branch, and a push to refs/pull write no file there."""
+        shapes = {
+            "another-branch": (["origin", "HEAD:refs/heads/review-fixes"], ["refs/heads/review-fixes"]),
+            "nested-branch": (["origin", "HEAD:refs/heads/work/a/b"], ["refs/heads/work/a/b"]),
+            "tag": (["origin", "v1"], ["refs/tags/v1"]),
+            "delete": (["origin", ":feature/paging"], []),
+            "pull-ref": (["origin", "HEAD:refs/pull/99/head"], ["refs/pull/99/head"]),
+        }
+        for shape, (push, expected) in shapes.items():
+            with self.subTest(shape=shape):
+                workspace = self.scaffold("ppc-gated-threads", f"push-{shape}")
+                self.run_git(workspace, "tag", "v1")
+                self.run_git(workspace, "push", "-q", *push)
+                logs = workspace / ".remote" / "origin.git" / "logs"
+                found = sorted(p.relative_to(logs).as_posix() for p in logs.rglob("*") if p.is_file()) if logs.exists() else []
+                self.assertEqual(found, expected)
 
     def test_the_rename_graders_count_a_commit_that_reaches_the_main_work_tree(self):
         path = ["app/users.py"]
