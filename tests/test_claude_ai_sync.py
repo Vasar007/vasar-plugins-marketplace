@@ -1,6 +1,7 @@
 """Checks for the problems that claude.ai reports when it syncs the marketplace. docs/authoring.md lists the rules.
 
-The sync strips each top-level key of plugin.json that it does not know, also a documented one such as "icon".
+The sync stripped the top-level keys "$schema" and "icon" of plugin.json and warned, although the docs name both keys.
+No source lists the keys that the sync takes, so the tests hold the keys that a sync took with no warning.
 It removes angle brackets from a description. It skips a plugin with a nested .claude-plugin or a top-level bin/ folder.
 """
 import json
