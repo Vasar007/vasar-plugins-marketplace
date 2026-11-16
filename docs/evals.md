@@ -40,7 +40,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | --- | --- | ---: | --- |
 | `review-loop` | `dev-essentials` | 5 | WSL |
 | `subagent-orchestration` | `dev-essentials` | 4 | WSL |
-| `process-pr-comments` | `dev-essentials` | 7 | WSL |
+| `process-pr-comments` | `dev-essentials` | 8 | WSL |
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
 | `feature-pipeline` | `dev-essentials` | 9 | WSL |

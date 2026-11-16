@@ -39,7 +39,8 @@ Do these steps in order for each thread that this cycle fixes, before you go on 
    Co-Authored-By: Claude <noreply@anthropic.com>
    ```
 
-   - With `squash`, do not run step 4 after each thread (see the exception above). First collect the fixes of steps 1 and 2 for every thread. Then make ONE commit at the end of the cycle, with every `T#<id>` in the body. Only then run step 4 for each thread.
+   - With `squash`, do not run step 4 after each thread (see the exception above). First collect the fixes of steps 1 and 2 for every thread. Then make ONE commit at the end of the cycle, with every `T#<id>` in the subject, for example `PR #42 T#12 T#14: <summary>`. Only then run step 4 for each thread.
+   - A commit for several threads puts every `T#<id>` in the subject. Such a commit is a `squash` commit, or a commit for threads with the same note (§ "Threads with the same note"). If the subject gets longer than 72 characters, keep every `T#<id>` in it.
    - With `no-commit`, skip the commit and the push. Leave the edits staged for the human, and reply with the "staged" template below.
    - **Do not ask the user to approve a commit**. Commits stay automatic. The push is different (see below). Feedback of the user on an earlier cycle, for example "LGTM, proceed", does not change the commit default to `no-commit`. A user who wants to inspect before the commit says so with the `no-commit` flag.
 4. **Reply**: write the reply with the templates below, as a pending reply. Name the LOCAL commit SHA of step 3. The reply does not claim a push. Post it with `mcp__plugin_github_github__add_reply_to_pull_request_comment` at the time that § "When replies post" gives. Write no other state. Phase 2 step 5 of a later cycle finds the fix again from the posted reply. Before the post, it finds the fix from the `T#<commentId>` in the commit message (`committed-fix-state.md` § "Local commit with no reply").
@@ -120,7 +121,7 @@ If one file holds the edits of several threads, capture the final state of the f
 
 ## Threads with the same note
 
-If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit, and reply on each thread with the shared SHA. This rule counts only threads that go on to Phase 3. A report-only thread, such as `pr-commit-no-reply`, is not part of it.
+If three or more threads carry the **same note of the reviewer** at different call sites, treat them as one fix. Make one commit with every `T#<id>` in the subject (§ "Steps for each thread", step 3), and reply on each thread with the shared SHA. This rule counts only threads that go on to Phase 3. A report-only thread, such as `pr-commit-no-reply`, is not part of it.
 
 ## Reply templates
 
