@@ -2646,8 +2646,8 @@ class PpcBuildContextGraderTests(unittest.TestCase):
         cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
 
     @staticmethod
-    def call(tool, **fields):
-        call = {"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": "{}", "verdict": "ok"}
+    def call(tool, output="{}", **fields):
+        call = {"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": output, "verdict": "ok"}
         return json.dumps(call, separators=(",", ":"))
 
     def passes(self, grader, text):
@@ -2683,6 +2683,14 @@ class PpcBuildContextGraderTests(unittest.TestCase):
                              False, True),
             "a resolve call": ([read, self.call("pull_request_review_write", method="resolve_thread", threadId="PRRT_1")],
                                True, False),
+            "a resolve word in the input of another tool": ([read, self.call("pull_request_read", method="resolve_thread")],
+                                                            True, True),
+            "both calls named in the output of another tool": (
+                [read, self.call("pull_request_read", output='{"tool":"x__add_reply_to_pull_request_comment","method":"resolve_thread"}')],
+                True, True),
+            "a reply call of a server with a dash in its name": (
+                [read, json.dumps({"tool": "mcp__my-github__add_reply_to_pull_request_comment", "input": {}, "output": "{}"}, separators=(",", ":"))],
+                False, True),
         }
         for name, (calls, reply_waits, no_resolve) in runs.items():
             with self.subTest(run=name):
