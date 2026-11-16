@@ -81,6 +81,8 @@ A regex grader with the target `mock_calls` does not read the file `out/mock-cal
 
 So a pattern for a call names the `tool` field and accepts the prefix, for example `"tool":"(?:\w*__)?issue_write"`. The simpler pattern `"tool":"\w*issue_write"` also matches the tool `sub_issue_write`. A bare tool name also matches the input or the output of another call. The graded text lacks the calls of a subagent of a subagent, because the trace does not hold them. The call file holds them. So a grader on `mock_calls` cannot see such a call.
 
+Each pattern on `mock_calls` starts at the `tool` field of a call. A pattern that reads the input of the call reads only the line of that call, with `[^\n]` and not `[\s\S]`. An example is `"tool":"(?:\w*__)?pull_request_review_write"[^\n]*?"method":"resolve_thread"`. A pattern for the order of two calls binds each call to a `tool` field, for example `"tool":"(?:\w*__)?issue_write"[\s\S]*"tool":"(?:\w*__)?issue_read"`. The test `MockCallsGraderTests` in `tests/test_eval_cases.py` makes sure that each `mock_calls` grader of the repository has these forms.
+
 To test a changed grader before a paid run, replay it on kept runs with `tests/evals/replay_graders.mjs`. A kept run is a run folder that `--keep-temp` keeps. The run folder of a stored result is its `tracePath` without `/out/trace.jsonl`. The tool needs Node.js 22 or later.
 
 ```bash
