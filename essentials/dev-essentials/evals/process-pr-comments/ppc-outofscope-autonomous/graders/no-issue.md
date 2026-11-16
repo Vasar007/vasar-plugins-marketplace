@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'issue_write'
+pattern: '"tool":"(?:[\w-]*__)?issue_write"'
 match: not_contains
 target: mock_calls
 ---

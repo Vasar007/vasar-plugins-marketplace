@@ -15,6 +15,7 @@ import sys
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from support import REPO, tool_missing
@@ -2169,6 +2170,261 @@ class PrCreatedGraderTests(unittest.TestCase):
         for name, (calls, expected) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(re.search(self.meta["pattern"], "\n".join(calls)) is not None, expected)
+
+
+# The start of a mock_calls pattern: the tool field, with or without the prefix of the server.
+MOCK_CALL_FIELD = '"tool":"(?:[\\w-]*__)?'
+# The field, then one tool name or a group (?:a|b) of names, then the closing quote. A name can end with \w*.
+BOUND_TOOL_FIELD = re.compile(re.escape(MOCK_CALL_FIELD) + r'(?:\w+|\(\?:\w+(?:\\w\*)?(?:\|\w+(?:\\w\*)?)*\))"')
+# The only piece that can join two tool fields across lines: a grader of the order of two calls.
+CALL_ORDER_SPANS = {r"[\s\S]*", r"[\s\S]*?"}
+# The escapes that also match a line end, outside a negated class.
+LINE_END_ESCAPES = {"\\n", "\\s", "\\W", "\\D"}
+
+
+def alternatives(pattern):
+    """The parts of a pattern between the | signs that are outside each group and each class."""
+    parts, start, depth, index, in_class = [], 0, 0, 0, False
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "\\":
+            index += 2
+            continue
+        if in_class:
+            in_class = char != "]"
+        elif char == "[":
+            in_class = True
+        elif char in "()":
+            depth += 1 if char == "(" else -1
+        elif char == "|" and depth == 0:
+            parts.append(pattern[start:index])
+            start = index + 1
+        index += 1
+    return parts + [pattern[start:]]
+
+
+def crosses_line_end(piece):
+    """True if the piece holds \\n, \\s, \\W, or \\D outside a negated class, or a negated class without \\n."""
+    index = 0
+    while index < len(piece):
+        if piece[index] == "\\":
+            if piece[index:index + 2] in LINE_END_ESCAPES:
+                return True
+            index += 2
+        elif piece[index] == "[":
+            items, index = [], index + 1
+            while index < len(piece) and piece[index] != "]":
+                step = 2 if piece[index] == "\\" else 1
+                items.append(piece[index:index + step])
+                index += step
+            index += 1
+            if items[:1] == ["^"]:
+                if "\\n" not in items:
+                    return True
+            elif LINE_END_ESCAPES & set(items):
+                return True
+        else:
+            index += 1
+    return False
+
+
+def mocked_tools(repo=REPO):
+    """The names of the mocked tools: the file names of mocks/<server>/<tool>.md in the eval folders of all plugins."""
+    return {path.stem for root in plugin_roots(repo) for path in (root / EVALS).glob("**/mocks/*/*.md")}
+
+
+def mock_calls_problems(case, tools):
+    """A regex grader on mock_calls reads a tool name only in the tool field, and it reads the input of that call line only.
+
+    Each piece after a tool field must not cross a line end, except a [\\s\\S]* that ends at the next tool field.
+    """
+    problems = []
+    for name, (meta, _body) in sorted(case.graders.items()):
+        if meta.get("type") != "regex" or meta.get("target") != "mock_calls":
+            continue
+        where = f"{case.label}/graders/{name}.md"
+        for pattern in alternatives(str(meta.get("pattern", ""))):
+            if not BOUND_TOOL_FIELD.match(pattern):
+                problems.append(f"{where}: the pattern {pattern} does not start with {MOCK_CALL_FIELD}<tool>\"")
+                continue
+            pieces = BOUND_TOOL_FIELD.split(pattern)[1:]
+            # An escape such as \b or \W before a name is not a letter of a word.
+            words = [re.sub(r"\\.", " ", piece) for piece in pieces]
+            named = sorted(tool for tool in tools if any(
+                re.search(rf"(?<![A-Za-z0-9]){re.escape(tool)}(?![A-Za-z0-9_])", word) for word in words))
+            if named:
+                problems.append(f"{where}: the pattern names {', '.join(named)} outside the tool field")
+            for index, piece in enumerate(pieces):
+                if index < len(pieces) - 1 and piece in CALL_ORDER_SPANS:
+                    continue
+                if crosses_line_end(piece):
+                    problems.append(f"{where}: the piece {piece} can cross the end of a call line")
+        if "s" in str(meta.get("flags", "")):
+            problems.append(f"{where}: the flag s lets . cross the end of a call line")
+    return problems
+
+
+class MockCallsGraderTests(unittest.TestCase):
+    """Each regex grader on mock_calls reads a tool name only in the tool field of a call line (issue #189).
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
+
+    SOURCE = "Source: https://github.com/example-org/pager/pull/42#discussion_r9103"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.all_cases = [case for root in plugin_roots() for case in load_cases(root)]
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.tools = mocked_tools()
+
+    @staticmethod
+    def call(tool, tool_input, output="{}"):
+        return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": tool_input, "output": output,
+                           "verdict": "ok"}, separators=(",", ":"), ensure_ascii=False)
+
+    def passes(self, case, grader, calls):
+        meta = self.cases[case].graders[grader][0]
+        self.assertEqual(meta.get("target"), "mock_calls")
+        found = sum(1 for _ in re.finditer(meta["pattern"], "\n".join(calls)))
+        match = meta.get("match", "contains")
+        if match == "not_contains":
+            return found == 0
+        if match.startswith("count:"):
+            return found == int(match[len("count:"):])
+        return found > 0
+
+    def check(self, case, grader, runs):
+        for name, (calls, expected) in runs.items():
+            with self.subTest(grader=grader, run=name):
+                self.assertEqual(self.passes(case, grader, calls), expected)
+
+    def test_each_mock_calls_grader_of_the_repository_reads_the_tool_field(self):
+        self.assertIn("issue_write", self.tools)
+        graders = [name for case in self.all_cases for name, (meta, _body) in case.graders.items()
+                   if meta.get("type") == "regex" and meta.get("target") == "mock_calls"]
+        self.assertTrue(graders, "No regex grader on mock_calls found.")
+        self.assertEqual([problem for case in self.all_cases for problem in mock_calls_problems(case, self.tools)], [])
+
+    def test_the_check_finds_each_bad_form(self):
+        tools = {"issue_write", "issue_read", "get_label", "add_reply_to_pull_request_comment"}
+        reply = MOCK_CALL_FIELD + 'add_reply_to_pull_request_comment"'
+        issue = MOCK_CALL_FIELD + 'issue_write"'
+        forms = {
+            "a bare tool name": ("issue_write", "does not start with"),
+            "a field with \\w* only": ('"tool":"\\w*issue_write"', "does not start with"),
+            "a bare method": ("resolve_thread", "does not start with"),
+            "a second tool with no field": (issue + "[^\\n]*issue_read", "names issue_read outside"),
+            "a span across lines": (reply + "[\\s\\S]{0,400}AI", "can cross the end"),
+            "a negated class without the line end": (issue + "[^\\n]*labels[^\\]]*feature", "can cross the end"),
+            "an order of two calls with an unbound end": (reply + "[\\s\\S]*issue_write", "names issue_write outside"),
+            "an order span at the end": (issue + "[\\s\\S]*", "can cross the end"),
+            "the flag s": (issue + ".*AI", "the flag s"),
+            "a bare method after a bar": (issue + "|resolve_thread", "does not start with"),
+            "a class [\\w\\W]": (reply + "[\\w\\W]{0,400}AI", "can cross the end"),
+            "a line end": (reply + "[^\\n]*\\n[^\\n]*AI", "can cross the end"),
+            "a tool name after \\b": (reply + "[^\\n]*\\bissue_read\\b", "names issue_read outside"),
+            "a class [\\d\\D]": (reply + "[\\d\\D]{0,400}AI", "can cross the end"),
+            "a class with a line end": (reply + "[^\\n]*[ \\n]AI", "can cross the end"),
+            "a bare \\s": (issue + "[^\\n]*\\s[^\\n]*AI", "can cross the end"),
+            "a bare \\D": (reply + "[^\\n]*?commentId\\D*9102", "can cross the end"),
+            "a right call": (issue, None),
+            "a right bar between two calls": (issue + "|" + reply, None),
+            "a right method get_labels": (MOCK_CALL_FIELD + 'issue_read"[^\\n]*?"method":"get_labels"', None),
+            "a right escaped line end in a body": (issue + "[^\\n]*Analysis\\\\n", None),
+            "a right escaped bar": (issue + "[^\\n]*\\|AI", None),
+            "a right bar in a class": (issue + "[^\\n]*[a|b]AI", None),
+            "a right name with more after an underscore": (MOCK_CALL_FIELD + 'issue_read"[^\\n]*?get_label_names', None),
+            "a right word that ends with a tool name": (issue + "[^\\n]*?budget_label", None),
+            "a right group of names": (MOCK_CALL_FIELD + '(?:issue_write|create_\\w*)"', None),
+            "a right input": (reply + '[^\\n]{0,400}?commentId[^\\w\\n]{1,4}9102\\b', None),
+            "a right order of two calls": (reply + "[\\s\\S]*" + issue, None),
+        }
+        for name, (pattern, expected) in forms.items():
+            with self.subTest(form=name):
+                meta = {"type": "regex", "target": "mock_calls", "pattern": pattern}
+                if name == "the flag s":
+                    meta["flags"] = "s"
+                problems = mock_calls_problems(SimpleNamespace(label="case", graders={"g": (meta, "")}), tools)
+                if expected is None:
+                    self.assertEqual(problems, [])
+                else:
+                    self.assertTrue(any(expected in problem for problem in problems), problems)
+        trace = {"type": "regex", "target": "trace", "pattern": "issue_write"}
+        self.assertEqual(mock_calls_problems(SimpleNamespace(label="case", graders={"g": (trace, "")}), tools), [])
+
+    def test_a_field_grader_needs_the_tool_with_its_full_name(self):
+        right = self.call("issue_write", {"method": "create", "title": "Add an index", "body": self.SOURCE})
+        self.check("ppc-open-items-answered", "issue-source", {
+            "the create call": ([right], True),
+            "a call of sub_issue_write": ([self.call("sub_issue_write", {"method": "add", "body": self.SOURCE})], False),
+        })
+        body = {"method": "create", "title": "Add an index", "body": "Needs labels [see the read-back"}
+        read = self.call("issue_read", {"method": "get", "issue_number": 77}, '{"labels": [{"name": "feature"}]}')
+        self.check("cmp-issue-create", "label-kept", {
+            "the label in the create call": ([self.call("issue_write", {**body, "labels": ["feature"]}), read], True),
+            "a bracket in the body, the label only in the read-back": ([self.call("issue_write", body), read], False),
+        })
+
+    def test_a_call_grader_ignores_the_name_in_another_call(self):
+        read = self.call("pull_request_read", {"method": "get_review_comments"}, "Run search_issues first.")
+        self.check("ppc-gated-threads", "searched", {
+            "the search call": ([self.call("search_issues", {"query": "repo:example-org/pager index"})], True),
+            "the name in a read answer": ([read], False),
+        })
+
+    def test_a_no_call_grader_ignores_the_name_in_another_call(self):
+        read = self.call("pull_request_read", {"method": "get"}, "Answer with add_reply_to_pull_request_comment.")
+        self.check("ppc-tofix-default", "reply-waits", {
+            "the name in a read answer": ([read], True),
+            "the reply call": ([read, self.call("add_reply_to_pull_request_comment", {"commentId": 9101})], False),
+        })
+        search = self.call("search_issues", {"query": "create_issue issue_write add_issue_comment"}, "No issue_write.")
+        self.check("bh-github-known", "no-github-write", {
+            "the names in a search": ([search], True),
+            "an issue": ([search, self.call("issue_write", {"method": "create", "title": "Fix the cache"})], False),
+            "a comment": ([search, self.call("add_issue_comment", {"issue_number": 17, "body": "Same cause."})], False),
+        })
+
+    def test_a_count_grader_counts_the_calls_only(self):
+        def reply(comment, body):
+            return self.call("add_reply_to_pull_request_comment", {"commentId": comment, "body": body})
+        issue = self.call("issue_write", {"method": "create", "body": "Then add_reply_to_pull_request_comment."})
+        self.check("ppc-open-items-answered", "two-replies", {
+            "two replies and the name in an issue": ([issue, reply(9102, "a"), reply(9103, "b")], True),
+            "three replies": ([reply(9102, "a"), reply(9103, "b"), reply(9104, "c")], False),
+        })
+
+    def test_an_order_grader_binds_both_calls(self):
+        issue = self.call("issue_write", {"method": "create", "title": "Add an index"}, '{"number": 77}')
+        reply = self.call("add_reply_to_pull_request_comment", {"commentId": 9103, "body": "Made with issue_write: #77."})
+        self.check("ppc-open-items-answered", "issue-before-batch", {
+            "the issue first, the reply names the tool": ([issue, reply], True),
+            "the reply first": ([reply, issue], False),
+        })
+        write = self.call("issue_write", {"method": "create", "body": "Then issue_read."})
+        self.check("cmp-issue-create", "read-back", {
+            "the read call after the create call": ([write, self.call("issue_read", {"issue_number": 77})], True),
+            "the name in the create call only": ([write], False),
+        })
+
+    def test_an_input_grader_reads_the_line_of_its_call(self):
+        draft = self.call("pull_request_read", {"method": "get"}, "Then resolve_thread.")
+        resolve = self.call("pull_request_review_write", {"method": "resolve_thread", "threadId": "PRRT_1"})
+        self.check("ppc-tofix-default", "no-resolve", {
+            "the method in a read answer": ([draft], True),
+            "a pending review": ([draft, self.call("pull_request_review_write", {"method": "create"})], True),
+            "a resolve": ([draft, resolve], False),
+        })
+        untagged = self.call("add_reply_to_pull_request_comment", {"commentId": 9101, "body": "Fixed."})
+        self.check("ppc-autonomous-push", "replied", {
+            "the tag in the reply": ([self.call("add_reply_to_pull_request_comment", {"body": "**[AI]** Fixed."})], True),
+            "the tag only in the next call": ([untagged, self.call("issue_write", {"body": "**[AI]** note"})], False),
+        })
+        self.check("ppc-open-items-answered", "question-replied", {
+            "the reply on the thread": ([self.call("add_reply_to_pull_request_comment", {"commentId": 9102})], True),
+            "the id only in the next call": ([untagged, self.call("issue_read", {"commentId": 9102})], False),
+        })
 
 
 class PpcOpenItemsGraderTests(unittest.TestCase):
