@@ -138,11 +138,13 @@ def list_processes():
             cmd = ["powershell.exe", "-NoProfile", "-Command", script]
         else:
             cmd = ["ps", "-eo", "pid=,ppid=,lstart=,args="]
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
+        done = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError):
         return None
+    if done.returncode != 0:
+        return None
     records = []
-    for line in out.splitlines():
+    for line in done.stdout.splitlines():
         if os.name == "nt":
             parts = line.split("\t", 3)
             ok = len(parts) == 4 and parts[0].strip().isdigit() and parts[1].strip().isdigit()
@@ -204,6 +206,8 @@ def open_notes(secs):
             continue
         area, inside = int(m.group(1)), False
         for n, line, fence in body:
+            if fence:
+                continue
             if line.startswith("### "):
                 inside = line.startswith("### Notes for other areas")
                 continue
@@ -414,7 +418,7 @@ def main():
     elif a.cmd == "report":
         check_report(a)
     elif a.cmd == "next-id":
-        ids = [int(x) for x in re.findall(r"^### BH-(\d+): ", read(a.report), re.M)]
+        ids = [e[0] for e in entries(sections(read(a.report)))]
         print(f"BH-{(max(ids) + 1) if ids else 1:02d}")
     elif a.cmd == "open-notes":
         for area, src, n, line in open_notes(sections(read(a.report))):

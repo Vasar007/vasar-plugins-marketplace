@@ -235,6 +235,13 @@ class StructureDefectTests(CheckReportCase):
         self.assertTrue(lines[0].startswith("For Area 1 (written in Area 2, line "), lines)
         self.assertTrue(lines[0].endswith(note), lines)
 
+    def test_open_notes_ignores_a_note_inside_a_fence(self):
+        fenced = "~~~\n- For Area 1 (Orders): `src/orders/a.ext:3`: look at the rounding.\n~~~"
+        text = edit(fixture("final.md"), "### Notes for other areas\n\nNone.",
+                    "### Notes for other areas\n\n" + fenced)
+        self.write(text)
+        self.assertEqual(self.run_main("open-notes", "--report", self.report), (0, []))
+
 
 class ArtifactTests(CheckReportCase):
     def setUp(self):
@@ -320,6 +327,14 @@ class ProgressAndCommandTests(CheckReportCase):
         self.write(fixture("skeleton.md"))
         self.assertEqual(self.run_main("next-id", "--report", self.report), (0, ["BH-01"]))
 
+    def test_next_id_ignores_an_entry_heading_inside_a_fence(self):
+        fenced = "Verification: I ran the export on three orders and got two rows.\n"
+        text = edit(fixture("final.md"), fenced, fenced + "\n~~~\n### BH-99: Not an entry\n~~~\n")
+        self.write(text)
+        _, lines = self.check()
+        self.assertIn("next=BH-04", lines[-1])
+        self.assertEqual(self.run_main("next-id", "--report", self.report), (0, ["BH-04"]))
+
     def test_setup(self):
         args = ("setup", "--report-dir", self.report_dir, "--scratch", self.scratch)
         result = self.run_main(*args, "--base", "yes")
@@ -367,6 +382,11 @@ class ProcessListTests(unittest.TestCase):
         self.assertEqual(records, [
             (123, 1, "Wed Oct 15 09:00:00 2026", "python3 -m http.server --directory /tmp/bh-1"),
             (124, 123, "Wed Oct 15 09:01:00 2026", "sleep 60")])
+
+    def test_failed_command_gives_none(self):
+        done = subprocess.CompletedProcess([], 1, stdout="", stderr="ps: error")
+        with mock.patch.object(cr.subprocess, "run", return_value=done):
+            self.assertIsNone(cr.list_processes())
 
     def test_missing_command_gives_none(self):
         with mock.patch.object(cr.subprocess, "run", side_effect=FileNotFoundError("ps")):
