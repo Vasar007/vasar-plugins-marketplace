@@ -9,8 +9,28 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.5 and dotnet-backend-dev 1.7.7 in release [4.11.6] - 2026-11-16
+
+This release fixes two gaps in the shared eval fixtures. A .NET test run that stops early, or a failed build after a test run, no longer leaves `Passed` for the graders. A push from a linked worktree now reaches the bare remote. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: when a test run starts, `RunMarker.cs` now writes `Started` to `.test-runs/last.txt`. Before, a test run that stopped before its teardown kept the `Passed` of an earlier run. Examples are a crash of the test host and a command that a timeout stops. Then the 13 `tests-passed` graders passed a run that ended with broken code (issue #181).
+- `evals/_lib/dotnet-fixture.sh`: `Directory.Build.props` has the new target `MarkTestOutcomeStale`. The target runs before a compile. If a compile input is newer than the compiled assembly, it writes `Stale` to `.test-runs/last.txt`. The inputs are the source files, the project files, and the referenced assemblies. So a failed build after a passing test run no longer keeps `Passed`. A build with no change keeps the outcome. An edit with no later build still keeps the outcome of the last test run (issue #181).
+- `evals/_lib/git-fixture.sh`: `fixture_remote_init` adds the remote `origin` with an absolute path. Before, git read the relative path `.remote/origin.git` from the top folder of the current worktree. So a push or a fetch from a linked worktree failed (issue #181).
+- `evals/_lib/dotnet-fixture.sh`: `dotnet_warm` takes optional `<package>@<version>` arguments. It restores each package into the shared NuGet folder under the same lock as the restore of the solution. `evals/feature-pipeline/fp-e4-package-bump/scaffold.sh` uses it for NUnit 5.0.0 and no longer has its own copy of the lock code. Before, a failed restore in that copy left a temporary folder (issue #181).
+
+### Changed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: the versions of the three test packages are now in one place. The variables are `DOTNET_TEST_SDK_VERSION`, `DOTNET_NUNIT_VERSION`, and `DOTNET_NUNIT_ADAPTER_VERSION`. `inventory-fixture.sh` uses them. The files that the scaffolds write do not change (issue #181).
+
+### Changed in dotnet-backend-dev
+
+- `evals/_lib/billing-fixture.sh`: uses the shared versions of the test packages from `dotnet-fixture.sh`. Before, it had its own copy of the same three versions. The files that the scaffolds write do not change. The fixes of `dotnet-fixture.sh` and `git-fixture.sh` in dev-essentials also apply to the cases of this plugin through the git symlinks (issue #181).
+
 ### Changed in the repository
 
+- `tests/test_eval_scaffolds.py`: the new test `test_run_marker_follows_the_last_build_and_test_run` runs the probe `probe-test-fixture`. A build with no change must keep `Passed`. A failed build must leave `Stale`, and a crash of the test host must leave `Started`. The new test `test_a_push_from_a_linked_worktree_reaches_the_remote` pushes from a linked worktree. Two new tests of `DotnetWarmTests` test a named package. It must go into the shared folder under the lock, and a failed restore must leave no temporary folder (issue #181).
 - `docs/evals.md`: a new step of the WSL2 preparation says to keep the clone for the eval runs in the Linux file system. It also says how that clone gets a branch of a Windows clone through a git bundle (issue #198).
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
@@ -1592,7 +1612,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
+[4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...v4.11.3

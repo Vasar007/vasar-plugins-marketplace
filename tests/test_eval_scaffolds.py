@@ -4,11 +4,11 @@ Each scaffold runs in a new temporary folder, with HOME set to another temporary
 EVAL_FIXTURE_SKIP_DOTNET=1. The tests need bash and git, and the Python tests of a fixture need Python.
 If bash or git is not found, the tests skip. In CI they fail.
 
-One test runs the .NET probe scaffolds with a real restore and build, and then runs dotnet test.
+The tests of DotnetProbeTests run the .NET probe scaffolds with a real restore and build, and then run dotnet test.
 It needs the .NET SDK 10 or newer, the .NET 10 runtime, and network access for the first restore. As in a real run, the packages
 go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
 
-Three tests run dotnet_warm with a fake dotnet on PATH and a cache folder of the test. They need flock (util-linux).
+The tests of DotnetWarmTests run dotnet_warm with a fake dotnet on PATH and a cache folder of the test. They need flock (util-linux).
 """
 import json
 import os
@@ -76,6 +76,25 @@ public sealed class FailingProbeTests
     }
 }
 """
+CRASHING_TEST = """namespace Billing.Domain.Tests;
+
+[TestFixture]
+public sealed class CrashingProbeTests
+{
+    [Test]
+    public void StopsTheTestHost()
+    {
+        Environment.FailFast("planted crash");
+    }
+}
+"""
+BROKEN_SOURCE = """namespace Billing.Domain;
+
+public static class BrokenProbe
+{
+    public static int Value() => "text";
+}
+"""
 
 
 FAKE_DOTNET = """#!/usr/bin/env bash
@@ -83,6 +102,7 @@ FAKE_DOTNET = """#!/usr/bin/env bash
 case " $* " in
     *" --packages "*)
         if [ -e /dev/fd/9 ]; then echo lock-descriptor-open >>"$FAKE_DOTNET_LOG"; fi
+        if [ -f "$2" ]; then grep -o 'Include="[^"]*" Version="[^"]*"' "$2" >>"$FAKE_DOTNET_LOG"; fi
         echo start >>"$FAKE_DOTNET_LOG"
         sleep 1
         echo end >>"$FAKE_DOTNET_LOG"
@@ -391,6 +411,37 @@ class DotnetProbeTests(FixtureCase):
         self.assertTrue(list(runs.glob("started-*")), "the run left no start file")
         self.assertEqual((runs / "last.txt").read_text(encoding="utf-8"), "Failed")
 
+    def test_run_marker_follows_the_last_build_and_test_run(self):
+        """A failed build after a passing run leaves Stale. A test host that stops before the teardown leaves Started."""
+        dotnet = self.require_dotnet()
+        script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
+        workspace = self.workspace("probe-test-fixture")
+        self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
+        last = workspace / ".test-runs" / "last.txt"
+
+        def dotnet_run(command):
+            done = subprocess.run([dotnet, command, "Billing.sln", "--no-restore", "-m:1"], cwd=workspace,
+                                  env=self.environment(skip_dotnet=False), capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace", timeout=DOTNET_SECONDS)
+            return done.returncode, done.stdout + done.stderr
+
+        code, output = dotnet_run("test")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Passed")
+        code, output = dotnet_run("build")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Passed", "a build with no change must keep the outcome")
+        broken = workspace / "src" / "Billing.Domain" / "BrokenProbe.cs"
+        broken.write_text(BROKEN_SOURCE, encoding="utf-8")
+        code, output = dotnet_run("test")
+        self.assertNotEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Stale", "a failed build must not keep Passed")
+        broken.unlink()
+        (workspace / "tests" / "Billing.Domain.Tests" / "CrashingProbeTests.cs").write_text(CRASHING_TEST, encoding="utf-8")
+        code, output = dotnet_run("test")
+        self.assertNotEqual(code, 0, output)
+        self.assertEqual(last.read_text(encoding="utf-8").strip(), "Started", "a crash before the teardown must not keep Passed")
+
 
 class DotnetWarmTests(FixtureCase):
     """dotnet_warm with a fake dotnet on PATH and a cache folder of the test, so that the tests need no .NET SDK."""
@@ -404,22 +455,30 @@ class DotnetWarmTests(FixtureCase):
         (folder / "dotnet").write_bytes(FAKE_DOTNET.encode("utf-8"))
         (folder / "dotnet").chmod(0o755)
         self.log = self.tmp / "dotnet.log"
+        self.temp = self.tmp / "temp"
+        self.temp.mkdir()
 
-    def start_warm(self, name, error=""):
-        """Start dotnet_warm with its own HOME, as each eval run has."""
+    def warm_environment(self, name, error=""):
+        """The environment of a scaffold with the fake dotnet, its own HOME and TMPDIR, and the cache folder of the test."""
         home = self.tmp / name
         home.mkdir()
         env = self.environment(skip_dotnet=False)
         env.update({
             "HOME": home.as_posix(),
+            "TMPDIR": self.temp.as_posix(),
             "PATH": f"{(self.tmp / 'bin').as_posix()}{os.pathsep}{env['PATH']}",
             "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
             "FAKE_DOTNET_LOG": self.log.as_posix(),
             "FAKE_DOTNET_ERROR": error,
         })
+        return env
+
+    def start_warm(self, name, error="", packages=()):
+        """Start dotnet_warm with its own HOME, as each eval run has."""
         library = REPO / "essentials" / "dev-essentials" / "evals" / "_lib" / "dotnet-fixture.sh"
-        return subprocess.Popen([self.bash, "-c", f'source "{library.as_posix()}"\ndotnet_warm Fake.sln'], cwd=self.tmp,
-                                env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        command = f'source "{library.as_posix()}"\ndotnet_warm Fake.sln {" ".join(packages)}'
+        return subprocess.Popen([self.bash, "-c", command], cwd=self.tmp, env=self.warm_environment(name, error),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     def test_two_scaffolds_restore_into_the_shared_folder_one_after_the_other(self):
         processes = [self.start_warm("run-1"), self.start_warm("run-2")]
@@ -434,20 +493,27 @@ class DotnetWarmTests(FixtureCase):
         self.assertNotEqual(process.returncode, 0)
         self.assertIn("planted restore failure", err)
 
+    def test_a_named_package_goes_into_the_shared_folder_under_the_same_lock(self):
+        process = self.start_warm("run-1", packages=("NUnit@5.0.0",))
+        _out, err = process.communicate(timeout=SCAFFOLD_SECONDS)
+        self.assertEqual(process.returncode, 0, err)
+        self.assertEqual(self.log.read_text(encoding="utf-8").split(),
+                         ['Include="NUnit"', 'Version="5.0.0"', "start", "end", "start", "end"])
+
+    def test_a_failed_package_restore_of_a_scaffold_leaves_no_temporary_folder(self):
+        script = next(script for case, script in scaffold_cases() if case.name == "fp-e4-package-bump")
+        done = run([self.bash, script.as_posix()], env=self.warm_environment("run-1", "error : planted restore failure"),
+                   cwd=self.workspace("fp-e4-package-bump"), timeout=SCAFFOLD_SECONDS)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("planted restore failure", done.stderr)
+        self.assertEqual(list(self.temp.iterdir()), [], "the scaffold left a temporary folder")
+
     def test_every_dotnet_scaffold_runs_with_the_fake_dotnet(self):
         pairs = [(case, script) for case, script in scaffold_cases() if "dotnet_warm" in script.read_text(encoding="utf-8")]
         self.assertTrue(pairs, "No scaffold calls dotnet_warm.")
         for case, script in pairs:
             with self.subTest(case=case.name):
-                home = self.tmp / f"home-{case.name}"
-                home.mkdir()
-                env = self.environment(skip_dotnet=False)
-                env.update({
-                    "HOME": home.as_posix(),
-                    "PATH": f"{(self.tmp / 'bin').as_posix()}{os.pathsep}{env['PATH']}",
-                    "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
-                    "FAKE_DOTNET_LOG": self.log.as_posix(),
-                })
+                env = self.warm_environment(f"home-{case.name}")
                 done = run([self.bash, script.as_posix()], env=env, cwd=self.workspace(case.name), timeout=SCAFFOLD_SECONDS)
                 self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
@@ -588,6 +654,16 @@ class LibraryTests(FixtureCase):
                 self.run_snippet(workspace, [], f"{pins}git commit -q --allow-empty -m 'run commit'\n{push}")
                 tip = self.git(workspace, "rev-parse", "HEAD")[1]
                 self.assertEqual(self.git(workspace / ".remote" / "origin.git", "rev-parse", "refs/pull/42/head")[1], tip)
+
+    def test_a_push_from_a_linked_worktree_reaches_the_remote(self):
+        workspace = self.workspace()
+        self.run_snippet(workspace, self.libs("essentials/dev-essentials", "py-fixture.sh"),
+                         "make_pager_repo\nfixture_publish main\n"
+                         "git worktree add -q .claude/worktrees/x -b feature/x\ncd .claude/worktrees/x\n"
+                         "git commit -q --allow-empty -m 'run commit'\ngit push -q origin feature/x\ngit fetch -q origin")
+        bare = workspace / ".remote" / "origin.git"
+        self.assertTrue((bare / "logs" / "refs" / "heads" / "feature" / "x").is_file(),
+                        "the push from the linked worktree did not reach the remote")
 
     def test_fixture_commit_uses_the_prefix_and_fixed_dates(self):
         workspace = self.workspace()
