@@ -62,6 +62,7 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 
 - `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands (issue #197).
 - `docs/testing.md`: names the tests of the two scripts (issue #197).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_failure_check` and `test_group_diff` (issue #197).
 
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
 
