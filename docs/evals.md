@@ -105,7 +105,7 @@ A grader that must see no push is a `file_exists` grader with `exists: false` an
 - A `git update-ref` with no message.
 - A commit on a new branch in a linked worktree.
 - A commit on a new branch in the main work tree, in each case other than `fp-e1-clean-change`.
-- A branch that the run deletes and makes again at a new commit, in each case other than `fp-e1-clean-change`.
+- A branch that the run deletes and makes again at a new commit, in each case other than `fp-e1-clean-change`. If the commit is in a linked worktree, it passes in `fp-e1-clean-change` too.
 
 A run sends one prompt, so a case cannot answer a question of the skill in a later turn. The session of a run also has no `SendMessage` tool (Claude Code 2.1.325). So the cases of this repository cannot test a resume of a subagent. A case gives the answers of the user in advance in its prompt instead, as `ppc-reshaped-fix` and `ppc-open-items-answered` do. Such a case tests what the skill does with an answer, but not that the skill stops and waits for it. The cases that end at a question, for example `ppc-gated-threads`, test the stop. The case format can also continue a recorded conversation with `context.history_file`, but no case of this repository uses it.
 

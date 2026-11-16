@@ -959,13 +959,20 @@ class CommitGraderTests(FixtureCase):
             self.run_git(workspace, "checkout", "-q", "HEAD~1")
             self.run_git(workspace, "checkout", "-q", "work/clean-change")
 
-        # Known limits: the grader skips a subject with the fixture prefix, and it cannot see the HEAD of a linked worktree.
+        # Known limits: the grader skips a subject with the fixture prefix, a checkout, and the HEAD of a linked worktree.
         def a_commit_with_the_fixture_prefix_on_a_new_branch(workspace):
             self.run_git(workspace, "checkout", "-q", "-b", "work/813")
             self.commit(workspace, path, "fixture: fix")
 
         def a_commit_in_a_worktree_on_a_new_branch(workspace):
             self.worktree_commits(workspace, path)
+
+        def the_branch_made_again_at_a_commit_of_a_worktree(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.worktree_commits(workspace, path)
+            self.run_git(workspace, "branch", "-D", "work/clean-change")
+            self.run_git(workspace, "branch", "work/clean-change", "fix-1")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
 
         self.check_shapes("fp-e1-clean-change", {
             no_change: True,
@@ -979,6 +986,7 @@ class CommitGraderTests(FixtureCase):
             an_amend_on_main: False,
             a_commit_with_the_fixture_prefix_on_a_new_branch: True,
             a_commit_in_a_worktree_on_a_new_branch: True,
+            the_branch_made_again_at_a_commit_of_a_worktree: True,
         }, "no-commit-any-branch")
 
     def test_only_a_push_of_a_branch_writes_a_log_below_the_no_push_path(self):
