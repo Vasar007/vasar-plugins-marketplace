@@ -112,6 +112,19 @@ class VerdictTests(FailureCheckCase):
         out = self.check(fix)
         self.assertEqual(self.verdict(out), "SAME-AT-PARENT")
 
+    def test_same_failure_with_a_space_in_the_temporary_folder(self):
+        self.temp = self.tmp / "my temp"
+        self.temp.mkdir()
+        env = clean_env(TMPDIR=str(self.temp), TEMP=str(self.temp), TMP=str(self.temp))
+        self.write("sub/value.txt", "bad\n")
+        self.commit("break")
+        self.write("sub/other.txt", "fix\n")
+        fix = self.commit("fix")
+        command = ('d=$PWD; if command -v cygpath > /dev/null; then d=$(cygpath -w "$d"); fi; '
+                   'grep -q good value.txt || { echo "error in $d/value.txt"; exit 1; }')
+        out = self.check(fix, command, env=env)
+        self.assertEqual(self.verdict(out), "SAME-AT-PARENT")
+
     def test_other_error_at_the_parent_is_other(self):
         self.write("sub/value.txt", "worse\n")
         self.commit("break")
@@ -297,6 +310,30 @@ class UnitTests(unittest.TestCase):
                    "at f (file:///tmp/review-loop-fc-ab12/parent/x.mjs:4:31)"]
         self.assertEqual(a.signature({"/work/repo"}), b.signature({"/work/repo"}))
 
+    def test_signature_ignores_a_space_in_the_folder(self):
+        roots = fc.path_forms(Path("/work/my repo")) | fc.path_forms(Path("/tmp/my tmp/review-loop-fc-ab12/parent"))
+        a = fc.Run("fix", "a" * 40, "x", "main")
+        a.lines = ["error at /work/my repo/t.py:9", "Error at f (file:///work/my%20repo/x.mjs:4:31)"]
+        b = fc.Run("parent", "b" * 40, "y", "temp")
+        b.lines = ["error at /tmp/my tmp/review-loop-fc-ab12/parent/t.py:9",
+                   "Error at f (file:///tmp/my%20tmp/review-loop-fc-ab12/parent/x.mjs:4:31)"]
+        self.assertEqual(a.signature(roots), b.signature(roots))
+        self.assertEqual(len(a.signature(roots)), 2)
+
+    def test_signature_ignores_the_duration_of_node_test(self):
+        a = fc.Run("fix", "a" * 40, "x", "main")
+        a.lines = ["# fail 1", "# duration_ms 85.2958"]
+        b = fc.Run("parent", "b" * 40, "y", "temp")
+        b.lines = ["# fail 1", "# duration_ms 90.1112"]
+        self.assertEqual(a.signature(set()), b.signature(set()))
+
+    def test_signature_of_a_long_line_is_fast(self):
+        a = fc.Run("fix", "a" * 40, "x", "main")
+        a.lines = ["AssertionError: " + "A" * 100_000]
+        start = time.monotonic()
+        a.signature({"/work/repo", "C:\\work\\repo"})
+        self.assertLess(time.monotonic() - start, 5)
+
     def test_lines_before_the_first_error_line_do_not_count(self):
         a = fc.Run("fix", "a" * 40, "x", "main")
         a.lines = ["  All projects are up-to-date for restore.", "a.cs(5,6): error CS0246"]
@@ -311,14 +348,15 @@ class UnitTests(unittest.TestCase):
     def test_output_survives_a_path_that_is_not_utf8(self):
         raw = io.BytesIO()
         out = io.TextIOWrapper(raw, encoding="ascii", newline="\n")
-        with (mock.patch.object(fc, "check", lambda args, bash: print("CHANGED: a\udcffb")),
+        with (mock.patch.object(fc, "check", lambda args, bash: print("CHANGED: a\udcffb\u00e9")),
               mock.patch.object(fc, "find_bash", lambda: "bash"),
               mock.patch.object(signal, "signal"),
-              mock.patch.object(sys, "stdout", out)):
+              mock.patch.object(sys, "stdout", out),
+              mock.patch.object(sys, "stderr", io.TextIOWrapper(io.BytesIO(), encoding="ascii"))):
             code = fc.main(["--fix-commit", "x", "--command", "y"])
         out.flush()
         self.assertEqual(code, 0)
-        self.assertEqual(raw.getvalue(), b"CHANGED: a\\udcffb\n")
+        self.assertEqual(raw.getvalue(), b"CHANGED: a\\udcffb\xc3\xa9\n")
 
     def test_bash_is_not_a_wsl_launcher(self):
         bash = fc.find_bash()

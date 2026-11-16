@@ -39,6 +39,7 @@ from pathlib import PurePosixPath
 MAX_FILES = 10
 MAX_LINES = 800
 HEADER_LINES = 10
+HEADER_BYTES = 64 * 1024
 HEADER = re.compile(r"^\s*(#|//|/\*|\*|<!--|--|;|')(.*?)(auto-?generated|do not edit)", re.IGNORECASE | re.MULTILINE)
 MARKDOWN_HEADER = re.compile(r"^\s*<!--(.*?)(auto-?generated|do not edit)", re.IGNORECASE | re.MULTILINE)
 LOCK_FILES = {
@@ -150,7 +151,7 @@ def mark_skipped(repo, changes):
         else:
             try:
                 with open(PurePosixPath(top, c.path), "rb") as handle:
-                    data = handle.read(64 * 1024)
+                    data = handle.read(HEADER_BYTES)
             except OSError:
                 data = b""
         head = "\n".join(data.decode("utf-8", "replace").splitlines()[:HEADER_LINES])
@@ -223,9 +224,12 @@ def show(path):
     return json.dumps(path) if any(ord(ch) < 32 or ord(ch) == 127 for ch in path) else path
 
 
+def count_text(n):
+    return "bin" if n is None else str(n)
+
+
 def file_line(c):
-    number = lambda n: "bin" if n is None else str(n)
-    text = f"  {c.kind} +{number(c.added)} -{number(c.deleted)} {show(c.path)}"
+    text = f"  {c.kind} +{count_text(c.added)} -{count_text(c.deleted)} {show(c.path)}"
     if c.old is not None:
         text += f" <- {show(c.old)}"
     if c.skip:

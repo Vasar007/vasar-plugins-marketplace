@@ -45,18 +45,22 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 from pathlib import Path
 
 ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
+PATH_START = r"(?<![^\s'\"])[^\s'\"]*"
 NOISE = [
-    (re.compile(r"[^\s'\"]*review-loop-fc-[^/\\\s]+[/\\](fix|parent)"), "<root>"),
+    (re.compile(PATH_START + r"review-loop-fc-[^/\\\s]+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
     (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
+    (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
 ]
 NOT_STARTED = (126, 127)
 ERROR_LINES = 20
 TAIL_LINES = 15
+DEFAULT_TIMEOUT = 280
 
 
 class Stop(Exception):
@@ -85,6 +89,14 @@ def find_bash():
             if candidate.is_file():
                 return str(candidate)
     return None
+
+
+def path_forms(path):
+    """The forms in which a tool can print a folder: native, with slashes, as Git Bash, and in a file URL."""
+    forms = {str(path), path.as_posix(), urllib.parse.quote(path.as_posix(), safe="/:")}
+    if path.drive:
+        forms.add("/" + path.drive[0].lower() + path.as_posix()[len(path.drive):])
+    return forms
 
 
 def changed_paths(top, ignore):
@@ -119,7 +131,7 @@ class Run:
         for line in self.lines:
             if ERROR.search(line) or line in tail:
                 for root in roots:
-                    line = re.sub(r"[^\s'\"]*" + re.escape(root), "<root>", line)
+                    line = re.sub(PATH_START + re.escape(root), "<root>", line)
                 for pattern, token in NOISE:
                     line = pattern.sub(token, line)
                 found.add(line.strip())
@@ -196,11 +208,7 @@ class Worktrees:
     def __init__(self, top):
         self.top, self.made = top, []
         self.root = Path(tempfile.mkdtemp(prefix="review-loop-fc-")).resolve()
-        try:
-            self.root.relative_to(Path(top).resolve())
-        except ValueError:
-            pass
-        else:
+        if self.root.is_relative_to(Path(top).resolve()):
             self.remove()
             raise Stop(f"the temporary folder {self.root} is inside the repository. Set TMPDIR to another folder")
 
@@ -247,8 +255,20 @@ def verdict(clean, fix, parent, roots):
     same = (parent.runnable_failure and parent.code == fix.code
             and fix.signature(roots) and fix.signature(roots) == parent.signature(roots))
     if same:
-        return "SAME-AT-PARENT", "the command fails at both commits with the same exit code, error lines, and last lines."
-    return "OTHER", "the command fails at both commits, but the exit code, the error lines, or the last lines differ."
+        return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
+                                  "and the same last lines after the first error line.")
+    return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
+                     "or the last lines after the first error line differ.")
+
+
+def run_in_worktree(trees, side, sha, rel, args, bash):
+    path, err = trees.add(side, sha)
+    run = Run(side, sha, (path or trees.root / side) / rel, "temporary worktree")
+    if path is None:
+        run.start_error = f"git worktree add failed: {err}"
+    else:
+        run_command(run, bash, args.command, args.timeout, trees.root / f"{side}.log")
+    return run
 
 
 def check(args, bash):
@@ -260,10 +280,10 @@ def check(args, bash):
         raise Stop(f"the folder {cwd} is not inside the work tree {top}")
     if args.fix_commit.startswith("-"):
         raise Stop("the fix commit must not start with '-'")
-    fix = git(top, "rev-parse", "--verify", "--quiet", args.fix_commit + "^{commit}", check=False)
-    if fix[0] != 0:
+    code, out, _ = git(top, "rev-parse", "--verify", "--quiet", args.fix_commit + "^{commit}", check=False)
+    if code != 0:
         raise Stop(f"the fix commit {args.fix_commit} is not a commit")
-    fix = fix[1].strip()
+    fix = out.strip()
     code, out, _ = git(top, "rev-parse", "--verify", "--quiet", fix + "^1^{commit}", check=False)
     if code != 0:
         if git(top, "rev-parse", "--is-shallow-repository").strip() == "true":
@@ -278,31 +298,18 @@ def check(args, bash):
           + ("" if head == fix else ", not the fix commit"))
     for path in changed:
         print(f"CHANGED: {path}")
-    roots = {str(top), top.as_posix()}
-    if top.drive:
-        roots.add("/" + top.drive[0].lower() + top.as_posix()[len(top.drive):])
     trees = Worktrees(top)
-    logs = trees.root
+    roots = path_forms(top) | path_forms(trees.root / "fix") | path_forms(trees.root / "parent")
     try:
         if clean:
             fix_run = run_command(Run("fix", fix, cwd, "main worktree"), bash, args.command, args.timeout,
-                                  logs / "fix.log")
+                                  trees.root / "fix.log")
         else:
-            path, err = trees.add("fix", fix)
-            fix_run = Run("fix", fix, (path or trees.root / "fix") / rel, "temporary worktree")
-            if path is None:
-                fix_run.start_error = f"git worktree add failed: {err}"
-            else:
-                run_command(fix_run, bash, args.command, args.timeout, logs / "fix.log")
+            fix_run = run_in_worktree(trees, "fix", fix, rel, args, bash)
         fix_run.report()
         parent_run = None
         if fix_run.runnable_failure:
-            path, err = trees.add("parent", parent_sha)
-            parent_run = Run("parent", parent_sha, (path or trees.root / "parent") / rel, "temporary worktree")
-            if path is None:
-                parent_run.start_error = f"git worktree add failed: {err}"
-            else:
-                run_command(parent_run, bash, args.command, args.timeout, logs / "parent.log")
+            parent_run = run_in_worktree(trees, "parent", parent_sha, rel, args, bash)
             parent_run.report()
     finally:
         trees.remove()
@@ -322,7 +329,8 @@ def main(argv=None):
     parser.add_argument("--cwd", default=".", help="the folder where Phase 6 ran the command (default: the current folder)")
     parser.add_argument("--ignore", action="append", default=[], metavar="GLOB",
                         help="a path glob, relative to the work tree root, that git status must ignore (repeatable)")
-    parser.add_argument("--timeout", type=int, default=280, help="seconds for each run of the command (default: 280)")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
+                        help="seconds for each run of the command (default: %(default)s)")
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="backslashreplace")
