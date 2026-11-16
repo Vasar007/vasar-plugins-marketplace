@@ -69,7 +69,7 @@ Look for artifacts in this order. Use each one that belongs to this branch:
 3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
 4. **Decision records**: ADR files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
-Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. Do not add a closing keyword to the PR description.
+Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. Do not make up a closing keyword for the PR description. If the input gives a closing line, keep it, and put it where step 5 says.
 
 If you find several artifacts, use all of them. If they disagree about the intent, the first artifact in the order above wins. If you find no artifact, use the git diff only, and skip to step 3.
 

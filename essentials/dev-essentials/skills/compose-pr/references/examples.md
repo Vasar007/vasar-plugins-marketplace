@@ -36,7 +36,7 @@ Adds discount validation, so that a discount cannot exceed the order total.
 
 ## Why
 
-The commit messages name orders with a negative total after a large discount. The validation stops them before the payment step.
+Orders with a large discount got a negative total. The validation stops them before the payment step.
 
 ## Changes
 
@@ -45,10 +45,10 @@ The commit messages name orders with a negative total after a large discount. Th
 
 ## Testing
 
-Unit tests cover the edge cases. Integration tests cover multi-currency orders.
+Unit tests cover the edge cases, and integration tests cover multi-currency orders.
 ```
 
-Length: about 460 characters.
+Length: about 440 characters.
 
 ## Example Output (Larger Change)
 
@@ -67,7 +67,7 @@ The synchronous flow held the request thread during payment, and a failed step l
 - **Persistence**: Added event store container with TTL policies
 
 ## Testing
-Integration tests simulate failures at each stage. Load tests verify 1000 concurrent orders.
+Integration tests simulate failures at each stage, and load tests verify 1000 concurrent orders.
 
 ## Notes
 Breaking change: Order status polling now uses an event subscription model. Update clients to use webhooks.

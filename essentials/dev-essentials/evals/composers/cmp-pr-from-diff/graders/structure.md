@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '^\s*## What[ \t]*(?:\n(?!## )[^\n]*)*\n## Why[ \t]*(?:\n(?!## )[^\n]*)*\n## Changes[ \t]*\n[\s\S]*\n## Testing\b'
+pattern: '^\s*## What[ \t\r]*(?:\n(?!#{1,6} )[^\n]*)*\n## Why[ \t\r]*(?:\n(?!#{1,6} )[^\n]*)*\n## Changes[ \t\r]*\n[\s\S]*\n## Testing\b'
 target: { source: file, path: Notes/PRs/PR-user-tasks-12-customer-index.md }
 ---

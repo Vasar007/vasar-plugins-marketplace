@@ -54,11 +54,11 @@ This release fixes two gaps in the shared eval fixtures. A .NET test run that st
 
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
 
-This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the reason of a change first.
+This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
 
 ### Changed in dev-essentials
 
-- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same rules, and the length limits stay the same. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
+- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same template lines, and the length limits stay the same. The rule for bullet points now covers only `## Changes`. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
 - `skills/compose-pr/references/examples.md`: the three examples have the new sections (issue #190).
 - `evals/composers/cmp-pr-from-diff`: the grader `structure` needs `## What`, `## Why`, and `## Changes` first, and `## Testing` after them. The grader `reason-from-plan` needs the reason of the plan in the section `## Why`. The new grader `no-modified-components` fails a run that still writes the old section (issue #190).
 

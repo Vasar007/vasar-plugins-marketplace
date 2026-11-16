@@ -2362,6 +2362,13 @@ class ComposerGraderTests(unittest.TestCase):
                                                + tail, False),
             "no testing section": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n## Changes\n\n- **Store**: index.\n",
                                    False),
+            "no why section": ("## What\n\nAn index.\n\n" + tail, False),
+            "a section between why and changes": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n## Summary\n\nShort.\n\n"
+                                                  + tail, False),
+            "a longer changes heading": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n## Changes to Do\n\n"
+                                         "- **Store**: index.\n\n## Testing\n\nA unit test.\n", False),
+            "crlf line ends": (self.PR_RIGHT.replace("\n", "\r\n"), True),
+            "a title between what and why": ("## What\n\nAn index.\n\n# Title\n\n## Why\n\nFaster reads.\n\n" + tail, False),
         })
 
     def test_no_modified_components_finds_the_old_section(self):
@@ -2370,6 +2377,9 @@ class ComposerGraderTests(unittest.TestCase):
             "old form": (self.PR_OLD_FORM, False),
             "old section after the new ones": (self.PR_RIGHT + "\n## Modified Components\n\n- **Store**: index.\n", False),
             "a sentence that names the words": ("## Notes\n\n- No modified components outside the store.\n", True),
+            "lower-case heading": (self.PR_RIGHT + "\n## Modified components\n\n- **Store**: index.\n", False),
+            "a bold label": (self.PR_RIGHT + "\n**Modified Components**\n\n- **Store**: index.\n", False),
+            "an indented heading": (self.PR_RIGHT + "\n   ## Modified Components\n\n- **Store**: index.\n", False),
         })
 
     def test_no_closing_keyword_finds_the_forms_that_github_accepts(self):
