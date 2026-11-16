@@ -12,6 +12,6 @@ The `skills` field of this agent preloads the `compose-task` skill of this plugi
 
 If the `compose-task` content is not in your context, invoke `dev-essentials:compose-task` with the Skill tool. If that call fails, stop and report the error.
 
-For `mode: create`, the skill links its steps with a path relative to its own folder (`references/create-mode.md`). Read them from `${CLAUDE_PLUGIN_ROOT}/skills/compose-task/references/create-mode.md`. That path can start with `$`, or the file can be missing. Then use the base folder of the skill that the Skill tool output names (`Base directory for this skill: <folder>`), and read `<folder>/references/create-mode.md`.
+For `mode: create`, the skill links its steps with a path relative to its own folder (`references/create-mode.md`). Read them from `${CLAUDE_PLUGIN_ROOT}/skills/compose-task/references/create-mode.md`. That path can start with `$`, or the file can be missing. Then invoke the skill with the Skill tool, and use the base folder that its output names (`Base directory for this skill: <folder>`). Read `<folder>/references/create-mode.md`.
 
 You have no tool to ask the user. If the skill tells you to ask, put the question in your final reply and stop.

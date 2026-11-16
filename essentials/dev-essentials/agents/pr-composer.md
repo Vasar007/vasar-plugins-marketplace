@@ -12,6 +12,6 @@ The `skills` field of this agent preloads the `compose-pr` skill of this plugin 
 
 If the `compose-pr` content is not in your context, invoke `dev-essentials:compose-pr` with the Skill tool. If that call fails, stop and report the error.
 
-The skill links its example file with a path relative to its own folder (`references/examples.md`). Read it from `${CLAUDE_PLUGIN_ROOT}/skills/compose-pr/references/examples.md`. That path can start with `$`, or the file can be missing. Then use the base folder of the skill that the Skill tool output names (`Base directory for this skill: <folder>`), and read `<folder>/references/examples.md`.
+The skill links its example file with a path relative to its own folder (`references/examples.md`). Read it from `${CLAUDE_PLUGIN_ROOT}/skills/compose-pr/references/examples.md`. That path can start with `$`, or the file can be missing. Then invoke the skill with the Skill tool, and use the base folder that its output names (`Base directory for this skill: <folder>`). Read `<folder>/references/examples.md`.
 
 You have no tool to ask the user. If the skill tells you to ask, put the question in your final reply and stop.

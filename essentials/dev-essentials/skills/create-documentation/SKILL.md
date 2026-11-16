@@ -10,7 +10,7 @@ Create and maintain project documentation in the `Docs/` folder with the layout,
 
 ## Guide Drafts and Publishing
 
-A guide is documentation outside the `Docs/` layout, for example a how-to guide as a local draft. If the user asks for a guide, or asks to publish one to a documentation platform, read [references/guides-and-publishing.md](references/guides-and-publishing.md). Follow it instead of the layout and the templates below. Never publish unless the user explicitly says "publish". The agent `dev-essentials:docs-composer` preloads this skill, so a workflow can also hand a guide to a subagent.
+A guide is documentation outside the `Docs/` layout, for example a how-to guide as a local draft. If the user asks for a guide, or asks to publish one to a documentation platform, read [references/guides-and-publishing.md](references/guides-and-publishing.md). Follow it instead of the sections "Documentation Structure", "File Naming Convention", "Document Templates by Type", "Documentation Checklist", and "Cross-References" below. Never publish unless the user explicitly says "publish". The agent `dev-essentials:docs-composer` preloads this skill, so a workflow can also hand a guide to a subagent.
 
 ## Documentation Structure
 
