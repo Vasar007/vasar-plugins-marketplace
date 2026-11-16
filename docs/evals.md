@@ -81,6 +81,20 @@ A regex grader with the target `mock_calls` does not read the file `out/mock-cal
 
 So a pattern for a call names the `tool` field and accepts the prefix, for example `"tool":"(?:\w*__)?issue_write"`. The simpler pattern `"tool":"\w*issue_write"` also matches the tool `sub_issue_write`. A bare tool name also matches the input or the output of another call. The graded text lacks the calls of a subagent of a subagent, because the trace does not hold them. The call file holds them. So a grader on `mock_calls` cannot see such a call.
 
+To test a changed grader before a paid run, replay it on kept runs with `tests/evals/replay_graders.mjs`. A kept run is a run folder that `--keep-temp` keeps. The run folder of a stored result is its `tracePath` without `/out/trace.jsonl`. The tool needs Node.js 22 or later.
+
+```bash
+node tests/evals/replay_graders.mjs --case <case folder> <run folder>...
+```
+
+The tool builds the graded texts from `out/trace.jsonl` and `out/mocks/` of the run folder, by the rules of Claude Code 2.1.325. In the `mock_calls` text, a call with an error result has `"isError":true` before `verdict`. The verdict of a call is `ok`, `tool_error`, `no_result`, or `abort`.
+
+The tool replays the regex graders on `last_message`, `mock_calls`, and `trace`, and the `tool_used` graders. It skips the `llm` and `baseline` graders, because they call a model. It skips the `file_exists` graders and the regex graders on `files` or on a file, because a kept run does not hold their text. It also skips a `tool_order` grader in the one-line form. A nested YAML block, for example `before:` of a `tool_order` grader on its own line, stops the tool with exit code 2. On 2026-11-16, it gave the stored verdict for all 1,913 replayed verdicts of 529 kept runs.
+
+The tool prints one line for each grader of each run, with four fields that a tab separates: the run folder name, the grader name, `pass`, `fail`, or `skip`, and the reason. If a replayed grader fails, the exit code is 1. If an argument or an input file is wrong, it is 2.
+
+The tool does not know the arm of a run, and it does not read the `arm` key of a grader. It replays each grader on each run that you give, and each failed grader gives exit code 1. The replay is not `claude plugin eval`, so a later Claude Code version can grade in another way. Like the graded text, the replay lacks the calls of a subagent of a subagent.
+
 A mock of the type `agent` does not see a call that a fixed mock answered (Claude Code 2.1.325). In `cmp-issue-create`, a fixed mock answered the create call, and an agent mock answered the read-back call with another issue. So each run that read the issue back reported that the read-back did not match. A mock that reads back what an earlier call wrote gets a fixed fixture.
 
 A run sends one prompt, so a case cannot answer a question of the skill in a later turn. The session of a run also has no `SendMessage` tool (Claude Code 2.1.325). So the cases of this repository cannot test a resume of a subagent. A case gives the answers of the user in advance in its prompt instead, as `ppc-reshaped-fix` and `ppc-open-items-answered` do. Such a case tests what the skill does with an answer, but not that the skill stops and waits for it. The cases that end at a question, for example `ppc-gated-threads`, test the stop. The case format can also continue a recorded conversation with `context.history_file`, but no case of this repository uses it.

@@ -1,0 +1,1 @@
+{"registeredName":"plugin:github:github","server":"github","nonce":"0123456789ab","tools":[{"name":"add_reply_to_pull_request_comment"},{"name":"issue_read"},{"name":"issue_write"},{"name":"pull_request_review_write"}]}

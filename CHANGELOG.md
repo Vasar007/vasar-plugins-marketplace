@@ -12,6 +12,8 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `docs/evals.md`: a new step of the WSL2 preparation says to keep the clone for the eval runs in the Linux file system. It also says how that clone gets a branch of a Windows clone through a git bundle (issue #198).
+- `tests/evals/replay_graders.mjs`: a new tool replays the graders of an eval case on kept runs for free. It builds the `last_message`, `mock_calls`, and `trace` texts by the rules of Claude Code 2.1.325. It runs the regex graders on these texts and the `tool_used` graders. `docs/evals.md` says how to run it (issue #186).
+- `tests/evals/test_replay_graders.py`: new tests pin the verdicts and the `mock_calls` text of the tool on a hand-made run. A test also makes sure that the tool reads each grader file of the repository as PyYAML does (issue #186).
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
