@@ -31,7 +31,7 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 - This is a **personal** Claude Code marketplace. Keep all artifacts (skills, agents, commands, READMEs) generic and stack-neutral. No employer/product branding, no internal hostnames, no internal URLs.
 - Skill / agent names use lowercase-kebab-case without organization prefixes.
 - Each plugin lives at `<group>/<plugin>/` with its own `.claude-plugin/plugin.json`.
-- Each plugin has an icon at `assets/icon.png` in its folder: a square PNG of 512 to 2048 px on each side, under 2 MB. The `icon` field of `plugin.json` names it. `tests/test_claude_ai_sync.py` makes sure that the field and the file are there. Without the file, `claude plugin validate --strict` reports `ICON_INVALID` or `ICON_MISSING` as a warning.
+- Each plugin has an icon at `assets/icon.png` in its folder: a square PNG of 512 to 2048 px on each side, under 2 MB. `claude plugin validate` finds the file by this path. Do not set the `icon` field of `plugin.json`, because the claude.ai sync strips it and warns. `tests/test_claude_ai_sync.py` makes sure that the file is there and that `plugin.json` has no `icon` key. Without a usable file, `claude plugin validate` reports `ICON_MISSING` or `ICON_INVALID` as a plugin directory warning. That warning does not fail a `--strict` run.
 - New plugins must be registered in `.claude-plugin/marketplace.json` and the matrix in `README.md`.
 - If a behavior depends on a specific tool or runtime (for example .NET, PowerShell, or AWS), document the assumption explicitly inside the skill. Do not spread it across files.
 

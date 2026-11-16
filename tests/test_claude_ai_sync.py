@@ -1,8 +1,7 @@
-"""Checks for the problems that claude.ai reports as warnings when it syncs the marketplace.
+"""Checks for the problems that claude.ai reports when it syncs the marketplace. docs/authoring.md lists the rules.
 
-The claude.ai sync strips an unknown top-level key of plugin.json, for example "$schema".
-It also reads text in angle brackets in a description as an XML tag, and removes the brackets.
-It skips a plugin that holds a .claude-plugin folder below its root.
+The sync strips each top-level key of plugin.json that it does not know, also a documented one such as "icon".
+It removes angle brackets from a description. It skips a plugin with a nested .claude-plugin or a top-level bin/ folder.
 """
 import json
 import struct
@@ -15,6 +14,11 @@ from support import REPO
 PLUGIN_GLOB = "*/*/.claude-plugin/plugin.json"
 ENTITY_GLOBS = ("skills/*/SKILL.md", "agents/*.md", "commands/*.md")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+# The keys that the claude.ai sync of release 4.11.1 took with no warning. The sync documents no list of its own.
+# A new key goes here in the PR that adds it, and the owner reads the next sync page (docs/authoring.md).
+SYNC_PLUGIN_KEYS = {"name", "version", "description", "author", "repository", "keywords", "dependencies", "userConfig"}
+SYNC_MARKETPLACE_KEYS = {"name", "description", "owner", "plugins", "renames"}
+SYNC_ENTRY_KEYS = {"name", "source", "description"}
 
 
 def plugin_roots():
@@ -45,6 +49,21 @@ class FrontmatterDescriptionTests(unittest.TestCase):
         self.assertEqual(frontmatter_description("---\nname: a\ndescription: One line.\n---\n"), "One line.")
         self.assertEqual(frontmatter_description("---\ndescription: >\n  Two\n  lines.\nname: a\n---\n"), "> Two lines.")
         self.assertIsNone(frontmatter_description("# No frontmatter\n"))
+
+
+def unknown_keys(data, known):
+    """The keys of a JSON object that are not in the known set, sorted."""
+    return sorted(set(data) - known)
+
+
+class UnknownKeysTests(unittest.TestCase):
+    def test_lists_only_the_keys_outside_the_set(self):
+        self.assertEqual(unknown_keys({"name": "a", "icon": "x", "$schema": "y"}, {"name"}), ["$schema", "icon"])
+        self.assertEqual(unknown_keys({"name": "a"}, {"name", "version"}), [])
+
+
+def load_json(path):
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def tracked_files(root):
@@ -85,12 +104,31 @@ class ClaudeAiSyncTest(unittest.TestCase):
         roots = {root.relative_to(REPO).as_posix() for root in plugin_roots()}
         self.assertEqual(roots, sources, f"Every marketplace source must match {PLUGIN_GLOB}, or the tests skip it.")
 
-    def test_plugin_manifests_have_no_schema_key(self):
+    def test_plugin_manifests_use_only_the_keys_that_the_sync_takes(self):
         roots = plugin_roots()
         self.assertTrue(roots, f"No plugin manifest matches {PLUGIN_GLOB}.")
-        failures = [str(root.relative_to(REPO)) for root in roots
-                    if "$schema" in json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))]
-        self.assertEqual(failures, [], "Remove \"$schema\" from plugin.json. The claude.ai sync strips it and warns.")
+        failures = {root.relative_to(REPO).as_posix(): unknown_keys(load_json(root / ".claude-plugin" / "plugin.json"),
+                                                                    SYNC_PLUGIN_KEYS) for root in roots}
+        failures = {root: keys for root, keys in failures.items() if keys}
+        self.assertEqual(failures, {}, "The claude.ai sync strips these plugin.json keys and warns, also documented "
+                                       "keys such as \"$schema\" and \"icon\". Remove them, or see docs/authoring.md.")
+
+    def test_the_marketplace_uses_only_the_keys_that_the_sync_takes(self):
+        marketplace = load_json(REPO / ".claude-plugin" / "marketplace.json")
+        failures = unknown_keys(marketplace, SYNC_MARKETPLACE_KEYS)
+        failures += [f"plugins[{index}].{key}" for index, entry in enumerate(marketplace["plugins"])
+                     for key in unknown_keys(entry, SYNC_ENTRY_KEYS)]
+        self.assertEqual(failures, [], "No claude.ai sync took these marketplace.json keys yet. See docs/authoring.md.")
+
+    def test_plugin_sources_start_with_dot_slash(self):
+        marketplace = load_json(REPO / ".claude-plugin" / "marketplace.json")
+        failures = [entry["name"] for entry in marketplace["plugins"] if not str(entry["source"]).startswith("./")]
+        self.assertEqual(failures, [], "The claude.ai sync takes a relative plugin source only when it starts with ./.")
+
+    def test_plugins_have_no_top_level_bin_folder(self):
+        failures = [root.relative_to(REPO).as_posix() for root in plugin_roots()
+                    if any(path.startswith("bin/") for path in tracked_files(root))]
+        self.assertEqual(failures, [], "claude.ai rejects a plugin with a top-level bin/ folder. Move the files to scripts/.")
 
     def test_descriptions_have_no_angle_brackets(self):
         failures = []
@@ -104,15 +142,16 @@ class ClaudeAiSyncTest(unittest.TestCase):
 
 
 class PluginIconTest(unittest.TestCase):
-    """Each plugin has the icon that CLAUDE.md asks for: a square PNG of 512 to 2048 px, under 2 MB."""
+    """Each plugin has the icon file that CLAUDE.md asks for: a square PNG of 512 to 2048 px, under 2 MB.
 
-    def test_each_plugin_names_a_square_png_icon(self):
+    claude plugin validate finds assets/icon.png by its path. So plugin.json does not name it.
+    """
+
+    def test_each_plugin_has_a_square_png_icon_file(self):
         roots = plugin_roots()
         self.assertTrue(roots, f"No plugin manifest matches {PLUGIN_GLOB}.")
         for root in roots:
             with self.subTest(plugin=root.relative_to(REPO).as_posix()):
-                manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-                self.assertEqual(manifest.get("icon"), "./assets/icon.png")
                 icon = root / "assets" / "icon.png"
                 self.assertTrue(icon.is_file(), f"{icon} is missing.")
                 data = icon.read_bytes()
