@@ -2225,6 +2225,7 @@ class ComposerGraderTests(unittest.TestCase):
             "no label": ("The repository has no `performance` label, so I did not create it.", True),
             "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
             "is not a label": ("`performance` is not a label in this repository.", True),
+            "does not have the label": ("The repository does not have a `performance` label, so the issue has only `feature`.", True),
             "body preview, label not named": ("Created issue #77 with the label feature.\n\nBody preview: the missing "
                                               "index hurts the performance of the orders page.", False),
             "only the topic": ("Created issue #77 about the performance of the orders page.", False),
