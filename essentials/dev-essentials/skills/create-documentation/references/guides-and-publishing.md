@@ -1,8 +1,6 @@
 # Guide Drafts and Publishing
 
-The section "Guide Drafts and Publishing" of `SKILL.md` points here. A guide is concise documentation outside the `Docs/` layout of the project, for example a how-to guide. The user wants it as a draft, or on a documentation platform. Publish it only on an explicit request.
-
-The skill uses the MCP servers of the session, for example Confluence cloud, Confluence self-hosted, or Notion. So it can publish to any platform that the user connected. If no fitting MCP server is available, use the compose-only fallback below.
+The section "Guide Drafts and Publishing" of `SKILL.md` points here. A guide is concise documentation outside the `Docs/` layout of the project, for example a how-to guide.
 
 ## Documentation Style
 
@@ -13,9 +11,7 @@ Follow this style:
 - **Lists**: Numbered lists for steps/procedures, bullet points for features/options.
 - **Code blocks**: Use appropriate language tags, for example `shell`, `json`, or `yaml`.
 - **Tables**: For structured data comparisons.
-- **Clarity**: Concise but informative.
 - **Examples**: Include practical, real-world examples.
-- **Organization**: Logical section flow with clear headings.
 - **Warnings**: Use a blockquote for an important warning or note.
 
 ## Workflow
@@ -30,12 +26,7 @@ When the user requests a guide on a topic:
 
 ### 2. Editing Documentation
 
-All edit requests without the explicit "publish" command relate to the local Markdown draft in the drafts folder.
-
-- User provides feedback on the draft
-- Make requested changes to the Markdown file
-- Iterate based on feedback
-- **Do not publish** to any platform unless explicitly requested
+All edit requests without the explicit "publish" command relate to the local Markdown draft in the drafts folder. The words "update", "edit", "change", and "fix" mean the local file only.
 
 ### 3. Publishing
 
@@ -49,7 +40,7 @@ Get these values from the user. If a required value is missing, stop and ask for
 
 Before publishing:
 
-1. Make sure that the heading levels are logical (H1 for title, H2 for main sections, H3 for subsections).
+1. Make sure that the heading levels follow "Documentation Style".
 2. Find the MCP servers that are available in the current session. Look for tool names that match `mcp__<server>__*`. Pick the server that matches the target platform. Typical names:
    - `mcp__mcp-atlassian-cloud__*`: Confluence cloud
    - `mcp__mcp-atlassian-local__*`: Confluence self-hosted
@@ -63,15 +54,14 @@ Before publishing:
 If no suitable MCP server is available in the session, for example in a restricted environment:
 
 1. Finalize the Markdown draft in the drafts folder.
-2. Report to the main agent (or the user) with the file path.
-3. If publishing is required, the main agent calls the MCP tool itself.
+2. Report the file path, and say that the guide is not published. In a subagent, put both in your final reply, so that the caller can publish the draft.
 
 Never claim a publish that did not happen. If the tool call cannot happen, say so plainly.
 
 ## Critical Rules
 
-1. **Never publish without an explicit request.** The words "update", "edit", "change", and "fix" mean the local file only.
-2. **Use Markdown format** for both the local and the published versions. Most documentation MCP servers accept Markdown. Read the tool schema of the chosen server for the content format that it accepts.
+1. **Never publish without an explicit "publish".**
+2. **Use Markdown format** for both the local and the published versions, unless the tool schema of the chosen server asks for another format.
 3. **Never hardcode platform-specific IDs** (cloudId, spaceId, parentId). Get them from the user or from the tool schema of the MCP server at call time.
 
 ## Example Documentation Structure
@@ -114,7 +104,6 @@ Next major topic with examples.
 
 ## Response Style
 
-- Be concise in responses.
 - Report each action, for example "Created [filename]", "Updated [section]", or "Published to Confluence (page ID 12345)".
 - Do not ask for clarification unless you cannot continue without it.
 - Show a brief preview of the structure after creating content.
