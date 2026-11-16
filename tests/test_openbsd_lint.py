@@ -410,6 +410,12 @@ class HookTests(LintCase):
                           "Fix each hit in the file, or keep it and give the reason in the reply.")
         self.assertEqual(result.stdout, "")
 
+    def test_relative_path_is_joined_with_the_cwd_of_the_event(self):
+        self.write("page.md", HEAD + DESCRIPTION + "\nThe tool is just fast.\n")
+        event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Write", "cwd": str(self.tmp),
+                            "tool_input": {"file_path": "page.md"}})
+        self.assertResult(self.hook("", raw=event), 2, "word-list")
+
     def test_edit_event(self):
         path = self.write("page.md", HEAD + DESCRIPTION + "\nThe tool is just fast.\n")
         self.assertResult(self.hook(path, tool="Edit"), 2, "word-list")
