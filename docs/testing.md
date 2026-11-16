@@ -19,6 +19,7 @@ The command runs these parts:
 - A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
 - A search of the `README.md` files and the files in `docs/` for counts of hooks, skills, agents, and commands. Such a count goes stale.
 - The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
+- The tests of `tests/evals/replay_graders.mjs`. They replay graders on the run in `tests/evals/fixtures/replay-run/` and call no model. They need Node.js 22 or later. If `node` is not found, they skip. In CI, they fail. One test also reads each grader file with PyYAML. If PyYAML is not installed, that test fails.
 - The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
 - The YAML test of the eval cases in `tests/test_eval_front_matter.py`. It parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. `claude plugin eval` does not load a case with YAML that does not parse. If PyYAML is not installed, the test fails. It does not skip.
 - The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10 or newer and the .NET 10 runtime. If a tool is missing, the test skips. In CI, it fails.
