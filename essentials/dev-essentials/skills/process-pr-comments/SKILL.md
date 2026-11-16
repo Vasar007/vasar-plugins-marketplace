@@ -117,9 +117,9 @@ These parameters take a value: `pr`, `owner`, `repo`, `interval`, `tags`, `bots`
 
 ## Workflow
 
-### Dispatch model — one dispatch, then the work in the session
+### Dispatch model — one dispatch for Stage 1, then the work in the session
 
-Each cycle dispatches Stage 1 as one one-shot, unnamed subagent. The PR threads are a high-volume read of an outside system (`dev-essentials:subagent-orchestration` Rule 4). The session needs only the short Stage 1 report (the context test of Rule 1). Then the orchestrating session runs Stage 2 itself. Stage 2 does the work that needs judgment. It asks the user questions and waits for the answers, so it runs in the session that talks to the user. Its GitHub writes need no subagent: their texts are already decided, and each result is small. Its issue search and its read of one issue (`references/tag-actions.md` § "`[OutOfScope]`") are single calls with no thread iteration. Rule 4 covers high-volume MCP work. So a new fetch of the PR threads ("What Stage 2 can still call") goes to a read-only subagent. A read of the threads of a linked PR (Rules) also goes to it. It returns only the facts of that thread, that reply, or that linked PR. If `deep-fix` names an eligible thread, the cycle also runs Stage 3. It is an opt-in addition to the two stages, not a replacement (see `references/deep-fix.md`).
+Each cycle dispatches Stage 1 as one one-shot, unnamed subagent. The PR threads are a high-volume read of an outside system (`dev-essentials:subagent-orchestration` Rule 4). The session needs only the short Stage 1 report (the context test of Rule 1). Then the orchestrating session runs Stage 2 itself. Stage 2 does the work that needs judgment. It asks the user questions and waits for the answers, so it runs in the session that talks to the user. Its GitHub writes need no subagent: their texts are already decided, and each result is small. Its issue search and its read of one issue (`references/tag-actions.md` § "`[OutOfScope]`") are single calls with no thread iteration. Rule 4 also covers writes with iteration, such as the batch of replies, but only by default. Rule 1 lets this skill post the batch in the session, but not run its high-volume reads there. So a new fetch of the PR threads ("What Stage 2 can still call") goes to a read-only subagent. A read of the threads of a linked PR (Rules) also goes to it. It returns only the facts of that thread, that reply, or that linked PR. If `deep-fix` names an eligible thread, the cycle also runs Stage 3. It is an opt-in addition to the two stages, not a replacement (see `references/deep-fix.md`).
 
 | Stage | Model | Phases | Mandate |
 | --- | --- | --- | --- |
@@ -149,9 +149,9 @@ Stage 1 does the mechanical extraction that the Haiku tier covers: tag matching,
 - The file or line context of a thread in the report is stale or contradictory. Then a read-only subagent fetches the current data of that one thread. Do not guess. This exception does not cover `filePath: null`, which is normal for a PR-level summary banner of an automated review.
 - `add_reply_to_pull_request_comment` reports a failure for a reply. Then a read-only subagent finds out whether the reply landed, before you retry (`dev-essentials:github-mcp-conventions` Rule 4). A blind retry posts a duplicate. If the reply is there, treat the action as done. Do not retry, and do not leave it for the next cycle. If the reply is not there, post it again.
 
-The brief of that subagent gives `owner` and `repo` word for word, and the PR number. It also gives the `commentId` of the top comment, and for a reply its first line.
+The brief of that subagent gives `owner` and `repo` word for word, and the PR number. It also gives the `commentId` of the top comment, and for a reply its first line. For a linked PR, it gives the number of that PR and the text of the comment that points to it.
 
-**Under `dry-run`:** both stages run. Stage 2 reads code, sets the automated-review verdicts, and writes the drafts for the dry-run report. It makes no GitHub write, no edit, and no commit.
+**Under `dry-run`:** both stages run. Stage 2 reads code, sets the automated-review verdicts, and writes the drafts for the dry-run report. It makes no GitHub write, no edit, and no commit. It asks no open item of Stage 2, and the dry-run report lists each open item with its question.
 
 **Under `loop` (Phase 6):** each cycle runs Stage 1 and Stage 2 again from the start. Never cache the Stage 1 report across cycles, because thread state changes between cycles. Only `processedCommentIds` and the PR metadata cache carry over, and the orchestrating session holds them.
 
