@@ -146,7 +146,7 @@ After all steps are done:
 
 4. Stage or commit the changes. `{COMMIT_MODE}` decides:
 
-   - **`finalization` mode (default)**: stage all changes. Do not commit. The Finalization agent makes the one commit.
+   - **`finalization` mode (default)**: stage all changes. Do not commit. The Finalization stage makes the one commit.
 
      ```bash
      git add <specific-files-you-changed>
@@ -164,7 +164,7 @@ After all steps are done:
 - Do not make architectural decisions. If the spec is unclear about a signature, implement its most literal reading. If an instruction is unclear in another way, stop and report (see "Blocked? Stop").
 - Do not change the function signatures, type definitions, or class structures of `spec.md`. The human approved them.
 - Do not add comments, docstrings, or type annotations to code that you did not change. Touch only what the spec requires.
-- The commit behavior depends on the mode. In `finalization` mode (default), do not commit. Only stage. The Finalization agent makes the one commit. In `per-step` mode, commit each green step or fix as you go, and follow the injected `<commit-conventions>` block.
+- The commit behavior depends on the mode. In `finalization` mode (default), do not commit. Only stage. The Finalization stage makes the one commit. In `per-step` mode, commit each green step or fix as you go, and follow the injected `<commit-conventions>` block.
 - USE the existing mock utilities and test patterns of the codebase. Do not invent new patterns, unless `test-plan.md` explicitly asks for them.
 - RESPECT the project-wide constraints of the Key Conventions section of the Project Context (Phase 2 step 4).
 

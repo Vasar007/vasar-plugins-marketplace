@@ -9,6 +9,16 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.12.0 in release [4.9.0] - 2026-11-16
+
+This release folds three dispatches into the main session. On a `deep-fix` cycle of `process-pr-comments`, the orchestrating session posts the replies and resolves the threads itself. `feature-pipeline` runs its finalization stage in the main session, with one build and test run before the push.
+
+### Changed in dev-essentials
+
+- `skills/process-pr-comments`: on a `deep-fix` cycle, the orchestrating session posts the batch of replies, and after the push it resolves the fixed threads. Before, the dispatch Stage 3b posted the batch, and one more dispatch resolved the threads. Their texts were already decided, and each call has a small result, so no delegation test sent them to a subagent (issue #170).
+- `skills/feature-pipeline`: the master agent runs Stage 9 (`finalization`) itself, in the main session: the build and test run, the commit, the push, and the PR. Before, a subagent made the commit and reported the facts for the push and the PR. The build and test run is the run before a push that item 1 of `Trust but verify` in `subagent-orchestration` asks for. `--model-override` no longer applies to Stage 9 (issue #170).
+- `evals/feature-pipeline/fp-e2-untracked-file`: the project context of the case names an MCP tool as the PR command. A mock answers the PR call, and the new grader `pr-created` makes sure that the run opens the PR (issue #170).
+
 ## dev-essentials 3.11.5 in release [4.8.6] - 2026-11-16
 
 This release fixes two graders of the `process-pr-comments` eval suite. Each one failed a right run because of the wording of its last message. The skill text does not change.
@@ -1443,7 +1453,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...HEAD
+[4.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.6...v4.9.0
 [4.8.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.5...v4.8.6
 [4.8.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.4...v4.8.5
 [4.8.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.8.3...v4.8.4

@@ -1,39 +1,31 @@
 # Stage 9: Finalization + PR
 
-<!--
-  Note for the master agent: replace the four placeholders that "Stage Launch"
-  in SKILL.md names.
-
-  Task metadata (title, URL, branch name) is in the Task Context section above.
-  Project-specific values are in the Project Context section above.
--->
+The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is the absolute path `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
 
 ## Contents
 
 - Inputs
 - Process
 - Rules
-- Completion Criteria
-
-# Finalization Agent
-
-Create a clean commit, and prepare the facts for the push and the pull request. You do not push, and you do not open the pull request. The master agent does both in the main session, where the user sees the push and its result.
-
-You do fixed finalization steps after you validate the workflow hints of the Project Context against the repository. If you cannot find a safe workflow, stop, and report exactly what is ambiguous.
 
 ## Inputs
 
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/requirements.md`: for the summary and the rationale
 - `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/spec.md`: for the summary and the rationale
-- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If the run skipped the `review` stage, this file does not exist. Then continue without it.
-- The project guidance files, the base branch, and all workflow commands from the Project Context section above
-- The codebase at `{WORKTREE_PATH}`: full read and write access
+- `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/review.md`: the approved review. If `--skip` removed the `review` stage, this file does not exist. Then continue without it.
+- The project guidance files, the base branch, and all workflow commands of the project context
+- The start changes: the paths of `startChanges` in `pipeline-state.json`, and the paths that "After the stage" in `references/stage-launch.md` noted as edits of earlier stages. If a resume or a compaction lost these notes, the edited paths are "unknown".
+- The `<commit-conventions>` block of `references/commit-conventions.md`, with the cadence line of `{COMMIT_MODE}`
 
 ## Process
 
-### Step 1: Discover Finalization Workflow
+### Step 1: Record the Start
 
-Before you change the git state, validate the workflow commands of the Project Context against the current state of the repository:
+Do launch step 1 of `references/stage-launch.md`: make sure that each file of the "Reads" column exists. Then write the output of `git -C "{WORKTREE_PATH}" rev-parse HEAD` into `stageStartSha` (`{"finalization": "<sha>"}`), as launch step 3 says. Skip launch steps 2, 4, 5, and 6, because they pick a model and compose a prompt.
+
+### Step 2: Discover Finalization Workflow
+
+Before you change the git state, compare the workflow commands of the project context with the current state of the repository:
 
 - The current branch name
 - The recent commit history
@@ -42,17 +34,17 @@ Before you change the git state, validate the workflow commands of the Project C
 - Hints from CI and the hosting service
 - Whether tools such as `gh` are available
 
-Treat the commands of the Project Context (full test, lint, base branch, push, and PR) as the canonical workflow hints of this run.
+Treat the commands of the project context (build, full test, lint, base branch, push, and PR) as the canonical workflow hints of this run.
 
-If a critical step is still ambiguous after this validation, stop, and report the ambiguity. Do not guess.
+If a critical step is still ambiguous after this comparison, stop, and report the ambiguity. Do not guess.
 
-### Step 2: Verify Clean State
+### Step 3: Make Sure That the State Is Clean
 
-1. If the Project Context lists a full test command, run it one last time.
-   - If a test fails, stop. Report the failure to the master agent.
-   - If no full test command is available, report that explicitly.
+1. Run the build command and then the test command of the project context, one time each. This is the build and test run before the push that item 1 of "Trust but verify" in `dev-essentials:subagent-orchestration` asks for. That item gives the output filter, the exit code, and the rule for a run that can take longer than 10 minutes.
+   - If the build or a test fails, stop, and report the failure. Do not fix the cause in this stage.
+   - If no test command is available, say so in the final report.
 
-2. If the Project Context lists a lint command:
+2. If the project context lists a lint command:
    - Run it.
    - If it fails and a lint fix command is available, run the fix command. Then run the tests and the lint again.
    - If the lint still fails, stop.
@@ -60,52 +52,42 @@ If a critical step is still ambiguous after this validation, stop, and report th
 3. Look at the git status:
 
    ```bash
-   git status
+   git -C "{WORKTREE_PATH}" status
    ```
 
-   - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from `<start-changes>`, the change is from this run, so stage it. If the `<start-changes>` block names the path as an edit of an earlier stage, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
-   - **`per-step` mode**: `git status` must be clean, except for untracked artifacts (for example under `{ARTIFACTS_DIR}/`) and the paths of `<start-changes>` that no stage edited. The earlier stages already committed every source change. If the tree is not clean, stop, and report the uncommitted files. Do not commit them here.
+   - **`finalization` mode (default)**: the earlier stages staged their changes. A tracked file can have an unstaged change. If its path is missing from the start changes, the change is from this run, so stage it. If the start changes name the path as an edit of an earlier stage, the change is from this run too, so stage it. Leave every other path out. Leave out each untracked file, because a stage that made a new file already staged it. List each path that you left out under "Not committed". Do not list the paths under `{ARTIFACTS_DIR}/`.
+   - **`per-step` mode**: `git status` must be clean, except for untracked artifacts (for example under `{ARTIFACTS_DIR}/`) and the paths of the start changes that no stage edited. The earlier stages already committed every source change. If the tree is not clean, stop, and report the uncommitted files. Do not commit them here.
 
-### Step 3: Create Commit (finalization-commit mode only)
+### Step 4: Create Commit (finalization-commit mode only)
 
-**In `per-step` mode, skip this step entirely, and go to Step 4.** The earlier stages already made every commit.
+**In `per-step` mode, skip this step entirely, and go to Step 5.** The earlier stages already made every commit.
 
-On a resume, this stage can run again after its commit, because the master agent marks it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 4.
+On a resume, this stage can run again after its commit, because you mark it as done only after the push. If the index is clean and `HEAD` is a commit of this run that holds the changes of the run, the commit already exists. Do not commit again. Go to Step 5.
 
-The injected `<commit-conventions>` block above gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. List them with `git diff --cached --name-only --no-renames`, so that a rename lists the old path and the new path. A staged path of `<start-changes>` is a path of this run only in one case: the block names it as an edit of an earlier stage. If the block says "unknown", leave such a path out, and list it under "Not committed".
+The `<commit-conventions>` block gives the format of the commit message. Follow it exactly. Do not invent your own format. Commit only the staged paths of this run, with the paths after `--`. List them with `git -C "{WORKTREE_PATH}" diff --cached --name-only --no-renames`, so that a rename lists the old path and the new path. A staged path of the start changes is a path of this run only in one case: the start changes name it as an edit of an earlier stage. If the edited paths are "unknown", leave such a path out, and list it under "Not committed".
 
-The content for this stage: the body gives the reason for the change. Take it from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the injected block against pipeline-internal references governs the wording.
+The body gives the reason for the change. Take it from Section 1 (Task Summary) of `requirements.md`. Write it in terms of production engineering only. The rule of the block against pipeline-internal references governs the wording.
 
-### Step 4: Prepare the Push and the Pull Request
+### Step 5: Push
 
-Do not push, and do not create a PR. Collect the facts that the master agent needs for both:
+If the project context gives no push command, say so in the final report, and do not invent a push step. If the current branch is the default branch of the repository, do not push. Stop and report it. Else run `cd "{WORKTREE_PATH}" && <push command>`. If the push fails because the history diverged, stop and report it.
 
-1. The push command from the Project Context, as Step 1 validated it, or "none".
-2. The current branch name, and whether it is the inferred default branch.
-3. The PR command from the Project Context, or "none". Say whether it is a shell command or an MCP tool name, for example `mcp__plugin_github_github__create_pull_request`.
-4. The base branch of the PR. If the base branch is unsafe or a guess, stop, and report the ambiguity.
-5. The PR title and the PR body. Take them from Section 1 (Task Summary) of `requirements.md` and Section 1 (Resolved Questions) of `spec.md`. Follow the convention of the repository for PR titles and bodies. Include the task URL from the Task Context, where it has one. Do not name pipeline artifacts in the title or the body, for the same reason as in the commit message.
-6. The link to the tracking issue. Does the task URL point to a tracking item of the PR provider? An example is a GitHub issue for a PR on GitHub. If the provider has a linking tool, name it.
+### Step 6: Create the Pull Request
 
-### Step 5: Report
+If the project context gives no PR command, skip this step. Report the branch status and the work that is left for the human. Else:
 
-Return the final outcome as your final output:
+1. Take the base branch of the PR from the project context. If it is unsafe or a guess, stop, and report the ambiguity.
+2. Write the PR title and the PR body. Take them from Section 1 (Task Summary) of `requirements.md` and Section 1 (Resolved Questions) of `spec.md`. Follow the convention of the repository for PR titles and bodies. Include the task URL from the task context, where it has one. Do not name pipeline artifacts in the title or the body, for the same reason as in the commit message.
+3. If the PR command is a shell command, run `cd "{WORKTREE_PATH}" && <PR command>`. If it is an MCP tool name, for example `mcp__plugin_github_github__create_pull_request`, load the tool with `ToolSearch`. Then call it with the base branch, the title, and the body.
 
-- The commit that you created, or "none" in `per-step` mode
-- The six facts of Step 4
-- The "Not committed" list: each path that you left out, with its reason (a change from before the run, an untracked file, or an ignored path), or "none"
+### Step 7: Link the Tracking Issue
+
+If Step 6 created no PR, skip this step. The task URL can point to a tracking item of the PR provider, for example a GitHub issue for a PR on GitHub. If the provider has a linking tool, load it with `ToolSearch`, and link the PR to the item. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
 
 ## Rules
 
-- Do not push, and do not create a PR. The master agent does both after this stage.
-- Never amend a commit or pass `--no-verify` to it. See the injected `<commit-conventions>` block.
+- Never amend a commit. Never pass `--no-verify` to a commit or a push. See the `<commit-conventions>` block.
+- Never force-push. Never push the default branch.
 - Never include pipeline artifacts from `{ARTIFACTS_DIR}/` in the commit. They are local to the project.
-- Never name `{ARTIFACTS_DIR}/...` paths, artifact section numbers, or review-finding IDs in the commit message. See the injected `<commit-conventions>` block.
-- If any step fails (tests, lint, or the workflow inference), stop and report the failure. Do not try workarounds.
-
-## Completion Criteria
-
-Your work is done when:
-
-1. In `finalization` mode, a clean commit exists, with a message format that fits the repository. In `per-step` mode, `git status` was clean at Step 2, and this stage made no new commit.
-2. The master agent has the commit, the six facts of Step 4, and the "Not committed" list.
+- Never name `{ARTIFACTS_DIR}/...` paths, artifact section numbers, or review-finding IDs in the commit message. See the `<commit-conventions>` block.
+- If a step fails (the build, the tests, the lint, the workflow inference, the push, or the PR), stop and report the failure. Do not try workarounds. A failed link of Step 7 is the one exception.

@@ -29,7 +29,7 @@ Each stage reads and writes files in `{ARTIFACTS_DIR}/{TASK_ID}/`. Every stage a
 | 6 | `docs` | `requirements.md`, `spec.md` | Docs |
 | 7 | `review` | `requirements.md`, `spec.md`, `test-plan.md`, `review-diff.patch` | Final reply, which the master agent saves as `review.md` |
 | 8 | `security-review` | `requirements.md`, `spec.md`, `review-diff.patch` | `security-review.md` |
-| 9 | `finalization` | `requirements.md`, `spec.md`, `review.md` | Commit, and the facts for the push and the PR |
+| 9 | `finalization` (the master agent) | `requirements.md`, `spec.md`, `review.md` | Commit, push, and PR |
 
 ## Launch steps
 
@@ -38,7 +38,7 @@ Before you launch a stage, do these steps in order:
 1. Make sure that each file in the "Reads" column of "Stage files" exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages. One exception: if `--skip` removed the `review` stage from the plan, `review.md` is not required. Launch the stage without it.
 2. Resolve the model. If this invocation has a `--model-override` entry for this stage, use it. Else use the entry of this stage in `models` of `pipeline-state.json`, from an earlier run. Else use the default model of the Overview table in `SKILL.md`. Write the result into `models` (`{"<stage>": "<model>"}`). If an override of this invocation replaces a recorded entry, log the change. Pass the model in the `model` parameter of the `Agent` tool.
 3. For a commit-capable stage, write the output of `git rev-parse HEAD` into `stageStartSha` (`{"<stage>": "<sha>"}`). This records the branch tip at the start of the stage. A later resume uses it to find out whether HEAD moved while the stage was incomplete.
-4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to the five commit-capable stages. `<start-changes>` goes to the same five stages. If `startChanges` is empty, leave it out.
+4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to Stages 3 to 6, the commit-capable stages that run in a subagent. `<start-changes>` goes to the same four stages. If `startChanges` is empty, leave it out.
 
    ```md
    <project-context>
@@ -68,7 +68,6 @@ Before you launch a stage, do these steps in order:
    <start-changes>
    These paths had changes before this run started. Do not stage them, and do not commit them, unless your stage edits that path. If your stage edits one, name it in your final reply.
    {the paths of startChanges, one for each line}
-   {for the finalization stage only, this line: "Earlier stages of this run edited these paths:", and the paths that "After the stage" noted, or "none", or "unknown"}
    </start-changes>
 
    {text of the stage file}
@@ -83,7 +82,7 @@ Before you launch a stage, do these steps in order:
 
 ## Review patch
 
-The review stage writes no file. It runs no git command that changes state. The review and the security review read one fixed patch. So before the launch steps of Stage 7 and Stage 8, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch> -- . ':(exclude,literal)<path>'`. The user changed the paths of `startChanges` before the run. Add one `':(exclude,literal)<path>'` for each of them that no stage edited. "After the stage" notes the edited paths. If the edited paths are unknown (a resume), exclude every path of `startChanges`, except a path for which `git -C "{WORKTREE_PATH}" log --oneline origin/<base-branch>..HEAD -- <path>` prints a commit. If `startChanges` is empty, leave out the pathspec. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the review is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file.
+The review stage writes no file. It runs no git command that changes state. The review and the security review read one fixed patch. So before the launch steps of Stage 7 and Stage 8, run `git -C "{WORKTREE_PATH}" fetch origin <base-branch>`. Then write the diff of the task to `{ARTIFACTS_DIR}/{TASK_ID}/review-diff.patch` with `git -C "{WORKTREE_PATH}" diff --merge-base origin/<base-branch> -- . ':(exclude,literal)<path>'`. The user changed the paths of `startChanges` before the run. Add one `':(exclude,literal)<path>'` for each of them that no stage edited. "After the stage" notes the edited paths. If the edited paths are unknown (see "After the stage"), exclude every path of `startChanges`, except a path for which `git -C "{WORKTREE_PATH}" log --oneline origin/<base-branch>..HEAD -- <path>` prints a commit. If `startChanges` is empty, leave out the pathspec. Take `<base-branch>` from the project context. If the fetch fails, stop and ask the user. Do not fall back to the local `<base-branch>`, because it can be missing or stale. When the review is done, write its final reply to `{ARTIFACTS_DIR}/{TASK_ID}/review.md` without a change. Then run the output check on that file.
 
 ## After the stage
 
@@ -91,7 +90,7 @@ A final reply of Stage 1 or Stage 2 can start with the line `QUESTIONS:`. Then d
 
 Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy" in `SKILL.md`): ask the user in every mode, then run the stage again or stop.
 
-If the final reply of a commit-capable stage names a path of `startChanges` that the stage edited, note the path. Pass the noted paths to the finalization stage in its `<start-changes>` block, and name them in the final report of the run. On a resume, the replies of the earlier session are gone. Then pass "unknown".
+If the final reply of a commit-capable stage names a path of `startChanges` that the stage edited, note the path. Use the noted paths at Step 9 (`stages/finalization.md`), and name them in the final report of the run. If a resume or a compaction lost these notes, use "unknown".
 
 Then run the output check (see "Output Validation"), and update the checkpoint ("Checkpoints" in `SKILL.md`).
 

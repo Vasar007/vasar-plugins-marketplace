@@ -4,7 +4,7 @@ The master agent reads this file at Step 0 of `SKILL.md`, and again before it co
 
 ## Injection rules
 
-- Five stages get the block: `implementation`, `test-coverage`, `simplifier`, `docs`, and `finalization`. No other stage gets it.
+- Four stages get the block: `implementation`, `test-coverage`, `simplifier`, and `docs`. No other stage gets it. At Step 9, the master agent follows the same block.
 - Copy the fenced block below **verbatim**. Do not paraphrase, summarize, reorder, or trim its bullets.
 - Exactly two things change on the way in. The `{CADENCE_LINE}` token becomes the line for the resolved `{COMMIT_MODE}` (see "Cadence lines"). `{ARTIFACTS_DIR}` is replaced like every other placeholder.
 - Prepare the block once, after Step 0 resolves `{COMMIT_MODE}` and before the first stage launch. In one run, the block is the same for each stage that gets it.
@@ -63,6 +63,6 @@ Follow them exactly; do not invent your own format.
   name it in your final reply. A `.gitignore` entry often keeps local secrets
   out of the repository.
 - **Do not push from your stage**. The master agent pushes after the
-  Finalization stage. This holds for the Finalization stage too.
+  commit of Step 9.
 - **Never commit anything under `{ARTIFACTS_DIR}/`.**
 ```
