@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'create_pull_request'
+pattern: '"tool":"\w*create_pull_request"'
 target: mock_calls
 ---

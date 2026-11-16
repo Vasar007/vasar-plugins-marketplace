@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.2 and dotnet-backend-dev 1.7.5 in release [4.11.2] - 2026-11-16
+
+This release fixes two eval graders that matched text outside the call that they test. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals/feature-pipeline/fp-e2-untracked-file`: the grader `pr-created` reads only the `tool` field of each mocked call. Before, another call that named the PR tool in its input or its answer made a run with no PR call pass (issue #183).
+- `evals/feature-pipeline`: the grader `route-plain-dotnet` of the nine .NET cases counts a `dotnet build` or `dotnet test` command only at the start of a command. Before, it counted a sentence that named the command, for example in a heredoc that writes a prompt or a review file. That failed the grader in 2 of 3 kept runs of `fp-e2-untracked-file` and in 3 kept runs of `fp-e8-rename-across-projects`. The grader also no longer counts `dotnet build-server` (issue #183).
+
+### Fixed in dotnet-backend-dev
+
+- `evals/write-tests/wt-one-class` and `evals/write-tests/wt-pricing-folder`: the grader `route-plain-dotnet` has the new pattern of dev-essentials. A test makes sure that the 11 copies are equal (issue #183).
+
+### Changed in the repository
+
+- `docs/evals.md`: a new paragraph says what the grader `route-plain-dotnet` counts. It names the forms where its verdict is wrong (issue #183).
+- `tests/test_eval_cases.py`: the new class `RoutePlainDotnetGraderTests` tests plain calls, calls with `-m:1`, and text in heredocs. It pins each wrong verdict that `docs/evals.md` names, and it makes sure that the grader is fast on long commands. The new class `PrCreatedGraderTests` makes sure that only a call of the PR tool passes `pr-created` (issue #183).
+
 ## dev-essentials 3.14.1 and kb 0.2.3 in release [4.11.1] - 2026-11-16
 
 This release fixes four bugs that a code review found in two plugin scripts. It also closes four gaps in the repository tests and stops a superseded CI run (issue #110).
@@ -1519,7 +1537,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.2...HEAD
+[4.11.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.0...v4.11.1
 [4.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.10.0...v4.11.0
 [4.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.9.0...v4.10.0

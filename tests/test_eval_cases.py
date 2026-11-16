@@ -2023,6 +2023,144 @@ class RouteReportedGraderTests(unittest.TestCase):
                 self.assertTrue(self.matches("rirr-retry-limit", line))
 
 
+DOTNET_ROOT = REPO / "dotnet" / "dotnet-backend-dev"
+
+
+def bash_input(command):
+    """The JSON text of the input of a Bash call, as a tool_used grader reads it."""
+    return json.dumps({"command": command, "description": "Run it"}, separators=(",", ":"), ensure_ascii=False)
+
+
+class RoutePlainDotnetGraderTests(unittest.TestCase):
+    """The graders route-plain-dotnet count a dotnet build or dotnet test command with no -m:1 at the start of a command."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graders = {case.label: case.graders["route-plain-dotnet"][0] for root in (FP_ROOT, DOTNET_ROOT)
+                       for case in load_cases(root) if "route-plain-dotnet" in case.graders}
+        cls.pattern = re.compile(next(iter(cls.graders.values()))["input_match"])
+
+    def check(self, runs):
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.pattern.search(bash_input(command)) is not None, expected)
+
+    def test_every_dotnet_case_has_the_same_grader(self):
+        self.assertEqual(len(self.graders), 11)
+        self.assertEqual(len({grader["input_match"] for grader in self.graders.values()}), 1)
+        for label, grader in self.graders.items():
+            with self.subTest(case=label):
+                self.assertEqual((grader["type"], grader["tool"], grader["min"], grader["max"]), ("tool_used", "Bash", 0, 0))
+
+    def test_a_plain_call_counts(self):
+        self.check({
+            "a plain build": ("dotnet build Inventory.sln", True),
+            "a quoted filter": ('dotnet test Inventory.sln --filter "Category=Unit|Category=Fast"', True),
+            "after cd and &&": ('cd "/x y" && dotnet build Inventory.sln', True),
+            "on the second line": ("git status\ndotnet test Inventory.sln", True),
+            "indented in an if block": ("if true; then\n  dotnet test Inventory.sln\nfi", True),
+            "after timeout": ("timeout 300 dotnet test Inventory.sln 2>&1 | tail -15", True),
+            "after timeout with an option": ("timeout --signal=KILL 300 dotnet test Inventory.sln", True),
+            "after if !": ("if ! dotnet build Inventory.sln; then echo failed; fi", True),
+            "in a command substitution": ("out=$(dotnet test Inventory.sln 2>&1)", True),
+            "after an assignment": ("DOTNET_NOLOGO=1 dotnet build Inventory.sln", True),
+            "after env": ("env DOTNET_NOLOGO=1 dotnet test Inventory.sln", True),
+            "after time": ("time dotnet build Inventory.sln", True),
+            "in a loop": ("for p in a b; do dotnet test $p; done", True),
+            "in a subshell": ("(cd src && dotnet build)", True),
+            "in braces": ("{ dotnet build Inventory.sln; } 2>&1", True),
+            "after a pipe": ("echo x | dotnet test Inventory.sln", True),
+            "with -m:2": ("dotnet build Inventory.sln -m:2", True),
+            "a plain test after a build with -m:1": ("dotnet build Inventory.sln -m:1; dotnet test Inventory.sln", True),
+        })
+
+    def test_a_call_with_one_process_and_text_do_not_count(self):
+        self.check({
+            "-m:1": ("dotnet build Inventory.sln -m:1", False),
+            "-maxcpucount:1": ("dotnet test Inventory.sln -maxcpucount:1", False),
+            "-m 1": ("dotnet build Inventory.sln -m 1", False),
+            "-m=1": ("dotnet test Inventory.sln -m=1 2>&1 | tail -5", False),
+            "two calls with -m:1": ("cd /w && dotnet build Inventory.sln -m:1 2>&1 | tail -3; echo exit=$?; "
+                                    "dotnet test Inventory.sln -m:1 --filter X", False),
+            "build-server": ("dotnet build-server shutdown", False),
+            "restore": ("dotnet restore Inventory.sln", False),
+            "a prompt script in a heredoc": (
+                "cat > $TMPDIR/fp/compose.py <<'EOF'\nparts.append('<machine-constraint>\\nOn this machine, MSBuild can use only "
+                "one process. Pass `-m:1` to every `dotnet build` and `dotnet test` command you run.')\nEOF", False),
+            "a review file in a heredoc": (
+                "cat > .pipeline/821/review.md <<'EOF'\n## Suggestions\n- I did not run a separate `dotnet build`, so I have "
+                "no `0 Warning(s)` line.\nEOF", False),
+            "an echo text in a heredoc": (
+                "cat > $TMPDIR/compose.sh <<'EOF'\necho 'Machine constraint from the user: Pass -m:1 to EVERY dotnet build and "
+                "dotnet test command.'\nEOF", False),
+            "a commit message": ('git commit -m "Pass -m:1 to dotnet build"', False),
+            "a search for the text": ("grep -rn 'dotnet build' .claude", False),
+        })
+
+    def test_the_grader_keeps_its_known_limits(self):
+        """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""
+        self.check({
+            "a plain call is missed: bash -c": ('bash -c "dotnet build Inventory.sln"', False),
+            "a plain call is missed: another word before it": ("nice dotnet build Inventory.sln", False),
+            "a plain call is missed: a timeout option with a value": ("timeout -k 5 300 dotnet build Inventory.sln", False),
+            "a plain call is missed: -m:1 of a later command": (
+                "dotnet build Inventory.sln && dotnet test Inventory.sln -m:1", False),
+            "text counts: a heredoc line that starts with the command": (
+                "cat > notes.md <<'EOF'\nRun this:\ndotnet build Inventory.sln\nEOF", True),
+            "text counts: quoted text after a semicolon": ("echo 'Build first; dotnet build is slow.'", True),
+        })
+
+    def test_the_grader_is_fast_on_long_commands(self):
+        """The grader needs less than 2 seconds for a command with 4000 assignments, 4000 timeout options, or 4000 echo texts."""
+        inputs = {
+            "4000 assignments": "X=1 " * 4000 + "echo",
+            "4000 timeout options": "timeout " + "-k " * 4000 + "echo",
+            "4000 echo texts that name the command": "echo 'a; dotnet build is slow'; " * 4000,
+        }
+        for name, command in inputs.items():
+            with self.subTest(input=name):
+                start = time.perf_counter()
+                self.pattern.search(bash_input(command))
+                self.assertLess(time.perf_counter() - start, 2.0)
+
+
+class PrCreatedGraderTests(unittest.TestCase):
+    """The grader pr-created of fp-e2-untracked-file reads only the tool field of each mocked call.
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
+
+    @staticmethod
+    def call(tool, tool_input, output="{}"):
+        return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": tool_input, "output": output,
+                           "verdict": "ok"}, separators=(",", ":"), ensure_ascii=False)
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.meta = cases["fp-e2-untracked-file"].graders["pr-created"][0]
+
+    def test_only_a_call_of_the_pr_tool_passes(self):
+        self.assertEqual((self.meta["target"], self.meta.get("match", "contains")), ("mock_calls", "contains"))
+        read = self.call("issue_read", {"method": "get", "owner": "example-org", "repo": "inventory", "issue_number": 821})
+        comment = self.call("add_issue_comment", {"issue_number": 821, "body": "Stage 9 started."})
+        pr = self.call("create_pull_request", {"owner": "example-org", "repo": "inventory", "base": "main",
+                                               "head": "work/untracked-file", "title": "Reject a blank SKU"}, '{"number": 77}')
+        runs = {
+            "the PR call": ([read, comment, pr], True),
+            "a comment names the tool": ([read, self.call("add_issue_comment", {"body": "Next: call create_pull_request."})], False),
+            "a comment quotes a call line": ([read, self.call("add_issue_comment", {"body": '{"tool":"create_pull_request"}'})],
+                                             False),
+            "a read answer names the tool": ([self.call("issue_read", {"issue_number": 821}, "Use create_pull_request."), comment],
+                                             False),
+            "another tool whose name starts with the PR tool": ([read, self.call("create_pull_request_with_copilot", {})], False),
+            "no mocked call": ([], False),
+        }
+        for name, (calls, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(self.meta["pattern"], "\n".join(calls)) is not None, expected)
+
+
 class PpcOpenItemsGraderTests(unittest.TestCase):
     """The graders of ppc-open-items-answered read the mocked calls, one JSON line for each call.
 
