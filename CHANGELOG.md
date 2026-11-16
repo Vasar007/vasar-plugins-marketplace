@@ -21,10 +21,10 @@ This release lets `process-pr-comments` read the hand-off file of the earlier wo
 
 ### Fixed in dev-essentials
 
-- `skills/process-pr-comments`: the dispatch model no longer says that Rule 4 of `subagent-orchestration` covers only high-volume work. It says that Rule 4 also covers writes with iteration, but only by default. Rule 1 lets the skill post the batch of replies in the session (issue #187).
+- `skills/process-pr-comments`: the dispatch model no longer says that Rule 4 of `subagent-orchestration` covers only high-volume work. It says that Rule 4 also covers writes with iteration, but only by default. Rule 1 lets the skill make its writes in the session (issue #187).
 - `skills/process-pr-comments`: under `dry-run`, the session asks no open item of Stage 2. The dry-run report lists each open item with its question. Before, the run asked questions whose answers changed nothing (issue #187).
 - `skills/process-pr-comments`: the heading of the dispatch model says that the one dispatch is Stage 1 (issue #187).
-- `skills/process-pr-comments`: for a linked PR, the brief of the read-only subagent gives the number of that PR. It also gives the text of the comment that points to it (issue #187).
+- `skills/process-pr-comments`: for a linked PR, the brief of the read-only subagent gives the number of that PR, with its owner and repo. It also gives the text of the comment that points to it (issue #187).
 - `skills/process-pr-comments/references/tag-actions.md`: the issue search of an `[OutOfScope]` thread passes `perPage: 10` and reads only the first page, which holds the best matches. The text names this as a departure from Rule 3 of `github-mcp-conventions` (issue #187).
 
 ### Changed in the repository
