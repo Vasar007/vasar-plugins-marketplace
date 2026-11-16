@@ -37,6 +37,8 @@ This release lets `process-pr-comments` read the hand-off file of the earlier wo
 
 
 
+
+
 This release turns two fixed steps of the skill `review-loop` into scripts with unit tests: the failure check after a red build, and the grouping of a large diff into review areas.
 
 ### Added in dev-essentials
@@ -1727,6 +1729,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.14.0
+
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.13.0
 
