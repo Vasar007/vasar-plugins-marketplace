@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.15.2 in release [4.12.2] - 2026-11-16
+
+This release settles the deferred review findings of the PRs #175, #176, #177, and #179. It makes nine eval graders read more right wordings and fewer wrong runs. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals/process-pr-comments`: `question-drafted` of `ppc-gated-threads` also reads "post the answer?". It no longer passes the reply offer of another thread, or a "post this answer" plan before another question. `asks-create` of `ppc-outofscope-autonomous` also reads `could not find`, "zero results", and "came back empty" as an empty search. It also reads a create question with a quoted title or the word "ticket". It no longer reads "neither of the issues I found" as an empty search (issue #187).
+- `evals/composers`: `no-missing-label` and `no-title-in-body` of `cmp-issue-create` now need a create call, so a run with no create call fails them. `names-dropped-label` no longer passes "removes" in another sense or a label list after a sentence end. `names-count` of `cmp-pr-from-diff` reads "how many orders" and "orders per customer", and not "row count". `reason-from-plan` reads "invoicing run". `no-closing-keyword` finds a closing keyword with the issue URL. `short-items` of `cmp-task-draft` reads only the section `## Changes to Do` (issue #187).
+- `.claude-plugin/plugin.json`: the keyword `composer-agents` is now `composers` (issue #187).
+- A replay of the changed graders on 69 kept runs changed no verdict of a right run. Two runs with no create call now fail the two graders that need one (issue #187).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the case check refuses the regex flags `y` and `v`. The CLI accepts them, but Python cannot apply them, so a sample test gives another verdict than a run. New samples pin each changed grader (issue #187).
+- `tests/test_eval_scaffolds.py`: a new test makes sure that each grader that names the PR file of `compose-pr` names the file of the scaffold branch (issue #187).
+- `docs/evals.md`: a new sentence says how a grader on `mock_calls` fails a run with no call (issue #187).
+
 ## dev-essentials 3.15.1 in release [4.12.1] - 2026-11-16
 
 This release makes the eval graders that read the mocked GitHub calls find a tool name only in the `tool` field of a call. The skill text does not change.
@@ -1662,7 +1679,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...HEAD
+[4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...v4.12.0
 [4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
