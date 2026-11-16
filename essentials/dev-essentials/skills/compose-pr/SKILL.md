@@ -100,15 +100,18 @@ Group files by purpose, with the folder layout of the project. Common groups:
 
 ### 5. Generate PR Description
 
-Use this structure:
+Use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
 
 ```md
-## Changes
-[2-3 sentence summary of what changed architecturally]
+## What
+[1-2 sentences: the task and the core of the change]
 
-## Modified Components
-- **[Component]**: [what changed and why - 1 line]
-- **[Component]**: [what changed and why - 1 line]
+## Why
+[1-2 sentences: the problem that the change solves, and what it makes better]
+
+## Changes
+- **[Component]**: [what changed - 1 line]
+- **[Component]**: [what changed - 1 line]
 
 ## Testing
 [Brief testing approach - 1 sentence]
@@ -119,14 +122,16 @@ Use this structure:
 
 Writing rules:
 
+- **Why** gives the reason of the change, not a list of files. Take it from the artifacts of step 2. If no artifact gives a reason, take it from the diff and the commit messages. If a source names a gain in time, resources, or cost, name it too. Do not invent a number.
 - **Omit** obvious changes, for example "updated tests to match".
 - **Combine** related changes, for example "Added discount validation to the pricing service and the order model".
 - **Skip** implementation details (how it works). Do not describe every file change, and do not explain code line by line.
 - **Focus** on architectural impact (what capabilities changed).
-- Use **bullet points**, not paragraphs.
+- In `## Changes`, use **bullet points**, not paragraphs.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
-- Stay within the character limits above.
+- Stay within the character limits above. The limits count the whole description.
+- If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
 
 For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
 

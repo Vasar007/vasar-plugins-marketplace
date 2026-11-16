@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'invoic\w* (?:report|job)|report job|time[sd]?[ -]?out'
-flags: i
+pattern: '^## Why\b(?:(?!\n## )[\s\S])*?(?:invoic\w* (?:report|job)|report job|time[sd]?[ -]?out)'
+flags: mi
 target: { source: file, path: Notes/PRs/PR-user-tasks-12-customer-index.md }
 ---

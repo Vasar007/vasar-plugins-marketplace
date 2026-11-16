@@ -52,6 +52,20 @@ This release fixes two gaps in the shared eval fixtures. A .NET test run that st
 - `tests/evals/replay_graders.mjs`: a new tool replays the graders of an eval case on kept runs for free. It builds the `last_message`, `mock_calls`, and `trace` texts by the rules of Claude Code 2.1.325. It runs the regex graders on these texts and the `tool_used` graders. `docs/evals.md` says how to run it (issue #186).
 - `tests/evals/test_replay_graders.py`: new tests pin the verdicts and the `mock_calls` text of the tool on a hand-made run. A test also makes sure that the tool reads each grader file of the repository as PyYAML does (issue #186).
 
+## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
+
+This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the reason of a change first.
+
+### Changed in dev-essentials
+
+- `skills/compose-pr`: step 5 starts each PR description with `## What`, `## Why`, and `## Changes`, in this order. `## Why` gives the problem that the change solves, from the plan or the issue of the branch. If a source names a gain in time, resources, or cost, `## Why` names it too. `## Changes` is the list by component, and it replaces `## Modified Components`. The old summary of `## Changes` is now `## What`. `## Testing` and `## Notes` stay after them with the same rules, and the length limits stay the same. A closing line from the input, for example `Closes #42.`, goes after the last section (issue #190).
+- `skills/compose-pr/references/examples.md`: the three examples have the new sections (issue #190).
+- `evals/composers/cmp-pr-from-diff`: the grader `structure` needs `## What`, `## Why`, and `## Changes` first, and `## Testing` after them. The grader `reason-from-plan` needs the reason of the plan in the section `## Why`. The new grader `no-modified-components` fails a run that still writes the old section (issue #190).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests make sure that the graders `structure`, `reason-from-plan`, and `no-modified-components` pass the new form and fail the old form (issue #190).
+
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
 This release corrects the description of the skill `feature-pipeline`, and the note about it in two other skills and one command. The pipeline itself does not change.
@@ -1631,7 +1645,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...HEAD
+[4.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...v4.12.0
 [4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
 [4.11.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5

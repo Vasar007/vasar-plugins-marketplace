@@ -2299,11 +2299,17 @@ class ComposerGraderTests(unittest.TestCase):
     BODY = ("## Current State Analysis\n\nThe orders page of a big customer is slow. The orders table has no index on the "
             "customer column. This hurts the performance of the page.\n\n## Changes to Do\n\n- Add an index on customer\n")
 
-    PR_RIGHT = ("## Changes\n\nAdds an index on the customer column of the orders table, and `orders_count` for the invoice "
-                "header. The monthly invoice report reads the orders of each customer, and its job timed out.\n\n"
+    PR_RIGHT = ("## What\n\nAdds an index on the customer column of the orders table, and `orders_count` for the invoice "
+                "header.\n\n## Why\n\nThe monthly invoice report reads the orders of each customer, and its job timed out.\n\n"
+                "## Changes\n\n- **Order store**: the index and `orders_count`.\n\n"
+                "## Testing\n\nA unit test covers `orders_count`.\n\n"
                 "## Notes\n\n- The plan also caches the invoice header. This PR does not hold that step.\n")
-    PR_NO_REASON = ("## Changes\n\nAdds an index on the customer column of the orders table.\n\n"
+    PR_NO_REASON = ("## What\n\nAdds an index on the customer column of the orders table.\n\n"
                     "## Notes\n\n- Caching the invoice header is planned, but this PR does not hold it.\n")
+    PR_OLD_FORM = ("## Changes\n\nAdds an index on the customer column of the orders table. The monthly invoice report reads "
+                   "the orders of each customer, and its job timed out.\n\n"
+                   "## Modified Components\n\n- **Order store**: the index and `orders_count`.\n\n"
+                   "## Testing\n\nA unit test covers `orders_count`.\n")
     TASK = ("# Add an index\n\n## Current State Analysis\n\nThe orders page is slow.\n\n## Changes to Do\n\n"
             "- Add an index on the customer column of orders\n- Add an order count for each customer\n")
 
@@ -2334,10 +2340,36 @@ class ComposerGraderTests(unittest.TestCase):
         lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
         return "\n".join(lines) + "\n"
 
-    def test_reason_from_plan_needs_a_word_of_the_reason(self):
+    def test_reason_from_plan_needs_the_reason_in_the_why_section(self):
         self.check("cmp-pr-from-diff", "reason-from-plan", {
-            "reason in the changes": (self.PR_RIGHT, True),
+            "reason in the why section": (self.PR_RIGHT, True),
             "only the invoice header in the notes": (self.PR_NO_REASON, False),
+            "reason only in the what section": ("## What\n\nThe report job timed out, so this adds an index.\n\n"
+                                                "## Why\n\nFaster reads.\n\n## Changes\n\n- **Store**: index.\n", False),
+            "reason only in the notes": ("## Why\n\nFaster reads.\n\n## Notes\n\n- The invoice report timed out.\n", False),
+            "old form, reason in the changes": (self.PR_OLD_FORM, False),
+        })
+
+    def test_structure_needs_what_why_and_changes_first(self):
+        tail = "## Changes\n\n- **Store**: index.\n\n## Testing\n\nA unit test.\n"
+        self.check("cmp-pr-from-diff", "structure", {
+            "the new form": (self.PR_RIGHT, True),
+            "a blank line first": ("\n" + self.PR_RIGHT, True),
+            "old form": (self.PR_OLD_FORM, False),
+            "why before what": ("## Why\n\nFaster reads.\n\n## What\n\nAn index.\n\n" + tail, False),
+            "a title first": ("# Add an index\n\n" + self.PR_RIGHT, False),
+            "a section between what and why": ("## What\n\nAn index.\n\n## Summary\n\nShort.\n\n## Why\n\nFaster reads.\n\n"
+                                               + tail, False),
+            "no testing section": ("## What\n\nAn index.\n\n## Why\n\nFaster reads.\n\n## Changes\n\n- **Store**: index.\n",
+                                   False),
+        })
+
+    def test_no_modified_components_finds_the_old_section(self):
+        self.check("cmp-pr-from-diff", "no-modified-components", {
+            "the new form": (self.PR_RIGHT, True),
+            "old form": (self.PR_OLD_FORM, False),
+            "old section after the new ones": (self.PR_RIGHT + "\n## Modified Components\n\n- **Store**: index.\n", False),
+            "a sentence that names the words": ("## Notes\n\n- No modified components outside the store.\n", True),
         })
 
     def test_no_closing_keyword_finds_the_forms_that_github_accepts(self):
