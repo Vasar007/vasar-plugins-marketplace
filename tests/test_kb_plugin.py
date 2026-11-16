@@ -454,6 +454,18 @@ class CheckScriptTests(BashCase):
         self.assertTrue(any(line.startswith("MISSING: KB_DIR: /nonexistent/KB has no _claude/RULES.md") for line in missing),
                         missing)
 
+    def test_stale_kb_dir_value_with_backslashes_is_reported_with_slashes(self):
+        home, clone, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        settings = home / ".claude/settings.json"
+        data = json.loads(settings.read_text(encoding="utf-8"))
+        data["env"]["KB_DIR"] = "C:\\nonexistent\\KB"
+        settings.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        done = self.run_complete(home, clone, gitconfig)
+        missing = self.missing_lines(done)
+        self.assertTrue(any(line.startswith("MISSING: KB_DIR: C:/nonexistent/KB has no _claude/RULES.md") for line in missing),
+                        missing)
+
     @unittest.skipUnless(os.name == "nt", "the real uname and pwd -W of Git Bash exist only on Windows")
     def test_git_bash_takes_the_windows_branch_with_the_windows_form_of_the_path(self):
         (self.tmp / "bin/uname").unlink()

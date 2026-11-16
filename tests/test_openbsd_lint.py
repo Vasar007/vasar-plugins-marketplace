@@ -496,14 +496,14 @@ class HookFileTests(ScratchCase):
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/skills/openbsd-style-docs/scripts/openbsd_lint.py", commands[0]["command"])
         self.assertTrue(commands[0]["command"].endswith("--hook"))
 
-    def run_hook_command(self, bin_dir):
+    def run_hook_command(self, bin_dir, stdin="{}"):
         """Run the command of the hook in sh, with only bin_dir on PATH."""
         shell = shutil.which("sh")
         if not shell:
             self.skipTest("no sh")
         command = json.loads(HOOKS_FILE.read_text(encoding="utf-8"))["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
         env = {"PATH": str(bin_dir), "CLAUDE_PLUGIN_ROOT": str(PLUGIN)}
-        return run([shell, "-c", command], stdin="{}", env=env)
+        return run([shell, "-c", command], stdin=stdin, env=env)
 
     def test_hook_exits_quietly_without_python3(self):
         empty = self.tmp / "empty"
@@ -522,6 +522,18 @@ class HookFileTests(ScratchCase):
         result = self.run_hook_command(bin_dir)
         self.assertResult(result, 0)
         self.assertEqual(result.stdout + result.stderr, "")
+
+    def test_hook_lints_a_page_with_a_working_python3(self):
+        bin_dir = self.tmp / "bin"
+        bin_dir.mkdir()
+        stub = bin_dir / "python3"
+        stub.write_text(f'#!/bin/sh\nexec "{sys.executable.replace(chr(92), "/")}" "$@"\n', encoding="utf-8")
+        stub.chmod(0o755)
+        page = self.tmp / "page.md"
+        page.write_bytes((VALID_PAGE.replace("- `-c`", "- `-z`") + "\nThe tool is just fast.\n").encode("utf-8"))
+        event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Write", "tool_input": {"file_path": str(page)}})
+        result = self.run_hook_command(bin_dir, stdin=event)
+        self.assertResult(result, 2, "openbsd-style-docs: page.md has 2 style hit(s).")
 
     def test_script_exists(self):
         self.assertTrue(SCRIPT.is_file())

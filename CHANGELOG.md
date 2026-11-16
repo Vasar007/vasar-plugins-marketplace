@@ -11,11 +11,11 @@ The other numbers in a heading are plugin versions.
 
 ## doc-styles 1.1.7 in release [4.11.4] - 2026-11-16
 
-This release stops a hook error of doc-styles on a Windows PC where `python3` is an alias of the Microsoft Store that cannot start Python. It also adds a CI job that runs the tests of the plugin scripts on Windows (issue #182).
+This release stops a hook error of doc-styles on a Windows PC where `python3` is an alias of the Microsoft Store that cannot start Python. A stub showed this case, not a PC with the real alias. It also adds a CI job that runs the tests of the plugin scripts on Windows (issue #182).
 
 ### Fixed in doc-styles
 
-- `hooks/hooks.json`: the `PostToolUse` hook now tests for Python with `python3 -c ''` instead of `command -v python3`. On Windows, Git Bash finds the `python3` alias of the Microsoft Store in `WindowsApps`. If the Store Python is not installed, the alias exits with an error. Before, the hook then exited with that error, and Claude Code showed a hook error after each Write and Edit. Now the hook exits with 0 and stays silent. If `python3` is missing, the hook also exits with 0 and stays silent (issue #182).
+- `hooks/hooks.json`: the `PostToolUse` hook now tests for Python with `python3 -c ''` instead of `command -v python3`. On Windows, Git Bash finds the `python3` alias of the Microsoft Store in `WindowsApps`. If the Store Python is not installed, the alias exits with an error. Before, the hook then exited with that error. The hooks page of Claude Code says that such an exit code gives a hook error notice. Now the hook exits with 0 and stays silent. A test with a stub `python3` shows this. No test ran on a PC with the real alias. If `python3` is missing, the hook also exits with 0 and stays silent (issue #182).
 
 ### Changed in the repository
 
