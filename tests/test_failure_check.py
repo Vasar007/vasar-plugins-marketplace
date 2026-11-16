@@ -399,7 +399,7 @@ class SignalTests(FailureCheckCase):
 
 
 class TreeKillTests(FailureCheckCase):
-    """The child is a bash loop that ends when the stop file exists, and then writes the flag file.
+    """The child is a bash loop. It ends at the stop file or after its last step, and then writes the flag file.
 
     On Windows, taskkill does not reach a Git Bash program that a background subshell starts. That child
     keeps the log open, so the script can print a WARN line and leave its folder. Only Linux checks the kill.
@@ -428,7 +428,7 @@ class TreeKillTests(FailureCheckCase):
         stop, flag = self.tmp / "stop", self.tmp / "flag.txt"
         quoted = shlex.quote(stop.as_posix())
         loop = (f"for i in $(seq {self.CHILD_STEPS}); do [ -e {quoted} ] && break; sleep 0.1; done; "
-                f"[ -e {quoted} ] && echo alive > {shlex.quote(flag.as_posix())}")
+                f"echo alive > {shlex.quote(flag.as_posix())}")
         self.addCleanup(self.stop_child, stop)
         args = [sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command",
                 f'("$BASH" -c {shlex.quote(loop)}; true) & wait', "--cwd", self.repo / "sub", "--timeout", "1"]
