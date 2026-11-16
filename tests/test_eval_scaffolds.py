@@ -215,18 +215,20 @@ class GraderBranchTests(unittest.TestCase):
     def test_the_pr_file_of_a_grader_names_the_branch_of_the_scaffold(self):
         cases = [case for root in plugin_roots() for case in load_cases(root) if case.name in EXPECTED_BRANCH]
         self.assertEqual([p for case in cases for p in pr_file_problems(case, EXPECTED_BRANCH[case.name])], [])
-        composer = next(case for case in cases if case.name == "cmp-pr-from-diff")
+        composer = next((case for case in cases if case.name == "cmp-pr-from-diff"), None)
+        self.assertIsNotNone(composer, "No case cmp-pr-from-diff is listed in EXPECTED_BRANCH.")
         self.assertTrue(pr_file_problems(composer, "user/tasks/13-other"), "The check reads no PR file of cmp-pr-from-diff.")
 
     def test_a_pr_file_of_another_branch_is_found(self):
         case = SimpleNamespace(label="cmp-x", graders={
-            "saved": ({"type": "file_exists", "path": "Notes/PRs/PR-user-tasks-12-index.md"}, ""),
+            "saved": ({"type": "file_exists", "path": "Notes/PRs/PR-user-tasks-13-index.md"}, ""),
             "reported": ({"type": "regex", "pattern": "PR-user-tasks-13-index\\.md"}, ""),
             "read": ({"type": "regex", "target": {"source": "file", "path": "Notes/PRs/PR-main.md"}}, ""),
         })
         problems = pr_file_problems(case, "user/tasks/12-index")
-        self.assertEqual(len(problems), 2, problems)
-        self.assertTrue(any("reported" in p for p in problems) and any("read" in p for p in problems), problems)
+        self.assertEqual(len(problems), 3, problems)
+        self.assertTrue(any("saved" in p for p in problems) and any("reported" in p for p in problems)
+                        and any("read" in p for p in problems), problems)
 
     def test_a_typo_in_a_branch_path_is_found(self):
         case = SimpleNamespace(label="fp-x", graders={

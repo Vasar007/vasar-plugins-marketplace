@@ -11,20 +11,20 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.15.2 in release [4.12.2] - 2026-11-16
 
-This release settles the deferred review findings of the PRs #175, #176, #177, and #179. It makes nine eval graders read more right wordings and fewer wrong runs. The skill text does not change.
+This release settles the deferred review findings of the PRs #175, #176, #177, and #179. It makes seven eval graders read more right wordings and fewer wrong runs. The skill text does not change.
 
 ### Fixed in dev-essentials
 
-- `evals/process-pr-comments`: `question-drafted` of `ppc-gated-threads` also reads "post the answer?". It no longer passes the reply offer of another thread, or a "post this answer" plan before another question. `asks-create` of `ppc-outofscope-autonomous` also reads `could not find`, "zero results", and "came back empty" as an empty search. It also reads a create question with a quoted title or the word "ticket". It no longer reads "neither of the issues I found" as an empty search (issue #187).
-- `evals/composers`: `no-missing-label` and `no-title-in-body` of `cmp-issue-create` now need a create call, so a run with no create call fails them. `names-dropped-label` no longer passes "removes" in another sense or a label list after a sentence end. `names-count` of `cmp-pr-from-diff` reads "how many orders" and "orders per customer", and not "row count". `reason-from-plan` reads "invoicing run". `no-closing-keyword` finds a closing keyword with the issue URL. `short-items` of `cmp-task-draft` reads only the section `## Changes to Do` (issue #187).
+- `evals/process-pr-comments`: `question-drafted` of `ppc-gated-threads` also reads "post the answer?". It no longer passes the reply offer of another thread that comes after the question thread. It also no longer passes a "post this answer" plan that ends with a period before another question. `asks-create` of `ppc-outofscope-autonomous` also reads `could not find`, "zero results", and "came back empty" as an empty search. It also reads a create question with a quoted title or the word "ticket". It no longer reads "neither of the issues I found" as an empty search (issue #187).
+- `evals/composers`: `names-dropped-label` no longer passes "removes" in another sense or a label list after a sentence end. `names-count` of `cmp-pr-from-diff` reads "how many orders" and "orders per customer", and not "row count". `reason-from-plan` reads "invoicing run". `no-closing-keyword` finds a closing keyword with the issue URL. `short-items` of `cmp-task-draft` reads only the section `## Changes to Do` (issue #187).
 - `.claude-plugin/plugin.json`: the keyword `composer-agents` is now `composers` (issue #187).
-- A replay of the changed graders on 69 kept runs changed no verdict of a right run. Two runs with no create call now fail the two graders that need one (issue #187).
+- A replay of the changed graders on 71 kept runs changed no verdict (issue #187).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the case check refuses the regex flags `y` and `v`. The CLI accepts them, but Python cannot apply them, so a sample test gives another verdict than a run. New samples pin each changed grader (issue #187).
+- `tests/test_eval_cases.py`: the case check refuses the regex flags `u`, `v`, and `y`. The CLI accepts them, but Python cannot apply them, so a sample test gives another verdict than a run. New samples pin each changed grader (issue #187).
 - `tests/test_eval_scaffolds.py`: a new test makes sure that each grader that names the PR file of `compose-pr` names the file of the scaffold branch (issue #187).
-- `docs/evals.md`: a new sentence says how a grader on `mock_calls` fails a run with no call (issue #187).
+- `docs/evals.md`: a new sentence says that a `not_contains` grader on `mock_calls` needs a second grader that fails a run with no call (issue #187).
 
 ## dev-essentials 3.15.1 in release [4.12.1] - 2026-11-16
 
