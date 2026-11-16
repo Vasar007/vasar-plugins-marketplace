@@ -9,6 +9,22 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.14.6 in release [4.11.7] - 2026-11-16
+
+This release fixes two kinds of eval graders that passed some wrong runs: the `no-push` graders and the "no commit" graders. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals`: the 12 `no-push` graders of `feature-pipeline`, `process-pr-comments`, and `review-loop` read `.remote/origin.git/logs/refs/heads/**`. Before, each one read only the reflog of the case branch on the remote. So a push to another branch passed, for example `HEAD:refs/heads/review-fixes` or `work/813` (issue #180).
+- `evals/review-loop/rl-pr-head-gate`: the grader `pr-branch-no-push` is gone. The grader `no-push` now covers both branches (issue #180).
+- `evals`: the 8 "no commit" graders fail on each reflog line of their branch that the fixture did not write, except a `branch: Created from` line. Before, they matched only a plain `commit:` line. So an amend, a reset, a merge, a cherry-pick, a rebase, or a revert passed (issue #180).
+- `evals/feature-pipeline/fp-e1-clean-change`: the new grader `no-commit-any-branch` reads `.git/logs/HEAD`. It fails a run that makes a commit on any branch of the main work tree, also on a new branch (issue #180).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: a new check makes sure that each `no-push` grader and each "no commit" grader of a branch uses the shared form. New tests run each "no commit" grader on its scaffold. They also run the graders on the reflog lines of an amend, a reset, a merge, a cherry-pick, a rebase, and a revert. Another test runs five pushes on a scaffold (issue #180).
+- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the seven forms that they still miss (issue #180).
+
 ## dev-essentials 3.14.5 and dotnet-backend-dev 1.7.7 in release [4.11.6] - 2026-11-16
 
 This release fixes two gaps in the shared eval fixtures. A .NET test run that stops early, or a failed compile after a change of the code, no longer leaves `Passed` for the graders. A push from a linked worktree now reaches the bare remote. The skill text does not change.
@@ -1615,7 +1631,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
+[4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
 [4.11.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4

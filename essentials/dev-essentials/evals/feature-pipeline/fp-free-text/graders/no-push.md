@@ -1,5 +1,5 @@
 ---
 type: file_exists
-path: '.remote/origin.git/logs/refs/heads/work/free-text'
+path: '.remote/origin.git/logs/refs/heads/**'
 exists: false
 ---

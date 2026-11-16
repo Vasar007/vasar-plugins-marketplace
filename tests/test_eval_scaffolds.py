@@ -21,7 +21,7 @@ import unittest
 from types import SimpleNamespace
 
 from support import REPO, tool_missing
-from test_eval_cases import load_cases, plugin_roots
+from test_eval_cases import REGEX_FLAGS, load_cases, plugin_roots
 from testkit import ScratchCase, remove_tree, run
 
 SCAFFOLD_SECONDS = 120
@@ -62,6 +62,16 @@ FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
                   "rirr-retry-limit": "committed"}
+# A "no push" grader reads every branch of the remote. fp-e3-autonomous-main must push a work branch, so its grader names main.
+NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
+NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed")}
+# A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
+BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
+# The "no commit" graders of each case. A test runs each one on its scaffold.
+NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch"), "fp-e3-autonomous-main": ("main-no-commit",),
+                     "ppc-gated-threads": ("no-commit",), "ppc-open-items-answered": ("no-commit",),
+                     "ppc-ride-along-commit": ("no-commit",), "rl-clean-branch": ("no-fix-commit",),
+                     "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed")}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -136,6 +146,22 @@ def branch_path_problems(case, branch):
     return problems
 
 
+def shared_form_problems(case):
+    """A "no push" grader must read every branch of the remote. A "no commit" grader of a branch must fail on each move of it."""
+    problems = []
+    for name, (options, _body) in sorted(case.graders.items()):
+        path, target = options.get("path"), options.get("target")
+        if options.get("type") == "file_exists" and options.get("exists") is False and isinstance(path, str) \
+                and path.startswith(".remote/origin.git/logs/") and path != NO_PUSH_PATH \
+                and (case.name, name) not in NO_PUSH_EXCEPTIONS:
+            problems.append(f"{case.label}/graders/{name}.md: a no-push grader must read {NO_PUSH_PATH}")
+        if options.get("type") == "regex" and options.get("match") == "not_contains" and isinstance(target, dict) \
+                and str(target.get("path", "")).startswith(".git/logs/refs/heads/") \
+                and options.get("pattern") != BRANCH_NO_COMMIT_PATTERN:
+            problems.append(f"{case.label}/graders/{name}.md: a no-commit grader of a branch must use {BRANCH_NO_COMMIT_PATTERN}")
+    return problems
+
+
 def commit_literal_problems(case, commits):
     """A commit id in a regex grader pattern must start a commit of the scaffold repository."""
     problems = []
@@ -180,6 +206,22 @@ class GraderBranchTests(unittest.TestCase):
         problems = branch_path_problems(case, "work/a")
         self.assertEqual(len(problems), 1)
         self.assertIn("no-push", problems[0])
+
+    def test_the_no_push_and_no_commit_graders_use_the_shared_forms(self):
+        cases = [case for root in plugin_roots() for case in load_cases(root)]
+        self.assertEqual([p for case in cases for p in shared_form_problems(case)], [])
+
+    def test_an_old_no_push_or_no_commit_form_is_found(self):
+        branch_log = {"source": "file", "path": ".git/logs/refs/heads/feature/a"}
+        case = SimpleNamespace(name="rl-x", label="rl-x", graders={
+            "committed": ({"type": "regex", "pattern": r"\tcommit: (?!fixture:)", "target": branch_log}, ""),
+            "no-commit": ({"type": "regex", "pattern": r"\tcommit: (?!fixture:)", "match": "not_contains",
+                           "target": branch_log}, ""),
+            "no-push": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/feature/a", "exists": False}, ""),
+            "pushed": ({"type": "file_exists", "path": ".remote/origin.git/logs/refs/heads/feature/a"}, ""),
+        })
+        problems = shared_form_problems(case)
+        self.assertEqual([problem.split(":")[0] for problem in problems], ["rl-x/graders/no-commit.md", "rl-x/graders/no-push.md"])
 
 
 class CommitLiteralTests(unittest.TestCase):
@@ -697,6 +739,9 @@ class CommitGraderTests(FixtureCase):
     def setUpClass(cls):
         cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
         cls.cases = {name: (cases[name], cases[name].graders[grader][0]) for name, grader in COMMIT_GRADERS.items()}
+        cls.paths = {name: cases[name].path for name in [*COMMIT_GRADERS, *NO_COMMIT_GRADERS]}
+        cls.graders = {(name, grader): cases[name].graders[grader][0]
+                       for name, graders in NO_COMMIT_GRADERS.items() for grader in graders}
 
     def environment(self, skip_dotnet=True):
         env = super().environment(skip_dotnet)
@@ -705,16 +750,20 @@ class CommitGraderTests(FixtureCase):
 
     def scaffold(self, name, folder):
         workspace = self.workspace(folder)
-        self.run_bash([(self.cases[name][0].path / "scaffold.sh").as_posix()], workspace)
+        self.run_bash([(self.paths[name] / "scaffold.sh").as_posix()], workspace)
         return workspace
 
-    def passes(self, name, workspace):
-        """The verdict of the regex grader on its target file, for the default match or "count:N"."""
-        options = self.cases[name][1]
+    def passes(self, name, workspace, grader=None):
+        """The verdict of the regex grader on its target file, for the match modes contains, not_contains, and "count:N"."""
+        options = self.cases[name][1] if grader is None else self.graders[name, grader]
+        self.assertNotIn("y", options.get("flags", ""), "Python re has no sticky flag, so the test cannot mirror the grader")
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in options.get("flags", ""))
         text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
-        count = len(re.findall(options["pattern"], text))
-        match = options.get("match")
-        return count == int(match.split(":")[1]) if match else count > 0
+        count = len(re.findall(options["pattern"], text, flags))
+        match = options.get("match", "contains")
+        if match == "not_contains":
+            return count == 0
+        return count == int(match.split(":")[1]) if match.startswith("count:") else count > 0
 
     def run_git(self, cwd, *args):
         code, output = self.git(cwd, *args)
@@ -756,12 +805,207 @@ class CommitGraderTests(FixtureCase):
         self.run_git(workspace, "add", path)
         self.run_git(workspace, "commit", "-q", "--no-edit")
 
-    def check_shapes(self, name, shapes):
+    def check_shapes(self, name, shapes, grader=None):
         for shape, expected in shapes.items():
-            with self.subTest(case=name, shape=shape.__name__):
+            with self.subTest(case=name, grader=grader, shape=shape.__name__):
                 workspace = self.scaffold(name, f"{name}-{shape.__name__}")
                 shape(workspace)
-                self.assertEqual(self.passes(name, workspace), expected)
+                self.assertEqual(self.passes(name, workspace, grader), expected)
+
+    def test_each_no_commit_grader_passes_on_its_scaffold(self):
+        for name, graders in NO_COMMIT_GRADERS.items():
+            workspace = self.scaffold(name, name)
+            for grader in graders:
+                with self.subTest(case=name, grader=grader):
+                    self.assertTrue(self.passes(name, workspace, grader))
+
+    def test_the_branch_grader_fails_on_each_move_of_the_branch(self):
+        path = ["src/pager.py"]
+
+        def side_commit(workspace):
+            """Commit on the new branch side, and check out feature/paging again."""
+            self.run_git(workspace, "checkout", "-q", "-b", "side")
+            self.commit(workspace, path, "side")
+            self.run_git(workspace, "checkout", "-q", "feature/paging")
+
+        def no_change(workspace):
+            pass
+
+        def a_commit(workspace):
+            self.commit(workspace, path, "fix")
+
+        def an_amend(workspace):
+            self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
+
+        def a_reset_to_the_parent(workspace):
+            self.run_git(workspace, "reset", "-q", "--hard", "HEAD~1")
+
+        def a_reset_to_the_same_commit(workspace):
+            self.run_git(workspace, "reset", "-q", "--hard")
+
+        def a_checkout_away_and_back(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "checkout", "-q", "feature/paging")
+
+        def a_fast_forward_merge(workspace):
+            side_commit(workspace)
+            self.run_git(workspace, "merge", "-q", "--ff-only", "side")
+
+        def a_merge_commit(workspace):
+            side_commit(workspace)
+            self.run_git(workspace, "merge", "-q", "--no-ff", "--no-edit", "side")
+
+        def a_merge_that_stops_before_the_commit(workspace):
+            side_commit(workspace)
+            self.merge_and_commit(workspace, "side")
+
+        def a_cherry_pick(workspace):
+            side_commit(workspace)
+            self.run_git(workspace, "cherry-pick", "side")
+
+        def a_rebase(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.commit(workspace, ["README.md"], "move main")
+            self.run_git(workspace, "checkout", "-q", "feature/paging")
+            self.run_git(workspace, "rebase", "-q", "main")
+
+        def a_revert(workspace):
+            self.run_git(workspace, "revert", "--no-edit", "HEAD")
+
+        def a_forced_move_from_another_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "branch", "-f", "feature/paging", "main")
+
+        def a_commit_in_a_worktree_of_the_branch(workspace):
+            tree = workspace / ".claude" / "worktrees" / "fix"
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "worktree", "add", "-q", str(tree), "feature/paging")
+            self.commit(tree, path, "fix in a worktree")
+
+        def a_commit_on_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            self.commit(workspace, path, "fix")
+
+        # Known limits: the grader skips a subject with the fixture prefix, a ref update with no message, and a branch made again.
+        def a_commit_with_the_fixture_prefix(workspace):
+            self.commit(workspace, path, "fixture: fix")
+
+        def an_update_ref_with_no_message(workspace):
+            self.run_git(workspace, "update-ref", "refs/heads/feature/paging", "HEAD~1")
+
+        def the_branch_made_again_at_a_new_commit(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            self.commit(workspace, path, "fix")
+            self.run_git(workspace, "branch", "-D", "feature/paging")
+            self.run_git(workspace, "branch", "feature/paging", "run-branch")
+
+        self.check_shapes("ppc-gated-threads", {
+            no_change: True,
+            a_commit: False,
+            an_amend: False,
+            a_reset_to_the_parent: False,
+            a_reset_to_the_same_commit: True,
+            a_checkout_away_and_back: True,
+            a_fast_forward_merge: False,
+            a_merge_commit: False,
+            a_merge_that_stops_before_the_commit: False,
+            a_cherry_pick: False,
+            a_rebase: False,
+            a_revert: False,
+            a_forced_move_from_another_branch: False,
+            a_commit_in_a_worktree_of_the_branch: False,
+            a_commit_on_a_new_branch: True,
+            a_commit_with_the_fixture_prefix: True,
+            an_update_ref_with_no_message: True,
+            the_branch_made_again_at_a_new_commit: True,
+        }, "no-commit")
+
+    def test_the_any_branch_grader_fails_on_a_new_commit_in_the_main_work_tree(self):
+        path = ["README.md"]
+
+        def no_change(workspace):
+            pass
+
+        def a_checkout_away_and_back(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
+
+        def a_reset_to_the_same_commit(workspace):
+            self.run_git(workspace, "reset", "-q", "--hard")
+
+        def a_stash(workspace):
+            with (workspace / path[0]).open("a", encoding="utf-8") as stream:
+                stream.write("# draft\n")
+            self.run_git(workspace, "stash", "-q")
+            self.run_git(workspace, "stash", "pop", "-q")
+
+        def a_commit_on_the_case_branch(workspace):
+            self.commit(workspace, path, "fix")
+
+        def a_commit_on_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "work/813")
+            self.commit(workspace, path, "fix")
+
+        def an_amend_on_main(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
+
+        def a_rename_of_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "work/813")
+            self.run_git(workspace, "branch", "-m", "work/813-fix")
+
+        def a_checkout_of_an_older_commit_and_back(workspace):
+            self.run_git(workspace, "checkout", "-q", "HEAD~1")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
+
+        # Known limits: the grader skips a subject with the fixture prefix, a checkout, and the HEAD of a linked worktree.
+        def a_commit_with_the_fixture_prefix_on_a_new_branch(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "work/813")
+            self.commit(workspace, path, "fixture: fix")
+
+        def a_commit_in_a_worktree_on_a_new_branch(workspace):
+            self.worktree_commits(workspace, path)
+
+        def the_branch_made_again_at_a_commit_of_a_worktree(workspace):
+            self.run_git(workspace, "checkout", "-q", "main")
+            self.worktree_commits(workspace, path)
+            self.run_git(workspace, "branch", "-D", "work/clean-change")
+            self.run_git(workspace, "branch", "work/clean-change", "fix-1")
+            self.run_git(workspace, "checkout", "-q", "work/clean-change")
+
+        self.check_shapes("fp-e1-clean-change", {
+            no_change: True,
+            a_checkout_away_and_back: True,
+            a_reset_to_the_same_commit: True,
+            a_stash: True,
+            a_rename_of_a_new_branch: True,
+            a_checkout_of_an_older_commit_and_back: True,
+            a_commit_on_the_case_branch: False,
+            a_commit_on_a_new_branch: False,
+            an_amend_on_main: False,
+            a_commit_with_the_fixture_prefix_on_a_new_branch: True,
+            a_commit_in_a_worktree_on_a_new_branch: True,
+            the_branch_made_again_at_a_commit_of_a_worktree: True,
+        }, "no-commit-any-branch")
+
+    def test_only_a_push_of_a_branch_writes_a_log_below_the_no_push_path(self):
+        """A no-push grader reads logs/refs/heads/** of the remote. A tag push, a push that deletes a branch, and a push to refs/pull write no file there."""
+        shapes = {
+            "another-branch": (["origin", "HEAD:refs/heads/review-fixes"], ["refs/heads/review-fixes"]),
+            "nested-branch": (["origin", "HEAD:refs/heads/work/a/b"], ["refs/heads/work/a/b"]),
+            "tag": (["origin", "v1"], ["refs/tags/v1"]),
+            "delete": (["origin", ":feature/paging"], []),
+            "pull-ref": (["origin", "HEAD:refs/pull/99/head"], ["refs/pull/99/head"]),
+        }
+        for shape, (push, expected) in shapes.items():
+            with self.subTest(shape=shape):
+                workspace = self.scaffold("ppc-gated-threads", f"push-{shape}")
+                self.run_git(workspace, "tag", "v1")
+                self.run_git(workspace, "push", "-q", *push)
+                logs = workspace / ".remote" / "origin.git" / "logs"
+                found = sorted(p.relative_to(logs).as_posix() for p in logs.rglob("*") if p.is_file()) if logs.exists() else []
+                self.assertEqual(found, expected)
 
     def test_the_rename_graders_count_a_commit_that_reaches_the_main_work_tree(self):
         path = ["app/users.py"]
