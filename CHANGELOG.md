@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/evals.md`: a new step of the WSL2 preparation says to keep the clone for the eval runs in the Linux file system. It also says how that clone gets a branch of a Windows clone through a git bundle (issue #198).
+
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
 This release corrects the description of the skill `feature-pipeline`, and the note about it in two other skills and one command. The pipeline itself does not change.
