@@ -43,6 +43,26 @@ This release makes the eval graders that read the mocked GitHub calls find a too
 - `docs/evals.md`: a new paragraph says that a pattern on `mock_calls` starts at the `tool` field and reads only the line of its call. It names the test that checks this (issue #189).
 - `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).
 
+## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-16
+
+This release turns two fixed steps of the skill `review-loop` into scripts with unit tests: the failure check after a red build, and the grouping of a large diff into review areas.
+
+### Added in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the failure check of Phase 6. It runs the failed build or test command at the fix commit and at the commit before it, in temporary worktrees outside the repository. It removes each worktree that it made, also after a time-out or a stop signal. It prints one of the verdicts `UNCOMMITTED`, `REGRESSION`, `SAME-AT-PARENT`, and `OTHER` with the evidence. On Windows, it runs the command with Git Bash, because a plain `bash` there can start WSL (issue #197).
+- `skills/review-loop/scripts/group_diff.py`: the areas of the large-target mode, from `git diff --numstat` and `git diff --raw`, with the limits of 10 files and 800 changed lines. Lock files and generated files go to the area "skipped" (issue #197).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: Phase 6 runs `failure_check.py` and acts on its verdict. Without Python 3, the check ends the loop with `stop-blocked` (issue #197).
+- `skills/review-loop/references/orchestrated-review.md`: the orchestrator runs `group_diff.py` before the Target Explorer. The Target Explorer no longer groups the files, and the map has no section "Areas". Without Python 3, the caller uses its default flow (issue #197).
+- `commands/help-review-pr.md`: names the folder of the skill `review-loop` for the script of the orchestrated mode (issue #197).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands (issue #197).
+- `docs/testing.md`: names the tests of the two scripts (issue #197).
+
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
 
 This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
@@ -1679,7 +1699,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...v4.12.0
