@@ -15,13 +15,25 @@ This release moves the bodies of the three composer agents into skills. Each age
 
 ### Added in dev-essentials
 
+- `skills/compose-task`: a new skill with the body of the agent `task-composer`. It writes a task description as a local draft, returns it in chat, or creates the GitHub issue and reads it back. The steps of the create mode are in `references/create-mode.md` (issue #172).
+- `skills/create-documentation/references/guides-and-publishing.md`: the guide drafts and the publish flow of the agent `docs-composer`. Only on an explicit "publish" of the user, the skill publishes a guide (issue #172).
 - `evals/composers`: the new behavior case `cmp-pr-from-diff`. It plants a decoy plan, a scratch note, and a plan step that the diff does not hold (issue #172).
+- `evals/composers`: the new behavior cases `cmp-task-draft` and `cmp-issue-create`. The second one creates an issue on the GitHub stand-in, with a label that the repository does not have (issue #172).
+- `evals/triggers`: the new trigger cases `compose-task-fires`, `compose-task-near-miss`, and `create-documentation-guide-fires` (issue #172).
 
 ### Changed in dev-essentials
 
 - `skills/compose-pr`: the command `compose-pr` is now a skill with the body of the agent `pr-composer`. It writes the PR description in the session, with no subagent. `/dev-essentials:compose-pr` works as before. The examples are in `references/examples.md` (issue #172).
 - `agents/pr-composer`: a thin wrapper that preloads the skill `compose-pr` (issue #172).
 - `review-loop`: names the skill `compose-pr` for a PR description (issue #172).
+- `agents/task-composer` and `agents/docs-composer`: thin wrappers that preload the skills `compose-task` and `create-documentation` (issue #172).
+- `skills/create-documentation`: the new section "Guide Drafts and Publishing" points to the reference file. The description names the guide draft and the publish rule (issue #172).
+- `github-mcp-conventions`: names the create steps of the skill `compose-task` as the standard for a verified create (issue #172).
+- `evals/triggers/compose-pr-fires` and `compose-pr-near-miss`: the near-miss expects the skill `compose-task` for an issue request, and `compose-pr-fires` makes sure that `compose-task` does not start (issue #172).
+
+### Changed in the repository
+
+- `docs/evals.md`: the table of behavior suites names the suite `composers` (issue #172).
 
 ## dev-essentials 3.13.0 in release [4.10.0] - 2026-11-16
 

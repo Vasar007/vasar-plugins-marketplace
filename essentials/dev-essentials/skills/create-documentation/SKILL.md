@@ -1,12 +1,16 @@
 ---
 name: create-documentation
-description: Create or update project documentation files in Markdown by the project conventions, for example for features, configuration options, REST APIs, or database migrations.
-when_to_use: Use it for "create documentation", "document a feature", or "write docs".
+description: Create or update project documentation files in Markdown by the project conventions, for example for features, configuration options, REST APIs, or database migrations. It also writes a guide draft. Only on an explicit 'publish', it publishes the guide to a connected documentation server.
+when_to_use: Use it for "create documentation", "document a feature", "write a how-to guide", or "write docs".
 ---
 
 # Create Documentation
 
 Create and maintain project documentation in the `Docs/` folder with the layout, names, and templates below. If the repository already has a documentation folder with another layout, use that layout and its names.
+
+## Guide Drafts and Publishing
+
+A guide is documentation outside the `Docs/` layout, for example a how-to guide as a local draft. If the user asks for a guide, or asks to publish one to a documentation platform, read [references/guides-and-publishing.md](references/guides-and-publishing.md). Follow it instead of the layout and the templates below. Never publish unless the user explicitly says "publish". The agent `dev-essentials:docs-composer` preloads this skill, so a workflow can also hand a guide to a subagent.
 
 ## Documentation Structure
 
