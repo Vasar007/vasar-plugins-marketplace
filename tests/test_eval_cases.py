@@ -2663,6 +2663,14 @@ class PpcBuildContextGraderTests(unittest.TestCase):
     def test_reason_given_needs_the_reason_of_the_user(self):
         self.assertTrue(self.passes("reason-given", "A broken config once made the job write empty reports for nine days."))
         self.assertFalse(self.passes("reason-given", "Returned an empty list for a size of zero or less, as the reviewer asked."))
+        self.assertTrue(self.passes("reason-given", "Nine days passed before anyone saw it."), "the grader needs the i flag")
+
+    def test_each_grader_reads_its_target(self):
+        targets = {"kept-error": {"source": "file", "path": "src/pager.py"}, "reason-given": "last_message",
+                   "reply-waits": "mock_calls", "no-resolve": "mock_calls"}
+        for grader, target in targets.items():
+            with self.subTest(grader=grader):
+                self.assertEqual(self.case.graders[grader][0]["target"], target)
 
     def test_the_mocked_call_graders_read_only_their_own_call(self):
         read = self.call("pull_request_read", method="get_review_comments", owner="example-org", repo="pager", pullNumber=42)

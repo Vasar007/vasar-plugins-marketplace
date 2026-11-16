@@ -166,7 +166,7 @@ The brief of that subagent gives `owner` and `repo` word for word, and the PR nu
 4. Cache the PR metadata from the `pull_request_read` response: `title`, `state`, `html_url`, and `number`. Also cache the head branch as `headRefName` (from `head.ref`) and the base branch as `baseRefName` (from `base.ref`). The ancestry checks do not use `origin/<headRefName>`, because a PR from a fork has no such branch on `origin`. They use `origin/pull/<prId>/head` (see `references/thread-state-schema.md` § "Ancestry check").
 5. Orchestrating session: start an in-memory `processedCommentIds` set (see [references/thread-state-schema.md](references/thread-state-schema.md)).
 6. Orchestrating session: print a one-line session header: the PR number, the title, the resolved `interval`, and the monitor mode (`one-shot` or `loop <interval>`).
-7. Orchestrating session: read the hand-off file of the earlier work on the branch. If the user names no file, read each file in `Results/` of the notes folder whose `Branch:` line names `headRefName`. `/dev-essentials:save-context` writes such files. The notes folder is `${user_config.notes_dir}`. If that value shows as a `${...}` placeholder, it is `Notes`. With no file, go on. If a comment asks to reverse a decision of the user in the file, do not edit the code. Draft a reply with the reason of the decision, and ask the user as an open item of Stage 2.
+7. Orchestrating session: read the hand-off file of the earlier work on the branch. If the user names no file, read each file in `Results/` of the notes folder whose `Branch:` line names `headRefName`. Search that folder by its own path, because a search from the repository root skips a folder that `.gitignore` lists. `/dev-essentials:save-context` writes such files. The notes folder is `${user_config.notes_dir}`. If that value shows as a `${...}` placeholder, it is `Notes`. With no file, go on. A decision of the user is a decision that the file says the user made or approved. If a comment asks to reverse such a decision, do not edit the code. Draft a reply with the reason of the decision, and ask the user as an open item of Stage 2.
 
 ### Phase 2 — Fetch and classify (every cycle)
 
@@ -266,10 +266,10 @@ After each cycle, print the cycle log of [references/thread-state-schema.md](ref
   - An automated-review fix that adds a new architecture or a new public contract.
 
   Use this form: `T#<commentId> <file>:<line>: <the decision>. Reason: <one line>.` A cycle with no such decision has no list.
-- This session can hold work from before the skill, such as the build of the PR. Then add this tip before the line about the push state. The skill cannot see the cache, so the user decides. Do not stop for the tip, and ask no question.
+- If this session did other work before this skill, add this tip to the first cycle log. The build of the PR is an example of such work. Put the tip before the line about the push state. The skill cannot see the cache, so the user decides. Do not stop for the tip, and ask no question.
 
   ```text
-  Tip: /usage shows whether the prompt cache of this session is warm. If it is cold at the next review round, a new session costs less. Run /dev-essentials:save-context now, and the new session of this skill reads that file.
+  Tip: if the next review round comes after a long pause, the prompt cache of this session is cold, and a new session costs less. In the terminal, /usage shows the cache state. Run /dev-essentials:save-context now, and the new session of this skill reads that file.
   ```
 
 - A thread whose reply did not post shows `reply pending` or `draft pending`, and the log prints the text of the reply. The reply missed its batch (see Rules), or it is a `[Question]` draft with no `yes` yet. A thread whose reply posted but whose push failed shows `reply posted, pending push`. A thread with a fix stays open until the push lands (see Phase 4).

@@ -71,7 +71,8 @@ NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed")}
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
 NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch"), "fp-e3-autonomous-main": ("main-no-commit",),
-                     "ppc-gated-threads": ("no-commit",), "ppc-open-items-answered": ("no-commit",),
+                     "ppc-build-context": ("no-commit",), "ppc-gated-threads": ("no-commit",),
+                     "ppc-open-items-answered": ("no-commit",),
                      "ppc-ride-along-commit": ("no-commit",), "rl-clean-branch": ("no-fix-commit",),
                      "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed")}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)

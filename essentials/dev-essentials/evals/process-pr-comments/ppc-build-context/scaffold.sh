@@ -8,6 +8,7 @@ source "$lib/py-fixture.sh"
 make_pager_repo
 add_paging_branch
 fixture_publish feature/paging 42:feature/paging
+printf 'Notes/\n' >> .git/info/exclude
 
 # The hand-off file of the build session, as /dev-essentials:save-context wrote it in the study of issue #184.
 # Its "Key Decisions" table holds the decision that the review comment asks to reverse. The file stays untracked.
