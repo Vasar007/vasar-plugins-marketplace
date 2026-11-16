@@ -756,6 +756,7 @@ class CommitGraderTests(FixtureCase):
     def passes(self, name, workspace, grader=None):
         """The verdict of the regex grader on its target file, for the match modes contains, not_contains, and "count:N"."""
         options = self.cases[name][1] if grader is None else self.graders[name, grader]
+        self.assertNotIn("y", options.get("flags", ""), "Python re has no sticky flag, so the test cannot mirror the grader")
         flags = sum(REGEX_FLAGS.get(flag, 0) for flag in options.get("flags", ""))
         text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
         count = len(re.findall(options["pattern"], text, flags))
@@ -885,12 +886,18 @@ class CommitGraderTests(FixtureCase):
             self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
             self.commit(workspace, path, "fix")
 
-        # Known limits: the grader skips a subject with the fixture prefix and a ref update with no message.
+        # Known limits: the grader skips a subject with the fixture prefix, a ref update with no message, and a branch made again.
         def a_commit_with_the_fixture_prefix(workspace):
             self.commit(workspace, path, "fixture: fix")
 
         def an_update_ref_with_no_message(workspace):
             self.run_git(workspace, "update-ref", "refs/heads/feature/paging", "HEAD~1")
+
+        def the_branch_made_again_at_a_new_commit(workspace):
+            self.run_git(workspace, "checkout", "-q", "-b", "run-branch")
+            self.commit(workspace, path, "fix")
+            self.run_git(workspace, "branch", "-D", "feature/paging")
+            self.run_git(workspace, "branch", "feature/paging", "run-branch")
 
         self.check_shapes("ppc-gated-threads", {
             no_change: True,
@@ -910,6 +917,7 @@ class CommitGraderTests(FixtureCase):
             a_commit_on_a_new_branch: True,
             a_commit_with_the_fixture_prefix: True,
             an_update_ref_with_no_message: True,
+            the_branch_made_again_at_a_new_commit: True,
         }, "no-commit")
 
     def test_the_any_branch_grader_fails_on_a_new_commit_in_the_main_work_tree(self):

@@ -44,13 +44,13 @@ This release fixes two kinds of eval graders that passed some wrong runs: the `n
 
 - `evals`: the 12 `no-push` graders of `feature-pipeline`, `process-pr-comments`, and `review-loop` read `.remote/origin.git/logs/refs/heads/**`. Before, each one read only the reflog of the case branch on the remote. So a push to another branch passed, for example `HEAD:refs/heads/review-fixes` or `work/813` (issue #180).
 - `evals/review-loop/rl-pr-head-gate`: the grader `pr-branch-no-push` is gone. The grader `no-push` now covers both branches (issue #180).
-- `evals`: the 8 "no commit" graders fail on each reflog line of their branch that the fixture did not write. Before, they matched only a plain `commit:` line. So an amend, a reset, a merge, a cherry-pick, a rebase, or a revert passed (issue #180).
+- `evals`: the 8 "no commit" graders fail on each reflog line of their branch that the fixture did not write, except a `branch: Created from` line. Before, they matched only a plain `commit:` line. So an amend, a reset, a merge, a cherry-pick, a rebase, or a revert passed (issue #180).
 - `evals/feature-pipeline/fp-e1-clean-change`: the new grader `no-commit-any-branch` reads `.git/logs/HEAD`. It fails a run that makes a commit on any branch of the main work tree, also on a new branch (issue #180).
 
 ### Changed in the repository
 
 - `tests/test_eval_scaffolds.py`: a new check makes sure that each `no-push` grader and each "no commit" grader of a branch uses the shared form. New tests run each "no commit" grader on its scaffold. They also run the graders on the reflog lines of an amend, a reset, a merge, a cherry-pick, a rebase, and a revert. Another test runs five pushes on a scaffold (issue #180).
-- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the six forms that they still miss (issue #180).
+- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the seven forms that they still miss (issue #180).
 
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
