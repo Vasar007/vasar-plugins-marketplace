@@ -22,7 +22,7 @@ in a new folder below the system temporary folder, outside the repository.
 The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
-  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code and the same error lines
+  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error lines, and the same last lines
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
@@ -46,7 +46,7 @@ import tempfile
 import time
 from pathlib import Path
 
-ERROR = re.compile(r"\b(errors?|fail(ed|ure|ures)?|exception|traceback)\b", re.IGNORECASE)
+ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
 NOISE = [
     (re.compile(r"[^\s'\"]*review-loop-fc-[^/\\\s]+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
@@ -91,7 +91,7 @@ def changed_paths(top, ignore):
     items, paths, i = out.split("\0"), [], 0
     while i < len(items) and items[i]:
         status, path = items[i][:2], items[i][3:]
-        i += 2 if status[0] in "RC" else 1
+        i += 2 if status[0] in "RC" or status[1] in "RC" else 1
         if not any(fnmatch.fnmatchcase(path, pattern) for pattern in ignore):
             paths.append(path)
     return paths
@@ -101,6 +101,7 @@ class Run:
     def __init__(self, side, sha, folder, where):
         self.side, self.sha, self.folder, self.where = side, sha, folder, where
         self.code, self.timed_out, self.start_error, self.seconds, self.lines = None, False, None, 0.0, []
+        self.limit = None
 
     @property
     def passed(self):
@@ -112,8 +113,9 @@ class Run:
 
     def signature(self, roots):
         found = set()
+        tail = self.lines[-TAIL_LINES:]
         for line in self.lines:
-            if ERROR.search(line):
+            if ERROR.search(line) or line in tail:
                 for root in roots:
                     line = line.replace(root, "<root>")
                 for pattern, token in NOISE:
@@ -125,7 +127,7 @@ class Run:
         if self.start_error:
             state = f"could not start: {self.start_error}"
         elif self.timed_out:
-            state = f"stopped after the time limit of {self.seconds:.0f} s"
+            state = f"stopped after the time limit of {self.limit} s ({self.seconds:.0f} s with the stop)"
         else:
             state = f"exit {self.code} after {self.seconds:.1f} s"
         print(f"RUN {self.side} {self.sha[:12]} in {self.where} {self.folder}: {state}")
@@ -160,6 +162,7 @@ def wait(proc, deadline):
 
 
 def run_command(run, bash, command, timeout, log):
+    run.limit = timeout
     if not Path(run.folder).is_dir():
         run.start_error = f"the folder {run.folder} does not exist at this commit"
         return run
@@ -209,17 +212,21 @@ class Worktrees:
         return path, None
 
     def remove(self):
+        failed = []
         for path in self.made:
             code, _, err = git(self.top, "worktree", "remove", "--force", str(path), check=False)
             if code == 0:
                 print(f"REMOVED {path}", flush=True)
             else:
+                failed.append(path)
                 print(f"WARN: could not remove the worktree {path}: {err.strip()}", flush=True)
         self.made = []
         shutil.rmtree(self.root, ignore_errors=True)
         if self.root.exists():
             print(f"WARN: could not delete the folder {self.root}", flush=True)
-        git(self.top, "worktree", "prune", check=False)
+        for path in failed:
+            if not path.exists() and git(self.top, "worktree", "remove", "--force", str(path), check=False)[0] == 0:
+                print(f"REMOVED {path}", flush=True)
 
 
 def verdict(clean, fix, parent, roots):
@@ -255,6 +262,8 @@ def check(args, bash):
     fix = fix[1].strip()
     code, out, _ = git(top, "rev-parse", "--verify", "--quiet", fix + "^1^{commit}", check=False)
     if code != 0:
+        if git(top, "rev-parse", "--is-shallow-repository").strip() == "true":
+            raise Stop("the commit before the fix commit is not in this shallow clone. Run git fetch --deepen=1")
         raise Stop("the fix commit has no parent commit")
     parent_sha = out.strip()
     head = git(top, "rev-parse", "HEAD").strip()
@@ -311,6 +320,8 @@ def main(argv=None):
                         help="a path glob, relative to the work tree root, that git status must ignore (repeatable)")
     parser.add_argument("--timeout", type=int, default=280, help="seconds for each run of the command (default: 280)")
     args = parser.parse_args(argv)
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     if args.timeout <= 0:
         parser.error("--timeout must be a positive number of seconds")
     for name in ("SIGTERM", "SIGHUP", "SIGBREAK"):

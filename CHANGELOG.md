@@ -49,7 +49,7 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 
 ### Added in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: the failure check of Phase 6. It runs the failed build or test command at the fix commit and at the commit before it, in temporary worktrees outside the repository. It removes each worktree that it made, also after a time-out or a stop signal. It prints one of the verdicts `UNCOMMITTED`, `REGRESSION`, `SAME-AT-PARENT`, and `OTHER` with the evidence. On Windows, it runs the command with Git Bash, because a plain `bash` there can start WSL (issue #197).
+- `skills/review-loop/scripts/failure_check.py`: the failure check of Phase 6. It runs the failed build or test command at the fix commit, and after a failure there also at the commit before it. Each run that the main worktree cannot hold uses a temporary worktree outside the repository. It removes each worktree that it made, also after a time-out or a stop signal. It prints one of the verdicts `UNCOMMITTED`, `REGRESSION`, `SAME-AT-PARENT`, and `OTHER` with the evidence. On Windows, it runs the command with Git Bash, because a plain `bash` there can start WSL (issue #197).
 - `skills/review-loop/scripts/group_diff.py`: the areas of the large-target mode, from `git diff --numstat` and `git diff --raw`, with the limits of 10 files and 800 changed lines. Lock files and generated files go to the area "skipped" (issue #197).
 
 ### Changed in dev-essentials

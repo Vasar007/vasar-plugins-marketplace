@@ -7,8 +7,8 @@ It changes nothing in the repository.
 
 Rules, in this order:
   1. A lock file, a file that .gitattributes marks linguist-generated, and a
-     file whose first 10 lines say "auto-generated" or "do not edit" go to the
-     area "skipped". This area is never split.
+     file with an "auto-generated" or "do not edit" comment in its first 10
+     lines go to the area "skipped". This area is never split.
   2. A file in the root folder goes to the area "root".
   3. Each other file goes to the area of its top-level folder.
   4. While an area has more than 10 files or more than 800 changed lines, it
@@ -39,7 +39,7 @@ from pathlib import PurePosixPath
 MAX_FILES = 10
 MAX_LINES = 800
 HEADER_LINES = 10
-HEADER = re.compile(r"auto-?generated|do not edit", re.IGNORECASE)
+HEADER = re.compile(r"^\s*(#|//|/\*|\*|<!--|--|;|')(.*?)(auto-?generated|do not edit)", re.IGNORECASE | re.MULTILINE)
 LOCK_FILES = {
     "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Cargo.lock", "poetry.lock",
     "Gemfile.lock", "composer.lock", "packages.lock.json", "go.sum",
@@ -129,18 +129,18 @@ def read_raw(repo, rng, changes):
 
 
 def mark_skipped(repo, changes):
+    top = git(repo, "rev-parse", "--show-toplevel").decode("utf-8", "surrogateescape").strip()
     for c in changes:
         if c.parts[-1] in LOCK_FILES:
             c.skip = "lock file"
     paths = [c.path for c in changes if not c.skip]
     if paths:
-        out = fields(git(repo, "check-attr", "-z", "--stdin", "linguist-generated",
+        out = fields(git(top, "check-attr", "-z", "--stdin", "linguist-generated",
                          data="\0".join(paths).encode("utf-8", "surrogateescape") + b"\0"))
         generated = {out[i] for i in range(0, len(out) - 2, 3) if out[i + 2] in ("set", "true")}
         for c in changes:
             if c.path in generated:
                 c.skip = "linguist-generated"
-    top = git(repo, "rev-parse", "--show-toplevel").decode("utf-8", "surrogateescape").strip()
     text = [c for c in changes if not c.skip and c.added is not None]
     blobs = read_blobs(repo, sorted({c.blob for c in text if c.blob}))
     for c in text:
@@ -238,6 +238,8 @@ def main(argv=None):
     parser.add_argument("--range", required=True, help="the diff range, for example origin/main...HEAD")
     parser.add_argument("--repo", default=".", help="a folder in the work tree (default: the current folder)")
     args = parser.parse_args(argv)
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     if args.range.startswith("-"):
         fail("the range must not start with '-'")
     changes = read_numstat(args.repo, args.range)
