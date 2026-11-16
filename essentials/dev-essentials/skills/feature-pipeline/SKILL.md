@@ -12,7 +12,7 @@ After a compaction, Claude Code keeps only the first part of this file. If a ste
 
 ## Overview
 
-The master agent (you) runs 10 stages, each in its own subagent with a fresh context. The prompt of each stage is the file `stages/<stage key>.md`. Each stage reads and writes files in `{ARTIFACTS_DIR}/{TASK_ID}/`.
+The master agent (you) runs 10 stages. Stages 1 to 8 each run in their own subagent with a fresh context, and the prompt of each one is the file `stages/<stage key>.md`. You run Stage 9 yourself, with the steps of `stages/finalization.md`. Each stage reads and writes files in `{ARTIFACTS_DIR}/{TASK_ID}/`.
 
 | # | Stage key | Agent type | Default model |
 | --- | --- | --- | --- |
@@ -25,7 +25,7 @@ The master agent (you) runs 10 stages, each in its own subagent with a fresh con
 | 6 | `docs` | `general-purpose` | `sonnet` |
 | 7 | `review` | `general-purpose` | `opus` |
 | 8 | `security-review` | `general-purpose` | `opus` |
-| 9 | `finalization` | `general-purpose` | `sonnet` |
+| 9 | `finalization` | none (the master agent) | none |
 
 Stages 6, 7, and 8 run in parallel. "Stage files" in [references/stage-launch.md](references/stage-launch.md) lists the files that each stage reads and writes.
 
@@ -101,12 +101,12 @@ Three safeguards apply to you and to every stage: claims about Claude Code, sche
 
 Five stages can commit: `implementation` (also in the fix rounds of Human Approve #2, which run this stage again), `test-coverage`, `simplifier`, `docs`, and `finalization`. No other stage commits. Stage 2b does not touch git.
 
-- `finalization` mode (default): each stage stages only its own changes with an explicit `git add <path>`, never `-A` or `.`. It does not commit. Stage 9 creates the one commit of the run. Then the master agent pushes and opens the PR (Step 9).
+- `finalization` mode (default): each stage stages only its own changes with an explicit `git add <path>`, never `-A` or `.`. It does not commit. At Step 9, the master agent makes the one commit of the run, pushes, and opens the PR.
 - `per-step` mode: each of the four earlier stages commits its own changes as soon as they are green. Each stage file states its own commit granularity. Stage 9 creates no commit. If `git status` shows uncommitted or unstaged source changes when Stage 9 starts, Stage 9 stops and reports. It does not commit them. The start-change paths that no stage edited do not count.
 
-In both modes, only the master agent pushes, at Step 9 after Stage 9, never between commits. It never force-pushes, never passes `--no-verify`, and does not push the default branch (Step 9). Never commit anything under `{ARTIFACTS_DIR}/`.
+In both modes, only the master agent pushes, at Step 9, never between commits. It never force-pushes, never passes `--no-verify`, and does not push the default branch (Step 9). Never commit anything under `{ARTIFACTS_DIR}/`.
 
-Each commit-capable stage gets `{COMMIT_MODE}` and the `<commit-conventions>` block of [references/commit-conventions.md](references/commit-conventions.md) in its prompt (see "Stage Launch").
+Stages 3 to 6 get `{COMMIT_MODE}` and the `<commit-conventions>` block of [references/commit-conventions.md](references/commit-conventions.md) in their prompts (see "Stage Launch"). At Step 9, you follow the same block.
 
 ## Stage Launch
 
@@ -210,12 +210,7 @@ For a request, skip this comment (see Task Comment #1). Else, before you launch 
 
 ### Step 9: Finalization + PR
 
-Launch the stage `finalization`. It makes the commit and reports the facts for the push and the PR. It does not push. Then run the push and the PR yourself, in the main session. A push stays with the main agent (`dev-essentials:subagent-orchestration` Rule 4), so that the user sees the push command and its result. Human Approve #2 approved both, or `--autonomous` did.
-
-1. Push. If the report gives no push command, say so in the final report, and do not invent a push step. If the current branch is the default branch of the repository, do not push. Stop and report it. Else run `cd "{WORKTREE_PATH}" && <push command>`. Never force-push, and never pass `--no-verify`. If the push fails because the history diverged, stop and report it.
-2. Create the PR. If the report gives no PR command, skip this step. Report the branch status and the work that is left for the human. If the PR command is a shell command, run `cd "{WORKTREE_PATH}" && <PR command>`. If it is an MCP tool name, load the tool with `ToolSearch`. Then call it with the base branch, the title, and the body of the report.
-3. If the report names a linking tool, link the PR to its tracking issue. Load the tool with `ToolSearch`, and create the link. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
-4. If step 1 or step 2 fails, stop and report the failure. Do not try workarounds.
+Run the stage `finalization` yourself, in the main session. Read [stages/finalization.md](stages/finalization.md), and do its steps: the build and test run, the commit, the push, and the PR. No subagent runs this stage, so `--model-override` does not apply to it. The push stays with you (`dev-essentials:subagent-orchestration` Rule 4), so that the user sees the push command and its result. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
 
 Add `finalization` to `completed` only after these steps. Put the "Not committed" list of the stage into the final report. Then update the checkpoint, and report the branch or PR status.
 

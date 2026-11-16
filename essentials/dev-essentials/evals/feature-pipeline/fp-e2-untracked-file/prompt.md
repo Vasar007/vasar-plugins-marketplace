@@ -1,5 +1,5 @@
 ---
-description: An untracked file sits in the repo before the run. The commit must not take it, and the final report must list it as not committed.
+description: An untracked file sits in the repo before the run. The commit must not take it, and the final report must list it as not committed. The run must push the branch and open the PR on the GitHub stand-in.
 tags: [feature-pipeline, mocks, route]
 plugins: ["../../..", "../../../eval-stubs/github"]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite]

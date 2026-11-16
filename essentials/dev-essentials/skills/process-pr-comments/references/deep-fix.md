@@ -36,7 +36,7 @@ An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles
 - the approved fields of each `[OutOfScope]` issue that waits for the batch (`tag-actions.md` § "`[OutOfScope]`")
 - its open items with their drafts, for example a `[Question]` reply or the fields of an `[OutOfScope]` issue
 
-The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the post of the replies, the push, the resolve, and Phase 5 of this cycle, and Stage 2 does none of these. It asks the open items of Stage 2 with its question for the go-ahead (with `autonomous`, before Stage 3b). It passes the answers into the Stage 3b brief: the approved `[Question]` replies and the approved issue fields. An answer that asks for a code change waits for a later invocation, because Stage 2 already ended. The draft reply of that thread posts as written.
+The orchestrating session then runs Stage 3. It does the post of the replies, the push, the resolve, and Phase 5 of this cycle itself, and Stage 2 does none of these. It asks the open items of Stage 2 with its question for the go-ahead (with `autonomous`, before the post). It uses the answers in the post: the approved `[Question]` replies and the approved issue fields. An answer that asks for a code change waits for a later invocation, because Stage 2 already ended. The draft reply of that thread posts as written.
 
 ## Stage 3 — `deep-fix` brief and outcomes
 
@@ -56,7 +56,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 10. `--interactive` or `--autonomous`, for an invocation with `interactive` or `autonomous`.
 11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.
 
-**Reply and resolve, by stop verdict**. Stage 3b is a one-shot GitHub dispatch (Rule 4) on the model that the dispatch table of `SKILL.md` gives it. It runs right before the push of the cycle: after the go-ahead, or with `autonomous` as the Rules in `SKILL.md` say. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. Stage 3b first writes the approved `[Question]` replies of its brief. Next, it has Task Composer create each `[OutOfScope]` issue whose fields Stage 2 or the brief approved. Then it posts the batch: the reply of the `deep-fix` thread, every pending reply that Stage 2 handed back, and the replies of the approved open items. The table gives the reply of the `deep-fix` thread:
+**Reply and resolve, by stop verdict**. The orchestrating session posts the batch itself, right before the push of the cycle: after the go-ahead, or with `autonomous` as the Rules in `SKILL.md` say. Stage 3 reported its squash SHA, its stop verdict, and its round count before that. First, the session has Task Composer create each `[OutOfScope]` issue whose fields Stage 2 or the answers approved. Then it posts the batch: the reply of the `deep-fix` thread, every pending reply that Stage 2 handed back, and the replies of the approved open items. A failed post follows the second exception of `SKILL.md` § "What Stage 2 can still call". The table gives the reply of the `deep-fix` thread:
 
 | Verdict | Commit? | Tree | Reply | Resolved after push? |
 | --- | --- | --- | --- | --- |
@@ -64,7 +64,7 @@ The orchestrating session then runs Stage 3 and dispatches Stage 3b. It owns the
 | `stop-max-rounds` | Yes | Green | The "Implemented fix" template, plus an explicit line on the open work | No. It stays open with `openFindingsMarker: true`. |
 | `stop-blocked` | Yes, red (the commits of the arc stay on the unpushed tip) | Red | Nothing by default. Stop and ask the user. | No |
 
-After the push of the cycle lands, the orchestrating session runs the resolve step of `commit-push-resolve.md` § "Resolve threads and report". It does this for every fixed thread of the cycle, the `deep-fix` thread included. It does this in one more one-shot GitHub dispatch (Rule 4).
+After the push of the cycle lands, the orchestrating session itself runs the resolve step of `commit-push-resolve.md` § "Resolve threads and report". It does this for every fixed thread of the cycle, the `deep-fix` thread included.
 
 `stop-clean` reply:
 
