@@ -16,12 +16,13 @@ This release lets `process-pr-comments` read the hand-off file of the earlier wo
 ### Added in dev-essentials
 
 - `skills/process-pr-comments`: Phase 1 step 7 reads the hand-off file of the earlier work on the PR branch. That is the file that the user names. Else, it is each file in `Results/` of the notes folder whose `Branch:` line names the head branch of the PR. `/dev-essentials:save-context` writes such files. A decision of the user is a decision that the file says the user made or approved. If a comment asks to reverse such a decision, the skill does not edit the code. It asks the user, with a draft reply that gives the reason of the decision (issue #199).
-- `skills/process-pr-comments`: the cycle log of Phase 5 can end with one tip. If the session did other work before the skill, the first cycle log carries it. The tip says that the prompt cache is cold after a long pause before the next review round. A new session with the file of `save-context` then costs less. In the terminal, `/usage` shows the cache state. The skill does not stop for the tip (issue #199).
+- `skills/process-pr-comments`: the cycle log of Phase 5 can end with one tip. If the session did long work before the skill, the first cycle log carries it. The tip says that the prompt cache is cold after a long pause before the next review round. A new session with the file of `save-context` then costs less. In the terminal, `/usage` shows the cache state. The skill does not stop for the tip (issue #199).
 - `evals/process-pr-comments/ppc-build-context`: a new behavior case. A reviewer asks for a change that the user ruled out in the build session. The reason is only in the hand-off file of the scaffold, and the prompt does not name the file. The graders make sure that the run keeps the error and gives the reason of the user. They also make sure that the run makes no commit, no push, no reply, and no resolve (issue #199).
 
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: the new class `PpcBuildContextGraderTests` gives right and wrong samples to the graders of `ppc-build-context`. It also makes sure that the hand-off file of the scaffold names the branch of the PR mock (issue #199).
+- `tests/test_eval_scaffolds.py`: the "no commit" grader of `ppc-build-context` runs on its scaffold (issue #199).
 - `docs/evals.md`: the suite `process-pr-comments` has 10 behavior cases (issue #199).
 
 This release turns two fixed steps of the skill `review-loop` into scripts with unit tests: the failure check after a red build, and the grouping of a large diff into review areas.

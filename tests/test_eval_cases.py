@@ -2691,6 +2691,17 @@ class PpcBuildContextGraderTests(unittest.TestCase):
             "a reply call of a server with a dash in its name": (
                 [read, json.dumps({"tool": "mcp__my-github__add_reply_to_pull_request_comment", "input": {}, "output": "{}"}, separators=(",", ":"))],
                 False, True),
+            "a resolve call of a server with a dash in its name": (
+                [read, json.dumps({"tool": "mcp__my-github__pull_request_review_write", "input": {"method": "resolve_thread"}}, separators=(",", ":"))],
+                True, False),
+            "a review of another method, then a resolve word in a later line": (
+                [read, self.call("pull_request_review_write", method="create"), self.call("pull_request_read", method="resolve_thread")],
+                True, True),
+            "a review body that names resolve_thread": (
+                [read, self.call("pull_request_review_write", method="create", body="Do not call resolve_thread yet.")], True, True),
+            "both tool names at the end of input values of a read": (
+                [read, self.call("pull_request_read", next="add_reply_to_pull_request_comment", note="pull_request_review_write",
+                                 method="resolve_thread")], True, True),
         }
         for name, (calls, reply_waits, no_resolve) in runs.items():
             with self.subTest(run=name):
@@ -2704,6 +2715,7 @@ class PpcBuildContextGraderTests(unittest.TestCase):
         self.assertIn("fixture_write Notes/Results/", scaffold)
         self.assertIn(f"Branch: `{pull['head']['ref']}`", scaffold)
         self.assertIn("nine days", scaffold)
+        self.assertIn("printf 'Notes/\\n' >> .git/info/exclude", scaffold, "git must ignore Notes/, as in many repositories")
 
 
 class ComposerGraderTests(unittest.TestCase):
