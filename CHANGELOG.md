@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/evals.md`: three new paragraphs say how an eval run builds the `mock_calls` text of a regex grader, and what a pattern for a call looks like. They also say that a mock of the type `agent` does not see a call that a fixed mock answered (issue #185).
+
 ## dev-essentials 3.14.2 and dotnet-backend-dev 1.7.5 in release [4.11.2] - 2026-11-16
 
 This release fixes two eval graders that matched text outside the call that they test. The skill text does not change.
