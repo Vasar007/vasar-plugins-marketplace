@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).
+
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
 
 This release changes the PR description of `compose-pr`. Each description now starts with the sections `## What`, `## Why`, and `## Changes`, so that a reader gets the task and its reason first.
