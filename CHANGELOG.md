@@ -36,6 +36,22 @@ This release fixes two gaps in the shared eval fixtures. A .NET test run that st
 - `tests/evals/replay_graders.mjs`: a new tool replays the graders of an eval case on kept runs for free. It builds the `last_message`, `mock_calls`, and `trace` texts by the rules of Claude Code 2.1.325. It runs the regex graders on these texts and the `tool_used` graders. `docs/evals.md` says how to run it (issue #186).
 - `tests/evals/test_replay_graders.py`: new tests pin the verdicts and the `mock_calls` text of the tool on a hand-made run. A test also makes sure that the tool reads each grader file of the repository as PyYAML does (issue #186).
 
+## dev-essentials 3.14.6 in release [4.11.7] - 2026-11-16
+
+This release fixes two kinds of eval graders that passed some wrong runs: the `no-push` graders and the "no commit" graders. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals`: the 12 `no-push` graders of `feature-pipeline`, `process-pr-comments`, and `review-loop` read `.remote/origin.git/logs/refs/heads/**`. Before, each one read only the reflog of the case branch on the remote. So a push to another branch passed, for example `HEAD:refs/heads/review-fixes` or `work/813` (issue #180).
+- `evals/review-loop/rl-pr-head-gate`: the grader `pr-branch-no-push` is gone. The grader `no-push` now covers both branches (issue #180).
+- `evals`: the 8 "no commit" graders fail on each reflog line of their branch that the fixture did not write. Before, they matched only a plain `commit:` line. So an amend, a reset, a merge, a cherry-pick, a rebase, or a revert passed (issue #180).
+- `evals/feature-pipeline/fp-e1-clean-change`: the new grader `no-commit-any-branch` reads `.git/logs/HEAD`. It fails a run that makes a commit on any branch of the main work tree, also on a new branch (issue #180).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: a new check makes sure that each `no-push` grader and each "no commit" grader of a branch uses the shared form. New tests run each "no commit" grader on its scaffold. They also run the graders on the reflog lines of an amend, a reset, a merge, a cherry-pick, a rebase, and a revert (issue #180).
+- `docs/evals.md`: a new paragraph names the shared forms of the `no-push` and "no commit" graders and the five forms that they still miss (issue #180).
+
 ## dev-essentials 3.14.4 in release [4.11.5] - 2026-11-16
 
 This release corrects the description of the skill `feature-pipeline`, and the note about it in two other skills and one command. The pipeline itself does not change.
@@ -1615,7 +1631,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.7...HEAD
+[4.11.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.6...v4.11.7
 [4.11.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.11.3...v4.11.4
