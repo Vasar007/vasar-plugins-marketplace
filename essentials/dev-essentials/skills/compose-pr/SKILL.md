@@ -134,7 +134,7 @@ For example outputs of a small and a larger change, read [references/examples.md
 
 - Save the description as `Notes/PRs/PR-<branch>.md`. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the `Notes/PRs/` folder does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
 - The file must be valid Markdown with the `.md` extension.
-- Write the text only. Do not open, push, or edit the PR.
+- This skill writes the text only. It does not open, push, or edit the PR.
 - Tell the user the file path, and show the PR description for a quick review.
 - Name each artifact that you used in your final reply, with its path. Also name each guess and each issue number that had no text in the input.
 

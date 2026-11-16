@@ -2175,15 +2175,15 @@ class ComposerGraderTests(unittest.TestCase):
                 self.assertEqual(self.passes(case, grader, text), expected)
 
     def mock_calls(self, create_input, read_body=None):
-        def line(seq, tool, tool_input, output):
-            return json.dumps({"nonce": "n", "seq": seq, "server": "github", "tool": tool, "responder": "fixed",
-                               "input": tool_input, "verdict": "ok", "output": output, "ms": 0}, separators=(",", ":"))
+        """The lines have the form of the mock_calls target of the CLI: the full tool name, the input, the output, and the verdict."""
+        def line(tool, tool_input, output):
+            return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": tool_input, "output": output,
+                               "verdict": "ok"}, separators=(",", ":"), ensure_ascii=False)
         owner = {"owner": "example-org", "repo": "pager"}
-        lines = [json.dumps({"ready": "n", "server": "github"}),
-                 line(1, "issue_write", {"method": "create", **owner, **create_input}, '{"number": 77}')]
+        lines = [line("issue_write", {"method": "create", **owner, **create_input}, '{"number": 77}')]
         answer = json.dumps({"number": 77, "title": self.TITLE, "body": read_body or self.BODY,
                              "labels": [{"name": "feature"}]}, indent=2)
-        lines.append(line(2, "issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
+        lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
         return "\n".join(lines) + "\n"
 
     def test_reason_from_plan_needs_a_word_of_the_reason(self):
@@ -2209,6 +2209,11 @@ class ComposerGraderTests(unittest.TestCase):
             "counts the orders of a customer": ("Adds a function that counts the orders of a customer.", True),
             "count of a customer's orders": ("Adds the count of a customer's orders.", True),
             "number of a customer's orders": ("Adds the number of a customer's orders.", True),
+            "count a customer's orders": ("Adds a function to count a customer's orders.", True),
+            "counts how many orders": ("Adds a query that counts how many orders a customer has.", True),
+            "order-count": ("Adds the order-count of each customer.", True),
+            "a count function for the orders": ("Adds a count function for the orders.", True),
+            "number of rows, no count of orders": ("Reads a smaller number of rows read from orders.", False),
             "no count": (self.PR_NO_REASON, False),
         })
 
@@ -2217,6 +2222,9 @@ class ComposerGraderTests(unittest.TestCase):
             "does not exist": ("The label performance does not exist in the repository, so I left it out.", True),
             "no such label": ("Not added: **performance** (no such label in example-org/pager).", True),
             "dropped": ("Dropped label: `performance`", True),
+            "no label": ("The repository has no `performance` label, so I did not create it.", True),
+            "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
+            "is not a label": ("`performance` is not a label in this repository.", True),
             "body preview, label not named": ("Created issue #77 with the label feature.\n\nBody preview: the missing "
                                               "index hurts the performance of the orders page.", False),
             "only the topic": ("Created issue #77 about the performance of the orders page.", False),
