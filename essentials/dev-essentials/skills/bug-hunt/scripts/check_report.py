@@ -161,9 +161,10 @@ def sections(text):
     """Split the report into H2 sections. Lines in fenced code blocks are not headings."""
     result, name, body, fence, marker = [], None, [], False, ""
     for n, line in enumerate(text.split("\n"), 1):
-        if not fence and (line.startswith("```") or line.startswith("~~~")):
-            fence, marker = True, line[:3]
-        elif fence and line.startswith(marker):
+        opener = re.match(r"^ {0,3}(```|~~~)", line)
+        if not fence and opener:
+            fence, marker = True, opener.group(1)
+        elif fence and re.match(r"^ {0,3}" + marker, line):
             fence = False
         if not fence and line.startswith("## "):
             if name is not None:

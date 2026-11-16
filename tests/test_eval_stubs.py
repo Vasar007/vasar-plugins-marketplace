@@ -32,9 +32,10 @@ def dotted(version):
 def synced_version(folder):
     """The version in the plugin.json of a synced copy, as a tuple of integers, or None."""
     try:
-        text = json.loads((folder / ".claude-plugin/plugin.json").read_text(encoding="utf-8")).get("version")
+        manifest = json.loads((folder / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    text = manifest.get("version") if isinstance(manifest, dict) else None
     return tuple(map(int, text.split("."))) if isinstance(text, str) and VERSION_NAME.fullmatch(text) else None
 
 
@@ -139,6 +140,12 @@ class CheckDriftTests(ScratchCase):
     def test_a_synced_copy_with_no_readable_version_is_skipped(self):
         self.install_synced("simple-english", "latest")
         (self.root / SYNCED / "abc_def" / "simple-english~g2").mkdir()
+        self.assertEqual(check_drift(self.source, self.root)[0], "skip")
+
+    def test_a_synced_copy_whose_manifest_is_not_an_object_is_skipped(self):
+        manifest = self.root / SYNCED / "abc_def" / "simple-english" / ".claude-plugin/plugin.json"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text("[]", encoding="utf-8")
         self.assertEqual(check_drift(self.source, self.root)[0], "skip")
 
     def test_a_synced_folder_of_another_plugin_is_ignored(self):

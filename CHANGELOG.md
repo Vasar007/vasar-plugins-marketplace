@@ -29,7 +29,7 @@ This release fixes four bugs that a code review found in two plugin scripts. It 
 - `tests/test_eval_stubs.py`: the drift test of the `simple-english` stand-in also reads the synced copies of the plugin, with the folder names `simple-english` and `simple-english~g<N>`. On a machine with synced plugins, the test always skipped before (issue #110).
 - `tests/test_openbsd_lint.py`: a new test makes sure that the hook joins a relative `file_path` with the `cwd` of the event (issue #110).
 - `tests/test_eval_scaffolds.py`: a new check makes sure that each commit id in a regex grader pattern starts a commit of the scaffold repository (issue #110).
-- `.github/workflows/tests.yml`: a new push to a pull request cancels the test run that the earlier push started. A push to `main` still runs to the end (issue #110).
+- `.github/workflows/tests.yml`: a new push to a pull request cancels the test run that the earlier push started. A push to `main` never cancels a run that is already running. A newer push to `main` can replace a run that still waits in the queue (issue #110).
 
 ## dev-essentials 3.14.0 in release [4.11.0] - 2026-11-16
 

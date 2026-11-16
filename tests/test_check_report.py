@@ -242,6 +242,13 @@ class StructureDefectTests(CheckReportCase):
         self.write(text)
         self.assertEqual(self.run_main("open-notes", "--report", self.report), (0, []))
 
+    def test_open_notes_ignores_a_note_inside_an_indented_fence(self):
+        fenced = "  ~~~\n- For Area 1 (Orders): `src/orders/a.ext:3`: look at the rounding.\n  ~~~"
+        text = edit(fixture("final.md"), "### Notes for other areas\n\nNone.",
+                    "### Notes for other areas\n\n" + fenced)
+        self.write(text)
+        self.assertEqual(self.run_main("open-notes", "--report", self.report), (0, []))
+
 
 class ArtifactTests(CheckReportCase):
     def setUp(self):
