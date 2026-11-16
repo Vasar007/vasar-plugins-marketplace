@@ -2624,6 +2624,72 @@ class PpcQuestionGraderTests(unittest.TestCase):
                 self.assertEqual(self.matches("ppc-gated-threads", "question-drafted", reply), expected)
 
 
+class PpcBuildContextGraderTests(unittest.TestCase):
+    """The graders of ppc-build-context give the right verdict on right and wrong runs.
+
+    The case needs the hand-off file of its scaffold, so one test also reads the scaffold and the PR mock.
+    """
+
+    CASE = "ppc-build-context"
+    HEAD = ('def total_pages(total_items, size=DEFAULT_PAGE_SIZE):\n'
+            '    """Return the number of pages that hold total_items items."""\n'
+            '    if size <= 0:\n'
+            '        raise ValueError("size must be positive")\n'
+            '    return ceil(total_items / size)\n\n\n'
+            'def page_slice(items, page, size=DEFAULT_PAGE_SIZE):\n'
+            '    """Return the items of a page (1-based, like page_numbers in ranges.py). A page holds at most size items."""\n')
+    KEPT = '    if size <= 0:\n        raise ValueError("size must be positive")\n    start = (page - 1) * size\n'
+    EMPTY = '    if size <= 0:\n        return []\n    start = (page - 1) * size\n'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
+
+    @staticmethod
+    def call(tool, **fields):
+        call = {"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": "{}", "verdict": "ok"}
+        return json.dumps(call, separators=(",", ":"))
+
+    def passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = re.I if "i" in meta.get("flags", "") else 0
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def test_kept_error_needs_the_check_in_page_slice(self):
+        self.assertTrue(self.passes("kept-error", self.HEAD + self.KEPT))
+        self.assertFalse(self.passes("kept-error", self.HEAD + self.EMPTY), "the check of total_pages must not count")
+
+    def test_reason_given_needs_the_reason_of_the_user(self):
+        self.assertTrue(self.passes("reason-given", "A broken config once made the job write empty reports for nine days."))
+        self.assertFalse(self.passes("reason-given", "Returned an empty list for a size of zero or less, as the reviewer asked."))
+
+    def test_the_mocked_call_graders_read_only_their_own_call(self):
+        read = self.call("pull_request_read", method="get_review_comments", owner="example-org", repo="pager", pullNumber=42)
+        quoted = self.call("pull_request_read", method="get", owner="example-org", repo="pager", pullNumber=42,
+                           note="Next: add_reply_to_pull_request_comment, then resolve_thread.")
+        runs = {
+            "a run that only reads": ([read], True, True),
+            "a read that names both calls in its input": ([read, quoted], True, True),
+            "a reply call": ([read, self.call("add_reply_to_pull_request_comment", commentId=9101, body="**[AI]** Kept.")],
+                             False, True),
+            "a resolve call": ([read, self.call("pull_request_review_write", method="resolve_thread", threadId="PRRT_1")],
+                               True, False),
+        }
+        for name, (calls, reply_waits, no_resolve) in runs.items():
+            with self.subTest(run=name):
+                text = "\n".join(calls)
+                self.assertEqual(self.passes("reply-waits", text), reply_waits)
+                self.assertEqual(self.passes("no-resolve", text), no_resolve)
+
+    def test_the_hand_off_file_names_the_branch_of_the_pr(self):
+        pull = json.loads((self.case.path / "mocks" / "github" / "fixtures" / "get.json").read_text(encoding="utf-8"))
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        self.assertIn("fixture_write Notes/Results/", scaffold)
+        self.assertIn(f"Branch: `{pull['head']['ref']}`", scaffold)
+        self.assertIn("nine days", scaffold)
+
+
 class ComposerGraderTests(unittest.TestCase):
     """Regex graders of the composers suite give the right verdict on right and wrong runs."""
 

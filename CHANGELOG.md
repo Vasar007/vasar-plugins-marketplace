@@ -11,6 +11,19 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.16.0 in release [4.13.0] - 2026-11-16
 
+This release lets `process-pr-comments` read the hand-off file of the earlier work on the PR branch. A new session then keeps the decisions that the user made in the build session (issue #199).
+
+### Added in dev-essentials
+
+- `skills/process-pr-comments`: Phase 1 step 7 reads the hand-off file of the earlier work on the PR branch. That is the file that the user names. Else, it is each file in `Results/` of the notes folder whose `Branch:` line names the head branch of the PR. `/dev-essentials:save-context` writes such files. If a comment asks to reverse a decision of the user in the file, the skill does not edit the code. It asks the user, with a draft reply that gives the reason of the decision (issue #199).
+- `skills/process-pr-comments`: the cycle log of Phase 5 can end with one tip. If the session held other work before the skill, the tip says that `/usage` shows whether the prompt cache is warm. After the cache is cold, a new session with the file of `save-context` costs less. The skill does not stop for the tip (issue #199).
+- `evals/process-pr-comments/ppc-build-context`: a new behavior case. A reviewer asks for a change that the user ruled out in the build session. The reason is only in the hand-off file of the scaffold, and the prompt does not name the file. The graders make sure that the run keeps the error and gives the reason of the user. They also make sure that the run makes no commit, no push, no reply, and no resolve (issue #199).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `PpcBuildContextGraderTests` gives right and wrong samples to the graders of `ppc-build-context`. It also makes sure that the hand-off file of the scaffold names the branch of the PR mock (issue #199).
+- `docs/evals.md`: the suite `process-pr-comments` has 10 behavior cases (issue #199).
+
 This release turns two fixed steps of the skill `review-loop` into scripts with unit tests: the failure check after a red build, and the grouping of a large diff into review areas.
 
 ### Added in dev-essentials
@@ -1701,6 +1714,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...HEAD
+[4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.13.0
+
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.12.1
