@@ -11,6 +11,8 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.16.0 in release [4.13.0] - 2026-11-16
 
+
+
 ## dev-essentials 3.15.2 in release [4.12.2] - 2026-11-16
 
 This release settles the deferred review findings of the PRs #175, #176, #177, and #179. It makes seven eval graders read more right wordings and fewer wrong runs. The skill text does not change.
@@ -65,6 +67,22 @@ This release turns two fixed steps of the skill `review-loop` into scripts with 
 - `tests/test_failure_check.py` and `tests/test_group_diff.py`: new tests for the two scripts, with real git repositories and short bash commands. On Windows, `taskkill` does not reach a Git Bash program that a background subshell starts. So on Windows, the test of the time limit accepts a `WARN` line for the folder that this program keeps. The test then stops the program and deletes the folder (issue #197).
 - `docs/testing.md`: names the tests of the two scripts (issue #197).
 - `.github/workflows/tests.yml`: the job `test-windows` also runs `test_failure_check` and `test_group_diff` (issue #197).
+
+## dev-essentials 3.15.1 in release [4.12.1] - 2026-11-16
+
+This release makes the eval graders that read the mocked GitHub calls find a tool name only in the `tool` field of a call. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals`: 32 regex graders on `mock_calls` named a tool or a method without the `tool` field. Now each one starts at the `tool` field, in the form `"tool":"(?:[\w-]*__)?<tool>"`. Before, a tool name in the input or the output of another call also matched. With such a name, a `contains` grader can pass a run with no such call. A `not_contains` grader can fail a right run, and a count can be too high. No kept run had such a name. The suites are `bug-hunt`, `composers`, `feature-pipeline`, `probes`, and `process-pr-comments` (issue #189).
+- `evals/process-pr-comments`: the three graders on the method `resolve_thread` now read it only in a call of `pull_request_review_write`. The graders that read the text or the comment id of a reply now read only the line of that reply. Before, they also read the next call (issue #189).
+- `evals`: the five graders that already read the `tool` field now use `(?:[\w-]*__)?` in place of `\w*`. So the name `issue_write` no longer matches the tool `sub_issue_write`. The graders `label-kept`, `no-missing-label`, and `no-title-in-body` of `cmp-issue-create` no longer read past the end of the create call (issue #189).
+- A replay of the new patterns on 170 kept runs gave the stored verdict of each run (issue #189).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new test class `MockCallsGraderTests` makes sure that each regex grader on `mock_calls` starts at the `tool` field and names a mocked tool only there. The part after a `tool` field must not read past the end of the call line, except a span to a second `tool` field. Each side of a `|` outside a group must also start at a `tool` field. Samples for each kind of grader test a tool name in another call and the real call (issue #189).
+- `docs/evals.md`: a new paragraph says that a pattern on `mock_calls` starts at the `tool` field and reads only the line of its call. It names the test that checks this (issue #189).
 - `docs/authoring.md`: the paragraph about the sync notice for a changed plugin lists the three recorded sync results. It says which changes came with the notice, and that the notice asks for no fix (issue #200).
 
 ## dev-essentials 3.15.0 in release [4.12.0] - 2026-11-16
@@ -1704,6 +1722,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...HEAD
+[4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.13.0
+
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.13.0
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
