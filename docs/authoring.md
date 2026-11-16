@@ -44,14 +44,15 @@ Run the second command for each plugin that you changed. The run on the reposito
 
 ## Rules of the claude.ai sync
 
-The owner syncs this marketplace into a claude.ai organization. The sync reads the `main` branch. The sync has rules that `claude plugin validate` does not check, and its docs do not list all of them. This list names each rule that a sync or the docs showed so far. `tests/test_claude_ai_sync.py` tests each rule except the last one:
+The owner syncs this marketplace into a claude.ai organization. The sync reads the `main` branch. The sync has rules that `claude plugin validate` does not check, and its docs do not list all of them. This list names each rule that a sync or the docs showed so far. `tests/test_claude_ai_sync.py` tests each rule except the name rule and the last one. `tests/test_plugin_cli.py` tests the name rule with `claude plugin validate --strict`:
 
-- `plugin.json` uses only the keys that a sync took with no warning. The sync strips any other top-level key, also a key that the manifest reference documents, such as `$schema` or `icon`.
+- `plugin.json` uses only the keys that a sync took with no warning. The sync stripped `$schema` and `icon` and warned, although the manifest reference documents both keys. No source lists the keys that the sync takes. So any other key can get the same warning until a sync takes it.
 - `marketplace.json` and its plugin entries use only the keys that a sync took with no warning.
 - The `description` of a skill, an agent, or a command holds no angle brackets. claude.ai reads them as XML tags and removes them.
 - A plugin folder holds no other `.claude-plugin` folder. The sync skips such a plugin.
 - A plugin folder has no top-level `bin/` folder. claude.ai rejects such a plugin. See [Keep executables out of the top-level bin directory](https://claude.com/docs/plugins/org-sync#keep-executables-out-of-the-top-level-bin-directory).
-- Each plugin `source` in `marketplace.json` starts with `./`.
+- Each plugin `source` in `marketplace.json` starts with `./`. Claude Code also accepts a bare name under `metadata.pluginRoot`, but the sync rejects it. See [Plugin sources that organization sync accepts](https://claude.com/docs/plugins/org-sync#plugin-sources-that-organization-sync-accepts).
+- Each plugin `name` is kebab-case: lowercase letters, digits, and hyphens. The sync requires that form. See [Troubleshoot plugins](https://code.claude.com/docs/en/plugins/troubleshooting).
 - The repository stays private on GitHub. If it becomes public, the sync no longer takes the marketplace. See [Plugin sources that organization sync accepts](https://claude.com/docs/plugins/org-sync#plugin-sources-that-organization-sync-accepts).
 
 To add a key to `plugin.json` or `marketplace.json`, add it to the key lists at the top of `tests/test_claude_ai_sync.py` in the same PR. Name the new key in the PR description, so that the owner reads the sync result after the merge. The result is in claude.ai, on the page of the marketplace under Organization settings, Plugins & skills, Marketplaces. If a sync shows a warning that no test knew, open an issue with the exact text of the warning. The PR that fixes it adds a test for the rule and a line to this list.
@@ -62,4 +63,4 @@ The sync page can also show this notice for a plugin:
 Executable files or settings may differ from the version you were using before this sync.
 ```
 
-It appeared for release 4.11.1, which changed a Python script of dev-essentials. The docs do not say what starts it. It is not a warning, and no test checks it.
+It appeared for release 4.11.1, for dev-essentials only. That release changed a script in dev-essentials and a script in kb, so a script change alone does not explain it. The docs do not say what starts it. It is not a warning, and no test checks it.

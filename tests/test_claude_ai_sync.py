@@ -110,8 +110,8 @@ class ClaudeAiSyncTest(unittest.TestCase):
         failures = {root.relative_to(REPO).as_posix(): unknown_keys(load_json(root / ".claude-plugin" / "plugin.json"),
                                                                     SYNC_PLUGIN_KEYS) for root in roots}
         failures = {root: keys for root, keys in failures.items() if keys}
-        self.assertEqual(failures, {}, "The claude.ai sync strips these plugin.json keys and warns, also documented "
-                                       "keys such as \"$schema\" and \"icon\". Remove them, or see docs/authoring.md.")
+        self.assertEqual(failures, {}, "No claude.ai sync took these plugin.json keys yet. It stripped documented keys "
+                                       "such as \"$schema\" and \"icon\" and warned. Remove them, or see docs/authoring.md.")
 
     def test_the_marketplace_uses_only_the_keys_that_the_sync_takes(self):
         marketplace = load_json(REPO / ".claude-plugin" / "marketplace.json")
@@ -122,7 +122,8 @@ class ClaudeAiSyncTest(unittest.TestCase):
 
     def test_plugin_sources_start_with_dot_slash(self):
         marketplace = load_json(REPO / ".claude-plugin" / "marketplace.json")
-        failures = [entry["name"] for entry in marketplace["plugins"] if not str(entry["source"]).startswith("./")]
+        failures = [entry["name"] for entry in marketplace["plugins"]
+                    if isinstance(entry["source"], str) and not entry["source"].startswith("./")]
         self.assertEqual(failures, [], "The claude.ai sync takes a relative plugin source only when it starts with ./.")
 
     def test_plugins_have_no_top_level_bin_folder(self):
