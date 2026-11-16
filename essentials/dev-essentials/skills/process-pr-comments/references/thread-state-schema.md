@@ -143,7 +143,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 }
 ```
 
-- `summary` lets the orchestrating session report the cycle counts to the user at once, without a wait for Stage 2.
+- `summary` lets the orchestrating session report the cycle counts to the user at once, before Stage 2 starts.
 - `summary.systemNoiseDropped` counts the threads that Phase 2 dropped before the classification. These are the bot comments that Phase 2 step 1 skips, and the threads that GitHub already marks `is_resolved` or `is_outdated` (Phase 2 step 2).
 - `summary.newComments` counts the comments of this cycle that are not yet in `processedCommentIds`. Stage 1 has every input that it needs for this count. The number feeds the "N new comments" figure in the header of the cycle log (`SKILL.md` Phase 5). So Stage 2 does not have to derive it from the `comments` arrays of the threads.
 - `summary.needsStage2Action` does not count a `pr-commit-no-reply` thread, because Stage 2 takes no action on it. The cycle log (Phase 5) still prints its report line. This holds also for a cycle in which no other thread needs action.

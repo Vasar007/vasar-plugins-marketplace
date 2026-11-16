@@ -15,7 +15,7 @@ This release runs Stage 2 of `process-pr-comments` in the orchestrating session.
 
 ### Added in dev-essentials
 
-- `evals/process-pr-comments/ppc-open-items-answered`: a new behavior case. A reviewer asks a question and marks one thread as out of scope. The prompt gives the answers of the user in advance. The graders make sure that the run creates the issue with the `Source:` line of the thread before any reply posts. They also make sure that the run posts both replies and makes no commit. They make sure too that the out-of-scope reply names the new issue (issue #171, issue #122).
+- `evals/process-pr-comments/ppc-open-items-answered`: a new behavior case. A reviewer asks a question and marks one thread as out of scope. The prompt gives the answers of the user in advance. The graders make sure that the run creates the issue with the `Source:` line of the thread before any reply posts. They also make sure that the run posts both replies, resolves no thread, and makes no commit. They make sure too that the out-of-scope reply names the new issue (issue #171, issue #122).
 
 ### Changed in dev-essentials
 

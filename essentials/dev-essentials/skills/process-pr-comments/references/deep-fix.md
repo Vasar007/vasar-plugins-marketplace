@@ -24,7 +24,7 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 
 ## Place in the cycle
 
-An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles it separately, last in the cycle. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs before the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
+An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles it separately, after the other threads. Stage 3 runs after steps 1 to 4 of every other thread, and after the `squash` commit for a run with `squash`. It runs before the one push of the cycle. With this order, no other commit lands on the branch between the `HEAD` that Stage 3 records and the one commit that it makes.
 
 **Stage 2 around Stage 3**. Stage 2 and Stage 3 both run in the orchestrating session. On such a cycle, Stage 2 first runs steps 1 to 4 of every other thread. For a run with `squash`, it also makes the `squash` commit. Then Stage 3 runs. The post of the replies, the push, the resolve, and Phase 5 of this cycle come after Stage 3. The session asks the open items of Stage 2 with its question for the go-ahead (with `autonomous`, before the post). It uses the answers in the post: the approved `[Question]` replies and the approved issue fields. If an answer asks for a code change, the rule for a changed fix applies (`commit-push-resolve.md` § "When replies post").
 
