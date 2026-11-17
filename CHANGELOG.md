@@ -9,11 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-### Changed in the repository
-
-- `docs/authoring.md`: the section "Conventions" states that a Python script reads its arguments with `argparse`, and it names the one exception (issue #220).
-
-## dev-essentials 3.17.3 in release [4.14.3] - 2026-11-17
+## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
 This release fixes the trigger case `compose-task-fires`, which failed in about one run of three. The skill text does not change.
 
@@ -25,6 +21,7 @@ This release fixes the trigger case `compose-task-fires`, which failed in about 
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: the new class `ComposeTaskFiresCaseTests` makes sure that the prompt of `compose-task-fires` uses two phrases of the skill for `mode: response`. It also makes sure that the case keeps the tool `Agent` and lists no tool that writes a file. It gives right and wrong samples to the graders on the skill and on the wrapper agent. The new class `ComposeTaskDraftFiresCaseTests` makes sure that the prompt of `compose-task-draft-fires` has the trigger words and no phrase of the skill for another mode. It also makes sure that the case lists no `Agent` tool and no tool that writes a file. Its graders must be the two graders of `compose-task-fires` on the skills (issue #217).
+- `docs/authoring.md`: the section "Conventions" states that a Python script reads its arguments with `argparse`, and it names the one exception (issue #220).
 
 ## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
 
@@ -1766,8 +1763,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.3...HEAD
-[4.14.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.3
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...HEAD
+[4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
