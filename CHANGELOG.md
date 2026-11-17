@@ -15,11 +15,11 @@ This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a 
 
 ### Added in dev-essentials
 
-- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It never overwrites an entry, never follows a link, and never deletes a folder that is not empty. Its output is short, and each name prints on one line (issue #223).
+- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It tests each target before a move, and it never replaces an entry that it finds. It never follows a link, and it never deletes a folder that is not empty. It keeps a worktree index that holds a line with no link, and it applies only a plan that it prints in full. Its output is short, and each name prints on one line (issue #223).
 
 ### Changed in dev-essentials
 
-- `commands/merge-worktree-projects`: Steps 1 to 5 run the script. The command keeps the questions to the user: an ambiguous keyword, a folder with recent activity, and the approval of the plan. Without Python 3, the command stops and moves no file (issue #223).
+- `commands/merge-worktree-projects`: Steps 1 to 5 run the script. The command keeps the questions to the user: an ambiguous keyword, a folder with recent activity, and the approval of the plan. Without Python 3, the command stops and moves no file. The command also says how to pass a folder name that starts with `-`. It also says how to split a plan that is too long (issue #223).
 
 ### Changed in the repository
 

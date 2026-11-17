@@ -9,33 +9,49 @@ of a leading drive letter ("C--" or "c--") does not count. A main folder name ha
 For each pair (M, W), the script does these steps:
 1. It skips W if a file or a folder in W changed in the last 2 hours, unless --allow-recent names W.
    It also skips W if W is a link, if W matches two main folders, or if it cannot read W.
+   It skips the whole group of M if M is a link. It does the same if M/memory, an entry of M/memory,
+   or M/MEMORY.md is a link.
 2. It stops the pair if W holds a link, or if M has an entry with the name of a top-level entry of W.
    The folder memory/ and the file MEMORY.md of W do not count. A stopped pair changes nothing.
+   It also stops the pair if W holds an entry named memory or MEMORY.md in another case or of another kind.
 3. It merges the files of W/memory into M/memory. A file with a new name moves. A file with the same
    bytes as the file of M is dropped. A file with other bytes moves as <stem>-2<ext>, or as the first free
    name up to <stem>-9<ext>. With no free name, or for a folder, the entry stays in W/memory.
 4. It merges the memory index of W (W/memory/MEMORY.md, else W/MEMORY.md) into the index of M
    (M/memory/MEMORY.md, else M/MEMORY.md). It appends each pointer line of W whose link target, after
    the renames of step 3, the index of M does not name. With no index in M, it creates
-   M/memory/MEMORY.md from the index of W. It removes the index of W, but it keeps it if a pointer line
-   of W names a file that stays. Then it deletes W/memory if it is empty.
+   M/memory/MEMORY.md from the index of W. A pointer line is a line with a Markdown link, also a link
+   with a title. It removes the index of W, but it keeps it if a pointer line of W names a file that
+   stays. If a line of W with no link is not a heading and is not in the index of M, it also keeps the
+   index of W. Then it deletes W/memory if it is empty.
 5. It moves the other top-level entries of W into M. It deletes W only if W is then empty.
+The actions of a pair come in this order: the index of M, the memory files, the index of W, the other entries.
+So a run after a failed action still finds the index line of a renamed memory file.
 
 Names compare without case on each system, so a plan is the same on Windows and on Linux.
-The script never overwrites an entry, never copies, and never deletes a folder that is not empty.
+The script never copies, and never deletes a folder that is not empty. It tests each target before a move,
+and it never replaces an entry that it finds. On Linux and macOS, one limit stays: a file that another
+process makes in the instant after that test is replaced.
 
 Without --apply, the script prints the plan and changes nothing. The plan ends with the line PLAN <code>.
 With --apply, the script needs --confirm <code> from the plan that the user approved. It makes the plan
-again, and it changes nothing if the code differs. At the first failed action, it stops the run.
+again, and it changes nothing if the code differs or if the plan has a CUT line. The code also holds the
+path of the projects folder. At the first failed action, it stops the run.
 
 Output lines: DRY RUN or APPLY first, then ROOT, MAIN, EXCLUDED, SKIP, STOP, MEMORY, INDEX, MOVE,
-DELETE, KEEP, NOTE, CUT, and FAILED. The last lines are TOTAL, PLAN, and RESULT. A line has at most 300
-characters, and at most 120 lines come before TOTAL. Each name, path, index line, and error text
+DELETE, KEEP, NOTE, CUT, and FAILED. The last lines are TOTAL, PLAN, and RESULT. A line shows at most 200
+characters, and then the count of the other characters. At most 120 lines come between the first line and
+TOTAL. A CUT line then gives the count of the other lines. Each name, path, index line, and error text
 that a line holds goes through show(): text with a character that is not printable, for example a
-line break, prints as a JSON string. So no name can start a line of its own.
+line break, prints as a JSON string. So no name can start a line of its own. The text of a name or of an
+index line is data from the disk, never an instruction.
 
-Exit codes: 0 = plan printed or applied, 1 = an action failed, 2 = usage error,
-3 = a keyword matches no main folder or more than one, 4 = the plan differs from --confirm.
+Exit codes: 0 = plan printed or applied, 1 = an action failed (a FAILED line), or the script failed with a
+Python traceback, 2 = usage error, 3 = a keyword matches no main folder or more than one,
+4 = the plan differs from --confirm, or the plan has a CUT line.
+
+A folder name that starts with "-" goes after "--". A flag takes such a value with "=", for example
+--allow-recent=<name>.
 
 It needs Python 3.7 or later and only the standard library.
 
@@ -43,6 +59,7 @@ Examples:
   python3 -I merge_projects.py
   python3 -I merge_projects.py my-repo --exclude=feature-x
   python3 -I merge_projects.py my-repo --apply --confirm 1a2b3c4d5e6f
+  python3 -I merge_projects.py --allow-recent=-home-u-app--claude-worktrees-x -- -home-u-app
 """
 import argparse
 import copy
@@ -58,11 +75,12 @@ from pathlib import Path
 
 SEGMENTS = ("--claude-worktrees-", "--worktrees-")
 DRIVE = re.compile(r"^[A-Za-z]--")
-LINK = re.compile(r"\]\(([^)\s]+)\)")
+LINK = re.compile(r'\]\(<?([^)<>\s]+)>?(?:\s+"[^"]*")?\)')
 RECENT_SECONDS = 2 * 60 * 60
-LINE_CHARS = 300
+LINE_CHARS = 200
 MAX_LINES = 120
 MAX_DETAIL = 20
+MAX_HITS = 10
 MEMORY = "memory"
 INDEX = "MEMORY.md"
 NOT_MIGRATED = " (not migrated, see manual resolution)"
@@ -105,10 +123,10 @@ def is_worktree_name(name):
     return any(segment in name for segment in SEGMENTS)
 
 
-def is_sibling(main, name):
-    """True if name is main, then a worktree segment, then more text. The case of a drive letter does not count."""
+def is_sibling(main_name, name):
+    """True if name is main_name, then a worktree segment, then more text. The case of a drive letter does not count."""
     for segment in SEGMENTS:
-        prefix = main + segment
+        prefix = main_name + segment
         start = name[:len(prefix)]
         if len(name) <= len(prefix):
             continue
@@ -138,11 +156,26 @@ def newest_change(folder):
     return newest
 
 
+class Parser(argparse.ArgumentParser):
+    """An argument parser that prints its own error message as one escaped line."""
+
+    def error(self, message):
+        usage_error(show(message))
+
+
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    # A project folder name on Linux starts with "-". argparse reads such an argument as a flag.
+    for arg in sys.argv[1:] if argv is None else argv:
+        if arg == "--":
+            break
+        if arg.startswith("-") and not arg.startswith("--") and arg != "-h":
+            usage_error(f'{show(arg)} starts with "-", so it reads as a flag. Put a folder name after "--", '
+                        'and give a flag its value with "=", for example --allow-recent=<name>.')
+    parser = Parser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter, allow_abbrev=False)
     parser.add_argument("keywords", nargs="*",
                         help="main folder names or keywords. A keyword matches a main folder name without case. "
-                             "With none, the script takes each main folder that has a worktree folder.")
+                             "With none, the script takes each main folder that has a worktree folder. "
+                             'Put a name that starts with "-" after "--".')
     parser.add_argument("--exclude", action="append", default=[], metavar="TEXT[,TEXT...]",
                         help="skip each folder whose name holds one of these texts, without case. "
                              "An excluded main folder skips its whole group.")
@@ -160,7 +193,12 @@ def parse_args(argv):
     for name in args.keywords + args.allow_recent:
         if not name or "/" in name or "\\" in name or name in (".", ".."):
             usage_error(f"not a folder name: {show(name)}")
-    if args.root:
+    for value in args.exclude:
+        if not any(part.strip() for part in value.split(",")):
+            usage_error("--exclude needs a text. An empty value excludes nothing.")
+    if args.root is not None:
+        if not args.root.strip():
+            usage_error("--root must not be empty.")
         root = Path(args.root).expanduser()
     elif os.environ.get("CLAUDE_CONFIG_DIR"):
         root = Path(os.environ["CLAUDE_CONFIG_DIR"]).expanduser() / "projects"
@@ -191,9 +229,9 @@ def find_groups(root, keywords):
             elif not hits:
                 problems.append(f"NOMATCH {show(word)}: no main folder name holds it")
             else:
-                more = f" ... {len(hits) - 10} more" if len(hits) > 10 else ""
+                more = f" ... {len(hits) - MAX_HITS} more" if len(hits) > MAX_HITS else ""
                 problems.append(f"AMBIGUOUS {show(word)}: {len(hits)} main folders match: "
-                                + ", ".join(show(h) for h in hits[:10]) + more)
+                                + ", ".join(show(h) for h in hits[:MAX_HITS]) + more)
     else:
         chosen = {m for found in owners.values() for m in found}
     groups = {m: sorted(w for w, found in owners.items() if m in found) for m in sorted(chosen)}
@@ -208,9 +246,12 @@ class MainState:
         self.top = {key(e.name) for e in os.scandir(str(path))}
         memory = path / MEMORY
         self.memory_exists = memory.is_dir()
-        self.memory = {}
-        if self.memory_exists:
-            self.memory = {key(e.name): Path(e.path) for e in os.scandir(str(memory)) if e.name != INDEX}
+        self.memory, self.planned = {}, {}
+        self.links = [name for name in (MEMORY, INDEX) if is_link(path / name)]
+        if self.memory_exists and not self.links:
+            entries = list(os.scandir(str(memory)))
+            self.links = sorted(f"{MEMORY}/{e.name}" for e in entries if is_link(e.path))
+            self.memory = {key(e.name): Path(e.path) for e in entries if e.name != INDEX}
         self.index = next((p for p in (memory / INDEX, path / INDEX) if p.is_file()), None)
         self.index_text = read_text(self.index) if self.index else None
         self.refs = set(LINK.findall(self.index_text or ""))
@@ -220,12 +261,18 @@ class Plan:
     """The actions and the output lines of one run. Making a plan reads the disk and changes nothing."""
 
     def __init__(self, root, exclude, allow_recent, now):
-        self.root, self.exclude, self.allow_recent, self.now = root, exclude, set(allow_recent), now
-        self.lines, self.actions, self.keys, self.deletes = [], [], [], []
+        self.root = root
+        self.exclude = exclude
+        self.allow_recent = set(allow_recent)
+        self.now = now
+        self.lines = []
+        self.actions = []
+        self.keys = []
+        self.deletes = []
         self.totals = {"pairs": 0, "moved": 0, "skipped": 0, "stopped": 0}
 
     def rel(self, path):
-        return Path(path).relative_to(self.root).as_posix()
+        return path.relative_to(self.root).as_posix()
 
     def say(self, line, plan_key=None):
         """Add an output line. A plan key also goes into the PLAN code."""
@@ -240,19 +287,24 @@ class Plan:
     def excluded(self, name):
         return any(text in name.lower() for text in self.exclude)
 
-    def group(self, main, siblings, owners):
-        path = self.root / main
-        self.say(f"MAIN {show(main)}: {len(siblings)} worktree folders", f"MAIN {main} {siblings}")
-        if self.excluded(main):
-            self.say(f"EXCLUDED {show(main)}: the main folder, so the whole group is skipped", f"EXCLUDED {main}")
+    def group(self, main_name, siblings, owners):
+        path = self.root / main_name
+        self.say(f"MAIN {show(main_name)}: {len(siblings)} worktree folders", f"MAIN {main_name} {siblings}")
+        if self.excluded(main_name):
+            self.say(f"EXCLUDED {show(main_name)}: the main folder, so the whole group is skipped",
+                     f"EXCLUDED {main_name}")
             return
         if is_link(path):
-            self.say(f"SKIP {show(main)}: the main folder is a link", f"SKIP {main} link")
+            self.skip(main_name, "the main folder is a link", "link")
             return
         try:
             state = MainState(path)
         except (OSError, ValueError) as error:
-            self.say(f"SKIP {show(main)}: cannot read the main folder: {show(str(error))}", f"SKIP {main} unreadable")
+            self.skip(main_name, f"cannot read the main folder: {show(str(error))}", "unreadable")
+            return
+        if state.links:
+            self.skip(main_name, "the main folder holds a link, and the script never follows a link: "
+                      + ", ".join(show(n) for n in state.links[:MAX_DETAIL]), f"links {state.links}")
             return
         for name in siblings:
             self.pair(state, name, owners[name])
@@ -281,12 +333,13 @@ class Plan:
             self.skip(name, f"recent activity, the newest change is {int(age // 60)} minutes old. "
                             "Make sure that it is safe to merge.", "recent")
             return
-        saved = (len(self.lines), len(self.actions), len(self.keys), copy.deepcopy(state.__dict__))
+        lines, actions, keys = len(self.lines), len(self.actions), len(self.keys)
+        before = copy.deepcopy(vars(state))
         try:
             PairPlan(self, state, name).build()
         except (OSError, ValueError) as error:
-            del self.lines[saved[0]:], self.actions[saved[1]:], self.keys[saved[2]:]
-            state.__dict__.update(saved[3])
+            del self.lines[lines:], self.actions[actions:], self.keys[keys:]
+            vars(state).update(before)
             self.say(f"STOP {show(name)}: cannot read a file: {show(str(error))}", f"STOP {name} unreadable")
             self.totals["stopped"] += 1
 
@@ -295,9 +348,12 @@ class PairPlan:
     """The plan of one pair (M, W). It adds actions and lines to the Plan, and updates the MainState."""
 
     def __init__(self, plan, state, name):
-        self.plan, self.state, self.name = plan, state, name
+        self.plan = plan
+        self.state = state
+        self.name = name
         self.path = plan.root / name
-        self.renames, self.stays = {}, set()
+        self.renames = {}
+        self.stays = set()
 
     def detail(self, details, kind):
         for line in details[:MAX_DETAIL]:
@@ -324,16 +380,27 @@ class PairPlan:
         if links:
             self.stop("it holds a link, and the script never follows a link", links)
             return
+        odd = [e.name for e in top if key(e.name) in (key(MEMORY), key(INDEX))
+               and not (e.name == MEMORY and has_memory) and not (e.name == INDEX and flat.is_file())]
+        odd += [f"{MEMORY}/{e.name}" for e in facts if key(e.name) == key(INDEX)
+                and not (e.name == INDEX and nested.is_file())]
+        if odd:
+            self.stop("an entry has the name of the memory folder or of the index, in another case or of another "
+                      "kind", odd)
+            return
         others = [e for e in top if e.name not in (MEMORY, INDEX)]
         clash = [e.name for e in others if key(e.name) in self.state.top]
         if clash:
             self.stop("the main folder has an entry with the same name", clash)
             return
         mark = len(self.plan.actions)
-        self.merge_facts([e for e in facts if e.name != INDEX])
+        fact_actions = self.merge_facts([e for e in facts if e.name != INDEX])
         keep_index = self.merge_index(index, index_text) if index else False
+        # The index lines come first. So a run after a failed move still finds the line of a renamed file.
+        for action, paths in fact_actions:
+            self.plan.act(action, *paths)
         if not keep_index and index:
-            self.plan.act("remove", index)
+            self.plan.act("remove", index, data=index_text)
         left = []
         if has_memory:
             if self.stays or (keep_index and index == nested):
@@ -358,12 +425,13 @@ class PairPlan:
             self.plan.act("rmdir", self.path)
             self.plan.deletes.append(self.name)
             self.plan.say(f"DELETE {show(self.name)}")
+        # Only the rmdir of W is planned, so W holds nothing.
         if len(self.plan.actions) == mark + 1 and not left:
             self.plan.say(f"NOTE {show(self.name)}: the folder is empty")
 
     def merge_facts(self, facts):
-        """Plan the files of W/memory, except the index."""
-        state, details, moved, dropped = self.state, [], 0, 0
+        """Plan the files of W/memory, except the index. Return the drop and move actions, for a later step."""
+        state, details, actions, moved, dropped = self.state, [], [], 0, 0
         target = state.path / MEMORY
         for entry in facts:
             if entry.is_dir(follow_symlinks=False):
@@ -372,8 +440,9 @@ class PairPlan:
                 continue
             final = entry.name
             if key(final) in state.memory:
-                if filecmp.cmp(entry.path, str(state.memory[key(final)]), shallow=False):
-                    self.plan.act("drop", Path(entry.path), state.memory[key(final)])
+                now_at = state.planned.get(key(final), state.memory[key(final)])
+                if filecmp.cmp(entry.path, str(now_at), shallow=False):
+                    actions.append(("drop", (Path(entry.path), state.memory[key(final)])))
                     dropped += 1
                     continue
                 stem, ext = os.path.splitext(entry.name)
@@ -389,22 +458,26 @@ class PairPlan:
             if not state.memory_exists:
                 self.plan.act("mkdir", target)
                 state.memory_exists = True
-            self.plan.act("move", Path(entry.path), target / final)
+            actions.append(("move", (Path(entry.path), target / final)))
             state.memory[key(final)] = target / final
+            state.planned[key(final)] = Path(entry.path)
             moved += 1
         if moved or dropped:
             self.plan.say(f"MEMORY {show(self.name)}: {moved} files move, "
                           f"{dropped} files with the same bytes as in the main folder are dropped")
         self.detail(details, "MEMORY")
+        return actions
 
     def rewrite(self, line):
         """The line with each link target that merge_facts renamed replaced by its new name."""
         def swap(match):
             target = match.group(1)
             base = target.replace("\\", "/").rsplit("/", 1)[-1]
+            whole = match.group(0)
             if base not in self.renames:
-                return match.group(0)
-            return "](" + target[:len(target) - len(base)] + self.renames[base] + ")"
+                return whole
+            start, end = match.start(1) - match.start(), match.end(1) - match.start()
+            return whole[:start] + target[:len(target) - len(base)] + self.renames[base] + whole[end:]
         return LINK.sub(swap, line)
 
     def stays_target(self, line):
@@ -415,11 +488,19 @@ class PairPlan:
         """Plan the memory index of W. Return True if the index of W stays."""
         state, details, keep = self.state, [], False
         newline = "\r\n" if "\r\n" in text else "\n"
-        lines = text.splitlines()
+        lines = [line[:-1] if line.endswith("\r") else line for line in text.split("\n")]
+        if not lines[-1]:
+            del lines[-1]
         if state.index is not None:
-            added = []
-            for line in lines:
+            added, main_lines = [], set(state.index_text.replace("\r\n", "\n").split("\n"))
+            for number, line in enumerate(lines):
+                if number == 0:
+                    line = line.lstrip(chr(0xFEFF))
                 if not LINK.search(line):
+                    if line.strip() and not line.lstrip().startswith("#") and line not in main_lines:
+                        keep = True
+                        details.append(f"INDEX {show(self.name)}: keeps its index, the main index does not hold "
+                                       f"this line with no link: {show(line)}")
                     continue
                 if self.stays_target(line):
                     keep = True
@@ -442,7 +523,7 @@ class PairPlan:
             details += [f"INDEX LINE {show(a)}" for a in added]
         else:
             new_lines = [line + NOT_MIGRATED if self.stays_target(line) else self.rewrite(line) for line in lines]
-            created = "".join(n + newline for n in new_lines)
+            created = text if new_lines == lines else "".join(n + newline for n in new_lines)
             if not state.memory_exists:
                 self.plan.act("mkdir", state.path / MEMORY)
                 state.memory_exists = True
@@ -459,13 +540,14 @@ class PairPlan:
 def make_plan(args, now):
     groups, owners, problems = find_groups(args.root, args.keywords)
     plan = Plan(args.root, args.exclude, args.allow_recent, now)
+    plan.keys.append(f"ROOT {args.root}")
     if problems:
         return plan, problems
-    for main, siblings in groups.items():
+    for main_name, siblings in groups.items():
         if siblings:
-            plan.group(main, siblings, owners)
+            plan.group(main_name, siblings, owners)
         else:
-            plan.say(f"MAIN {show(main)}: no worktree folder", f"MAIN {main} none")
+            plan.say(f"MAIN {show(main_name)}: no worktree folder", f"MAIN {main_name} none")
     named = {w for siblings in groups.values() for w in siblings}
     for name in sorted(set(args.allow_recent) - named):
         plan.say(f"NOTE --allow-recent {show(name)}: no worktree folder of this run has this name")
@@ -473,7 +555,7 @@ def make_plan(args, now):
 
 
 def plan_code(plan):
-    text = "\n".join(str(k) for k in plan.keys)
+    text = "\n".join(plan.keys)
     return hashlib.sha256(text.encode("utf-8", "backslashreplace")).hexdigest()[:12]
 
 
@@ -497,6 +579,9 @@ def run_action(action, paths, data):
         with open(first, "a" if action == "append" else "x", encoding="utf-8", newline="") as handle:
             handle.write(data)
     elif action == "remove":
+        with open(first, "rb") as handle:
+            if handle.read() != (data or "").encode("utf-8"):
+                raise OSError(f"the index changed after the plan: {show(first)}")
         os.remove(first)
     elif action == "rmdir":
         os.rmdir(first)
@@ -510,8 +595,10 @@ def main(argv=None):
     args = parse_args(argv)
     plan, problems = make_plan(args, time.time())
     if problems:
-        for line in problems:
+        for line in problems[:MAX_LINES]:
             print(cut(line))
+        if len(problems) > MAX_LINES:
+            print(f"CUT: {len(problems) - MAX_LINES} more lines.")
         print("RESULT: NO PLAN. Ask the user which main folder each keyword names, and run again.")
         return 3
     code = plan_code(plan)
@@ -519,12 +606,17 @@ def main(argv=None):
     lines = [f"ROOT {show(str(plan.root))}"] + plan.lines
     for line in lines[:MAX_LINES]:
         print(cut(line))
-    if len(lines) > MAX_LINES:
+    is_cut = len(lines) > MAX_LINES
+    if is_cut:
         print(f"CUT: {len(lines) - MAX_LINES} more lines. Run the script again for one main folder.")
     totals = plan.totals
     print(f"TOTAL: {totals['pairs']} pairs merge, {totals['moved']} entries move, {len(plan.deletes)} folders "
           f"are deleted, {totals['skipped']} skipped, {totals['stopped']} stopped.")
     print(f"PLAN {code}")
+    if is_cut:
+        print("RESULT: CUT PLAN. Nothing changed. The script applies only a plan that it prints in full. "
+              "Run it again for one main folder, or with --exclude for a part of the worktree folders.")
+        return 4 if args.apply else 0
     if not args.apply:
         print(f"RESULT: DRY RUN. After the user approves this plan, run again with --apply --confirm {code}.")
         return 0

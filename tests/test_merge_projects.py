@@ -6,18 +6,21 @@ for recent activity passes, unless a test wants a recent file.
 """
 import os
 import re
+import shutil
 import sys
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from support import REPO
+from support import REPO, load_module
 from testkit import ScratchCase, clean_env, run
 
 SCRIPT = REPO / "essentials/dev-essentials/scripts/merge_projects.py"
 MAIN = "C--src-app"
 WT1 = MAIN + "--claude-worktrees-feature-a"
 WT2 = MAIN + "--claude-worktrees-feature-b"
+mp = load_module("merge_projects", SCRIPT)
 S1 = "11111111-1111-4111-8111-111111111111"
 S2 = "22222222-2222-4222-8222-222222222222"
 S3 = "33333333-3333-4333-8333-333333333333"
@@ -103,7 +106,7 @@ class MergeCase(ScratchCase):
         if os.name == "nt":
             with open(self.root / WT1 / name, "rb"):
                 return self.merge("--apply", "--confirm", code)
-        return run([sys.executable, "-I", "-c", FAIL_RENAME, name, SCRIPT, "--root", self.root,
+        return run([sys.executable, "-I", "-c", FAIL_RENAME, os.path.basename(name), SCRIPT, "--root", self.root,
                     "--apply", "--confirm", code])
 
     def sessions(self, folder, *ids, subagents=False):
@@ -170,6 +173,9 @@ class ApplyTests(MergeCase):
         self.assertResult(self.merge("--apply"), 2, "--apply needs --confirm")
         self.assertResult(self.merge("--confirm", "abc"), 2, "--confirm works only with --apply")
         self.assertResult(self.merge("--apply", "--confirm", "000000000000"), 4, "RESULT: PLAN CHANGED")
+        code = self.code(self.merge())
+        near = code[:-1] + ("1" if code[-1] == "0" else "0")
+        self.assertResult(self.merge("--apply", "--confirm", near), 4, "RESULT: PLAN CHANGED")
         self.assertEqual(self.tree(), before)
 
     def test_plan_that_changed_after_the_dry_run_is_refused(self):
@@ -433,6 +439,7 @@ class MatchTests(MergeCase):
 
     def test_bad_input_is_a_usage_error(self):
         self.assertResult(self.merge("../x"), 2, "not a folder name")
+        self.assertResult(self.merge(".."), 2, "not a folder name")
         self.assertResult(run([sys.executable, "-I", SCRIPT, "--root", self.tmp / "missing"]), 2,
                           "the projects folder does not exist")
 
@@ -467,9 +474,390 @@ class OutputTests(MergeCase):
             self.sessions(f"C--p{i:03}", S1)
             self.sessions(f"C--p{i:03}--claude-worktrees-x", S2)
         self.age()
+        before = self.tree()
         result = self.merge()
-        self.assertResult(result, 0, "CUT: ", "TOTAL: 130 pairs merge")
+        self.assertResult(result, 0, "CUT: 271 more lines", "TOTAL: 130 pairs merge", "RESULT: CUT PLAN")
+        self.assertNotIn("--apply --confirm", result.stdout)
+        self.assertEqual(len(result.stdout.splitlines()), 125)
         self.assertLess(len(result.stdout), 30000)
+        self.assertResult(self.merge("--apply", "--confirm", self.code(result)), 4, "RESULT: CUT PLAN")
+        self.assertEqual(self.tree(), before)
+
+
+class ActionTests(MergeCase):
+    """run_action looks at the disk again before each write, because the tree can change after the plan."""
+
+    def test_move_never_replaces_a_target_that_came_after_the_plan(self):
+        source, target = self.write("w/x.jsonl", "source\n"), self.write("m/x.jsonl", "target\n")
+        with self.assertRaisesRegex(OSError, "the target exists"):
+            mp.run_action("move", (source, target), None)
+        self.assertEqual((source.read_bytes(), target.read_bytes()), (b"source\n", b"target\n"))
+
+    def test_move_refuses_a_source_that_turned_into_a_link(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        make_dir_link(outside, self.root / "w-link")
+        with self.assertRaisesRegex(OSError, "the source is gone or is a link"):
+            mp.run_action("move", (self.root / "w-link", self.root / "m-link"), None)
+        self.assertFalse(os.path.lexists(self.root / "m-link"))
+
+    def test_drop_compares_the_bytes_again_and_not_the_size_and_the_time(self):
+        mine, theirs = self.write("w/note.md", "aaaa\n"), self.write("m/note.md", "bbbb\n")
+        self.age()
+        with self.assertRaisesRegex(OSError, "the bytes differ now"):
+            mp.run_action("drop", (mine, theirs), None)
+        self.assertEqual(mine.read_bytes(), b"aaaa\n")
+
+    def test_create_never_replaces_an_index_that_came_after_the_plan(self):
+        index = self.write("m/memory/MEMORY.md", "late\n")
+        with self.assertRaises(FileExistsError):
+            mp.run_action("create", (index,), "planned\n")
+        self.assertEqual(index.read_bytes(), b"late\n")
+
+    def test_remove_refuses_an_index_that_changed_after_the_plan(self):
+        index = self.write("w/memory/MEMORY.md", "- [A](a.md)\n- [Late](late.md)\n")
+        with self.assertRaisesRegex(OSError, "the index changed after the plan"):
+            mp.run_action("remove", (index,), "- [A](a.md)\n")
+        self.assertTrue(index.is_file())
+
+
+class SafetyTests(MergeCase):
+    def test_file_with_other_bytes_of_the_same_size_and_time_is_not_dropped(self):
+        self.write(f"{MAIN}/memory/note.md", "aaaa\n")
+        self.write(f"{WT1}/memory/note.md", "bbbb\n")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/note-2.md").read_bytes(), b"bbbb\n")
+        self.assertEqual((self.root / MAIN / "memory/note.md").read_bytes(), b"aaaa\n")
+
+    def test_name_that_differs_only_in_case_stops_the_pair(self):
+        self.write(f"{MAIN}/ABC.jsonl", "main\n")
+        self.write(f"{WT1}/abc.jsonl", "worktree\n")
+        self.age()
+        before = self.tree()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"STOP {WT1}: the main folder has an entry with the same name: abc.jsonl", dry.stdout)
+        self.assertIn("0 skipped, 1 stopped.", dry.stdout)
+        self.assertEqual(self.tree(), before)
+
+    def test_change_of_one_hour_ago_is_recent_and_of_three_hours_ago_is_not(self):
+        self.sessions(MAIN, S1)
+        self.sessions(WT1, S2)
+        self.sessions(WT2, S3)
+        self.age()
+        now = time.time()
+        os.utime(self.root / WT1 / f"{S2}.jsonl", (now - 3600, now - 3600))
+        os.utime(self.root / WT2 / f"{S3}.jsonl", (now - 3 * 3600, now - 3 * 3600))
+        self.assertResult(self.merge(), 0, f"SKIP {WT1}: recent activity", f"DELETE {WT2}", "1 skipped, 0 stopped.")
+
+    def test_recent_change_of_a_folder_counts_and_allow_recent_names_one_folder(self):
+        self.sessions(MAIN, S1)
+        self.sessions(WT1, S2, subagents=True)
+        self.sessions(WT2, S3)
+        self.age()
+        os.utime(self.root / WT1 / S2 / "subagents")
+        os.utime(self.root / WT2 / f"{S3}.jsonl")
+        self.assertResult(self.merge("--allow-recent", WT2), 0, f"SKIP {WT1}: recent activity", f"DELETE {WT2}")
+
+    def test_pair_that_fails_in_the_middle_of_its_plan_leaves_no_line_and_no_action(self):
+        self.write(f"{WT1}/memory/a.md", "one\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [A](a.md)\n")
+        self.write(f"{WT2}/memory/a.md", "two\n")
+        self.age()
+        args = mp.parse_args(["--root", str(self.root)])
+        with mock.patch.object(mp.PairPlan, "merge_index", side_effect=PermissionError(13, "Permission denied")):
+            plan = mp.make_plan(args, time.time())[0]
+        self.assertEqual([line.partition(": [")[0] for line in plan.lines if WT1 in line],
+                         [f"STOP {WT1}: cannot read a file"])
+        self.assertEqual(plan.totals["stopped"], 1)
+        # The main folder is as before the failed pair. So the next pair makes memory/ and moves its file as a.md.
+        memory = self.root / MAIN / "memory"
+        self.assertEqual([(action, paths) for action, paths, _ in plan.actions],
+                         [("mkdir", (memory,)), ("move", (self.root / WT2 / "memory/a.md", memory / "a.md")),
+                          ("rmdir", (self.root / WT2 / "memory",)), ("rmdir", (self.root / WT2,))])
+
+    def test_link_inside_the_memory_folder_stops_the_pair(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        self.sessions(MAIN, S1)
+        self.write(f"{WT1}/memory/fact.md", "fact\n")
+        make_dir_link(outside, self.root / WT1 / "memory" / "linked")
+        self.age()
+        dry, _ = self.dry_then_apply("--allow-recent", WT1)
+        self.assertIn(f"STOP {WT1}: it holds a link, and the script never follows a link: memory/linked", dry.stdout)
+        self.assertTrue((self.root / WT1 / "memory/fact.md").is_file())
+        self.assertFalse((self.root / MAIN / "memory").exists())
+
+    def test_main_folder_that_is_a_link_is_skipped(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        os.rmdir(self.root / MAIN)
+        make_dir_link(outside, self.root / MAIN)
+        self.sessions(WT1, S2)
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"SKIP {MAIN}: the main folder is a link", dry.stdout)
+        self.assertEqual(os.listdir(outside), [])
+        self.assertTrue((self.root / WT1 / f"{S2}.jsonl").is_file())
+
+    def test_main_folder_with_a_link_as_memory_folder_is_skipped(self):
+        outside = self.tmp / "outside"
+        (outside / "memory").mkdir(parents=True)
+        self.write(f"{WT1}/memory/new.md", "new\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [New](new.md)\n")
+        make_dir_link(outside / "memory", self.root / MAIN / "memory")
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"SKIP {MAIN}: the main folder holds a link, and the script never follows a link: memory",
+                      dry.stdout)
+        self.assertEqual(os.listdir(outside / "memory"), [])
+        self.assertTrue((self.root / WT1 / "memory/new.md").is_file())
+
+    def test_file_named_memory_stops_the_pair(self):
+        self.sessions(MAIN, S1)
+        self.sessions(WT1, S2)
+        self.write(f"{WT1}/memory", "a file\n")
+        self.age()
+        before = self.tree()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"STOP {WT1}: an entry has the name of the memory folder or of the index", dry.stdout)
+        self.assertEqual(self.tree(), before)
+
+    def test_code_of_another_projects_folder_is_refused(self):
+        self.sessions(MAIN, S1)
+        self.sessions(WT1, S2)
+        self.age()
+        other = self.tmp / "other"
+        shutil.copytree(self.root, other)
+        dry = self.merge()
+        result = run([sys.executable, "-I", SCRIPT, "--root", other, "--apply", "--confirm", self.code(dry)])
+        self.assertResult(result, 4, "RESULT: PLAN CHANGED")
+        self.assertTrue((other / WT1 / f"{S2}.jsonl").is_file())
+
+
+class CodeTests(MergeCase):
+    def test_change_of_an_index_line_that_is_not_appended_changes_the_code(self):
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
+        index = self.write(f"{WT1}/memory/MEMORY.md", "- [Old](old.md) - first words\n")
+        self.age()
+        dry = self.merge()
+        index.write_bytes(b"- [Old](old.md) - other words\n")
+        self.age()
+        self.assertResult(self.merge("--apply", "--confirm", self.code(dry)), 4, "RESULT: PLAN CHANGED")
+        self.assertTrue(index.is_file())
+
+
+class MemoryRunTests(MergeCase):
+    def test_two_worktree_folders_with_the_same_new_file_merge_in_one_run(self):
+        for folder in (WT1, WT2):
+            self.write(f"{folder}/memory/role.md", "role\n")
+            self.write(f"{folder}/memory/MEMORY.md", "- [Role](role.md)\n")
+        self.write(f"{WT2}/memory/other.md", "other\n")
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertNotIn("STOP", dry.stdout)
+        self.assertEqual(sorted(os.listdir(self.root)), [MAIN])
+        self.assertEqual(sorted(os.listdir(self.root / MAIN / "memory")), ["MEMORY.md", "other.md", "role.md"])
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(), b"- [Role](role.md)\n")
+
+    def test_second_run_after_a_failed_move_keeps_the_line_of_a_renamed_file(self):
+        self.write(f"{MAIN}/memory/a.md", "main\n")
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [A](a.md)\n")
+        self.write(f"{WT1}/memory/a.md", "worktree\n")
+        self.write(f"{WT1}/memory/b.md", "b\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [A](a.md) - worktree\n- [B](b.md)\n")
+        self.age()
+        result = self.apply_with_a_failed_move(self.code(self.merge()), "memory/b.md")
+        self.assertResult(result, 1, "FAILED move")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(),
+                         b"- [A](a.md)\n- [A](a-2.md) - worktree\n- [B](b.md)\n")
+        self.assertEqual(sorted(os.listdir(self.root / MAIN / "memory")), ["MEMORY.md", "a-2.md", "a.md", "b.md"])
+        self.assertFalse((self.root / WT1).exists())
+
+    def test_two_worktree_folders_with_the_same_pointer_line_append_it_one_time(self):
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [A](a.md)\n")
+        self.write(f"{WT2}/memory/MEMORY.md", "- [A](a.md)\n")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(), b"- [Old](old.md)\n- [A](a.md)\n")
+
+    def test_last_free_number_is_nine(self):
+        for n in [""] + [f"-{i}" for i in range(2, 9)]:
+            self.write(f"{MAIN}/memory/note{n}.md", f"main {n}\n")
+        self.write(f"{WT1}/memory/note.md", "worktree\n")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/note-9.md").read_bytes(), b"worktree\n")
+
+    def test_index_line_with_no_link_that_the_main_index_does_not_hold_keeps_the_index(self):
+        self.write(f"{MAIN}/memory/MEMORY.md", "# Index\n- [Old](old.md)\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "# Memory\n\nA note with no link.\n- [New](new.md)\n")
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"INDEX {WT1}: keeps its index, the main index does not hold this line with no link: "
+                      "A note with no link.", dry.stdout)
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(),
+                         b"# Index\n- [Old](old.md)\n- [New](new.md)\n")
+        self.assertTrue((self.root / WT1 / "memory/MEMORY.md").is_file())
+
+    def test_created_index_is_a_byte_copy_of_the_worktree_index(self):
+        text = "# Index\r\n- [A](a.md) x" + chr(12) + "y\n- [B](b.md)"
+        self.sessions(MAIN, S1)
+        self.write(f"{WT1}/memory/MEMORY.md", text)
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(), text.encode("utf-8"))
+
+
+class ArgumentTests(MergeCase):
+    def test_empty_values_and_short_forms_of_flags_are_usage_errors(self):
+        self.sessions(MAIN, S1)
+        env = clean_env(CLAUDE_CONFIG_DIR=str(self.tmp))
+        self.assertResult(run([sys.executable, "-I", SCRIPT, "--root", ""], env=env), 2, "--root must not be empty")
+        self.assertResult(self.merge("--exclude="), 2, "--exclude needs a text")
+        self.assertResult(self.merge("--app", "--conf", "000000000000"), 2, "unrecognized arguments")
+
+    def test_folder_name_with_a_leading_dash_goes_after_two_dashes(self):
+        main = "-home-u-app"
+        worktree = main + "--claude-worktrees-x"
+        self.sessions(main, S1)
+        self.sessions(main + "-tools", S1)
+        self.sessions(worktree, S2)
+        self.age()
+        os.utime(self.root / worktree / f"{S2}.jsonl")
+        self.assertResult(self.merge(main), 2, 'starts with "-"')
+        self.assertResult(self.merge("--allow-recent", worktree), 2, 'starts with "-"')
+        self.assertResult(self.merge("--", main), 0, f"SKIP {worktree}: recent activity")
+        self.assertResult(self.merge(f"--allow-recent={worktree}", "--", main), 0, f"DELETE {worktree}")
+
+
+class EscapeTests(MergeCase):
+    def test_name_with_a_line_separator_is_a_json_string_in_each_kind_of_line(self):
+        # U+2028 is a line separator that Windows and Linux allow in a file name.
+        fact = "a" + chr(0x2028) + "PLAN 000000000000.md"
+        odd = MAIN + "--claude-worktrees-x" + chr(0x2028) + "DELETE " + MAIN
+        self.write(f"{MAIN}/memory/{fact}", "main\n")
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
+        self.write(f"{WT1}/memory/{fact}", "worktree\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [New](new.md)\tPLAN 000000000000\n")
+        self.write(f"{MAIN}/{fact}", "main\n")
+        self.write(f"{WT2}/{fact}", "worktree\n")
+        self.sessions(odd, S2)
+        self.age()
+        result = self.merge()
+        self.assertResult(
+            result, 0,
+            f'MEMORY {WT1}: "a\\u2028PLAN 000000000000.md" moves as "a\\u2028PLAN 000000000000-2.md"',
+            'INDEX LINE "- [New](new.md)\\tPLAN 000000000000"',
+            f'STOP {WT2}: the main folder has an entry with the same name: "a\\u2028PLAN 000000000000.md"',
+            f'DELETE "{MAIN}--claude-worktrees-x\\u2028DELETE {MAIN}"')
+        self.assertNotIn(chr(0x2028), result.stdout)
+        self.assertEqual(len(re.findall(r"^PLAN ", result.stdout, re.M)), 1)
+
+
+class RuleTests(MergeCase):
+    def test_pointer_line_with_a_title_or_with_angle_brackets_is_a_pointer_line(self):
+        self.write(f"{MAIN}/memory/note.md", "main\n")
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Note](note.md)\n")
+        self.write(f"{WT1}/memory/note.md", "worktree\n")
+        self.write(f"{WT1}/memory/MEMORY.md", '- [Note](note.md "the title") - words\n- [Other](<other.md>)\n')
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(),
+                         b'- [Note](note.md)\n- [Note](note-2.md "the title") - words\n- [Other](<other.md>)\n')
+        self.assertFalse((self.root / WT1).exists())
+
+    def test_code_of_a_recent_folder_stays_the_same_while_its_age_changes(self):
+        self.sessions(WT1, S2)
+        self.age()
+        session = self.root / WT1 / f"{S2}.jsonl"
+        os.utime(session, (time.time() - 30 * 60,) * 2)
+        dry = self.merge()
+        self.assertIn(f"SKIP {WT1}: recent activity, the newest change is 30 minutes old", dry.stdout)
+        os.utime(session, (time.time() - 5 * 60,) * 2)
+        self.assertResult(self.merge("--apply", "--confirm", self.code(dry)), 0, "RESULT: APPLIED")
+        self.assertTrue(session.is_file())
+
+    def test_code_covers_a_line_with_no_action(self):
+        self.sessions(MAIN, S1)
+        self.sessions(WT1, S2)
+        self.age()
+        os.utime(self.root / WT1 / f"{S2}.jsonl")
+        self.assertNotEqual(self.code(self.merge()), self.code(self.merge("--exclude=feature-a")))
+
+    def test_recent_file_in_a_subfolder_skips_the_folder(self):
+        self.sessions(WT1, S2, subagents=True)
+        self.age()
+        os.utime(self.root / WT1 / S2 / "subagents" / "agent-1.jsonl")
+        self.assertResult(self.merge(), 0, f"SKIP {WT1}: recent activity")
+
+    def test_memory_file_name_that_differs_only_in_case_gets_a_number(self):
+        self.write(f"{MAIN}/memory/Note.md", "main\n")
+        self.write(f"{WT1}/memory/note.md", "worktree\n")
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"MEMORY {WT1}: note.md moves as note-2.md", dry.stdout)
+        self.assertEqual((self.root / MAIN / "memory/Note.md").read_bytes(), b"main\n")
+        self.assertEqual((self.root / MAIN / "memory/note-2.md").read_bytes(), b"worktree\n")
+
+    def test_exclude_text_matches_a_folder_name_without_case(self):
+        other = "C--Other-App"
+        self.sessions(other, S1)
+        self.sessions(other + "--worktrees-x", S2)
+        self.age()
+        before = self.tree()
+        dry, _ = self.dry_then_apply("--exclude=other-app")
+        self.assertIn(f"EXCLUDED {other}: the main folder", dry.stdout)
+        self.assertEqual(self.tree(), before)
+
+    def test_same_session_name_in_two_worktree_folders_stops_the_second_pair(self):
+        self.sessions(WT1, S2)
+        self.sessions(WT2, S2)
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"STOP {WT2}: the main folder has an entry with the same name: {S2}.jsonl", dry.stdout)
+        self.assertTrue((self.root / MAIN / f"{S2}.jsonl").is_file())
+        self.assertTrue((self.root / WT2 / f"{S2}.jsonl").is_file())
+        self.assertFalse((self.root / WT1).exists())
+
+    def test_index_in_the_memory_folder_wins_over_a_top_level_index(self):
+        self.write(f"{MAIN}/MEMORY.md", "- [Top](top.md)\n")
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [New](new.md)\n")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(), b"- [Old](old.md)\n- [New](new.md)\n")
+        self.assertEqual((self.root / MAIN / "MEMORY.md").read_bytes(), b"- [Top](top.md)\n")
+
+    def test_first_link_of_a_line_names_the_file_of_the_line(self):
+        for n in [""] + [f"-{i}" for i in range(2, 10)]:
+            self.write(f"{MAIN}/memory/note{n}.md", f"main {n}\n")
+        self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
+        self.write(f"{WT1}/memory/note.md", "worktree\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [Note](note.md), see also [Old](old.md)\n")
+        self.age()
+        dry, _ = self.dry_then_apply()
+        self.assertIn(f"INDEX {WT1}: keeps its index, a line points at a file that stays", dry.stdout)
+        self.assertTrue((self.root / WT1 / "memory/MEMORY.md").is_file())
+
+    def test_folder_name_with_no_text_after_the_segment_is_not_a_worktree_folder(self):
+        odd = MAIN + "--worktrees-"
+        self.sessions(MAIN, S1)
+        self.sessions(odd, S2)
+        self.age()
+        self.assertResult(self.merge(), 0, "TOTAL: 0 pairs merge, 0 entries move, 0 folders are deleted")
+        self.assertTrue((self.root / odd / f"{S2}.jsonl").is_file())
+
+    def test_keyword_with_a_tab_prints_as_a_json_string(self):
+        self.assertResult(self.merge("a\tb"), 3, 'NOMATCH "a\\tb": no main folder name holds it')
+
+    def test_more_than_120_keywords_with_no_match_are_cut(self):
+        result = self.merge(*[f"nomatch{i:03}" for i in range(130)])
+        self.assertResult(result, 3, "NOMATCH nomatch119", "CUT: 10 more lines.", "RESULT: NO PLAN")
+        self.assertNotIn("nomatch120", result.stdout)
 
 
 if __name__ == "__main__":
