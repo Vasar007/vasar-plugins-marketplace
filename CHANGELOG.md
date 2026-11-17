@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.26.0 in release [4.24.0] - 2026-11-17
+
+This release lets the main session of `optimize-skill` apply the accepted findings of the behavior review. For a small fix set, no review fixer agent starts. The flag `--review-fixer-model` keeps the old dispatch (issue #256).
+
+### Changed in dev-essentials
+
+- `skills/optimize-skill`: step 6 chooses who applies the accepted findings, with the delegation tests of Rule 1 of `subagent-orchestration`. If the fix plans put few files into the main context, the main session applies them itself. It does steps 1 to 5 of the review fixer brief and makes the second commit. Else it dispatches the review fixer as before. With `--review-fixer-model`, it always dispatches the review fixer. Rule 8 says how the main session repairs its own step-6 commit. The table of agents and the table of parameters name the new default (issue #256).
+- `skills/optimize-skill/references/briefs.md`: one line names the two cases in which step 6 dispatches the review fixer brief (issue #256).
+
+### Added in dev-essentials
+
+- `evals/optimize-skill/os-review-fixes`: the first behavior case of the skill. The scaffold makes a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 has an accepted finding in each run. Scored graders need the restored rule, the kept safety rule, at most two local commits, no push, an unchanged `CLAUDE.md`, and both reports. Route graders count the dispatches and the second commit (issue #256).
+- `evals/triggers/optimize-skill-fires` and `evals/triggers/optimize-skill-near-miss-trim`: the first trigger cases of the skill. The near-miss asks to trim a notes file, which `trim-artifacts` owns (issue #256).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: tests of the graders of the new cases on the fixture, on a right run, and on wrong runs (issue #256).
+- `docs/evals.md`: the new suite, its tag, and the finding of the user in the prompt of `os-review-fixes` (issue #256).
+
 ## dev-essentials 3.24.0 in release [4.22.0] - 2026-11-17
 
 This release makes the single-commit mode of `research-implement-review-report` squash the run with the script `squash_task.py`, as `implement-batch` does. The script checks the commits of the run before the squash. After a failed commit, it puts the old HEAD back (issue #246).
@@ -1991,7 +2010,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...HEAD
+[4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.24.0
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
