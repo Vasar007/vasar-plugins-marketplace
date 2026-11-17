@@ -3271,7 +3271,7 @@ class ComposerGraderTests(unittest.TestCase):
 FOLD_CASES = ("rl-off-by-one", "rl-null-guard", "rl-unbounded-query", "rl-failing-build")
 
 
-def agent_input(**fields):
+def agent_call_input(**fields):
     """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
     return json.dumps(fields)
 
@@ -3320,17 +3320,17 @@ class FoldRouteGraderTests(unittest.TestCase):
                 self.assertTrue(self.regex_passes(case, "route-fix-in-main", quoted))
 
     def test_plan_in_brief_needs_the_footer_and_the_plan_line(self):
-        reviewer = agent_input(description="Round 1 review", model="opus",
-                               prompt="## Common Rules\n- **Fix plan:** the approach\nReview made by `<MODEL>`")
-        fixer = agent_input(description="Round 1 fixer", model="sonnet", prompt="Fix plan: add the guard.")
-        rereview = agent_input(description="Round 2 re-review", model="opus", prompt="Review made by `<MODEL>`")
+        reviewer = agent_call_input(description="Round 1 review", model="opus",
+                                    prompt="## Common Rules\n- **Fix plan:** the approach\nReview made by `<MODEL>`")
+        fixer = agent_call_input(description="Round 1 fixer", model="sonnet", prompt="Fix plan: add the guard.")
+        rereview = agent_call_input(description="Round 2 re-review", model="opus", prompt="Review made by `<MODEL>`")
         for case in FOLD_CASES:
             with self.subTest(case=case):
                 self.assertEqual(self.calls(case, "route-plan-in-brief", reviewer, fixer, rereview), 1)
 
     def test_no_plan_dispatch_counts_only_the_calls_on_the_reviewer_model(self):
-        inputs = [agent_input(model="opus", prompt="x"), agent_input(model="claude-opus-5-5", prompt="x"),
-                  agent_input(model="sonnet", prompt="x"), agent_input(prompt='a text with "model": "opus" in it')]
+        inputs = [agent_call_input(model="opus", prompt="x"), agent_call_input(model="claude-opus-5-5", prompt="x"),
+                  agent_call_input(model="sonnet", prompt="x"), agent_call_input(prompt='a text with "model": "opus" in it')]
         for case in FOLD_CASES:
             with self.subTest(case=case):
                 self.assertEqual(self.calls(case, "route-no-plan-dispatch", *inputs), 2)
