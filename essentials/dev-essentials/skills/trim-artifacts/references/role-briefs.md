@@ -5,7 +5,6 @@ Fill the placeholders and paste each brief into its dispatch. Each brief is self
 ## Contents
 
 - Planner (read-only on the workspace)
-- Executor
 - Reviewer (read-only, fresh context)
 - Fixer
 
@@ -27,11 +26,10 @@ Shared placeholders:
 | `{BATCH_FILES}` | Relative paths of the files in one batch |
 | `{PLAN_PATH}` | Where the planner writes the plan, outside the workspace. For the reviewer: the plan path of every batch |
 | `{SCRATCH}` | Scratch folder for the planner's `orig` and `target` copies, one folder for each batch |
-| `{APPROVED_DELETIONS}` | The deletion list that the user approved at the gate |
 | `{APPROVED_TOMBSTONES}` | The tombstone list that the user approved at the gate, or "none" |
 | `{REVIEW_PATH}` | Where the reviewer writes its findings |
 | `{FINDINGS}` | The review findings that the orchestrator accepted |
-| `{ROLE}` | planner, executor, reviewer or fixer |
+| `{ROLE}` | planner, reviewer or fixer |
 | `{BATCH_ID}` | Short id of the batch, for example `b1`. For the reviewer and the fixer: `all` |
 
 Every brief ends with the same crash-safety block:
@@ -60,35 +58,14 @@ Targets in bytes: {TARGETS}
 4. If a file stays above its target, write why in the plan.
 5. Prove every anchor and end quote with the anchor proof script. Each must match once.
 6. Copy every file that the glob matches in {WORKSPACE}, not only the batch, with its relative paths,
-   to {SCRATCH}/orig and {SCRATCH}/target. Apply the plan to target.
+   to {SCRATCH}/orig and {SCRATCH}/target. Apply the whole plan to target: each cut, each cross-file
+   fix, each merge, and each deletion. The main session copies target into {WORKSPACE} as it is.
 7. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {SCRATCH}/orig
    --after {SCRATCH}/target {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
 8. If it fails, fix the plan and repeat until it passes.
 
 Report in at most 25 lines: the plan path, the size table total, the deletion list
 with one reason each, and every file above target with its reason.
-```
-
-## Executor
-
-```text
-You apply a proven trim plan exactly. Do not cut more than the plan says.
-
-Plan: {PLAN_PATH}
-Planner copies: {SCRATCH}/orig and {SCRATCH}/target
-Approved deletions: {APPROVED_DELETIONS}
-
-1. Make sure that every batch file in {WORKSPACE} is byte-identical to {SCRATCH}/orig.
-   If any file differs, stop and report. Do not edit anything.
-2. Apply each cut by its anchor. Delete only the approved files. Remove emptied folders.
-3. Run diff -r between the batch files and {SCRATCH}/target. Report every difference.
-4. If a removal changes the meaning of protected content, do not edit. Report it.
-5. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {BACKUP}
-   --after {WORKSPACE} {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
-6. Run {LINT_COMMAND} on the changed files. Report new error types only.
-
-Report in at most 25 lines: files changed, files deleted, every place where the plan
-did not apply as written, and the script result.
 ```
 
 ## Reviewer (read-only, fresh context)

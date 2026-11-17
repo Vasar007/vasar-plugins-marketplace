@@ -3396,5 +3396,62 @@ class FailingBuildGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("build-tool-kept", changed))
 
 
+class TrimFullPassRouteGraderTests(unittest.TestCase):
+    """The route graders of ta-full-pass count the right dispatches and the apply call of the script."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["ta-full-pass"]
+        skill = FP_ROOT / "skills" / "trim-artifacts"
+        cls.briefs = (skill / "references" / "role-briefs.md").read_text(encoding="utf-8")
+
+    def counts(self, grader, text):
+        return re.search(self.case.graders[grader][0]["input_match"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-skill-fired", "route-planner-agent", "route-reviewer-agent",
+                                  "route-no-executor", "route-apply-script"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        meta = self.case.graders["route-no-executor"][0]
+        self.assertEqual((meta["tool"], meta["min"], meta["max"]), ("Agent", 0, 0))
+
+    def test_the_planner_and_reviewer_graders_match_the_briefs_of_the_skill(self):
+        for grader, first_line in (("route-planner-agent", "You plan a trim pass for one batch."),
+                                   ("route-reviewer-agent", "You review a finished trim pass.")):
+            with self.subTest(grader=grader):
+                self.assertIn(first_line, self.briefs)
+                self.assertTrue(self.counts(grader, agent_call_input(description="b1", prompt=first_line)))
+                self.assertFalse(self.counts(grader, agent_call_input(description="b1", prompt="Fix the findings.")))
+
+    def test_the_executor_grader_counts_the_old_brief_and_an_executor_description(self):
+        old_brief = "You apply a proven trim plan exactly. Do not cut more than the plan says."
+        runs = {
+            "the old executor brief": (agent_call_input(description="Apply batch b1", prompt=old_brief), True),
+            "an executor description": (agent_call_input(description="Trim executor b1", prompt="x"), True),
+            "the planner": (agent_call_input(description="Trim planner b1", prompt="You plan a trim pass."), False),
+            "the reviewer": (agent_call_input(description="Review the trim", prompt="You review a finished trim pass."),
+                             False),
+            "the word in a planner prompt": (agent_call_input(description="Plan b1", prompt="no executor runs"), False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-no-executor", text), expected)
+        self.assertNotIn("executor", self.briefs.lower(), "the briefs still name the executor role")
+
+    def test_the_apply_grader_counts_only_the_subcommand(self):
+        runs = {
+            "quoted path": ('python3 -I "/p/scripts/trim_report.py" apply --orig o --target t', True),
+            "plain path": ("python3 -I /p/scripts/trim_report.py apply --orig o", True),
+            "single quotes": ("python3 -I '/p/scripts/trim_report.py' apply --orig o", True),
+            "line break": ('python3 -I "/p/scripts/trim_report.py" \\\n  apply --orig o', True),
+            "report form": ('python3 -I "/p/scripts/trim_report.py" --before b --after a', False),
+            "help": ('python3 -I "/p/scripts/trim_report.py" --help', False),
+        }
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-apply-script", json.dumps({"command": command})), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

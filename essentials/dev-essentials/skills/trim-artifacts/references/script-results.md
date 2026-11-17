@@ -1,6 +1,6 @@
 # Script results
 
-Step 7 and the light path use this file to write the flags of `scripts/trim_report.py` and to read its result. Run the script with `--help` for all flags.
+Steps 6 and 7 and the light path use this file to write the flags of `scripts/trim_report.py` and to read its result. Run the script with `--help` for all flags.
 
 - Examples of a usage error (exit code 2) are a bad flag, an unreadable path, an absolute `--glob` and a backup inside the workspace.
 - A regex that matches nothing in the backup is a failure.
@@ -12,3 +12,12 @@ Step 7 and the light path use this file to write the flags of `scripts/trim_repo
 - The script reports a matching block as ALLOWED. After the trim, the same file must still hold a line that matches REGEX. If not, the script reports WITHDRAWN, NO TOMBSTONE and fails. Do not end REGEX with `$`, so that it matches both the old heading and the tombstone heading.
 - The script reports a block that it finds intact in another file as IN OTHER FILE. This does not fail. The reviewer finds out whether a plan names the move or the deduplication. The reviewer brief gives it the plan paths. If no plan names it, the reviewer reports it. On the light path, test each such line against your own cut list.
 - If no file with the name of a deleted file survives, a reference to it is DANGLING. If another file has that name, the line is AMBIGUOUS. This passes, but you must look at each AMBIGUOUS line by hand. The name match ignores case.
+
+## The subcommand `apply` (step 6)
+
+- Exit code 0: the script applied the plan, and the checks pass. Exit code 1: it applied the plan, but a check failed. Read the check lines as for step 7, and fix each failure before the review.
+- Exit code 2: a usage error, for example a `--delete` path that is not a file of `orig`. No file changed.
+- Exit code 3: each `REFUSED` line names a file that the script cannot apply, and no file changed. If a workspace file changed after the plan, the planner of that batch plans again from the workspace of now. Two batches that change the same file give this case too. If a deletion has no `--delete`, the user did not approve it. Then the planner removes it from the plan and repeats the dry run. If the backup copy of a file differs from `orig`, stop and tell the user.
+- Exit code 4: a write failed, and the `FAILED` line names the file. Fix the cause, and run the same command again. The script skips each file that is done, and prints a `DONE BEFORE` line for it.
+- Exit code 1 with no `RESULT` line is a crash of the script. Read the traceback.
+- A `CUT` line means that the output had more than 100 lines. The report form with the same flags prints all the check lines.
