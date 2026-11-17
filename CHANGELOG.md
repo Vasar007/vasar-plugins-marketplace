@@ -17,6 +17,10 @@ This release moves the cache tip of `process-pr-comments` into the documentation
 
 - `docs/workflows.md` and its link in `README.md`: the page covers the choice between one session and a new one. It gives the cost numbers of the study of issue #184 (issue #224).
 
+### Changed in the repository
+
+- `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
+
 ### Removed in dev-essentials
 
 - `skills/process-pr-comments`: the tip about the prompt cache is gone from Phase 5. Probe runs with a long history printed the tip in 0 of 4 runs. The guidance is now in `docs/workflows.md` (issue #224).
