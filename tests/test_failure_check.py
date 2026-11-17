@@ -515,17 +515,79 @@ class UnitTests(unittest.TestCase):
             self.assertIsNone(fc.join_job(proc))
 
     @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
-    def test_stop_of_a_job_waits_for_its_processes(self):
+    def test_shell_that_cannot_join_a_job_is_stopped_by_taskkill(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(remove_tree, folder)
+        fix_run = fc.Run("fix", "0" * 40, folder, "main worktree")
+        with (mock.patch.object(fc.KERNEL32, "AssignProcessToJobObject", return_value=0),
+              mock.patch.object(fc.subprocess, "run", side_effect=subprocess.run) as runs):
+            fc.run_command(fix_run, fc.find_bash(), "sleep 30", 1, folder / "fix.log")
+        self.assertTrue(fix_run.timed_out)
+        self.assertTrue(any(call.args[0][0] == "taskkill" for call in runs.call_args_list), runs.call_args_list)
+        self.assertLess(fix_run.seconds, 15, "the stop did not end the shell")
+
+    @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
+    def test_stop_of_a_job_runs_taskkill_then_ends_the_job_then_waits(self):
         proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL)
         self.addCleanup(proc.wait)
         self.addCleanup(proc.kill)
         job = fc.join_job(proc)
         self.assertIsNotNone(job)
         self.addCleanup(fc.KERNEL32.CloseHandle, job)
-        wait = mock.Mock(wraps=fc.KERNEL32.WaitForSingleObject)
-        with mock.patch.object(fc.KERNEL32, "WaitForSingleObject", wait):
+        calls = mock.Mock()
+        calls.attach_mock(mock.Mock(wraps=subprocess.run), "run")
+        calls.attach_mock(mock.Mock(wraps=fc.KERNEL32.TerminateJobObject), "terminate")
+        calls.attach_mock(mock.Mock(wraps=fc.KERNEL32.WaitForSingleObject), "wait")
+        with (mock.patch.object(fc.subprocess, "run", calls.run),
+              mock.patch.object(fc.KERNEL32, "TerminateJobObject", calls.terminate),
+              mock.patch.object(fc.KERNEL32, "WaitForSingleObject", calls.wait)):
             fc.kill_tree(proc, job)
-        self.assertGreaterEqual(wait.call_count, 1)
+        names = [call[0] for call in calls.mock_calls]
+        self.assertEqual(names[:3], ["run", "terminate", "wait"], names)
+        self.assertEqual(calls.run.call_args.args[0], ["taskkill", "/F", "/T", "/PID", str(proc.pid)])
+        self.assertGreater(calls.wait.call_args_list[0].args[1], 1000, "the first wait has less than 1 s")
+        self.assertEqual(proc.returncode, 1)
+
+    @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
+    def test_stop_of_a_job_waits_for_each_process_up_to_one_limit(self):
+        child = [sys.executable, "-c", "import time; time.sleep(60)"]
+        parent = f"import subprocess, time; time.sleep(1); subprocess.Popen({child!r}); time.sleep(60)"
+        proc = subprocess.Popen([sys.executable, "-c", parent], stdin=subprocess.DEVNULL)
+        job = fc.join_job(proc)
+        self.assertIsNotNone(job)
+        self.addCleanup(fc.KERNEL32.CloseHandle, job)
+        self.addCleanup(proc.wait)
+        self.addCleanup(fc.KERNEL32.TerminateJobObject, job, 1)
+        members = {}
+        deadline = time.monotonic() + 20
+        while len(members) < 2 and time.monotonic() < deadline:
+            time.sleep(0.1)
+            fc.open_job_processes(job, members)
+        for handle in members.values():
+            fc.KERNEL32.CloseHandle(handle)
+        self.assertEqual(len(members), 2, "the job does not hold the shell and its child")
+        late = subprocess.Popen(child, stdin=subprocess.DEVNULL)
+        self.addCleanup(late.wait)
+        self.addCleanup(late.kill)
+
+        def join_late(*args, **options):
+            handle = fc.KERNEL32.OpenProcess(fc.PROCESS_TERMINATE | fc.PROCESS_SET_QUOTA, False, late.pid)
+            fc.KERNEL32.AssignProcessToJobObject(job, handle)
+            fc.KERNEL32.CloseHandle(handle)
+
+        wait = mock.Mock(wraps=fc.KERNEL32.WaitForSingleObject)
+        # The third process joins the job during the taskkill step.
+        # No call ends a process, so each real wait runs to the limit.
+        with (mock.patch.object(fc.KERNEL32, "WaitForSingleObject", wait),
+              mock.patch.object(fc.KERNEL32, "TerminateJobObject", return_value=1),
+              mock.patch.object(fc.subprocess, "run", side_effect=join_late),
+              mock.patch.object(fc, "JOB_WAIT_SECONDS", 1)):
+            start = time.monotonic()
+            fc.stop_job(job, proc.pid)
+            seconds = time.monotonic() - start
+        self.assertEqual(wait.call_count, 3, "the stop did not wait for each process of the job")
+        self.assertGreater(seconds, 0.9)
+        self.assertLess(seconds, 1.7)
 
     def test_worktree_and_folder_that_stay_give_warn_lines(self):
         top = Path(tempfile.mkdtemp())

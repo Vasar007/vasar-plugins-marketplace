@@ -49,9 +49,9 @@ The last two lines are the verdict and its reason:
                            command that cannot start
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
 names a worktree that is still there. Remove it with `git worktree remove --force`.
-A WARN line names a worktree or a folder that the script cannot delete. On Windows, the
-command runs in a job object, and a stop ends each process of the job. If the command cannot
-join a job, the stop uses taskkill, which can miss a Git Bash program of the command.
+A WARN line names a worktree or a folder that the script cannot delete. On Windows, a stop
+runs taskkill for the process tree of the command, and then ends each process of the job object
+of the command. If the command cannot join a job, taskkill can miss a Git Bash program of it.
 
 Exit codes: 0 = a verdict is printed, 1 = the script failed with a Python traceback,
 2 = usage error, setup error, or stop by a signal.
@@ -97,7 +97,7 @@ if os.name == "nt":
     from ctypes import wintypes
 
     PROCESS_TERMINATE, PROCESS_SET_QUOTA, SYNCHRONIZE = 0x0001, 0x0100, 0x00100000
-    JOB_OBJECT_BASIC_PROCESS_ID_LIST = 3
+    JobObjectBasicProcessIdList = 3
 
     class JobProcessIds(ctypes.Structure):
         """The JOBOBJECT_BASIC_PROCESS_ID_LIST structure, with room for 1024 process ids."""
@@ -245,47 +245,60 @@ def join_job(proc):
     """On Windows, put the shell in a new job object. Return the job, or None if the shell cannot join it.
 
     Each process that the shell starts is then in the job too, also a Git Bash process whose Windows parent
-    is gone. taskkill cannot find such a process. The job has no kill-on-close limit.
+    is gone. The job has no kill-on-close limit. With a breakaway limit, Git Bash programs leave the job.
     """
     if os.name != "nt":
         return None
     job = KERNEL32.CreateJobObjectW(None, None)
     process = KERNEL32.OpenProcess(PROCESS_TERMINATE | PROCESS_SET_QUOTA, False, proc.pid)
     joined = bool(job and process and KERNEL32.AssignProcessToJobObject(job, process))
-    for handle in (process, None if joined else job):
-        if handle:
-            KERNEL32.CloseHandle(handle)
-    return job if joined else None
+    if process:
+        KERNEL32.CloseHandle(process)
+    if joined:
+        return job
+    if job:
+        KERNEL32.CloseHandle(job)
+    return None
 
 
-def stop_job(job):
-    """End each process of the job, and wait until they are gone. Return False if the stop fails.
-
-    A process can keep its open files for a short time after TerminateJobObject, so the wait makes sure that
-    the log file is free before the script deletes its folder. The wait stops after JOB_WAIT_SECONDS.
-    """
+def open_job_processes(job, handles):
+    """Add a handle for a wait on each process that is in the job now, at most 1024. The key is the process id."""
     ids = JobProcessIds()
-    KERNEL32.QueryInformationJobObject(job, JOB_OBJECT_BASIC_PROCESS_ID_LIST, ctypes.byref(ids), ctypes.sizeof(ids),
+    KERNEL32.QueryInformationJobObject(job, JobObjectBasicProcessIdList, ctypes.byref(ids), ctypes.sizeof(ids),
                                        None)
-    handles = [KERNEL32.OpenProcess(SYNCHRONIZE, False, pid) for pid in ids.ids[:ids.listed]]
-    handles = [handle for handle in handles if handle]
+    for pid in ids.ids[:ids.listed]:
+        handle = None if pid in handles else KERNEL32.OpenProcess(SYNCHRONIZE, False, pid)
+        if handle:
+            handles[pid] = handle
+
+
+def stop_job(job, pid):
+    """End the process tree of the shell and the job. Then wait for the job processes, at most JOB_WAIT_SECONDS.
+
+    taskkill reaches a process that started outside the job, and the job reaches a process whose parent is gone.
+    An ended process keeps its files open for a short time, so the script waits before it deletes its folder.
+    """
+    handles = {}
     try:
-        if not KERNEL32.TerminateJobObject(job, 1):
-            return False
+        open_job_processes(job, handles)
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
+        open_job_processes(job, handles)
+        KERNEL32.TerminateJobObject(job, 1)
         deadline = time.monotonic() + JOB_WAIT_SECONDS
-        for handle in handles:
+        for handle in handles.values():
             KERNEL32.WaitForSingleObject(handle, int(max(0.0, deadline - time.monotonic()) * 1000))
-        return True
     finally:
-        for handle in handles:
+        for handle in handles.values():
             KERNEL32.CloseHandle(handle)
 
 
 def kill_tree(proc, job=None):
-    """Stop the job, or else the process and its children. A kill that fails means that they ended before it."""
+    """Stop the process, its children, and its job. A kill that fails means that they ended before it."""
     if os.name == "nt":
-        if job is None or not stop_job(job):
+        if job is None:
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        else:
+            stop_job(job, proc.pid)
     else:
         with contextlib.suppress(ProcessLookupError):
             os.killpg(proc.pid, signal.SIGKILL)

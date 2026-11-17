@@ -15,12 +15,12 @@ This release makes the stop of the failure check complete on Windows. A stopped 
 
 ### Fixed in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it stops the whole job and waits up to 5 seconds until its processes end. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses `taskkill` as before (issues #216 and #211).
+- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it runs `taskkill` as before, and then stops the whole job. It waits up to 5 seconds until the processes of the job end. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses only `taskkill` (issues #216 and #211).
 - `skills/review-loop/SKILL.md`: the `WARN` bullet of Phase 6 no longer names a Windows limit of the time limit (issue #211).
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Two new Windows tests make sure that a shell that cannot join a job gets no job. They also make sure that the stop of a job waits for its processes (issues #216 and #211).
+- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Four new Windows tests cover the stop. They make sure that a shell that cannot join a job gets no job, and that `taskkill` then stops it. They also make sure that the stop of a job runs `taskkill` first, then ends the job, and then waits. The last test makes sure that the wait covers each process of the job and has one limit (issues #216 and #211).
 - `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
