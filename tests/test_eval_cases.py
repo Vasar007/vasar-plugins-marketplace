@@ -2068,7 +2068,7 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
                 self.assertEqual(self.pattern.search(bash_input(command)) is not None, expected)
 
     def test_every_dotnet_case_has_the_same_grader(self):
-        self.assertEqual(len(self.graders), 11)
+        self.assertEqual(len(self.graders), 12)
         self.assertEqual(len({grader["input_match"] for grader in self.graders.values()}), 1)
         for label, grader in self.graders.items():
             with self.subTest(case=label):
@@ -2272,6 +2272,41 @@ class PrBodyFormGraderTests(unittest.TestCase):
         self.assertRegex(skill, r"`{3}md\n## What\n[^\n]*\n\n## Why\n[^\n]*\n\n## Changes\n")
         stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
         self.assertIn('"5. Generate PR Description"', stage)
+
+
+class ForkHeadMockTests(unittest.TestCase):
+    """The mock of the PR call guards head: the bare branch with no fork, and <fork owner>:<branch> for a fork (issue #225).
+
+    A call that breaks the expect block of a mock ends the eval run with the score 0.
+    """
+
+    # The case, its work branch, and the fork owner of its project context.
+    CASES = {"fp-e2-untracked-file": ("work/untracked-file", None), "fp-e2-fork-pr": ("work/fork-pr", "eval-user")}
+
+    @staticmethod
+    def case_file(case, *parts):
+        return (FP_ROOT / EVALS / "feature-pipeline" / case).joinpath(*parts).read_text(encoding="utf-8")
+
+    def test_the_mock_expects_the_head_that_the_project_context_gives(self):
+        for case, (branch, owner) in self.CASES.items():
+            with self.subTest(case=case):
+                lines, _body = split_frontmatter(self.case_file(case, "mocks", "github", "create_pull_request.md"))
+                expect = parse_block(lines)["expect"]
+                self.assertEqual((expect["owner"], expect["repo"], expect["base"]), ("example-org", "inventory", "main"))
+                self.assertEqual(expect["head"], f"{owner}:{branch}" if owner else branch)
+                scaffold = self.case_file(case, "scaffold.sh")
+                self.assertIn(f"git checkout -q -b {branch}\n", scaffold)
+                if owner:
+                    self.assertIn(f"fork owner `{owner}`", scaffold)
+                else:
+                    self.assertNotIn("fork owner", scaffold)
+
+    def test_the_stage_and_the_template_name_the_fork_owner(self):
+        stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
+        self.assertIn("pass `<fork owner>:<branch>`", stage)
+        self.assertIn("Without a fork owner, pass the bare branch.", stage)
+        template = (FP_ROOT / "skills" / "feature-pipeline" / "project-context.template.md").read_text(encoding="utf-8")
+        self.assertIn("fork owner `my-user`", template)
 
 
 # The start of a mock_calls pattern: the tool field, with or without the prefix of the server.
@@ -3394,6 +3429,54 @@ class FailingBuildGraderTests(unittest.TestCase):
         }.items():
             with self.subTest(run=name):
                 self.assertFalse(self.passes("build-tool-kept", changed))
+
+
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build")
+
+
+class StopVerdictRouteGraderTests(unittest.TestCase):
+    """The grader route-stop-verdict tells a run that reached its stop verdict from a run that stopped with a question."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.cases = {name: cases[name] for name in STOP_VERDICT_CASES}
+
+    def meta(self, case):
+        return self.cases[case].graders["route-stop-verdict"][0]
+
+    def passes(self, case, text):
+        return re.search(self.meta(case)["pattern"], text) is not None
+
+    def test_both_cases_have_the_same_grader_on_the_final_message(self):
+        first, second = (self.meta(case) for case in STOP_VERDICT_CASES)
+        self.assertEqual(first, second)
+        self.assertEqual(first["type"], "regex")
+        self.assertEqual(first.get("target", "last_message"), "last_message")
+        self.assertNotIn("match", first)
+
+    def test_a_final_report_with_a_stop_verdict_passes(self):
+        reports = {
+            "stop-clean": "Round 2 found no new issue.\n\nStop verdict: stop-clean\n\nFixed files: src/pager.py, tests/test_pager.py",
+            "stop-max-rounds": "Stop verdict: stop-max-rounds\nOne finding is still open.",
+            "stop-blocked": "Stop verdict: stop-blocked\nThe build command `python3 tools/build_docs.py` fails at the fix commit and at its parent.",
+        }
+        for case in STOP_VERDICT_CASES:
+            for name, text in reports.items():
+                with self.subTest(case=case, run=name):
+                    self.assertTrue(self.passes(case, text))
+
+    def test_a_run_that_stopped_with_a_question_fails(self):
+        questions = {
+            "a question with options": "I need a decision on #2 (High) before the fixer touches it.\n\n- (a) Raise `ValueError`.\n- (b) Return `[]` for `page < 1`.\n\nWhich one?",
+            "a verdict name in an option": "- **(c) Leave it as is and list #3 as deferred.** That keeps the run from ending `stop-clean`.",
+            "the template of the skill": "Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>",
+            "no verdict name": "Stop verdict: none yet, I wait for your answer.",
+        }
+        for case in STOP_VERDICT_CASES:
+            for name, text in questions.items():
+                with self.subTest(case=case, run=name):
+                    self.assertFalse(self.passes(case, text))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):
