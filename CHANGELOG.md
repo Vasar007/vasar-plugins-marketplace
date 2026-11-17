@@ -9,9 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.17.4 in release [4.14.4] - 2026-11-17
+
+This release moves the cache tip of `process-pr-comments` into the documentation.
+
+### Added in the repository
+
+- `docs/workflows.md` and its link in `README.md`: the page covers the choice between one session and a new one. It gives the cost numbers of the study of issue #184 (issue #224).
+
 ### Changed in the repository
 
 - `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
+
+### Removed in dev-essentials
+
+- `skills/process-pr-comments`: the tip about the prompt cache is gone from Phase 5. Probe runs with a long history printed the tip in 0 of 4 runs. The guidance is now in `docs/workflows.md` (issue #224).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
@@ -1767,7 +1779,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...HEAD
+[4.14.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.4
 [4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
