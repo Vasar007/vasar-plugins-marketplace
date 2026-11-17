@@ -9,7 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
+### Changed in the repository
+
+- `docs/authoring.md`: the section "Conventions" states that a Python script reads its arguments with `argparse`, and it names the one exception (issue #220).
+
+## dev-essentials 3.17.3 in release [4.14.3] - 2026-11-17
 
 This release makes the stop of the failure check complete on Windows. A stopped command no longer leaves a Git Bash process that keeps the temporary folder of the check (issues #216 and #211).
 
@@ -22,6 +26,31 @@ This release makes the stop of the failure check complete on Windows. A stopped 
 
 - `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Two new Windows tests make sure that a shell that cannot join a job gets no job. They also make sure that the stop of a job waits for its processes (issues #216 and #211).
 - `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
+
+## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
+
+This release makes the skills `compose-pr` and `compose-task`, and the guide part of `create-documentation`, shorter. Each rule keeps one home, and the skills do the same work. A new eval case tests the guide flow.
+
+### Changed in dev-essentials
+
+- `skills/compose-pr`: the intro no longer names the wrapper agent. Step 3 names the groups of files in one sentence. Step 2 and the length limits no longer repeat text of other steps. `SKILL.md` goes from 1757 to 1678 words (issue #213).
+- `skills/compose-task`: the rules against code, file paths, class names, and estimates now have one home in "Critical Rules". The sections "Good Change Examples" and "What to Avoid in the Description" are gone. The rule on parent links is now only in `references/create-mode.md`, which `mode: create` reads before its first GitHub call. The rule about HTML conversion is gone, because no step converts anything. The word "change" now routes to `mode: draft`, as the edit section already said. `SKILL.md` goes from 1118 to 930 words (issue #213).
+- `skills/compose-task/references/create-mode.md`: the report step says once that the echoed parent number is no proof of a link (issue #213).
+- `skills/create-documentation`: the guide section no longer names the wrapper agent. `references/guides-and-publishing.md` states the publish rule at the publish step and in "Critical Rules" only, and it drops the style lines that give no action. The compose-only fallback now says to report the path and that the guide is not published. In a subagent, the final reply says so, for the caller. The reference file goes from 822 to 701 words (issue #213).
+
+### Added in dev-essentials
+
+- `evals/composers`: the new case `cmp-guide-draft` runs the guide flow. Its repository keeps the guide drafts in `docs/drafts/`, and the notes of the user hold a warning. The graders test the folder and the file. They test the title and the overview, and the numbered steps. They test the language tag of the code block, the test command, and the warning in a blockquote (issue #213).
+
+### Fixed in dev-essentials
+
+- `evals/composers`: the route graders `route-pr-composer-agent` and `route-task-composer-agent` expected a call of the wrapper agent, so they failed in each run since release 4.11.0. The new graders `route-pr-composer-not-fired` and `route-task-composer-not-fired` make sure that no wrapper agent started. A replay on 36 kept runs gives a pass for each run of 4.11.0 or later (issue #213).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new samples for the regex graders of `cmp-guide-draft`. A new test makes sure that each composer case counts its wrapper agent with `min: 0` and `max: 0`. One more test makes sure that the route grader of the guide case names the skill. Another one makes sure that the file graders of the case read `docs/drafts/run-tests-locally.md` (issue #213).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case (issue #213).
+- `docs/evals.md`: the suite `composers` has 4 cases (issue #213).
 
 ## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-17
 
@@ -1738,8 +1767,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...HEAD
-[4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.2
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.3...HEAD
+[4.14.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.3
+[4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2

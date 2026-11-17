@@ -50,6 +50,4 @@ If any call above fails or the item does not match, report the discrepancy hones
 
 **Step 3: Report.**
 
-Report the real issue number and the real `html_url` from the read-back response. If the user asked for a parent link, state plainly whether `get_parent` confirmed it. Never construct or invent a URL. The URL comes from the API response only.
-
-The echoed `parent_issue_number` of the create call is not proof of a link. The best-effort `parent` and `sub_issues_summary` fields of the `get` method are not proof either.
+Report the real issue number and the real `html_url` from the read-back response. If the user asked for a parent link, state plainly whether `get_parent` confirmed it. The echoed `parent_issue_number` of the create call is not proof of a link. Never construct or invent a URL. The URL comes from the API response only.
