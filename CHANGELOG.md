@@ -29,6 +29,20 @@ This release makes Stage 9 of `feature-pipeline` name the source of each argumen
 
 - `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also gives samples of 1000 and 1001 characters to `pr-body-length`, and makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`. It makes sure that the finalization stage names the step of `compose-pr` that holds the form (issue #203).
 
+## dev-essentials 3.17.5 in release [4.14.5] - 2026-11-17
+
+This release makes the stop of the failure check complete on Windows. A stopped command no longer leaves a Git Bash process that keeps the temporary folder of the check (issues #216 and #211).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it runs `taskkill` as before, and then stops the whole job. It waits up to 5 seconds until the processes of the job end. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses only `taskkill` (issues #216 and #211).
+- `skills/review-loop/SKILL.md`: the `WARN` bullet of Phase 6 no longer names a Windows limit of the time limit (issue #211).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Five new Windows tests cover the stop. They make sure that a shell that cannot join a job gets no job, and that `taskkill` then stops it. They also make sure that the stop of a job runs `taskkill` first, then ends the job, and then waits. Another test makes sure that a signal during `taskkill` still ends the job. The last test makes sure that the wait covers each process of the job and has one limit (issues #216 and #211).
+- `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
+
 ## dev-essentials 3.17.4 in release [4.14.4] - 2026-11-17
 
 This release moves the cache tip of `process-pr-comments` into the documentation.
@@ -1800,7 +1814,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...HEAD
-[4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.15.0
+[4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...v4.15.0
+[4.14.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.14.5
 [4.14.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.4
 [4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
