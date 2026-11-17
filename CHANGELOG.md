@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.8.0 in release [4.21.0] - 2026-11-17
+
+This release lets `/write-tests` write the tests of one class in the main session. Two or more targets, a module, and a project keep the `test-engineer` agents.
+
+### Changed in dotnet-backend-dev
+
+- `commands/write-tests`: if the grouping leaves one target of the kind Class, the main session writes its tests with the `create-tests` skill. It does the steps of the `test-engineer` agent and gives the same report. Two or more targets, a module, and a project still dispatch one agent for each target. The text gives the reason with the delegation tests of Rule 1 of `subagent-orchestration`. This changes a part of the behavior of issue #37 (issue #242).
+- `agents/test-engineer`: the description and the section "Purpose" say that the command dispatches the agent for two or more targets, a module, or a project (issue #242).
+- `evals/write-tests`: the grader `route-agent` of `wt-one-class` fails a run that dispatches `test-engineer`. The grader `route-agent` of `wt-pricing-folder` still asks for at least one such dispatch. Both graders now read the agent type of the call (issue #242).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: samples for the two `route-agent` graders of the write-tests suite (issue #242).
+- `tests/simple-english-baseline.json`: the reason of the entry of `wt-one-class` names the main session (issue #242).
+
 ## dev-essentials 3.23.0 in release [4.20.0] - 2026-11-17
 
 This release turns the executor role of the full pass of `trim-artifacts` into the subcommand `apply` of its script. The main session runs it, so no executor agent starts. A new eval case runs a full pass (issue #243).
@@ -1955,7 +1970,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...HEAD
+[4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...v4.18.0

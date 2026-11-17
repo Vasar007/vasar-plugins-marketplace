@@ -3550,5 +3550,41 @@ class TrimFullPassRouteGraderTests(unittest.TestCase):
                 self.assertEqual(self.counts("route-skill-fired", json.dumps({"skill": skill})), expected)
 
 
+# Each Agent call that a route-agent grader of the write-tests suite counts, and each call that it does not count.
+TEST_ENGINEER_TYPES = (("dotnet-backend-dev:test-engineer", True), ("test-engineer", True),
+                       ("general-purpose", False), ("dev-essentials:test-runner", False),
+                       ("dotnet-backend-dev:test-engineer-old", False), ("my-test-engineer", False))
+
+
+class WriteTestsRouteGraderTests(unittest.TestCase):
+    """The route-agent graders of the write-tests suite: no test-engineer for one class, at least one for a folder."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(DOTNET_ROOT)}
+
+    def check_pattern(self, meta):
+        pattern = re.compile(meta["input_match"])
+        for subagent_type, found in TEST_ENGINEER_TYPES:
+            with self.subTest(subagent_type=subagent_type):
+                self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
+
+    def test_one_class_asks_for_no_test_engineer(self):
+        meta = self.cases["wt-one-class"].graders["route-agent"][0]
+        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
+        self.check_pattern(meta)
+
+    def test_folder_still_asks_for_a_test_engineer(self):
+        meta = self.cases["wt-pricing-folder"].graders["route-agent"][0]
+        self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Agent"))
+        self.assertGreaterEqual(meta.get("min", 1), 1)
+        self.assertNotIn("max", meta)
+        self.check_pattern(meta)
+
+    def test_one_class_case_keeps_the_agent_tool(self):
+        tools = self.cases["wt-one-class"].field("allowed_tools")
+        self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+
+
 if __name__ == "__main__":
     unittest.main()
