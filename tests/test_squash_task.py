@@ -9,6 +9,7 @@ import io
 import os
 import shutil
 import stat
+import subprocess
 import sys
 from unittest import mock
 
@@ -112,6 +113,15 @@ class PlanTests(SquashCase):
         self.assertIn("UNTRACKED notes.txt", out)
         self.assertIn("RESULT: READY", out)
 
+    def test_untracked_folder_is_one_line_with_each_status_setting(self):
+        commits = self.task(2)
+        self.git("config", "status.showUntrackedFiles", "no")
+        self.write("drafts/one.txt", "1\n")
+        self.write("drafts/two.txt", "2\n")
+        out = self.squash(*commits)
+        self.assertIn("UNTRACKED drafts/", out)
+        self.assertEqual(out.count("UNTRACKED "), 1)
+
     def test_repository_path_with_a_space_and_non_ascii_letters(self):
         self.repo = git_init(self.tmp / "my répo")
         self.base = self.commit("base", "a.txt")
@@ -185,6 +195,68 @@ class ApplyTests(SquashCase):
         self.assertEqual(self.head(), commits[-1])
         self.assertEqual(self.git("status", "--porcelain"), "")
 
+    def test_output_of_a_failed_commit_is_short(self):
+        commits = self.task(2)
+        self.hook("pre-commit", 'i=0\nwhile [ $i -lt 30 ]; do\n  echo "lint $i ' + "x" * 300 + '"\n  i=$((i+1))\ndone\n'
+                                'exit 1\n')
+        out = self.squash(*commits, extra=["--apply"], code=1)
+        lines = [line for line in out.splitlines() if line.startswith("OUTPUT | ")]
+        self.assertEqual(len(lines), sq.MAX_PATHS)
+        self.assertTrue(lines[-1].startswith("OUTPUT | lint 29 x"), lines[-1])
+        self.assertTrue(all("more characters" in line and len(line) <= sq.LINE_CHARS + 40 for line in lines), lines)
+        self.assertEqual(self.head(), commits[-1])
+
+    def test_old_head_line_comes_before_the_commit_ends(self):
+        commits = self.task(2)
+        go = self.tmp / "go"
+        self.hook("pre-commit", f'n=0\nwhile [ ! -f "{go.as_posix()}" ]; do\n  n=$((n+1))\n'
+                                '  if [ $n -gt 100 ]; then exit 1; fi\n  sleep 0.1\ndone\n')
+        args = [sys.executable, "-I", str(SCRIPT), "--repo", str(self.repo), "--base", self.base, "--message", "m",
+                "--apply"]
+        for sha in commits:
+            args += ["--commit", sha]
+        lines = []
+        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as proc:
+            for raw in proc.stdout:
+                lines.append(raw.decode("utf-8").rstrip())
+                if lines[-1].startswith("OLD HEAD "):
+                    go.write_bytes(b"")
+        self.assertIn(f"OLD HEAD {commits[-1]}", lines)
+        self.assertEqual(lines[-1][:16], "RESULT: SQUASHED", lines)
+
+    def test_stop_during_the_commit_puts_the_old_head_back(self):
+        commits = self.task(2)
+        real = sq.git_result
+
+        def stopped(repo, *args, data=None):
+            if args[0] == "commit":
+                raise KeyboardInterrupt
+            return real(repo, *args, data=data)
+
+        out = io.StringIO()
+        with mock.patch.object(sq, "git_result", side_effect=stopped), contextlib.redirect_stdout(out), \
+                self.assertRaises(KeyboardInterrupt):
+            sq.execute(sq.parse_args(["--repo", str(self.repo), "--base", self.base, "--message", "m", "--apply",
+                                      "--commit", commits[0], "--commit", commits[1]]))
+        self.assertIn(f"OLD HEAD {commits[-1]}", out.getvalue())
+        self.assertIn(f"RESTORED HEAD {commits[-1][:12]}", out.getvalue())
+        self.assertEqual(self.head(), commits[-1])
+        self.assertEqual(self.git("status", "--porcelain"), "")
+
+    def test_message_that_is_not_unicode_changes_nothing(self):
+        commits = self.task(2)
+        message = "bad " + chr(0xD800)
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(UnicodeEncodeError):
+            sq.execute(sq.parse_args(["--repo", str(self.repo), "--base", self.base, "--message", message,
+                                      "--apply", "--commit", commits[0], "--commit", commits[1]]))
+        self.assertEqual(self.head(), commits[-1])
+
+    def test_result_line_keeps_the_undo_command_on_a_long_branch_name(self):
+        self.git("checkout", "-q", "-b", "tasks/" + "n" * 120)
+        commits = self.task(2)
+        out = self.squash(*commits, extra=["--apply"])
+        self.assertTrue(out.splitlines()[-1].endswith(f"To undo, run: git reset --soft {commits[-1]}"), out)
+
     def test_hook_that_changes_the_tree_gives_a_warning(self):
         commits = self.task(2)
         self.hook("pre-commit", 'echo hooked >> a.txt\ngit add a.txt\n')
@@ -251,6 +323,11 @@ class RefusalTests(SquashCase):
         out = self.refused(*commits, "0123456789abc", reason="--commit 0123456789abc names no single commit")
         self.assertIn("MISSING 0123456789abc: names no single commit", out)
 
+    def test_unknown_base(self):
+        commits = self.task(2)
+        out = self.refused(*commits, base="0123456789abc", reason="the base names no single commit.")
+        self.assertIn("BASE 0123456789abc: names no single commit", out)
+
     def test_branch_name_that_looks_like_a_sha(self):
         commits = self.task(2)
         self.git("branch", "abcdef12", self.base)
@@ -291,6 +368,13 @@ class RefusalTests(SquashCase):
         self.assertIn("CHANGED  M a.txt", out)
         self.assertEqual((self.repo / "a.txt").read_bytes(), b"not staged\n")
 
+    def test_staged_rename_is_an_added_and_a_deleted_file(self):
+        commits = self.task(2)
+        self.git("mv", "a.txt", "b.txt")
+        out = self.refused(*commits, reason="tracked files with a change: 2.")
+        self.assertIn("CHANGED A  b.txt", out)
+        self.assertIn("CHANGED D  a.txt", out)
+
     def test_detached_head(self):
         commits = self.task(2)
         self.git("checkout", "-q", "--detach")
@@ -305,6 +389,23 @@ class RefusalTests(SquashCase):
         self.git("merge", "-q", "--no-ff", "--no-commit", "side")
         self.refused(*commits, reason="a git operation is in progress (MERGE_HEAD exists)")
 
+    def test_each_kind_of_operation_in_progress(self):
+        commits = self.task(2)
+        for name in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "BISECT_LOG"):
+            with self.subTest(name):
+                marker = self.repo / ".git" / name
+                if name.startswith("rebase-"):
+                    marker.mkdir()
+                else:
+                    marker.write_bytes((commits[0] + "\n").encode("ascii"))
+                try:
+                    self.refused(*commits, reason=f"a git operation is in progress ({name} exists)")
+                finally:
+                    if marker.is_dir():
+                        marker.rmdir()
+                    else:
+                        marker.unlink()
+
     def test_no_change_in_sum(self):
         added = self.commit("add a file", "tmp.txt")
         self.git("rm", "-q", "tmp.txt")
@@ -318,8 +419,37 @@ class RefusalTests(SquashCase):
                            extra=["--plan-dir", "Notes/Plans"])
         self.assertIn("PLAN FILE Notes/Plans/task-plan.md", out)
 
+    def test_staged_plan_file(self):
+        self.base = self.commit("plan", "Notes/Plans/task-plan.md")
+        commits = self.task(2)
+        self.write("Notes/Plans/task-plan.md", "- [x] step 1\n")
+        self.write("Notes/Plans/new-notes.md", "draft\n")
+        self.git("add", "Notes/Plans")
+        out = self.refused(*commits, reason="tracked files with a change: 2.", extra=["--plan-dir", "Notes/Plans"])
+        self.assertIn("CHANGED A  Notes/Plans/new-notes.md", out)
+        self.assertIn("CHANGED M  Notes/Plans/task-plan.md", out)
+
+    def test_plan_file_that_the_task_moved_out_of_the_plan_dir(self):
+        self.base = self.commit("plan", "Notes/Plans/task-plan.md", "line 1\nline 2\nline 3\n")
+        first = self.commit("task step 1", "a1.txt")
+        self.git("mv", "Notes/Plans/task-plan.md", "moved-plan.md")
+        self.git("commit", "-q", "-m", "move the plan")
+        out = self.refused(first, self.head(), extra=["--plan-dir", "Notes/Plans"],
+                           reason="files below --plan-dir that the commits of the range change: 1.")
+        self.assertIn("PLAN FILE Notes/Plans/task-plan.md", out)
+
 
 class PlanDirTests(SquashCase):
+    def test_folder_with_the_plan_dir_name_as_a_prefix_is_no_plan_dir(self):
+        first = self.commit("task step 1", "a1.txt")
+        last = self.commit("task step 2", "Notes/Plans2/real.txt")
+        out = self.squash(first, last, extra=["--plan-dir", "Notes/Plans"])
+        self.assertNotIn("PLAN FILE", out)
+        self.assertIn("RESULT: READY", out)
+        self.write("Notes/Plans2/real.txt", "changed\n")
+        out = self.squash(first, last, code=3, extra=["--plan-dir", "Notes/Plans"])
+        self.assertIn("CHANGED  M Notes/Plans2/real.txt", out)
+
     def test_changed_plan_file_does_not_block(self):
         self.base = self.commit("plan", "Notes/Plans/task-plan.md")
         commits = self.task(2)
@@ -381,6 +511,25 @@ class UsageTests(SquashCase):
         result = run([sys.executable, "-I", SCRIPT, "--repo", folder, "--base", self.base, "--commit",
                       self.base, "--message", "m"])
         self.assertResult(result, 2, "error: not inside a git work tree")
+
+    def test_setup_error_shows_the_reason_of_git_before_a_long_path(self):
+        folder = self.tmp / ("plain " + "x" * 150)
+        folder.mkdir()
+        reason = " ".join(run(["git", "-C", folder, "rev-parse", "--show-toplevel"]).stderr.split())
+        result = run([sys.executable, "-I", SCRIPT, "--repo", folder, "--base", self.base, "--commit",
+                      self.base, "--message", "m"])
+        self.assertResult(result, 2, f"error: not inside a git work tree ({reason}): ")
+
+    def test_git_not_found(self):
+        commits = self.task(2)
+        args = sq.parse_args(["--repo", str(self.repo), "--base", self.base, "--commit", commits[0],
+                              "--commit", commits[1], "--message", "m", "--apply"])
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(sq.shutil, "which", return_value=None), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = sq.execute(args)
+        self.assertEqual((code, out.getvalue(), err.getvalue()), (2, "", "error: git not found\n"))
+        self.assertEqual(self.head(), commits[-1])
 
     def test_help_names_the_exit_codes(self):
         result = run([sys.executable, "-I", SCRIPT, "--help"])
