@@ -74,7 +74,7 @@ jobs:
   # The tests of the plugin scripts on Windows: Git Bash, PowerShell, and Windows paths (issue #182).
   test-windows:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
@@ -90,19 +90,3 @@ jobs:
       - name: Run the tests of the plugin scripts
         working-directory: tests
         run: python -m unittest -v test_backup_move test_failure_check test_group_diff test_check_report test_trim_report test_openbsd_lint test_kb_plugin test_testkit test_support
-
-      # Temporary step for issue #216. The last commit of the PR removes it.
-      - name: Repeat the stop tests 40 times
-        working-directory: tests
-        run: |
-          failed=0
-          for i in $(seq 40); do
-            if ! out=$(python -m unittest test_failure_check.SignalTests test_failure_check.TreeKillTests 2>&1); then
-              failed=$((failed + 1))
-              echo "::group::Run $i failed"
-              printf '%s\n' "$out" | tail -n 40
-              echo "::endgroup::"
-            fi
-          done
-          echo "Failed runs: $failed of 40"
-          [ "$failed" -eq 0 ]
