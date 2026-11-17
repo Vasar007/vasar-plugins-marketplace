@@ -1,0 +1,5 @@
+---
+type: regex
+pattern: '(\w+) = (?:min\( ?)?start ?\+ ?size\b(?! ?[-+*/])[^\n]*\n\s*return (?:list\()?items\[ ?start ?: ?\1 ?\]|start ?\+ ?size ?- ?1[^\n]*\n\s*return (?:list\()?items\[ ?start ?: ?\w+ ?\+ ?1 ?\]|items\[ ?start ?: ?start ?\+ ?size ?\]'
+target: { source: file, path: src/pager.py }
+---
