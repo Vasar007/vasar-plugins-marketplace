@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
+
+This release makes the stop of the failure check complete on Windows. A stopped command no longer leaves a Git Bash process that keeps the temporary folder of the check (issues #216 and #211).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it stops the whole job. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses `taskkill` as before (issues #216 and #211).
+- `skills/review-loop/SKILL.md`: the `WARN` bullet of Phase 6 no longer names a Windows limit of the time limit (issue #211).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. A new Windows test makes sure that a shell that cannot join a job gets no job (issues #216 and #211).
+- `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
+
 ## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-17
 
 This release lets `process-pr-comments` read the hand-off file of the earlier work on the PR branch. A new session then keeps the decisions that the user made in the build session (issue #199). The release also fixes five deferred review findings on the text of the skill (issue #187).
@@ -1724,7 +1738,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...HEAD
+[4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.2
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2

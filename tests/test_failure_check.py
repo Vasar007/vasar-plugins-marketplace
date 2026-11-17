@@ -506,6 +506,14 @@ class UnitTests(unittest.TestCase):
         self.assertIsNone(job.code)
         self.assertFalse(job.runnable_failure)
 
+    @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
+    def test_shell_that_cannot_join_a_job_gets_no_job(self):
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL)
+        self.addCleanup(proc.wait)
+        self.addCleanup(proc.kill)
+        with mock.patch.object(fc.KERNEL32, "AssignProcessToJobObject", return_value=0):
+            self.assertIsNone(fc.join_job(proc))
+
     def test_worktree_and_folder_that_stay_give_warn_lines(self):
         top = Path(tempfile.mkdtemp())
         self.addCleanup(remove_tree, top)
@@ -610,28 +618,10 @@ class SignalTests(FailureCheckCase):
 
 
 class TreeKillTests(FailureCheckCase):
-    """The child is a bash loop. It ends at the stop file or after its last step, and then writes the flag file.
-
-    On Windows, taskkill does not reach a Git Bash program that a background subshell starts. That child
-    keeps the log open, so the script can print a WARN line and leave its folder. Only Linux checks the kill.
-    """
+    """The child is a bash loop. It ends at the stop file or after its last step, and then writes the flag file."""
 
     CHILD_STEPS = 600
     REPLY_SECONDS = 3
-    FREE_SECONDS = 30
-
-    def stop_child(self, stop):
-        """Create the stop file. Then delete each item of the temporary folder when the child lets go of it."""
-        stop.touch()
-        deadline = time.monotonic() + self.FREE_SECONDS
-        for item in list(self.temp.iterdir()):
-            while item.exists():
-                try:
-                    remove_tree(item)
-                except OSError:
-                    if time.monotonic() >= deadline:
-                        raise
-                    time.sleep(0.2)
 
     def test_time_limit_stops_a_background_child_of_the_command(self):
         self.write("sub/value.txt", "bad\n")
@@ -640,24 +630,15 @@ class TreeKillTests(FailureCheckCase):
         quoted = shlex.quote(stop.as_posix())
         loop = (f"for i in $(seq {self.CHILD_STEPS}); do [ -e {quoted} ] && break; sleep 0.1; done; "
                 f"echo alive > {shlex.quote(flag.as_posix())}")
-        self.addCleanup(self.stop_child, stop)
+        self.addCleanup(stop.touch)
         args = [sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command",
                 f'("$BASH" -c {shlex.quote(loop)}; true) & wait', "--cwd", self.repo / "sub", "--timeout", "1"]
         result = run(args, env=self.env, timeout=120)
         self.assertResult(result, 0, "stopped after the time limit of 1 s", "VERDICT: OTHER")
         self.assertEqual(self.git("worktree", "list", "--porcelain").count("worktree "), 1, "a worktree is left")
-        left = list(self.temp.iterdir())
-        warned = re.findall(r"^WARN: could not delete the folder (.+)$", result.stdout, re.M)
-        if os.name == "nt" and warned:
-            self.assertEqual(len(left), 1, result.stdout)
-            self.assertEqual([Path(path).resolve() for path in warned], [left[0].resolve()])
-        else:
-            self.assertEqual(left, [], "a temporary folder is left")
-            self.assertNotIn("WARN", result.stdout)
-        self.stop_child(stop)
-        self.assertEqual(list(self.temp.iterdir()), [], "the folder stays after the child ends")
-        if os.name == "nt":
-            return
+        self.assertEqual(list(self.temp.iterdir()), [], "a temporary folder is left")
+        self.assertNotIn("WARN", result.stdout)
+        stop.touch()
         deadline = time.monotonic() + self.REPLY_SECONDS
         while not flag.exists() and time.monotonic() < deadline:
             time.sleep(0.2)
