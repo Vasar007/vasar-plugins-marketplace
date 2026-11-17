@@ -377,7 +377,9 @@ class GuardTests(MergeCase):
         self.age()
         self.assertResult(self.merge("--", MAIN), 0, "RESULT: CUT PLAN")
         dry, _ = self.dry_then_apply("--exclude=-x", "--", MAIN)
-        self.assertEqual(len(re.findall(r"^EXCLUDED ", dry.stdout, re.M)), 1)
+        excluded = re.findall(r"^EXCLUDED .*$", dry.stdout, re.M)
+        self.assertEqual(len(excluded), 1)
+        self.assertRegex(excluded[0], r"^.{200} \.\.\. \d+ more characters$")
         self.assertEqual(len(os.listdir(self.root)), 118)
         self.assertTrue((self.root / MAIN / f"{S3}.jsonl").is_file())
 
@@ -659,6 +661,18 @@ class SafetyTests(MergeCase):
         self.assertIn("never follows a link: memory/same.md", dry.stdout)
         self.assertTrue((self.root / WT1 / "memory/same.md").is_file())
 
+    def test_index_of_the_worktree_that_is_a_link_to_an_unreadable_file_stops_the_pair_for_the_link(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "MEMORY.md").write_bytes(b"\xff\xfe not text\n")
+        self.write(f"{WT1}/memory/fact.md", "fact\n")
+        self.file_link(outside / "MEMORY.md", self.root / WT1 / "memory" / "MEMORY.md")
+        self.age()
+        dry, _ = self.dry_then_apply("--allow-recent", WT1)
+        self.assertIn(f"STOP {WT1}: it holds a link, and the script never follows a link: memory/MEMORY.md",
+                      dry.stdout)
+        self.assertNotIn("cannot read a file", dry.stdout)
+
     def test_main_folder_that_the_script_cannot_read_is_skipped_and_counted(self):
         self.write(f"{MAIN}/memory/MEMORY.md", "placeholder\n")
         (self.root / MAIN / "memory" / "MEMORY.md").write_bytes(b"\xff\xfe not text\n")
@@ -840,6 +854,20 @@ class MemoryRunTests(MergeCase):
         self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(),
                          b"- [Other](other.md)\n- [Note](note-2.md) - worktree fact\n- [Z](zz.md)\n")
 
+    def test_second_run_does_not_append_a_line_with_two_renamed_links_again_after_a_stop(self):
+        for name in ("a", "b"):
+            self.write(f"{MAIN}/memory/{name}.md", f"main {name}\n")
+            self.write(f"{WT1}/memory/{name}.md", f"worktree {name}\n")
+        self.write(f"{WT1}/memory/zz.md", "z\n")
+        self.write(f"{WT1}/memory/MEMORY.md", "- [A](a.md) and [B](b.md) - wt words\n- [Z](zz.md)\n")
+        self.age()
+        result = self.apply_with_a_failed_move(self.code(self.merge()), "memory/zz.md")
+        self.assertResult(result, 1, "FAILED move")
+        self.age()
+        self.dry_then_apply()
+        self.assertEqual((self.root / MAIN / "memory/MEMORY.md").read_bytes(),
+                         b"- [A](a-2.md) and [B](b-2.md) - wt words\n- [Z](zz.md)\n")
+
     def test_line_that_starts_with_a_hash_but_is_not_a_heading_keeps_the_index(self):
         self.write(f"{MAIN}/memory/MEMORY.md", "- [Old](old.md)\n")
         self.write(f"{WT1}/memory/new.md", "new\n")
@@ -940,6 +968,8 @@ class ArgumentTests(MergeCase):
         self.assertResult(self.merge(f"--allow-recent={worktree}", "--", main), 0, f"DELETE {worktree}")
         self.assertResult(self.merge("--", main, "--apply", "--confirm", "000000000000"), 2, 'comes after "--"')
         self.assertResult(self.merge("--", main, "--allow-recent=" + worktree), 2, 'comes after "--"')
+        self.assertResult(self.merge("--", main, "--exclude=x"), 2, 'comes after "--"')
+        self.assertResult(self.merge("--", main, "--root", str(self.root)), 2, 'comes after "--"')
 
 
 class EscapeTests(MergeCase):

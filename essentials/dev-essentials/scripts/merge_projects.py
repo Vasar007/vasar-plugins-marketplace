@@ -317,9 +317,8 @@ class Plan:
             return
         left_out = [name for name in siblings if self.excluded(name)]
         if left_out:
-            more = f" ... {len(left_out) - MAX_DETAIL} more" if len(left_out) > MAX_DETAIL else ""
             self.say(f"EXCLUDED {show(main_name)}: {len(left_out)} worktree folders: "
-                     + ", ".join(show(n) for n in left_out[:MAX_DETAIL]) + more, f"EXCLUDED {left_out}")
+                     + ", ".join(show(n) for n in left_out), f"EXCLUDED {left_out}")
         for name in siblings:
             if name not in left_out:
                 self.pair(state, name, owners[name])
@@ -388,11 +387,11 @@ class PairPlan:
         facts = sorted(os.scandir(str(memory)), key=lambda e: e.name) if has_memory else []
         nested, flat = memory / INDEX, self.path / INDEX
         index = nested if nested.is_file() else flat if flat.is_file() else None
-        index_text = read_text(index) if index else None
         links = [e.name for e in top if is_link(e.path)] + [f"{MEMORY}/{e.name}" for e in facts if is_link(e.path)]
         if links:
             self.stop("it holds a link, and the script never follows a link", links)
             return
+        index_text = read_text(index) if index else None
         odd = [e.name for e in top if key(e.name) in (key(MEMORY), key(INDEX))
                and not (e.name == MEMORY and has_memory) and not (e.name == INDEX and flat.is_file())]
         odd += [f"{MEMORY}/{e.name}" for e in facts if key(e.name) == key(INDEX)
@@ -495,18 +494,23 @@ class PairPlan:
         return LINK.sub(swap, line)
 
     def appended_before(self, line, main_lines):
-        """True if W/memory no longer holds the file of the line, and the main index holds the line with a number.
+        """True if the main index holds the line with a number after each link whose file W/memory no longer holds.
 
         An earlier run that stopped after the move of a renamed file appended the line in that form.
         """
-        match = LINK.search(line)
-        target = match.group(1)
-        base = target.replace("\\", "/").rsplit("/", 1)[-1]
-        if key(base) in self.fact_names:
-            return False
-        stem, ext = os.path.splitext(base)
-        head, tail = line[:match.start(1)] + target[:len(target) - len(base)], line[match.end(1):]
-        return any(f"{head}{stem}-{n}{ext}{tail}" in main_lines for n in range(2, 10))
+        pattern, end, gone = "", 0, False
+        for match in LINK.finditer(line):
+            base = match.group(1).replace("\\", "/").rsplit("/", 1)[-1]
+            pattern += re.escape(line[end:match.end(1) - len(base)])
+            stem, ext = os.path.splitext(base)
+            if key(base) in self.fact_names:
+                pattern += re.escape(base)
+            else:
+                pattern += re.escape(stem) + "(?:-[2-9])?" + re.escape(ext)
+                gone = True
+            end = match.end(1)
+        pattern = re.compile(pattern + re.escape(line[end:]))
+        return gone and any(m != line and pattern.fullmatch(m) for m in main_lines)
 
     def stays_target(self, line):
         targets = LINK.findall(line)

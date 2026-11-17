@@ -69,7 +69,7 @@ These parts stay with you:
 - A `SKIP` line for recent activity. List the folder in the report as "skipped (recent activity). Make sure that it is safe to merge." Do not merge it in this run. If the user later says explicitly that the folder is safe, run the script with `--allow-recent=<folder>`. Never pass `--allow-recent` for the folder of the session that runs this command.
 - A `STOP` line. Report the exact names for a manual fix.
 - A `MEMORY` line that says that a file needs a manual merge or review, and a `KEEP` line. Report each one.
-- An `INDEX` line that says that the worktree folder keeps its index. Report the index line that it shows. The script already appended the pointer lines of that index. Only the shown line needs a merge by hand. The next run deletes the worktree index in two cases: the `M` index holds the same line, word for word, or the user removed the line from the worktree index.
+- An `INDEX` line that says that the worktree folder keeps its index. Report the index line that it shows. The script already appended the pointer lines of that index. Only the shown line needs a merge by hand. For a line with no link or with other words, the next run deletes the worktree index in one of two cases. Either the `M` index holds the same line, word for word, or the user removed the line from the worktree index. The `INDEX` line can also say that a line points at a file that stays. Then the index stays until that file leaves the `memory/` folder of the worktree folder. The `MEMORY` line names that file.
 - A `FAILED` line (exit 1). Report it, and run a dry run again to show what is left. Do not run `--apply` again without a new approval. A failed run can change the `memory/` folder of the worktree folder and not delete it. In that case, the new dry run skips that folder as recent. Then ask the user whether the folder is safe. If the user says yes, pass `--allow-recent=<folder>`.
 
 ## Step 6 — Report
@@ -80,7 +80,7 @@ Give these facts for each main project, from the output of the script:
 - The total number of moved session files and folders (the `MOVE` lines and the `TOTAL` line).
 - Each memory file that needs a manual review after a collision.
 - Each pair that Step 2 skipped for recent activity.
-- Each excluded folder.
+- The `EXCLUDED` lines: each excluded main folder, and the count of the excluded worktree folders of each main folder.
 
 Say clearly whether this was a **dry run** (nothing changed, see "Modes and safety gate") or an **applied** run (the run executed the approved plan). Keep the report short. It is a routine maintenance report.
 
