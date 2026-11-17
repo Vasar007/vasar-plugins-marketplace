@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Squash the commits of one task into one commit on the base commit of the task.
 
-Steps 3 and 4 of the implement-batch skill run this script. It needs Python 3.7 or later and git, and it uses
-only the standard library.
+The skills implement-batch (Steps 3 and 4) and research-implement-review-report (single-commit mode) run
+this script. It needs Python 3.7 or later and git, and it uses only the standard library.
 
 The input is the base commit of the task (--base), each commit that the task made (--commit, one for each
 commit), and the message of the squash commit (--message). The range of the task is base..HEAD.

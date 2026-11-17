@@ -12,7 +12,7 @@ The command runs these parts:
 
 - The tests of `merge_projects.py` (command `merge-worktree-projects`).
 - The tests of `check_report.py` (skill `bug-hunt`), `trim_report.py` (skill `trim-artifacts`), `failure_check.py` and `group_diff.py` (skill `review-loop`), and `openbsd_lint.py` (skill `openbsd-style-docs`).
-- The tests of `squash_task.py` (skill `implement-batch`).
+- The tests of `squash_task.py` (skills `implement-batch` and `research-implement-review-report`).
 - The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test. The `excluded` key of that file lists folders that the test skips as a whole, each with a reason. An `excluded` folder with no tracked `.md` file also fails the test.
 - markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
 - `claude plugin validate --strict` on the marketplace and on each plugin.

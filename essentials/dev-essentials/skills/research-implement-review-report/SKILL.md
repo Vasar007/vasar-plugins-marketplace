@@ -49,7 +49,8 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Phase 0 step 2: branch pattern for an issue of unknown type | Use the `tasks` pattern, and say so | Ask | Same as default |
 | Phase 1 step 4: plan sign-off | Report the plan path, and start Phase 2 | Wait for sign-off | Same as default |
 | Phase 1 step 4: open decisions of the plan | Ask them all in one message | Ask | Decide, and write each one into the plan |
-| Commit cadence, single mode: a commit from outside the run | Stop and ask before the soft reset | Same | Skip the squash, and report the commit |
+| Commit cadence, single mode: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
+| Commit cadence, single mode: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
 | Phase 3: review loop | Its gates, with the flag of this run | Same | Same |
 | Phase 4: `save-context` cleanup | Runs with no flag. It asks before it moves a file of an older session | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
@@ -167,9 +168,23 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 
 ### Single-commit mode (`--commit-mode=single`)
 
-- Before Phase 2 starts, record the SHA of `HEAD`.
+- Before Phase 2 starts, record the SHA of `HEAD` as `RUN_BASE_SHA`.
 - Run Phase 2 and Phase 3 as described above. Commit the Phase 2 output before Phase 3 starts, as in per-phase mode. Phase 3 keeps the normal round commits of the review loop. Do not suppress them with `--dry-run` or `--no-verify-fix`. Both flags also skip the fix itself.
-- After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit: `git reset --soft <recorded-SHA>`, then one commit. Its message sums up the implementation and the fixes of each review round, for example `Task X — <summary> (implement + N review rounds)`.
+- The session makes each Phase 2 commit, so the brief of an implementer subagent tells it not to commit. Stage explicit paths, never `git add -A` or `git add .`. Never stage the plan file of this run, because the squash script refuses a plan file in the commits.
+- Record the SHA of each commit of this run in `RUN_COMMITS`: each Phase 2 commit, and each commit that the review loop makes. Run `git rev-parse HEAD` right after each commit.
+- After Phase 3, and **before** the Phase 4 report, squash the whole run into one commit on `RUN_BASE_SHA` with the script `squash_task.py` of this plugin. It needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash). `--repo` is the absolute path of the work tree of this run. Give one `--commit` for each SHA of `RUN_COMMITS`. Give the folder of the plan file of this run as `--plan-dir`. If the run has no plan file, or if the plan file is at the root of the work tree, leave out `--plan-dir`. The message sums up the implementation and the fixes of each review round:
+
+  ```bash
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/squash_task.py" --repo "<work tree>" --plan-dir "<plan folder>" --base <RUN_BASE_SHA> --commit <sha> --commit <sha> --message "<Issue ref> — <summary> (implement + <N> review rounds)" --apply
+  ```
+
+  - Take the SHAs from the commits that this run made, never from `git log` of the range. A list from the log hides the commit of someone else.
+  - The script makes each check before the squash. It refuses a commit of the range that is not a `--commit`, and a merge commit. It also refuses a changed tracked file, a staged plan file, a detached HEAD, and a plan file in the commits. A refusal changes nothing.
+  - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, `MISSING`, `CHANGED`, and `PLAN FILE` lines. Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the refusal.
+  - `RESULT: ONE COMMIT`: the run made only one commit, so it needs no squash. The script makes no commit. Say so.
+  - `RESULT: SQUASHED`: the `NEW` line gives the SHA of the run commit. Report each `WARN` line.
+  - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `FAILED` and `OUTPUT` lines to the user, and ask. If the `RESULT` line says `NOT RESTORED`, first run `git -C "<work tree>" reset --soft <OLD HEAD>`. After a `RESTORED` line, this command changes nothing.
+  - An `OLD HEAD` line and no `RESULT` line: an error, for example Ctrl+C, stopped the script after it moved the branch. This output has no `OUTPUT` line, so show the last line of the error output to the user, and ask. After a `RESTORED HEAD` line, the old HEAD is back and nothing needs an undo. With no `RESTORED HEAD` line, the restore failed: show the output to the user, and give the command `git -C "<work tree>" reset --soft <OLD HEAD>`.
+  - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. If the output has no `RESULT` line and no `OLD HEAD` line, do the same. With `--autonomous`, report the problem instead.
 - **The `stop-blocked` exception**. If the review loop ends with `stop-blocked`, do not squash. Keep the round commits as they are, so that the caller can inspect the red state, and report the verdict.
-- **The squash-base safety stop**. If a commit from outside this run landed on `HEAD` (for example an unrelated concurrent commit), **stop and ask the user** before the soft reset. Do not squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the unexpected commit.
-- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between the recorded SHA and the squash. This skill does not coordinate it for the caller.
+- A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between `RUN_BASE_SHA` and the squash. This skill does not coordinate it for the caller.

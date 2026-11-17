@@ -128,10 +128,10 @@ For task `i`:
 3. **Build and test** before the commit. The implementer runs its own build and tests, and reports the verbatim result lines. Then run the build and test commands of the plan one time in the worktree, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the result differs from the report, or the run is red, resume the implementer with the error lines, and run again. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
 4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails"). Record the SHA of the commit in `TASK_COMMITS[i]`.
 5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle. Add the SHA of each commit that the loop makes to `TASK_COMMITS[i]`.
-6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`, with the script `scripts/squash_task.py` of this skill. It needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash). Give one `--commit` for each SHA of `TASK_COMMITS[i]`, and the plan folder as `--plan-dir`:
+6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`, with the script `squash_task.py` of this plugin. It needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash). Give one `--commit` for each SHA of `TASK_COMMITS[i]`, and the plan folder as `--plan-dir`:
 
    ```bash
-   python3 -I "${CLAUDE_SKILL_DIR}/scripts/squash_task.py" --repo "<worktree>" --plan-dir "<plan folder>" --base <TASK_BASE_SHA[i]> --commit <sha> --commit <sha> --message "<Issue ref> — <summary> (implement + <rounds> review rounds)" --apply
+   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/squash_task.py" --repo "<worktree>" --plan-dir "<plan folder>" --base <TASK_BASE_SHA[i]> --commit <sha> --commit <sha> --message "<Issue ref> — <summary> (implement + <rounds> review rounds)" --apply
    ```
 
    - Take the SHAs from the commits that this run made, never from `git log` of the range. A list from the log hides the commit of someone else.
