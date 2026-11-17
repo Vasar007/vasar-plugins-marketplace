@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dotnet-backend-dev 1.7.8 in release [4.16.1] - 2026-11-17
 
-This release prepares the repository for a public home. No file calls the repository private any more, and the examples of `dotnet-backend-dev` use a neutral namespace for the test helpers.
+This release prepares the repository for a public home. The README, the docs, and `CLAUDE.md` no longer call the repository private, and the examples of `dotnet-backend-dev` use a neutral namespace for the test helpers.
 
 ### Changed in dotnet-backend-dev
 
@@ -20,8 +20,8 @@ This release prepares the repository for a public home. No file calls the reposi
 ### Changed in the repository
 
 - `README.md`: removes the texts that call the repository private, the note on the git credential helper, and the sentence on credentials for the background update. The plugin table has a new column with the version badge of each plugin (issue #233).
-- `docs/authoring.md`: the sync rule on the visibility of the repository now names the two ways. The organization sync of a Team or Enterprise plan needs a private or internal repository. A marketplace that a user adds can be public (issue #233).
-- `CLAUDE.md`: the first rule of "Repo conventions" says that the repository is public, and no longer names an employer (issue #233).
+- `docs/authoring.md`: the sync section says that the owner adds the marketplace with "Add marketplace", and that this way takes a public repository. It names the organization sync of a Team or Enterprise plan as a different way, which needs a private or internal repository (issue #233).
+- `CLAUDE.md`: the first rule of "Repo conventions" says that the repository is public, and no longer uses the word "employer" (issue #233).
 
 ## dev-essentials 3.19.0 in release [4.16.0] - 2026-11-17
 
