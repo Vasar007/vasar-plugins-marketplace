@@ -90,12 +90,20 @@ ERROR_LINES = 20
 TAIL_LINES = 15
 LINE_CHARS = 300
 DEFAULT_TIMEOUT = 280
+JOB_WAIT_SECONDS = 5
 
 if os.name == "nt":
     import ctypes
     from ctypes import wintypes
 
-    PROCESS_TERMINATE, PROCESS_SET_QUOTA = 0x0001, 0x0100
+    PROCESS_TERMINATE, PROCESS_SET_QUOTA, SYNCHRONIZE = 0x0001, 0x0100, 0x00100000
+    JOB_OBJECT_BASIC_PROCESS_ID_LIST = 3
+
+    class JobProcessIds(ctypes.Structure):
+        """The JOBOBJECT_BASIC_PROCESS_ID_LIST structure, with room for 1024 process ids."""
+
+        _fields_ = [("assigned", wintypes.DWORD), ("listed", wintypes.DWORD), ("ids", ctypes.c_size_t * 1024)]
+
     KERNEL32 = ctypes.WinDLL("kernel32")
     KERNEL32.CreateJobObjectW.restype = wintypes.HANDLE
     KERNEL32.CreateJobObjectW.argtypes = (wintypes.LPVOID, wintypes.LPCWSTR)
@@ -107,6 +115,11 @@ if os.name == "nt":
     KERNEL32.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
     KERNEL32.CloseHandle.restype = wintypes.BOOL
     KERNEL32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    KERNEL32.QueryInformationJobObject.restype = wintypes.BOOL
+    KERNEL32.QueryInformationJobObject.argtypes = (wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD,
+                                                   wintypes.LPDWORD)
+    KERNEL32.WaitForSingleObject.restype = wintypes.DWORD
+    KERNEL32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
 
 
 class Stop(Exception):
@@ -245,10 +258,33 @@ def join_job(proc):
     return job if joined else None
 
 
+def stop_job(job):
+    """End each process of the job, and wait until they are gone. Return False if the stop fails.
+
+    A process can keep its open files for a short time after TerminateJobObject, so the wait makes sure that
+    the log file is free before the script deletes its folder. The wait stops after JOB_WAIT_SECONDS.
+    """
+    ids = JobProcessIds()
+    KERNEL32.QueryInformationJobObject(job, JOB_OBJECT_BASIC_PROCESS_ID_LIST, ctypes.byref(ids), ctypes.sizeof(ids),
+                                       None)
+    handles = [KERNEL32.OpenProcess(SYNCHRONIZE, False, pid) for pid in ids.ids[:ids.listed]]
+    handles = [handle for handle in handles if handle]
+    try:
+        if not KERNEL32.TerminateJobObject(job, 1):
+            return False
+        deadline = time.monotonic() + JOB_WAIT_SECONDS
+        for handle in handles:
+            KERNEL32.WaitForSingleObject(handle, int(max(0.0, deadline - time.monotonic()) * 1000))
+        return True
+    finally:
+        for handle in handles:
+            KERNEL32.CloseHandle(handle)
+
+
 def kill_tree(proc, job=None):
     """Stop the job, or else the process and its children. A kill that fails means that they ended before it."""
     if os.name == "nt":
-        if job is None or not KERNEL32.TerminateJobObject(job, 1):
+        if job is None or not stop_job(job):
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
     else:
         with contextlib.suppress(ProcessLookupError):

@@ -514,6 +514,19 @@ class UnitTests(unittest.TestCase):
         with mock.patch.object(fc.KERNEL32, "AssignProcessToJobObject", return_value=0):
             self.assertIsNone(fc.join_job(proc))
 
+    @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
+    def test_stop_of_a_job_waits_for_its_processes(self):
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL)
+        self.addCleanup(proc.wait)
+        self.addCleanup(proc.kill)
+        job = fc.join_job(proc)
+        self.assertIsNotNone(job)
+        self.addCleanup(fc.KERNEL32.CloseHandle, job)
+        wait = mock.Mock(wraps=fc.KERNEL32.WaitForSingleObject)
+        with mock.patch.object(fc.KERNEL32, "WaitForSingleObject", wait):
+            fc.kill_tree(proc, job)
+        self.assertGreaterEqual(wait.call_count, 1)
+
     def test_worktree_and_folder_that_stay_give_warn_lines(self):
         top = Path(tempfile.mkdtemp())
         self.addCleanup(remove_tree, top)

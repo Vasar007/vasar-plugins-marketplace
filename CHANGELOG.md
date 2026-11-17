@@ -15,12 +15,12 @@ This release makes the stop of the failure check complete on Windows. A stopped 
 
 ### Fixed in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it stops the whole job. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses `taskkill` as before (issues #216 and #211).
+- `skills/review-loop/scripts/failure_check.py`: on Windows, the script runs the command in a job object. At the time limit or after a stop signal, it stops the whole job and waits up to 5 seconds until its processes end. Before, `taskkill /T` missed a Git Bash process whose Windows parent was gone. That process kept `fix.log` open, so the script left its folder with a `WARN` line. If the command cannot join a job, the script uses `taskkill` as before (issues #216 and #211).
 - `skills/review-loop/SKILL.md`: the `WARN` bullet of Phase 6 no longer names a Windows limit of the time limit (issue #211).
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. A new Windows test makes sure that a shell that cannot join a job gets no job (issues #216 and #211).
+- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Two new Windows tests make sure that a shell that cannot join a job gets no job. They also make sure that the stop of a job waits for its processes (issues #216 and #211).
 - `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
 
 ## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-17
