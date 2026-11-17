@@ -54,6 +54,9 @@ EXPECTED_BRANCH = {
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
+    "mp-green-merge": "feature/paging",
+    "mp-red-check": "feature/paging",
+    "mp-no-merge-word": "feature/paging",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
