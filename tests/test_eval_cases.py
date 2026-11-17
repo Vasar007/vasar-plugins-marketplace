@@ -3745,6 +3745,7 @@ class OptimizeSkillCaseTests(unittest.TestCase):
                 self.assertFalse(self.regex_passes(grader, empty))
         self.assertFalse(self.regex_passes("route-seed-must", "You must dispatch the agent."))
         form = "# Audit\n\n## Contents\n\n- Sources\n- Items\n\nTarget files:\n- /w/plugin/skills/export-orders/references/csv-format.md\n- /w/plugin/skills/export-orders/references/old-retry-notes.md\n"
+        form += "\n- Fix plan: Delete the repeated rule in SKILL.md.\n" + "- Filler line of the audit.\n" * 15 + "- SKILL.md needs no table of contents.\n"
         for grader in ("route-seed-contents", "route-seed-unlinked"):
             self.assertFalse(self.regex_passes(grader, form))
 
