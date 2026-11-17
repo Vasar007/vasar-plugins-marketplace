@@ -113,7 +113,7 @@ The background update does not ask for credentials. The repository is private, s
 
 ## Working across sessions
 
-After a long pause, a long session costs more than a new session that reads a hand-off file. The page [Working across sessions](./docs/workflows.md) says when to stay in one session and when to start a new one. It gives the cost numbers of the runs.
+After a long pause, a long session costs more than a new session that reads a hand-off file. The page [Working across sessions](./docs/workflows.md) covers the choice between one session and a new one. It also gives the costs that eval runs measured.
 
 ## Rules for push, force push, and --no-verify
 
