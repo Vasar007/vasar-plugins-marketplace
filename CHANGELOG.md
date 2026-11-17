@@ -15,7 +15,7 @@ This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a 
 
 ### Added in dev-essentials
 
-- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It tests each target before a move, and it never replaces an entry that it finds. It never follows a link, and it never deletes a folder that is not empty. It keeps a worktree index that holds a line with no link, and it applies only a plan that it prints in full. Its output is short, and each name prints on one line (issue #223).
+- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It tests each target before a move, and it never replaces an entry that it finds. It never follows a link, and it never deletes a folder that is not empty. It keeps a worktree index that holds a line that it cannot merge by rule: a line with no link, or a pointer line with other words for a file that the main index names. It applies only a plan that it prints in full. Its output is short, and each name prints on one line (issue #223).
 
 ### Changed in dev-essentials
 

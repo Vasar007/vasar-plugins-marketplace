@@ -7,7 +7,8 @@ when the name of W is the name of M, then "--claude-worktrees-" or "--worktrees-
 of a leading drive letter ("C--" or "c--") does not count. A main folder name has neither of the two parts.
 
 For each pair (M, W), the script does these steps:
-1. It skips W if a file or a folder in W changed in the last 2 hours, unless --allow-recent names W.
+1. It does not read W if the name of W matches --exclude. One EXCLUDED line names all such folders of M.
+   It skips W if a file or a folder in W changed in the last 2 hours, unless --allow-recent names W.
    It also skips W if W is a link, if W matches two main folders, or if it cannot read W.
    It skips the whole group of M if M is a link. It does the same if M/memory, an entry of M/memory,
    or M/MEMORY.md is a link.
@@ -22,8 +23,9 @@ For each pair (M, W), the script does these steps:
    the renames of step 3, the index of M does not name. With no index in M, it creates
    M/memory/MEMORY.md from the index of W. A pointer line is a line with a Markdown link, also a link
    with a title. It removes the index of W, but it keeps it if a pointer line of W names a file that
-   stays. If a line of W with no link is not a heading and is not in the index of M, it also keeps the
-   index of W. Then it deletes W/memory if it is empty.
+   stays. It also keeps the index of W for a line of W that is not in the index of M, if the line has no
+   link and is not a heading, or if it names a file that the index of M names with other words.
+   Then it deletes W/memory if it is empty.
 5. It moves the other top-level entries of W into M. It deletes W only if W is then empty.
 The actions of a pair come in this order: the index of M, the memory files, the index of W, the other entries.
 So a run after a failed action still finds the index line of a renamed memory file.
@@ -51,7 +53,7 @@ Python traceback, 2 = usage error, 3 = a keyword matches no main folder or more 
 4 = the plan differs from --confirm, or the plan has a CUT line.
 
 A folder name that starts with "-" goes after "--". A flag takes such a value with "=", for example
---allow-recent=<name>.
+--allow-recent=<name>. A flag after "--" is a usage error, so put each flag before "--".
 
 It needs Python 3.7 or later and only the standard library.
 
@@ -76,6 +78,7 @@ from pathlib import Path
 SEGMENTS = ("--claude-worktrees-", "--worktrees-")
 DRIVE = re.compile(r"^[A-Za-z]--")
 LINK = re.compile(r'\]\(<?([^)<>\s]+)>?(?:\s+"[^"]*")?\)')
+HEADING = re.compile(r" {0,3}#{1,6}(?:[ \t]|$)")
 RECENT_SECONDS = 2 * 60 * 60
 LINE_CHARS = 200
 MAX_LINES = 120
@@ -165,7 +168,13 @@ class Parser(argparse.ArgumentParser):
 
 def parse_args(argv):
     # A project folder name on Linux starts with "-". argparse reads such an argument as a flag.
-    for arg in sys.argv[1:] if argv is None else argv:
+    words = sys.argv[1:] if argv is None else argv
+    after = words[words.index("--") + 1:] if "--" in words else []
+    names = ("--apply", "--confirm", "--exclude", "--allow-recent", "--root")
+    flags = [a for a in after if a.split("=", 1)[0] in names]
+    if flags:
+        usage_error(f'{show(flags[0])} comes after "--", so it reads as a keyword. Put each flag before "--".')
+    for arg in words:
         if arg == "--":
             break
         if arg.startswith("-") and not arg.startswith("--") and arg != "-h":
@@ -252,7 +261,7 @@ class MainState:
             entries = list(os.scandir(str(memory)))
             self.links = sorted(f"{MEMORY}/{e.name}" for e in entries if is_link(e.path))
             self.memory = {key(e.name): Path(e.path) for e in entries if e.name != INDEX}
-        self.index = next((p for p in (memory / INDEX, path / INDEX) if p.is_file()), None)
+        self.index = None if self.links else next((p for p in (memory / INDEX, path / INDEX) if p.is_file()), None)
         self.index_text = read_text(self.index) if self.index else None
         self.refs = set(LINK.findall(self.index_text or ""))
 
@@ -306,8 +315,14 @@ class Plan:
             self.skip(main_name, "the main folder holds a link, and the script never follows a link: "
                       + ", ".join(show(n) for n in state.links[:MAX_DETAIL]), f"links {state.links}")
             return
+        left_out = [name for name in siblings if self.excluded(name)]
+        if left_out:
+            more = f" ... {len(left_out) - MAX_DETAIL} more" if len(left_out) > MAX_DETAIL else ""
+            self.say(f"EXCLUDED {show(main_name)}: {len(left_out)} worktree folders: "
+                     + ", ".join(show(n) for n in left_out[:MAX_DETAIL]) + more, f"EXCLUDED {left_out}")
         for name in siblings:
-            self.pair(state, name, owners[name])
+            if name not in left_out:
+                self.pair(state, name, owners[name])
 
     def skip(self, name, reason, plan_reason):
         self.say(f"SKIP {show(name)}: {reason}", f"SKIP {name} {plan_reason}")
@@ -315,9 +330,6 @@ class Plan:
 
     def pair(self, state, name, owners):
         path = self.root / name
-        if self.excluded(name):
-            self.say(f"EXCLUDED {show(name)}", f"EXCLUDED {name}")
-            return
         if len(owners) > 1:
             self.skip(name, f"matches {len(owners)} main folders: " + ", ".join(show(o) for o in owners), "owners")
             return
@@ -354,6 +366,7 @@ class PairPlan:
         self.path = plan.root / name
         self.renames = {}
         self.stays = set()
+        self.fact_names = set()
 
     def detail(self, details, kind):
         for line in details[:MAX_DETAIL]:
@@ -394,6 +407,7 @@ class PairPlan:
             self.stop("the main folder has an entry with the same name", clash)
             return
         mark = len(self.plan.actions)
+        self.fact_names = {key(e.name) for e in facts}
         fact_actions = self.merge_facts([e for e in facts if e.name != INDEX])
         keep_index = self.merge_index(index, index_text) if index else False
         # The index lines come first. So a run after a failed move still finds the line of a renamed file.
@@ -480,6 +494,20 @@ class PairPlan:
             return whole[:start] + target[:len(target) - len(base)] + self.renames[base] + whole[end:]
         return LINK.sub(swap, line)
 
+    def appended_before(self, line, main_lines):
+        """True if W/memory no longer holds the file of the line, and the main index holds the line with a number.
+
+        An earlier run that stopped after the move of a renamed file appended the line in that form.
+        """
+        match = LINK.search(line)
+        target = match.group(1)
+        base = target.replace("\\", "/").rsplit("/", 1)[-1]
+        if key(base) in self.fact_names:
+            return False
+        stem, ext = os.path.splitext(base)
+        head, tail = line[:match.start(1)] + target[:len(target) - len(base)], line[match.end(1):]
+        return any(f"{head}{stem}-{n}{ext}{tail}" in main_lines for n in range(2, 10))
+
     def stays_target(self, line):
         targets = LINK.findall(line)
         return bool(targets) and key(targets[0].replace("\\", "/").rsplit("/", 1)[-1]) in self.stays
@@ -497,7 +525,7 @@ class PairPlan:
                 if number == 0:
                     line = line.lstrip(chr(0xFEFF))
                 if not LINK.search(line):
-                    if line.strip() and not line.lstrip().startswith("#") and line not in main_lines:
+                    if line.strip() and not HEADING.match(line) and line not in main_lines:
                         keep = True
                         details.append(f"INDEX {show(self.name)}: keeps its index, the main index does not hold "
                                        f"this line with no link: {show(line)}")
@@ -509,10 +537,17 @@ class PairPlan:
                     continue
                 new_line = self.rewrite(line)
                 target = LINK.findall(new_line)[0]
+                if self.appended_before(line, main_lines):
+                    continue
                 if target in state.refs:
+                    if new_line not in main_lines:
+                        keep = True
+                        details.append(f"INDEX {show(self.name)}: keeps its index, the main index names this file "
+                                       f"with other words: {show(new_line)}")
                     continue
                 state.refs.add(target)
                 added.append(new_line)
+                main_lines.add(new_line)
             if added:
                 base = state.index_text or ""
                 chunk = ("" if not base or base.endswith("\n") else newline) + "".join(a + newline for a in added)
@@ -618,7 +653,8 @@ def main(argv=None):
               "Run it again for one main folder, or with --exclude for a part of the worktree folders.")
         return 4 if args.apply else 0
     if not args.apply:
-        print(f"RESULT: DRY RUN. After the user approves this plan, run again with --apply --confirm {code}.")
+        print("RESULT: DRY RUN. After the user approves this plan, run again with the same arguments "
+              f'and --apply --confirm {code}. If the call has "--", put these flags before it.')
         return 0
     if args.confirm != code:
         print(f"RESULT: PLAN CHANGED. The plan is now {code}, not {show(args.confirm)}. Nothing changed. "
