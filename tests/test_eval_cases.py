@@ -3445,6 +3445,9 @@ class TrimFullPassRouteGraderTests(unittest.TestCase):
             "plain path": ("python3 -I /p/scripts/trim_report.py apply --orig o", True),
             "single quotes": ("python3 -I '/p/scripts/trim_report.py' apply --orig o", True),
             "line break": ('python3 -I "/p/scripts/trim_report.py" \\\n  apply --orig o', True),
+            "shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S apply --orig o --target t", True),
+            "report form with a shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S --before b --after a", False),
+            "apply with no flag": ("python3 -I /p/scripts/trim_report.py apply", False),
             "report form": ('python3 -I "/p/scripts/trim_report.py" --before b --after a', False),
             "help": ('python3 -I "/p/scripts/trim_report.py" --help', False),
         }
