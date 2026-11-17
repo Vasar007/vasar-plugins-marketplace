@@ -2718,6 +2718,64 @@ class PpcBuildContextGraderTests(unittest.TestCase):
         self.assertIn("printf 'Notes/\\n' >> .git/info/exclude", scaffold, "git must ignore Notes/, as in many repositories")
 
 
+class ComposeTaskFiresCaseTests(unittest.TestCase):
+    """The trigger case compose-task-fires asks for the text in chat, so that its run needs no tool that writes a file."""
+
+    CASE = "compose-task-fires"
+    # Tools that a trigger run does not get. The case cannot grant them, and the trigger runs pass no --allow-tools.
+    WRITE_TOOLS = {"Write", "Edit", "NotebookEdit", "Bash"}
+    # Phrases of the skill that select mode: response, as the prompt of the case uses them.
+    CHAT_PHRASES = ("return the description in chat", "do not write a file")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
+
+    def agent_input(self, subagent_type):
+        """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
+        return json.dumps({"description": "Draft the task", "prompt": "mode: draft", "subagent_type": subagent_type},
+                          separators=(",", ":"), ensure_ascii=False)
+
+    def test_the_prompt_asks_for_the_text_in_chat_with_phrases_of_the_skill(self):
+        skill = (FP_ROOT / "skills" / "compose-task" / "SKILL.md").read_text(encoding="utf-8")
+        response = [line for line in skill.splitlines() if line.startswith("- `response`:")]
+        self.assertEqual(len(response), 1, "The skill must have one trigger line for mode: response.")
+        prompt = self.case.prompt_body.lower()
+        self.assertIn("write a task description", prompt)
+        for phrase in self.CHAT_PHRASES:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, response[0].lower())
+                self.assertIn(phrase, prompt)
+
+    def test_the_case_keeps_the_agent_tool_and_lists_no_write_tool(self):
+        tools = self.case.field("allowed_tools")
+        self.assertIn("Skill", tools)
+        self.assertIn("Agent", tools, "Without Agent, the grader task-composer-not-fired tests nothing.")
+        self.assertEqual(self.WRITE_TOOLS & set(tools), set())
+
+    def test_the_wrapper_grader_counts_in_the_score(self):
+        graders = self.case.graders
+        self.assertEqual([name for name in graders if name.startswith(ROUTE_PREFIX)], [])
+        meta = graders["task-composer-not-fired"][0]
+        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"], meta["arm"]),
+                         ("tool_used", "Agent", 0, 0, "both"))
+        pattern = re.compile(meta["input_match"])
+        for subagent_type, found in (("dev-essentials:task-composer", True), ("task-composer", True),
+                                     ("general-purpose", False), ("dev-essentials:task-composer-old", False),
+                                     ("my-task-composer", False)):
+            with self.subTest(subagent_type=subagent_type):
+                self.assertEqual(pattern.search(self.agent_input(subagent_type)) is not None, found)
+
+    def test_the_fires_grader_counts_the_skill(self):
+        meta = self.case.graders["fires"][0]
+        self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Skill"))
+        self.assertNotIn("max", meta)
+        pattern = re.compile(meta["input_match"])
+        self.assertIsNotNone(pattern.search('{"skill":"dev-essentials:compose-task"}'))
+        self.assertIsNotNone(pattern.search('{"skill":"compose-task"}'))
+        self.assertIsNone(pattern.search('{"skill":"dev-essentials:compose-pr"}'))
+
+
 class ComposerGraderTests(unittest.TestCase):
     """Regex graders of the composers suite give the right verdict on right and wrong runs."""
 
