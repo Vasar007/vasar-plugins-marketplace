@@ -4,7 +4,7 @@ when_to_use: Use it for "write tests for X", "add tests for this folder", "test 
 argument-hint: "<class | file.cs | folder | namespace | project.csproj> [...] [-- extra instructions]"
 ---
 
-Write, refactor, or extend tests for one or more targets. If the run has one target of the kind Class, the main session writes its tests with the `create-tests` skill. Else the `dotnet-backend-dev:test-engineer` agent does the work, one agent for each target. The main session then only parses the arguments, dispatches the agents, and merges their reports. It does not load the `create-tests` skill, and it does not read source or test files.
+Write, refactor, or extend tests for one or more targets. If the run has one target of the kind Class, the main session writes its tests with the `create-tests` skill. Else the `dotnet-backend-dev:test-engineer` agent does the work, one agent for each target. On this route, the main session only parses the arguments, dispatches the agents, and merges their reports. It does not load the `create-tests` skill, and it does not read source or test files.
 
 **Arguments**: $ARGUMENTS
 
@@ -105,12 +105,12 @@ Write, refactor, or extend tests for one or more targets. If the run has one tar
 
 ## One class in the main session
 
-The main session does the work of a `test-engineer` agent for the one target. Follow the extra instructions together with the conventions of the skill.
+The main session does the work of a `test-engineer` agent for the one target. Follow the extra instructions together with the conventions of the skill. A `.cs` file or a merged class target can hold more than one class. Then do steps 2 to 7 for each class, one class after another.
 
-1. Load the `dotnet-backend-dev:create-tests` skill with the Skill tool. The agent gets this skill preloaded, so the main session loads it first.
+1. Load the `dotnet-backend-dev:create-tests` skill with the Skill tool. The agent gets this skill preloaded, so the main session loads it first. If the Skill call fails, stop and report the error.
 2. Read the source class. Find its test type in the example table of the skill. Search the test projects for an existing test file of the class. If the target is in a test project, the mode is a refactor.
 3. Skip a type that has no behavior to test, for example an interface, an enum, or generated code (`*.g.cs`, `*.Designer.cs`). Name each skipped type in the report, with the reason.
-4. Before you write code, read each example file that the table names for the test type. The files are in the `examples/` folder of the skill. The Skill tool output names the base folder of the skill (`Base directory for this skill: <folder>`). If it names no folder, find the files with Glob and the pattern `plugins/cache/*/dotnet-backend-dev/*/skills/create-tests/examples/*.md`. Search below the Claude home folder. If the variable `CLAUDE_CONFIG_DIR` is set, that folder is its value. Else it is `<home>/.claude`. If the pattern finds more than one version folder, use the highest version.
+4. Before you write code, read each example file that the table names for the test type. The files are in the `examples/` folder of the skill. First, read each file from `${CLAUDE_PLUGIN_ROOT}/skills/create-tests/examples/`. Claude Code puts the absolute folder of this plugin at the start of that path. If that path starts with `$`, or the folder does not exist, read each file from `<folder>/examples/`. The Skill tool output names this base folder (`Base directory for this skill: <folder>`). If it names no folder, find the files with Glob and the pattern `plugins/cache/*/dotnet-backend-dev/*/skills/create-tests/examples/*.md`. Search below the Claude home folder. If the variable `CLAUDE_CONFIG_DIR` is set, that folder is its value. Else it is `<home>/.claude`. If the pattern finds more than one version folder, use the highest version.
 5. Search the `*.Tests.Common/Helpers/Mocks/` folder for test builders and the `*.Tests.Common/Helpers/Generators/` folder for generators, and reuse them. If a builder or a generator is missing, create it first with the patterns of the examples.
 6. Write the tests with all conventions of the skill. For a refactor, fix each violation of the conventions and keep the test logic.
 7. Run `dotnet test --filter "FullyQualifiedName~<TestClassName>"`. If the repo uses a filter for each test project, add the path of the test project. Fix each compile error and each failed test, and run the tests again until all tests pass. Show only the summary lines.
@@ -119,6 +119,6 @@ The main session does the work of a `test-engineer` agent for the one target. Fo
 ## Guardrails
 
 - **Write or change tests in the main session only for one target of the kind Class** (step 4). For each other run, the `test-engineer` agents write the tests. Each agent loads the `create-tests` skill and its examples, and it follows all conventions of the skill.
-- **Do not read source or test files in the main session** to enrich a brief. The agent finds and reads them in its own context.
+- **On the agent route, do not read source or test files in the main session**, for example to enrich a brief. The agent finds and reads them in its own context. For one target of the kind Class, the main session reads them in the section "One class in the main session".
 - **Do not dispatch two agents that write to the same file at the same time.** Merge their targets in step 3.
 - **Do not commit, stash, or check out.** The user decides about the commit.
