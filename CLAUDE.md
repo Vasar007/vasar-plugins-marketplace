@@ -22,7 +22,7 @@ Each plugin sets an explicit `version` field in its `plugin.json`, and **only** 
 
 **What does not get bumped**: the marketplace itself (no `version` is set on `marketplace.json`), and any plugin whose files are unchanged in the PR.
 
-**How users receive updates**: after the new version lands on `main`, users run `/plugin marketplace update vasar-plugins-marketplace` (or have auto-update enabled), then `/reload-plugins`. Claude Code compares the resolved `version` against its cached copy and pulls only the bumped plugins.
+**How users receive updates**: after the new version lands on `main`, users get it in one of two ways. They select "Update marketplace" for `vasar-plugins-marketplace` in the "Marketplaces" tab of `/plugin`. Or they run `claude plugin update <plugin>@vasar-plugins-marketplace` in a shell. Then they run `/reload-plugins`. If the `version` of a plugin is new, Claude Code replaces the cached copy of that plugin. Else the cached copy stays. Automatic updates are off by default for this marketplace. For the details, see [Update the plugins](./docs/installing.md#update-the-plugins).
 
 **Validator note**: `claude plugin validate` accepts `version`. If a plugin manifest sets `version`, the validator gives no warning for it. So expect no warnings on the plugin manifests.
 
