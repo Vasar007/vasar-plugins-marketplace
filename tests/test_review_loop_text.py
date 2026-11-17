@@ -2,7 +2,7 @@
 
 The skill text decides who plans and who applies each fix. These tests pin the sentences that a later
 edit must not lose: the plan line of the Full format, the plan dispatch only for a finding with no plan,
-and the fixer subagent for a large fix set or a fixer flag.
+and the fixer subagent for the context test or a fixer flag.
 """
 import re
 import unittest
@@ -10,6 +10,14 @@ import unittest
 from support import REPO
 
 SKILL_DIR = REPO / "essentials/dev-essentials/skills/review-loop"
+COUNT = re.compile(
+    r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:\w+\s+)?"
+    r"(?:findings?|files?|edits?|lines?|fixes)\b",
+    re.IGNORECASE,
+)
+SESSION_SIZE = (
+    r"(?i)\b(?:long|short|fresh)\s+session|\bsession is (?:long|short|large|small)|size of the session"
+)
 
 
 def read(name):
@@ -17,7 +25,7 @@ def read(name):
 
 
 def section(text, start, end):
-    """The text from the first line that holds start up to the next line that holds end."""
+    """The text from the first match of start up to the next match of end."""
     head = text.index(start)
     return text[head:text.index(end, head)]
 
@@ -37,6 +45,10 @@ class FixPlanTextTests(unittest.TestCase):
         self.assertIn("runs only for the findings that have no usable plan", step)
         self.assertIn("`--reviewer-model`", step)
 
+    def test_step_5a_names_the_regression_fix_as_a_case_with_no_plan(self):
+        step = section(read("SKILL.md"), "**Step 5a:", "**Step 5b:")
+        self.assertIn("The fix is the regression fix after the failure check of Phase 6.", step)
+
     def test_audit_team_and_orchestrated_mode_keep_the_plan_dispatch(self):
         self.assertIn("plan dispatch on `--reviewer-model`", read("references/audit-team-adapter.md"))
         self.assertIn("step 5a plans the fixes with one plan dispatch", read("references/orchestrated-review.md"))
@@ -52,12 +64,32 @@ class FixerChoiceTextTests(unittest.TestCase):
                 self.assertIn(flag, step)
         self.assertIn("references/verify-fix-discipline.md", step)
 
-    def test_step_5b_names_no_count_of_findings_or_files(self):
+    def test_step_5b_keeps_the_orchestrator_path_and_the_flag_rule(self):
         step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
-        self.assertNotRegex(step, r"\b\d+\s+(?:findings?|files?|edits?|lines?|fixes)\b")
+        self.assertIn("Else the orchestrator applies the fixes itself.", step)
+        self.assertIn("dispatch the fixer subagent for every fix set", step)
+        self.assertIn("In the orchestrator, read", step)
+
+    def test_step_5b_decides_from_the_fix_plans_and_not_from_the_session(self):
+        step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
+        self.assertNotIn("the session already read", step)
+        self.assertIn("Decide from the fix plans", step)
+
+    def test_the_check_scope_lets_the_orchestrator_test_findings_when_it_is_the_fixer(self):
+        scope = section(read("SKILL.md"), "- Check scope:", "- Reporting:")
+        self.assertIn("If the orchestrator is the fixer", scope)
+
+    def test_the_choice_of_the_fixer_names_no_count_and_no_session_size(self):
+        default = section(read("SKILL.md"), "## Default configuration", "## Autonomy")
+        fixer_row = section(read("references/parameters.md"), "| `--fixer <id>`", "\n")
+        step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
+        for name, text in (("step 5b", step), ("default configuration", default), ("--fixer row", fixer_row)):
+            with self.subTest(text=name):
+                self.assertNotRegex(text, COUNT)
+                self.assertNotRegex(text, SESSION_SIZE)
 
     def test_the_brief_format_names_the_fixer(self):
-        self.assertIn("Fixer: <orchestrator | subagent>", read("references/output-formats.md"))
+        self.assertIn("Fixer: <orchestrator | subagent | none>", read("references/output-formats.md"))
 
 
 if __name__ == "__main__":

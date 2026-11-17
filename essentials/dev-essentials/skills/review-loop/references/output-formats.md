@@ -50,7 +50,7 @@ Cycle <N> — <target-summary>
   <count> findings: <Blk> Blocker, <Cri> Critical, <Hi> High, <Me> Medium, <Lo> Low, <Ni> Nit
   Triage: fix=<F>, deferred=<D> (per --skip / merit triage)
   Fix verdicts: APPLY=<A>, PARTIAL=<P>, REJECT=<R>
-  Fixer: <orchestrator | subagent> (<the test of Rule 1, or the fixer flag>)
+  Fixer: <orchestrator | subagent | none> (<the test of Rule 1, the fixer flag, or no fix in this cycle>)
   Build: <pass|fail|skipped (no command resolved)>
   Tests: <X passed, Y failed, Z skipped | not run>
   Verdict: <continue|stop-clean|stop-max-rounds|stop-blocked>

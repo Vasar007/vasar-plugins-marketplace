@@ -120,7 +120,7 @@ The user replies: `ok proceed`
 - F2: add negative tests with `foreach` over a `List<Action>`, as `dotnet-backend-dev:create-tests` documents for null-argument guards.
 - F3: before any fix, compare the finding with the `IServiceScopeFactory` usage in `BaseWorker.cs`.
 
-**Step 5b: the fixer carries out the plan**. The fixes need reads of three files and edits of two of them, so the context test of Rule 1 does not hold. The orchestrator is the fixer, and the Brief format says `Fixer: orchestrator (context test)`. It reads `references/verify-fix-discipline.md`, and it classifies the three findings that the triage cleared before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
+**Step 5b: the fixer carries out the plan**. The fixes need bounded reads of the files that the fix plans name, and edits of two of them. These reads are few, so the context test of Rule 1 does not hold. The orchestrator is the fixer, and the Brief format says `Fixer: orchestrator (context test)`. It reads `references/verify-fix-discipline.md`, and it classifies the three findings that the triage cleared before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
 
 **F1 [APPLY]**. Proved: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then `.Skip().Take()` on the result in memory. A known working EF pattern in the sibling service (`ExternalResourceRepository.cs:54`) applies `.Skip().Take()` on the `IQueryable` before the query runs. The fix stays inside lines 87 to 93.
 
