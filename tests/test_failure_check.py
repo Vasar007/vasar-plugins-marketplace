@@ -716,6 +716,7 @@ class TestCountTests(unittest.TestCase):
         self.assertSame([*failure, "Ran 120 tests in 0.5s"], [*failure, "Ran 119 tests in 0.5s"])
         self.assertSame([*failure, "FAILED (failures=1, skipped=2)"], [*failure, "FAILED (failures=1, skipped=1)"])
         self.assertDiffer([*failure, "FAILED (failures=2, skipped=1)"], [*failure, "FAILED (failures=1, skipped=1)"])
+        self.assertSame([*failure, "OK (skipped=12)"], [*failure, "OK (skipped=3)"])
 
     def test_counts_of_pytest_do_not_count(self):
         failure = ["FAILED test_class.py::TestClass::test_two - AssertionError: assert False"]
@@ -775,7 +776,8 @@ class TestCountTests(unittest.TestCase):
                                       ("total: 130", "total: 120"),
                                       ("error: total: 3", "error: total: 2"),
                                       ("error: Passed: 3", "error: Passed: 2"),
-                                      ("error at [ 50%] of the file", "error at [ 75%] of the file")):
+                                      ("error at [ 50%] of the file", "error at [ 75%] of the file"),
+                                      ("AssertionError: 'FAILED (skipped=3)'", "AssertionError: 'FAILED (skipped=2)'")):
             with self.subTest(line=fix_line):
                 self.assertDiffer(["FAIL: test_x", fix_line], ["FAIL: test_x", parent_line])
 
