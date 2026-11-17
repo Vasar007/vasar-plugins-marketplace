@@ -15,7 +15,7 @@ This release makes the eval case `rl-off-by-one` of `review-loop` stable. The sk
 
 ### Fixed in dev-essentials
 
-- `evals/review-loop/rl-off-by-one` and `evals/review-loop/rl-failing-build`: the prompt gives the contract of `page_slice` for `page < 1` in advance. Before, the session stopped after the round 1 review in 5 of 14 runs of `rl-off-by-one`. It asked the user whether to raise `ValueError` or to return an empty list. An eval run has no user, so such a run ended with no fix and no commit (issue #238).
+- `evals/review-loop/rl-off-by-one` and `evals/review-loop/rl-failing-build`: the prompt gives the contract of `page_slice` for `page < 1` in advance. Before, the session stopped after the round 1 review in 5 of 14 runs of `rl-off-by-one`. It asked the user what `page_slice` must do for `page < 1`, for example raise `ValueError` or return an empty list. An eval run has no user, so such a run ended with no fix and no commit (issue #238).
 
 ### Added in dev-essentials
 
