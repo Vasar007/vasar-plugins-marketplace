@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17
 
-This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each scaffold after the first run failed on a NuGet lock in the sealed `tmp` folder of the first run (issue #250).
+This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each .NET scaffold after the first .NET run failed on a NuGet lock in the sealed `tmp` folder of that run (issue #250).
 
 ### Fixed in dev-essentials
 
