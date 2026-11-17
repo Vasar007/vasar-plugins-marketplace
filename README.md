@@ -122,6 +122,7 @@ These guides in `docs/` are for readers who change this marketplace or add a plu
 - [Authoring reference](./docs/authoring.md): the folder structure, the rules for `marketplace.json` and `plugin.json`, the conventions, and the validator. Before you push, run `claude plugin validate .` from the repository root. Then run `claude plugin validate ./<group>/<plugin>` for each plugin that you changed.
 - [Testing](./docs/testing.md): the parts of the test run and the CI workflow `.github/workflows/tests.yml`. To run all tests, run `python3 -m unittest discover -s tests -v` from the repository root. If you add a new `.md` file, run `git add` on it first, because the linters read only the files that git tracks.
 - [Evals](./docs/evals.md): the eval cases, the compare script `tests/evals/compare_versions.py`, and the behavior suites. Each eval run calls a model on your account, so CI does not run the evals.
+- [Working across sessions](./docs/workflows.md): when to stay in one session and when to start a new one, with the cost numbers of the runs.
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for the changes in each release.
 
