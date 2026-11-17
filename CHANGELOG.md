@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.25.0 in release [4.23.0] - 2026-11-18
+
+With no agent count, `/audit-team` now reviews with two points of view. The main session reviews with the five roles as lenses, and one fresh agent takes the devil's advocate role. An explicit count still starts one agent for each of the first N roles. A new eval case plants one defect for each role (issue #254).
+
+### Changed in dev-essentials
+
+- `commands/audit-team`: with no `agent-count`, the run takes the two-view route. Before, it started five role agents, and each one read the whole target again. If the second argument is not a whole number and names a model, it is the model of the agent. So `/audit-team <path> opus` now works with no count. The report keeps its form. On the two-view route, a consensus in the agreement matrix needs a flag of the main session and a flag of the agent (issue #254).
+- `skills/review-loop`: the `audit-team` adapter and the spec review example pass a count of 5 as a fixed value, so `--reviewer audit-team` keeps the five-role team (issue #254).
+
+### Added in dev-essentials
+
+- `evals/audit-team/at-seeded-design`: a new case. A design file has five planted defects, one for each role. One requirement has no acceptance case, and one claim about the code is wrong. One step has a condition that no test can check, and one name breaks the pattern of the project. Two sections disagree. A judge reads the final report for each defect. A route grader counts the role agents (issue #254).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py` and `tests/test_eval_cases.py`: tests of the planted design and of the graders of the new case (issue #254).
+- `tests/test_review_loop_text.py`: four tests pin the fixed count of the adapter, the explicit count of the command, and the two-view route (issue #254).
+- `docs/evals.md`: a new suite row for `audit-team` with 1 case, and the tag sentence: `--tag audit-team` also runs the two trigger cases of the command (issue #254).
+
 ## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17
 
 This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each .NET scaffold after the first .NET run failed on a NuGet lock in the sealed `tmp` folder of that run (issue #250).
@@ -2003,7 +2022,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...HEAD
+[4.23.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...v4.23.0
 [4.22.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.22.1
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0

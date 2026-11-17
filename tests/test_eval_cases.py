@@ -3642,5 +3642,72 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
         self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
 
 
+AT_COMMAND = FP_ROOT / "commands" / "audit-team.md"
+
+
+class AuditTeamRouteGraderTests(unittest.TestCase):
+    """The graders of at-seeded-design: the route graders count the command and the role agents, and the form grader
+    reads the report form of Step 3 of the command."""
+
+    # The route grader of the role agents, and the count of role agents with no agent-count.
+    AGENT_GRADER, AGENT_COUNT = "route-one-agent", 1
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["at-seeded-design"]
+        cls.command = AT_COMMAND.read_text(encoding="utf-8")
+
+    def counts(self, grader, text):
+        return re.search(self.case.graders[grader][0]["input_match"], text) is not None
+
+    def test_the_route_graders_and_the_scored_graders(self):
+        kinds = {name: meta["type"] for name, (meta, _) in self.case.graders.items()}
+        self.assertEqual(kinds, {
+            "found-missing-acceptance": "llm", "found-wrong-assumption": "llm", "found-untestable-step": "llm",
+            "found-name-pattern": "llm", "found-contradiction": "llm", "output-form": "regex",
+            "route-command-fired": "tool_used", self.AGENT_GRADER: "tool_used",
+        })
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        self.assertIn("Agent", self.case.field("allowed_tools"))
+        meta = self.case.graders[self.AGENT_GRADER][0]
+        self.assertEqual((meta["tool"], meta["min"], meta["max"]), ("Agent", self.AGENT_COUNT, self.AGENT_COUNT))
+
+    def test_the_agent_grader_counts_only_the_role_agents(self):
+        runs = {
+            "a role agent": (agent_call_input(description="devil's advocate", prompt="Review",
+                                              subagent_type="general-purpose"), True),
+            "no agent type": (agent_call_input(description="devil's advocate", prompt="Review"), True),
+            "a role agent with a model": (agent_call_input(description="x", prompt="x", subagent_type="general-purpose",
+                                                           model="opus"), True),
+            "an agent type in the prompt": (agent_call_input(description="x", prompt='"subagent_type": "Explore"',
+                                                             subagent_type="general-purpose"), True),
+            "the code locator": (agent_call_input(description="find", prompt="x",
+                                                  subagent_type="dev-essentials:code-locator"), False),
+            "Explore": (agent_call_input(description="find", prompt="x", subagent_type="Explore"), False),
+            "a longer name": (agent_call_input(description="x", prompt="x", subagent_type="general-purpose-x"), False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts(self.AGENT_GRADER, text), expected)
+        self.assertIn("subagent_type: `general-purpose`", self.command)
+
+    def test_the_command_grader_counts_only_audit_team(self):
+        runs = {"dev-essentials:audit-team": True, "audit-team": True, "dev-essentials:audit-plan": False,
+                "dev-essentials:audit-team-x": False}
+        for skill, expected in runs.items():
+            with self.subTest(skill=skill):
+                text = json.dumps({"skill": skill, "args": "docs/design/refund-export.md"})
+                self.assertEqual(self.counts("route-command-fired", text), expected)
+
+    def test_the_form_grader_reads_the_report_form_of_step_3(self):
+        meta = self.case.graders["output-form"][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        start = self.command.index("### Team Review Report")
+        template = self.command[start:self.command.index("`" * 3, start)]
+        self.assertIsNotNone(re.search(meta["pattern"], template, flags))
+        self.assertIsNone(re.search(meta["pattern"], template.replace("Agreement matrix", "Summary"), flags))
+        self.assertIsNone(re.search(meta["pattern"], "The design looks fine. I found no issue.", flags))
+
+
 if __name__ == "__main__":
     unittest.main()
