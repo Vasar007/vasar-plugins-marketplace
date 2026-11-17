@@ -323,6 +323,7 @@ class ApplyTests(ApplyCase):
         self.assertEqual(sorted(p.name for p in (self.after / "notes").iterdir()), ["a.md", "keep.md", "log", "new.md"])
         self.assertEqual((self.after / "notes/log/raw.txt").read_bytes(), b"not a glob file\n")
         self.assertTrue(result.stdout.rstrip().endswith("RESULT: PASS"))
+        self.assertNotIn("KEPT", result.stdout)
 
     def test_emptied_folders_go_up_to_the_workspace_and_other_folders_stay(self):
         (self.after / "notes/log/raw.txt").unlink()
