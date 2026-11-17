@@ -31,6 +31,8 @@ To add the marketplace in a configuration file, use `.claude/settings.local.json
 }
 ```
 
+Claude Code reads this entry only after you accept the trust dialog for the folder of the project.
+
 ## Install one plugin
 
 After you add the marketplace, install a plugin by name:
@@ -42,7 +44,7 @@ After you add the marketplace, install a plugin by name:
 /plugin install kb@vasar-plugins-marketplace
 ```
 
-In a session, this command does not install at once. It opens the details of the plugin in the `/plugin` panel. You read what the plugin adds and choose a scope: your user, the project, or only your local copy of the project. The last line of the install summary says whether the plugin is active or needs `/reload-plugins`.
+In a session, this command does not install at once. It opens the details of the plugin in the `/plugin` panel. You read what the plugin adds and choose a scope: your user, the project, or only your local copy of the project. The last line of the install summary says whether the plugin is active. The panel runs the reload itself. If the reload invalidates the prompt cache, the panel warns and leaves the plugin pending. Then run `/reload-plugins --force`.
 
 `dotnet-backend-dev` uses skills and agents of `dev-essentials`, so it declares it as a dependency. If you install it, Claude Code also installs `dev-essentials` at the same scope.
 
@@ -73,7 +75,7 @@ To enable specific plugins for a project, extend the same `.claude/settings.loca
 }
 ```
 
-After you edit the configuration or install a plugin, run `/reload-plugins`. This loads the changes without a restart. A plugin that a project file enables can still need an install on your machine. The official page [Plugin loading reference](https://code.claude.com/docs/en/plugins/loading#enabled-in-project-settings-but-not-installed) explains this case.
+After you edit the configuration or install a plugin from your shell, run `/reload-plugins` in a running session. This loads the changes without a restart. A plugin that a project file enables can still need an install on your machine. The official page [Plugin loading reference](https://code.claude.com/docs/en/plugins/loading#enabled-in-project-settings-but-not-installed) explains this case.
 
 ## Update the plugins
 
@@ -109,3 +111,15 @@ For this marketplace, automatic updates are off by default. To turn them on in a
 With automatic updates, Claude Code waits a random delay of up to ten minutes after your first message in a session. Then it refreshes the marketplace and updates the plugins on disk. The running session keeps the old versions. To load the new versions, run `/reload-plugins` or start a new session.
 
 The page [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) gives the details. The page [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) gives the timing.
+
+## Official documentation
+
+These official pages cover the plugin system:
+
+- [Install and manage plugins](https://code.claude.com/docs/en/plugins/install): Install scopes, private marketplaces, and updates.
+- [Create a marketplace](https://code.claude.com/docs/en/plugins/create-marketplace): Plugin entries, plugin sources, and validation.
+- [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference): All fields of `marketplace.json`.
+- [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference): All fields of `plugin.json` and the layout of a plugin.
+- [Plugin loading reference](https://code.claude.com/docs/en/plugins/loading): The plugin cache, the version of a plugin, and automatic updates.
+- [Plugin commands reference](https://code.claude.com/docs/en/plugins/cli-reference): The `claude plugin` commands, `/plugin`, and `/reload-plugins`.
+- [Configuration reference](https://code.claude.com/docs/en/settings-reference#extraknownmarketplaces): The keys `extraKnownMarketplaces` and `enabledPlugins`.
