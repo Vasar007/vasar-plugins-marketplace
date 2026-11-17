@@ -21,7 +21,7 @@ This release adds the skill `merge-pr`. It merges one GitHub pull request after 
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new class `MergePrGraderTests` tests the graders of the new cases on right and wrong runs. It also pins the fixtures and the approval rule of the skill. The check of the `mock_calls` graders accepts a field of the first call before the span between two calls (issue #257).
+- `tests/test_eval_cases.py`: the new class `MergePrGraderTests` tests the regex graders of the new cases on right and wrong runs. For the `llm` grader `reported-ready`, it pins the type and the conditions of the rubric. It also pins the fixtures and the approval rule of the skill. The check of the `mock_calls` graders accepts a field of the first call before the span between two calls (issue #257).
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the three new cases (issue #257).
 - `tests/test_plugin_cli.py`: the listing budget of dev-essentials is 4785, for the new skill (issue #257).
 - `docs/permissions.md`: a new section on the merge of a pull request, with an ask rule for the merge tool (issue #257).
