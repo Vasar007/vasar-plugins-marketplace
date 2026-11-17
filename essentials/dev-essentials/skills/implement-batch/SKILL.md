@@ -48,7 +48,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as default |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
-| Step 3.6 and Step 4.4: a commit from outside the task | Stop and ask before the soft reset | Same | Skip the squash, and report the commit |
+| Step 3.6 and Step 4.4: the squash script refuses, for example for a commit from outside the task | Stop and ask | Same | Skip the squash, and report the refusal |
 | Step 5: push | Only with `--push`, after the report | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
@@ -125,31 +125,29 @@ For task `i`:
 1. **Record the base SHA of the task**: `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
 2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. The implementer runs its own build and tests, and reports the verbatim result lines. Then run the build and test commands of the plan one time in the worktree, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the result differs from the report, or the run is red, resume the implementer with the error lines, and run again. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
-4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails").
-5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
-6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`:
+4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails"). Record the SHA of the commit in `TASK_COMMITS[i]`.
+5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle. Add the SHA of each commit that the loop makes to `TASK_COMMITS[i]`.
+6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`, with the script `scripts/squash_task.py` of this skill. It needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash). Give one `--commit` for each SHA of `TASK_COMMITS[i]`, and the plan folder as `--plan-dir`:
 
    ```bash
-   git -C "<worktree>" reset --soft <TASK_BASE_SHA[i]>
-   git -C "<worktree>" commit -m "<Issue ref> — <summary> (implement + <rounds> review rounds)"
+   python3 -I "${CLAUDE_SKILL_DIR}/scripts/squash_task.py" --repo "<worktree>" --plan-dir "<plan folder>" --base <TASK_BASE_SHA[i]> --commit <sha> --commit <sha> --message "<Issue ref> — <summary> (implement + <rounds> review rounds)" --apply
    ```
 
-   If a commit in this range is not work of this task, **stop and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
+   - Take the SHAs from the commits that this run made, never from `git log` of the range. A list from the log hides the commit of someone else.
+   - The script makes each check before the squash. It refuses a commit of the range that is not a `--commit`, and a merge commit. It also refuses a changed tracked file, a detached HEAD, and a plan file in the commits. A refusal changes nothing.
+   - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, and `CHANGED` lines. Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the refusal.
+   - `RESULT: ONE COMMIT`: the review loop made no commit, so the task already has one commit. The script makes no commit. Say so.
+   - `RESULT: SQUASHED`: the `NEW` line gives the SHA of the task commit. Report each `WARN` line.
+   - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `OUTPUT` lines to the user, and ask. If the output has an `OLD HEAD` line and no `RESULT` line, or the `RESULT` line says `NOT RESTORED`, first run `git -C "<worktree>" reset --soft <OLD HEAD>`.
+   - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. With `--autonomous`, report it instead.
 7. Report one status line, and go to task `i+1`.
 
 ### Step 4 — Final cross-task review
 
 1. Record `FINAL_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 2. Run `dev-essentials:review-loop` once over the **combined** work, with `target=diff <BATCH_BASE_SHA>..HEAD`. This pass finds what single-task reviews cannot: inconsistency across tasks, duplicated abstractions, contradictory assumptions, and coverage gaps at the seams.
-3. Commit once for each review cycle, as the loop does by default.
-4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`:
-
-   ```bash
-   git -C "<worktree>" reset --soft <FINAL_BASE_SHA>
-   git -C "<worktree>" commit -m "Final review across <N> tasks — <summary of fixes>"
-   ```
-
-   The N task commits of Step 3 stay as they are. The same squash-base safety stop applies. If the final loop made no commit, there is nothing to squash. Report N commits and no final-review commit. Do not invent one.
+3. Commit once for each review cycle, as the loop does by default. Record the SHA of each commit that the loop makes.
+4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`, with the script of Step 3.6: `--base <FINAL_BASE_SHA>`, one `--commit` for each commit of the final loop, and `--message "Final review across <N> tasks — <summary of fixes>"`. The N task commits of Step 3 stay as they are. The rules of Step 3.6 for each `RESULT` line apply, also the squash-base safety stop. If the final loop made no commit, there is nothing to squash, so do not run the script. Report N commits and no final-review commit. Do not invent one.
 
 ### Step 5 — Report and stop
 

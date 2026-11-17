@@ -16,6 +16,24 @@ The other numbers in a heading are plugin versions.
 - `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
 - `CLAUDE.md`: the paragraph "How users receive updates" names the update ways of the official docs. They are "Update marketplace" in the `/plugin` panel, `claude plugin update`, and automatic updates. The paragraph no longer says that `/plugin marketplace update` updates the installed plugins. It points to `docs/installing.md` for the details (issue #240).
 
+## dev-essentials 3.23.0 in release [4.21.0] - 2026-11-17
+
+This release turns the squash steps of `implement-batch` into a script with unit tests. The script checks the commits of a task before it squashes them. After a failed commit, it puts the old HEAD back (issue #244).
+
+### Added in dev-essentials
+
+- `skills/implement-batch/scripts/squash_task.py`: squashes the commits of one task into one commit on the base commit of the task. It takes the base, each commit of the task, and the message. Without `--apply`, it prints the plan and changes nothing. It refuses a commit that the task did not make and a merge commit. It also refuses a changed tracked file, a detached HEAD, and a plan file in the commits. The commit hooks of the repository run. If the commit fails, the script puts the old HEAD back. Its output is short, and it names the command that undoes the squash (issue #244).
+
+### Changed in dev-essentials
+
+- `skills/implement-batch`: Step 3.6 and Step 4.4 run the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of a task, and the script refuses a commit that is not in that list. This is the squash-base safety stop of the skill. No eval case covers the change, because the eval sandbox blocks the worktree of Step 1 (issue #232) (issue #244).
+
+### Changed in the repository
+
+- `tests/test_squash_task.py`: new tests for the script on a fixture repository, on Linux and Windows (issue #244).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_squash_task` (issue #244).
+- `docs/testing.md`: names the tests of the script (issue #244).
+
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
 
 This release lets the reviewer of `review-loop` write the fix plan of each finding, so no other dispatch plans the fixes. The session that runs the loop applies the fixes, unless step 5b sends them to the fixer subagent. A new eval case runs the failure check of Phase 6.
@@ -1875,7 +1893,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...HEAD
+[4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.21.0
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
