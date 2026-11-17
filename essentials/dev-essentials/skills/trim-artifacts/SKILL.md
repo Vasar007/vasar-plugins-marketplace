@@ -23,7 +23,7 @@ If a line helps a future reader decide, plan, build or answer, it stays. Other t
 - Substance tier: needed facts with their sources, uncertainty markers, and all other requirements. The pass can shorten the wording. The meaning, the source and the marker must stay.
 - Anchor: a short verbatim quote that marks the start of a cut. It must match its file exactly once.
 - Batch: a group of files that one planner handles.
-- Planner, executor, reviewer, fixer: the four roles. The planner writes the cut plan. The executor applies it. The reviewer tests the result. The fixer repairs the findings.
+- Planner, reviewer, fixer: the three roles. The planner writes the cut plan. The script applies it in step 6. The reviewer tests the result. The fixer repairs the findings.
 - Tombstone: the one-line stub that replaces a withdrawn protected item. The id stays, so that old citations still resolve.
 - Deletion gate: step 5, where the user approves each file deletion and each tombstone.
 - Cut table: the list of allowed cut reasons in [references/cut-rules.md](references/cut-rules.md). That file also holds the tombstone template.
@@ -94,7 +94,7 @@ The script refuses a `--before` path that equals, contains, or sits inside the `
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
-If you run a second pass, first take a second backup.
+If you run a second pass, first take a second backup. If a workspace file changed after the plan of a batch (exit code 3 of step 6), take one also before the batch plans again.
 Deleting a backup is the last step, and it needs the user's approval.
 
 ### 3. Batch the files
@@ -113,6 +113,9 @@ The planner reads every file of its batch and writes one plan per batch. Use [re
 - Each tombstone with its file and a regex for `PATH:FIRST_LINE` (see step 7).
 
 The planner proves each anchor with a script. Then it makes two copies of every file that the glob matches in the workspace, not only of its batch. It puts them in a scratch folder: an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
+Step 6 copies `target` into the workspace as it is. So `target` holds the whole plan: each cut, each cross-file fix, each merge, and each deletion.
+Each file that the plan changes, merges, or deletes must match the glob. `apply` reads only those files.
+If a planned file does not match, widen the glob, for example to `--glob '**/*'`. See [references/protect-set.md](references/protect-set.md).
 Keep plans and scratch copies outside the workspace, so that the pass does not measure or trim them.
 
 Measure bytes, not lines. Joining lines is not a cut, because the bytes stay. Remove words instead. If a file stays above its target, the plan says why.
@@ -131,19 +134,23 @@ Deletions and tombstones are destructive. Wait for explicit approval of each ite
 This gate stays without `--interactive` too, because deletions and tombstones destroy data. With `--autonomous`, it does not stop. Put the three lists into the final message, and continue. The backup keeps a copy of each deleted file.
 For a large workspace, first run one pilot batch, a small batch that tests the targets. Show its size table.
 
-### 6. Apply the plan exactly (executor)
+### 6. Apply the plan with the script
 
-1. Make sure that each workspace file is byte-identical to the planner's `orig` copy. If not, stop and report.
-2. Apply each cut by its anchor. Delete the planned files. Remove folders that the deletions emptied.
-3. Compare the result with the planner's `target` copy, for example with `diff -r`.
-4. Report every place where the plan did not apply as written.
+The orchestrator runs the subcommand `apply` of the script once for each batch. No agent applies the plan. The script copies the result of the dry run from `target` into the workspace. It deletes the approved files and removes the folders that the deletions emptied. Then it runs the checks of step 7 and prints their result.
 
-Do not cut more than the plan says.
-If a removal changes the meaning of protected content, do not edit. Report it instead.
+```bash
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" apply \
+  --orig SCRATCH/orig --target SCRATCH/target --before BACKUP --after WORKSPACE \
+  --delete notes/old-log.md --id-regex '\bREQ-\d+\b'
+```
+
+- Use the scratch folder of the batch, and the glob and the regex flags of its dry run.
+- Pass one `--delete` for each deletion that the user approved at the gate, and one `--allow-changed` for each approved tombstone. Write each path relative to the workspace.
+- If one of its tests fails, the script changes no file. For example, a workspace file changed after the plan, or a deletion has no `--delete`. Read [references/script-results.md](references/script-results.md) for each exit code and the next step.
 
 ### 7. Measure and test with the script
 
-Run [scripts/trim_report.py](scripts/trim_report.py) against the backup. The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder:
+The `apply` run of the last batch prints this result. If its output has a `CUT` line, run the report form below with the same flags for the whole size table. If a batch used a second backup, run the report form below against the first backup. After each later change of the workspace, for example in step 10, run [scripts/trim_report.py](scripts/trim_report.py) against the backup. The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder:
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after WORKSPACE \
@@ -203,10 +210,10 @@ These habits keep the next pass small:
 ## Roles and models
 
 - The planner and the reviewer use the strongest reasoning level available.
-- The executor and the fixer use a cheaper level.
+- The fixer uses a cheaper level.
 - The user's explicit model choice always wins.
 - If the agent platform has an orchestration skill, follow it for dispatch and model choice.
-- The planner, the executor and the reviewer run in separate contexts, so that nobody grades their own work.
+- The planner and the reviewer run in separate contexts, so that nobody grades their own work. The script, not an agent, applies the plan.
 - If rate limits matter, run the agents one at a time.
 
 If the agent platform has no subagents, run the roles one after another in one context. Then give the review (step 9) to a fresh session or to the user. Give the re-review of step 10 to a fresh context too. If no fresh reviewer is available, tell the user that the pass has no independent review.
@@ -233,6 +240,6 @@ Use the same protections inline. Work in this order:
 - [references/artifact-profiles.md](references/artifact-profiles.md): keep and cut rules per artifact type.
 - [references/plan-template.md](references/plan-template.md): the plan format and the anchor proof script.
 - [references/protect-set.md](references/protect-set.md): the glob, the id regexes and the protected-block regexes of step 1.
-- [references/script-results.md](references/script-results.md): how to read the result of the script in step 7.
-- [references/role-briefs.md](references/role-briefs.md): briefs for the planner, executor, reviewer and fixer.
-- [scripts/trim_report.py](scripts/trim_report.py): the size table and integrity tests. Run it with `--help` for all flags.
+- [references/script-results.md](references/script-results.md): how to read the result of the script in steps 6 and 7.
+- [references/role-briefs.md](references/role-briefs.md): briefs for the planner, the reviewer, and the fixer.
+- [scripts/trim_report.py](scripts/trim_report.py): the size table, the integrity tests, and the subcommand `apply` of step 6. Run it with `--help` for all flags.

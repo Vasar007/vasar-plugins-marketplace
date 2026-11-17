@@ -1,6 +1,6 @@
 ---
 name: test-engineer
-description: Write, refactor, or extend .NET unit and integration tests for a class, a module, or a whole project. The agent follows the conventions of the preloaded `create-tests` skill. The `/write-tests` command dispatches one agent for each target and gets back a short report.
+description: Write, refactor, or extend .NET unit and integration tests for a class, a module, or a whole project. The agent follows the conventions of the preloaded `create-tests` skill. For a run with two or more targets, a module, or a project, the `/write-tests` command dispatches one agent for each target. The agent returns a short report.
 tools: [Read, Write, Edit, Bash, Grep, Glob, Skill]
 skills:
   - dotnet-backend-dev:create-tests
@@ -12,7 +12,7 @@ skills:
 
 Write, refactor, and extend tests for .NET code with the strict testing conventions of the project. All tests use the correct base classes, mock builders, generators, and the mandatory private-helper-method pattern.
 
-The command `/dotnet-backend-dev:write-tests` dispatches this agent, one agent for each target. If the user asks for tests directly, the main session can also dispatch it. In both cases, the agent does all the work in its own context and returns only the report of the section "Report".
+The command `/dotnet-backend-dev:write-tests` dispatches this agent for a run with two or more targets, a module, or a project, one agent for each target. For one class, the command writes the tests in the main session. If the user asks for tests directly, the main session can also dispatch it. In both cases, the agent does all the work in its own context and returns only the report of the section "Report".
 
 ## Scope of the Work
 

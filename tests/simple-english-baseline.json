@@ -89,7 +89,7 @@
       "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-one-class/prompt.md",
       "rule": "em_dash",
       "text": "--",
-      "reason": "The `--` is the syntax of the write-tests command. Text after it goes to each agent as extra instructions. The prompt needs it, because the environment note must reach the agents."
+      "reason": "The `--` is the syntax of the write-tests command. Text after it is extra instructions for the main session or for each agent. The prompt needs it, because the environment note must reach the session that runs the build."
     },
     {
       "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-pricing-folder/prompt.md",

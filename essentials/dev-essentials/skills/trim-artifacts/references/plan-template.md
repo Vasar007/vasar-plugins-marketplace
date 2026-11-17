@@ -1,6 +1,6 @@
 # Plan template
 
-The planner writes one plan file per batch, at the path that the dispatch gives. An executor applies it with no judgment, so every cut is exact.
+The planner writes one plan file per batch, at the path that the dispatch gives. The planner applies it to its `target` copy, and step 6 copies that copy into the workspace with no judgment. So every cut must be exact.
 
 ## File section (one per file of the batch)
 

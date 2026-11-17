@@ -53,6 +53,7 @@ EXPECTED_BRANCH = {
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
+    "ta-full-pass": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -1338,6 +1339,130 @@ class CommitGraderTests(FixtureCase):
                               env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertNotEqual(done.returncode, 0, done.stderr)
         self.assertIn("test_get_uses_the_retry_limit_of_the_settings", done.stderr)
+
+
+class TrimFullPassTests(FixtureCase):
+    """The file graders of ta-full-pass fail on the planted notes and pass on a right trim. They also fail on a lost
+    decision, a lost id, a lost marker, a kept log, and a missing backup."""
+
+    CASE = "ta-full-pass"
+    LOG = "notes/archive/session-log-2026-10.md"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def scaffold(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, workspace, name):
+        """The verdict of a regex grader on its file, for the match modes contains and not_contains."""
+        options = self.case.graders[name][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in options.get("flags", ""))
+        text = (workspace / options["target"]["path"]).read_bytes().decode("utf-8")
+        found = re.search(options["pattern"], text, flags)
+        return (found is None) if options.get("match") == "not_contains" else (found is not None)
+
+    def verdicts(self, workspace):
+        return {name: self.passes(workspace, name) for name, (options, _) in self.case.graders.items()
+                if options["type"] == "regex"}
+
+    @staticmethod
+    def edit(workspace, path, old, new=""):
+        file = workspace / path
+        text = file.read_bytes().decode("utf-8")
+        if old not in text:
+            raise AssertionError(f"{path} does not hold {old!r}")
+        file.write_bytes(text.replace(old, new).encode("utf-8"))
+
+    @staticmethod
+    def listing(workspace):
+        paths = [p.relative_to(workspace).as_posix() for root in ("notes", "trim-backup")
+                 for p in [workspace / root, *(workspace / root).rglob("*")] if p.exists()]
+        (workspace / "trim-listing.txt").write_bytes("".join(f"{p}\n" for p in sorted(paths)).encode("utf-8"))
+
+    def trim(self, workspace):
+        """A right trim: the backup, the two planted cuts, the deleted log and folder, the fixed index, the listing."""
+        shutil.copytree(workspace / "notes", workspace / "trim-backup")
+        decisions = (workspace / "notes/decisions.md").read_bytes().decode("utf-8")
+        start, end = decisions.index("## History"), decisions.index("## DEC-1")
+        (workspace / "notes/decisions.md").write_bytes((decisions[:start] + decisions[end:]).encode("utf-8"))
+        requirements = (workspace / "notes/requirements.md").read_bytes().decode("utf-8")
+        (workspace / "notes/requirements.md").write_bytes(requirements[:requirements.index("\n## Review") + 1]
+                                                          .encode("utf-8"))
+        self.edit(workspace, "notes/README.md", "- archive/session-log-2026-10.md: the session log of October.\n")
+        (workspace / self.LOG).unlink()
+        (workspace / "notes/archive").rmdir()
+        self.listing(workspace)
+
+    def test_the_notes_have_the_planted_state(self):
+        workspace = self.scaffold()
+        files = sorted(p.relative_to(workspace / "notes").as_posix() for p in (workspace / "notes").rglob("*.md"))
+        self.assertEqual(len(files), 12, files)
+        self.assertEqual(sorted(p.name for p in (workspace / "notes/archive").iterdir()), ["session-log-2026-10.md"])
+        self.listing(workspace)
+        verdicts = self.verdicts(workspace)
+        for name in ("history-cut", "residue-cut", "index-fixed", "log-deleted", "folder-removed", "backup-kept"):
+            with self.subTest(grader=name):
+                self.assertFalse(verdicts[name], "the grader passes before the trim")
+        for name in ("decisions-kept", "req-ids-kept", "question-ids-kept", "markers-kept", "index-kept",
+                     "listing-written"):
+            with self.subTest(grader=name):
+                self.assertTrue(verdicts[name], "the grader fails on the planted notes")
+
+    def test_a_right_trim_passes_every_file_grader(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        self.assertEqual({name for name, passed in self.verdicts(workspace).items() if not passed}, set())
+
+    def test_the_backup_can_hold_the_notes_folder(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        shutil.move(str(workspace / "trim-backup"), str(workspace / "notes-copy"))
+        (workspace / "trim-backup").mkdir()
+        shutil.move(str(workspace / "notes-copy"), str(workspace / "trim-backup" / "notes"))
+        self.listing(workspace)
+        self.assertTrue(self.passes(workspace, "backup-kept"))
+
+    def test_each_loss_fails_its_grader(self):
+        losses = {
+            "decisions-kept": ("notes/decisions.md", "older than 30 days.", "older than 31 days."),
+            "req-ids-kept": ("notes/requirements.md", "- REQ-4: The tool writes a log line for each export, with the "
+                                                      "count of orders.\n", ""),
+            "question-ids-kept": ("notes/open-questions.md", "- Q-1:", "- Question 1:"),
+            "markers-kept": ("notes/open-questions.md", " (unverified)", ""),
+            "index-kept": ("notes/README.md", "- decisions.md: the decisions in force.\n", ""),
+        }
+        for name, (path, old, new) in losses.items():
+            with self.subTest(grader=name):
+                workspace = self.scaffold()
+                self.trim(workspace)
+                self.edit(workspace, path, old, new)
+                self.assertFalse(self.passes(workspace, name))
+                remove_tree(workspace)
+
+    def test_a_crlf_decision_file_still_passes(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        path = workspace / "notes/decisions.md"
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+        self.assertTrue(self.passes(workspace, "decisions-kept"))
+
+    def test_a_kept_log_or_folder_fails(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        (workspace / "notes/archive").mkdir()
+        self.listing(workspace)
+        self.assertEqual((self.passes(workspace, "log-deleted"), self.passes(workspace, "folder-removed")),
+                         (True, False))
+        (workspace / self.LOG).write_bytes(b"x\n")
+        self.listing(workspace)
+        self.assertFalse(self.passes(workspace, "log-deleted"))
+        shutil.rmtree(workspace / "trim-backup")
+        self.listing(workspace)
+        self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
 class RirrSquashGraderTests(FixtureCase):

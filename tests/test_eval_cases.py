@@ -3535,5 +3535,112 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
                     self.assertFalse(self.passes(case, text))
 
 
+class TrimFullPassRouteGraderTests(unittest.TestCase):
+    """The route graders of ta-full-pass count the right dispatches and the apply call of the script."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["ta-full-pass"]
+        skill = FP_ROOT / "skills" / "trim-artifacts"
+        cls.briefs = (skill / "references" / "role-briefs.md").read_text(encoding="utf-8")
+
+    def counts(self, grader, text):
+        return re.search(self.case.graders[grader][0]["input_match"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-skill-fired", "route-planner-agent", "route-reviewer-agent",
+                                  "route-no-executor", "route-apply-script"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        meta = self.case.graders["route-no-executor"][0]
+        self.assertEqual((meta["tool"], meta["min"], meta["max"]), ("Agent", 0, 0))
+
+    def test_the_planner_and_reviewer_graders_match_the_briefs_of_the_skill(self):
+        for grader, first_line in (("route-planner-agent", "You plan a trim pass for one batch."),
+                                   ("route-reviewer-agent", "You review a finished trim pass.")):
+            with self.subTest(grader=grader):
+                self.assertIn(first_line, self.briefs)
+                self.assertTrue(self.counts(grader, agent_call_input(description="b1", prompt=first_line)))
+                self.assertFalse(self.counts(grader, agent_call_input(description="b1", prompt="Fix the findings.")))
+
+    def test_the_executor_grader_counts_the_old_brief_and_an_executor_description(self):
+        old_brief = "You apply a proven trim plan exactly. Do not cut more than the plan says."
+        runs = {
+            "the old executor brief": (agent_call_input(description="Apply batch b1", prompt=old_brief), True),
+            "an executor description": (agent_call_input(description="Trim executor b1", prompt="x"), True),
+            "the planner": (agent_call_input(description="Trim planner b1", prompt="You plan a trim pass."), False),
+            "the reviewer": (agent_call_input(description="Review the trim", prompt="You review a finished trim pass."),
+                             False),
+            "the word in a planner prompt": (agent_call_input(description="Plan b1", prompt="no executor runs"), False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-no-executor", text), expected)
+        self.assertNotIn("executor", self.briefs.lower(), "the briefs still name the executor role")
+
+    def test_the_apply_grader_counts_only_the_subcommand(self):
+        runs = {
+            "quoted path": ('python3 -I "/p/scripts/trim_report.py" apply --orig o --target t', True),
+            "plain path": ("python3 -I /p/scripts/trim_report.py apply --orig o", True),
+            "single quotes": ("python3 -I '/p/scripts/trim_report.py' apply --orig o", True),
+            "line break": ('python3 -I "/p/scripts/trim_report.py" \\\n  apply --orig o', True),
+            "shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S apply --orig o --target t", True),
+            "report form with a shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S --before b --after a", False),
+            "apply with no flag": ("python3 -I /p/scripts/trim_report.py apply", False),
+            "report form": ('python3 -I "/p/scripts/trim_report.py" --before b --after a', False),
+            "help": ('python3 -I "/p/scripts/trim_report.py" --help', False),
+        }
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-apply-script", json.dumps({"command": command})), expected)
+
+    def test_the_skill_grader_counts_only_the_skill_call_of_trim_artifacts(self):
+        runs = {
+            "the skill with its plugin": ("dev-essentials:trim-artifacts", True),
+            "the skill with no plugin": ("trim-artifacts", True),
+            "another skill": ("dev-essentials:review-loop", False),
+            "a longer name": ("dev-essentials:trim-artifacts-extra", False),
+        }
+        for name, (skill, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-skill-fired", json.dumps({"skill": skill})), expected)
+
+
+# Each Agent call that a route-agent grader of the write-tests suite counts, and each call that it does not count.
+TEST_ENGINEER_TYPES = (("dotnet-backend-dev:test-engineer", True), ("test-engineer", True),
+                       ("general-purpose", False), ("dev-essentials:test-runner", False),
+                       ("dotnet-backend-dev:test-engineer-old", False), ("my-test-engineer", False))
+
+
+class WriteTestsRouteGraderTests(unittest.TestCase):
+    """The route-agent graders of the write-tests suite: no test-engineer for one class, at least one for a folder."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(DOTNET_ROOT)}
+
+    def check_pattern(self, meta):
+        pattern = re.compile(meta["input_match"])
+        for subagent_type, found in TEST_ENGINEER_TYPES:
+            with self.subTest(subagent_type=subagent_type):
+                self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
+
+    def test_one_class_asks_for_no_test_engineer(self):
+        meta = self.cases["wt-one-class"].graders["route-agent"][0]
+        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
+        self.check_pattern(meta)
+
+    def test_folder_still_asks_for_a_test_engineer(self):
+        meta = self.cases["wt-pricing-folder"].graders["route-agent"][0]
+        self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Agent"))
+        self.assertGreaterEqual(meta.get("min", 1), 1)
+        self.assertNotIn("max", meta)
+        self.check_pattern(meta)
+
+    def test_one_class_case_keeps_the_agent_tool(self):
+        tools = self.cases["wt-one-class"].field("allowed_tools")
+        self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+
+
 if __name__ == "__main__":
     unittest.main()
