@@ -1252,8 +1252,6 @@ class CommitGraderTests(FixtureCase):
         self.assertIn("test_get_uses_the_retry_limit_of_the_settings", done.stderr)
 
 
-
-
 class TrimFullPassTests(FixtureCase):
     """The file graders of ta-full-pass fail on the planted notes and pass on a right trim. They also fail on a lost
     decision, a lost id, a lost marker, a kept log, and a missing backup."""

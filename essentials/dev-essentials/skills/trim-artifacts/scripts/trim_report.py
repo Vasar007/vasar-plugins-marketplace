@@ -51,7 +51,9 @@ The planner of the batch made two copies: --orig (the files before the plan)
 and --target (the files after the plan). Both copies and the trees hold the
 files that --glob matches, by the same relative paths. A file that differs
 between the two copies is changed. A file only in --orig is deleted. A file
-only in --target is new. The other files stay as they are.
+only in --target is new. The other files stay as they are. A --delete flag
+for a file that the plan keeps does nothing, and the output has a KEPT line
+for it.
 
 Before it writes, the script tests the plan and the trees. If one test fails,
 it changes no file:
@@ -60,7 +62,8 @@ it changes no file:
      does its --before copy (the backup).
   3. No new file exists in --after.
   4. Each deleted file has a --delete flag: the user approved it at the gate.
-  5. No folder or file on the path of such a file in --after is a link.
+  5. On the path of such a file in --after, no folder or file is a link, no
+     file has the place of a folder, and no name differs only by case.
 A file of --after that already equals --target, and a deleted file that is
 gone, count as done. So a second run after a stop goes on where it stopped.
 
@@ -73,8 +76,9 @@ then the RESULT line. The lines that need an action come first.
 
 Exit codes: 0 = applied, and the checks pass. 1 = applied, and a check
 failed. 2 = usage error, no file changed. 3 = refused, no file changed.
-4 = a write failed, and part of the plan is applied. A Python error also
-exits with 1, but prints a traceback and no RESULT line.
+4 = a write failed, or a file changed after its test, and part of the plan
+is applied. A Python error also exits with 1, but prints a traceback and no
+RESULT line.
 
 Example:
   python3 -I trim_report.py apply --orig /scratch/b1/orig \\
@@ -85,6 +89,10 @@ Example:
 MAX_LINES = 100
 LINE_CHARS = 250
 REFUSED = "RESULT: REFUSED. No file was changed."
+WHOLE_REPORT = (" The report form with the same --before, --after, and check flags prints the whole "
+                "integrity report and the whole size table.")
+WHOLE_PLAN = (" The report form with --before set to the --orig folder, --after set to the --target folder, "
+              "and the same check flags prints the whole report.")
 
 
 def usage_error(message):
@@ -144,8 +152,9 @@ def parse_args(argv):
     for index, (first, one) in enumerate(resolved):
         for second, other in resolved[index + 1:]:
             if one == other or one in other.parents or other in one.parents:
+                copies = "backup and the scratch copies" if apply else "backup"
                 usage_error(f"the {first} tree and the {second} tree must not contain each other. "
-                            "Keep the backup and the scratch copies outside the workspace.")
+                            f"Keep the {copies} outside the workspace.")
     try:
         args.id_res = [re.compile(r) for r in args.id_regex]
         args.protected_res = [re.compile(r, re.MULTILINE) for r in args.protected_regex]
@@ -354,14 +363,18 @@ def is_link(path):
 
 def path_problem(root, rel):
     """Why the script must not write or delete root/rel, or None."""
-    current = Path(root)
-    for part in PurePosixPath(rel).parts:
-        current = current / part
+    current, parts = Path(root), PurePosixPath(rel).parts
+    for index, part in enumerate(parts):
+        parent, current = current, current / part
         if is_link(current):
             return "a link is on its path in --after"
-    if os.path.lexists(str(current)) and not current.is_file():
-        return "it is not a regular file in --after"
-    return None
+        if not os.path.lexists(str(current)):
+            return None
+        if part not in os.listdir(str(parent)):
+            return "a name on its path differs only by case in --after"
+        if index < len(parts) - 1 and not current.is_dir():
+            return "a file is on its path in --after"
+    return None if current.is_file() else "it is not a regular file in --after"
 
 
 def read_or_none(path):
@@ -390,7 +403,7 @@ def file_state(args, backup, path, old, new):
         return "refused", "it exists in --after already"
     if here is None:
         return "refused", "it is missing in --after"
-    return "refused", "it differs from --orig and from --target. Restore it from the backup, or plan again"
+    return "refused", "it differs from --orig and from --target. Plan this batch again from the workspace of now"
 
 
 def plan_actions(args, orig, target, backup):
@@ -402,7 +415,7 @@ def plan_actions(args, orig, target, backup):
             continue
         state, reason = file_state(args, backup, path, old, new)
         if state == "todo":
-            actions.append(("NEW" if old is None else "DELETE" if new is None else "CHANGE", path, new))
+            actions.append(("NEW" if old is None else "DELETE" if new is None else "CHANGE", path, old, new))
         elif state == "done":
             done.append(path)
         else:
@@ -411,25 +424,37 @@ def plan_actions(args, orig, target, backup):
 
 
 def remove_empty_parents(root, rel):
-    """Remove the folders above root/rel that are empty now, up to root itself. Return their paths."""
-    removed, folder = [], (Path(root) / rel).parent
+    """Remove the folders above root/rel that are empty now, up to root itself. Yield the path of each one."""
+    folder = (Path(root) / rel).parent
     while folder != Path(root) and folder.is_dir() and not is_link(folder):
         with os.scandir(str(folder)) as entries:
             if any(True for _ in entries):
                 break
         os.rmdir(str(folder))
-        removed.append(folder.relative_to(root).as_posix())
+        yield folder.relative_to(root).as_posix()
         folder = folder.parent
-    return removed
+
+
+def remove_folders(root, deleted, lines):
+    """Remove the folders that the deleted files emptied. Return None, or the error line of the first failure."""
+    for path in deleted:
+        try:
+            for folder in remove_empty_parents(root, path):
+                lines.append(f"REMOVED FOLDER {folder}")
+        except OSError as exc:
+            return f"FAILED the folder of {path}: {exc.strerror or exc}"
+    return None
 
 
 def run_actions(root, actions, lines):
     """Write, then delete. Return None, or the error line of the first failed action and its number."""
     order = [a for a in actions if a[0] != "DELETE"] + [a for a in actions if a[0] == "DELETE"]
     labels = {"CHANGE": "CHANGED", "NEW": "NEW", "DELETE": "DELETED"}
-    for number, (kind, path, data) in enumerate(order):
+    for number, (kind, path, old, data) in enumerate(order):
         target = Path(root) / path
         try:
+            if read_or_none(target) != old:
+                return f"FAILED {path}: it changed after the test of this run", number
             if kind == "DELETE":
                 os.remove(str(target))
             else:
@@ -438,20 +463,20 @@ def run_actions(root, actions, lines):
                 with open(str(target), "xb" if kind == "NEW" else "wb") as handle:
                     handle.write(data)
             lines.append(f"{labels[kind]} {path}")
-            if kind == "DELETE":
-                lines.extend(f"REMOVED FOLDER {folder}" for folder in remove_empty_parents(root, path))
         except OSError as exc:
             return f"FAILED {path}: {exc.strerror or exc}", number
     return None
 
 
-def finish(lines, result, code):
-    """Print at most MAX_LINES lines of at most LINE_CHARS characters, then the result line. Return code."""
+def finish(lines, result, code, whole=""):
+    """Print at most MAX_LINES lines of at most LINE_CHARS characters, then the result line. Return code.
+
+    whole is the sentence of the CUT line that says how to get the whole output.
+    """
     for line in lines[:MAX_LINES]:
         print(line if len(line) <= LINE_CHARS else line[:LINE_CHARS] + " ...")
     if len(lines) > MAX_LINES:
-        print(f"CUT: {len(lines) - MAX_LINES} more lines. The report form with the same --before, "
-              "--after, and check flags prints the whole integrity report.")
+        print(f"CUT: {len(lines) - MAX_LINES} more lines.{whole}")
     print(result)
     return code
 
@@ -459,12 +484,16 @@ def finish(lines, result, code):
 def apply_plan(args):
     orig, target = load_tree(args.orig, args.glob), load_tree(args.target, args.glob)
     backup = load_tree(args.before, args.glob)
+    load_tree(args.after, args.glob)  # A workspace that the script cannot read stops the run before a write.
     for name, tree, root in (("--orig", orig, args.orig), ("--before", backup, args.before)):
         if not tree:
             usage_error(f"no files match {args.glob!r} under {root} ({name})")
     odd = sorted(p for p in set(orig) | set(target) if not p.isprintable())
     if odd:
         usage_error(f"a path holds a character that is not printable: {json.dumps(odd[0])}")
+    outside = sorted(p for p in set(orig) | set(target) if ".." in PurePosixPath(p).parts)
+    if outside:
+        usage_error(f"--glob must not leave the trees with '..': {json.dumps(outside[0])}")
     unknown = sorted(args.deletions - set(orig))
     if unknown:
         usage_error(f"--delete names no file of --orig: {unknown[0]}")
@@ -472,18 +501,23 @@ def apply_plan(args):
     if plan_failed:
         lines = ["REFUSED: the plan fails its checks on --orig against --target. Repeat the dry run of step 4.",
                  ""] + plan_lines
-        return finish(lines, REFUSED, 3)
+        return finish(lines, REFUSED, 3, WHOLE_PLAN)
     actions, done, refusals = plan_actions(args, orig, target, backup)
     if refusals:
         return finish(refusals, REFUSED, 3)
     acted = []
     failure = run_actions(args.after, actions, acted)
+    if not failure:
+        line = remove_folders(args.after, sorted(set(orig) - set(target)), acted)
+        failure = (line, len(actions)) if line else None
     if failure:
         line, number = failure
         return finish([line] + acted, f"RESULT: FAILED. {number} of {len(actions)} actions are done. "
                       "Fix the cause, then run apply again. It skips each file that is done.", 4)
     acted += [f"DONE BEFORE {path}" for path in done]
-    counts = Counter(kind for kind, _, _ in actions)
+    acted = [f"KEPT {path}: this batch keeps it, so its --delete flag does nothing"
+             for path in sorted(args.deletions) if target.get(path) == orig[path]] + acted
+    counts = Counter(action[0] for action in actions)
     folders = sum(1 for line in acted if line.startswith("REMOVED FOLDER "))
     after = load_tree(args.after, args.glob)
     failed, check_lines = captured(checks, backup, after, args)
@@ -493,13 +527,15 @@ def apply_plan(args):
              f"{folders} folders removed, {len(done)} done before.",
              "", "## Checks (--before against --after)", ""]
     lines += check_lines + ["## Files", ""] + acted + [""] + size_lines
-    return finish(lines, "RESULT: FAIL" if failed else "RESULT: PASS", 1 if failed else 0)
+    return finish(lines, "RESULT: FAIL" if failed else "RESULT: PASS", 1 if failed else 0, WHOLE_REPORT)
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    encoding = {"encoding": "utf-8"} if argv[:1] == ["apply"] else {}
     for stream in (sys.stdout, sys.stderr):
-        stream.reconfigure(errors="backslashreplace")
-    args = parse_args(sys.argv[1:] if argv is None else argv)
+        stream.reconfigure(errors="backslashreplace", **encoding)
+    args = parse_args(argv)
     if args.apply:
         return apply_plan(args)
     before, after = load_tree(args.before, args.glob), load_tree(args.after, args.glob)

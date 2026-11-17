@@ -59,7 +59,8 @@ Targets in bytes: {TARGETS}
 5. Prove every anchor and end quote with the anchor proof script. Each must match once.
 6. Copy every file that the glob matches in {WORKSPACE}, not only the batch, with its relative paths,
    to {SCRATCH}/orig and {SCRATCH}/target. Apply the whole plan to target: each cut, each cross-file
-   fix, each merge, and each deletion. The main session copies target into {WORKSPACE} as it is.
+   fix, each merge, and each deletion. The orchestrator copies target into {WORKSPACE} as it is.
+   Each file that the plan changes or deletes must match the glob. If one does not, stop and report it.
 7. Run: python3 -I {SKILL_DIR}/scripts/trim_report.py --before {SCRATCH}/orig
    --after {SCRATCH}/target {GLOB} {ID_REGEXES} {PROTECTED_REGEXES} {ALLOW_FLAGS}
 8. If it fails, fix the plan and repeat until it passes.

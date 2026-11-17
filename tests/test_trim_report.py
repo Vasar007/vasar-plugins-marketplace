@@ -4,6 +4,7 @@ Each test builds a before tree and an after tree in a temporary folder and runs
 the script as a child process, as the skill does.
 """
 import os
+import shutil
 import sys
 import unittest
 
@@ -162,7 +163,7 @@ class UsageErrorTests(TrimReportCase):
         for after in (self.before, inner):
             with self.subTest(after=after):
                 result = self.run_script("--before", self.before, "--after", after)
-                self.assertResult(result, 2, "must not contain each other")
+                self.assertResult(result, 2, "must not contain each other. Keep the backup outside the workspace.")
 
     def test_symbolic_link_to_the_same_tree(self):
         self.tree(self.before, {"n.md": NOTES})
@@ -189,7 +190,7 @@ class UsageErrorTests(TrimReportCase):
         self.assertEqual(self.run_script("--nope").returncode, 2)
 
 
-# Runs the script, with an open() for writing that fails for one file name: python -I -c FAIL_WRITE <name> <script> <args>.
+# python -I -c FAIL_WRITE <name> <script> <args>: runs the script, and open() for writing fails for <name>.
 FAIL_WRITE = (
     "import builtins, os, runpy, sys\n"
     "real, name = builtins.open, sys.argv[1]\n"
@@ -212,6 +213,43 @@ APPEAR_ON_WRITE = (
     "    return real(file, mode, *args, **kwargs)\n"
     "builtins.open = appearing\n"
     "sys.argv = sys.argv[2:]\n"
+    "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+)
+# Runs the script, with a Path.read_bytes() that fails for one file name.
+FAIL_READ = (
+    "import pathlib, runpy, sys\n"
+    "real, name = pathlib.Path.read_bytes, sys.argv[1]\n"
+    "def failing(self):\n"
+    "    if self.name == name:\n"
+    "        raise PermissionError(13, 'the disk refuses the read', str(self))\n"
+    "    return real(self)\n"
+    "pathlib.Path.read_bytes = failing\n"
+    "sys.argv = sys.argv[2:]\n"
+    "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+)
+# Runs the script, with an os.rmdir() that fails for one folder name.
+FAIL_RMDIR = (
+    "import os, runpy, sys\n"
+    "real, name = os.rmdir, sys.argv[1]\n"
+    "def failing(path, *args, **kwargs):\n"
+    "    if os.path.basename(str(path)) == name:\n"
+    "        raise PermissionError(13, 'another process uses the folder', str(path))\n"
+    "    return real(path, *args, **kwargs)\n"
+    "os.rmdir = failing\n"
+    "sys.argv = sys.argv[2:]\n"
+    "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+)
+# python -I -c EDIT_ON_WRITE <name> <other file> <script> <args>: a write of <name> first writes <other file>.
+EDIT_ON_WRITE = (
+    "import builtins, os, runpy, sys\n"
+    "real, name, other = builtins.open, sys.argv[1], sys.argv[2]\n"
+    "def editing(file, mode='r', *args, **kwargs):\n"
+    "    if os.path.basename(str(file)) == name and 'w' in mode:\n"
+    "        with real(other, 'wb') as edit:\n"
+    "            edit.write(b'An edit of the user.\\n')\n"
+    "    return real(file, mode, *args, **kwargs)\n"
+    "builtins.open = editing\n"
+    "sys.argv = sys.argv[3:]\n"
     "runpy.run_path(sys.argv[0], run_name='__main__')\n"
 )
 TRIMMED = NOTES.replace("REQ-1 and REQ-2 are open.\n\n", "REQ-1, REQ-2 open.\n\n")
@@ -265,8 +303,8 @@ class ApplyTests(ApplyCase):
         result = self.apply()
         self.assertResult(result, 0, "PLAN CHECK: PASS (--orig against --target)",
                           "APPLIED: 1 changed, 1 new, 1 deleted, 0 folders removed, 0 done before.",
-                          "CHANGED notes/a.md", "NEW notes/new.md", "DELETED notes/log/old.md", "- Missing: none", "1 blocks checked, 0 missing or changed",
-                          "| notes/a.md |", "RESULT: PASS")
+                          "CHANGED notes/a.md", "NEW notes/new.md", "DELETED notes/log/old.md",
+                          "- Missing: none", "1 blocks checked, 0 missing or changed", "| notes/a.md |", "RESULT: PASS")
         self.assertEqual((self.after / "notes/a.md").read_bytes(), TRIMMED.encode("utf-8"))
         self.assertEqual((self.after / "notes/new.md").read_bytes(), b"Moved REQ-1 note.\n")
         self.assertFalse((self.after / "notes/log/old.md").exists())
@@ -317,6 +355,42 @@ class ApplyTests(ApplyCase):
         self.assertResult(result, 1, "CHANGED notes/a.md", "- Missing: REQ-3", "RESULT: FAIL")
         self.assertTrue(result.stdout.rstrip().endswith("RESULT: FAIL"))
 
+    def test_a_delete_flag_for_a_file_that_the_plan_keeps_prints_a_kept_line(self):
+        result = self.apply("--delete", "notes/keep.md")
+        self.assertResult(result, 0, "KEPT notes/keep.md: this batch keeps it, so its --delete flag does nothing",
+                          "RESULT: PASS")
+        self.assertTrue((self.after / "notes/keep.md").exists())
+
+    def test_a_batch_planned_again_applies_with_a_second_backup(self):
+        self.assertEqual(self.apply().returncode, 0)
+        orig2, target2, backup2 = (self.tmp / "scratch2" / name for name in ("orig", "target", "backup"))
+        only_globbed = shutil.ignore_patterns("*.txt")
+        shutil.copytree(str(self.after), str(orig2), ignore=only_globbed)
+        shutil.copytree(str(self.after), str(target2), ignore=only_globbed)
+        shutil.copytree(str(self.after), str(backup2))
+        (target2 / "notes/a.md").write_bytes(TRIMMED.replace("REQ-1, REQ-2 open.", "REQ-1, REQ-2.").encode("utf-8"))
+
+        def again(backup):
+            return run([sys.executable, "-I", SCRIPT, "apply", "--orig", orig2, "--target", target2,
+                        "--before", backup, "--after", self.after, "--id-regex", r"\bREQ-\d+\b"])
+
+        self.assertRefused(again(self.before), "REFUSED notes/a.md: the backup copy is missing or differs from --orig.")
+        self.assertResult(again(backup2), 0, "CHANGED notes/a.md", "RESULT: PASS")
+        self.assertIn(b"REQ-1, REQ-2.\n", (self.after / "notes/a.md").read_bytes())
+
+    def test_a_new_file_in_a_new_folder(self):
+        self.tree(self.target, {"notes/deep/er/added.md": "Added REQ-1 note.\n"})
+        self.assertResult(self.apply(), 0, "NEW notes/deep/er/added.md", "RESULT: PASS")
+        self.assertEqual((self.after / "notes/deep/er/added.md").read_bytes(), b"Added REQ-1 note.\n")
+
+    def test_the_check_flags_mean_the_same_as_in_the_report_form(self):
+        # The plan withdraws the decision and leaves a tombstone. a.md keeps more than 10 percent of its bytes.
+        tombstone = TRIMMED[:TRIMMED.index("## Decision 1")] + "## Decision 1 (withdrawn)\n"
+        (self.target / "notes/a.md").write_bytes(tombstone.encode("utf-8"))
+        self.assertRefused(self.apply(), "- CHANGED notes/a.md:5: ## Decision 1")
+        result = self.apply("--allow-changed", r"^notes/a\.md:## Decision 1\b", "--target-percent", "10")
+        self.assertResult(result, 0, "- ALLOWED notes/a.md:5: ## Decision 1", "trimmed (above 10%)", "RESULT: PASS")
+
 
 class ApplyRefusalTests(ApplyCase):
     def check_refused(self, *texts, delete=("notes/log/old.md",), extra=()):
@@ -328,7 +402,8 @@ class ApplyRefusalTests(ApplyCase):
 
     def test_a_workspace_file_that_changed_after_the_plan(self):
         (self.after / "notes/a.md").write_bytes(b"An edit of the user.\n")
-        self.check_refused("REFUSED notes/a.md: it differs from --orig and from --target. Restore it from the backup")
+        self.check_refused("REFUSED notes/a.md: it differs from --orig and from --target. "
+                           "Plan this batch again from the workspace of now.")
 
     def test_a_workspace_file_that_is_missing(self):
         (self.after / "notes/a.md").unlink()
@@ -375,6 +450,29 @@ class ApplyRefusalTests(ApplyCase):
         self.check_refused("REFUSED notes/new.md")
         self.assertEqual((self.after / "notes/a.md").read_bytes(), NOTES.encode("utf-8"))
         self.assertTrue((self.after / "notes/log/old.md").exists())
+
+    def test_a_link_as_the_file_itself(self):
+        outside = self.tmp / "outside.md"
+        outside.write_bytes(NOTES.encode("utf-8"))
+        (self.after / "notes/a.md").unlink()
+        try:
+            os.symlink(str(outside), str(self.after / "notes/a.md"))
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"cannot create a symbolic link here: {exc}")
+        self.check_refused("REFUSED notes/a.md: a link is on its path in --after.")
+        self.assertEqual(outside.read_bytes(), NOTES.encode("utf-8"))
+
+    def test_a_file_where_the_plan_has_a_folder(self):
+        (self.after / "notes/sub").write_bytes(b"a file with the name of the folder\n")
+        self.tree(self.target, {"notes/sub/added.md": "Added REQ-1 note.\n"})
+        self.check_refused("REFUSED notes/sub/added.md: a file is on its path in --after.")
+
+    def test_a_rename_by_case_only_on_a_file_system_without_case(self):
+        if not (self.after / "NOTES").exists():
+            self.skipTest("this file system tells notes from NOTES")
+        (self.target / "notes/keep.md").rename(self.target / "notes/KEEP.md")
+        self.check_refused("REFUSED notes/KEEP.md: a name on its path differs only by case in --after.",
+                           delete=("notes/log/old.md", "notes/keep.md"))
 
 
 class ApplyUsageTests(ApplyCase):
@@ -425,6 +523,35 @@ class ApplyUsageTests(ApplyCase):
         self.assertResult(run([sys.executable, "-I", SCRIPT, "apply", "--help"]), 0,
                           "3 = refused, no file changed", "--delete PATH")
 
+    def test_a_glob_that_leaves_the_trees(self):
+        roots = [self.tmp / name / "tree" for name in ("w", "b", "o", "t")]
+        for root, text in zip(roots, ("old\n", "old\n", "old\n", "new\n")):
+            self.tree(root, {"in.md": "inside\n"})
+            self.tree(root.parent, {"out.md": text})
+        result = run([sys.executable, "-I", SCRIPT, "apply", "--after", roots[0], "--before", roots[1],
+                      "--orig", roots[2], "--target", roots[3], "--glob", "../*.md"])
+        self.assertResult(result, 2, "--glob must not leave the trees")
+        self.assertEqual((roots[0].parent / "out.md").read_bytes(), b"old\n")
+
+    def test_an_orig_copy_with_no_file_of_the_glob(self):
+        for path in sorted(self.orig.rglob("*"), reverse=True):
+            path.unlink() if path.is_file() else path.rmdir()
+        self.assertResult(self.apply(delete=()), 2, "no files match '**/*.md' under", "(--orig)")
+
+    def test_a_new_path_that_is_not_printable(self):
+        try:
+            self.tree(self.target, {"notes/odd\u2028new.md": "x\n"})
+        except OSError as exc:
+            self.skipTest(f"the file system refuses the name: {exc}")
+        self.assertResult(self.apply(), 2, 'not printable: "notes/odd\\u2028new.md"')
+
+    def test_a_workspace_that_the_script_cannot_read_stops_before_a_write(self):
+        self.tree(self.after, {"notes/locked.md": "A file that another program holds.\n"})
+        before = self.snapshot()
+        result = self.apply(prefix=("-c", FAIL_READ, "locked.md"))
+        self.assertResult(result, 2, "cannot read", "the disk refuses the read")
+        self.assertEqual(self.snapshot(), before, "a usage error changed the workspace")
+
 
 class ApplyFailureTests(ApplyCase):
     def test_a_failed_write_stops_the_run_and_a_second_run_ends_it(self):
@@ -436,12 +563,27 @@ class ApplyFailureTests(ApplyCase):
         self.assertResult(result, 0, "APPLIED: 0 changed, 1 new, 1 deleted, 0 folders removed, 1 done before.",
                           "DONE BEFORE notes/a.md", "RESULT: PASS")
 
-
     def test_a_new_file_that_appears_during_the_run_is_kept(self):
         # Another process writes notes/new.md after the tests of the script and before its write.
         result = self.apply(prefix=("-c", APPEAR_ON_WRITE, "new.md"))
         self.assertResult(result, 4, "FAILED notes/new.md", "RESULT: FAILED. 1 of 3 actions are done.")
         self.assertEqual((self.after / "notes/new.md").read_bytes(), b"written by another process\n")
+
+    def test_a_folder_that_cannot_go_is_removed_by_the_second_run(self):
+        (self.after / "notes/log/raw.txt").unlink()
+        result = self.apply(prefix=("-c", FAIL_RMDIR, "log"))
+        self.assertResult(result, 4, "FAILED the folder of notes/log/old.md: another process uses the folder",
+                          "DELETED notes/log/old.md", "RESULT: FAILED. 3 of 3 actions are done.")
+        result = self.apply()
+        self.assertResult(result, 0, "REMOVED FOLDER notes/log", "1 folders removed, 3 done before.")
+        self.assertFalse((self.after / "notes/log").exists())
+
+    def test_a_file_that_changes_during_the_run_is_kept(self):
+        # The user saves notes/log/old.md after the tests of the script, while the script writes notes/a.md.
+        edited = self.after / "notes/log/old.md"
+        result = self.apply(prefix=("-c", EDIT_ON_WRITE, "a.md", edited))
+        self.assertResult(result, 4, "FAILED notes/log/old.md: it changed after the test of this run")
+        self.assertEqual(edited.read_bytes(), b"An edit of the user.\n")
 
 
 class ApplyOutputTests(ApplyCase):
@@ -471,6 +613,25 @@ class ApplyOutputTests(ApplyCase):
         self.assertEqual(len(missing), 1, result.stdout)
         self.assertTrue(missing[0].endswith(" ..."))
         self.assertEqual(len(missing[0]), 250 + len(" ..."))
+
+    def test_the_cut_line_of_a_refused_plan_names_the_copies(self):
+        many = {f"notes/many/f{n:03}.md": "log\n" for n in range(120)}
+        for root in (self.after, self.before, self.orig):
+            self.tree(root, many)
+        (self.target / "notes/a.md").write_bytes(TRIMMED.replace("REQ-2", "REQ-X").encode("utf-8"))
+        result = self.apply()
+        self.assertRefused(result, "- Missing: REQ-2")
+        lines = result.stdout.splitlines()
+        self.assertTrue(lines[100].startswith("CUT: "), lines[100])
+        self.assertIn("--before set to the --orig folder, --after set to the --target folder", lines[100])
+
+    def test_a_path_with_other_letters_is_utf8_on_each_system(self):
+        name = "notes/\u0437\u0430\u043c.md"
+        for root in (self.after, self.before, self.orig):
+            self.tree(root, {name: "A long text about REQ-3.\n"})
+        self.tree(self.target, {name: "REQ-3.\n"})
+        # With -X utf8=0, Python before 3.15 writes in the code page of Windows, unless the script sets UTF-8.
+        self.assertResult(self.apply(prefix=("-X", "utf8=0")), 0, "CHANGED " + name)
 
 
 if __name__ == "__main__":

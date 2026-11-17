@@ -3452,6 +3452,17 @@ class TrimFullPassRouteGraderTests(unittest.TestCase):
             with self.subTest(run=name):
                 self.assertEqual(self.counts("route-apply-script", json.dumps({"command": command})), expected)
 
+    def test_the_skill_grader_counts_only_the_skill_call_of_trim_artifacts(self):
+        runs = {
+            "the skill with its plugin": ("dev-essentials:trim-artifacts", True),
+            "the skill with no plugin": ("trim-artifacts", True),
+            "another skill": ("dev-essentials:review-loop", False),
+            "a longer name": ("dev-essentials:trim-artifacts-extra", False),
+        }
+        for name, (skill, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-skill-fired", json.dumps({"skill": skill})), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

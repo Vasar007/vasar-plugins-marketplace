@@ -94,7 +94,7 @@ The script refuses a `--before` path that equals, contains, or sits inside the `
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
-If you run a second pass, first take a second backup.
+If you run a second pass, or a batch plans again after exit code 3 of step 6, first take a second backup.
 Deleting a backup is the last step, and it needs the user's approval.
 
 ### 3. Batch the files
@@ -114,6 +114,8 @@ The planner reads every file of its batch and writes one plan per batch. Use [re
 
 The planner proves each anchor with a script. Then it makes two copies of every file that the glob matches in the workspace, not only of its batch. It puts them in a scratch folder: an `orig` copy and a `target` copy. Each copy keeps the relative paths, so that a regex with a path still matches. It applies the plan to `target` and runs `scripts/trim_report.py` against `orig`, with one `--allow-changed` for each proposed tombstone. This is the dry run.
 Step 6 copies `target` into the workspace as it is. So `target` holds the whole plan: each cut, each cross-file fix, each merge, and each deletion.
+Each file that the plan changes, merges, or deletes must match the glob. `apply` reads only those files.
+If a planned file does not match, widen the glob, for example to `--glob '**/*'`. See [references/protect-set.md](references/protect-set.md).
 Keep plans and scratch copies outside the workspace, so that the pass does not measure or trim them.
 
 Measure bytes, not lines. Joining lines is not a cut, because the bytes stay. Remove words instead. If a file stays above its target, the plan says why.
@@ -134,7 +136,7 @@ For a large workspace, first run one pilot batch, a small batch that tests the t
 
 ### 6. Apply the plan with the script
 
-The main session runs the subcommand `apply` of the script once for each batch. No agent applies the plan. The script copies the result of the dry run from `target` into the workspace. It deletes the approved files and removes the folders that the deletions emptied. Then it runs the checks of step 7 and prints their result.
+The orchestrator runs the subcommand `apply` of the script once for each batch. No agent applies the plan. The script copies the result of the dry run from `target` into the workspace. It deletes the approved files and removes the folders that the deletions emptied. Then it runs the checks of step 7 and prints their result.
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" apply \
@@ -148,7 +150,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" apply \
 
 ### 7. Measure and test with the script
 
-The `apply` run of the last batch prints this result. After each later change of the workspace, for example in step 10, run [scripts/trim_report.py](scripts/trim_report.py) against the backup. The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder:
+The `apply` run of the last batch prints this result. If its output has a `CUT` line, run the report form below with the same flags for the whole size table. If a batch used a second backup, run the report form below against the first backup. After each later change of the workspace, for example in step 10, run [scripts/trim_report.py](scripts/trim_report.py) against the backup. The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder:
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after WORKSPACE \
