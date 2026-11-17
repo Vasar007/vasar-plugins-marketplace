@@ -26,7 +26,7 @@ This release makes Stage 9 of `feature-pipeline` name the source of each argumen
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`, and that Step 6 names the step of `compose-pr` that holds the form (issue #203).
+- `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`. It makes sure that Step 6 names the step of `compose-pr` that holds the form (issue #203).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
