@@ -1644,6 +1644,9 @@ class OptimizeSkillFixtureTests(FixtureCase):
         self.assertEqual(self.git(workspace, "log", "-1", "--format=%s")[1], "fixture: shorten the upload step")
         self.assertIn(self.SIZE_RULE, self.git(workspace, "show", f"HEAD~1:{self.SKILL}")[1])
         self.assertNotIn("50 MB", self.read(workspace, self.SKILL))
+        prompt = (self.case.path / "prompt.md").read_text(encoding="utf-8")
+        self.assertIn(f'"{self.SIZE_RULE}"', prompt)
+        self.assertIn('"fixture: shorten the upload step"', prompt)
 
     def test_the_graders_on_the_fixture(self):
         workspace = self.scaffold()

@@ -3744,6 +3744,9 @@ class OptimizeSkillCaseTests(unittest.TestCase):
                 self.assertTrue(self.regex_passes(grader, hit))
                 self.assertFalse(self.regex_passes(grader, empty))
         self.assertFalse(self.regex_passes("route-seed-must", "You must dispatch the agent."))
+        form = "# Audit\n\n## Contents\n\n- Sources\n- Items\n\nTarget files:\n- /w/plugin/skills/export-orders/references/csv-format.md\n- /w/plugin/skills/export-orders/references/old-retry-notes.md\n"
+        for grader in ("route-seed-contents", "route-seed-unlinked"):
+            self.assertFalse(self.regex_passes(grader, form))
 
     def test_the_trigger_cases_name_optimize_skill_and_trim_artifacts(self):
         skills = {"dev-essentials:optimize-skill": "optimize", "optimize-skill": "optimize",
