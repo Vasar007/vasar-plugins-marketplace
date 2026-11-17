@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
+
+This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a script with unit tests. The dry run stays the default, and the apply run still needs an explicit yes of the user (issue #223).
+
+### Added in dev-essentials
+
+- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It never overwrites an entry, never follows a link, and never deletes a folder that is not empty. Its output is short, and each name prints on one line (issue #223).
+
+### Changed in dev-essentials
+
+- `commands/merge-worktree-projects`: Steps 1 to 5 run the script. The command keeps the questions to the user: an ambiguous keyword, a folder with recent activity, and the approval of the plan. Without Python 3, the command stops and moves no file (issue #223).
+
+### Changed in the repository
+
+- `tests/test_merge_projects.py`: new tests for the script on a fixture tree, on Linux and Windows (issue #223).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_merge_projects` (issue #223).
+- `docs/testing.md`: names the tests of the script (issue #223).
+
 ## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
 
 This release makes the skills `compose-pr` and `compose-task`, and the guide part of `create-documentation`, shorter. Each rule keeps one home, and the skills do the same work. A new eval case tests the guide flow.
@@ -1749,7 +1767,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
+[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.17.0
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
