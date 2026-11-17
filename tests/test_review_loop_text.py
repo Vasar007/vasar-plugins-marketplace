@@ -153,9 +153,16 @@ class AuditTeamCountTextTests(unittest.TestCase):
         command = AUDIT_TEAM.read_text(encoding="utf-8")
         self.assertIn("With a count, the run takes the team route. With no count, it takes the two-view route.", command)
         self.assertIn("one agent for each of the first N roles, in the order of the table.", command)
-        self.assertIn("If the second argument is not a whole number, it is the model, and the run takes the two-view "
-                      "route.", command)
+        self.assertIn("If the second argument is not a whole number and names a model, it is the model, and the run "
+                      "takes the two-view route. For any other second argument, use **AskUserQuestion**.", command)
         self.assertNotIn("default: 5", command)
+
+    def test_the_command_starts_one_agent_on_the_two_view_route(self):
+        command = AUDIT_TEAM.read_text(encoding="utf-8")
+        self.assertIn("Then one fresh agent takes the devil's advocate role.", command)
+        self.assertIn("2. Launch one role agent for the devil's advocate role.", command)
+        self.assertIn("Fill its prompt with the summary of Step 1 only, and put none of your findings in it.", command)
+        self.assertIn("If the main session and the agent both flag a finding, the finding has consensus.", command)
 
 
 if __name__ == "__main__":

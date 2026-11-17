@@ -8,8 +8,8 @@ Review artifacts or designs from several professional points of view.
 
 - Format: `<path> [agent-count] [model]`
 - `path`: the file or folder to review (required). If it is not provided, use **AskUserQuestion** to ask.
-- `agent-count`: a whole number (optional). With a count, the run takes the team route. With no count, it takes the two-view route. See "Routes".
-- `model`: the model of the agents (optional, default: current model). If the second argument is not a whole number, it is the model, and the run takes the two-view route. Example: `/audit-team docs/design.md opus`.
+- `agent-count`: a whole number of 1 or more (optional). With a count, the run takes the team route. With no count, it takes the two-view route. See "Routes".
+- `model`: the model of the agents (optional, default: current model). If the second argument is not a whole number and names a model, it is the model, and the run takes the two-view route. For any other second argument, use **AskUserQuestion**. Example: `/audit-team docs/design.md opus`.
 
 If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
 
@@ -63,7 +63,7 @@ If arguments are ambiguous or missing the path, use **AskUserQuestion** to clari
    On the two-view route:
 
    1. Review the target with each role of the table as a lens, one role at a time. Follow items 2 to 5 of the prompt for each lens, and note the role of each finding. Finish this list before you launch the agent, so that the result of the agent does not change your review.
-   2. Launch one role agent for the devil's advocate role. If the `model` argument is set, pass it to the agent.
+   2. Launch one role agent for the devil's advocate role. Fill its prompt with the summary of Step 1 only, and put none of your findings in it. If the `model` argument is set, pass it to the agent.
 
    On the team route, launch one role agent for each role, all in a single message so that they run concurrently. Then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).
 
