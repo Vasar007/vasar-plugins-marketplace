@@ -20,7 +20,7 @@ This release makes the stop of the failure check complete on Windows. A stopped 
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Four new Windows tests cover the stop. They make sure that a shell that cannot join a job gets no job, and that `taskkill` then stops it. They also make sure that the stop of a job runs `taskkill` first, then ends the job, and then waits. The last test makes sure that the wait covers each process of the job and has one limit (issues #216 and #211).
+- `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Five new Windows tests cover the stop. They make sure that a shell that cannot join a job gets no job, and that `taskkill` then stops it. They also make sure that the stop of a job runs `taskkill` first, then ends the job, and then waits. Another test makes sure that a signal during `taskkill` still ends the job. The last test makes sure that the wait covers each process of the job and has one limit (issues #216 and #211).
 - `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
 - `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
 

@@ -281,9 +281,11 @@ def stop_job(job, pid):
     handles = {}
     try:
         open_job_processes(job, handles)
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
-        open_job_processes(job, handles)
-        KERNEL32.TerminateJobObject(job, 1)
+        try:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
+        finally:
+            open_job_processes(job, handles)
+            KERNEL32.TerminateJobObject(job, 1)
         deadline = time.monotonic() + JOB_WAIT_SECONDS
         for handle in handles.values():
             KERNEL32.WaitForSingleObject(handle, int(max(0.0, deadline - time.monotonic()) * 1000))

@@ -549,6 +549,19 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 1)
 
     @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
+    def test_stop_of_a_job_ends_the_job_when_taskkill_is_interrupted(self):
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL)
+        self.addCleanup(proc.wait)
+        self.addCleanup(proc.kill)
+        job = fc.join_job(proc)
+        self.assertIsNotNone(job)
+        self.addCleanup(fc.KERNEL32.CloseHandle, job)
+        with (mock.patch.object(fc.subprocess, "run", side_effect=KeyboardInterrupt),
+              self.assertRaises(KeyboardInterrupt)):
+            fc.kill_tree(proc, job)
+        self.assertEqual(proc.wait(timeout=5), 1)
+
+    @unittest.skipUnless(os.name == "nt", "the job object is only on Windows")
     def test_stop_of_a_job_waits_for_each_process_up_to_one_limit(self):
         child = [sys.executable, "-c", "import time; time.sleep(60)"]
         parent = f"import subprocess, time; time.sleep(1); subprocess.Popen({child!r}); time.sleep(60)"
