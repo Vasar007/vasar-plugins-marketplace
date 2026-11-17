@@ -1,8 +1,8 @@
 # Maintainer tools
 
-The folder `tools/` holds scripts for the maintainers of this repository. They help with the work around a pull request: a merge of `main` into an open branch, the results of eval runs, and the test runs and eval runs in WSL2. No plugin ships them. Claude Code copies only the folder of a plugin into the plugin cache, so a file outside the plugin folders does not reach the users. See [In-place and copied plugins](https://code.claude.com/docs/en/plugins/loading#in-place-and-copied-plugins).
+The folder `tools/` holds scripts for the maintainers of this repository. They help with the work around a pull request: a merge of `main` into an open branch, the results of eval runs, and the test runs and eval runs in WSL2. No plugin ships them. Claude Code copies only the folder of a plugin into the plugin cache, so no plugin cache gets a file outside the plugin folders. See [In-place and copied plugins](https://code.claude.com/docs/en/plugins/loading#in-place-and-copied-plugins).
 
-Each Python script needs Python 3.7 or later and uses only the standard library. Run it with `python3 -I` from the repository root. Each script prints its full text with `--help`. Each shell script runs in Bash. The tests are in `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`.
+Each Python script needs Python 3.7 or later and uses only the standard library. Run it with `python3 -I` from the repository root. Each shell script runs in Bash. With `--help`, each script that you start prints its usage text: its options, its exit codes, and the cases in which it refuses to run. The tests are in `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`.
 
 ## Merge `main` into an open branch
 
@@ -43,7 +43,17 @@ The whole unit suite passes only on Linux, and a suite that grants `Bash` runs o
 - No Linux command reads a path below `/mnt/c`. A branch goes to WSL2 as a git bundle, and a result comes back by a copy from Git Bash.
 - The Linux part of each script goes to WSL2 through a pipe before each run, so WSL2 never holds an old copy.
 
-These scripts keep their files in one folder of the Linux home folder: `~/.cache/marketplace-tools`. The variable `TOOLS_DIR` changes this folder, relative to the home folder. The variable `WSL_DISTRO` names the distribution (default `Ubuntu`).
+Prepare WSL2 first:
+
+1. Install a WSL2 distribution. If its name is not `Ubuntu`, set the variable `WSL_DISTRO` to its name. The command `wsl.exe -l -q` lists the names.
+2. In Linux, install Git and Python 3 as `python3`. The scripts also use `flock` and `unshare` from util-linux. Ubuntu installs both by default.
+3. For the unit suite, install the tools that [Testing](testing.md) names: PyYAML, Node.js 22 or later, the .NET SDK 10 or newer, and Claude Code. Without PyYAML, a test fails. Without one of the other tools, some tests skip.
+4. For `run-eval.sh`, install Claude Code inside the distribution, not on Windows. The script looks for `~/.local/bin/claude` first, and then for `claude` on the `PATH`. See [Install in WSL](https://code.claude.com/docs/en/setup#install-in-wsl).
+5. For `run-eval.sh`, run `claude auth login` in Linux and sign in with your claude.ai account. Do not pass `--console`, because that sign-in uses API billing. Then `claude auth status` must show `"authMethod": "claude.ai"`. Do not set `ANTHROPIC_API_KEY` in Linux.
+6. For `run-eval.sh`, also install the tools that the list in [Behavior suites](evals.md#behavior-suites) names for your suite, for example `bubblewrap` and `socat`. The script sets `TMPDIR` itself, and it keeps the eval clone in the Linux file system.
+7. Make sure that Linux has network access. With no `--linter-tag`, `unit-tests.sh` reads the release tags of the linter from GitHub. It also clones each new linter release from there.
+
+These scripts keep their files in one folder of the Linux home folder: `~/.cache/marketplace-tools`. The variable `TOOLS_DIR` changes this folder, relative to the home folder. The runs use `~/.cache/plugin-evals/tmp` as the temp folder. The variable `WSL_DISTRO` names the distribution (default `Ubuntu`). The variable `WSL_UNC_ROOT` gives the Windows path of the root folder of the distribution (default `//wsl.localhost/<distribution>`).
 
 To run the whole unit suite of a committed branch, run this in Git Bash:
 
@@ -51,7 +61,7 @@ To run the whole unit suite of a committed branch, run this in Git Bash:
 bash tools/wsl/unit-tests.sh /c/path/to/clone my-branch
 ```
 
-The script clones the branch into a new folder and runs `python3 -m unittest discover -s tests -v` there. It uses the newest release of the simple-english linter, or the release of `--linter-tag`. The run gets its own `/tmp/plugin-evals` through a private mount, so it does not touch the NuGet folder of an active eval run. The exit code is the exit code of the suite.
+The script clones the branch into a new folder and runs `python3 -m unittest discover -s tests -v` there. It uses the newest release of the simple-english linter, or the release of `--linter-tag`. The run gets its own `/tmp/plugin-evals` through a private mount, so it does not touch the NuGet folder of an active eval run. The mount needs `unshare -r -m`. If Linux refuses it, the run fails. Then pass `--no-private-mount`, but only while no eval run is active. The exit code is the exit code of the suite.
 
 To run one command of `tests/evals/compare_versions.py`, run this in Git Bash:
 
@@ -59,6 +69,6 @@ To run one command of `tests/evals/compare_versions.py`, run this in Git Bash:
 bash tools/wsl/run-eval.sh /c/path/to/clone my-branch results/head baseline --plugin essentials/dev-essentials --commit HEAD --model <model id> --judge-model <model id> --case <case> --scaffold --keep-temp
 ```
 
-The third argument is the result folder on Windows. The script adds `--out` and `--claude` itself. The runs must use the claude.ai plan, not API billing. So the script stops on a set `ANTHROPIC_API_KEY`, and on another sign-in than claude.ai. A lock lets only one run use the eval clone at a time. A run also waits until no unit suite and no other eval run is active, unless you give `--no-wait`. The eval clone is `~/.cache/marketplace-tools/eval-clone`, or the Linux path of `--clone`.
+The third argument is the result folder on Windows. It must be empty or new. The script adds `--out` and `--claude` itself. The runs must use the claude.ai plan, not API billing. So the script stops on a set `ANTHROPIC_API_KEY`, and on another sign-in than claude.ai. A lock lets only one run use the eval clone at a time. A run also waits until no unit suite and no other eval run is active, unless you give `--no-wait`. The eval clone is `~/.cache/marketplace-tools/eval-clone`, or the Linux path of `--clone`.
 
-To free space, delete the folders `bundles`, `out`, and `test-clones` of the tools folder. Keep `nuget-private`, because it holds the NuGet packages of the unit suite. The section [Clean the temp folder](evals.md#clean-the-temp-folder) says how to clean the temp folder of the eval runs.
+To free space, delete the folders `bundles`, `out`, and `test-clones` of the tools folder, and each `simple-english-<tag>` folder of an old linter release. If no eval run is active, you can also delete `eval-clone`. The next run makes it again. Keep `nuget-private`, because it holds the NuGet packages of the unit suite. The section [Clean the temp folder](evals.md#clean-the-temp-folder) says how to clean the temp folder of the eval runs.

@@ -16,14 +16,17 @@ done
 claude=$HOME/.local/bin/claude
 [ -x "$claude" ] || claude=$(command -v claude) || { echo "STOP: no claude command" >&2; exit 3; }
 [ -z "${ANTHROPIC_API_KEY:-}" ] || { echo "STOP: ANTHROPIC_API_KEY is set, so the runs would use API billing" >&2; exit 3; }
-"$claude" auth status | grep -Eq '"authMethod": *"claude\.ai"' || { echo "STOP: not signed in with claude.ai" >&2; exit 3; }
+auth=$("$claude" auth status 2>&1) || true
+grep -Eq '"authMethod": *"claude\.ai"' <<< "$auth" || { echo "STOP: not signed in with claude.ai" >&2; exit 3; }
+[ -n "$(git bundle list-heads "$bundle" "refs/heads/$ref")" ] || { echo "STOP: the bundle has no branch $ref" >&2; exit 3; }
 export TMPDIR=$HOME/.cache/plugin-evals/tmp
 mkdir -p "$TMPDIR" "$(dirname "$clone")" "$(dirname "$out")"
 # The lock stays until the script ends. A second run waits here, so it cannot check out another ref under this run.
 exec 9> "$clone.lock"
-flock 9
+flock -n 9 || { echo "WAIT: another run holds $clone.lock"; flock 9; }
 busy() { ps -eo args | grep -cE '[u]nittest discover|bin/[d]otnet (restore|build|test)|[c]ompare_versions\.py' || true; }
 if [ "$wait" = yes ]; then
+    [ "$(busy)" = 0 ] || echo "WAIT: a unit suite, a dotnet command, or a compare run is active"
     # Wait two times with a pause, because one run can end just before the next one starts.
     until [ "$(busy)" = 0 ]; do sleep 5; done
     sleep 6

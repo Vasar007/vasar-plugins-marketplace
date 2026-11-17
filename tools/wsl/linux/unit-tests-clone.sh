@@ -9,13 +9,18 @@ cd "$HOME"
 tools=$1 bundle=$2 branch=$3 tag=$4 lines=$5 private=$6
 case "$bundle" in /mnt/*) echo "STOP: the bundle is on a Windows drive: $bundle" >&2; exit 3 ;; esac
 [ -f "$bundle" ] || { echo "STOP: no bundle $bundle" >&2; exit 3; }
+[ -n "$(git bundle list-heads "$bundle" "refs/heads/$branch")" ] || { echo "STOP: the bundle has no branch $branch" >&2; exit 3; }
 linter_url=https://github.com/AminBlg/SimpleEnglish.git
 if [ "$tag" = latest ]; then
-    tag=$(git ls-remote --tags --refs "$linter_url" 'v*' | sed 's#.*refs/tags/##' | sort -V | tail -n 1)
+    tag=$(git ls-remote --tags --refs "$linter_url" 'v*' | sed -n 's#.*refs/tags/\(v[0-9][0-9.]*\)$#\1#p' | sort -V | tail -n 1)
     [ -n "$tag" ] || { echo "STOP: cannot read the release tags of $linter_url" >&2; exit 3; }
 fi
 linter=$tools/simple-english-$tag
-[ -d "$linter/.git" ] || git -c init.defaultBranch=main -c advice.detachedHead=false clone -q --depth 1 --branch "$tag" "$linter_url" "$linter"
+if [ ! -d "$linter/.git" ]; then
+    # Clone into a folder of this run, then rename it. So another run never uses a clone that is not complete.
+    git -c init.defaultBranch=main -c advice.detachedHead=false clone -q --depth 1 --branch "$tag" "$linter_url" "$linter.$$"
+    mv -T "$linter.$$" "$linter" 2> /dev/null || rm -rf -- "$linter.$$"
+fi
 # Each run has its own clone folder, so two runs of one branch do not delete the clone of each other.
 clone=$tools/test-clones/$(printf '%s' "$branch" | tr -c 'A-Za-z0-9._-' '_').$$
 mkdir -p "$tools/test-clones"
@@ -36,7 +41,7 @@ else
     (cd "$clone" && python3 -m unittest discover -s tests -v) < /dev/null > "$log" 2>&1 || status=$?
 fi
 echo "FULL LOG: $log"
-grep -E "^(FAIL|ERROR):|skipped" "$log" || true
+grep -E '^(FAIL|ERROR):|\.\.\. skipped ' "$log" || true
 tail -n "$lines" "$log"
 rm -rf -- "$clone"
 exit "$status"

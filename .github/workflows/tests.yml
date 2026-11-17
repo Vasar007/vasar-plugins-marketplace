@@ -71,7 +71,7 @@ jobs:
           SIMPLE_ENGLISH_DIR: ${{ github.workspace }}/.simple-english
         run: python3 -m unittest discover -s tests -v
 
-  # The tests of the plugin scripts on Windows: Git Bash, PowerShell, and Windows paths (issue #182).
+  # The tests of the plugin scripts and the maintainer tools on Windows: Git Bash, PowerShell, and Windows paths (issue #182).
   test-windows:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -87,6 +87,6 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Run the tests of the plugin scripts
+      - name: Run the tests of the plugin scripts and the maintainer tools
         working-directory: tests
         run: python -m unittest -v test_backup_move test_merge_projects test_failure_check test_group_diff test_squash_task test_check_report test_trim_report test_openbsd_lint test_kb_plugin test_changelog_merge test_eval_results test_testkit test_support

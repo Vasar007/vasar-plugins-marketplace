@@ -4,9 +4,12 @@
 # Usage: bundle.sh <repository> <name> <ref>...
 # A ref that the repository does not have is left out, for example a local main in a new clone.
 # The script prints the Linux path of the bundle: <tools folder>/bundles/<name>.bundle.
+# The script ends with exit code 2 for a usage error.
+# It ends with exit code 3 and a STOP line if the repository has no ref of the list, or if WSL2 gives no home folder.
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+case "${1:-}" in -h | --help) sed -n '2,/^set -euo pipefail$/s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"; exit 0 ;; esac
 [ $# -ge 3 ] || { echo "Usage: bundle.sh <repository> <name> <ref>..." >&2; exit 2; }
 repo=$1
 name=$(slug "$2")

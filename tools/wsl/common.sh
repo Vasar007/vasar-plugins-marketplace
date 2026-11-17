@@ -10,17 +10,27 @@ TOOLS_DIR=${TOOLS_DIR:-.cache/marketplace-tools}
 WSL_UNC_ROOT=${WSL_UNC_ROOT-//wsl.localhost/$WSL_DISTRO}
 TOOLS_HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-# Run a command in WSL2. It starts in the Linux home folder, so no command starts on a Windows drive.
+# Run a command in WSL2 with the standard input of the caller. It starts in the Linux home folder, not on a Windows drive.
 # Git Bash changes an argument that starts with "/" to a Windows path. The two variables keep each Linux path as it is.
-in_wsl() {
+in_wsl_stdin() {
     MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" --cd '~' -e "$@"
+}
+
+# Run a command in WSL2 with no standard input. wsl.exe reads all its standard input, also when the Linux command reads none.
+# So a "while read" loop around a script would lose its other lines.
+in_wsl() {
+    in_wsl_stdin "$@" < /dev/null
 }
 
 # Print the Linux path of the tools folder.
 linux_tools() {
     local home
-    home=$(in_wsl sh -c 'printf %s "$HOME"' | tr -d '\r')
-    [ -n "$home" ] || { echo "STOP: cannot read the home folder of WSL2 distribution $WSL_DISTRO" >&2; return 3; }
+    home=$(in_wsl sh -c 'printf %s "$HOME"' | tr -d '\r\0') || home=
+    case "$home" in
+        /*) ;;
+        *) echo "STOP: cannot read the home folder of WSL2 distribution $WSL_DISTRO (wsl.exe -l -q lists the names)" >&2
+           return 3 ;;
+    esac
     printf '%s/%s\n' "$home" "$TOOLS_DIR"
 }
 
@@ -33,8 +43,8 @@ unc() {
 # The copy goes to a new file first, and a rename puts it in place. A run that reads the old file then reads it to the end.
 put_linux_part() {
     local tools=$1 name=$2
-    in_wsl sh -c 'mkdir -p "$1/bin" && cat > "$1/bin/$2.$$" && mv -f "$1/bin/$2.$$" "$1/bin/$2"' sh "$tools" "$name" \
-        < "$TOOLS_HERE/linux/$name"
+    in_wsl_stdin sh -c 'mkdir -p "$1/bin" && cat > "$1/bin/$2.$$" && mv -f "$1/bin/$2.$$" "$1/bin/$2"' sh "$tools" "$name" \
+        < "$TOOLS_HERE/linux/$name" || { echo "STOP: cannot copy $name into WSL2" >&2; return 3; }
     printf '%s/bin/%s\n' "$tools" "$name"
 }
 
