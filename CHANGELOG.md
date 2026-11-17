@@ -32,6 +32,24 @@ This release lets the reviewer of `review-loop` write the fix plan of each findi
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. A new test makes sure that only its build fails and that `failure_check.py` gives `SAME-AT-PARENT` on it (issue #221).
 - `docs/evals.md`: the suite `review-loop` has 6 cases (issue #221).
 
+## dev-essentials 3.19.0 in release [4.16.0] - 2026-11-17
+
+This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a script with unit tests. The dry run stays the default, and the apply run still needs an explicit yes of the user (issue #223).
+
+### Added in dev-essentials
+
+- `scripts/merge_projects.py`: finds the worktree project folders of each main project folder. It plans the merge of the sessions and the memory files by the rules of the command. Without `--apply`, it prints the plan and a `PLAN` code, and it changes nothing. With `--apply`, it needs `--confirm` with the code of the approved plan, and it makes the plan again before it acts. It tests each target before a move, and it never replaces an entry that it finds. It never follows a link, and it never deletes a folder that is not empty. It keeps a worktree index that holds a line that it cannot merge by rule: a line with no link, or a pointer line with other words for a file that the main index names. It applies only a plan that it prints in full. Its output is short, and each name prints on one line (issue #223).
+
+### Changed in dev-essentials
+
+- `commands/merge-worktree-projects`: Steps 1 to 5 run the script. The command keeps the questions to the user: an ambiguous keyword, a folder with recent activity, and the approval of the plan. Without Python 3, the command stops and moves no file. The command also says how to pass a folder name that starts with `-`. It also says how to split a plan that is too long (issue #223).
+
+### Changed in the repository
+
+- `tests/test_merge_projects.py`: new tests for the script on a fixture tree, on Linux and Windows (issue #223).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_merge_projects` (issue #223).
+- `docs/testing.md`: names the tests of the script (issue #223).
+
 ## dev-essentials 3.18.0 in release [4.15.0] - 2026-11-17
 
 This release makes Stage 9 of `feature-pipeline` name the source of each argument of the PR call. If no source names the repository, the stage stops before the call (issue #214). If the repository gives no form for a PR body, the stage writes the body in the form of `compose-pr` (issue #203).
@@ -1837,7 +1855,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
-[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.17.0
+[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.17.0
+[4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...v4.15.0
 [4.14.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.14.5
 [4.14.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.4
