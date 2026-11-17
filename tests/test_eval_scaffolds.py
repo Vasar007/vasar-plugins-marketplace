@@ -64,7 +64,7 @@ BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
 # The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
 FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
-# The repository of the PR: the first backticked owner/repo after the tool in the PR creation entry. Step 6 takes owner and repo from it.
+# The repository of the PR: the next backticked text after the tool in the PR creation entry, if it is owner/repo. Step 6 takes owner and repo from it.
 PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]+)`", re.MULTILINE)
 # Without that part, Step 6 takes owner and repo from the Task Provider.
 PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
