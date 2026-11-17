@@ -2,20 +2,18 @@
 description: Multi-agent team review of artifacts/designs from different perspectives
 ---
 
-Launch a team of agents to review artifacts/designs from multiple professional perspectives simultaneously.
+Review artifacts or designs from several professional points of view.
 
 **Arguments**: $ARGUMENTS
 
 - Format: `<path> [agent-count] [model]`
 - `path`: the file or folder to review (required). If it is not provided, use **AskUserQuestion** to ask.
-- `agent-count`: the number of agents (optional, default: 5). Maps to roles below.
-- `model`: the model of the agents (optional, default: current model).
+- `agent-count`: a whole number (optional). With a count, the run takes the team route. With no count, it takes the two-view route. See "Routes".
+- `model`: the model of the agents (optional, default: current model). If the second argument is not a whole number, it is the model, and the run takes the two-view route. Example: `/audit-team docs/design.md opus`.
 
 If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
 
 ## Agent Roles
-
-Assign roles in this order based on agent count:
 
 | #   | Code Name                | Perspective                                                            |
 |-----|--------------------------|------------------------------------------------------------------------|
@@ -25,7 +23,10 @@ Assign roles in this order based on agent count:
 | 4   | senior developer         | Implementation feasibility, code quality, naming, existing patterns    |
 | 5   | devil's advocate         | Challenge assumptions, find contradictions, worst-case scenarios       |
 
-If agent count < 5, use the first N roles. If agent count > 5, add roles like "security engineer", "performance engineer", "DX/usability reviewer" as needed.
+## Routes
+
+- **Two-view route** (no count): the main session reviews the target with all five roles as lenses. Then one fresh agent takes the devil's advocate role. The agent does not see the review of the main session, so it is the independent view. The main session already holds the target from Step 1, so its pass reads the target no second time. The `model` argument applies to the agent only.
+- **Team route** (a count): one agent for each of the first N roles, in the order of the table. If the count is more than 5, add roles like "security engineer", "performance engineer", "DX/usability reviewer" as needed.
 
 ## Steps
 
@@ -33,9 +34,9 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
 
    Read all `.md` files at the given path. If the path is a folder, also read the `.md` files in its subfolders. Summarize the content so you can include it in each agent's prompt.
 
-2. **Launch the agent team**
+2. **Review**
 
-   For each role, launch an Agent (subagent_type: `general-purpose`) with the following prompt structure. Do not use `Explore` or `dev-essentials:code-locator` for a role. They only find code, and they do not load the CLAUDE.md files of the repository.
+   Each role agent is an Agent with subagent_type: `general-purpose` and the prompt below. Do not use `Explore` or `dev-essentials:code-locator` for a role. They only find code, and they do not load the CLAUDE.md files of the repository.
 
    ```md
    Review the following artifacts or design from the point of view of a **{role name}**.
@@ -59,13 +60,18 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    6. Present your final findings with your role clearly stated at the top.
    ```
 
-   **Launch:** launch all agents in a single message so they run concurrently, then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).
+   On the two-view route:
+
+   1. Review the target with each role of the table as a lens, one role at a time. Follow items 2 to 5 of the prompt for each lens, and note the role of each finding. Finish this list before you launch the agent, so that the result of the agent does not change your review.
+   2. Launch one role agent for the devil's advocate role. If the `model` argument is set, pass it to the agent.
+
+   On the team route, launch one role agent for each role, all in a single message so that they run concurrently. Then wait for all results (see `dev-essentials:subagent-orchestration` Rule 3).
 
 3. **Consolidate results**
 
-   After all agents finish:
-   - Collect all findings from all agents.
-   - Deduplicate. If several agents found the same issue, merge them into one entry, and name the roles that flagged it.
+   After the review of Step 2 is done:
+   - Collect all findings: on the two-view route, the findings of the main session and of the agent. On the team route, the findings of all agents.
+   - Deduplicate. If several roles found the same issue, merge them into one entry, and name the roles that flagged it. On the two-view route, name a lens of the main session as `main: {role name}`, and the agent as `agent: devil's advocate`.
    - Filter once, here. If a finding does not affect correctness or a stated requirement, move it to Suggestions. The other findings stay under Blockers or Warnings.
    - Present a unified report:
 
@@ -86,9 +92,11 @@ If agent count < 5, use the first N roles. If agent count > 5, add roles like "s
    **Agreement matrix:** Note which findings had consensus (multiple roles) vs. single-role findings.
    ```
 
+   On the two-view route, the **Reviewers** line names the main session with its five lenses and the devil's advocate agent. If the main session and the agent both flag a finding, the finding has consensus. The lenses of the main session are one view, so an agreement of two lenses is not consensus.
+
 ## Guardrails
 
 - **Read-only**: do not change any file. Only report findings.
-- **One filter, at consolidation**: the agents report every finding with a confidence. Step 3 is the only step that filters.
+- **One filter, at consolidation**: the role agents and the lens pass of the main session report every finding with a confidence. Step 3 is the only step that filters.
 - **Be specific**: every finding names a concrete file/section and includes a resolution suggestion.
 - **Verify before confident fixes**: apply this rule to the findings of the agents and to your consolidation. A suggested fix for a technical claim (configuration, schema, library API, method signature, codebase reference, or DI lifetime) must rest on a primary source: official docs, a known-working real example, or a throwaway test. If neither an agent nor you tested it, label it as a theory, not as a fix. See `dev-essentials:engineering-discipline` Rule 5.

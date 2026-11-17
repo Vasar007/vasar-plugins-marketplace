@@ -3650,7 +3650,7 @@ class AuditTeamRouteGraderTests(unittest.TestCase):
     reads the report form of Step 3 of the command."""
 
     # The route grader of the role agents, and the count of role agents with no agent-count.
-    AGENT_GRADER, AGENT_COUNT = "route-five-agents", 5
+    AGENT_GRADER, AGENT_COUNT = "route-one-agent", 1
 
     @classmethod
     def setUpClass(cls):
