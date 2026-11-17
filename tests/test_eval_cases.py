@@ -2751,7 +2751,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
     def test_the_case_keeps_the_agent_tool_and_lists_no_write_tool(self):
         tools = self.case.field("allowed_tools")
         self.assertIn("Skill", tools)
-        self.assertIn("Agent", tools, "Without Agent, the grader task-composer-not-fired tests nothing.")
+        self.assertIn("Agent", tools, "By the docs, a case that lists no Agent gets no Agent tool.")
         self.assertEqual(self.WRITE_TOOLS & set(tools), set())
 
     def test_the_wrapper_grader_counts_in_the_score(self):
@@ -2778,7 +2778,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
 
 
 class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
-    """The trigger case compose-task-draft-fires sends the plain request, with no tool for the wrapper agent."""
+    """The trigger case compose-task-draft-fires sends the plain request, and has no grader on the wrapper agent."""
 
     CASE = "compose-task-draft-fires"
 
@@ -2789,9 +2789,14 @@ class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
         cls.sibling = cases[ComposeTaskFiresCaseTests.CASE]
 
     def test_the_prompt_uses_the_trigger_words_and_asks_for_no_mode(self):
+        skill = (FP_ROOT / "skills" / "compose-task" / "SKILL.md").read_text(encoding="utf-8")
+        lines = [line for line in skill.splitlines() if line.startswith(("- `response`:", "- `create`:"))]
+        self.assertEqual(len(lines), 2, "The skill must have one trigger line for each of mode: response and mode: create.")
+        phrases = [phrase.lower() for line in lines for phrase in re.findall(r'"([^"]+)"', line)]
+        self.assertIn("return the description in chat", phrases)
         prompt = self.case.prompt_body.lower()
         self.assertIn("write a task description", prompt)
-        for phrase in ComposeTaskFiresCaseTests.CHAT_PHRASES:
+        for phrase in phrases:
             with self.subTest(phrase=phrase):
                 self.assertNotIn(phrase, prompt)
 

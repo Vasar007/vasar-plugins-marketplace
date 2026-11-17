@@ -20,11 +20,11 @@ This release fixes the trigger case `compose-task-fires`, which failed in about 
 ### Fixed in dev-essentials
 
 - `evals/triggers/compose-task-fires`: the prompt asks for the task description in chat and for no file. Before, the prompt selected the default mode of the skill. This mode writes a draft file, and a trigger run has no tool that writes a file. So in 4 of 12 kept runs, the session started the wrapper agent `task-composer` to write the file, and the grader `task-composer-not-fired` failed. The graders do not change, and the grader on the wrapper agent still counts in the score (issue #217).
-- `evals/triggers/compose-task-draft-fires`: the new case sends the plain request for a task description, which selects the default mode. It lists no `Agent` tool, so the wrapper agent cannot start. It has the two graders of `compose-task-fires` on the skills (issue #217).
+- `evals/triggers/compose-task-draft-fires`: the new case sends the plain request for a task description, which selects the default mode. It has no grader on the wrapper agent `task-composer`. Kept runs show that a run can start an agent also with no `Agent` in `allowed_tools`. It has the two graders of `compose-task-fires` on the skills (issue #217).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new class `ComposeTaskFiresCaseTests` makes sure that the prompt of `compose-task-fires` uses two phrases of the skill for `mode: response`. It also makes sure that the case keeps the tool `Agent` and lists no tool that writes a file. It gives right and wrong samples to the graders on the skill and on the wrapper agent. The new class `ComposeTaskDraftFiresCaseTests` does the same checks for `compose-task-draft-fires`, and it makes sure that the case lists no `Agent` tool (issue #217).
+- `tests/test_eval_cases.py`: the new class `ComposeTaskFiresCaseTests` makes sure that the prompt of `compose-task-fires` uses two phrases of the skill for `mode: response`. It also makes sure that the case keeps the tool `Agent` and lists no tool that writes a file. It gives right and wrong samples to the graders on the skill and on the wrapper agent. The new class `ComposeTaskDraftFiresCaseTests` makes sure that the prompt of `compose-task-draft-fires` has the trigger words and no phrase of the skill for another mode. It also makes sure that the case lists no `Agent` tool and no tool that writes a file. Its graders must be the two graders of `compose-task-fires` on the skills (issue #217).
 
 ## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
 
