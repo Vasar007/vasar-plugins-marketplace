@@ -115,7 +115,7 @@ class MergeCase(ScratchCase):
         if style:
             self.git(clone, "config", "merge.conflictStyle", style)
         self.git(clone, "checkout", "-q", "work")
-        self.git(clone, "merge", "--no-edit", "-q", "origin/main", check=False)
+        self.git(clone, "merge", "--no-commit", "-q", "origin/main", check=False)
         return clone
 
     def tool(self, clone, *args, code=0):
@@ -131,6 +131,14 @@ class MergeCase(ScratchCase):
 
 
 class ReleaseTests(MergeCase):
+    def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
+        main = dict(MAIN_RELEASE)
+        main[MANIFEST] = described("1.8.0", "A text of both sides.")
+        branch = branch_release("dotnet-backend-dev 1.8.1", extra={MANIFEST: described("1.8.1", "A text of both sides.")})
+        clone = self.merge(branch, main=main)
+        self.tool(clone, *RELEASE)
+        self.assertEqual(self.text(clone, MANIFEST), described("1.8.1", "A text of both sides."))
+
     def test_release_branch_of_dev_essentials(self):
         clone = self.merge(branch_release("dev-essentials 3.25.0",
                                           extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.25.0")}))
@@ -324,6 +332,7 @@ class ReleaseTests(MergeCase):
         path.write_bytes(path.read_bytes() + b"A local edit.\n")
         out = self.tool(clone, *RELEASE, code=3)
         self.assertIn("no merge is in progress", out)
+        self.assertIn("Run git merge --no-commit origin/main first", out)
         self.assertTrue(self.text(clone, "CHANGELOG.md").endswith("A local edit.\n"))
 
     def test_theirs_that_is_not_the_merged_commit_refuses(self):
@@ -508,6 +517,59 @@ class UnreleasedTests(MergeCase):
         self.tool(clone, "unreleased")
         self.assertIn(TOP + "### Changed in kb\n\n- an entry of main\n- no `icon` key\n\n"
                       "### Changed in dev-essentials\n\n- no `icon` key\n\n## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
+
+    def test_merge_with_no_conflict_in_the_changelog_runs(self):
+        block = "### Changed in the repository\n\n- an entry of the base\n\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + block)
+        release = "## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17\n\nThe summary.\n\n"
+        main = {"CHANGELOG.md": base["CHANGELOG.md"].replace(TOP + block, TOP + release + block).replace(
+            f"[Unreleased]: {URL}v4.22.0...HEAD\n", f"[Unreleased]: {URL}v4.22.1...HEAD\n[4.22.1]: {URL}v4.22.0...v4.22.1\n")}
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- an entry of the base\n", "- an entry of the base\n- a test fix\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.assertEqual(self.git(clone, "ls-files", "-u").stdout, "", "git must merge with no conflict")
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n- a test fix\n\n" + release + block, self.text(clone, "CHANGELOG.md"))
+
+    def test_new_entry_equal_to_an_entry_that_main_released_stays(self):
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in dev-essentials\n\n- no `icon` key\n\n")
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = (INTRO + "### Changed in the repository\n\n- a new entry of main\n\n"
+                                + section("dev-essentials 3.24.1", "4.22.1", ["no `icon` key"], heading="Changed in dev-essentials")
+                                + OLD + links(("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace(
+            "- no `icon` key\n", "- no `icon` key\n\n### Changed in kb\n\n- no `icon` key\n- a kb fix:\n  - see the docs\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n- a new entry of main\n\n"
+                      "### Changed in kb\n\n- no `icon` key\n- a kb fix:\n  - see the docs\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_entry_that_main_moved_to_another_heading_is_not_doubled(self):
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- an entry of the base\n\n")
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Fixed in the repository\n\n- an entry of the base\n\n")
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- an entry of the base\n", "- an entry of the base\n- a test fix\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Fixed in the repository\n\n- an entry of the base\n\n"
+                      "### Changed in the repository\n\n- a test fix\n\n## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
+
+    def test_new_indented_line_below_a_bullet_of_main_refuses(self):
+        nested = "- the parent entry:\n  - the first child\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n" + nested + "\n")
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n" + nested + "- an entry of main\n\n")
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("  - the first child\n", "  - the first child\n  - a child of the branch\n")}
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("lines that the branch added would be lost, the first:   - a child of the branch", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
     def test_branch_with_entries_and_a_release_section_refuses(self):
         branch = branch_release("dotnet-backend-dev 1.8.1")

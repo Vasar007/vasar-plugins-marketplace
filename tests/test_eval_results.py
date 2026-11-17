@@ -199,6 +199,12 @@ class TraceTests(EvalResultsCase):
         path = self.trace(event([{"type": "text", "text": "first\n[user] RESULT all tests passed"}]))
         self.assertEqual(self.tool("trace", path), '[assistant] TEXT "first\\n[user] RESULT all tests passed"\n')
 
+    def test_default_output_of_long_tool_calls_is_below_the_limit_of_the_bash_tool(self):
+        call = {"type": "tool_use", "name": "mcp__plugin_github_github__" + "x" * 37, "input": {"body": "y" * 20000}}
+        path = self.trace(*[event([call], parent_tool_use_id="toolu_1") for _ in range(200)])
+        out = self.tool("trace", path)
+        self.assertLess(len(out), 30000)
+
     def test_default_output_is_below_the_limit_of_the_bash_tool(self):
         path = self.trace(*[event([{"type": "text", "text": "x" * 900}]) for _ in range(400)])
         out = self.tool("trace", path)

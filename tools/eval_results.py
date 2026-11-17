@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 RUN_FOLDER = "claude-eval-"
-LIMIT = 300
+LIMIT = 250
 MAX_LINES = 80
 
 

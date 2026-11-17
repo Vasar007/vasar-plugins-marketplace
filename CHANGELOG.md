@@ -11,9 +11,9 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tools/changelog_merge.py`: a new script for the maintainers. After a merge of `main` into an open branch, it writes `CHANGELOG.md` and the `version` of each `plugin.json` new. It takes a release of one or more plugins, or entries under `[Unreleased]`. If a line that the branch added is not in the result, the script stops and changes nothing (issue #255).
+- `tools/changelog_merge.py`: a new script for the maintainers. After a merge of `main` into an open branch that you start with `git merge --no-commit`, it writes `CHANGELOG.md` and the `version` of each `plugin.json` new. It takes a release of one or more plugins, or the entries that the branch added under `[Unreleased]`. If a line that the branch added is not in the result, the script stops and changes nothing (issue #255).
 - `tools/eval_results.py`: a new script that reads the results of eval runs. It prints the runs of `baseline.json` files and tests the spend against a cap. It also lists the kept run folders and prints the tool calls of a trace (issue #255).
-- `tools/wsl/`: new scripts that run the unit suite and one command of `compare_versions.py` in WSL2 from Git Bash. A branch goes to WSL2 as a git bundle, and no Linux command reads a Windows drive (issue #255).
+- `tools/wsl/`: new scripts that run the unit suite and one command of `compare_versions.py` in WSL2 from Git Bash. A branch goes to WSL2 as a git bundle, and no Linux command reads a Windows drive. The eval runner stops on a `claude` below `/mnt` (issue #255).
 - `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`: the tests of the new scripts. The job `test-windows` of `.github/workflows/tests.yml` runs the first two (issue #255).
 - `docs/tools.md`: a new page that says how to run the scripts. `docs/authoring.md`, `docs/testing.md`, and `README.md` point to it (issue #255).
 

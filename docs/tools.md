@@ -8,7 +8,7 @@ Each Python script needs Python 3.7 or later and uses only the standard library.
 
 A merge of `main` into an open branch gives the same conflicts each time: the top of `CHANGELOG.md`, its link lines, and the `version` in `plugin.json`. The script `tools/changelog_merge.py` writes these files new from the two sides of the merge. It stages nothing.
 
-1. In the clone of the branch, run `git fetch origin` and then `git merge origin/main`.
+1. In the clone of the branch, run `git fetch origin` and then `git merge --no-commit origin/main`. With `--no-commit`, a merge with no conflict also stays in progress, so that the script can run.
 2. If the branch adds a release section, run the subcommand `release`. Give each plugin of the release with its new version, and give the new release number:
 
    ```bash
@@ -33,7 +33,7 @@ The script `tools/eval_results.py` reads the `baseline.json` files of `tests/eva
 - `runs <file>...` prints one line for each run: the score, the cost, the time, the run folder, and the failed graders. A `PARTIAL` line marks a file whose suite did not finish, and `NO RUN` marks a case with no run.
 - `spend --cap <USD> --rest <USD> <file>...` adds the cost of the files to the estimate of the runs to come. If the sum is over the cap, the exit code is 3. If a cost, `--cap`, or `--rest` is not a number of 0 or more, the exit code is 2. A queue of eval runs can call it before each run, because `--max-cost-usd` of a run is tested only before that run starts.
 - `kept <file>...` prints one line for each kept run folder, for a note of the kept runs.
-- `trace <trace.jsonl>` prints the text, the tool calls, and the tool results of a run in order. By default, it shows 80 lines of at most 300 characters each. `--max-lines` and `--limit` change these numbers.
+- `trace <trace.jsonl>` prints the text, the tool calls, and the tool results of a run in order. By default, it shows 80 lines, and it cuts the text, the input, or the result of each line at 250 characters. `--max-lines` and `--limit` change these numbers.
 
 ## Run the unit suite and eval runs in WSL2
 
@@ -48,7 +48,7 @@ Prepare WSL2 first:
 1. Install a WSL2 distribution. If its name is not `Ubuntu`, set the variable `WSL_DISTRO` to its name. The command `wsl.exe -l -q` lists the names.
 2. In Linux, install Git and Python 3 as `python3`. The scripts also use `flock` and `unshare` from util-linux. Ubuntu installs both by default.
 3. For the unit suite, install the tools that [Testing](testing.md) names: PyYAML, Node.js 22 or later, the .NET SDK 10 or newer, and Claude Code. Without PyYAML, a test fails. Without one of the other tools, some tests skip.
-4. For `run-eval.sh`, install Claude Code inside the distribution, not on Windows. The script looks for `~/.local/bin/claude` first, and then for `claude` on the `PATH`. See [Install in WSL](https://code.claude.com/docs/en/setup#install-in-wsl).
+4. For `run-eval.sh`, install Claude Code inside the distribution, not on Windows. The script looks for `~/.local/bin/claude` first, and then for `claude` on the `PATH`. It stops on a `claude` below `/mnt`, because that is a Windows install. See [Install in WSL](https://code.claude.com/docs/en/setup#install-in-wsl).
 5. For `run-eval.sh`, run `claude auth login` in Linux and sign in with your claude.ai account. Do not pass `--console`, because that sign-in uses API billing. Then `claude auth status` must show `"authMethod": "claude.ai"`. Do not set `ANTHROPIC_API_KEY` in Linux.
 6. For `run-eval.sh`, also install the tools that the list in [Behavior suites](evals.md#behavior-suites) names for your suite, for example `bubblewrap` and `socat`. The script sets `TMPDIR` itself, and it keeps the eval clone in the Linux file system.
 7. Make sure that Linux has network access. With no `--linter-tag`, `unit-tests.sh` reads the release tags of the linter from GitHub. It also clones each new linter release from there.

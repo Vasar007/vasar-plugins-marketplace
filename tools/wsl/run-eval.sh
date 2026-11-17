@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run in Git Bash on Windows. Run one tests/evals/compare_versions.py command in WSL2, and copy its result folder back.
 # The refs go to WSL2 as a git bundle, and the result comes back by a copy from Git Bash. See docs/tools.md.
-# Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <ref> <result folder> <compare_versions arguments>...
+# Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <branch> <result folder> <compare_versions arguments>...
 #   --no-wait      do not wait for a quiet machine. The run still waits for the lock of the eval clone
 #   --clone PATH   the Linux path of the eval clone (default: <tools folder>/eval-clone)
 # Give the compare_versions arguments without --out and --claude, for example:
@@ -10,14 +10,16 @@
 # The result folder is a folder on Windows. It must be empty or new.
 # The exit code is the exit code of compare_versions.py.
 # The script itself ends with exit code 2 for a usage error, and for --out or --claude in the arguments.
-# It ends with exit code 3 and a STOP line if ANTHROPIC_API_KEY is set, or if the sign-in is not claude.ai.
-# It also does so if the repository does not have the ref, or if the result folder is not empty.
-# If this script stops before the run ends, the run goes on in WSL2. Its result stays in the LINUX RESULT FOLDER.
+# It ends with exit code 3 and a STOP line if ANTHROPIC_API_KEY is set, if the sign-in is not claude.ai,
+# or if WSL2 has no claude command of its own. It also does so if the repository does not have the branch,
+# if the result folder is not empty or cannot be made, if WSL_DISTRO names no distribution, or if a copy fails.
+# If this script stops, it removes its bundle. A run that did not print its HEAD line then can fail in WSL2.
+# A run after its HEAD line goes on in WSL2. Its result stays in the LINUX RESULT FOLDER.
 # wsl.exe makes one backslash from two in a row, so give no argument with two backslashes in a row.
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
-usage() { echo "Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <ref> <result folder> <arguments>..." >&2; exit 2; }
+usage() { echo "Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <branch> <result folder> <arguments>..." >&2; exit 2; }
 wait=yes clone=
 while [ $# -gt 0 ]; do
     case "$1" in

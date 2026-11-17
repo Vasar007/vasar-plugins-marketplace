@@ -8,6 +8,7 @@
 # The exit code is the exit code of the unit suite.
 # The script itself ends with exit code 2 for a usage error.
 # It ends with exit code 3 and a STOP line if the repository does not have the branch, or if a copy into WSL2 fails.
+# It also does so if WSL_DISTRO names no distribution, or if it cannot read the release tags of the linter.
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 

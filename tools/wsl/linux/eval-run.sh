@@ -14,7 +14,9 @@ for arg in "$@"; do
     case "$arg" in --out | --out=* | --claude | --claude=*) echo "STOP: the script sets $arg itself" >&2; exit 2 ;; esac
 done
 claude=$HOME/.local/bin/claude
-[ -x "$claude" ] || claude=$(command -v claude) || { echo "STOP: no claude command" >&2; exit 3; }
+[ -x "$claude" ] || claude=$(command -v claude) || claude=
+# A path below /mnt is a Windows install, and no Linux command reads a Windows drive.
+case "$claude" in '' | /mnt/*) echo "STOP: no claude command in Linux: install Claude Code in WSL2" >&2; exit 3 ;; esac
 [ -z "${ANTHROPIC_API_KEY:-}" ] || { echo "STOP: ANTHROPIC_API_KEY is set, so the runs would use API billing" >&2; exit 3; }
 auth=$("$claude" auth status 2>&1) || true
 grep -Eq '"authMethod": *"claude\.ai"' <<< "$auth" || { echo "STOP: not signed in with claude.ai" >&2; exit 3; }

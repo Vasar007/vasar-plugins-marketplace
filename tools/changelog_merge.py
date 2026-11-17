@@ -4,7 +4,8 @@
 A merge of the main branch into an open branch of this repository gives the same conflicts each time:
 the top of CHANGELOG.md, its link lines, and the version in plugin.json. The script writes these files
 new from the two sides of the merge. Run it in the work tree of the branch while the merge is in
-progress. It stages nothing and commits nothing. Read "git diff" before you stage the result.
+progress. Start the merge with git merge --no-commit, so that a merge with no conflict stays in
+progress too. It stages nothing and commits nothing. Read "git diff" before you stage the result.
 It needs Python 3.7 or later and git, and it uses only the standard library.
 
 Subcommands:
@@ -16,7 +17,8 @@ Subcommands:
               --theirs, or from the branch if only the branch changed them since the merge base.
               The script cannot bump a plugin that --theirs does not have: it ends with exit code 2.
   unreleased  The branch adds entries under "## [Unreleased]" and no release. The CHANGELOG of
-              --theirs is the base, and the entries of the branch go under its [Unreleased] heading.
+              --theirs is the base. The entries that the branch added since the merge base go under its
+              [Unreleased] heading.
 
 With --keep-both FILE, the script also keeps both sides of each conflict in FILE: first the side of
 --theirs, then the side of --ours. Give one --keep-both for each file. FILE is a path from the top
@@ -138,6 +140,18 @@ def subsections(block):
         elif line.strip():
             raise Refused(f"a line is not below a '### ' heading: {line}")
     return [(heading, [line for line in body if line.strip()]) for heading, body in parts]
+
+
+def entries(block):
+    """The (heading, entry) pairs of a block. An entry is a bullet with the indented lines below it."""
+    pairs = []
+    for heading, body in subsections(block):
+        for line in body:
+            if line.startswith((" ", "\t")) and pairs and pairs[-1][0] == heading:
+                pairs[-1] = (heading, pairs[-1][1] + LF + line)
+            else:
+                pairs.append((heading, line))
+    return pairs
 
 
 def merge_block(target, extra, kind):
@@ -287,11 +301,15 @@ def unreleased_changelog(ours, theirs_text, base):
     """The new CHANGELOG text of the unreleased subcommand."""
     _, ours_block, ours_rest = split_top(ours, "--ours")
     head, theirs_block, theirs_rest = split_top(theirs_text, "--theirs")
-    # An entry of the merge base that --theirs took out of [Unreleased] must not come back.
-    gone = set(split_top(base, "the merge base")[1].split(LF)) - set(theirs_block.split(LF))
-    ours_block = LF.join(line for line in ours_block.split(LF) if line.startswith("### ") or line not in gone)
-    if not any(line.strip() and not line.startswith("### ") for line in ours_block.split(LF)):
+    # Only the entries that the branch added since the merge base go in. --theirs decides on the others.
+    old = set(entries(split_top(base, "the merge base")[1]))
+    groups = {}
+    for heading, entry in entries(ours_block):
+        if (heading, entry) not in old:
+            groups.setdefault(heading, []).append(entry)
+    if not groups:
         raise Refused("the branch has no entries under [Unreleased]")
+    ours_block = LF.join(f"{heading}{LF}{LF}{LF.join(items)}{LF}" for heading, items in groups.items())
     heading = first_section(ours_rest)[0].split(LF)[0]
     if heading and heading not in set(theirs_text.split(LF)):
         raise Refused(f"the branch adds a release section, so use the subcommand release: {heading}")
@@ -369,7 +387,7 @@ def execute(args):
     try:
         merging = git(repo, "rev-parse", "-q", "--verify", "MERGE_HEAD").strip()
     except Stop:
-        raise Refused(f"no merge is in progress in {top}. Run git merge {args.theirs} first") from None
+        raise Refused(f"no merge is in progress in {top}. Run git merge --no-commit {args.theirs} first") from None
     theirs_commit = git(repo, "rev-parse", "--verify", f"{args.theirs}^{{commit}}").strip()
     if merging != theirs_commit:
         raise Refused(f"the merge in progress takes in {merging[:12]}, but --theirs {args.theirs} is "

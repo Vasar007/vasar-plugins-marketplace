@@ -203,9 +203,10 @@ class BundleTests(WslCase):
         for name, text in (("bundle.sh", "<ref>..."), ("unit-tests.sh", "--no-private-mount"),
                            ("run-eval.sh", "--no-wait")):
             with self.subTest(name=name):
-                out = self.script(name, "--help")
-                self.assertIn("Usage: " + name, out)
-                self.assertIn(text, out)
+                done = run(["bash", WSL / name, "--help"], env=self.env, stdin="")
+                self.assertResult(done, 0)
+                self.assertIn("Usage: " + name, done.stdout)
+                self.assertIn(text, done.stdout)
                 self.assertFalse(self.log.exists(), "no call of wsl.exe")
 
 
@@ -337,6 +338,21 @@ class RunEvalTests(WslCase):
         self.assertTrue((clone / ".git").is_dir())
         self.assertFalse((self.tools / "eval-clone").exists())
 
+    def test_claude_below_mnt_is_refused(self):
+        if subprocess.run(["unshare", "-r", "-m", "true"], capture_output=True).returncode != 0:
+            self.skipTest("unshare -r -m is not allowed here")
+        self.write_exe(self.tmp / "shim", "#!/bin/sh\necho ran >> \"$HOME/shim.log\"\n"
+                       "echo '{\"authMethod\": \"claude.ai\"}'\n")
+        # A tmpfs hides /mnt in a private mount namespace, so the test reads no Windows drive.
+        # The PATH holds only the folder of the shim: the script uses only builtins before its claude test.
+        script = ('mount -t tmpfs none /mnt && mkdir -p /mnt/c/npm && cp "$1" /mnt/c/npm/claude && '
+                  'PATH=/mnt/c/npm "$2" "$0" "$3" main "$4" "$5" no baseline')
+        done = run(["unshare", "-r", "-m", "bash", "-c", script, WSL / "linux" / "eval-run.sh", self.tmp / "shim",
+                    shutil.which("bash"), self.tmp / "none.bundle", self.tmp / "out", self.tmp / "clone"],
+                   env=self.env)
+        self.assertResult(done, 3, "STOP: no claude command in Linux")
+        self.assertFalse((self.home / "shim.log").exists(), "the script ran no file below /mnt")
+
     def test_bundle_on_a_windows_drive_stops(self):
         out = run(["bash", WSL / "linux" / "eval-run.sh", "/mnt/c/x.bundle", "main", "/tmp/o", "/tmp/c", "no",
                    "baseline"], env=self.env)
@@ -413,6 +429,14 @@ class RunEvalTests(WslCase):
                           code=3)
         self.assertIn("STOP: cannot make the result folder", out)
         self.assertFalse(self.log.exists(), "no call of wsl.exe")
+
+    def test_lock_file_of_another_bundle_does_not_stop_the_eval_run(self):
+        self.claude()
+        (self.tools / "bundles").mkdir(parents=True)
+        (self.tools / "bundles" / "eval-work_one.bundle.lock").write_text("", encoding="utf-8")
+        self.script("run-eval.sh", "--no-wait", self.repo, "work/one", self.tmp / "r", "baseline")
+        self.assertEqual([p.name for p in (self.tools / "bundles").iterdir()], ["eval-work_one.bundle.lock"],
+                         "the runner removes its bundle")
 
     def test_sign_in_test_reads_the_whole_output(self):
         self.write_exe(self.home / ".local" / "bin" / "claude", SLOW_CLAUDE_STUB)
