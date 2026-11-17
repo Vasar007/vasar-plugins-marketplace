@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.17.3 in release [4.14.3] - 2026-11-17
+## dev-essentials 3.17.5 in release [4.14.5] - 2026-11-17
 
 This release makes the stop of the failure check complete on Windows. A stopped command no longer leaves a Git Bash process that keeps the temporary folder of the check (issues #216 and #211).
 
@@ -22,7 +22,22 @@ This release makes the stop of the failure check complete on Windows. A stopped 
 
 - `tests/test_failure_check.py`: the test of the time limit has the same checks on Windows and on Linux. Five new Windows tests cover the stop. They make sure that a shell that cannot join a job gets no job, and that `taskkill` then stops it. They also make sure that the stop of a job runs `taskkill` first, then ends the job, and then waits. Another test makes sure that a signal during `taskkill` still ends the job. The last test makes sure that the wait covers each process of the job and has one limit (issues #216 and #211).
 - `docs/testing.md`: names the job object in place of the `WARN` line of the Windows job (issue #211).
+
+## dev-essentials 3.17.4 in release [4.14.4] - 2026-11-17
+
+This release moves the cache tip of `process-pr-comments` into the documentation.
+
+### Added in the repository
+
+- `docs/workflows.md` and its link in `README.md`: the page covers the choice between one session and a new one. It gives the cost numbers of the study of issue #184 (issue #224).
+
+### Changed in the repository
+
 - `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
+
+### Removed in dev-essentials
+
+- `skills/process-pr-comments`: the tip about the prompt cache is gone from Phase 5. Probe runs with a long history printed the tip in 0 of 4 runs. The guidance is now in `docs/workflows.md` (issue #224).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
@@ -1778,8 +1793,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.3...HEAD
-[4.14.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.3
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...HEAD
+[4.14.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.14.5
+[4.14.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.4
 [4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
