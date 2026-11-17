@@ -25,6 +25,7 @@ from test_eval_cases import REGEX_FLAGS, load_cases, parse_block, plugin_roots, 
 from testkit import ScratchCase, remove_tree, run
 
 SCAFFOLD_SECONDS = 120
+SQUASH_SCRIPT = REPO / "essentials/dev-essentials/scripts/squash_task.py"
 DOTNET_SECONDS = 900
 # The branch that a scaffold must leave checked out. A case that is not listed only needs a branch.
 EXPECTED_BRANCH = {
@@ -1462,6 +1463,101 @@ class TrimFullPassTests(FixtureCase):
         shutil.rmtree(workspace / "trim-backup")
         self.listing(workspace)
         self.assertFalse(self.passes(workspace, "backup-kept"))
+
+
+class RirrSquashGraderTests(FixtureCase):
+    """The grader route-squashed-last passes only for a squash by the script. The grader squashed-on-main passes for any squash onto main."""
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-single-commit"]
+        cls.path = case.path
+        cls.options = case.graders["route-squashed-last"][0]
+        cls.outcome = case.graders["squashed-on-main"][0]
+
+    def environment(self, skip_dotnet=True):
+        env = super().environment(skip_dotnet)
+        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/dev/null"})
+        return env
+
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
+        self.assertEqual(code, 0, output)
+        return output
+
+    def task(self):
+        """The scaffold, a branch, two task commits, and one review commit. Return the workspace and the SHAs."""
+        workspace = self.workspace("rirr-squash")
+        self.run_bash([(self.path / "scaffold.sh").as_posix()], workspace)
+        self.run_git(workspace, "checkout", "-q", "-b", "eval/researches/retry-and-timeout")
+        commits = []
+        for rel, old, new, subject in (
+                ("config/settings.py", "HTTP_RETRY_LIMIT = 5", "HTTP_RETRY_LIMIT = 3", "Lower the retry limit to 3"),
+                ("config/settings.py", "TIMEOUT_SECONDS = 30", "TIMEOUT_SECONDS = 10", "Lower the timeout to 10"),
+                ("README.md", "# users app", "# users app (retries: 3)", "Review round 1: Name the limit")):
+            path = workspace / rel
+            path.write_text(path.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+            self.run_git(workspace, "commit", "-q", "-am", subject)
+            commits.append(self.run_git(workspace, "rev-parse", "HEAD"))
+        return workspace, self.run_git(workspace, "rev-parse", "main"), commits
+
+    def squash(self, workspace, base, commits, code):
+        args = [sys.executable, "-I", str(SQUASH_SCRIPT), "--repo", str(workspace), "--plan-dir", "notes/Plans",
+                "--base", base, "--message", "Lower the limits (implement + 1 review round)", "--apply"]
+        for sha in commits:
+            args += ["--commit", sha]
+        done = run(args, env=self.environment(), cwd=workspace)
+        self.assertEqual(done.returncode, code, done.stdout + done.stderr)
+
+    def passes(self, workspace, options=None):
+        options = options or self.options
+        self.assertEqual(options.get("flags", ""), "")
+        text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
+        return re.search(options["pattern"], text) is not None
+
+    def test_a_squash_by_the_script_onto_main_passes(self):
+        workspace, main, commits = self.task()
+        self.squash(workspace, main, commits, 0)
+        self.assertEqual(self.run_git(workspace, "rev-list", "--count", "main..HEAD"), "1")
+        self.assertTrue(self.passes(workspace))
+        self.assertTrue(self.passes(workspace, self.outcome))
+
+    def test_a_manual_soft_reset_fails(self):
+        workspace, main, _ = self.task()
+        self.run_git(workspace, "reset", "-q", "--soft", main)
+        self.run_git(workspace, "commit", "-q", "-m", "Lower the limits")
+        self.assertFalse(self.passes(workspace))
+        self.assertTrue(self.passes(workspace, self.outcome))
+
+    def test_a_squash_onto_the_first_task_commit_fails(self):
+        workspace, _, commits = self.task()
+        self.squash(workspace, commits[0], commits[1:], 0)
+        self.assertEqual(self.run_git(workspace, "rev-list", "--count", "main..HEAD"), "2")
+        self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
+
+    def test_a_commit_after_the_squash_fails(self):
+        workspace, main, commits = self.task()
+        self.squash(workspace, main, commits, 0)
+        self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "Later")
+        self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
+
+    def test_a_failed_squash_with_a_restore_fails(self):
+        workspace, main, commits = self.task()
+        self.run_git(workspace, "config", "commit.gpgsign", "true")
+        self.run_git(workspace, "config", "gpg.program", "false")
+        self.squash(workspace, main, commits, 1)
+        self.assertEqual(self.run_git(workspace, "rev-parse", "HEAD"), commits[-1])
+        self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
+
+    def test_a_commit_after_a_checkout_of_main_fails(self):
+        workspace, _, _ = self.task()
+        self.run_git(workspace, "checkout", "-q", "main")
+        self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "A commit on main")
+        self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
 
 
 if __name__ == "__main__":

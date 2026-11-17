@@ -3431,6 +3431,62 @@ class FailingBuildGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("build-tool-kept", changed))
 
 
+class RirrSquashRouteGraderTests(unittest.TestCase):
+    """The graders route-squash-script, route-no-soft-reset, and route-tree-kept of rirr-single-commit."""
+
+    CASE = "rirr-single-commit"
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cases[cls.CASE]
+        cls.retry = cases["rirr-retry-limit"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def passes(self, grader, text):
+        return re.search(self.meta(grader).get("pattern") or self.meta(grader)["input_match"], text) is not None
+
+    def test_shared_graders_are_the_graders_of_rirr_retry_limit(self):
+        for grader in ("limit-lowered", "test-follows", "no-push", "review-loop-ran"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader), self.retry.graders[grader][0])
+
+    def test_route_squash_script_needs_two_commits_and_apply(self):
+        right = {
+            "the order of the skill": 'python3 -I "/p/scripts/squash_task.py" --repo "/w" --plan-dir "notes/Plans" --base 1a2b3c4 --commit 5d6e7f8 --commit 9a8b7c6 --message "Lower the limits (implement + 1 review round)" --apply',
+            "quoted SHAs": 'python3 -I /p/squash_task.py --base 1a2b3c4 --commit "5d6e7f8" --commit "9a8b7c6" --message m --apply',
+            "the equals form": "python3 -I /p/squash_task.py --base 1a2b3c4 --commit=5d6e7f8 --commit=9a8b7c6 --message m --apply",
+        }
+        wrong = {
+            "no apply": "python3 -I /p/squash_task.py --base 1a2b3c4 --commit 5d6e7f8 --commit 9a8b7c6 --message m",
+            "one commit": "python3 -I /p/squash_task.py --base 1a2b3c4 --commit 5d6e7f8 --message m --apply",
+            "the mode flag only": "echo --commit-mode=single --commit-mode=single squash_task.py --apply",
+            "help": "python3 -I /p/squash_task.py --help",
+            "placeholders": "python3 -I /p/squash_task.py --base 1a2b3c4 --commit <sha> --commit <sha> --message m --apply",
+        }
+        for name, command in right.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.passes("route-squash-script", json.dumps({"command": command})))
+        for name, command in wrong.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("route-squash-script", json.dumps({"command": command})))
+
+    def test_no_soft_reset_finds_a_soft_reset_only(self):
+        self.assertEqual((self.meta("route-no-soft-reset").get("min"), self.meta("route-no-soft-reset").get("max")), (0, 0))
+        self.assertTrue(self.passes("route-no-soft-reset", json.dumps({"command": "git reset --soft 1a2b3c4"})))
+        self.assertTrue(self.passes("route-no-soft-reset", json.dumps({"command": 'git -C "/w" reset  --soft HEAD~2'})))
+        self.assertFalse(self.passes("route-no-soft-reset", json.dumps({"command": "git reset --hard 1a2b3c4"})))
+
+    def test_tree_kept_reads_the_trace(self):
+        self.assertEqual(self.meta("route-tree-kept")["target"], "trace")
+        self.assertTrue(self.passes("route-tree-kept", '"content":"NEW 1a2b\\nPARENT 3c4d5e6f7a8b\\nTREE same as the old HEAD\\nRESULT: SQUASHED."'))
+        self.assertFalse(self.passes("route-tree-kept", '"content":"TREE differs from the old HEAD"'))
+        read_of_the_script = json.dumps({"content": 'print("TREE same as the old HEAD" if tree == old_tree else "TREE differs from the old HEAD")'})
+        self.assertFalse(self.passes("route-tree-kept", read_of_the_script))
+
+
 STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build")
 
 

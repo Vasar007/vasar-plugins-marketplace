@@ -1,8 +1,9 @@
-"""Tests for essentials/dev-essentials/skills/implement-batch/scripts/squash_task.py.
+"""Tests for essentials/dev-essentials/scripts/squash_task.py.
 
 Each test builds a git repository in a temporary folder: a base commit and the commits of a task. Most tests
-run the script as a child process, as the implement-batch skill does. An empty global git configuration and
-no system configuration keep the settings of the machine (hooks, signing) out of the commits.
+run the script as a child process, as the skills implement-batch and research-implement-review-report do.
+An empty global git configuration and no system configuration keep the settings of the machine (hooks, signing)
+out of the commits.
 """
 import contextlib
 import io
@@ -11,12 +12,13 @@ import shutil
 import stat
 import subprocess
 import sys
+import unittest
 from unittest import mock
 
 from support import REPO, load_module, tool_missing
 from testkit import ScratchCase, git_init, run
 
-SCRIPT = REPO / "essentials/dev-essentials/skills/implement-batch/scripts/squash_task.py"
+SCRIPT = REPO / "essentials/dev-essentials/scripts/squash_task.py"
 sq = load_module("squash_task", SCRIPT)
 MESSAGE = "Task 1 — add the option (implement + 2 review rounds)\n\nThe body names the change."
 
@@ -542,3 +544,21 @@ class UsageTests(SquashCase):
     def test_help_names_the_exit_codes(self):
         result = run([sys.executable, "-I", SCRIPT, "--help"])
         self.assertResult(result, 0, "Exit codes: 0 = the plan is ready")
+
+
+class SquashCallSiteTests(unittest.TestCase):
+    """Both workflow skills run the shared script by the plugin root, and the file is there."""
+
+    CALLERS = ("implement-batch", "research-implement-review-report")
+    CALL = 'python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/squash_task.py"'
+
+    def test_each_caller_runs_the_shared_script(self):
+        self.assertTrue(SCRIPT.is_file())
+        self.assertEqual(SCRIPT.parent.parent, REPO / "essentials/dev-essentials")
+        for name in self.CALLERS:
+            with self.subTest(skill=name):
+                text = (REPO / "essentials/dev-essentials/skills" / name / "SKILL.md").read_text(encoding="utf-8")
+                self.assertIn(self.CALL, text)
+                line = next(line for line in text.splitlines() if self.CALL in line)
+                self.assertRegex(line, r'--repo "[^"]+" --plan-dir "[^"]+" --base \S+ --commit <sha> --commit <sha> --message "[^"]+" --apply$')
+                self.assertNotIn("${CLAUDE_SKILL_DIR}/scripts/squash_task.py", text)

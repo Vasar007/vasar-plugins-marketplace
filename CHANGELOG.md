@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.24.0 in release [4.22.0] - 2026-11-17
+
+This release makes the single-commit mode of `research-implement-review-report` squash the run with the script `squash_task.py`, as `implement-batch` does. The script checks the commits of the run before the squash. After a failed commit, it puts the old HEAD back (issue #246).
+
+### Changed in dev-essentials
+
+- `scripts/squash_task.py`: moved from `skills/implement-batch/scripts/`, so that two skills can run it. The code does not change (issue #246).
+- `skills/research-implement-review-report`: the single-commit mode runs the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of the run, also the commits of the review loop. It stages explicit paths and never the plan file. It gives the folder of the plan file as `--plan-dir`. The gate table has the two rows of the script, as in `implement-batch`. Before, a failed commit after the soft reset left the branch at the base. The session found a commit of someone else only by its own reading of the range (issue #246).
+- `skills/implement-batch`: Step 3.6 runs the script from the `scripts` folder of the plugin (issue #246).
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-single-commit`: a new case. A plan file with two tasks runs in the single-commit mode. A scored grader needs one squash commit on top of `main` as the last change of `HEAD`. The route graders need a call of the script with two commits and `--apply`. They also need the reflog entry and the `TREE` line of the script, and no `git reset --soft`. So a base run can score 1.00 (issue #246).
+
+### Changed in the repository
+
+- `tests/test_squash_task.py`: the new path of the script, and a test that both skills call it by `${CLAUDE_PLUGIN_ROOT}` (issue #246).
+- `tests/test_eval_scaffolds.py` and `tests/test_eval_cases.py`: tests of the graders of the new case on right and wrong runs (issue #246).
+- `tests/simple-english-baseline.json`: the file path `config/settings.py` in two graders of the new case is an exception, as in `rirr-retry-limit` (issue #246).
+- `docs/testing.md` and `docs/evals.md`: the second caller of the script, and the second case of the suite (issue #246).
+
 ## dotnet-backend-dev 1.8.0 in release [4.21.0] - 2026-11-17
 
 This release lets `/write-tests` write the tests of one class in the main session. Two or more targets, a module, and a project keep the `test-engineer` agents.
@@ -1970,7 +1991,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...HEAD
+[4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...v4.19.0

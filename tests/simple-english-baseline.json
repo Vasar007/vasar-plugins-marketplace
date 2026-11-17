@@ -74,6 +74,18 @@
       "reason": "File path: the `target` value names `config/settings.py`, the file of the fixture that holds the limit. The path is a file name, not prose."
     },
     {
+      "file": "essentials/dev-essentials/evals/research-implement-review-report/rirr-single-commit/graders/limit-lowered.md",
+      "rule": "synonym_rotation",
+      "text": "settings (config-settings)",
+      "reason": "File path: the `target` value names `config/settings.py`, the file of the fixture that holds the limit. The path is a file name, not prose."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/research-implement-review-report/rirr-single-commit/graders/timeout-lowered.md",
+      "rule": "synonym_rotation",
+      "text": "settings (config-settings)",
+      "reason": "File path: the `target` value names `config/settings.py`, the file of the fixture that holds the timeout. The path is a file name, not prose."
+    },
+    {
       "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-one-class/prompt.md",
       "rule": "em_dash",
       "text": "--",
