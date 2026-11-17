@@ -21,7 +21,7 @@ import unittest
 from types import SimpleNamespace
 
 from support import REPO, tool_missing
-from test_eval_cases import REGEX_FLAGS, load_cases, plugin_roots
+from test_eval_cases import REGEX_FLAGS, load_cases, parse_block, plugin_roots, split_frontmatter
 from testkit import ScratchCase, remove_tree, run
 
 SCAFFOLD_SECONDS = 120
@@ -41,6 +41,7 @@ EXPECTED_BRANCH = {
     "fp-e1-clean-change": "work/clean-change",
     "fp-e1-border-auth": "work/border-auth",
     "fp-e2-untracked-file": "work/untracked-file",
+    "fp-e2-fork-pr": "work/fork-pr",
     "fp-e3-autonomous-main": "main",
     "fp-e4-package-bump": "work/package-bump",
     "fp-e5-breaking-change": "work/breaking-change",
@@ -51,6 +52,7 @@ EXPECTED_BRANCH = {
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
+    "ta-full-pass": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -61,6 +63,12 @@ COMMIT_LITERAL = re.compile(r"\\b([0-9a-f]{7,40})(?![0-9a-f])")
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # compose-pr saves Notes/PRs/PR-<branch>.md, with each / of the branch as -. A pattern writes the dot as \.
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
+# The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
+FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
+# The repository of the PR: the next backticked text after the tool in the PR creation entry, if it is owner/repo. Step 6 takes owner and repo from it.
+PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]+)`", re.MULTILINE)
+# Without that part, Step 6 takes owner and repo from the Task Provider.
+PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
@@ -193,6 +201,74 @@ def commit_literal_problems(case, commits):
                 problems.append(f"{case.label}/graders/{name}.md: the pattern names the commit {literal}, "
                                 "but no commit of the scaffold starts with it")
     return problems
+
+
+def pr_head_problem(context, branch, expect):
+    """The head that the PR mock expects must be <fork owner>:<branch>, or the bare branch with no fork owner.
+
+    Return None if the mock guards no head.
+    """
+    if not isinstance(expect, dict) or "head" not in expect:
+        return None
+    found = FORK_OWNER.search(context)
+    wanted = f"{found.group(1)}:{branch}" if found else branch
+    if expect["head"] != wanted:
+        return f"the PR mock expects the head {expect['head']}, but the project context gives {wanted}"
+    return None
+
+
+def pr_repo_problem(context, expect):
+    """The owner and repo that the PR mock expects must be the repository that the project context gives.
+
+    Return None if the mock guards no repository, or if the context names none.
+    """
+    if not isinstance(expect, dict) or "owner" not in expect or "repo" not in expect:
+        return None
+    found = PR_REPO.search(context) or PROVIDER_REPO.search(context)
+    if found is None:
+        return None
+    if (expect["owner"], expect["repo"]) != found.groups():
+        return f"the PR mock expects {expect['owner']}/{expect['repo']}, but the project context gives {'/'.join(found.groups())}"
+    return None
+
+
+class PrHeadTests(unittest.TestCase):
+    ENTRY = "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for `example-org/inventory`"
+
+    def test_the_head_follows_the_fork_owner_of_the_pr_creation_entry(self):
+        fork = self.ENTRY + ", fork owner `eval-user`"
+        other = "## Key Conventions\n\n- Each PR names the issue, fork owner `eval-user`"
+        runs = {
+            "no fork, the bare branch": (self.ENTRY, {"head": "work/a"}, True),
+            "a fork, the owner and the branch": (fork, {"head": "eval-user:work/a"}, True),
+            "a fork, the bare branch": (fork, {"head": "work/a"}, False),
+            "no fork, an owner in the head": (self.ENTRY, {"head": "eval-user:work/a"}, False),
+            "a fork, another owner": (fork, {"head": "other:work/a"}, False),
+            "a fork owner in another section": (self.ENTRY + "\n" + other, {"head": "work/a"}, True),
+            "no head in the mock": (fork, {"owner": "example-org"}, True),
+            "no expect block": (fork, None, True),
+        }
+        for name, (context, expect, right) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(pr_head_problem(context, "work/a", expect) is None, right)
+
+    def test_the_repository_follows_the_pr_creation_entry_or_the_task_provider(self):
+        provider = "- **Project / organization:** `example-org/inventory`\n"
+        expect = {"owner": "example-org", "repo": "inventory"}
+        runs = {
+            "the entry names the repository": (provider + self.ENTRY, expect, True),
+            "the entry names another repository": (provider + self.ENTRY.replace("inventory", "stock"), expect, False),
+            "no repository in the entry, the Task Provider": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request`", expect, True),
+            "no repository in the entry, another Task Provider": (provider.replace("inventory", "stock") + "- **PR creation:** `gh pr create`", expect, False),
+            "the entry names another repository in other words": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for the repository `example-org/stock`", expect, False),
+            "another owner": (provider + self.ENTRY, {"owner": "other", "repo": "inventory"}, False),
+            "no repository in the context": ("- **PR creation:** `gh pr create`", expect, True),
+            "no owner in the mock": (provider + self.ENTRY.replace("inventory", "stock"), {"head": "work/a"}, True),
+            "no expect block": (provider + self.ENTRY, None, True),
+        }
+        for name, (context, wanted, right) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(pr_repo_problem(context, wanted) is None, right)
 
 
 class DotnetVersionParseTests(unittest.TestCase):
@@ -361,6 +437,7 @@ class ScaffoldTests(FixtureCase):
         if bare.exists():
             self.check_remote(repo, bare, text)
             self.check_mocked_pull_request(case, bare)
+        self.check_pr_head(case, repo, branch)
         if (repo / "tests").is_dir() and not list(repo.glob("*.sln")):
             self.check_python_tests(case, repo)
         return self.refs(repo)
@@ -404,6 +481,18 @@ class ScaffoldTests(FixtureCase):
         ref = f"refs/pull/{pull['number']}/head"
         self.assertEqual(pull["head"]["sha"], self.git(bare, "rev-parse", "--verify", ref)[1],
                          f"the head SHA in {mock.name} is not the commit of {ref}")
+
+    def check_pr_head(self, case, repo, branch):
+        """The head, the owner, and the repo in the expect block of the PR mock must be the values that the project context of the scaffold gives."""
+        mock = case.path / "mocks" / "github" / "create_pull_request.md"
+        context = repo / ".claude" / "feature-pipeline-context.md"
+        if not mock.is_file() or not context.is_file():
+            return
+        lines, _body = split_frontmatter(mock.read_text(encoding="utf-8"))
+        text = context.read_text(encoding="utf-8")
+        expect = parse_block(lines).get("expect")
+        self.assertIsNone(pr_head_problem(text, branch, expect))
+        self.assertIsNone(pr_repo_problem(text, expect))
 
     def check_python_tests(self, case, workspace):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
@@ -1249,6 +1338,130 @@ class CommitGraderTests(FixtureCase):
                               env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertNotEqual(done.returncode, 0, done.stderr)
         self.assertIn("test_get_uses_the_retry_limit_of_the_settings", done.stderr)
+
+
+class TrimFullPassTests(FixtureCase):
+    """The file graders of ta-full-pass fail on the planted notes and pass on a right trim. They also fail on a lost
+    decision, a lost id, a lost marker, a kept log, and a missing backup."""
+
+    CASE = "ta-full-pass"
+    LOG = "notes/archive/session-log-2026-10.md"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def scaffold(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, workspace, name):
+        """The verdict of a regex grader on its file, for the match modes contains and not_contains."""
+        options = self.case.graders[name][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in options.get("flags", ""))
+        text = (workspace / options["target"]["path"]).read_bytes().decode("utf-8")
+        found = re.search(options["pattern"], text, flags)
+        return (found is None) if options.get("match") == "not_contains" else (found is not None)
+
+    def verdicts(self, workspace):
+        return {name: self.passes(workspace, name) for name, (options, _) in self.case.graders.items()
+                if options["type"] == "regex"}
+
+    @staticmethod
+    def edit(workspace, path, old, new=""):
+        file = workspace / path
+        text = file.read_bytes().decode("utf-8")
+        if old not in text:
+            raise AssertionError(f"{path} does not hold {old!r}")
+        file.write_bytes(text.replace(old, new).encode("utf-8"))
+
+    @staticmethod
+    def listing(workspace):
+        paths = [p.relative_to(workspace).as_posix() for root in ("notes", "trim-backup")
+                 for p in [workspace / root, *(workspace / root).rglob("*")] if p.exists()]
+        (workspace / "trim-listing.txt").write_bytes("".join(f"{p}\n" for p in sorted(paths)).encode("utf-8"))
+
+    def trim(self, workspace):
+        """A right trim: the backup, the two planted cuts, the deleted log and folder, the fixed index, the listing."""
+        shutil.copytree(workspace / "notes", workspace / "trim-backup")
+        decisions = (workspace / "notes/decisions.md").read_bytes().decode("utf-8")
+        start, end = decisions.index("## History"), decisions.index("## DEC-1")
+        (workspace / "notes/decisions.md").write_bytes((decisions[:start] + decisions[end:]).encode("utf-8"))
+        requirements = (workspace / "notes/requirements.md").read_bytes().decode("utf-8")
+        (workspace / "notes/requirements.md").write_bytes(requirements[:requirements.index("\n## Review") + 1]
+                                                          .encode("utf-8"))
+        self.edit(workspace, "notes/README.md", "- archive/session-log-2026-10.md: the session log of October.\n")
+        (workspace / self.LOG).unlink()
+        (workspace / "notes/archive").rmdir()
+        self.listing(workspace)
+
+    def test_the_notes_have_the_planted_state(self):
+        workspace = self.scaffold()
+        files = sorted(p.relative_to(workspace / "notes").as_posix() for p in (workspace / "notes").rglob("*.md"))
+        self.assertEqual(len(files), 12, files)
+        self.assertEqual(sorted(p.name for p in (workspace / "notes/archive").iterdir()), ["session-log-2026-10.md"])
+        self.listing(workspace)
+        verdicts = self.verdicts(workspace)
+        for name in ("history-cut", "residue-cut", "index-fixed", "log-deleted", "folder-removed", "backup-kept"):
+            with self.subTest(grader=name):
+                self.assertFalse(verdicts[name], "the grader passes before the trim")
+        for name in ("decisions-kept", "req-ids-kept", "question-ids-kept", "markers-kept", "index-kept",
+                     "listing-written"):
+            with self.subTest(grader=name):
+                self.assertTrue(verdicts[name], "the grader fails on the planted notes")
+
+    def test_a_right_trim_passes_every_file_grader(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        self.assertEqual({name for name, passed in self.verdicts(workspace).items() if not passed}, set())
+
+    def test_the_backup_can_hold_the_notes_folder(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        shutil.move(str(workspace / "trim-backup"), str(workspace / "notes-copy"))
+        (workspace / "trim-backup").mkdir()
+        shutil.move(str(workspace / "notes-copy"), str(workspace / "trim-backup" / "notes"))
+        self.listing(workspace)
+        self.assertTrue(self.passes(workspace, "backup-kept"))
+
+    def test_each_loss_fails_its_grader(self):
+        losses = {
+            "decisions-kept": ("notes/decisions.md", "older than 30 days.", "older than 31 days."),
+            "req-ids-kept": ("notes/requirements.md", "- REQ-4: The tool writes a log line for each export, with the "
+                                                      "count of orders.\n", ""),
+            "question-ids-kept": ("notes/open-questions.md", "- Q-1:", "- Question 1:"),
+            "markers-kept": ("notes/open-questions.md", " (unverified)", ""),
+            "index-kept": ("notes/README.md", "- decisions.md: the decisions in force.\n", ""),
+        }
+        for name, (path, old, new) in losses.items():
+            with self.subTest(grader=name):
+                workspace = self.scaffold()
+                self.trim(workspace)
+                self.edit(workspace, path, old, new)
+                self.assertFalse(self.passes(workspace, name))
+                remove_tree(workspace)
+
+    def test_a_crlf_decision_file_still_passes(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        path = workspace / "notes/decisions.md"
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+        self.assertTrue(self.passes(workspace, "decisions-kept"))
+
+    def test_a_kept_log_or_folder_fails(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        (workspace / "notes/archive").mkdir()
+        self.listing(workspace)
+        self.assertEqual((self.passes(workspace, "log-deleted"), self.passes(workspace, "folder-removed")),
+                         (True, False))
+        (workspace / self.LOG).write_bytes(b"x\n")
+        self.listing(workspace)
+        self.assertFalse(self.passes(workspace, "log-deleted"))
+        shutil.rmtree(workspace / "trim-backup")
+        self.listing(workspace)
+        self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
 if __name__ == "__main__":

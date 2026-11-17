@@ -2068,7 +2068,7 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
                 self.assertEqual(self.pattern.search(bash_input(command)) is not None, expected)
 
     def test_every_dotnet_case_has_the_same_grader(self):
-        self.assertEqual(len(self.graders), 11)
+        self.assertEqual(len(self.graders), 12)
         self.assertEqual(len({grader["input_match"] for grader in self.graders.values()}), 1)
         for label, grader in self.graders.items():
             with self.subTest(case=label):
@@ -2272,6 +2272,41 @@ class PrBodyFormGraderTests(unittest.TestCase):
         self.assertRegex(skill, r"`{3}md\n## What\n[^\n]*\n\n## Why\n[^\n]*\n\n## Changes\n")
         stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
         self.assertIn('"5. Generate PR Description"', stage)
+
+
+class ForkHeadMockTests(unittest.TestCase):
+    """The mock of the PR call guards head: the bare branch with no fork, and <fork owner>:<branch> for a fork (issue #225).
+
+    A call that breaks the expect block of a mock ends the eval run with the score 0.
+    """
+
+    # The case, its work branch, and the fork owner of its project context.
+    CASES = {"fp-e2-untracked-file": ("work/untracked-file", None), "fp-e2-fork-pr": ("work/fork-pr", "eval-user")}
+
+    @staticmethod
+    def case_file(case, *parts):
+        return (FP_ROOT / EVALS / "feature-pipeline" / case).joinpath(*parts).read_text(encoding="utf-8")
+
+    def test_the_mock_expects_the_head_that_the_project_context_gives(self):
+        for case, (branch, owner) in self.CASES.items():
+            with self.subTest(case=case):
+                lines, _body = split_frontmatter(self.case_file(case, "mocks", "github", "create_pull_request.md"))
+                expect = parse_block(lines)["expect"]
+                self.assertEqual((expect["owner"], expect["repo"], expect["base"]), ("example-org", "inventory", "main"))
+                self.assertEqual(expect["head"], f"{owner}:{branch}" if owner else branch)
+                scaffold = self.case_file(case, "scaffold.sh")
+                self.assertIn(f"git checkout -q -b {branch}\n", scaffold)
+                if owner:
+                    self.assertIn(f"fork owner `{owner}`", scaffold)
+                else:
+                    self.assertNotIn("fork owner", scaffold)
+
+    def test_the_stage_and_the_template_name_the_fork_owner(self):
+        stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
+        self.assertIn("pass `<fork owner>:<branch>`", stage)
+        self.assertIn("Without a fork owner, pass the bare branch.", stage)
+        template = (FP_ROOT / "skills" / "feature-pipeline" / "project-context.template.md").read_text(encoding="utf-8")
+        self.assertIn("fork owner `my-user`", template)
 
 
 # The start of a mock_calls pattern: the tool field, with or without the prefix of the server.
@@ -3442,6 +3477,77 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
             for name, text in questions.items():
                 with self.subTest(case=case, run=name):
                     self.assertFalse(self.passes(case, text))
+
+
+class TrimFullPassRouteGraderTests(unittest.TestCase):
+    """The route graders of ta-full-pass count the right dispatches and the apply call of the script."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["ta-full-pass"]
+        skill = FP_ROOT / "skills" / "trim-artifacts"
+        cls.briefs = (skill / "references" / "role-briefs.md").read_text(encoding="utf-8")
+
+    def counts(self, grader, text):
+        return re.search(self.case.graders[grader][0]["input_match"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-skill-fired", "route-planner-agent", "route-reviewer-agent",
+                                  "route-no-executor", "route-apply-script"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        meta = self.case.graders["route-no-executor"][0]
+        self.assertEqual((meta["tool"], meta["min"], meta["max"]), ("Agent", 0, 0))
+
+    def test_the_planner_and_reviewer_graders_match_the_briefs_of_the_skill(self):
+        for grader, first_line in (("route-planner-agent", "You plan a trim pass for one batch."),
+                                   ("route-reviewer-agent", "You review a finished trim pass.")):
+            with self.subTest(grader=grader):
+                self.assertIn(first_line, self.briefs)
+                self.assertTrue(self.counts(grader, agent_call_input(description="b1", prompt=first_line)))
+                self.assertFalse(self.counts(grader, agent_call_input(description="b1", prompt="Fix the findings.")))
+
+    def test_the_executor_grader_counts_the_old_brief_and_an_executor_description(self):
+        old_brief = "You apply a proven trim plan exactly. Do not cut more than the plan says."
+        runs = {
+            "the old executor brief": (agent_call_input(description="Apply batch b1", prompt=old_brief), True),
+            "an executor description": (agent_call_input(description="Trim executor b1", prompt="x"), True),
+            "the planner": (agent_call_input(description="Trim planner b1", prompt="You plan a trim pass."), False),
+            "the reviewer": (agent_call_input(description="Review the trim", prompt="You review a finished trim pass."),
+                             False),
+            "the word in a planner prompt": (agent_call_input(description="Plan b1", prompt="no executor runs"), False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-no-executor", text), expected)
+        self.assertNotIn("executor", self.briefs.lower(), "the briefs still name the executor role")
+
+    def test_the_apply_grader_counts_only_the_subcommand(self):
+        runs = {
+            "quoted path": ('python3 -I "/p/scripts/trim_report.py" apply --orig o --target t', True),
+            "plain path": ("python3 -I /p/scripts/trim_report.py apply --orig o", True),
+            "single quotes": ("python3 -I '/p/scripts/trim_report.py' apply --orig o", True),
+            "line break": ('python3 -I "/p/scripts/trim_report.py" \\\n  apply --orig o', True),
+            "shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S apply --orig o --target t", True),
+            "report form with a shell variable": ("S=/p/scripts/trim_report.py; python3 -I $S --before b --after a", False),
+            "apply with no flag": ("python3 -I /p/scripts/trim_report.py apply", False),
+            "report form": ('python3 -I "/p/scripts/trim_report.py" --before b --after a', False),
+            "help": ('python3 -I "/p/scripts/trim_report.py" --help', False),
+        }
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-apply-script", json.dumps({"command": command})), expected)
+
+    def test_the_skill_grader_counts_only_the_skill_call_of_trim_artifacts(self):
+        runs = {
+            "the skill with its plugin": ("dev-essentials:trim-artifacts", True),
+            "the skill with no plugin": ("trim-artifacts", True),
+            "another skill": ("dev-essentials:review-loop", False),
+            "a longer name": ("dev-essentials:trim-artifacts-extra", False),
+        }
+        for name, (skill, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts("route-skill-fired", json.dumps({"skill": skill})), expected)
 
 
 # Each Agent call that a route-agent grader of the write-tests suite counts, and each call that it does not count.

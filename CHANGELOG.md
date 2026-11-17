@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dotnet-backend-dev 1.8.0 in release [4.20.0] - 2026-11-17
+## dotnet-backend-dev 1.8.0 in release [4.21.0] - 2026-11-17
 
 This release lets `/write-tests` write the tests of one class in the main session. Two or more targets, a module, and a project keep the `test-engineer` agents.
 
@@ -23,6 +23,73 @@ This release lets `/write-tests` write the tests of one class in the main sessio
 
 - `tests/test_eval_cases.py`: samples for the two `route-agent` graders of the write-tests suite (issue #242).
 - `tests/simple-english-baseline.json`: the reason of the entry of `wt-one-class` names the main session (issue #242).
+
+## dev-essentials 3.23.0 in release [4.20.0] - 2026-11-17
+
+This release turns the executor role of the full pass of `trim-artifacts` into the subcommand `apply` of its script. The main session runs it, so no executor agent starts. A new eval case runs a full pass (issue #243).
+
+### Added in dev-essentials
+
+- `skills/trim-artifacts/scripts/trim_report.py`: the new subcommand `apply` copies the result of a proven plan from the `target` copy of the planner into the workspace. Before it writes, it tests the plan and each file. A workspace file and its backup copy must equal the `orig` copy. A new file must not exist yet. Each deletion needs a `--delete` flag. If one test fails, it changes no file. Then it deletes the approved files, removes the folders that the deletions emptied, and runs the checks against the backup. It stops with no change for a link on the path or a file in the place of a folder. It does the same for a name that differs only by case and for a `--glob` with `..`. If a file changed after its test, it stops with exit code 4. A `--delete` flag for a file that the plan keeps prints a `KEPT` line. A second run after a stop skips each file that is done. Its output has at most 100 lines. The form with no subcommand stays as it is (issue #243).
+- `evals/trim-artifacts/ta-full-pass`: a new behavior case. A full pass runs on 12 notes files, and the prompt gives the answers of the user. The graders read the final files: the two planted cuts are made, the session log and its folder are gone, and the index no longer cites the log. The decision blocks, the ids, and the uncertainty markers stay, and the backup stays in the run folder. Route graders count the planner, the reviewer, the executor dispatch, and the `apply` call (issue #243).
+
+### Changed in dev-essentials
+
+- `skills/trim-artifacts`: step 6 of the full pass runs `trim_report.py apply` in the main session, in place of an executor agent. The planner applies the whole plan to its `target` copy, also the deletions. The roles are the planner, the reviewer, and the fixer. `references/role-briefs.md` has no executor brief, and `references/script-results.md` names the exit codes of `apply`. Each planned file must match the glob. A batch that plans again takes a second backup (issue #243).
+
+### Changed in the repository
+
+- `tests/test_trim_report.py`: new tests for `apply` on fixture trees. They cover the apply, a second run, each refusal, a failed write, and the output limit (issue #243).
+- `tests/test_eval_cases.py`: samples for the route graders of `ta-full-pass` (issue #243).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. New tests run its scaffold. They make sure that the file graders fail on the planted notes and pass on a right trim (issue #243).
+- `docs/evals.md`: a new suite row for `trim-artifacts` with 1 case (issue #243).
+
+## dev-essentials 3.22.0 in release [4.19.0] - 2026-11-17
+
+This release turns the squash steps of `implement-batch` into a script with unit tests. The script checks the commits of a task before it squashes them. After a failed commit, it puts the old HEAD back (issue #244).
+
+### Added in dev-essentials
+
+- `skills/implement-batch/scripts/squash_task.py`: squashes the commits of one task into one commit on the base commit of the task. It takes the base, each commit of the task, and the message. Without `--apply`, it prints the plan and changes nothing. It refuses a commit that the task did not make and a merge commit. It also refuses a changed tracked file, a detached HEAD, and a plan file in the commits. A staged plan file counts as a changed tracked file. The commit hooks of the repository run. If the commit fails, or Ctrl+C stops the script during the commit, the script puts the old HEAD back. Its output is short, each line prints at once, and it names the command that undoes the squash (issue #244).
+
+### Changed in dev-essentials
+
+- `skills/implement-batch`: Step 3.6 and Step 4.4 run the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of a task, and the script refuses a commit that is not in that list. This is the squash-base safety stop of the skill. So the brief of the implementer tells it not to commit, and the session commits the implementation. The gate table and the rules of Step 3.6 cover each outcome of the script. No eval case covers the change (issue #244). The eval sandbox blocks the worktree of Step 1 (issue #232).
+
+### Changed in the repository
+
+- `tests/test_squash_task.py`: new tests for the script on a fixture repository, on Linux and Windows (issue #244).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_squash_task` (issue #244).
+- `docs/testing.md`: names the tests of the script (issue #244).
+
+## dev-essentials 3.21.0 in release [4.18.0] - 2026-11-17
+
+This release lets Stage 9 of `feature-pipeline` open a PR from a fork with an MCP PR tool. The PR creation entry of the project context can name the owner of the fork. Step 6 then sends `<fork owner>:<branch>` as the head of the PR (issue #225). A fork that the organization of the upstream repository owns is not supported, because the MCP tool has no `head_repo` field.
+
+### Added in dev-essentials
+
+- `skills/feature-pipeline/stages/finalization.md`: if the PR creation entry names a fork owner, Step 6 sends `<fork owner>:<branch>` as `head` of the MCP PR call. Without a fork owner, it sends the bare branch, as before. The fork owner comes only from that entry, not from a remote URL (issue #225).
+- `skills/feature-pipeline/project-context.template.md`: the PR creation entry can name the owner of a fork. This part is optional (issue #225).
+- `skills/feature-pipeline/references/setup.md`: the PR creation entry can name the owner of a fork. Step 0 does not ask for it, because it is optional (issue #225).
+- `evals/feature-pipeline/fp-e2-fork-pr`: a new behavior case. Its project context names the repository of the PR and the fork owner `eval-user`. The mock of the PR call expects the head `eval-user:work/fork-pr`. A run that sends another head stops with the score 0 (issue #225).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `ForkHeadMockTests` makes sure that the PR mock of `fp-e2-untracked-file` expects the bare branch. It also makes sure that the PR mock of `fp-e2-fork-pr` expects `<fork owner>:<branch>`, and that Step 6 and the template name the fork owner. `RoutePlainDotnetGraderTests` counts 12 graders `route-plain-dotnet` (issue #225).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. Each scaffold run also makes sure that the head, the owner, and the repository of the PR mock match the project context of the scaffold. The new class `PrHeadTests` gives samples for these rules (issue #225).
+- `docs/evals.md`: the suite `feature-pipeline` has 10 cases (issue #225).
+
+## dev-essentials 3.20.2 in release [4.17.2] - 2026-11-17
+
+This release makes the failure check of `review-loop` ignore the count of tests in the output of `unittest`, `pytest`, and `dotnet test`. So a fix commit that adds a test and keeps the same failure gives `SAME-AT-PARENT`, not `OTHER`. The line of one test still counts, as with `pytest -v` (issue #230).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the error signature puts a token in place of each count of tests. The new rules cover the line `Ran N tests in <time>` and the count `skipped=N` of `unittest`, and the summary line and the progress percentage of `pytest`. They also cover the summary lines of `dotnet test`, with VSTest and with Microsoft.Testing.Platform. The counts of failures and errors still count. A first rule removes the color codes from each line, so the rules also work on colored output, for example of `pytest` with `FORCE_COLOR=1`. The help text names the limit: the line of a single test still counts. Before, a fix commit that added a test changed the line `Ran N tests`, so the same failure gave `OTHER` (issue #230).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: two new tests run a real `unittest` suite whose fix commit adds a test. The same failure gives `SAME-AT-PARENT`, and another failure gives `OTHER`. A new test class uses output lines of each runner. It makes sure that a count of tests does not count. It also makes sure that a count of failures and a number outside a count line still count (issue #230).
 
 ## dev-essentials 3.20.1 in release [4.17.1] - 2026-11-17
 
@@ -1903,8 +1970,12 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...HEAD
-[4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.20.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...HEAD
+[4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
+[4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
+[4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...v4.19.0
+[4.18.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...v4.18.0
+[4.17.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.17.2
 [4.17.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.17.1
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1

@@ -47,6 +47,11 @@ The last two lines are the verdict and its reason:
                            lines, and the same last lines after the first error line
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
+Before the compare, each count of passed or skipped tests becomes a token. A count of failures
+or errors stays. The line of a single test also stays, for example a PASSED line of pytest -v
+or an ok line of unittest -v. So a new test can still give OTHER: if its line is in the last
+lines, or if its line holds an error word, such as fail, traceback, or a word that ends with
+error or exception.
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
 names a worktree that is still there. Remove it with `git worktree remove --force`.
 A WARN line names a worktree or a folder that the script cannot delete. On Windows, a stop
@@ -77,12 +82,29 @@ from pathlib import Path
 
 ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
 PATH_START = r"(?<![^\s'\"])[^\s'\"]*"
+PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
+
+
+def pytest_counts(match):
+    """The summary line of pytest, with a token for each count of passed, skipped, deselected, xfailed, and xpassed tests."""
+    return PYTEST_COUNT.sub(r"<n> \1", match.group())
+
+
 NOISE = [
+    (re.compile(r"\x1b\[[0-9;]*m"), ""),
     (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
     (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
+    # The count rules come after the time rules, because some of them look for the token <time>.
+    (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),
+    (re.compile(r"^((OK|FAILED) \(.*\bskipped=)\d+"), r"\1<n>"),
+    (re.compile(r"^=+ (.*) =+$"), r"\1"),
+    (re.compile(r"^\d+ [a-z]+( [a-z]+)?(, \d+ [a-z]+( [a-z]+)?)* in <time>( \(<time>\))?$"), pytest_counts),
+    (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
+    (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
+    (re.compile(r"^  (total|succeeded|skipped): \d+$"), r"\1: <n>"),
 ]
 NOT_STARTED = (126, 127)
 CHANGED_LINES = 20
@@ -209,7 +231,7 @@ class Run:
         return not self.passed and not self.timed_out and self.start_error is None and self.code not in NOT_STARTED
 
     def signature(self, roots):
-        """The error lines and the last lines, with a token for each root folder, time, and address."""
+        """The error lines and the last lines, with a token for each root folder, time, address, and count of tests."""
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
         rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE
