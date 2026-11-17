@@ -15,18 +15,18 @@ This release makes Stage 9 of `feature-pipeline` name the source of each argumen
 
 ### Changed in dev-essentials
 
-- `skills/feature-pipeline/stages/finalization.md`: Step 6 follows the convention of the repository for the PR body. A convention is a PR template, or a PR rule in the Key Conventions or the guidance files. Without one, the stage loads `compose-pr` and writes the body by its step 5, so `## What`, `## Why`, and `## Changes` come first (issue #203).
-- `skills/feature-pipeline/project-context.template.md`: the example of the PR creation entry names the repository of the PR (issue #214).
+- `skills/feature-pipeline/stages/finalization.md`: Step 6 follows the convention of the repository for the PR body. A convention is a PR template, or a PR rule in the Key Conventions or the guidance files that gives the sections of the body. A rule that asks only for some content does not replace the form. Else the stage loads `compose-pr` and writes the body by its step 5, so `## What`, `## Why`, and `## Changes` come first (issue #203). A PR from a fork with an MCP PR tool is not supported yet (issue #225).
+- `skills/feature-pipeline/project-context.template.md`: the example of the PR creation entry names the repository of the PR. If the issues of the Task Provider are in another repository, it also tells the user to name the repository of the code (issue #214).
 - `skills/promote-conventions/references/cleanup-and-provenance.md`: step 7 of 9c.4 says that its PR body does not take the form of `compose-pr`, and gives the reason (issue #203).
-- `evals/feature-pipeline/fp-e2-untracked-file`: the new grader `pr-body-form` reads the body of the PR call. A replay on 8 kept runs of the old text gives a fail in each run, and `pr-created` passes in each run. The new grader `pr-draft-not-saved` makes sure that the run saves no draft file of `compose-pr`. The new route grader `route-compose-pr-skill` shows the load of `compose-pr`. The mock of the PR call also guards `head` (issues #203 and #214).
+- `evals/feature-pipeline/fp-e2-untracked-file`: the new grader `pr-body-form` reads the body of the PR call. A replay on 8 kept runs of the old text gives a fail in each run, and `pr-created` passes in each run. The new grader `pr-body-length` makes sure that the body has at most 1000 characters, the limit of `compose-pr` for a small change. A replay on the 8 kept runs gives a pass in 3 runs and a fail in 5 runs. The new grader `pr-draft-not-saved` makes sure that the run saves no draft file of `compose-pr`. The new route grader `route-compose-pr-skill` shows the load of `compose-pr`. The mock of the PR call also guards `head` (issues #203 and #214).
 
 ### Fixed in dev-essentials
 
-- `skills/feature-pipeline/stages/finalization.md`: Step 6 names the source of `owner`, `repo`, and `head` for an MCP PR tool. `owner` and `repo` come from the PR creation entry of the project context, or else from the Task Provider on the same MCP server. `head` is the current branch. If no source names the repository, the stage stops before the call. It does not take the repository from the `origin` remote (issue #214).
+- `skills/feature-pipeline/stages/finalization.md`: Step 6 names the source of `owner`, `repo`, and `head` for an MCP PR tool. `owner` and `repo` come from the PR creation entry of the project context, or else from the Task Provider on the same MCP server. `head` is the current branch. If no source names the repository, the stage stops before the call. It does not take the repository from the `origin` remote (issue #214). A project context with an MCP PR tool must name the repository in the PR creation entry. Else it needs a Task Provider on the same MCP server.
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`. It makes sure that Step 6 names the step of `compose-pr` that holds the form (issue #203).
+- `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`. It makes sure that the finalization stage names the step of `compose-pr` that holds the form (issue #203).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 

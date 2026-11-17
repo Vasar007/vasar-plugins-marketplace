@@ -178,7 +178,7 @@ Process the repos one after the other, in ascending order of absolute path. The 
 
    For any other host, use the manual path. Report the pushed branch and the composed PR title and body, ready to paste. Add a "create PR" URL pattern for the host, where you can derive one. Else, say "open a PR through your hosting provider".
 
-   The PR body of this step does not take the form of `dev-essentials:compose-pr`. The PR changes one section of one CLAUDE.md file and holds no code and no test, so most sections of that form stay empty.
+   The PR body of this step does not take the form of `dev-essentials:compose-pr`. The PR changes only the CLAUDE.md text of the repository: the promoted sections and the pointer of 9c.5. It holds no code and no test, so most sections of that form stay empty.
 
 ### 9c.5 — Pointer template
 

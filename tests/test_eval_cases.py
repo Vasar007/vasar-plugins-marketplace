@@ -2240,12 +2240,21 @@ class PrBodyFormGraderTests(unittest.TestCase):
                                            False),
             "the form in a read answer only": ([self.call("issue_read", {"issue_number": 821}, json.dumps({"body": self.FORM})),
                                                 free], False),
-            "the form in the title only": ([self.pr("Free text.", title="## What\n## Why\n## Changes\n")], False),
+            "the form in a comment after the PR call": ([free, self.call("add_issue_comment", {"issue_number": 821, "body": self.FORM})], False),
+            "a Summary section after a closing line": ([self.pr("Closes #821.\n\n## Summary\ns\n\n" + self.FORM)], False),
+            "a line that starts with an issue number": ([self.pr("## What\nReject a blank sku.\n#821 asked for it.\n\n## Why\ny\n\n## Changes\n- z\n")], True),
+            "the form in the title only":([self.pr("Free text.", title=self.FORM)], False),
             "no mocked call": ([], False),
         }
         for name, (calls, expected) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(re.search(meta["pattern"], "\n".join(calls)) is not None, expected)
+
+    def test_the_length_grader_passes_only_a_body_of_at_most_1000_characters(self):
+        meta = self.graders["pr-body-length"][0]
+        self.assertEqual((meta["target"], meta.get("match", "contains")), ("mock_calls", "contains"))
+        self.assertIsNotNone(re.search(meta["pattern"], self.pr("## What\n" + "a" * 992)))
+        self.assertIsNone(re.search(meta["pattern"], self.pr("## What\n" + "a" * 993)))
 
     def test_the_draft_grader_names_the_draft_file_of_compose_pr(self):
         meta = self.graders["pr-draft-not-saved"][0]
