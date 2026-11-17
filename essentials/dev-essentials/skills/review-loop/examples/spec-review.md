@@ -97,7 +97,7 @@ The skill waits for the acknowledgment. The user replies "proceed".
 
 Target file: `openspec/changes/add-tenant-quotas/proposal.md`. In a spec review, a fix is an edit of the spec, not a change of code.
 
-**Step 5a**. `/audit-team` returns no fix plan. So a new dispatch on `--reviewer-model` plans the fix of #1 to #3, as the adapter says. The fixer works from that plan.
+**Step 5a**. `/audit-team` returns no fix plan. So one plan dispatch on `--reviewer-model` plans the fix of #1 to #3, as the adapter says. The three fixes edit one file, so the orchestrator is the fixer (step 5b, context test). It works from that plan.
 
 **#1: APPLY**. Verification source: `openspec/changes/archive/2025-11-01-resource-limits/proposal.md` uses fixed windows of 60 seconds. The fixer rewrote §4. It now gives the window size (60 s, aligned to the wall clock) and the reset trigger (the crossing of a boundary). It also gives the rule for an arrival at a boundary: the request counts against the window that it arrives in.
 
