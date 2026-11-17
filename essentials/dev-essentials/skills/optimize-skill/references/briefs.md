@@ -180,6 +180,8 @@ Reply with the report path and one line for each finding.
 
 ## Review fixer brief
 
+Step 6 dispatches this brief in two cases: the user gave `--review-fixer-model`, or the fix set puts many files into the main context. Else the main session does steps 1 to 5 itself.
+
 ```text
 Fix the accepted findings of the behavior review of the skill {TARGET} in {REPO}. The review
 report is {REVIEW_REPORT}. Fix only these findings:

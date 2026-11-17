@@ -43,7 +43,7 @@ orchestrator decides open items from the source of truth, not from the taste of 
 | `--auditor-model` | `opus` | The model of the auditor |
 | `--applier-model` | `sonnet` | The model of the applier |
 | `--reviewer-model` | `opus` | The model of the behavior reviewer |
-| `--review-fixer-model` | `sonnet` | The model of the review fixer |
+| `--review-fixer-model` | `sonnet` | The model of the review fixer. Step 6 item 3 decides about its dispatch. If the user gives this flag, step 6 always dispatches the review fixer. |
 | `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
 | `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
 
@@ -123,9 +123,15 @@ failed and that commit exists, the defects text must say: "Amend commit `<SHA>` 
 `git -C "<repo>" commit --amend` and the same pathspec. Do not make a second commit." This
 holds for the `SendMessage` repair and for the dispatch again. If the commit does not exist,
 for example because the fact test "The commit exists" failed, the defects text must say: "No
-commit of this step exists. Make the commit." Never amend the base commit of the user, and
-never amend the commit of another step. Then do the fact tests again. If the repair fails again, stop the run, keep all files, and report the failure
-under "Blocked on me".
+commit of this step exists. Make the commit."
+
+If you applied the step-6 fixes yourself and a fact test fails, fix the files. If your step-6
+commit exists, amend it with `git -C "<repo>" commit --amend` and the same pathspec. Else make
+the commit.
+
+In both cases, never amend the base commit of the user, and never amend the commit of another
+step. Then do the fact tests again. If the repair fails again, stop the run, keep all files, and
+report the failure under "Blocked on me".
 
 ### 9. Shell
 
@@ -139,7 +145,7 @@ with the Bash tool (Git Bash), not with PowerShell.
 | 1 | Auditor | auditor model | the audit report |
 | 3 | Applier | applier model | the target files, one commit |
 | 5 | Behavior reviewer | reviewer model | the review report |
-| 6 | Review fixer | review fixer model | the target files, one commit |
+| 6 | Review fixer (step 6 item 3 decides about its dispatch) | review fixer model | the target files, one commit |
 
 The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 [references/briefs.md](references/briefs.md). Fill every placeholder before you dispatch.
@@ -206,9 +212,9 @@ review report.
 ### Step 6. Fix the review findings
 
 1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3). With `--interactive`, show the triage and wait for the user's OK. Else continue.
-2. If no finding is accepted, skip the dispatch.
-3. Else dispatch the review fixer with the accepted findings. It makes the second commit.
-4. Do the fact tests of step 3 again for this commit, with the step-3 commit in place of the base commit. In place of a class for each item, the reply gives a fix for each accepted finding.
+2. If no finding is accepted, skip items 3 and 4.
+3. Else choose who applies the accepted findings, with the delegation tests of Rule 1 of `dev-essentials:subagent-orchestration`. The context test decides most fix sets. If the reads and the edits of the fix plans put many files into the main context, dispatch the review fixer with the accepted findings. Else apply them yourself with steps 1 to 5 of the review fixer brief in [references/briefs.md](references/briefs.md). Decide from the fix plans, not from the files that this session already holds. If the user gave `--review-fixer-model`, always dispatch the review fixer. Either way, this makes the second commit.
+4. Do the fact tests of step 3 again for this commit, with the step-3 commit in place of the base commit. In place of a class for each item, the reply gives a fix for each accepted finding. If you applied the fixes, the output of your own commands takes the place of the reply.
 
 ### Step 7. Final report
 
