@@ -15,6 +15,18 @@ The other numbers in a heading are plugin versions.
 - `docs/installing.md`: a new page with the shell form of the install, the configuration files, and the steps for updates. It also has the automatic updates and the list of official docs. It holds the text that moved out of the README (issue #234).
 - `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
 
+## dev-essentials 3.20.2 in release [4.17.2] - 2026-11-17
+
+This release makes the failure check of `review-loop` ignore the count of tests in the output of `unittest`, `pytest`, and `dotnet test`. So a fix commit that adds a test no longer turns `SAME-AT-PARENT` into `OTHER` (issue #230).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the error signature puts a token in place of each count of tests. The new rules cover the line `Ran N tests in <time>` of `unittest`, and the summary line and the progress percentage of `pytest`. They also cover the summary lines of `dotnet test`, with VSTest and with Microsoft.Testing.Platform. The counts of failures and errors still count. Before, a fix commit that added a test changed the line `Ran N tests`, so the same failure gave `OTHER` (issue #230).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: two new tests run a real `unittest` suite whose fix commit adds a test. The same failure gives `SAME-AT-PARENT`, and another failure gives `OTHER`. A new test class uses output lines of each runner. It makes sure that a count of tests does not count. It also makes sure that a count of failures and a number outside a count line still count (issue #230).
+
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
 
 This release lets the reviewer of `review-loop` write the fix plan of each finding, so no other dispatch plans the fixes. The session that runs the loop applies the fixes, unless step 5b sends them to the fixer subagent. A new eval case runs the failure check of Phase 6.
@@ -1874,7 +1886,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...HEAD
+[4.17.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.17.2
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0

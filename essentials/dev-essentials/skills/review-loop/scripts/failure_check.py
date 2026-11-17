@@ -77,12 +77,27 @@ from pathlib import Path
 
 ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
 PATH_START = r"(?<![^\s'\"])[^\s'\"]*"
+PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
+
+
+def pytest_counts(match):
+    """The summary line of pytest, with a token for each count that is not a count of failures or errors."""
+    return PYTEST_COUNT.sub(r"<n> \1", match.group())
+
+
 NOISE = [
     (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
     (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
+    # The count rules come after the time rules, because some of them look for the token <time>.
+    (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),
+    (re.compile(r"^=+ (.*) =+$"), r"\1"),
+    (re.compile(r"^\d+ [a-z]+( [a-z]+)?(, \d+ [a-z]+( [a-z]+)?)* in <time>( \(<time>\))?$"), pytest_counts),
+    (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
+    (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
+    (re.compile(r"^\s*(total|succeeded|skipped): \d+$"), r"\1: <n>"),
 ]
 NOT_STARTED = (126, 127)
 CHANGED_LINES = 20
@@ -209,7 +224,7 @@ class Run:
         return not self.passed and not self.timed_out and self.start_error is None and self.code not in NOT_STARTED
 
     def signature(self, roots):
-        """The error lines and the last lines, with a token for each root folder, time, and address."""
+        """The error lines and the last lines, with a token for each root folder, time, address, and count of tests."""
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
         rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE

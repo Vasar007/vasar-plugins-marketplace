@@ -27,6 +27,23 @@ SKILL = SCRIPT.parent.parent / "SKILL.md"
 fc = load_module("failure_check", SCRIPT)
 FAIL_WITH = "cat msg.txt; exit $(cat code.txt)"
 CHECK = 'grep -q good value.txt || { echo "error: value.txt is $(cat value.txt)"; exit 1; }'
+UNITTEST = shlex.quote(Path(sys.executable).as_posix()) + " -B -m unittest discover -s tests"
+CALC_TESTS = """import unittest
+
+
+class CalcTests(unittest.TestCase):
+    def test_add(self):
+        {}
+
+    def test_sub(self):
+        self.assertEqual(2 - 1, 1)
+"""
+MORE_TESTS = """
+
+class MoreTests(unittest.TestCase):
+    def test_mul(self):
+        self.assertEqual(2 * 2, 4)
+"""
 
 
 class FailureCheckCase(ScratchCase):
@@ -74,6 +91,13 @@ class FailureCheckCase(ScratchCase):
         self.commit("parent")
         self.write("sub/msg.txt", fix_text)
         self.write("sub/code.txt", f"{fix_code}\n")
+        return self.commit("fix")
+
+    def unittest_fix(self, parent_assert, fix_assert):
+        """Commit a parent and a fix commit whose test_add runs the given assert. The fix commit adds one more test."""
+        self.write("sub/tests/test_calc.py", CALC_TESTS.format(parent_assert))
+        self.commit("parent")
+        self.write("sub/tests/test_calc.py", CALC_TESTS.format(fix_assert) + MORE_TESTS)
         return self.commit("fix")
 
 
@@ -151,6 +175,19 @@ class VerdictTests(FailureCheckCase):
         out = self.check(fix, command, launch=(), env=env)
         self.assertEqual(self.verdict(out), "REGRESSION")
         self.assertIn("\u2717", out)
+
+    def test_same_unittest_failure_after_a_new_test_is_same_at_parent(self):
+        fix = self.unittest_fix("self.assertEqual(1 + 1, 3)", "self.assertEqual(1 + 1, 3)")
+        out = self.check(fix, UNITTEST)
+        self.assertRegex(out, r"TAIL  \| Ran 3 tests in ")
+        self.assertRegex(out, r"TAIL  \| Ran 2 tests in ")
+        self.assertEqual(self.verdict(out), "SAME-AT-PARENT")
+
+    def test_other_unittest_failure_after_a_new_test_is_other(self):
+        fix = self.unittest_fix("self.assertEqual(1 + 1, 3)", "self.assertEqual(2 + 2, 5)")
+        out = self.check(fix, UNITTEST)
+        self.assertIn("ERROR | AssertionError: 4 != 5", out)
+        self.assertEqual(self.verdict(out), "OTHER")
 
     def test_two_errors_with_different_class_names_are_not_the_same(self):
         fix = self.fail_with("Traceback (most recent call last):\nValueError: parent bug\n",
@@ -422,7 +459,8 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(a.signature(set()), b.signature(set()))
 
     def test_signature_of_a_long_line_is_fast(self):
-        for line in ("AssertionError: " + "A" * 100_000, "error " + "review-loop-fc-" * 14_000):
+        for line in ("AssertionError: " + "A" * 100_000, "error " + "review-loop-fc-" * 14_000,
+                     "error " + "1 passed, " * 10_000, "== error " + "Passed: " * 12_500):
             a = fc.Run("fix", "a" * 40, "x", "main")
             a.lines = [line]
             start = time.monotonic()
@@ -649,6 +687,79 @@ class UnitTests(unittest.TestCase):
             self.assertNotIn("windowsapps", bash.lower())
         else:
             self.assertEqual(bash, shutil.which("bash"))
+
+
+class TestCountTests(unittest.TestCase):
+    """The count lines of unittest, pytest, and dotnet test, as each runner prints them (issue #230)."""
+
+    def signatures(self, fix_lines, parent_lines):
+        fix = fc.Run("fix", "a" * 40, "x", "main")
+        fix.lines = fix_lines
+        parent = fc.Run("parent", "b" * 40, "y", "temp")
+        parent.lines = parent_lines
+        return fix.signature(set()), parent.signature(set())
+
+    def assertSame(self, fix_lines, parent_lines):
+        fix, parent = self.signatures(fix_lines, parent_lines)
+        self.assertEqual(fix, parent)
+
+    def assertDiffer(self, fix_lines, parent_lines):
+        fix, parent = self.signatures(fix_lines, parent_lines)
+        self.assertNotEqual(fix, parent)
+
+    def test_count_line_of_unittest_does_not_count(self):
+        failure = ["FAIL: test_add (test_calc.CalcTests.test_add)", "AssertionError: 2 != 3"]
+        self.assertSame([*failure, "Ran 3 tests in 0.001s", "FAILED (failures=1)"],
+                        [*failure, "Ran 2 tests in 0.001s", "FAILED (failures=1)"])
+        self.assertSame([*failure, "Ran 2 tests in 0.001s"], [*failure, "Ran 1 test in 0.000s"])
+
+    def test_counts_of_pytest_do_not_count(self):
+        failure = ["FAILED test_class.py::TestClass::test_two - AssertionError: assert False"]
+        self.assertSame([*failure, "1 failed, 2 passed in 0.12s"], [*failure, "1 failed, 1 passed in 0.12s"])
+        each_kind = "1 failed, {} passed, {} skipped, {} deselected, {} xfailed, {} xpassed, 1 error in 0.12s"
+        self.assertSame([*failure, "= " + each_kind.format(12, 1, 4, 2, 3) + " ="],
+                        [*failure, "== " + each_kind.format(1, 3, 2, 1, 1) + " =="])
+        self.assertSame([*failure, "============================ 1 failed in 0.12s ============================="],
+                        [*failure, "=========================== 1 failed in 10.12s ============================="])
+        self.assertSame([*failure, "1 failed, 2 passed, 3 subtests passed in 75.12s (0:01:15)"],
+                        [*failure, "1 failed, 1 passed, 2 subtests passed in 75.12s (0:01:15)"])
+
+    def test_progress_of_pytest_does_not_count(self):
+        self.assertSame(["test_verbosity_example.py::test_words_fail FAILED                    [ 50%]"],
+                        ["test_verbosity_example.py::test_words_fail FAILED                    [100%]"])
+
+    def test_counts_of_dotnet_test_do_not_count(self):
+        failure = ["  Failed Add_ReturnsSum [38 ms]"]
+        self.assertSame(
+            [*failure, "Failed!  - Failed:     1, Passed:     2, Skipped:     0, Total:     3, Duration: 32 ms - "
+                       "Calc.Tests.dll (net10.0)"],
+            [*failure, "Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 41 ms - "
+                       "Calc.Tests.dll (net10.0)"],
+        )
+
+    def test_counts_of_the_testing_platform_do_not_count(self):
+        failure = ["failed Add_ReturnsSum (41ms)", "Test run summary: Failed!"]
+        self.assertSame([*failure, "  total: 3", "  failed: 1", "  succeeded: 2", "  skipped: 0", "  duration: 635ms"],
+                        [*failure, "  total: 2", "  failed: 1", "  succeeded: 1", "  skipped: 0", "  duration: 672ms"])
+
+    def test_count_of_failures_still_counts(self):
+        self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
+        self.assertDiffer(["2 failed, 1 passed in 0.12s"], ["1 failed, 1 passed in 0.12s"])
+        self.assertDiffer(["1 failed, 1 passed, 3 errors in 0.12s"], ["1 failed, 1 passed, 2 errors in 0.12s"])
+        self.assertDiffer(["Failed!  - Failed:     2, Passed:     1, Skipped:     0, Total:     3, Duration: 1 s"],
+                          ["Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 1 s"])
+        self.assertDiffer(["Test run summary: Failed!", "  failed: 2"], ["Test run summary: Failed!", "  failed: 1"])
+
+    def test_number_outside_a_count_line_still_counts(self):
+        for fix_line, parent_line in (("AssertionError: 3 passed != 2", "AssertionError: 2 passed != 2"),
+                                      ("3 passed in 2s, expected 2", "2 passed in 2s, expected 2"),
+                                      ("error: Ran 3 tests, expected 2", "error: Ran 2 tests, expected 2"),
+                                      ("total: 3 of 4", "total: 2 of 4"),
+                                      ("error: total: 3", "error: total: 2"),
+                                      ("error: Passed: 3", "error: Passed: 2"),
+                                      ("error at [ 50%] of the file", "error at [ 75%] of the file")):
+            with self.subTest(line=fix_line):
+                self.assertDiffer(["FAIL: test_x", fix_line], ["FAIL: test_x", parent_line])
 
 
 class SignalTests(FailureCheckCase):
