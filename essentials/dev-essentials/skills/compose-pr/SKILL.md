@@ -6,7 +6,7 @@ when_to_use: "Use it for 'compose a PR description' or 'write the PR summary'. N
 
 # Compose a PR Description
 
-Write a concise pull request (PR) description about the architecture of a change. Focus on **what changed and why** at a high level, not on implementation details. This format is the one PR description format of this plugin. The agent `dev-essentials:pr-composer` preloads this skill, so a workflow can also hand the work to a subagent.
+Write a concise pull request (PR) description about the architecture of a change. Focus on **what changed and why** at a high level, not on implementation details.
 
 This skill reads the diff with git, so it needs the Bash tool and a git repository.
 
@@ -14,7 +14,6 @@ This skill reads the diff with git, so it needs the Bash tool and a git reposito
 
 - **Small changes** (1-5 files, <200 lines): Max **1000 characters**
 - **Larger changes**: Max **2000 characters**
-- Strip unnecessary detail. Be direct and technical.
 
 ## Input
 
@@ -48,7 +47,7 @@ Ignore ephemeral artifacts in the diff: drafts of the spec framework (for exampl
 
 ### 2. Find the Spec or Plan of the Branch
 
-A spec or planning artifact tells the reason of the change and its intent. Examples are an OpenSpec change, a plan file, a design document, an architecture decision record (ADR), and a linked issue or task.
+A spec or planning artifact tells the reason of the change and its intent.
 
 First, get the keys of the branch:
 
@@ -67,7 +66,7 @@ Look for artifacts in this order. Use each one that belongs to this branch:
 1. **The input**: each path and each issue text that the input gives.
 2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. With OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch, even if no rule above matches it. Without a matching rule, this is a guess. Name the change as a guess in your final reply. A guess ranks below each artifact that belongs to this branch by a rule. If such an artifact exists, do not use the guess in the PR description. Do not take the intent or the reason from it, and do not name it in the PR. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
 3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
-4. **Decision records**: ADR files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
+4. **Decision records**: architecture decision record (ADR) files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
 Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. If the input gives a closing line, keep it, and put it where step 5 says. Do not add another closing keyword, for example one from a commit message.
 
@@ -83,13 +82,7 @@ Use the artifacts together with the diff:
 
 ### 3. Categorize Changes
 
-Group files by purpose, with the folder layout of the project. Common groups:
-
-- **Core logic** (for example, Domain/Application/WebApi code)
-- **Tests** (for example, `*.Tests/` projects)
-- **Configuration** (for example, appsettings, a Dockerfile, or helm charts)
-- **Infrastructure** (pipelines, IaC, deployment scripts)
-- **Documentation** (`Docs/`, README, CLAUDE.md)
+Group the files by purpose, with the folder layout of the project. Examples of groups are core logic, tests, configuration, infrastructure, and documentation.
 
 ### 4. Read Key Files
 
