@@ -21,7 +21,7 @@ import unittest
 from types import SimpleNamespace
 
 from support import REPO, tool_missing
-from test_eval_cases import REGEX_FLAGS, load_cases, plugin_roots
+from test_eval_cases import REGEX_FLAGS, load_cases, parse_block, plugin_roots, split_frontmatter
 from testkit import ScratchCase, remove_tree, run
 
 SCAFFOLD_SECONDS = 120
@@ -41,6 +41,7 @@ EXPECTED_BRANCH = {
     "fp-e1-clean-change": "work/clean-change",
     "fp-e1-border-auth": "work/border-auth",
     "fp-e2-untracked-file": "work/untracked-file",
+    "fp-e2-fork-pr": "work/fork-pr",
     "fp-e3-autonomous-main": "main",
     "fp-e4-package-bump": "work/package-bump",
     "fp-e5-breaking-change": "work/breaking-change",
@@ -61,6 +62,12 @@ COMMIT_LITERAL = re.compile(r"\\b([0-9a-f]{7,40})(?![0-9a-f])")
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 # compose-pr saves Notes/PRs/PR-<branch>.md, with each / of the branch as -. A pattern writes the dot as \.
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
+# The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
+FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
+# The repository of the PR: the next backticked text after the tool in the PR creation entry, if it is owner/repo. Step 6 takes owner and repo from it.
+PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]+)`", re.MULTILINE)
+# Without that part, Step 6 takes owner and repo from the Task Provider.
+PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
@@ -193,6 +200,74 @@ def commit_literal_problems(case, commits):
                 problems.append(f"{case.label}/graders/{name}.md: the pattern names the commit {literal}, "
                                 "but no commit of the scaffold starts with it")
     return problems
+
+
+def pr_head_problem(context, branch, expect):
+    """The head that the PR mock expects must be <fork owner>:<branch>, or the bare branch with no fork owner.
+
+    Return None if the mock guards no head.
+    """
+    if not isinstance(expect, dict) or "head" not in expect:
+        return None
+    found = FORK_OWNER.search(context)
+    wanted = f"{found.group(1)}:{branch}" if found else branch
+    if expect["head"] != wanted:
+        return f"the PR mock expects the head {expect['head']}, but the project context gives {wanted}"
+    return None
+
+
+def pr_repo_problem(context, expect):
+    """The owner and repo that the PR mock expects must be the repository that the project context gives.
+
+    Return None if the mock guards no repository, or if the context names none.
+    """
+    if not isinstance(expect, dict) or "owner" not in expect or "repo" not in expect:
+        return None
+    found = PR_REPO.search(context) or PROVIDER_REPO.search(context)
+    if found is None:
+        return None
+    if (expect["owner"], expect["repo"]) != found.groups():
+        return f"the PR mock expects {expect['owner']}/{expect['repo']}, but the project context gives {'/'.join(found.groups())}"
+    return None
+
+
+class PrHeadTests(unittest.TestCase):
+    ENTRY = "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for `example-org/inventory`"
+
+    def test_the_head_follows_the_fork_owner_of_the_pr_creation_entry(self):
+        fork = self.ENTRY + ", fork owner `eval-user`"
+        other = "## Key Conventions\n\n- Each PR names the issue, fork owner `eval-user`"
+        runs = {
+            "no fork, the bare branch": (self.ENTRY, {"head": "work/a"}, True),
+            "a fork, the owner and the branch": (fork, {"head": "eval-user:work/a"}, True),
+            "a fork, the bare branch": (fork, {"head": "work/a"}, False),
+            "no fork, an owner in the head": (self.ENTRY, {"head": "eval-user:work/a"}, False),
+            "a fork, another owner": (fork, {"head": "other:work/a"}, False),
+            "a fork owner in another section": (self.ENTRY + "\n" + other, {"head": "work/a"}, True),
+            "no head in the mock": (fork, {"owner": "example-org"}, True),
+            "no expect block": (fork, None, True),
+        }
+        for name, (context, expect, right) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(pr_head_problem(context, "work/a", expect) is None, right)
+
+    def test_the_repository_follows_the_pr_creation_entry_or_the_task_provider(self):
+        provider = "- **Project / organization:** `example-org/inventory`\n"
+        expect = {"owner": "example-org", "repo": "inventory"}
+        runs = {
+            "the entry names the repository": (provider + self.ENTRY, expect, True),
+            "the entry names another repository": (provider + self.ENTRY.replace("inventory", "stock"), expect, False),
+            "no repository in the entry, the Task Provider": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request`", expect, True),
+            "no repository in the entry, another Task Provider": (provider.replace("inventory", "stock") + "- **PR creation:** `gh pr create`", expect, False),
+            "the entry names another repository in other words": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for the repository `example-org/stock`", expect, False),
+            "another owner": (provider + self.ENTRY, {"owner": "other", "repo": "inventory"}, False),
+            "no repository in the context": ("- **PR creation:** `gh pr create`", expect, True),
+            "no owner in the mock": (provider + self.ENTRY.replace("inventory", "stock"), {"head": "work/a"}, True),
+            "no expect block": (provider + self.ENTRY, None, True),
+        }
+        for name, (context, wanted, right) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(pr_repo_problem(context, wanted) is None, right)
 
 
 class DotnetVersionParseTests(unittest.TestCase):
@@ -361,6 +436,7 @@ class ScaffoldTests(FixtureCase):
         if bare.exists():
             self.check_remote(repo, bare, text)
             self.check_mocked_pull_request(case, bare)
+        self.check_pr_head(case, repo, branch)
         if (repo / "tests").is_dir() and not list(repo.glob("*.sln")):
             self.check_python_tests(case, repo)
         return self.refs(repo)
@@ -404,6 +480,18 @@ class ScaffoldTests(FixtureCase):
         ref = f"refs/pull/{pull['number']}/head"
         self.assertEqual(pull["head"]["sha"], self.git(bare, "rev-parse", "--verify", ref)[1],
                          f"the head SHA in {mock.name} is not the commit of {ref}")
+
+    def check_pr_head(self, case, repo, branch):
+        """The head, the owner, and the repo in the expect block of the PR mock must be the values that the project context of the scaffold gives."""
+        mock = case.path / "mocks" / "github" / "create_pull_request.md"
+        context = repo / ".claude" / "feature-pipeline-context.md"
+        if not mock.is_file() or not context.is_file():
+            return
+        lines, _body = split_frontmatter(mock.read_text(encoding="utf-8"))
+        text = context.read_text(encoding="utf-8")
+        expect = parse_block(lines).get("expect")
+        self.assertIsNone(pr_head_problem(text, branch, expect))
+        self.assertIsNone(pr_repo_problem(text, expect))
 
     def check_python_tests(self, case, workspace):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
