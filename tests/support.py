@@ -32,6 +32,29 @@ def tracked_markdown_files():
     return sorted(p for p in without_vendored(out.split("\0")) if p and (REPO / p).is_file())
 
 
+def run_with_open_stdin(cmd, env=None, timeout=60):
+    """Run cmd with a pipe as stdin that stays open and gets no data. Return (exit code, stdout, stderr) as text.
+
+    Return None if cmd still runs after timeout seconds. Then cmd, or a child of cmd, waits for input.
+    In that case, the function closes the pipe and waits until cmd ends.
+    """
+    read_end, write_end = os.pipe()
+    try:
+        proc = subprocess.Popen([str(part) for part in cmd], stdin=read_end, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, env=env)
+    finally:
+        os.close(read_end)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        out = None
+    os.close(write_end)
+    if out is None:
+        proc.communicate()
+        return None
+    return proc.returncode, out.decode("utf-8", "replace"), err.decode("utf-8", "replace")
+
+
 def tool_missing(test, message):
     """Skip on a developer machine. Fail in CI, where every tool must exist."""
     if IN_CI:

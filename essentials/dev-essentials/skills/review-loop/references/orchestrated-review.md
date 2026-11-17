@@ -7,7 +7,7 @@ Phase 3 of `SKILL.md` uses this file. It is a **different way to run Phase 3 onl
 - When to use this mode
 - What this mode dispatches (not how: see cross-reference below)
 - Role 1: Target Explorer
-- Check the map between Role 1 and Role 2
+- Check the areas between Role 1 and Role 2
 - Role 2: Area Explorers (parallel, one per area)
 - Step between Role 2 and Role 3: collate
 - Role 3: Main-agent synthesis (not a subagent)
@@ -43,9 +43,17 @@ The orchestrator never reads the full diff or full files itself. It reads only t
 
 ## Role 1 — Target Explorer
 
-One subagent, dispatched alone, because its output decides the file assignment of Role 2. It returns a fact map with no judgment and no raw diff or file contents, as the template below says.
+One subagent, dispatched alone, because Role 2 needs its map. It returns a fact map with no judgment and no raw diff or file contents, as the template below says.
 
-The map lists each changed file once, inside Areas. The sections other than Areas have a cap of 150 lines in total. Areas has no cap and is never cut, so no file drops out of the review. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures, then Tests. It never cuts Ranges or Areas. It records every cut under "Not mapped".
+The map has a cap of 150 lines in total. If the map is too long, the Target Explorer cuts in this order: Links first, then Symbols, then Signatures, then Tests. It never cuts Ranges. It records every cut under "Not mapped".
+
+Before the dispatch, the orchestrator groups the changed files into areas with the script `group_diff.py` of the review-loop skill. The caller names `{REVIEW_LOOP_DIR}`, the folder of that skill. The script needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash):
+
+```bash
+python3 -I "{REVIEW_LOOP_DIR}/scripts/group_diff.py" --repo "<repository root>" --range "<diff range>"
+```
+
+The script lists each changed file in exactly one area, so no file drops out of the review. Its output has a `TOTAL` line, and an `AREA` line and the file lines of each area. Put the whole output into the prompt in place of `<AREAS>`. If `python3` is not available or the script exits with code 2, do not use this mode. Use the default flow of the caller, and say why in the report.
 
 Use the model and the effort of the Models paragraph above. It needs Bash for `git diff`, so it is not `dev-essentials:code-locator`, which has no Bash. The agent reads the diff in parts, because this dispatch has no auto-compact window. This is an accepted trade-off.
 
@@ -81,7 +89,10 @@ Hard rules:
 - Do not copy diff text or file contents into the map. Write names, numbers, and `path:line`.
   The one exception is a signature line in Signatures. Write each one as at most one line
   (about 120 characters, cut with "..." if longer).
-- Skip lock files and generated files. Do not read their diff. List them by path only, in the Areas group named "skipped". A file goes in "skipped" only in these three cases: its file name is a lock file name (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `poetry.lock`, `Gemfile.lock`, `composer.lock`, `packages.lock.json`, `go.sum`), or `.gitattributes` marks it `linguist-generated`, or its first lines carry an "auto-generated" or "do not edit" header. Any other file goes in a normal group.
+- Do not read the diff of a file in the area "skipped". It is a lock file or a generated file.
+
+Areas, from the script group_diff.py. Map the files area by area. Do not regroup them:
+<AREAS>
 
 Tasks:
 1. <If target=pr: call `pull_request_read` per `dev-essentials:github-mcp-conventions` (explicit
@@ -91,39 +102,30 @@ Tasks:
    the old and the new path: git diff -U0 <range> -- <old> <new>. Then rename detection still works.
 3. Use Grep to find the links between the changed files.
 
-Report the map in these sections, in this order, and NOTHING else. Every section except Areas
-has a cap of 150 lines in total. If you must cut, cut Links first, then Symbols, then
-Signatures, then Tests. Never cut Ranges or Areas. Record every cut under "Not mapped".
+Report the map in these sections, in this order, and NOTHING else. The map has a cap of 150
+lines in total. If you must cut, cut Links first, then Symbols, then Signatures, then Tests.
+Never cut Ranges. Record every cut under "Not mapped".
 1. Target: identity (branch, PR, or commit range), a one-line title if available, and the
-   totals: files, +lines, -lines, commits.
+   number of commits.
 2. Ranges: the resolved **diff range** (for `git diff` and `git log`) AND the resolved **source
    tree-ish** (for `git show <tree-ish>:<path>`), each labeled. Area Explorers need the tree-ish,
    not the diff range, for Role 2 Step 1.
-3. Areas: every changed file, each listed once: path, change kind (added, modified, deleted,
-   renamed), +lines, -lines. Group the files by top-level folder. While a group has more than
-   10 files or more than 800 changed lines, split it by the next folder level. A group with no
-   next folder level stays one area. The files that sit directly in a split folder form a group
-   under the name of that folder. A single file over the size limit is its own area. A file in
-   the root folder goes in a group named "root". The skipped lock files and generated files form
-   one group named "skipped", with the path of each file only. The "skipped" rule comes before all other group rules, and the group is never split. Group by path only, never by importance. One
-   group is one Area Explorer. Write each area as its name and its file lines, production files
-   before test files. The number of files in Areas must equal the total of files in Target.
-4. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
+3. Symbols: for each file, the changed symbols with their line ranges. A symbol is a type,
    function, method, or configuration key. For a docs file, it is a heading.
-5. Signatures: each changed public signature or exported name, old line and new line side by side.
-6. Links: each changed file that calls, imports, or references a symbol that another changed file
+4. Signatures: each changed public signature or exported name, old line and new line side by side.
+5. Links: each changed file that calls, imports, or references a symbol that another changed file
    changes. Write "<file:line> uses <symbol> of <file:line>".
-7. Tests: each changed test file, and the source files whose symbols it references.
-8. Build and configuration: each changed manifest, configuration, migration, or build file.
-9. Prior iterations: the commits of the range whose subject starts with "Review round", and the
+6. Tests: each changed test file, and the source files whose symbols it references.
+7. Build and configuration: each changed manifest, configuration, migration, or build file.
+8. Prior iterations: the commits of the range whose subject starts with "Review round", and the
    lines of the description of the target that mention a review. Copy them as they are. Do not
    judge whether they are resolved.
-10. Not mapped: what you did not read or resolve, every cut that you made, and where you looked.
+9. Not mapped: what you did not read or resolve, every cut that you made, and where you looked.
 ```
 
-## Check the map between Role 1 and Role 2
+## Check the areas between Role 1 and Role 2
 
-The orchestrator does this step itself, with no subagent. It makes sure that the set of paths in Areas equals the output of `git diff --name-only <range>`. It also makes sure that the number of files in Areas equals the total number of files in Target. If a path is missing or listed twice, or the numbers differ, it finds the missing paths with the same command. Then it adds each missing file to an area, or it dispatches the Target Explorer again for those paths. It can also merge or split areas before Role 2. The "skipped" group gets no Area Explorer. The orchestrator reads the "skipped" paths and moves any path that is not clearly a lock file or a generated file into an area. For each other area, it copies the map facts of that area into the Role 2 prompt.
+The orchestrator does this step itself, with no subagent. One area is one Area Explorer. The orchestrator can merge small areas or split large ones before Role 2. The "skipped" area gets no Area Explorer. The orchestrator reads its paths and the reason in brackets after each path. It moves any path that is not clearly a lock file or a generated file into another area. For each other area, it copies the file lines of the script and the map facts of these files into the Role 2 prompt.
 
 ## Role 2 — Area Explorers (parallel, one per area)
 
