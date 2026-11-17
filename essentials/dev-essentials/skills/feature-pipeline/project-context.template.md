@@ -32,7 +32,7 @@ Optional. Without this section, the pipeline runs every task as a plain request 
 - **Lint fix** (optional): <command, or empty>
 - **Migration** (optional): <command, or empty>
 - **Push:** <for example `git push -u origin HEAD`>
-- **PR creation:** <for example `mcp__plugin_github_github__create_pull_request` or `gh pr create`>
+- **PR creation:** <for example `mcp__plugin_github_github__create_pull_request` for `my-org/my-repo`, or `gh pr create`. An MCP tool needs the repository of the PR. If the issues of the Task Provider are in another repository, name the repository of the code here.>
 
 ## Guidance Files
 
