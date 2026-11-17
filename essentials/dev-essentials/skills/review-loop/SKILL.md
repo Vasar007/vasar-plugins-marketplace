@@ -6,7 +6,7 @@ when_to_use: "Use it for 'run a review loop', 'review and fix this branch', 'rev
 
 # Review Loop
 
-This skill runs review cycles. In each cycle, one or more reviewer subagents review the target and write a fix plan for each finding. The orchestrator triages the findings. Then the fixer tests each finding against a primary source and fixes only what it can prove. The context test of Phase 5, step 5b names the fixer: the orchestrator or a subagent. The next cycle re-reviews only the fix diff, or the whole target with `--no-commit`. The orchestrator is the session that runs this skill. It dispatches the reviewers. When the context test of Phase 5, step 5b says so, it also dispatches a fixer subagent.
+This skill runs review cycles. In each cycle, one or more reviewer subagents review the target and write a fix plan for each finding. The orchestrator triages the findings. Then the fixer tests each finding against a primary source and fixes only what it can prove. Phase 5, step 5b names the fixer: the orchestrator or a subagent. The next cycle re-reviews only the fix diff, or the whole target with `--no-commit`. The orchestrator is the session that runs this skill. It dispatches the reviewers. If step 5b chooses a fixer subagent, it also dispatches that subagent.
 
 ## Done test
 

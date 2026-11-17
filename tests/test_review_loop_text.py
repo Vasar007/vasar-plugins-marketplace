@@ -16,8 +16,9 @@ COUNT = re.compile(
     re.IGNORECASE,
 )
 SESSION_SIZE = (
-    r"(?i)\b(?:long|short|fresh)\s+session|\bsession is (?:long|short|large|small)|size of the session"
+    r"(?i)\b(?:long|short|fresh|new)\s+session|\bsession is (?:long|short|large|small|new)|size of the session"
 )
+FIX_SET_SIZE = r"(?i)\b(?:small|large|big)\s+(?:fix sets?|one)\b|\bfix sets? (?:is|are) (?:small|large|big)\b"
 
 
 def read(name):
@@ -52,6 +53,7 @@ class FixPlanTextTests(unittest.TestCase):
     def test_audit_team_and_orchestrated_mode_keep_the_plan_dispatch(self):
         self.assertIn("plan dispatch on `--reviewer-model`", read("references/audit-team-adapter.md"))
         self.assertIn("step 5a plans the fixes with one plan dispatch", read("references/orchestrated-review.md"))
+        self.assertIn("from the collated and checked findings, with no Fix plan line.", read("references/orchestrated-review.md"))
 
 
 class FixerChoiceTextTests(unittest.TestCase):
@@ -73,20 +75,32 @@ class FixerChoiceTextTests(unittest.TestCase):
     def test_step_5b_decides_from_the_fix_plans_and_not_from_the_session(self):
         step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
         self.assertNotIn("the session already read", step)
-        self.assertIn("Decide from the fix plans", step)
+        self.assertIn("Decide from the fix plans, not from the files that this session already holds.", step)
+        self.assertEqual(step.count("this session"), 1)
 
     def test_the_check_scope_lets_the_orchestrator_test_findings_when_it_is_the_fixer(self):
         scope = section(read("SKILL.md"), "- Check scope:", "- Reporting:")
-        self.assertIn("If the orchestrator is the fixer", scope)
+        self.assertIn("If the orchestrator is the fixer (Phase 5, step 5b), it reads the cited code and tests each finding itself.", scope)
+        self.assertIn("to test the verdict of a fixer subagent again.", scope)
 
     def test_the_choice_of_the_fixer_names_no_count_and_no_session_size(self):
         default = section(read("SKILL.md"), "## Default configuration", "## Autonomy")
         fixer_row = section(read("references/parameters.md"), "| `--fixer <id>`", "\n")
         step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
-        for name, text in (("step 5b", step), ("default configuration", default), ("--fixer row", fixer_row)):
+        intro = section(read("SKILL.md"), "# Review Loop", "## Done test")
+        playbook = section(read("references/verify-fix-discipline.md"), "**Read this file", "## Contents")
+        texts = (
+            ("intro", intro),
+            ("step 5b", step),
+            ("default configuration", default),
+            ("--fixer row", fixer_row),
+            ("playbook", playbook),
+        )
+        for name, text in texts:
             with self.subTest(text=name):
                 self.assertNotRegex(text, COUNT)
                 self.assertNotRegex(text, SESSION_SIZE)
+                self.assertNotRegex(text, FIX_SET_SIZE)
 
     def test_the_brief_format_names_the_fixer(self):
         self.assertIn("Fixer: <orchestrator | subagent | none>", read("references/output-formats.md"))
