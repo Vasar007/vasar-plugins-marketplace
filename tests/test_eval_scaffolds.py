@@ -54,6 +54,7 @@ EXPECTED_BRANCH = {
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
+    "os-review-fixes": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -1558,6 +1559,136 @@ class RirrSquashGraderTests(FixtureCase):
         self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "A commit on main")
         self.assertFalse(self.passes(workspace))
         self.assertFalse(self.passes(workspace, self.outcome))
+
+
+class OptimizeSkillFixtureTests(FixtureCase):
+    """The fixture of os-review-fixes holds the seeded issues and the lost rule. Its file graders fail on the fixture
+    where they must, pass on a right run with two commits, and fail on a lost rule, a third commit, and a push."""
+
+    CASE = "os-review-fixes"
+    SKILL = "plugin/skills/export-orders/SKILL.md"
+    REFERENCES = "plugin/skills/export-orders/references"
+    AGENT = "plugin/agents/export-checker.md"
+    SIZE_RULE = "Never upload a CSV file that is larger than 50 MB. Split such a file into parts of at most 50 MB first."
+    SAFETY_RULE = "Never delete, move, or change a file in `exports/`."
+    DUPLICATE = "Write each CSV file to a temporary name first, and rename it when the file is complete."
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def scaffold(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, workspace, name):
+        """The verdict of a regex grader on its file, or of a file_exists grader. A path that ends in /** is any file below it."""
+        options = self.case.graders[name][0]
+        if options["type"] == "file_exists":
+            path = options["path"]
+            found = any(p.is_file() for p in (workspace / path[:-3]).rglob("*")) if path.endswith("/**") \
+                else (workspace / path).is_file()
+            return found == options.get("exists", True)
+        file = workspace / options["target"]["path"]
+        if not file.is_file():
+            return False
+        flags = sum(REGEX_FLAGS[flag] for flag in options.get("flags", ""))
+        found = re.search(options["pattern"], file.read_bytes().decode("utf-8"), flags) is not None
+        return not found if options.get("match") == "not_contains" else found
+
+    def scored(self, workspace):
+        """The names of the scored graders that fail."""
+        return {name for name in self.case.graders if not name.startswith("route-") and not self.passes(workspace, name)}
+
+    def read(self, workspace, path):
+        return (workspace / path).read_bytes().decode("utf-8")
+
+    def write(self, workspace, path, text):
+        (workspace / path).write_bytes(text.encode("utf-8"))
+
+    def commit(self, workspace, message, *paths):
+        code, output = self.git(workspace, "commit", "-q", "-m", message, "--", *paths)
+        self.assertEqual(code, 0, output)
+
+    def right_run(self, workspace):
+        """The reports, a step-3 commit that cuts the double-check line, and a step-6 commit that restores the rule."""
+        self.write(workspace, "opt-reports/optimization-audit-export-orders.md", "# Audit\n")
+        self.write(workspace, "opt-reports/optimization-review-export-orders.md", "# Review\n")
+        skill = self.read(workspace, self.SKILL)
+        self.write(workspace, self.SKILL, skill.replace("- Double-check your work before you report to the user.\n", ""))
+        self.commit(workspace, "Optimize export-orders", self.SKILL)
+        skill = self.read(workspace, self.SKILL)
+        anchor = "the count of orders, and the size of the file.\n"
+        self.write(workspace, self.SKILL, skill.replace(anchor, f"{anchor}\n{self.SIZE_RULE}\n"))
+        self.commit(workspace, "Fix U-1", self.SKILL)
+
+    def test_the_fixture_has_the_seeded_issues(self):
+        workspace = self.scaffold()
+        skill = self.read(workspace, self.SKILL)
+        csv_format = self.read(workspace, f"{self.REFERENCES}/csv-format.md")
+        self.assertGreater(len(csv_format.splitlines()), 100)
+        self.assertNotRegex(csv_format, r"(?i)contents")
+        self.assertIn(self.DUPLICATE, skill)
+        self.assertIn(self.DUPLICATE, csv_format)
+        self.assertIn("You MUST dispatch the export-checker agent before the upload.\n", skill)
+        self.assertIn("Double-check your work", skill)
+        self.assertTrue((workspace / self.REFERENCES / "old-retry-notes.md").is_file())
+        self.assertNotIn("old-retry-notes", skill)
+        self.assertIn(self.SAFETY_RULE, self.read(workspace, self.AGENT))
+        self.assertIn('subagent_type: "export-kit:export-checker"', skill)
+        self.assertEqual(self.git(workspace, "check-ignore", "-q", "opt-reports/")[0], 0)
+
+    def test_the_last_fixture_commit_deletes_the_size_rule(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.git(workspace, "log", "-1", "--format=%s")[1], "fixture: shorten the upload step")
+        self.assertIn(self.SIZE_RULE, self.git(workspace, "show", f"HEAD~1:{self.SKILL}")[1])
+        self.assertNotIn("50 MB", self.read(workspace, self.SKILL))
+
+    def test_the_graders_on_the_fixture(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.scored(workspace), {"size-rule-restored", "audit-report-written", "review-report-written"})
+        self.assertFalse(self.passes(workspace, "route-step6-reached"))
+
+    def test_a_right_run_passes_every_scored_grader(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        self.assertEqual(self.scored(workspace), set())
+        self.assertTrue(self.passes(workspace, "route-step6-reached"))
+
+    def test_an_amend_of_the_step_6_commit_still_passes(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        code, output = self.git(workspace, "commit", "-q", "--amend", "-m", "Fix U-1 and R-01")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.scored(workspace), set())
+        self.assertTrue(self.passes(workspace, "route-step6-reached"))
+
+    def test_each_loss_fails_its_grader(self):
+        losses = {
+            "safety-rule-kept": (self.AGENT, self.SAFETY_RULE, "Do not change the exports."),
+            "claude-md-unchanged": ("CLAUDE.md", "- No CHANGELOG.\n", "- No CHANGELOG.\n- Keep each rule in one place.\n"),
+            "size-rule-restored": (self.SKILL, self.SIZE_RULE, "Split a large file first."),
+        }
+        for name, (path, old, new) in losses.items():
+            with self.subTest(grader=name):
+                workspace = self.scaffold()
+                self.right_run(workspace)
+                text = self.read(workspace, path)
+                self.assertIn(old, text)
+                self.write(workspace, path, text.replace(old, new))
+                self.assertEqual(self.scored(workspace), {name})
+                remove_tree(workspace)
+
+    def test_a_third_commit_or_a_push_fails(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        self.write(workspace, "README.md", "# export-kit\n")
+        self.commit(workspace, "A third commit", "README.md")
+        self.assertEqual(self.scored(workspace), {"at-most-two-commits"})
+        code, output = self.git(workspace, "push", "-q", "origin", "main")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.scored(workspace), {"at-most-two-commits", "no-push"})
 
 
 if __name__ == "__main__":

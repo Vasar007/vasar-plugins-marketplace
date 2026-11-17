@@ -3642,5 +3642,119 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
         self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
 
 
+class OptimizeSkillCaseTests(unittest.TestCase):
+    """The graders of os-review-fixes and of the two trigger cases of optimize-skill."""
+
+    # The head of each reflog: the two commits of the fixture.
+    FIXTURE_LOG = ("0 1 Eval User <eval@example.com> 1767225660 +0000\tcommit (initial): fixture: the export-kit plugin\n"
+                   "1 2 Eval User <eval@example.com> 1767225720 +0000\tcommit: fixture: shorten the upload step\n")
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cases["os-review-fixes"]
+        cls.fires = cases["optimize-skill-fires"]
+        cls.near_miss = cases["optimize-skill-near-miss-trim"]
+        text = (FP_ROOT / "skills" / "optimize-skill" / "references" / "briefs.md").read_text(encoding="utf-8")
+        fence = "`" * 3
+        brief = rf"^## (\w[\w ]*?) brief\n\n(?:[^\n]+\n\n)?{fence}text\n(.*?)^{fence}"
+        cls.briefs = dict(re.findall(brief, text, re.M | re.S))
+
+    @staticmethod
+    def counts(case, grader, text):
+        return re.search(case.graders[grader][0]["input_match"], text) is not None
+
+    def regex_passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def reflog(self, *lines):
+        return self.FIXTURE_LOG + "".join(f"2 3 Eval User <eval@example.com> 1767225780 +0000\t{line}\n" for line in lines)
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-skill-fired", "route-auditor-agent", "route-applier-agent", "route-reviewer-agent",
+                                  "route-review-fixer", "route-step6-reached", "route-seed-duplicate", "route-seed-must",
+                                  "route-seed-unlinked", "route-seed-contents", "route-seed-double-check"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+
+    def test_the_fixer_grader_needs_a_review_fixer(self):
+        meta = self.case.graders["route-review-fixer"][0]
+        self.assertEqual((meta["tool"], meta.get("min", 1), "max" in meta), ("Agent", 1, False))
+
+    def test_each_agent_grader_counts_only_its_own_brief(self):
+        self.assertEqual(sorted(self.briefs), ["Applier", "Auditor", "Behavior reviewer", "Review fixer"])
+        own = {"Auditor": "route-auditor-agent", "Applier": "route-applier-agent",
+               "Behavior reviewer": "route-reviewer-agent", "Review fixer": "route-review-fixer"}
+        for role, brief in self.briefs.items():
+            text = agent_call_input(description=f"{role} of export-orders", prompt=brief)
+            for grader in own.values():
+                with self.subTest(role=role, grader=grader):
+                    self.assertEqual(self.counts(self.case, grader, text), grader == own[role])
+
+    def test_the_fixer_grader_also_counts_a_fixer_description(self):
+        runs = {
+            "a fixer description": (agent_call_input(description="Review fixer", prompt="Fix R-01."), True),
+            "a lowercase fixer": (agent_call_input(description="Run the review fixer", prompt="x"), True),
+            "the word in a prompt only": (agent_call_input(description="Review", prompt="no fixer runs"), False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.counts(self.case, "route-review-fixer", text), expected)
+
+    def test_the_commit_graders_count_new_commits_and_not_amends(self):
+        runs = {
+            "no commit": ((), False, True),
+            "the step-3 commit only": (("commit: Optimize export-orders",), False, True),
+            "the step-3 commit and its amend": (("commit: a", "commit (amend): a"), False, True),
+            "two commits": (("commit: Optimize export-orders", "commit: Fix U-1 and R-01"), True, True),
+            "an amend between two commits": (("commit: a", "commit (amend): a", "commit: b"), True, True),
+            "two commits and an amend": (("commit: a", "commit: b", "commit (amend): b"), True, True),
+            "three commits": (("commit: a", "commit: b", "commit: c"), True, False),
+            "a merge as the third commit": (("commit: a", "commit: b", "commit (merge): c"), True, False),
+            "a commit with the fixture prefix": (("commit: fixture: x", "commit: a"), False, True),
+        }
+        for name, (lines, reached, at_most_two) in runs.items():
+            with self.subTest(run=name):
+                text = self.reflog(*lines)
+                self.assertEqual(self.regex_passes("route-step6-reached", text), reached)
+                self.assertEqual(self.regex_passes("at-most-two-commits", text), at_most_two)
+
+    def test_each_seed_grader_finds_its_issue_in_an_audit_report(self):
+        hits = {
+            "route-seed-duplicate": "The rule about the temporary name is in two files.",
+            "route-seed-must": "The line `You MUST dispatch` gives no reason.",
+            "route-seed-unlinked": "No step links `references/old-retry-notes.md`.",
+            "route-seed-contents": "Add a contents list to csv-format.md.",
+            "route-seed-double-check": "Cut the line `Double-check your work`.",
+        }
+        empty = "# Optimization audit\n\nNo item.\n"
+        for grader, hit in hits.items():
+            with self.subTest(grader=grader):
+                self.assertTrue(self.regex_passes(grader, hit))
+                self.assertFalse(self.regex_passes(grader, empty))
+        self.assertFalse(self.regex_passes("route-seed-must", "You must dispatch the agent."))
+
+    def test_the_trigger_cases_name_optimize_skill_and_trim_artifacts(self):
+        skills = {"dev-essentials:optimize-skill": "optimize", "optimize-skill": "optimize",
+                  "dev-essentials:trim-artifacts": "trim", "trim-artifacts": "trim",
+                  "dev-essentials:optimize-skill-extra": None, "dev-essentials:review-loop": None}
+        graders = {(self.fires, "fires"): "optimize", (self.fires, "trim-artifacts-not-fired"): "trim",
+                   (self.near_miss, "trim-artifacts-fires"): "trim", (self.near_miss, "not-fired"): "optimize"}
+        for (case, grader), owner in graders.items():
+            meta = case.graders[grader][0]
+            self.assertEqual(meta["tool"], "Skill")
+            if grader.endswith("not-fired"):
+                self.assertEqual((meta["min"], meta["max"], meta["arm"]), (0, 0, "both"))
+            for skill, skill_owner in skills.items():
+                with self.subTest(case=case.name, grader=grader, skill=skill):
+                    self.assertEqual(self.counts(case, grader, json.dumps({"skill": skill})), skill_owner == owner)
+        for case in (self.fires, self.near_miss):
+            self.assertIn("optimize-skill", case.tags)
+            self.assertNotIn("Bash", case.field("allowed_tools"))
+
+
 if __name__ == "__main__":
     unittest.main()
