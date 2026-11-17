@@ -190,6 +190,13 @@ class VerdictTests(FailureCheckCase):
         cut = "error: " + "0" * 293 + " ... 4707 more characters"
         self.assertEqual(re.findall(r"^  (?:ERROR|TAIL ) \| (.*)$", out, re.M), [cut, cut])
 
+    def test_two_errors_that_differ_only_after_the_cut_are_not_the_same(self):
+        start = "error: " + "x" * fc.LINE_CHARS
+        fix = self.fail_with(start + " in a.py\n", start + " in b.py\n")
+        out = self.check(fix, FAIL_WITH)
+        self.assertEqual(self.verdict(out), "OTHER")
+        self.assertEqual(re.findall(r"^  ERROR \| (.*)$", out, re.M), [fc.cut(start + " in a.py")] * 2)
+
     def test_command_that_cannot_start_is_other_with_no_parent_run(self):
         self.write("sub/value.txt", "bad\n")
         fix = self.commit("fix")
