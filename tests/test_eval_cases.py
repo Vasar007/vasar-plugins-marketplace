@@ -2193,6 +2193,73 @@ class PrCreatedGraderTests(unittest.TestCase):
                 self.assertEqual(re.search(self.meta["pattern"], "\n".join(calls)) is not None, expected)
 
 
+class PrBodyFormGraderTests(unittest.TestCase):
+    """The graders of fp-e2-untracked-file for the PR body in the form of compose-pr (issue #203).
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
+
+    FORM = ("## What\nReject a blank sku.\n\n## Why\nA blank sku reached the database.\n\n"
+            "## Changes\n- **SkuFormatter**: throws for a blank sku.\n\n## Testing\nUnit tests.\n\nCloses #821.")
+
+    @staticmethod
+    def call(tool, tool_input, output="{}"):
+        return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": tool_input, "output": output,
+                           "verdict": "ok"}, separators=(",", ":"), ensure_ascii=False)
+
+    def pr(self, body, **fields):
+        return self.call("create_pull_request", {"owner": "example-org", "repo": "inventory", "base": "main",
+                                                 "head": "work/untracked-file", "title": "Reject a blank sku",
+                                                 "body": body, **fields}, '{"number": 77}')
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graders = {case.name: case for case in load_cases(FP_ROOT)}["fp-e2-untracked-file"].graders
+
+    def test_only_a_pr_body_in_the_form_of_compose_pr_passes(self):
+        meta = self.graders["pr-body-form"][0]
+        self.assertEqual((meta["target"], meta.get("match", "contains")), ("mock_calls", "contains"))
+        free = self.pr("Free text.\n\nCloses #821.")
+        runs = {
+            "the form": ([self.pr(self.FORM)], True),
+            "the body before the other fields": ([self.call("create_pull_request", {"body": self.FORM})], True),
+            "a closing line before What": ([self.pr("Closes #821.\n\n" + self.FORM)], True),
+            "no Testing section": ([self.pr("## What\nx\n\n## Why\ny\n\n## Changes\n- z\n")], True),
+            "Why before What": ([self.pr("## Why\ny\n\n## What\nx\n\n## Changes\n- z\n")], False),
+            "a Summary section first": ([self.pr("## Summary\ns\n\n" + self.FORM)], False),
+            "a title first": ([self.pr("# Reject a blank sku\n\n" + self.FORM)], False),
+            "a heading between What and Why": ([self.pr("## What\nx\n\n### Detail\nd\n\n## Why\ny\n\n## Changes\n- z\n")],
+                                               False),
+            "a section between Why and Changes": ([self.pr("## What\nx\n\n## Why\ny\n\n## Tests\nt\n\n## Changes\n- z\n")],
+                                                  False),
+            "third-level headings": ([self.pr("### What\nx\n\n### Why\ny\n\n### Changes\n- z\n")], False),
+            "Why in the middle of a line": ([self.pr("## What\nx ## Why\ny\n\n## Changes\n- z\n")], False),
+            "Changes in the middle of a line": ([self.pr("## What\nx\n\n## Why\ny ## Changes\n- z\n")], False),
+            "no Changes section": ([self.pr("## What\nx\n\n## Why\ny\n")], False),
+            "the form in a comment only": ([self.call("add_issue_comment", {"issue_number": 821, "body": self.FORM}), free],
+                                           False),
+            "the form in a read answer only": ([self.call("issue_read", {"issue_number": 821}, json.dumps({"body": self.FORM})),
+                                                free], False),
+            "the form in the title only": ([self.pr("Free text.", title="## What\n## Why\n## Changes\n")], False),
+            "no mocked call": ([], False),
+        }
+        for name, (calls, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(meta["pattern"], "\n".join(calls)) is not None, expected)
+
+    def test_the_draft_grader_names_the_draft_file_of_compose_pr(self):
+        meta = self.graders["pr-draft-not-saved"][0]
+        self.assertEqual((meta["type"], meta["path"], meta["exists"]),
+                         ("file_exists", "Notes/PRs/PR-work-untracked-file.md", False))
+
+    def test_the_stage_names_the_step_of_compose_pr_that_has_the_form(self):
+        skill = (FP_ROOT / "skills" / "compose-pr" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("### 5. Generate PR Description", skill)
+        self.assertRegex(skill, r"`{3}md\n## What\n[^\n]*\n\n## Why\n[^\n]*\n\n## Changes\n")
+        stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
+        self.assertIn('"5. Generate PR Description"', stage)
+
+
 # The start of a mock_calls pattern: the tool field, with or without the prefix of the server.
 MOCK_CALL_FIELD = '"tool":"(?:[\\w-]*__)?'
 # The field, then one tool name or a group (?:a|b) of names, then the closing quote. A name can end with \w*.
