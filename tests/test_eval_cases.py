@@ -2718,11 +2718,17 @@ class PpcBuildContextGraderTests(unittest.TestCase):
         self.assertIn("printf 'Notes/\\n' >> .git/info/exclude", scaffold, "git must ignore Notes/, as in many repositories")
 
 
+def agent_input(subagent_type):
+    """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
+    return json.dumps({"description": "Write the text", "prompt": "The brief.", "subagent_type": subagent_type},
+                      separators=(",", ":"), ensure_ascii=False)
+
+
 class ComposeTaskFiresCaseTests(unittest.TestCase):
     """The trigger case compose-task-fires asks for the text in chat, so that its run needs no tool that writes a file."""
 
     CASE = "compose-task-fires"
-    # Tools that a trigger run does not get. The case cannot grant them, and the trigger runs pass no --allow-tools.
+    # Tools that a trigger run does not get. A case that lists one tells a reader that the run grants it, and it does not.
     WRITE_TOOLS = {"Write", "Edit", "NotebookEdit", "Bash"}
     # Phrases of the skill that select mode: response, as the prompt of the case uses them.
     CHAT_PHRASES = ("return the description in chat", "do not write a file")
@@ -2730,11 +2736,6 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
-
-    def agent_input(self, subagent_type):
-        """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
-        return json.dumps({"description": "Draft the task", "prompt": "mode: draft", "subagent_type": subagent_type},
-                          separators=(",", ":"), ensure_ascii=False)
 
     def test_the_prompt_asks_for_the_text_in_chat_with_phrases_of_the_skill(self):
         skill = (FP_ROOT / "skills" / "compose-task" / "SKILL.md").read_text(encoding="utf-8")
@@ -2764,7 +2765,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
                                      ("general-purpose", False), ("dev-essentials:task-composer-old", False),
                                      ("my-task-composer", False)):
             with self.subTest(subagent_type=subagent_type):
-                self.assertEqual(pattern.search(self.agent_input(subagent_type)) is not None, found)
+                self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
 
     def test_the_fires_grader_counts_the_skill(self):
         meta = self.case.graders["fires"][0]
@@ -2773,6 +2774,45 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
         pattern = re.compile(meta["input_match"])
         self.assertIsNotNone(pattern.search('{"skill":"dev-essentials:compose-task"}'))
         self.assertIsNotNone(pattern.search('{"skill":"compose-task"}'))
+        self.assertIsNone(pattern.search('{"skill":"dev-essentials:compose-pr"}'))
+
+
+class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
+    """The trigger case compose-task-draft-fires sends the plain request, with no tool for the wrapper agent."""
+
+    CASE = "compose-task-draft-fires"
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cases[cls.CASE]
+        cls.sibling = cases[ComposeTaskFiresCaseTests.CASE]
+
+    def test_the_prompt_uses_the_trigger_words_and_asks_for_no_mode(self):
+        prompt = self.case.prompt_body.lower()
+        self.assertIn("write a task description", prompt)
+        for phrase in ComposeTaskFiresCaseTests.CHAT_PHRASES:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, prompt)
+
+    def test_the_case_lists_no_agent_tool_and_no_write_tool(self):
+        tools = set(self.case.field("allowed_tools"))
+        self.assertIn("Skill", tools)
+        self.assertNotIn("Agent", tools)
+        self.assertEqual(ComposeTaskFiresCaseTests.WRITE_TOOLS & tools, set())
+
+    def test_the_graders_are_the_graders_of_the_sibling_case_on_the_skills(self):
+        self.assertEqual(sorted(self.case.graders), ["compose-pr-not-fired", "fires"])
+        for name in self.case.graders:
+            with self.subTest(grader=name):
+                self.assertEqual(self.case.graders[name], self.sibling.graders[name])
+
+    def test_the_fires_grader_counts_the_skill(self):
+        meta = self.case.graders["fires"][0]
+        self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Skill"))
+        self.assertNotIn("max", meta)
+        pattern = re.compile(meta["input_match"])
+        self.assertIsNotNone(pattern.search('{"skill":"dev-essentials:compose-task"}'))
         self.assertIsNone(pattern.search('{"skill":"dev-essentials:compose-pr"}'))
 
 
@@ -3020,11 +3060,6 @@ class ComposerGraderTests(unittest.TestCase):
             "long bullet in a later section": (self.TASK + "\n## Notes\n\n- " + long_item + "\n", True),
         })
 
-    def agent_input(self, subagent_type):
-        """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
-        return json.dumps({"description": "Write the text", "prompt": "The brief.", "subagent_type": subagent_type},
-                          separators=(",", ":"), ensure_ascii=False)
-
     def test_route_graders_find_no_composer_agent(self):
         graders = {
             "cmp-pr-from-diff": ("route-pr-composer-not-fired", "pr-composer"),
@@ -3038,11 +3073,11 @@ class ComposerGraderTests(unittest.TestCase):
                 self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
                 self.assertNotIn(name.replace("-not-fired", "-agent"), self.cases[case].graders)
                 pattern = re.compile(meta["input_match"])
-                self.assertIsNotNone(pattern.search(self.agent_input("dev-essentials:" + agent)))
-                self.assertIsNotNone(pattern.search(self.agent_input(agent)))
-                self.assertIsNone(pattern.search(self.agent_input("general-purpose")))
-                self.assertIsNone(pattern.search(self.agent_input("dev-essentials:" + agent + "-old")))
-                self.assertIsNone(pattern.search(self.agent_input("my-" + agent)))
+                self.assertIsNotNone(pattern.search(agent_input("dev-essentials:" + agent)))
+                self.assertIsNotNone(pattern.search(agent_input(agent)))
+                self.assertIsNone(pattern.search(agent_input("general-purpose")))
+                self.assertIsNone(pattern.search(agent_input("dev-essentials:" + agent + "-old")))
+                self.assertIsNone(pattern.search(agent_input("my-" + agent)))
 
     def test_guide_route_grader_names_the_skill(self):
         meta = self.cases["cmp-guide-draft"].graders["route-create-documentation-skill"][0]
