@@ -15,6 +15,21 @@ The other numbers in a heading are plugin versions.
 - `docs/installing.md`: a new page with the shell form of the install, the configuration files, and the steps for updates. It also has the automatic updates and the list of official docs. It holds the text that moved out of the README (issue #234).
 - `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
 
+## dotnet-backend-dev 1.8.0 in release [4.19.0] - 2026-11-17
+
+This release lets `/write-tests` write the tests of one class in the main session. Two or more targets, a module, and a project keep the `test-engineer` agents.
+
+### Changed in dotnet-backend-dev
+
+- `commands/write-tests`: if the grouping leaves one target of the kind Class, the main session writes its tests with the `create-tests` skill. It does the steps of the `test-engineer` agent and gives the same report. Two or more targets, a module, and a project still dispatch one agent for each target. The text gives the reason with the delegation tests of Rule 1 of `subagent-orchestration`. This changes a part of the behavior of issue #37 (issue #242).
+- `agents/test-engineer`: the description and the section "Purpose" say that the command dispatches the agent for two or more targets, a module, or a project (issue #242).
+- `evals/write-tests`: the grader `route-agent` of `wt-one-class` fails a run that dispatches `test-engineer`. The grader `route-agent` of `wt-pricing-folder` still asks for at least one such dispatch. Both graders now read the agent type of the call (issue #242).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: samples for the two `route-agent` graders of the write-tests suite (issue #242).
+- `tests/simple-english-baseline.json`: the reason of the entry of `wt-one-class` names the main session (issue #242).
+
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
 
 This release lets the reviewer of `review-loop` write the fix plan of each finding, so no other dispatch plans the fixes. The session that runs the loop applies the fixes, unless step 5b sends them to the fixer subagent. A new eval case runs the failure check of Phase 6.
@@ -1874,7 +1889,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...HEAD
+[4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.19.0
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0

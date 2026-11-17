@@ -1,6 +1,7 @@
 ---
 type: tool_used
 tool: Agent
-input_match: 'test-engineer'
-min: 1
+input_match: '"subagent_type"\s*:\s*"(?:[\w-]+:)?test-engineer"'
+min: 0
+max: 0
 ---
