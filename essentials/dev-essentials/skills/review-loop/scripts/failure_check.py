@@ -47,6 +47,10 @@ The last two lines are the verdict and its reason:
                            lines, and the same last lines after the first error line
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
+The signature puts a token in place of each count of tests. The line of a single test
+still counts, for example a PASSED line of pytest -v or an ok line of unittest -v. So a
+new test can still give OTHER: if its line is in the last lines, or if the name of the
+test or of its file ends with error or exception.
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
 names a worktree that is still there. Remove it with `git worktree remove --force`.
 A WARN line names a worktree or a folder that the script cannot delete. On Windows, a stop
@@ -81,11 +85,12 @@ PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfail
 
 
 def pytest_counts(match):
-    """The summary line of pytest, with a token for each count that is not a count of failures or errors."""
+    """The summary line of pytest, with a token for each count of passed, skipped, deselected, xfailed, and xpassed tests."""
     return PYTEST_COUNT.sub(r"<n> \1", match.group())
 
 
 NOISE = [
+    (re.compile(r"\x1b\[[0-9;]*m"), ""),
     (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
     (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
@@ -97,7 +102,7 @@ NOISE = [
     (re.compile(r"^\d+ [a-z]+( [a-z]+)?(, \d+ [a-z]+( [a-z]+)?)* in <time>( \(<time>\))?$"), pytest_counts),
     (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
     (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
-    (re.compile(r"^\s*(total|succeeded|skipped): \d+$"), r"\1: <n>"),
+    (re.compile(r"^  (total|succeeded|skipped): \d+$"), r"\1: <n>"),
 ]
 NOT_STARTED = (126, 127)
 CHANGED_LINES = 20

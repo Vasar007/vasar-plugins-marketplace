@@ -17,7 +17,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.20.2 in release [4.17.2] - 2026-11-17
 
-This release makes the failure check of `review-loop` ignore the count of tests in the output of `unittest`, `pytest`, and `dotnet test`. So a fix commit that adds a test no longer turns `SAME-AT-PARENT` into `OTHER` (issue #230).
+This release makes the failure check of `review-loop` ignore the count of tests in the output of `unittest`, `pytest`, and `dotnet test`. So a fix commit that adds a test and keeps the same failure gives `SAME-AT-PARENT`, not `OTHER`. The line of one test still counts, as with `pytest -v` (issue #230).
 
 ### Fixed in dev-essentials
 

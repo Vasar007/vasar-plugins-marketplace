@@ -460,7 +460,8 @@ class UnitTests(unittest.TestCase):
 
     def test_signature_of_a_long_line_is_fast(self):
         for line in ("AssertionError: " + "A" * 100_000, "error " + "review-loop-fc-" * 14_000,
-                     "error " + "1 passed, " * 10_000, "== error " + "Passed: " * 12_500):
+                     "error " + "1 passed, " * 10_000, "== error " + "Passed: " * 12_500,
+                     "error " + "\x1b[" * 30_000):
             a = fc.Run("fix", "a" * 40, "x", "main")
             a.lines = [line]
             start = time.monotonic()
@@ -712,6 +713,7 @@ class TestCountTests(unittest.TestCase):
         self.assertSame([*failure, "Ran 3 tests in 0.001s", "FAILED (failures=1)"],
                         [*failure, "Ran 2 tests in 0.001s", "FAILED (failures=1)"])
         self.assertSame([*failure, "Ran 2 tests in 0.001s"], [*failure, "Ran 1 test in 0.000s"])
+        self.assertSame([*failure, "Ran 120 tests in 0.5s"], [*failure, "Ran 119 tests in 0.5s"])
 
     def test_counts_of_pytest_do_not_count(self):
         failure = ["FAILED test_class.py::TestClass::test_two - AssertionError: assert False"]
@@ -723,10 +725,17 @@ class TestCountTests(unittest.TestCase):
                         [*failure, "=========================== 1 failed in 10.12s ============================="])
         self.assertSame([*failure, "1 failed, 2 passed, 3 subtests passed in 75.12s (0:01:15)"],
                         [*failure, "1 failed, 1 passed, 2 subtests passed in 75.12s (0:01:15)"])
+        self.assertSame([*failure, "3 failed, 45 passed in 0.12s"], [*failure, "3 failed, 44 passed in 0.12s"])
+
+    def test_colored_summary_of_pytest_does_not_count(self):
+        failure = ["FAILED test_class.py::TestClass::test_two - AssertionError: assert False"]
+        colored = "\x1b[31m\x1b[31m\x1b[1m1 failed\x1b[0m, \x1b[32m{} passed\x1b[0m\x1b[31m in 0.08s\x1b[0m\x1b[0m"
+        self.assertSame([*failure, colored.format(2)], [*failure, colored.format(1)])
 
     def test_progress_of_pytest_does_not_count(self):
         self.assertSame(["test_verbosity_example.py::test_words_fail FAILED                    [ 50%]"],
                         ["test_verbosity_example.py::test_words_fail FAILED                    [100%]"])
+        self.assertSame(["test_a.py::test_x FAILED    [  4%]"], ["test_a.py::test_x FAILED    [  5%]"])
 
     def test_counts_of_dotnet_test_do_not_count(self):
         failure = ["  Failed Add_ReturnsSum [38 ms]"]
@@ -736,11 +745,17 @@ class TestCountTests(unittest.TestCase):
             [*failure, "Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 41 ms - "
                        "Calc.Tests.dll (net10.0)"],
         )
+        self.assertSame(
+            [*failure, "Failed!  - Failed:     1, Passed:    12, Skipped:     0, Total:    13, Duration: 32 ms"],
+            [*failure, "Failed!  - Failed:     1, Passed:    11, Skipped:     0, Total:    12, Duration: 41 ms"],
+        )
 
     def test_counts_of_the_testing_platform_do_not_count(self):
         failure = ["failed Add_ReturnsSum (41ms)", "Test run summary: Failed!"]
         self.assertSame([*failure, "  total: 3", "  failed: 1", "  succeeded: 2", "  skipped: 0", "  duration: 635ms"],
                         [*failure, "  total: 2", "  failed: 1", "  succeeded: 1", "  skipped: 0", "  duration: 672ms"])
+        self.assertSame([*failure, "  total: 13", "  succeeded: 12", "  skipped: 10"],
+                        [*failure, "  total: 12", "  succeeded: 11", "  skipped: 11"])
 
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
@@ -755,6 +770,7 @@ class TestCountTests(unittest.TestCase):
                                       ("3 passed in 2s, expected 2", "2 passed in 2s, expected 2"),
                                       ("error: Ran 3 tests, expected 2", "error: Ran 2 tests, expected 2"),
                                       ("total: 3 of 4", "total: 2 of 4"),
+                                      ("total: 130", "total: 120"),
                                       ("error: total: 3", "error: total: 2"),
                                       ("error: Passed: 3", "error: Passed: 2"),
                                       ("error at [ 50%] of the file", "error at [ 75%] of the file")):
