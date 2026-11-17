@@ -10,6 +10,7 @@ import unittest
 from support import REPO
 
 SKILL_DIR = REPO / "essentials/dev-essentials/skills/review-loop"
+ORCHESTRATION = REPO / "essentials/dev-essentials/skills/subagent-orchestration/SKILL.md"
 COUNT = re.compile(
     r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:\w+\s+)?"
     r"(?:findings?|files?|edits?|lines?|fixes)\b",
@@ -69,6 +70,10 @@ class FixerChoiceTextTests(unittest.TestCase):
     def test_step_5b_keeps_the_orchestrator_path_and_the_flag_rule(self):
         step = section(read("SKILL.md"), "**Step 5b:", "The rules that the fixer must follow:")
         self.assertIn("Else the orchestrator applies the fixes itself.", step)
+        self.assertIn(
+            "If the reads and the edits of the fix set put many files into the main context, dispatch a fixer subagent.",
+            step,
+        )
         self.assertIn("dispatch the fixer subagent for every fix set", step)
         self.assertIn("In the orchestrator, read", step)
 
@@ -101,6 +106,25 @@ class FixerChoiceTextTests(unittest.TestCase):
                 self.assertNotRegex(text, COUNT)
                 self.assertNotRegex(text, SESSION_SIZE)
                 self.assertNotRegex(text, FIX_SET_SIZE)
+
+    def test_the_intro_and_the_default_configuration_point_at_step_5b(self):
+        intro = section(read("SKILL.md"), "# Review Loop", "## Done test")
+        default = section(read("SKILL.md"), "## Default configuration", "## Autonomy")
+        self.assertIn("If step 5b chooses a fixer subagent, it also dispatches that subagent.", intro)
+        self.assertIn("The orchestrator applies the fixes, unless Phase 5, step 5b sends the fix set", default)
+        for name, text in (("intro", intro), ("default configuration", default)):
+            with self.subTest(text=name):
+                self.assertNotIn("context test", text)
+
+    def test_rule_1_of_subagent_orchestration_names_no_fix_set_size(self):
+        rule = section(ORCHESTRATION.read_text(encoding="utf-8"), "**A phase that itself orchestrates", "\n")
+        self.assertIn("and it can dispatch its own fixer subagent.", rule)
+        self.assertNotRegex(rule, FIX_SET_SIZE)
+
+    def test_the_fixer_rows_keep_the_backticks_of_the_fields(self):
+        params = read("references/parameters.md")
+        self.assertIn("passed in the `model` field of its `Agent` call.", params)
+        self.assertIn("passed in the `effort` field of its `Agent` call.", params)
 
     def test_the_brief_format_names_the_fixer(self):
         self.assertIn("Fixer: <orchestrator | subagent | none>", read("references/output-formats.md"))

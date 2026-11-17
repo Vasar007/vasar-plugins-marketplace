@@ -18,7 +18,7 @@ This release lets the reviewer of `review-loop` write the fix plan of each findi
 - `skills/review-loop`: the Full format of the reviewer report has a **Fix plan** line in each finding, and a Common Rule asks for it. Step 5a takes the plan from the report. A plan dispatch on `--reviewer-model` runs only for a finding with no usable plan. The cases are an `audit-team` or orchestrated-mode report, and the regression fix of the failure check. Another case is a fix that the triage changed with no fix named by the user (issue #221).
 - `skills/review-loop`: step 5b chooses the fixer with the delegation tests of Rule 1 of `subagent-orchestration`, mostly the context test. A few bounded edits stay in the orchestrator, which follows `references/verify-fix-discipline.md`. A fix set whose reads and edits put many files into the main context keeps the fixer subagent. An explicit `--fixer`, `--fixer-model`, or `--fixer-effort` keeps it too. The Brief format of a cycle names the fixer and the test (issue #221).
 - `skills/review-loop`: the parameter texts, the reference files of the fixer, the `audit-team` adapter, the orchestrated mode, and both examples follow the new steps (issue #221).
-- `skills/research-implement-review-report` and `skills/subagent-orchestration`: the text no longer says that a fixer subagent always runs (issue #221).
+- `skills/implement-batch`, `skills/research-implement-review-report`, and `skills/subagent-orchestration`: the text no longer says that a fixer subagent always runs (issue #221).
 
 ### Added in dev-essentials
 
