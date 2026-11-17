@@ -48,7 +48,8 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as default |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
-| Step 3.6 and Step 4.4: the squash script refuses (exit code 3), fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line), or cannot run (exit code 2, or neither line) | Stop and ask | Same | Skip the squash for a refusal or a script that cannot run, and report it. For `RESULT: FAILED` or a stop after the `OLD HEAD` line, stop and ask |
+| Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
+| Steps 3.6 and 4.4: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
 | Step 5: push | Only with `--push`, after the report | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
