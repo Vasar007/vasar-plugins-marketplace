@@ -1341,13 +1341,14 @@ class CommitGraderTests(FixtureCase):
 
 
 class RirrSquashGraderTests(FixtureCase):
-    """The grader squashed-last of rirr-single-commit passes only for a squash by the script onto main."""
+    """The grader route-squashed-last passes only for a squash by the script. The grader squashed-on-main passes for any squash onto main."""
 
     @classmethod
     def setUpClass(cls):
         case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-single-commit"]
         cls.path = case.path
-        cls.options = case.graders["squashed-last"][0]
+        cls.options = case.graders["route-squashed-last"][0]
+        cls.outcome = case.graders["squashed-on-main"][0]
 
     def environment(self, skip_dotnet=True):
         env = super().environment(skip_dotnet)
@@ -1383,34 +1384,39 @@ class RirrSquashGraderTests(FixtureCase):
         done = run(args, env=self.environment(), cwd=workspace)
         self.assertEqual(done.returncode, code, done.stdout + done.stderr)
 
-    def passes(self, workspace):
-        self.assertEqual(self.options.get("flags", ""), "")
-        text = (workspace / self.options["target"]["path"]).read_text(encoding="utf-8")
-        return re.search(self.options["pattern"], text) is not None
+    def passes(self, workspace, options=None):
+        options = options or self.options
+        self.assertEqual(options.get("flags", ""), "")
+        text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
+        return re.search(options["pattern"], text) is not None
 
     def test_a_squash_by_the_script_onto_main_passes(self):
         workspace, main, commits = self.task()
         self.squash(workspace, main, commits, 0)
         self.assertEqual(self.run_git(workspace, "rev-list", "--count", "main..HEAD"), "1")
         self.assertTrue(self.passes(workspace))
+        self.assertTrue(self.passes(workspace, self.outcome))
 
     def test_a_manual_soft_reset_fails(self):
         workspace, main, _ = self.task()
         self.run_git(workspace, "reset", "-q", "--soft", main)
         self.run_git(workspace, "commit", "-q", "-m", "Lower the limits")
         self.assertFalse(self.passes(workspace))
+        self.assertTrue(self.passes(workspace, self.outcome))
 
     def test_a_squash_onto_the_first_task_commit_fails(self):
         workspace, _, commits = self.task()
         self.squash(workspace, commits[0], commits[1:], 0)
         self.assertEqual(self.run_git(workspace, "rev-list", "--count", "main..HEAD"), "2")
         self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
 
     def test_a_commit_after_the_squash_fails(self):
         workspace, main, commits = self.task()
         self.squash(workspace, main, commits, 0)
         self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "Later")
         self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
 
     def test_a_failed_squash_with_a_restore_fails(self):
         workspace, main, commits = self.task()
@@ -1419,6 +1425,7 @@ class RirrSquashGraderTests(FixtureCase):
         self.squash(workspace, main, commits, 1)
         self.assertEqual(self.run_git(workspace, "rev-parse", "HEAD"), commits[-1])
         self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
 
 
 if __name__ == "__main__":

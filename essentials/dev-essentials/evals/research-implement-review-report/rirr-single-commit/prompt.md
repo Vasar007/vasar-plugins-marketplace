@@ -1,5 +1,5 @@
 ---
-description: "A plan file with two tasks lowers the HTTP retry limit and the timeout of the users app. The run uses the single-commit mode, so it makes at least two commits. It must squash them into one commit on main with the squash script of the plugin, and it must not push."
+description: "A plan file with two tasks lowers the HTTP retry limit and the timeout of the users app. The run uses the single-commit mode, so it makes at least two commits. It must squash them into one commit on top of main with the squash script of the plugin, and it must not push."
 tags: [research-implement-review-report, route]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite]
 max_turns: 200

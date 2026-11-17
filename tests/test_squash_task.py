@@ -559,4 +559,6 @@ class SquashCallSiteTests(unittest.TestCase):
             with self.subTest(skill=name):
                 text = (REPO / "essentials/dev-essentials/skills" / name / "SKILL.md").read_text(encoding="utf-8")
                 self.assertIn(self.CALL, text)
+                line = next(line for line in text.splitlines() if self.CALL in line)
+                self.assertRegex(line, r'--repo "[^"]+" --plan-dir "[^"]+" --base \S+ --commit <sha> --commit <sha> --message "[^"]+" --apply$')
                 self.assertNotIn("${CLAUDE_SKILL_DIR}/scripts/squash_task.py", text)

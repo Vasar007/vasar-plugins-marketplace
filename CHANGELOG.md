@@ -21,7 +21,7 @@ This release makes the single-commit mode of `research-implement-review-report` 
 
 ### Added in dev-essentials
 
-- `evals/research-implement-review-report/rirr-single-commit`: a new case. A plan file with two tasks runs in the single-commit mode. The graders need a call of the script with two commits and `--apply`. They also need one commit on `main` by the script as the last change of `HEAD`. The graders also need no `git reset --soft` (issue #246).
+- `evals/research-implement-review-report/rirr-single-commit`: a new case. A plan file with two tasks runs in the single-commit mode. A scored grader needs one squash commit on top of `main` as the last change of `HEAD`. The route graders need a call of the script with two commits and `--apply`. They also need the reflog entry and the `TREE` line of the script, and no `git reset --soft`. So a base run can score 1.00 (issue #246).
 
 ### Changed in the repository
 
