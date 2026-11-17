@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.18.0 in release [4.15.0] - 2026-11-17
+
+This release makes Stage 9 of `feature-pipeline` name the source of each argument of the PR call. If no source names the repository, the stage stops before the call (issue #214). If the repository gives no convention for a PR body, the stage writes the body in the form of `compose-pr` (issue #203).
+
+### Changed in dev-essentials
+
+- `skills/feature-pipeline/stages/finalization.md`: Step 6 follows the convention of the repository for the PR body. A convention is a PR template, or a PR rule in the Key Conventions or the guidance files. Without one, the stage loads `compose-pr` and writes the body by its step 5, so `## What`, `## Why`, and `## Changes` come first (issue #203).
+- `skills/feature-pipeline/project-context.template.md`: the example of the PR creation entry names the repository of the PR (issue #214).
+- `skills/promote-conventions/references/cleanup-and-provenance.md`: step 7 of 9c.4 says that its PR body does not take the form of `compose-pr`, and gives the reason (issue #203).
+- `evals/feature-pipeline/fp-e2-untracked-file`: the new grader `pr-body-form` reads the body of the PR call. A replay on 8 kept runs of the old text gives a fail in each run, and `pr-created` passes in each run. The new grader `pr-draft-not-saved` makes sure that the run saves no draft file of `compose-pr`. The new route grader `route-compose-pr-skill` shows the load of `compose-pr`. The mock of the PR call also guards `head` (issues #203 and #214).
+
+### Fixed in dev-essentials
+
+- `skills/feature-pipeline/stages/finalization.md`: Step 6 names the source of `owner`, `repo`, and `head` for an MCP PR tool. `owner` and `repo` come from the PR creation entry of the project context, or else from the Task Provider on the same MCP server. `head` is the current branch. If no source names the repository, the stage stops before the call. It does not take the repository from the `origin` remote (issue #214).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`, and that Step 6 names the step of `compose-pr` that holds the form (issue #203).
+
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
 This release fixes the trigger case `compose-task-fires`, which failed in about one run of three. The skill text does not change.
@@ -1763,7 +1782,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...HEAD
+[4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.15.0
 [4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
