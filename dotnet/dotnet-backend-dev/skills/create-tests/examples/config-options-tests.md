@@ -16,7 +16,7 @@ The code examples in this file use NUnit and FluentAssertions. With another test
 
 ## Base Class
 
-Location: `MyApp.OnlyForTests.Basic.Validation.BaseValidatableObjectTests`
+Location: `MyApp.Testing.Basic.Validation.BaseValidatableObjectTests`
 
 Provides assertion helpers for validation results.
 
@@ -54,7 +54,7 @@ protected void VerifyResultOfSuccessfulValidation(
 
 using System.ComponentModel.DataAnnotations;
 using MyApp.Configuration.Options.Shop;
-using MyApp.OnlyForTests.Basic.Validation;
+using MyApp.Testing.Basic.Validation;
 
 namespace MyApp.Configuration.Tests.Options.Shop;
 

@@ -51,8 +51,8 @@ Generators/
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
-using MyApp.OnlyForTests.Data.Generators;
-using MyApp.OnlyForTests.Enumerations;
+using MyApp.Testing.Data.Generators;
+using MyApp.Testing.Enumerations;
 
 namespace MyApp.Tests.Common.Helpers.Generators.Sales.Markets;
 

@@ -8,7 +8,7 @@ when_to_use: Use it for "create ID type", "add wrapper type", or "strongly-typed
 
 Create strongly-typed primitive wrappers in `{ProjectNamespace}.Domain` for type-safe identifiers and value objects.
 
-The templates use the private shared framework of the `MyApp.Framework` namespaces, and `MyApp.OnlyForTests` in test code. If the repo does not use it, follow the closest existing code of the repo.
+The templates use the private shared framework of the `MyApp.Framework` namespaces, and `MyApp.Testing` in test code. If the repo does not use it, follow the closest existing code of the repo.
 
 ## Structure
 
@@ -207,7 +207,7 @@ Build the changed projects with `dotnet build` (see `dev-essentials:dotnet-build
 
 ## Tests
 
-Create wrapper tests extending base wrapper test classes from `MyApp.OnlyForTests.Basic.Wrappers`.
+Create wrapper tests extending base wrapper test classes from `MyApp.Testing.Basic.Wrappers`.
 
 **See the [create-tests](../create-tests/SKILL.md) skill for complete testing guidance, including [wrapper-tests.md](../create-tests/examples/wrapper-tests.md) for detailed patterns and examples.**
 

@@ -1,6 +1,6 @@
 # Primitive Wrapper Tests Pattern
 
-Tests for primitive wrappers (string/GUID/integer IDs and value objects) using base wrapper test classes from `MyApp.OnlyForTests.Basic.Wrappers`.
+Tests for primitive wrappers (string/GUID/integer IDs and value objects) using base wrapper test classes from `MyApp.Testing.Basic.Wrappers`.
 
 ## Contents
 
@@ -21,7 +21,7 @@ The code examples in this file use NUnit and FluentAssertions. With another test
 | `BaseInt64WrapperTests<T>`    | Long integer-based wrappers (IInt64Wrapper\<T\>) |
 | `BaseDecimalWrapperTests<T>`  | Decimal-based wrappers (IDecimalWrapper\<T\>)    |
 
-The project provides runtime wrapper interfaces in `MyApp.Framework.Basic.Wrappers` and corresponding base test classes in `MyApp.OnlyForTests.Basic.Wrappers` to simplify testing.
+The project provides runtime wrapper interfaces in `MyApp.Framework.Basic.Wrappers` and corresponding base test classes in `MyApp.Testing.Basic.Wrappers` to simplify testing.
 
 - `IStringWrapper<T>`: use `BaseStringWrapperTests<T>` for testing string-based wrappers
 - `IGuidWrapper<T>`: use `BaseGuidWrapperTests<T>` for testing GUID-based wrappers
@@ -44,7 +44,7 @@ If no matching interface exists for your domain wrapper (for example, a bespoke 
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
-using MyApp.OnlyForTests.Basic.Wrappers;
+using MyApp.Testing.Basic.Wrappers;
 using MyApp.Domain.Sessions;
 using MyApp.Tests.Common.Helpers.Generators.Domain.Sessions;
 
@@ -87,7 +87,7 @@ Inherited from `BaseEqualityMemberTests`: Equals (same, identical, different, de
 ```csharp
 // Copyright (c) Vasily Vasilyev
 
-using MyApp.OnlyForTests.Basic.Wrappers;
+using MyApp.Testing.Basic.Wrappers;
 using MyApp.Domain.Sales.Customers;
 using MyApp.Tests.Common.Helpers.Generators.Domain.Sales.Customers;
 
@@ -157,7 +157,7 @@ All tests from parent classes (`BaseValueWrapperTests`, `BaseEqualityMemberTests
 // Copyright (c) Vasily Vasilyev
 
 using MyApp.Framework.Basic.Strings;
-using MyApp.OnlyForTests.Basic.Wrappers;
+using MyApp.Testing.Basic.Wrappers;
 using MyApp.Domain.Migrations;
 using MyApp.Resources.Properties;
 using MyApp.Tests.Common.Helpers.Generators.Domain.Migrations;
