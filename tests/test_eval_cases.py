@@ -2751,7 +2751,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
     def test_the_case_keeps_the_agent_tool_and_lists_no_write_tool(self):
         tools = self.case.field("allowed_tools")
         self.assertIn("Skill", tools)
-        self.assertIn("Agent", tools, "By the docs, a case that lists no Agent gets no Agent tool.")
+        self.assertIn("Agent", tools, "The grader task-composer-not-fired needs a run that can start the wrapper agent. By the docs, a case that lists no Agent gets no Agent tool.")
         self.assertEqual(self.WRITE_TOOLS & set(tools), set())
 
     def test_the_wrapper_grader_counts_in_the_score(self):
