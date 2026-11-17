@@ -32,7 +32,7 @@ Optional. Without this section, the pipeline runs every task as a plain request 
 - **Lint fix** (optional): <command, or empty>
 - **Migration** (optional): <command, or empty>
 - **Push:** <for example `git push -u origin HEAD`>
-- **PR creation:** <for example `mcp__plugin_github_github__create_pull_request` for `my-org/my-repo`, or `gh pr create`. An MCP tool needs the repository of the PR. If the issues of the Task Provider are in another repository, name the repository of the code here. If the push command pushes to a fork, also name the owner of the fork. This part is optional. For example: `mcp__plugin_github_github__create_pull_request` for `my-org/my-repo`, fork owner `my-user`.>
+- **PR creation:** <for example `mcp__plugin_github_github__create_pull_request` for `my-org/my-repo`, or `gh pr create`. An MCP tool needs the repository of the PR. If the issues of the Task Provider are in another repository, name the repository of the code here. If the push command pushes to a fork, also name the owner of the fork. This part is optional. Only an MCP PR tool uses it. It does not work for a fork that the organization of the repository owns, because the MCP tool has no `head_repo` field. For example: `mcp__plugin_github_github__create_pull_request` for `my-org/my-repo`, fork owner `my-user`.>
 
 ## Guidance Files
 

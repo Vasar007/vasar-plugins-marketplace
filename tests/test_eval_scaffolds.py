@@ -64,6 +64,10 @@ BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
 # The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
 FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
+# The repository of the PR in the PR creation entry. Step 6 takes owner and repo from it.
+PR_REPO = re.compile(r"^- \*\*PR creation:\*\* .*? for `([^/`]+)/([^`]+)`", re.MULTILINE)
+# Without that part, Step 6 takes owner and repo from the Task Provider.
+PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
 FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
@@ -212,6 +216,21 @@ def pr_head_problem(context, branch, expect):
     return None
 
 
+def pr_repo_problem(context, expect):
+    """The owner and repo that the PR mock expects must be the repository that the project context gives.
+
+    Return None if the mock guards no repository, or if the context names none.
+    """
+    if not isinstance(expect, dict) or "owner" not in expect or "repo" not in expect:
+        return None
+    found = PR_REPO.search(context) or PROVIDER_REPO.search(context)
+    if found is None:
+        return None
+    if (expect["owner"], expect["repo"]) != found.groups():
+        return f"the PR mock expects {expect['owner']}/{expect['repo']}, but the project context gives {'/'.join(found.groups())}"
+    return None
+
+
 class PrHeadTests(unittest.TestCase):
     ENTRY = "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for `example-org/inventory`"
 
@@ -231,6 +250,23 @@ class PrHeadTests(unittest.TestCase):
         for name, (context, expect, right) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(pr_head_problem(context, "work/a", expect) is None, right)
+
+    def test_the_repository_follows_the_pr_creation_entry_or_the_task_provider(self):
+        provider = "- **Project / organization:** `example-org/inventory`\n"
+        expect = {"owner": "example-org", "repo": "inventory"}
+        runs = {
+            "the entry names the repository": (provider + self.ENTRY, expect, True),
+            "the entry names another repository": (provider + self.ENTRY.replace("inventory", "stock"), expect, False),
+            "no repository in the entry, the Task Provider": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request`", expect, True),
+            "no repository in the entry, another Task Provider": (provider.replace("inventory", "stock") + "- **PR creation:** `gh pr create`", expect, False),
+            "another owner": (provider + self.ENTRY, {"owner": "other", "repo": "inventory"}, False),
+            "no repository in the context": ("- **PR creation:** `gh pr create`", expect, True),
+            "no owner in the mock": (provider + self.ENTRY.replace("inventory", "stock"), {"head": "work/a"}, True),
+            "no expect block": (provider + self.ENTRY, None, True),
+        }
+        for name, (context, wanted, right) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(pr_repo_problem(context, wanted) is None, right)
 
 
 class DotnetVersionParseTests(unittest.TestCase):
@@ -451,7 +487,10 @@ class ScaffoldTests(FixtureCase):
         if not mock.is_file() or not context.is_file():
             return
         lines, _body = split_frontmatter(mock.read_text(encoding="utf-8"))
-        self.assertIsNone(pr_head_problem(context.read_text(encoding="utf-8"), branch, parse_block(lines).get("expect")))
+        text = context.read_text(encoding="utf-8")
+        expect = parse_block(lines).get("expect")
+        self.assertIsNone(pr_head_problem(text, branch, expect))
+        self.assertIsNone(pr_repo_problem(text, expect))
 
     def check_python_tests(self, case, workspace):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,

@@ -17,7 +17,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.21.0 in release [4.18.0] - 2026-11-17
 
-This release lets Stage 9 of `feature-pipeline` open a PR from a fork with an MCP PR tool. The PR creation entry of the project context can name the owner of the fork. Step 6 then sends `<fork owner>:<branch>` as the head of the PR (issue #225).
+This release lets Stage 9 of `feature-pipeline` open a PR from a fork with an MCP PR tool. The PR creation entry of the project context can name the owner of the fork. Step 6 then sends `<fork owner>:<branch>` as the head of the PR (issue #225). A fork that the organization of the upstream repository owns is not supported, because the MCP tool has no `head_repo` field.
 
 ### Added in dev-essentials
 
