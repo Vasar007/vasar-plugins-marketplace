@@ -9,6 +9,12 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `README.md`: removes the texts that call the repository private, the note on the git credential helper, and the sentence on credentials for the background update. It adds the badges for the last commit and the open issues, and a column with the version badge of each plugin (issue #233).
+- `docs/authoring.md`: the sync rule on the visibility of the repository now names the two ways. The organization sync of a Team or Enterprise plan needs a private or internal repository. A marketplace that a user adds can be public (issue #233).
+- `CLAUDE.md`: the first rule of "Repo conventions" says that the repository is public, and no longer names an employer (issue #233).
+
 ## dev-essentials 3.19.0 in release [4.16.0] - 2026-11-17
 
 This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a script with unit tests. The dry run stays the default, and the apply run still needs an explicit yes of the user (issue #223).

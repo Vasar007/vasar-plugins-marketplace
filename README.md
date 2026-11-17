@@ -1,19 +1,19 @@
 # vasar-plugins-marketplace
 
-[![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
+[![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces) [![Last commit](https://img.shields.io/github/last-commit/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/commits/main) [![Open issues](https://img.shields.io/github/issues/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/issues)
 
 This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace. Its plugins help with everyday development: generic developer workflows with a gated task pipeline, a writing style for technical documents, and a .NET backend toolkit.
 
-> This repository is private. Its artifacts are generic and stack-neutral. They carry no employer or product branding.
+The plugins are generic. Only `dotnet-backend-dev` is for a specific stack.
 
 ## Plugins
 
-| Plugin | Group | Purpose |
-|---|---|---|
-| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
-| [`doc-styles`](./essentials/doc-styles) | `essentials` | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. A hook checks each document in that style after a write. The hook needs `python3` on `PATH`. Without it, the hook does nothing. |
-| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
-| [`kb`](./knowledge/kb) | `knowledge` | Wiring for a personal knowledge base kept in git. Hooks sync the knowledge base, print its indexes, guard note writes, approve read-only commands, and brief subagents. Skills capture a solved problem and close a task. It needs a local clone of the knowledge base. |
+| Plugin | Group | Version | Purpose |
+|---|---|---|---|
+| [`dev-essentials`](./essentials/dev-essentials) | `essentials` | ![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FVasar007%2Fvasar-plugins-marketplace%2Fmain%2Fessentials%2Fdev-essentials%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version) | Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order. |
+| [`doc-styles`](./essentials/doc-styles) | `essentials` | ![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FVasar007%2Fvasar-plugins-marketplace%2Fmain%2Fessentials%2Fdoc-styles%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version) | A writing style for technical documents. Its skill writes and rewrites docs as Markdown in the style of the OpenBSD manual pages. You must name that style to start it, for example "OpenBSD style" or "like a man page". It sets no style for chat replies. A hook checks each document in that style after a write. The hook needs `python3` on `PATH`. Without it, the hook does nothing. |
+| [`dotnet-backend-dev`](./dotnet/dotnet-backend-dev) | `dotnet` | ![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FVasar007%2Fvasar-plugins-marketplace%2Fmain%2Fdotnet%2Fdotnet-backend-dev%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version) | Skills, a command, and an agent for .NET backend services that use Clean Architecture, DDD, and EF Core. They create the usual parts of such a service and its tests, and follow one hub of backend conventions. Most templates assume a private shared framework of guard and wrapper types. |
+| [`kb`](./knowledge/kb) | `knowledge` | ![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FVasar007%2Fvasar-plugins-marketplace%2Fmain%2Fknowledge%2Fkb%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version) | Wiring for a personal knowledge base kept in git. Hooks sync the knowledge base, print its indexes, guard note writes, approve read-only commands, and brief subagents. Skills capture a solved problem and close a task. It needs a local clone of the knowledge base. |
 
 ## Installing the marketplace
 
@@ -24,8 +24,6 @@ To add the marketplace with a command, run:
 ```text
 /plugin marketplace add https://github.com/Vasar007/vasar-plugins-marketplace
 ```
-
-> The repository is private. Before Claude Code can clone it, configure a GitHub credential helper locally. You can use the SSH URL `git@github.com:Vasar007/vasar-plugins-marketplace.git` instead. For the requirements of each method, see [Add a private marketplace](https://code.claude.com/docs/en/plugins/install#add-a-private-marketplace).
 
 To add the marketplace in `.claude/settings.local.json`, use this configuration:
 
@@ -109,7 +107,7 @@ This is the `.claude/settings.local.json` configuration with automatic updates:
 
 With automatic updates, Claude Code refreshes the marketplace in the background some minutes after your first message in a session. It updates the plugins on disk, but the running session keeps the old versions. To load the new versions, run `/reload-plugins` or start a new session.
 
-The background update does not ask for credentials. The repository is private, so the update works only with a stored git credential or with an SSH key in `ssh-agent`. The pages [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) and [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) give the details.
+The page [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) gives the details. The page [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) gives the timing.
 
 ## Working across sessions
 
