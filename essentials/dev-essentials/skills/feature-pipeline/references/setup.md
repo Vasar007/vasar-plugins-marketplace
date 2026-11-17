@@ -25,7 +25,7 @@ Required fields. Resolve them before the rest of Step 0, from the file, from `CL
 
 - Worktree: the branch-name template and its allowed variables (only without `--no-worktree`)
 - Repository: the repository type (git), the base branch, and the solution or root path
-- Commands: build, test, push, and PR. For an MCP PR tool, the PR creation entry also names the repository of the PR. A Task Provider on the same MCP server can name it instead. The lint and pre-build commands are optional.
+- Commands: build, test, push, and PR. For an MCP PR tool, the PR creation entry also names the repository of the PR. A Task Provider on the same MCP server can name it instead. If the push goes to a fork, the PR creation entry can also name the owner of the fork. This part is optional, so Step 0 does not ask for it. The lint and pre-build commands are optional.
 - Key Conventions: the rules of the project that the agents must follow
 
 Optional fields. They do not block the pipeline:
