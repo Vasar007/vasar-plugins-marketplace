@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
+
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
 This release fixes the trigger case `compose-task-fires`, which failed in about one run of three. The skill text does not change.
