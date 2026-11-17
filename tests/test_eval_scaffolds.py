@@ -1427,6 +1427,13 @@ class RirrSquashGraderTests(FixtureCase):
         self.assertFalse(self.passes(workspace))
         self.assertFalse(self.passes(workspace, self.outcome))
 
+    def test_a_commit_after_a_checkout_of_main_fails(self):
+        workspace, _, _ = self.task()
+        self.run_git(workspace, "checkout", "-q", "main")
+        self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "A commit on main")
+        self.assertFalse(self.passes(workspace))
+        self.assertFalse(self.passes(workspace, self.outcome))
+
 
 if __name__ == "__main__":
     unittest.main()
