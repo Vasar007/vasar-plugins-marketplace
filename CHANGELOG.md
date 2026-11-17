@@ -27,6 +27,7 @@ This release makes the eval case `rl-off-by-one` of `review-loop` stable. The sk
 - `README.md`: has a new order. The install steps come first, then the plugin table. New sections follow: "Try it", "Requirements", "Safety", a documentation map, and "License". The update section is short now. The map replaces the sections "Working across sessions" and "References". The update text no longer says that `/plugin marketplace update` updates the installed plugins, because the official docs do not say that. The list of official docs moved to `docs/installing.md`, so the README has fewer words than before (issue #234).
 - `docs/installing.md`: a new page with the shell form of the install, the configuration files, and the steps for updates. It also has the automatic updates and the list of official docs. It holds the text that moved out of the README (issue #234).
 - `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
+- `CLAUDE.md`: the paragraph "How users receive updates" names the update ways of the official docs. They are "Update marketplace" in the `/plugin` panel, `claude plugin update`, and automatic updates. The paragraph no longer says that `/plugin marketplace update` updates the installed plugins. It points to `docs/installing.md` for the details (issue #240).
 
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
 
