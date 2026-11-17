@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `docs/authoring.md`: the section "Conventions" states that a Python script reads its arguments with `argparse`, and it names the one exception (issue #220).
+
 ## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
 
 This release makes the skills `compose-pr` and `compose-task`, and the guide part of `create-documentation`, shorter. Each rule keeps one home, and the skills do the same work. A new eval case tests the guide flow.
