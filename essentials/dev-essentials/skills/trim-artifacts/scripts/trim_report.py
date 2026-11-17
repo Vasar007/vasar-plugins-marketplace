@@ -516,7 +516,7 @@ def apply_plan(args):
                       "Fix the cause, then run apply again. It skips each file that is done.", 4)
     acted += [f"DONE BEFORE {path}" for path in done]
     acted = [f"KEPT {path}: this batch keeps it, so its --delete flag does nothing"
-             for path in sorted(args.deletions) if target.get(path) == orig[path]] + acted
+             for path in sorted(args.deletions) if path in target] + acted
     counts = Counter(action[0] for action in actions)
     folders = sum(1 for line in acted if line.startswith("REMOVED FOLDER "))
     after = load_tree(args.after, args.glob)

@@ -94,7 +94,7 @@ The script refuses a `--before` path that equals, contains, or sits inside the `
 Then tell the user the path and the size of the backup in one short sentence. For example, get the size with `du -sh BACKUP`.
 If a second backup exists, list every backup in that sentence.
 Record the path and the size in the progress file and the results file.
-If you run a second pass, or a batch plans again after exit code 3 of step 6, first take a second backup.
+If you run a second pass, first take a second backup. If a workspace file changed after the plan of a batch (exit code 3 of step 6), take one also before the batch plans again.
 Deleting a backup is the last step, and it needs the user's approval.
 
 ### 3. Batch the files

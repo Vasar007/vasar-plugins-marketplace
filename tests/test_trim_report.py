@@ -60,6 +60,18 @@ class SizeTableTests(TrimReportCase):
         self.assertNotIn("deep.md", result.stdout)
         self.assertNotIn("skip.txt", result.stdout)
 
+    def test_the_report_form_keeps_the_encoding_of_its_stream(self):
+        # Only apply writes UTF-8. A Latin-1 stream escapes the other letters, as on main.
+        latin = ("import io, runpy, sys\n"
+                 "sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='latin-1')\n"
+                 "sys.argv = sys.argv[1:]\n"
+                 "runpy.run_path(sys.argv[0], run_name='__main__')\n")
+        name = "\u0437\u0430\u043c.md"
+        self.tree(self.before, {name: "a\n"})
+        self.tree(self.after, {name: "a\n"})
+        result = run([sys.executable, "-I", "-c", latin, SCRIPT, "--before", self.before, "--after", self.after])
+        self.assertResult(result, 0, "| \\u0437\\u0430\\u043c.md | 2 | 2 | 100 |")
+
 
 class IdTests(TrimReportCase):
     def test_lost_id_fails(self):
@@ -361,6 +373,11 @@ class ApplyTests(ApplyCase):
                           "RESULT: PASS")
         self.assertTrue((self.after / "notes/keep.md").exists())
 
+    def test_a_delete_flag_for_a_file_that_the_plan_changes_prints_a_kept_line(self):
+        result = self.apply("--delete", "notes/a.md")
+        self.assertResult(result, 0, "KEPT notes/a.md: this batch keeps it, so its --delete flag does nothing",
+                          "CHANGED notes/a.md")
+
     def test_a_batch_planned_again_applies_with_a_second_backup(self):
         self.assertEqual(self.apply().returncode, 0)
         orig2, target2, backup2 = (self.tmp / "scratch2" / name for name in ("orig", "target", "backup"))
@@ -598,6 +615,7 @@ class ApplyOutputTests(ApplyCase):
         lines = result.stdout.splitlines()
         self.assertEqual(len(lines), 102, result.stdout)
         self.assertTrue(lines[100].startswith("CUT: "), lines[100])
+        self.assertIn("the whole integrity report and the whole size table", lines[100])
         self.assertEqual(lines[-1], "RESULT: FAIL")
         self.assertIn("- Missing: REQ-3", result.stdout, "a failed check must come before the file list")
         self.assertLessEqual(max(len(line) for line in lines), 250 + len(" ..."))
