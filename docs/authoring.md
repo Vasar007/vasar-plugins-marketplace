@@ -30,6 +30,7 @@ Keep `plugin.json` to metadata and dependencies: `name`, `version`, `description
 - Each agent has one `.md` file under `agents/`.
 - Each command has one `.md` file under `commands/`. The file name equals the slash-command name.
 - A skill must declare stack-specific assumptions (for example .NET or PowerShell) explicitly inside the skill. Do not imply them across files.
+- A Python script reads its command-line arguments with `argparse`, so that each script has `--help` and the same error form. The one exception is `tests/evals/stubs/simple-english/evals/ste_lint.py`. It is a byte copy of the linter of the simple-english repository, and it changes there first.
 
 ## Validating
 

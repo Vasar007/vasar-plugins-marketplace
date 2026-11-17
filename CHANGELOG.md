@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
+## dev-essentials 3.19.0 in release [4.16.0] - 2026-11-17
 
 This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a script with unit tests. The dry run stays the default, and the apply run still needs an explicit yes of the user (issue #223).
 
@@ -26,6 +26,36 @@ This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a 
 - `tests/test_merge_projects.py`: new tests for the script on a fixture tree, on Linux and Windows (issue #223).
 - `.github/workflows/tests.yml`: the job `test-windows` also runs `test_merge_projects` (issue #223).
 - `docs/testing.md`: names the tests of the script (issue #223).
+
+## dev-essentials 3.17.4 in release [4.14.4] - 2026-11-17
+
+This release moves the cache tip of `process-pr-comments` into the documentation.
+
+### Added in the repository
+
+- `docs/workflows.md` and its link in `README.md`: the page covers the choice between one session and a new one. It gives the cost numbers of the study of issue #184 (issue #224).
+
+### Changed in the repository
+
+- `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
+
+### Removed in dev-essentials
+
+- `skills/process-pr-comments`: the tip about the prompt cache is gone from Phase 5. Probe runs with a long history printed the tip in 0 of 4 runs. The guidance is now in `docs/workflows.md` (issue #224).
+
+## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
+
+This release fixes the trigger case `compose-task-fires`, which failed in about one run of three. The skill text does not change.
+
+### Fixed in dev-essentials
+
+- `evals/triggers/compose-task-fires`: the prompt asks for the task description in chat and for no file. Before, the prompt selected the default mode of the skill. This mode writes a draft file, and a trigger run has no tool that writes a file. So in 4 of 12 kept runs, the session started the wrapper agent `task-composer` to write the file, and the grader `task-composer-not-fired` failed. The graders do not change, and the grader on the wrapper agent still counts in the score (issue #217).
+- `evals/triggers/compose-task-draft-fires`: the new case sends the plain request for a task description, which selects the default mode. It has no grader on the wrapper agent `task-composer`. Kept runs show that a run can start an agent also with no `Agent` in `allowed_tools`. It has the two graders of `compose-task-fires` on the skills (issue #217).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `ComposeTaskFiresCaseTests` makes sure that the prompt of `compose-task-fires` uses two phrases of the skill for `mode: response`. It also makes sure that the case keeps the tool `Agent` and lists no tool that writes a file. It gives right and wrong samples to the graders on the skill and on the wrapper agent. The new class `ComposeTaskDraftFiresCaseTests` makes sure that the prompt of `compose-task-draft-fires` has the trigger words and no phrase of the skill for another mode. It also makes sure that the case lists no `Agent` tool and no tool that writes a file. Its graders must be the two graders of `compose-task-fires` on the skills (issue #217).
+- `docs/authoring.md`: the section "Conventions" states that a Python script reads its arguments with `argparse`, and it names the one exception (issue #220).
 
 ## dev-essentials 3.17.1 in release [4.14.1] - 2026-11-17
 
@@ -1767,8 +1797,10 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
-[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.17.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...HEAD
+[4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.16.0
+[4.14.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.2...v4.14.4
+[4.14.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0

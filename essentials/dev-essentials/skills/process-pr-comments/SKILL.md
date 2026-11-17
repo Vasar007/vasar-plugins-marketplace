@@ -266,12 +266,6 @@ After each cycle, print the cycle log of [references/thread-state-schema.md](ref
   - An automated-review fix that adds a new architecture or a new public contract.
 
   Use this form: `T#<commentId> <file>:<line>: <the decision>. Reason: <one line>.` A cycle with no such decision has no list.
-- If this session did long work before this skill, add this tip to the first cycle log. The build of the PR is an example of such work. Put the tip before the line about the push state. The skill cannot see the cache, so the user decides. Do not stop for the tip, and ask no question.
-
-  ```text
-  Tip: if the next review round comes after a long pause, the prompt cache of this session is cold, and a new session costs less. In the terminal, /usage shows the cache state. Run /dev-essentials:save-context now, and the new session of this skill reads that file.
-  ```
-
 - A thread whose reply did not post shows `reply pending` or `draft pending`, and the log prints the text of the reply. The reply missed its batch (see Rules), or it is a `[Question]` draft with no `yes` yet. A thread whose reply posted but whose push failed shows `reply posted, pending push`. A thread with a fix stays open until the push lands (see Phase 4).
 - On a `deep-fix` cycle, see [references/deep-fix.md](references/deep-fix.md) for the rows.
 
