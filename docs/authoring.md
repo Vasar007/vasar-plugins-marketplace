@@ -45,7 +45,7 @@ Run the second command for each plugin that you changed. The run on the reposito
 
 ## Rules of the claude.ai sync
 
-The owner syncs this marketplace into a claude.ai organization. The sync reads the `main` branch. The sync has rules that `claude plugin validate` does not check, and its docs do not list all of them. This list names each rule that a sync or the docs showed so far. `tests/test_claude_ai_sync.py` tests each rule except the name rule and the last one. `tests/test_plugin_cli.py` tests the name rule with `claude plugin validate --strict`:
+The owner adds this marketplace to claude.ai with "Add marketplace". The sync reads the `main` branch. The sync has rules that `claude plugin validate` does not check, and its docs do not list all of them. This list names each rule that a sync or the docs showed so far. `tests/test_claude_ai_sync.py` tests each rule except the name rule and the last one. `tests/test_plugin_cli.py` tests the name rule with `claude plugin validate --strict`:
 
 - `plugin.json` uses only the keys that a sync took with no warning. The sync stripped `$schema` and `icon` and warned, although the manifest reference documents both keys. No source lists the keys that the sync takes. So any other key can get the same warning until a sync takes it.
 - `marketplace.json` and its plugin entries use only the keys that a sync took with no warning.
@@ -54,9 +54,9 @@ The owner syncs this marketplace into a claude.ai organization. The sync reads t
 - A plugin folder has no top-level `bin/` folder. claude.ai rejects such a plugin. See [Keep executables out of the top-level bin directory](https://claude.com/docs/plugins/org-sync#keep-executables-out-of-the-top-level-bin-directory).
 - Each plugin `source` in `marketplace.json` starts with `./`. Claude Code also accepts a bare name under `metadata.pluginRoot`, but the sync rejects it. See [Plugin sources that organization sync accepts](https://claude.com/docs/plugins/org-sync#plugin-sources-that-organization-sync-accepts).
 - The `name` in each `plugin.json` is kebab-case: lowercase letters, digits, and hyphens. The sync requires that form. See [Marketplace validation errors](https://code.claude.com/docs/en/plugins/troubleshooting#marketplace-validation-errors).
-- The repository stays private on GitHub. If it becomes public, the sync no longer takes the marketplace. See [Plugin sources that organization sync accepts](https://claude.com/docs/plugins/org-sync#plugin-sources-that-organization-sync-accepts).
+- The owner adds the marketplace with "Add marketplace", and that way takes a public GitHub repository. See [Find and add a plugin](https://claude.com/docs/plugins/overview#find-and-add-a-plugin). The organization sync of a Team or Enterprise plan is a different way: it needs a private or internal repository on github.com. See [Plugin sources that organization sync accepts](https://claude.com/docs/plugins/org-sync#plugin-sources-that-organization-sync-accepts).
 
-To add a key to `plugin.json` or `marketplace.json`, add it to the key lists at the top of `tests/test_claude_ai_sync.py` in the same PR. Name the new key in the PR description, so that the owner reads the sync result after the merge. The result is in claude.ai, on the page of the marketplace under Organization settings, Plugins & skills, Marketplaces. If a sync shows a warning that no test knew, open an issue with the exact text of the warning. The PR that fixes it adds a test for the rule and a line to this list.
+To add a key to `plugin.json` or `marketplace.json`, add it to the key lists at the top of `tests/test_claude_ai_sync.py` in the same PR. Name the new key in the PR description, so that the owner reads the sync result after the merge. The result is in claude.ai. Open Settings, then Customize, then Plugins, and select "Manage marketplaces". The entry of the marketplace shows the sync state, the synced commit, and each notice. If a sync shows a warning that no test knew, open an issue with the exact text of the warning. The PR that fixes it adds a test for the rule and a line to this list.
 
 The sync page can also show this notice for a plugin:
 

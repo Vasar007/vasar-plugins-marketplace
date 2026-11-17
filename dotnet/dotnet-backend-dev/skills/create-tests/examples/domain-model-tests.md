@@ -17,7 +17,7 @@ The code examples in this file use NUnit and FluentAssertions. With another test
 
 ## Base Class
 
-Location: `MyApp.OnlyForTests.Basic.Equality.BaseEqualityMemberTests<T>`
+Location: `MyApp.Testing.Basic.Equality.BaseEqualityMemberTests<T>`
 
 Type constraint: `where TValue : IEquatable<TValue>, IEqualityOperators<TValue, TValue, Boolean>`
 
@@ -76,7 +76,7 @@ protected virtual IEnumerable<Func<TValue, TValue>> GetValueMutatorsForEquality(
 using MyApp.Domain.Stores.Shipments;
 using MyApp.Tests.Common.Helpers.Generators.Stores;
 using MyApp.Tests.Common.Helpers.Generators.Shipping.Shipments;
-using MyApp.OnlyForTests.Basic.Equality;
+using MyApp.Testing.Basic.Equality;
 
 namespace MyApp.Domain.Tests.Stores.Shipments;
 
@@ -194,7 +194,7 @@ Override `GetValueMutatorsForEquality()` **only** for a model with fields that d
 
 using MyApp.Domain.Sales.Customers;
 using MyApp.Tests.Common.Helpers.Generators.Sales.Customers;
-using MyApp.OnlyForTests.Basic.Equality;
+using MyApp.Testing.Basic.Equality;
 
 namespace MyApp.Domain.Tests.Sales.Customers;
 

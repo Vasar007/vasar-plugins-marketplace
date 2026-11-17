@@ -32,6 +32,20 @@ This release lets the reviewer of `review-loop` write the fix plan of each findi
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. A new test makes sure that only its build fails and that `failure_check.py` gives `SAME-AT-PARENT` on it (issue #221).
 - `docs/evals.md`: the suite `review-loop` has 6 cases (issue #221).
 
+## dotnet-backend-dev 1.7.8 in release [4.16.1] - 2026-11-17
+
+This release prepares the repository for a public home. The README, the docs, and `CLAUDE.md` no longer call the repository private, and the examples of `dotnet-backend-dev` use a neutral namespace for the test helpers.
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`, `skills/create-primitive-wrapper`, and `skills/dotnet-conventions`: the example namespace of the shared test helpers is now `MyApp.Testing`, in 16 lines of 7 files. The templates do the same work. If a repository has another namespace for its test helpers, the skills follow the code of that repository, as before (issue #233).
+
+### Changed in the repository
+
+- `README.md`: removes the texts that call the repository private, the note on the git credential helper, and the sentence on credentials for the background update. The plugin table has a new column with the version badge of each plugin (issue #233).
+- `docs/authoring.md`: the sync section says that the owner adds the marketplace with "Add marketplace", and that this way takes a public repository. It names the organization sync of a Team or Enterprise plan as a different way, which needs a private or internal repository (issue #233).
+- `CLAUDE.md`: the first rule of "Repo conventions" says that the repository is public, and no longer uses the word "employer" (issue #233).
+
 ## dev-essentials 3.19.0 in release [4.16.0] - 2026-11-17
 
 This release turns Steps 1 to 5 of the command `merge-worktree-projects` into a script with unit tests. The dry run stays the default, and the apply run still needs an explicit yes of the user (issue #223).
@@ -1855,7 +1869,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
-[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.17.0
+[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
+[4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...v4.15.0
 [4.14.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.14.5
