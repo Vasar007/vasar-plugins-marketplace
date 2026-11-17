@@ -105,7 +105,7 @@ Write, refactor, or extend tests for one or more targets. If the run has one tar
 
 ## One class in the main session
 
-The main session does the work of a `test-engineer` agent for the one target. Follow the extra instructions together with the conventions of the skill. A `.cs` file or a merged class target can hold more than one class. Then do steps 2 to 7 for each class, one class after another.
+The main session does the work of a `test-engineer` agent for the one target. Follow the extra instructions together with the conventions of the skill. A `.cs` file or a merged class target can hold more than one class. Then do steps 2 to 7 for each class, one class after another. Read each example file of step 4 one time for the run. If an example is no longer in your context, read it again.
 
 1. Load the `dotnet-backend-dev:create-tests` skill with the Skill tool. The agent gets this skill preloaded, so the main session loads it first. If the Skill call fails, stop and report the error.
 2. Read the source class. Find its test type in the example table of the skill. Search the test projects for an existing test file of the class. If the target is in a test project, the mode is a refactor.
