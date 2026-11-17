@@ -34,8 +34,6 @@ This release makes the skills `compose-pr` and `compose-task`, and the guide par
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case (issue #213).
 - `docs/evals.md`: the suite `composers` has 4 cases (issue #213).
 
-## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-16
-
 ## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-17
 
 This release lets `process-pr-comments` read the hand-off file of the earlier work on the PR branch. A new session then keeps the decisions that the user made in the build session (issue #199). The release also fixes five deferred review findings on the text of the skill (issue #187).
@@ -1753,7 +1751,6 @@ This release ported and generalized several skills, commands, and rule additions
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.1...HEAD
 [4.14.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...v4.14.1
-[4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.14.0
 [4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
