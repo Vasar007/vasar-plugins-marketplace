@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.20.1 in release [4.17.1] - 2026-11-17
 
-This release makes the eval case `rl-off-by-one` of `review-loop` stable. The skill text does not change. With the stable case, `rl-off-by-one` scores `<base mean>` at the commit before release 4.17.0 and `<head mean>` at the head, over 7 runs on each side. So the change of release 4.17.0 holds.
+This release makes the eval case `rl-off-by-one` of `review-loop` stable. The skill text does not change. With the stable case, `rl-off-by-one` scores 1.00 at the commit before release 4.17.0 and 1.00 at the head, over 7 runs on each side. No run stopped with a question. So the change of release 4.17.0 holds.
 
 ### Fixed in dev-essentials
 
