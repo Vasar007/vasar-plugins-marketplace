@@ -3374,17 +3374,6 @@ class FailingBuildGraderTests(unittest.TestCase):
             with self.subTest(run=name):
                 self.assertFalse(self.passes("check-ran", json.dumps({"command": command})))
 
-    def test_same_at_parent_needs_the_verdict_line_of_a_run(self):
-        verdict = trace_result("RUN parent abc: exit 1\nVERDICT: SAME-AT-PARENT\nREASON: the command fails at both commits")
-        self.assertTrue(self.passes("same-at-parent", verdict))
-        for name, text in {
-            "the help text": trace_result("  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code"),
-            "another verdict": trace_result("VERDICT: OTHER\nREASON: the command fails at both commits, but"),
-            "a regression": trace_result("VERDICT: REGRESSION\nREASON: the command fails at the fix commit"),
-        }.items():
-            with self.subTest(run=name):
-                self.assertFalse(self.passes("same-at-parent", text))
-
     def test_stop_blocked_and_build_reported_read_the_final_message(self):
         final = "Stop verdict: stop-blocked\nThe build command `python3 tools/build_docs.py` fails at the fix commit and at its parent."
         self.assertTrue(self.passes("stop-blocked", final))

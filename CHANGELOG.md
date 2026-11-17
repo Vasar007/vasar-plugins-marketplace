@@ -22,7 +22,7 @@ This release lets the reviewer of `review-loop` write the fix plan of each findi
 
 ### Added in dev-essentials
 
-- `evals/review-loop/rl-failing-build`: a new behavior case. The docs build of the repository already fails before the branch, because a sibling theme folder is missing. The graders make sure that the loop fixes the defect and commits. They make sure that it runs `failure_check.py` on the build command, reads the verdict `SAME-AT-PARENT`, and stops with `stop-blocked`. They also make sure that the build tool stays as it is and that nothing is pushed (issue #221).
+- `evals/review-loop/rl-failing-build`: a new behavior case. The docs build of the repository already fails before the branch, because a sibling theme folder is missing. The graders make sure that the loop fixes the defect and commits. They make sure that it runs `failure_check.py` on the build command and stops with `stop-blocked`. No grader reads the verdict of the script. In an eval run, the sandbox keeps `.git/worktrees` read-only, so the script cannot make its temporary worktree (issue #232). They also make sure that the build tool stays as it is and that nothing is pushed (issue #221).
 - `evals/review-loop`: the cases `rl-off-by-one`, `rl-null-guard`, and `rl-unbounded-query` get three route graders. They show whether a subagent edited a file. They show whether the reviewer brief asks for a fix plan. They also count the dispatches on the reviewer model (issue #221).
 
 ### Changed in the repository
