@@ -30,7 +30,7 @@ This release makes the skills `compose-pr` and `compose-task`, and the guide par
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new samples for the regex graders of `cmp-guide-draft`. A new test makes sure that each composer case counts its wrapper agent with `min: 0` and `max: 0` (issue #213).
+- `tests/test_eval_cases.py`: new samples for the regex graders of `cmp-guide-draft`. A new test makes sure that each composer case counts its wrapper agent with `min: 0` and `max: 0`. One more test makes sure that the route grader of the guide case names the skill. Another one makes sure that the file graders of the case read `docs/drafts/run-tests-locally.md` (issue #213).
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case (issue #213).
 - `docs/evals.md`: the suite `composers` has 4 cases (issue #213).
 

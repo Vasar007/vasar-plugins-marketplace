@@ -3007,7 +3007,7 @@ class ComposerGraderTests(unittest.TestCase):
                 self.assertEqual(graders[name][0]["target"], {"source": "file", "path": draft})
         self.assertEqual(graders["reported-path"][0]["target"], "last_message")
 
-    def test_guide_structure_needs_a_title_first_and_a_section(self):
+    def test_guide_structure_needs_a_title_first_and_a_section_or_steps(self):
         self.check("cmp-guide-draft", "structure", {
             "right guide": (self.GUIDE, True),
             "a blank line first": ("\n" + self.GUIDE, True),
@@ -3015,7 +3015,8 @@ class ComposerGraderTests(unittest.TestCase):
             "a line before the title": ("Draft\n" + self.GUIDE, False),
             "no section": ("# Run the tests\n\nRun `python3 -m unittest discover -s tests`.\n", False),
             "a subsection only": ("# Run the tests\n\nShort.\n\n### Steps\n\n1. Run it.\n", False),
-            "known limit: a flat guide with steps and no H2": ("# Run the tests\n\nShort.\n\n1. Run it.\n2. Read it.\n", False),
+            "a flat guide with steps and no H2": ("# Run the tests\n\nShort.\n\n1. Run it.\n2. Read it.\n", True),
+            "steps under a subsection only": ("# Run the tests\n\nShort.\n\n1. Run it.\n\n### More\n\n2. Read it.\n", False),
         })
 
     def test_guide_intro_needs_text_after_the_title(self):
@@ -3025,6 +3026,7 @@ class ComposerGraderTests(unittest.TestCase):
             "a bold start": ("# Run the tests\n\n**New developers** can run the tests locally.\n", True),
             "an italic start": ("# Run the tests\n\n_This guide_ shows the test run.\n", True),
             "a star bullet": ("# Run the tests\n\n* Python 3.11\n", False),
+            "a thematic break": ("# Run the tests\n\n***\n\n1. Run it.\n", False),
             "a section right after the title": ("# Run the tests\n\n## Steps\n\n1. Run it.\n", False),
             "a numbered list right after the title": ("# Run the tests\n\n1. Run it.\n", False),
             "a bullet right after the title": ("# Run the tests\n\n- Python 3.11\n", False),
@@ -3068,6 +3070,7 @@ class ComposerGraderTests(unittest.TestCase):
             "the root folder on the second quote line": ("> **Warning:** Run the command in the\n> root folder.\n", True),
             "an empty line in the quote": ("> **Note:** Mind the folder.\n>\n> Use the root folder.\n", True),
             "top-level folder": ("> Run it in the top-level folder of the repository.\n", True),
+            "top level folder": ("> Run it in the top level folder of the repository.\n", True),
             "Root in upper case": ("> Run it in the Root folder.\n", True),
             "a greater-than sign inside a line": ("Use a > b in the root folder.\n", False),
             "a quote about another thing": ("> You need Python 3.11.\n\nRun it in the root folder.\n", False),
@@ -3081,6 +3084,8 @@ class ComposerGraderTests(unittest.TestCase):
             "the folder first": ("The repository keeps drafts in `docs/drafts/`, so I created `run-tests-locally.md` there.", True),
             "the name only": ("Created `run-tests-locally.md`.", False),
             "the name and the default folder": ("Created `run-tests-locally.md` in `Notes/Docs/`.", False),
+            "the name and the folder on two lines": ("Created the guide `run-tests-locally.md`.\n\nFolder: `docs/drafts/`", True),
+            "a folder name that ends in docs/drafts": ("Created `run-tests-locally.md` in `userdocs/drafts/`.", False),
         })
 
 
