@@ -703,6 +703,41 @@ class DotnetWarmTests(FixtureCase):
                 self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
 
+class DotnetNodeReuseTests(FixtureCase):
+    """Each dotnet command of dotnet_warm turns off the reuse of MSBuild nodes (issue 250)."""
+
+    FAKE_DOTNET_ARGUMENTS = """#!/usr/bin/env bash
+# A fake dotnet that logs the arguments of each call on one line.
+echo "$*" >>"$FAKE_DOTNET_LOG"
+"""
+
+    def test_every_dotnet_command_of_dotnet_warm_turns_off_node_reuse(self):
+        if shutil.which("flock") is None:
+            tool_missing(self, "flock not found")
+        folder = self.tmp / "bin"
+        folder.mkdir()
+        (folder / "dotnet").write_bytes(self.FAKE_DOTNET_ARGUMENTS.encode("utf-8"))
+        (folder / "dotnet").chmod(0o755)
+        log = self.tmp / "dotnet.log"
+        temp = self.tmp / "temp"
+        temp.mkdir()
+        env = self.environment(skip_dotnet=False)
+        env.update({
+            "TMPDIR": temp.as_posix(),
+            "PATH": f"{folder.as_posix()}{os.pathsep}{env['PATH']}",
+            "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
+            "FAKE_DOTNET_LOG": log.as_posix(),
+        })
+        library = REPO / "essentials" / "dev-essentials" / "evals" / "_lib" / "dotnet-fixture.sh"
+        done = run([self.bash, "-c", f'source "{library.as_posix()}"\ndotnet_warm Fake.sln NUnit@5.0.0'],
+                   env=env, cwd=self.tmp, timeout=SCAFFOLD_SECONDS)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        calls = log.read_text(encoding="utf-8").splitlines()
+        self.assertEqual([call.split()[0] for call in calls], ["restore", "restore", "restore", "build"])
+        self.assertEqual([call for call in calls if "-nodeReuse:false" not in call.split()], [],
+                         "a dotnet command can reuse an MSBuild node of an earlier run")
+
+
 class LibraryTests(FixtureCase):
     """The fixture functions that no probe uses yet."""
 
