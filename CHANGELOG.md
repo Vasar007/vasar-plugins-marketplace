@@ -29,7 +29,7 @@ This release lets Stage 9 of `feature-pipeline` open a PR from a fork with an MC
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: the new class `ForkHeadMockTests` makes sure that the PR mock of `fp-e2-untracked-file` expects the bare branch. It also makes sure that the PR mock of `fp-e2-fork-pr` expects `<fork owner>:<branch>`, and that Step 6 and the template name the fork owner. `RoutePlainDotnetGraderTests` counts 12 graders `route-plain-dotnet` (issue #225).
-- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. Each scaffold run also makes sure that the head of the PR mock matches the project context of the scaffold. The new class `PrHeadTests` gives samples for this rule (issue #225).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. Each scaffold run also makes sure that the head, the owner, and the repository of the PR mock match the project context of the scaffold. The new class `PrHeadTests` gives samples for these rules (issue #225).
 - `docs/evals.md`: the suite `feature-pipeline` has 10 cases (issue #225).
 
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17

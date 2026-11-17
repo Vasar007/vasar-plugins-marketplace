@@ -64,8 +64,8 @@ BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
 # The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
 FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
-# The repository of the PR in the PR creation entry. Step 6 takes owner and repo from it.
-PR_REPO = re.compile(r"^- \*\*PR creation:\*\* .*? for `([^/`]+)/([^`]+)`", re.MULTILINE)
+# The repository of the PR: the first backticked owner/repo after the tool in the PR creation entry. Step 6 takes owner and repo from it.
+PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]+)`", re.MULTILINE)
 # Without that part, Step 6 takes owner and repo from the Task Provider.
 PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
@@ -259,6 +259,7 @@ class PrHeadTests(unittest.TestCase):
             "the entry names another repository": (provider + self.ENTRY.replace("inventory", "stock"), expect, False),
             "no repository in the entry, the Task Provider": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request`", expect, True),
             "no repository in the entry, another Task Provider": (provider.replace("inventory", "stock") + "- **PR creation:** `gh pr create`", expect, False),
+            "the entry names another repository in other words": (provider + "- **PR creation:** `mcp__plugin_github_github__create_pull_request` for the repository `example-org/stock`", expect, False),
             "another owner": (provider + self.ENTRY, {"owner": "other", "repo": "inventory"}, False),
             "no repository in the context": ("- **PR creation:** `gh pr create`", expect, True),
             "no owner in the mock": (provider + self.ENTRY.replace("inventory", "stock"), {"head": "work/a"}, True),
@@ -481,7 +482,7 @@ class ScaffoldTests(FixtureCase):
                          f"the head SHA in {mock.name} is not the commit of {ref}")
 
     def check_pr_head(self, case, repo, branch):
-        """The head in the expect block of the PR mock must be the head that the project context of the scaffold gives."""
+        """The head, the owner, and the repo in the expect block of the PR mock must be the values that the project context of the scaffold gives."""
         mock = case.path / "mocks" / "github" / "create_pull_request.md"
         context = repo / ".claude" / "feature-pipeline-context.md"
         if not mock.is_file() or not context.is_file():
