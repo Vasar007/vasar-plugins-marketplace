@@ -8,6 +8,7 @@ An empty global git configuration and no system configuration keep the settings 
 import json
 import os
 import shutil
+import stat
 import sys
 import unittest
 from unittest import mock
@@ -60,6 +61,15 @@ def branch_release(plugins, bullets=("the change of the branch",), extra=None):
              + links(("4.22.1", "4.22.0"), ("4.22.0", "4.21.0"))}
     files.update(extra or {})
     return files
+
+
+MANIFEST = f"{DOTNET}/.claude-plugin/plugin.json"
+RELEASE = ("release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.22.2")
+TOP = "## [Unreleased]\n\n"
+
+
+def described(version, description):
+    return json.dumps({"name": "dotnet-backend-dev", "version": version, "description": description}, indent=2) + "\n"
 
 
 class MergeCase(ScratchCase):
@@ -260,6 +270,191 @@ class ReleaseTests(MergeCase):
                         code=2)
         self.assertIn("RESULT ERROR. git merge-base", out)
 
+    def test_other_lines_of_plugin_json_of_the_branch_stay(self):
+        ours = described("1.8.1", "A new text.")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", extra={MANIFEST: ours}))
+        self.tool(clone, *RELEASE)
+        self.assertEqual(self.text(clone, MANIFEST), ours)
+
+    def test_other_lines_of_plugin_json_of_main_stay(self):
+        main = dict(MAIN_RELEASE)
+        main[MANIFEST] = described("1.8.0", "A text of main.")
+        branch = branch_release("dotnet-backend-dev 1.8.1", extra={MANIFEST: manifest("dotnet-backend-dev", "1.8.1")})
+        clone = self.merge(branch, main=main)
+        self.tool(clone, *RELEASE)
+        self.assertEqual(self.text(clone, MANIFEST), described("1.8.1", "A text of main."))
+
+    def test_plugin_json_with_other_changes_on_both_sides_refuses(self):
+        main = dict(MAIN_RELEASE)
+        main[MANIFEST] = described("1.8.0", "A text of main.")
+        branch = branch_release("dotnet-backend-dev 1.8.1", extra={MANIFEST: described("1.8.1", "A text of the branch.")})
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("both sides changed lines other than the version", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_bullet_under_two_headings_of_main_is_absorbed_twice(self):
+        block = "### Changed in dev-essentials\n\n- no `icon` key\n\n### Changed in kb\n\n- no `icon` key\n\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + block)
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), main=main)
+        self.tool(clone, *RELEASE, "--absorb-unreleased")
+        self.assertIn("- the change of the branch\n\n" + block + "## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
+
+    def test_absorbed_bullet_keeps_its_indented_lines(self):
+        nested = "- the parent entry:\n  - the first child\n  - the second child\n"
+        block = "### Changed in the repository\n\n" + nested + "\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + block)
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + block)
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the change of the branch\n",
+                                                                nested + "- the change of the branch\n")
+        clone = self.merge(branch, main=main, base=base)
+        self.tool(clone, *RELEASE, "--absorb-unreleased")
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n" + nested + "\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_no_merge_in_progress_refuses_and_keeps_a_local_edit(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        self.git(clone, "merge", "--abort")
+        path = clone / "CHANGELOG.md"
+        path.write_bytes(path.read_bytes() + b"A local edit.\n")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("no merge is in progress", out)
+        self.assertTrue(self.text(clone, "CHANGELOG.md").endswith("A local edit.\n"))
+
+    def test_theirs_that_is_not_the_merged_commit_refuses(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        before = self.text(clone, "CHANGELOG.md")
+        base = self.git(clone, "merge-base", "HEAD", "origin/main").stdout.strip()
+        out = self.tool(clone, *RELEASE, "--theirs", base, code=3)
+        self.assertIn("the merge in progress takes in", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_versions_compare_as_numbers(self):
+        main = dict(MAIN_RELEASE)
+        main[f"{DEV}/.claude-plugin/plugin.json"] = manifest("dev-essentials", "3.9.0")
+        clone = self.merge(branch_release("dev-essentials 3.10.0"), main=main)
+        self.tool(clone, "release", "--bump", f"{DEV}=3.10.0", "--release", "4.22.2")
+        self.assertEqual(self.version(clone, DEV), "3.10.0")
+
+    def test_release_number_of_the_branch_that_main_does_not_have(self):
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["CHANGELOG.md"] = (INTRO + section("dotnet-backend-dev 1.8.1", "4.23.0", ["the change of the branch"]) + OLD
+                                  + links(("4.23.0", "4.22.0"), ("4.22.0", "4.21.0")))
+        clone = self.merge(branch)
+        self.tool(clone, "release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.23.0")
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertIn(f"[Unreleased]: {URL}v4.23.0...HEAD\n[4.23.0]: {URL}v4.22.1...v4.23.0\n[4.22.1]: ", text)
+        self.assertNotIn(f"{URL}v4.22.0...v4.23.0", text)
+
+    def test_link_line_of_the_release_that_exists_refuses(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(f"[Unreleased]: {URL}v4.22.1...HEAD",
+                                                            f"[Unreleased]: {URL}v4.22.0...HEAD")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), main=main)
+        out = self.tool(clone, "release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.22.1", code=3)
+        self.assertIn("the link line of release 4.22.1 already exists", out)
+
+    def test_changelog_of_main_with_no_unreleased_heading_refuses(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, "")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), main=main)
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("the CHANGELOG.md of --theirs has 0 lines '## [Unreleased]', not 1", out)
+
+    def test_changelog_of_main_with_two_unreleased_headings_refuses(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + TOP)
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), main=main)
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("the CHANGELOG.md of --theirs has 2 lines '## [Unreleased]', not 1", out)
+
+    def test_entries_of_the_branch_under_unreleased_refuse(self):
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a late entry\n\n")
+        clone = self.merge(branch)
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("the branch has entries under [Unreleased]", out)
+
+    def test_branch_with_no_release_section_refuses(self):
+        clone = self.merge({"docs/notes.md": "# Notes\n\nThe first line.\nThe line of the branch.\n"})
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.25.0", "--release", "4.22.2", code=3)
+        self.assertIn("--theirs has the top section of the branch too", out)
+
+    def test_keep_both_file_with_a_marker_line_outside_a_conflict_refuses(self):
+        notes = "# Notes\n\n=======\n\nThe first line.\n"
+        base = dict(BASE, **{"docs/notes.md": notes})
+        main = dict(MAIN_RELEASE, **{"docs/notes.md": notes + "The line of main.\n"})
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["docs/notes.md"] = notes + "The line of the branch.\n"
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "docs/notes.md")
+        out = self.tool(clone, *RELEASE, "--keep-both", "docs/notes.md", code=3)
+        self.assertIn("notes.md: a conflict marker stays after the step", out)
+        self.assertEqual(self.text(clone, "docs/notes.md"), before)
+
+    def test_long_output_line_is_cut(self):
+        bullet = "a long bullet " + "x" * 300
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main", f"- the change of main\n- {bullet}")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", bullets=[bullet, "x"]), main=main)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - a long bullet " + "x" * 176 + " ... 124 more characters\n", out)
+
+    def test_bump_folder_with_backslashes(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        self.tool(clone, "release", "--bump", DOTNET.replace("/", "\\") + "=1.8.1", "--release", "4.22.2")
+        self.assertEqual(self.version(clone, DOTNET), "1.8.1")
+
+    def test_bullet_equal_to_a_bullet_of_an_old_section_stays(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", bullets=["the old change", "the change of the branch"]))
+        out = self.tool(clone, *RELEASE)
+        self.assertNotIn("DROPPED", out)
+        self.assertIn("### Changed in the repository\n\n- the old change\n- the change of the branch\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_file_that_cannot_be_written_fails_with_code_1(self):
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            self.skipTest("root writes a read-only file")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        os.chmod(clone / "CHANGELOG.md", stat.S_IREAD)
+        out = self.tool(clone, *RELEASE, code=1)
+        self.assertIn("RESULT ERROR. 1 of 2 files are written. Cannot write CHANGELOG.md", out)
+        os.chmod(clone / "CHANGELOG.md", stat.S_IREAD | stat.S_IWRITE)
+        self.tool(clone, *RELEASE)
+
+    def test_keep_both_file_that_is_missing_fails_with_code_2(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, "--keep-both", "docs/none.md", code=2)
+        self.assertIn("RESULT ERROR. cannot read the --keep-both file docs/none.md", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_keep_both_refusal_names_the_path_of_the_file(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
+        out = self.tool(clone, *RELEASE, "--keep-both", f"{DEV}/.claude-plugin/plugin.json", code=3)
+        self.assertIn(f"STOP {DEV}/.claude-plugin/plugin.json: no conflict", out)
+
+    def test_output_is_utf8_without_the_utf8_mode(self):
+        bullet = "a bullet \u2014 with \u0436 and \u4e2d"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main", f"- the change of main\n- {bullet}")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", bullets=[bullet, "x"]), main=main)
+        result = run([sys.executable, "-I", "-X", "utf8=0", SCRIPT, *RELEASE, "--repo", clone])
+        self.assertResult(result, 0, f"DROPPED - {bullet}")
+
+    def test_help_prints_the_exit_codes(self):
+        self.assertResult(run([sys.executable, "-I", SCRIPT, "--help"]), 0, "Exit codes:", "STOP")
+
+    def test_same_bump_folder_twice_is_a_usage_error(self):
+        result = run([sys.executable, "-I", SCRIPT, "release", "--bump", f"{DEV}=3.25.0", "--bump", f"{DEV}=3.26.0",
+                      "--release", "4.22.2"])
+        self.assertResult(result, 2, "give each --bump folder once")
+
 
 class UnreleasedTests(MergeCase):
     def branch(self, block):
@@ -287,6 +482,39 @@ class UnreleasedTests(MergeCase):
         clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
         out = self.tool(clone, "unreleased", code=3)
         self.assertIn("the branch has no entries under [Unreleased]", out)
+
+    def test_entry_that_main_moved_into_a_release_does_not_come_back(self):
+        block = "### Changed in the repository\n\n- an entry of the base\n\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + block)
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = (INTRO + "### Changed in the repository\n\n- a new entry of main\n\n"
+                                + section("dev-essentials 3.24.1", "4.22.1", ["the change of main", "an entry of the base"])
+                                + OLD + links(("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- an entry of the base\n",
+                                                               "- a test fix\n- an entry of the base\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.assertIn("<<<<<<< ", self.text(clone, "CHANGELOG.md"), "the merge must have a conflict")
+        self.tool(clone, "unreleased")
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertEqual(text.count("- an entry of the base\n"), 1, text)
+        self.assertIn(TOP + "### Changed in the repository\n\n- a new entry of main\n- a test fix\n\n## dev-essentials 3.24.1", text)
+
+    def test_same_bullet_under_two_headings_stays_twice(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in kb\n\n- an entry of main\n\n")
+        block = "### Changed in dev-essentials\n\n- no `icon` key\n\n### Changed in kb\n\n- no `icon` key\n\n"
+        clone = self.merge(self.branch(block), main=main)
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in kb\n\n- an entry of main\n- no `icon` key\n\n"
+                      "### Changed in dev-essentials\n\n- no `icon` key\n\n## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
+
+    def test_branch_with_entries_and_a_release_section_refuses(self):
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a late entry\n\n")
+        clone = self.merge(branch)
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("the branch adds a release section, so use the subcommand release", out)
 
 
 if __name__ == "__main__":
