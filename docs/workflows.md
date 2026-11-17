@@ -37,6 +37,6 @@ Start `/dev-essentials:feature-pipeline` in a new session. The pipeline reads it
 
 ## After a plugin update
 
-A running session keeps the plugin text that it loaded. After an update, start a new session for the next workflow skill. `/reload-plugins` loads the new text into the running session, but that session keeps a history from the old version. The page [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) says how updates work. The section "Updating the plugins" of the [README](../README.md#updating-the-plugins) says how to get the update.
+A running session keeps the plugin text that it loaded. After an update, start a new session for the next workflow skill. `/reload-plugins` loads the new text into the running session, but that session keeps a history from the old version. The page [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) says how updates work. The section [Update the plugins](./installing.md#update-the-plugins) says how to get the update.
 
 In the same runs, a session went on with a history from another plugin version. It did not start the skill in 10 of 12 runs. The cause is not known.
