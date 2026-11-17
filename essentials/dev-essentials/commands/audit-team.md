@@ -9,7 +9,7 @@ Review artifacts or designs from several professional points of view.
 - Format: `<path> [agent-count] [model]`
 - `path`: the file or folder to review (required). If it is not provided, use **AskUserQuestion** to ask.
 - `agent-count`: a whole number of 1 or more (optional). With a count, the run takes the team route. With no count, it takes the two-view route. See "Routes".
-- `model`: the model of the agents (optional, default: current model). If the second argument is not a whole number and names a model, it is the model, and the run takes the two-view route. For any other second argument, use **AskUserQuestion**. Example: `/audit-team docs/design.md opus`.
+- `model`: the model of the agents (optional, default: current model). If the second argument is not a whole number and names a model, it is the model, and the run takes the two-view route. For any other second argument, or for a third argument after a model, use **AskUserQuestion**. Example: `/audit-team docs/design.md opus`.
 
 If arguments are ambiguous or missing the path, use **AskUserQuestion** to clarify.
 
