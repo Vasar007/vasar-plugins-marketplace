@@ -313,6 +313,9 @@ Cycle 1 @ 09:03 — PR #42 (8 threads, 8 new comments) [dry-run]
   T#24 [Note]        README.md:3              → noted                       | no reply (dry-run)
   ...
 
+Open items (not asked under dry-run):
+  T#22 No issue found for T#22. Create issue "Add an index on the customer column"? (yes / edit / skip)
+
 Skipped (already processed this session): 0
 Next cycle in 15m (via /loop). Re-run without `dry-run` to act.
 ```

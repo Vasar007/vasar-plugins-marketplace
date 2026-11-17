@@ -9,6 +9,30 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.17.0 in release [4.14.0] - 2026-11-17
+
+This release lets `process-pr-comments` read the hand-off file of the earlier work on the PR branch. A new session then keeps the decisions that the user made in the build session (issue #199). The release also fixes five deferred review findings on the text of the skill (issue #187).
+
+### Added in dev-essentials
+
+- `skills/process-pr-comments`: Phase 1 step 7 reads the hand-off file of the earlier work on the PR branch. That is the file that the user names. Else, it is each file in `Results/` of the notes folder whose `Branch:` line names the head branch of the PR. `/dev-essentials:save-context` writes such files. A decision of the user is a decision that the file says the user made or approved. If a comment asks to reverse such a decision, the skill does not edit the code. It asks the user, with a draft reply that gives the reason of the decision (issue #199).
+- `skills/process-pr-comments`: the cycle log of Phase 5 can end with one tip. If the session did long work before the skill, the first cycle log carries it. The tip says that the prompt cache is cold after a long pause before the next review round. A new session with the file of `save-context` then costs less. In the terminal, `/usage` shows the cache state. The skill does not stop for the tip (issue #199).
+- `evals/process-pr-comments/ppc-build-context`: a new behavior case. A reviewer asks for a change that the user ruled out in the build session. The reason is only in the hand-off file of the scaffold, and the prompt does not name the file. The graders make sure that the run keeps the error and gives the reason of the user. They also make sure that the run makes no commit, no push, no reply, and no resolve (issue #199).
+
+### Fixed in dev-essentials
+
+- `skills/process-pr-comments`: the dispatch model no longer says that Rule 4 of `subagent-orchestration` covers only high-volume work. It says that Rule 4 also covers writes with iteration, but only by default. Rule 1 lets the skill make its writes in the session (issue #187).
+- `skills/process-pr-comments`: under `dry-run`, the session asks no open item of Stage 2. The dry-run report lists each open item with its question. Before, the run asked questions whose answers changed nothing (issue #187).
+- `skills/process-pr-comments`: the heading of the dispatch model says that the one dispatch is Stage 1 (issue #187).
+- `skills/process-pr-comments`: for a linked PR, the brief of the read-only subagent gives the number of that PR, with its owner and repo. It also gives the text of the comment that points to it (issue #187).
+- `skills/process-pr-comments/references/tag-actions.md`: the issue search of an `[OutOfScope]` thread passes `perPage: 10` and reads only the first page, which holds the best matches. The text names this as a departure from Rule 3 of `github-mcp-conventions` (issue #187).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `PpcBuildContextGraderTests` gives right and wrong samples to the graders of `ppc-build-context`. It also makes sure that the hand-off file of the scaffold names the branch of the PR mock (issue #199).
+- `tests/test_eval_scaffolds.py`: the "no commit" grader of `ppc-build-context` runs on its scaffold (issue #199).
+- `docs/evals.md`: the suite `process-pr-comments` has 10 behavior cases (issue #199).
+
 ## dev-essentials 3.16.0 in release [4.13.0] - 2026-11-16
 
 This release turns two fixed steps of the skill `review-loop` into scripts with unit tests: the failure check after a red build, and the grouping of a large diff into review areas.
@@ -1700,7 +1724,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.2...v4.13.0
 [4.12.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.12.0...v4.12.1
