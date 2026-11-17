@@ -9,9 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.7.8 in release [4.16.1] - 2026-11-17
+
+This release prepares the repository for a public home. No file calls the repository private any more, and the examples of `dotnet-backend-dev` use a neutral namespace for the test helpers.
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`, `skills/create-primitive-wrapper`, and `skills/dotnet-conventions`: the example namespace of the shared test helpers is now `MyApp.Testing`, in 16 lines of 7 files. The templates do the same work. If a repository has another namespace for its test helpers, the skills follow the code of that repository, as before (issue #233).
+
 ### Changed in the repository
 
-- `README.md`: removes the texts that call the repository private, the note on the git credential helper, and the sentence on credentials for the background update. It adds the badges for the last commit and the open issues, and a column with the version badge of each plugin (issue #233).
+- `README.md`: removes the texts that call the repository private, the note on the git credential helper, and the sentence on credentials for the background update. The plugin table has a new column with the version badge of each plugin (issue #233).
 - `docs/authoring.md`: the sync rule on the visibility of the repository now names the two ways. The organization sync of a Team or Enterprise plan needs a private or internal repository. A marketplace that a user adds can be public (issue #233).
 - `CLAUDE.md`: the first rule of "Repo conventions" says that the repository is public, and no longer names an employer (issue #233).
 
@@ -1837,7 +1845,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...HEAD
+[4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...v4.15.0
 [4.14.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.4...v4.14.5
