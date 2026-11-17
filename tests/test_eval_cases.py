@@ -3396,5 +3396,53 @@ class FailingBuildGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("build-tool-kept", changed))
 
 
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build")
+
+
+class StopVerdictRouteGraderTests(unittest.TestCase):
+    """The grader route-stop-verdict tells a run that reached its stop verdict from a run that stopped with a question."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.cases = {name: cases[name] for name in STOP_VERDICT_CASES}
+
+    def meta(self, case):
+        return self.cases[case].graders["route-stop-verdict"][0]
+
+    def passes(self, case, text):
+        return re.search(self.meta(case)["pattern"], text) is not None
+
+    def test_both_cases_have_the_same_grader_on_the_final_message(self):
+        first, second = (self.meta(case) for case in STOP_VERDICT_CASES)
+        self.assertEqual(first, second)
+        self.assertEqual(first["type"], "regex")
+        self.assertEqual(first.get("target", "last_message"), "last_message")
+        self.assertNotIn("match", first)
+
+    def test_a_final_report_with_a_stop_verdict_passes(self):
+        reports = {
+            "stop-clean": "Round 2 found no new issue.\n\nStop verdict: stop-clean\n\nFixed files: src/pager.py, tests/test_pager.py",
+            "stop-max-rounds": "Stop verdict: stop-max-rounds\nOne finding is still open.",
+            "stop-blocked": "Stop verdict: stop-blocked\nThe build command `python3 tools/build_docs.py` fails at the fix commit and at its parent.",
+        }
+        for case in STOP_VERDICT_CASES:
+            for name, text in reports.items():
+                with self.subTest(case=case, run=name):
+                    self.assertTrue(self.passes(case, text))
+
+    def test_a_run_that_stopped_with_a_question_fails(self):
+        questions = {
+            "a question with options": "I need a decision on #2 (High) before the fixer touches it.\n\n- (a) Raise `ValueError`.\n- (b) Return `[]` for `page < 1`.\n\nWhich one?",
+            "a verdict name in an option": "- **(c) Leave it as is and list #3 as deferred.** That keeps the run from ending `stop-clean`.",
+            "the template of the skill": "Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>",
+            "no verdict name": "Stop verdict: none yet, I wait for your answer.",
+        }
+        for case in STOP_VERDICT_CASES:
+            for name, text in questions.items():
+                with self.subTest(case=case, run=name):
+                    self.assertFalse(self.passes(case, text))
+
+
 if __name__ == "__main__":
     unittest.main()

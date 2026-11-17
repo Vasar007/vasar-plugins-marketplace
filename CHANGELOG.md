@@ -9,14 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-### Changed in the repository
-
-- `README.md`: has a new order. The install steps come first, then the plugin table. New sections follow: "Try it", "Requirements", "Safety", a documentation map, and "License". The update section is short now. The map replaces the sections "Working across sessions" and "References". The update text no longer says that `/plugin marketplace update` updates the installed plugins, because the official docs do not say that. The list of official docs moved to `docs/installing.md`, so the README has fewer words than before (issue #234).
-- `docs/installing.md`: a new page with the shell form of the install, the configuration files, and the steps for updates. It also has the automatic updates and the list of official docs. It holds the text that moved out of the README (issue #234).
-- `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
-- `CLAUDE.md`: the paragraph "How users receive updates" names the update ways of the official docs. They are "Update marketplace" in the `/plugin` panel, `claude plugin update`, and automatic updates. The paragraph no longer says that `/plugin marketplace update` updates the installed plugins. It points to `docs/installing.md` for the details (issue #240).
-
-## dev-essentials 3.23.0 in release [4.21.0] - 2026-11-17
+## dev-essentials 3.22.0 in release [4.19.0] - 2026-11-17
 
 This release turns the squash steps of `implement-batch` into a script with unit tests. The script checks the commits of a task before it squashes them. After a failed commit, it puts the old HEAD back (issue #244).
 
@@ -33,6 +26,26 @@ This release turns the squash steps of `implement-batch` into a script with unit
 - `tests/test_squash_task.py`: new tests for the script on a fixture repository, on Linux and Windows (issue #244).
 - `.github/workflows/tests.yml`: the job `test-windows` also runs `test_squash_task` (issue #244).
 - `docs/testing.md`: names the tests of the script (issue #244).
+
+## dev-essentials 3.20.1 in release [4.17.1] - 2026-11-17
+
+This release makes the eval case `rl-off-by-one` of `review-loop` stable. The skill text does not change. With the stable case, `rl-off-by-one` scores 1.00 at the commit before release 4.17.0 and 1.00 at the head, over 7 runs on each side. No run stopped with a question. So the change of release 4.17.0 holds.
+
+### Fixed in dev-essentials
+
+- `evals/review-loop/rl-off-by-one` and `evals/review-loop/rl-failing-build`: the prompt gives the contract of `page_slice` for `page < 1` in advance. Before, the session stopped after the round 1 review in 5 of 14 runs of `rl-off-by-one`. It asked the user what `page_slice` must do for `page < 1`, for example raise `ValueError` or return an empty list. An eval run has no user, so such a run ended with no fix and no commit (issue #238).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-off-by-one` and `evals/review-loop/rl-failing-build`: the new route grader `route-stop-verdict` needs the `Stop verdict:` line of the skill in the final message to pass. A run that stops with a question has no such line. A replay on 14 earlier runs of `rl-off-by-one` gives a fail for exactly the 5 runs that asked (issue #238).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `StopVerdictRouteGraderTests` makes sure that both cases have the same grader on the final message. It gives samples of a final report with each stop verdict, and samples of a run that stopped with a question (issue #238).
+- `README.md`: has a new order. The install steps come first, then the plugin table. New sections follow: "Try it", "Requirements", "Safety", a documentation map, and "License". The update section is short now. The map replaces the sections "Working across sessions" and "References". The update text no longer says that `/plugin marketplace update` updates the installed plugins, because the official docs do not say that. The list of official docs moved to `docs/installing.md`, so the README has fewer words than before (issue #234).
+- `docs/installing.md`: a new page with the shell form of the install, the configuration files, and the steps for updates. It also has the automatic updates and the list of official docs. It holds the text that moved out of the README (issue #234).
+- `docs/workflows.md`: the link to the update steps points to `docs/installing.md` (issue #234).
+- `CLAUDE.md`: the paragraph "How users receive updates" names the update ways of the official docs. They are "Update marketplace" in the `/plugin` panel, `claude plugin update`, and automatic updates. The paragraph no longer says that `/plugin marketplace update` updates the installed plugins. It points to `docs/installing.md` for the details (issue #240).
 
 ## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
 
@@ -1893,8 +1906,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...HEAD
-[4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.21.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...HEAD
+[4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.19.0
+[4.17.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.17.1
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
