@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17
+
+This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each .NET scaffold after the first .NET run failed on a NuGet lock in the sealed `tmp` folder of that run (issue #250).
+
+### Fixed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: each `dotnet` command of `dotnet_warm` has `-nodeReuse:false`. Before, the first scaffold of a command left an MSBuild node, and the next scaffold in the same session used that node. NuGet in that node kept its lock folder in the `TMPDIR` of the first run. The eval tool seals that folder after a kept run, so the restore failed after about 31 seconds. Each later scaffold now takes about 1 second more. The fixture of dotnet-backend-dev is a link to this file, so it gets the fix too (issue #250).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: the new test class `DotnetNodeReuseTests` runs `dotnet_warm` with a fake `dotnet`. It makes sure that each of the four `dotnet` commands has `-nodeReuse:false` (issue #250).
+
 ## dev-essentials 3.24.0 in release [4.22.0] - 2026-11-17
 
 This release makes the single-commit mode of `research-implement-review-report` squash the run with the script `squash_task.py`, as `implement-batch` does. The script checks the commits of the run before the squash. After a failed commit, it puts the old HEAD back (issue #246).
@@ -1991,7 +2003,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...HEAD
+[4.22.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.22.1
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
