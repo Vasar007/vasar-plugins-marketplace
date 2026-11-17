@@ -28,6 +28,7 @@ This release makes Stage 9 of `feature-pipeline` name the source of each argumen
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: the new class `PrBodyFormGraderTests` gives right and wrong samples to `pr-body-form`. It also gives samples of 1000 and 1001 characters to `pr-body-length`, and makes sure that `pr-draft-not-saved` names the draft file of `compose-pr`. It makes sure that the finalization stage names the step of `compose-pr` that holds the form (issue #203).
+- `docs/evals.md`: step 5 of "Prepare WSL2 first" names the real cause of the Windows performance tip. WSL shows it for `git clone` or `cargo build` with a current folder on a Windows drive. The step says to start a WSL2 command with `wsl.exe --cd '~'` (issue #198).
 
 ## dev-essentials 3.17.2 in release [4.14.2] - 2026-11-17
 
