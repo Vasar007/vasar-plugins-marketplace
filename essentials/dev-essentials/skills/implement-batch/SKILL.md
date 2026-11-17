@@ -48,7 +48,8 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as default |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
-| Step 3.6 and Step 4.4: a commit from outside the task | Stop and ask before the soft reset | Same | Skip the squash, and report the commit |
+| Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
+| Steps 3.6 and 4.4: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
 | Step 5: push | Only with `--push`, after the report | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
@@ -74,7 +75,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - **Effort**: pass `effort` on each dispatch of a general agent type. The planner of Step 2: `high`, or `xhigh` for a large plan or a change on the critical path. The implementer of Step 3: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer and a mechanical extraction: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and of a fixer subagent with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels.
 - **Parallel where safe, sequential where not.** All N tasks share one worktree. Two dispatches can run at the same time only under two rules. Each one writes its own path. Neither one runs a git command that changes the worktree, the index, or the history. Such commands are `add`, `commit`, `checkout`, `reset`, and branch operations, but not `log`, `show`, or `diff`.
   - The Step 2 planners qualify. Each one writes only its own `<--plan-dir>/<task-slug>-plan.md`, and uses git only to read (for example for `file:line` anchors). Dispatch them in parallel, and write both rules into every planner brief.
-  - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and they commit. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops and the Step 4 final loop, because this session runs each loop itself.
+  - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and the session commits their work. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops and the Step 4 final loop, because this session runs each loop itself.
 - Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
 - A bounded dispatch does the work itself, and does not delegate it again (Rule 7). Examples: the plan of one task, one implementation, or one fix.
 
@@ -123,33 +124,32 @@ Collect the open decisions of all N plans, and each finding that a plan-review f
 For task `i`:
 
 1. **Record the base SHA of the task**: `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
-2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
+2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". The brief tells it not to commit, because the session makes the commit in item 4. Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. The implementer runs its own build and tests, and reports the verbatim result lines. Then run the build and test commands of the plan one time in the worktree, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the result differs from the report, or the run is red, resume the implementer with the error lines, and run again. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
-4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails").
-5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle.
-6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`:
+4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails"). Record the SHA of the commit in `TASK_COMMITS[i]`.
+5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle. Add the SHA of each commit that the loop makes to `TASK_COMMITS[i]`.
+6. **Squash the commits of this task into one**, from `TASK_BASE_SHA[i]` to `HEAD`, with the script `scripts/squash_task.py` of this skill. It needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash). Give one `--commit` for each SHA of `TASK_COMMITS[i]`, and the plan folder as `--plan-dir`:
 
    ```bash
-   git -C "<worktree>" reset --soft <TASK_BASE_SHA[i]>
-   git -C "<worktree>" commit -m "<Issue ref> — <summary> (implement + <rounds> review rounds)"
+   python3 -I "${CLAUDE_SKILL_DIR}/scripts/squash_task.py" --repo "<worktree>" --plan-dir "<plan folder>" --base <TASK_BASE_SHA[i]> --commit <sha> --commit <sha> --message "<Issue ref> — <summary> (implement + <rounds> review rounds)" --apply
    ```
 
-   If a commit in this range is not work of this task, **stop and ask the user** before the soft reset (the squash-base safety stop). Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the unexpected commit. If the review loop made no commit, the task already has one commit, and the squash does nothing. Say so, and make no empty commit.
+   - Take the SHAs from the commits that this run made, never from `git log` of the range. A list from the log hides the commit of someone else.
+   - The script makes each check before the squash. It refuses a commit of the range that is not a `--commit`, and a merge commit. It also refuses a changed tracked file, a staged plan file, a detached HEAD, and a plan file in the commits. A refusal changes nothing.
+   - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, `MISSING`, `CHANGED`, and `PLAN FILE` lines. Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the refusal.
+   - `RESULT: ONE COMMIT`: the review loop made no commit, so the task already has one commit. The script makes no commit. Say so.
+   - `RESULT: SQUASHED`: the `NEW` line gives the SHA of the task commit. Report each `WARN` line.
+   - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `FAILED` and `OUTPUT` lines to the user, and ask. If the `RESULT` line says `NOT RESTORED`, first run `git -C "<worktree>" reset --soft <OLD HEAD>`. After a `RESTORED` line, this command changes nothing.
+   - An `OLD HEAD` line and no `RESULT` line: an error, for example Ctrl+C, stopped the script after it moved the branch. This output has no `OUTPUT` line, so show the last line of the error output to the user, and ask. After a `RESTORED HEAD` line, the old HEAD is back and nothing needs an undo. With no `RESTORED HEAD` line, the restore failed: show the output to the user, and give the command `git -C "<worktree>" reset --soft <OLD HEAD>`.
+   - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. If the output has no `RESULT` line and no `OLD HEAD` line, do the same. With `--autonomous`, report the problem instead.
 7. Report one status line, and go to task `i+1`.
 
 ### Step 4 — Final cross-task review
 
 1. Record `FINAL_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 2. Run `dev-essentials:review-loop` once over the **combined** work, with `target=diff <BATCH_BASE_SHA>..HEAD`. This pass finds what single-task reviews cannot: inconsistency across tasks, duplicated abstractions, contradictory assumptions, and coverage gaps at the seams.
-3. Commit once for each review cycle, as the loop does by default.
-4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`:
-
-   ```bash
-   git -C "<worktree>" reset --soft <FINAL_BASE_SHA>
-   git -C "<worktree>" commit -m "Final review across <N> tasks — <summary of fixes>"
-   ```
-
-   The N task commits of Step 3 stay as they are. The same squash-base safety stop applies. If the final loop made no commit, there is nothing to squash. Report N commits and no final-review commit. Do not invent one.
+3. Commit once for each review cycle, as the loop does by default. Record the SHA of each commit that the loop makes.
+4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`, with the script of Step 3.6: the same `--repo` and `--plan-dir`, `--base <FINAL_BASE_SHA>`, one `--commit` for each commit of the final loop, and `--message "Final review across <N> tasks — <summary of fixes>"`. The N task commits of Step 3 stay as they are. The rules of Step 3.6 for each output of the script apply, also the squash-base safety stop. If the final loop made no commit, there is nothing to squash, so do not run the script. Report N commits and no final-review commit. Do not invent one.
 
 ### Step 5 — Report and stop
 

@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.22.0 in release [4.19.0] - 2026-11-17
+
+This release turns the squash steps of `implement-batch` into a script with unit tests. The script checks the commits of a task before it squashes them. After a failed commit, it puts the old HEAD back (issue #244).
+
+### Added in dev-essentials
+
+- `skills/implement-batch/scripts/squash_task.py`: squashes the commits of one task into one commit on the base commit of the task. It takes the base, each commit of the task, and the message. Without `--apply`, it prints the plan and changes nothing. It refuses a commit that the task did not make and a merge commit. It also refuses a changed tracked file, a detached HEAD, and a plan file in the commits. A staged plan file counts as a changed tracked file. The commit hooks of the repository run. If the commit fails, or Ctrl+C stops the script during the commit, the script puts the old HEAD back. Its output is short, each line prints at once, and it names the command that undoes the squash (issue #244).
+
+### Changed in dev-essentials
+
+- `skills/implement-batch`: Step 3.6 and Step 4.4 run the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of a task, and the script refuses a commit that is not in that list. This is the squash-base safety stop of the skill. So the brief of the implementer tells it not to commit, and the session commits the implementation. The gate table and the rules of Step 3.6 cover each outcome of the script. No eval case covers the change (issue #244). The eval sandbox blocks the worktree of Step 1 (issue #232).
+
+### Changed in the repository
+
+- `tests/test_squash_task.py`: new tests for the script on a fixture repository, on Linux and Windows (issue #244).
+- `.github/workflows/tests.yml`: the job `test-windows` also runs `test_squash_task` (issue #244).
+- `docs/testing.md`: names the tests of the script (issue #244).
+
 ## dev-essentials 3.21.0 in release [4.18.0] - 2026-11-17
 
 This release lets Stage 9 of `feature-pipeline` open a PR from a fork with an MCP PR tool. The PR creation entry of the project context can name the owner of the fork. Step 6 then sends `<fork owner>:<branch>` as the head of the PR (issue #225). A fork that the organization of the upstream repository owns is not supported, because the MCP tool has no `head_repo` field.
@@ -1917,7 +1935,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...HEAD
+[4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...v4.18.0
 [4.17.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.17.2
 [4.17.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.17.1
