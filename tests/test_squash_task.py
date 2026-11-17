@@ -450,6 +450,14 @@ class PlanDirTests(SquashCase):
         out = self.squash(first, last, code=3, extra=["--plan-dir", "Notes/Plans"])
         self.assertIn("CHANGED  M Notes/Plans2/real.txt", out)
 
+    def test_untracked_plan_file_gives_no_line(self):
+        self.base = self.commit("plan", "Notes/Plans/task-plan.md")
+        commits = self.task(2)
+        self.write("Notes/Plans/new-notes.md", "draft\n")
+        out = self.squash(*commits, extra=["--plan-dir", "Notes/Plans"])
+        self.assertNotIn("UNTRACKED", out)
+        self.assertIn("RESULT: READY", out)
+
     def test_changed_plan_file_does_not_block(self):
         self.base = self.commit("plan", "Notes/Plans/task-plan.md")
         commits = self.task(2)

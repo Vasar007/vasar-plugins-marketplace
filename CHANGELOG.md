@@ -26,7 +26,7 @@ This release turns the squash steps of `implement-batch` into a script with unit
 
 ### Changed in dev-essentials
 
-- `skills/implement-batch`: Step 3.6 and Step 4.4 run the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of a task, and the script refuses a commit that is not in that list. So the brief of the implementer tells it not to commit, and the session commits the implementation. This is the squash-base safety stop of the skill. The gate table and the rules of Step 3.6 cover each outcome of the script. No eval case covers the change (issue #244). The eval sandbox blocks the worktree of Step 1 (issue #232).
+- `skills/implement-batch`: Step 3.6 and Step 4.4 run the script in place of `git reset --soft` and `git commit`. The session records the SHA of each commit of a task, and the script refuses a commit that is not in that list. This is the squash-base safety stop of the skill. So the brief of the implementer tells it not to commit, and the session commits the implementation. The gate table and the rules of Step 3.6 cover each outcome of the script. No eval case covers the change (issue #244). The eval sandbox blocks the worktree of Step 1 (issue #232).
 
 ### Changed in the repository
 

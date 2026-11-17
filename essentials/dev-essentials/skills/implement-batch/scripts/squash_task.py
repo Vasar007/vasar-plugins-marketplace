@@ -45,6 +45,7 @@ Exit codes: 0 = the plan is ready, the range has one commit, or the squash is do
 (a FAILED line), or the script failed with a Python traceback, 2 = usage error, or a setup error (no git,
 no git work tree, or a git command that fails during the checks), 3 = refused (a REFUSED line).
 Nothing changes with exit code 2 or 3.
+A stop by Ctrl+C ends with the exit code of the system for Ctrl+C, for example 130 in a shell.
 
 A message that starts with "-" goes after "=", for example --message="-x".
 

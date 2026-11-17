@@ -48,7 +48,7 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as default |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
-| Step 3.6 and Step 4.4: the squash script refuses (exit code 3), prints `RESULT: FAILED`, or cannot run (exit code 2, or no `RESULT` line and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash for a refusal or a script that cannot run, and report it. For `RESULT: FAILED`, stop and ask |
+| Step 3.6 and Step 4.4: the squash script refuses (exit code 3), fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line), or cannot run (exit code 2, or neither line) | Stop and ask | Same | Skip the squash for a refusal or a script that cannot run, and report it. For `RESULT: FAILED` or a stop after the `OLD HEAD` line, stop and ask |
 | Step 5: push | Only with `--push`, after the report | Same | Same |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
 
@@ -138,7 +138,8 @@ For task `i`:
    - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, `MISSING`, `CHANGED`, and `PLAN FILE` lines. Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip this squash, keep the commits as they are, and report the refusal.
    - `RESULT: ONE COMMIT`: the review loop made no commit, so the task already has one commit. The script makes no commit. Say so.
    - `RESULT: SQUASHED`: the `NEW` line gives the SHA of the task commit. Report each `WARN` line.
-   - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `OUTPUT` lines to the user, and ask. If the output has an `OLD HEAD` line and no `RESULT` line, or the `RESULT` line says `NOT RESTORED`, first run `git -C "<worktree>" reset --soft <OLD HEAD>`. After a `RESTORED` line, this command changes nothing.
+   - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `OUTPUT` lines to the user, and ask. If the `RESULT` line says `NOT RESTORED`, first run `git -C "<worktree>" reset --soft <OLD HEAD>`. After a `RESTORED` line, this command changes nothing.
+   - An `OLD HEAD` line and no `RESULT` line: an error, for example Ctrl+C, stopped the script after it moved the branch. This output has no `OUTPUT` line, so show the last line of the error output to the user, and ask. After a `RESTORED HEAD` line, the old HEAD is back and nothing needs an undo. With no `RESTORED HEAD` line, the restore failed: show the output to the user, and give the command `git -C "<worktree>" reset --soft <OLD HEAD>`.
    - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. If the output has no `RESULT` line and no `OLD HEAD` line, do the same. With `--autonomous`, report the problem instead.
 7. Report one status line, and go to task `i+1`.
 
