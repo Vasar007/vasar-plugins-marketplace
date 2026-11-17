@@ -47,10 +47,11 @@ The last two lines are the verdict and its reason:
                            lines, and the same last lines after the first error line
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
-The signature puts a token in place of each count of tests. The line of a single test
-still counts, for example a PASSED line of pytest -v or an ok line of unittest -v. So a
-new test can still give OTHER: if its line is in the last lines, or if the name of the
-test or of its file ends with error or exception.
+Before the compare, each count of passed or skipped tests becomes a token. A count of failures
+or errors stays. The line of a single test also stays, for example a PASSED line of pytest -v
+or an ok line of unittest -v. So a new test can still give OTHER: if its line is in the last
+lines, or if its line holds an error word, such as fail, traceback, or a word that ends with
+error or exception.
 Each MADE line has a REMOVED line after it. A MADE line with no REMOVED line
 names a worktree that is still there. Remove it with `git worktree remove --force`.
 A WARN line names a worktree or a folder that the script cannot delete. On Windows, a stop

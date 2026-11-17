@@ -21,7 +21,7 @@ This release makes the failure check of `review-loop` ignore the count of tests 
 
 ### Fixed in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: the error signature puts a token in place of each count of tests. The new rules cover the line `Ran N tests in <time>` of `unittest`, and the summary line and the progress percentage of `pytest`. They also cover the summary lines of `dotnet test`, with VSTest and with Microsoft.Testing.Platform. The counts of failures and errors still count. Before, a fix commit that added a test changed the line `Ran N tests`, so the same failure gave `OTHER` (issue #230).
+- `skills/review-loop/scripts/failure_check.py`: the error signature puts a token in place of each count of tests. The new rules cover the line `Ran N tests in <time>` of `unittest`, and the summary line and the progress percentage of `pytest`. They also cover the summary lines of `dotnet test`, with VSTest and with Microsoft.Testing.Platform. The counts of failures and errors still count. A first rule removes the color codes from each line, so the rules also work on colored output, for example of `pytest` with `FORCE_COLOR=1`. The help text names the limit: the line of a single test still counts. Before, a fix commit that added a test changed the line `Ran N tests`, so the same failure gave `OTHER` (issue #230).
 
 ### Changed in the repository
 
