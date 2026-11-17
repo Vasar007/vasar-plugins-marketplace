@@ -99,6 +99,7 @@ NOISE = [
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
     # The count rules come after the time rules, because some of them look for the token <time>.
     (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),
+    (re.compile(r"^((OK|FAILED) \(.*\bskipped=)\d+"), r"\1<n>"),
     (re.compile(r"^=+ (.*) =+$"), r"\1"),
     (re.compile(r"^\d+ [a-z]+( [a-z]+)?(, \d+ [a-z]+( [a-z]+)?)* in <time>( \(<time>\))?$"), pytest_counts),
     (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
