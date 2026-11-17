@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.23.0 in release [4.20.0] - 2026-11-17
+
+This release turns the executor role of the full pass of `trim-artifacts` into the subcommand `apply` of its script. The main session runs it, so no executor agent starts. A new eval case runs a full pass (issue #243).
+
+### Added in dev-essentials
+
+- `skills/trim-artifacts/scripts/trim_report.py`: the new subcommand `apply` copies the result of a proven plan from the `target` copy of the planner into the workspace. Before it writes, it tests the plan and each file. A workspace file and its backup copy must equal the `orig` copy. A new file must not exist yet. Each deletion needs a `--delete` flag. If one test fails, it changes no file. Then it deletes the approved files, removes the folders that the deletions emptied, and runs the checks against the backup. It stops with no change for a link on the path or a file in the place of a folder. It does the same for a name that differs only by case and for a `--glob` with `..`. If a file changed after its test, it stops with exit code 4. A `--delete` flag for a file that the plan keeps prints a `KEPT` line. A second run after a stop skips each file that is done. Its output has at most 100 lines. The form with no subcommand stays as it is (issue #243).
+- `evals/trim-artifacts/ta-full-pass`: a new behavior case. A full pass runs on 12 notes files, and the prompt gives the answers of the user. The graders read the final files: the two planted cuts are made, the session log and its folder are gone, and the index no longer cites the log. The decision blocks, the ids, and the uncertainty markers stay, and the backup stays in the run folder. Route graders count the planner, the reviewer, the executor dispatch, and the `apply` call (issue #243).
+
+### Changed in dev-essentials
+
+- `skills/trim-artifacts`: step 6 of the full pass runs `trim_report.py apply` in the main session, in place of an executor agent. The planner applies the whole plan to its `target` copy, also the deletions. The roles are the planner, the reviewer, and the fixer. `references/role-briefs.md` has no executor brief, and `references/script-results.md` names the exit codes of `apply`. Each planned file must match the glob. A batch that plans again takes a second backup (issue #243).
+
+### Changed in the repository
+
+- `tests/test_trim_report.py`: new tests for `apply` on fixture trees. They cover the apply, a second run, each refusal, a failed write, and the output limit (issue #243).
+- `tests/test_eval_cases.py`: samples for the route graders of `ta-full-pass` (issue #243).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. New tests run its scaffold. They make sure that the file graders fail on the planted notes and pass on a right trim (issue #243).
+- `docs/evals.md`: a new suite row for `trim-artifacts` with 1 case (issue #243).
+
 ## dev-essentials 3.22.0 in release [4.19.0] - 2026-11-17
 
 This release turns the squash steps of `implement-batch` into a script with unit tests. The script checks the commits of a task before it squashes them. After a failed commit, it puts the old HEAD back (issue #244).
@@ -1935,7 +1955,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...HEAD
+[4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...v4.18.0
 [4.17.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.17.2
