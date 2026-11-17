@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.20.2 in release [4.17.2] - 2026-11-17
+
+This release makes the failure check of `review-loop` ignore the count of tests in the output of `unittest`, `pytest`, and `dotnet test`. So a fix commit that adds a test and keeps the same failure gives `SAME-AT-PARENT`, not `OTHER`. The line of one test still counts, as with `pytest -v` (issue #230).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the error signature puts a token in place of each count of tests. The new rules cover the line `Ran N tests in <time>` and the count `skipped=N` of `unittest`, and the summary line and the progress percentage of `pytest`. They also cover the summary lines of `dotnet test`, with VSTest and with Microsoft.Testing.Platform. The counts of failures and errors still count. A first rule removes the color codes from each line, so the rules also work on colored output, for example of `pytest` with `FORCE_COLOR=1`. The help text names the limit: the line of a single test still counts. Before, a fix commit that added a test changed the line `Ran N tests`, so the same failure gave `OTHER` (issue #230).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: two new tests run a real `unittest` suite whose fix commit adds a test. The same failure gives `SAME-AT-PARENT`, and another failure gives `OTHER`. A new test class uses output lines of each runner. It makes sure that a count of tests does not count. It also makes sure that a count of failures and a number outside a count line still count (issue #230).
+
 ## dev-essentials 3.20.1 in release [4.17.1] - 2026-11-17
 
 This release makes the eval case `rl-off-by-one` of `review-loop` stable. The skill text does not change. With the stable case, `rl-off-by-one` scores 1.00 at the commit before release 4.17.0 and 1.00 at the head, over 7 runs on each side. No run stopped with a question. So the change of release 4.17.0 holds.
@@ -1888,7 +1900,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.2...HEAD
+[4.17.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.1...v4.17.2
 [4.17.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...v4.17.1
 [4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
