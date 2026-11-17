@@ -111,6 +111,10 @@ With automatic updates, Claude Code refreshes the marketplace in the background 
 
 The background update does not ask for credentials. The repository is private, so the update works only with a stored git credential or with an SSH key in `ssh-agent`. The pages [Keep plugins updated](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated) and [When auto-update runs](https://code.claude.com/docs/en/plugins/loading#when-auto-update-runs) give the details.
 
+## Working across sessions
+
+After a long pause, a long session costs more than a new session that reads a hand-off file. The page [Working across sessions](./docs/workflows.md) says when to stay in one session and when to start a new one. It gives the cost numbers of the runs.
+
 ## Rules for push, force push, and --no-verify
 
 Some skills of this marketplace push, and some of them say never to force-push or to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce these rules, add the rules in [`docs/permissions.md`](./docs/permissions.md) to your own configuration file, for example `~/.claude/settings.json`.
@@ -122,7 +126,6 @@ These guides in `docs/` are for readers who change this marketplace or add a plu
 - [Authoring reference](./docs/authoring.md): the folder structure, the rules for `marketplace.json` and `plugin.json`, the conventions, and the validator. Before you push, run `claude plugin validate .` from the repository root. Then run `claude plugin validate ./<group>/<plugin>` for each plugin that you changed.
 - [Testing](./docs/testing.md): the parts of the test run and the CI workflow `.github/workflows/tests.yml`. To run all tests, run `python3 -m unittest discover -s tests -v` from the repository root. If you add a new `.md` file, run `git add` on it first, because the linters read only the files that git tracks.
 - [Evals](./docs/evals.md): the eval cases, the compare script `tests/evals/compare_versions.py`, and the behavior suites. Each eval run calls a model on your account, so CI does not run the evals.
-- [Working across sessions](./docs/workflows.md): when to stay in one session and when to start a new one, with the cost numbers of the runs.
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for the changes in each release.
 
