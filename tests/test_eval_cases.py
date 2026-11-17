@@ -3268,5 +3268,133 @@ class ComposerGraderTests(unittest.TestCase):
         })
 
 
+FOLD_CASES = ("rl-off-by-one", "rl-null-guard", "rl-unbounded-query", "rl-failing-build")
+
+
+def agent_call_input(**fields):
+    """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
+    return json.dumps(fields)
+
+
+class FoldRouteGraderTests(unittest.TestCase):
+    """The route graders of the fold: no subagent edits, a plan in the reviewer brief, and no plan dispatch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def meta(self, case, grader):
+        return self.cases[case].graders[grader][0]
+
+    def regex_passes(self, case, grader, text):
+        meta = self.meta(case, grader)
+        found = re.search(meta["pattern"], text) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def calls(self, case, grader, *inputs):
+        return sum(1 for text in inputs if re.search(self.meta(case, grader)["input_match"], text))
+
+    @staticmethod
+    def edit(parent, path="/w/src/pager.py", new="b"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-sonnet-5-5", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": "Edit",
+             "input": {"replace_all": False, "file_path": path, "old_string": "a", "new_string": new}}]},
+            "parent_tool_use_id": parent})
+
+    def test_every_fold_case_has_the_three_route_graders(self):
+        for case in FOLD_CASES:
+            for grader in ("route-fix-in-main", "route-plan-in-brief", "route-no-plan-dispatch"):
+                with self.subTest(case=case, grader=grader):
+                    self.assertIn(grader, self.cases[case].graders)
+        self.assertEqual(self.meta("rl-failing-build", "route-no-plan-dispatch")["max"], 1)
+        for case in FOLD_CASES[:3]:
+            self.assertEqual(self.meta(case, "route-no-plan-dispatch")["max"], 2)
+
+    def test_fix_in_main_fails_only_for_an_edit_of_a_subagent(self):
+        for case in FOLD_CASES:
+            with self.subTest(case=case):
+                self.assertTrue(self.regex_passes(case, "route-fix-in-main", self.edit(None)))
+                self.assertFalse(self.regex_passes(case, "route-fix-in-main", self.edit("toolu_1")))
+                self.assertFalse(self.regex_passes(case, "route-fix-in-main", self.edit("toolu_1", "/w/tests/t.py")))
+                quoted = self.edit(None, new='"parent_tool_use_id":"toolu_1"')
+                self.assertTrue(self.regex_passes(case, "route-fix-in-main", quoted))
+
+    def test_plan_in_brief_needs_the_footer_and_the_plan_line(self):
+        reviewer = agent_call_input(description="Round 1 review", model="opus",
+                                    prompt="## Common Rules\n- **Fix plan:** the approach\nReview made by `<MODEL>`")
+        fixer = agent_call_input(description="Round 1 fixer", model="sonnet", prompt="Fix plan: add the guard.")
+        rereview = agent_call_input(description="Round 2 re-review", model="opus", prompt="Review made by `<MODEL>`")
+        for case in FOLD_CASES:
+            with self.subTest(case=case):
+                self.assertEqual(self.calls(case, "route-plan-in-brief", reviewer, fixer, rereview), 1)
+
+    def test_no_plan_dispatch_counts_only_the_calls_on_the_reviewer_model(self):
+        inputs = [agent_call_input(model="opus", prompt="x"), agent_call_input(model="claude-opus-5-5", prompt="x"),
+                  agent_call_input(model="sonnet", prompt="x"), agent_call_input(prompt='a text with "model": "opus" in it')]
+        for case in FOLD_CASES:
+            with self.subTest(case=case):
+                self.assertEqual(self.calls(case, "route-no-plan-dispatch", *inputs), 2)
+
+
+class FailingBuildGraderTests(unittest.TestCase):
+    """The graders of rl-failing-build give the right verdict on right and wrong runs."""
+
+    CASE = "rl-failing-build"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
+        cls.off_by_one = {case.name: case for case in load_cases(FP_ROOT)}["rl-off-by-one"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def passes(self, grader, text):
+        return re.search(self.meta(grader).get("pattern") or self.meta(grader)["input_match"], text) is not None
+
+    def test_defect_gone_and_no_push_are_the_graders_of_rl_off_by_one(self):
+        for grader in ("defect-gone", "no-push"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader), self.off_by_one.graders[grader][0])
+
+    def test_check_ran_needs_the_fix_commit_and_the_build_command(self):
+        right = {
+            "the order of the skill": 'python3 -I "/p/scripts/failure_check.py" --fix-commit 1a2b3c4 --command "python3 tools/build_docs.py" --ignore "Notes/Reviews/feature-paging-*"',
+            "the command first": 'python3 -I /p/failure_check.py --command "python3 tools/build_docs.py" --fix-commit 1a2b3c4',
+        }
+        wrong = {
+            "help": "python3 -I /p/failure_check.py --help",
+            "a unittest command": 'python3 -I /p/failure_check.py --fix-commit 1a2b3c4 --command "python3 -m unittest"',
+            "the build alone": "python3 tools/build_docs.py",
+        }
+        for name, command in right.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.passes("check-ran", json.dumps({"command": command, "timeout": 600000})))
+        for name, command in wrong.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("check-ran", json.dumps({"command": command})))
+
+    def test_stop_blocked_and_build_reported_read_the_final_message(self):
+        final = "Stop verdict: stop-blocked\nThe build command `python3 tools/build_docs.py` fails at the fix commit and at its parent."
+        self.assertTrue(self.passes("stop-blocked", final))
+        self.assertTrue(self.passes("build-reported", final))
+        self.assertFalse(self.passes("stop-blocked", "Stop verdict: stop-max-rounds"))
+        self.assertFalse(self.passes("build-reported", "Stop verdict: stop-blocked. The docs build fails."))
+        for grader in ("stop-blocked", "build-reported"):
+            self.assertEqual(self.meta(grader).get("target", "last_message"), "last_message")
+
+    def test_build_tool_kept_needs_the_check_of_the_scaffold(self):
+        script = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        tool = script.split("fixture_write tools/build_docs.py <<'PAGER_EOF'\n", 1)[1].split("PAGER_EOF\n", 1)[0]
+        self.assertTrue(self.passes("build-tool-kept", tool))
+        for name, changed in {
+            "a theme check that passes": tool.replace("        return 1\n", "        return 0\n", 1),
+            "another message": tool.replace("error: the docs theme is missing.", "warning: no theme.", 1),
+            "no check": tool.replace("    if not layout.is_file():\n", "    if False:\n", 1),
+        }.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("build-tool-kept", changed))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # Verify-then-Fix Discipline
 
-**Read this file before you apply any fix**. This is the playbook of the fixer subagent that Phase 5 dispatches.
+**Read this file before you apply any fix**. This is the playbook of the fixer of Phase 5: the orchestrator, or the fixer subagent that Phase 5, step 5b chooses.
 
 ## Contents
 

@@ -61,7 +61,7 @@ Target resolved: branch diff main...HEAD
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer=dual` resolves to `feature-dev:code-reviewer` and `general-purpose` in parallel. The `feature-dev` plugin is installed, so no fallback applies. The run gives no `--fixer`, so the fixer is the default `general-purpose`.
+`--reviewer=dual` resolves to `feature-dev:code-reviewer` and `general-purpose` in parallel. The `feature-dev` plugin is installed, so no fallback applies. The run gives no fixer flag. If Phase 5 needs a fixer subagent, it is the default `general-purpose`.
 
 The skill prints:
 
@@ -114,13 +114,13 @@ The user replies: `ok proceed`
 
 ## Phase 5 — Verify-then-fix
 
-**Step 5a: the reviewer plans**. The skill dispatches the same reviewer subagent that reported the findings again. It proposes a fix plan for each finding that can get a fix, based on existing patterns:
+**Step 5a: the reviewer plans**. Each report already holds a **Fix plan** line for each finding, based on existing patterns. So no plan dispatch runs. The plans of the three findings that the triage cleared:
 
 - F1: apply `.Skip().Take()` before `.ToListAsync()`, as the sibling `ExternalResourceRepository.cs` does.
 - F2: add negative tests with `foreach` over a `List<Action>`, as `dotnet-backend-dev:create-tests` documents for null-argument guards.
 - F3: before any fix, compare the finding with the `IServiceScopeFactory` usage in `BaseWorker.cs`.
 
-**Step 5b: the fixer carries out the plan**. The fixer subagent (`general-purpose`) classifies the three findings that the triage cleared before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
+**Step 5b: the fixer carries out the plan**. The fixes need bounded reads of the files that the fix plans name, and edits of two of them. These reads are few, so the context test of Rule 1 does not hold. The orchestrator is the fixer, and the Brief format says `Fixer: orchestrator (context test)`. It reads `references/verify-fix-discipline.md`, and it classifies the three findings that the triage cleared before it touches any file. It works from the plan of the reviewer and does not choose its own approach from scratch.
 
 **F1 [APPLY]**. Proved: `TenantRepository.cs:89` calls `await context.Tenants.ToListAsync()` and then `.Skip().Take()` on the result in memory. A known working EF pattern in the sibling service (`ExternalResourceRepository.cs:54`) applies `.Skip().Take()` on the `IQueryable` before the query runs. The fix stays inside lines 87 to 93.
 
@@ -232,6 +232,7 @@ Cycle 1 — branch diff main...HEAD (4 files, 224 insertions)
   5 findings: 1 Blocker, 0 Critical, 2 High, 1 Medium, 1 Low, 0 Nit
   Triage: fix=3, deferred=2 (per --skip medium,low,nit / merit triage)
   Fix verdicts: APPLY=1, PARTIAL=1, REJECT=1
+  Fixer: orchestrator (context test)
   Build: pass
   Tests: 24 passed, 0 failed, 0 skipped
   Verdict: continue
@@ -244,6 +245,7 @@ Cycle 2 — re-review of fix diff (2 files)
   0 findings: 0 Blocker, 0 Critical, 0 High, 0 Medium, 0 Low, 0 Nit
   Triage: fix=0, deferred=0
   Fix verdicts: APPLY=0, PARTIAL=0, REJECT=0
+  Fixer: none (no fix in this cycle)
   Build: pass
   Tests: 24 passed, 0 failed, 0 skipped
   Verdict: stop-clean

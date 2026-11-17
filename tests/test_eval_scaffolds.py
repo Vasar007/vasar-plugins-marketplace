@@ -36,6 +36,7 @@ EXPECTED_BRANCH = {
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
     "rl-pr-head-gate": "main",
+    "rl-failing-build": "feature/paging",
     "fp-e1-seeded-defects": "work/seeded-defects",
     "fp-e1-clean-change": "work/clean-change",
     "fp-e1-border-auth": "work/border-auth",
@@ -637,6 +638,30 @@ class LibraryTests(FixtureCase):
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
                               capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_failing_build_case_fails_only_its_build_and_the_check_says_same_at_parent(self):
+        workspace = self.workspace()
+        case = REPO / "essentials/dev-essentials/evals/review-loop/rl-failing-build"
+        self.run_bash([(case / "scaffold.sh").as_posix()], workspace)
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        self.assertIn("Build command: `python3 tools/build_docs.py`", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        build = subprocess.run([sys.executable, "tools/build_docs.py"], cwd=workspace, capture_output=True, text=True, env=env)
+        self.assertEqual(build.returncode, 1, build.stdout)
+        self.assertIn("error: the docs theme is missing.", build.stderr)
+        tests = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                               capture_output=True, text=True, env=env)
+        self.assertEqual(tests.returncode, 0, tests.stderr)
+        self.assertEqual(self.git(workspace, "log", "-1", "--format=%s", "main")[1], "fixture: add the docs build")
+        pager = workspace / "src" / "pager.py"
+        pager.write_text(pager.read_text(encoding="utf-8").replace("end = start + size - 1", "end = start + size"),
+                         encoding="utf-8")
+        self.assertEqual(self.git(workspace, "commit", "-q", "-am", "Review round 1: Fix page_slice")[0], 0)
+        script = REPO / "essentials/dev-essentials/skills/review-loop/scripts/failure_check.py"
+        done = subprocess.run([sys.executable, "-I", str(script), "--fix-commit", "HEAD",
+                               "--command", f'"{REPO.__class__(sys.executable).as_posix()}" tools/build_docs.py'],
+                              cwd=workspace, capture_output=True, text=True, env=self.environment(), timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("VERDICT: SAME-AT-PARENT", done.stdout)
 
     def test_users_repos_have_the_named_number_of_modules_and_callers(self):
         for modules, callers in ((6, 3), (40, 25)):

@@ -42,7 +42,7 @@ Use the **agreement matrix** of `/audit-team` as the signal from several roles. 
 
 ## Phase 5, step 5a
 
-`/audit-team` reads only and returns no fix plan. Its subagents for each role cannot get a second question. So the fix plan of step 5a comes from a **new dispatch on `--reviewer-model`**, which step 5a already allows. It does not come from the `audit-team` run.
+`/audit-team` reads only and returns no fix plan. Its subagents for each role cannot get a second question. So its findings have no usable plan, and step 5a plans them with one **plan dispatch on `--reviewer-model`**. The plan does not come from the `audit-team` run.
 
 ## Phase 8
 

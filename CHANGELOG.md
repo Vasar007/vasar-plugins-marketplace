@@ -9,6 +9,29 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.20.0 in release [4.17.0] - 2026-11-17
+
+This release lets the reviewer of `review-loop` write the fix plan of each finding, so no other dispatch plans the fixes. The session that runs the loop applies the fixes, unless step 5b sends them to the fixer subagent. A new eval case runs the failure check of Phase 6.
+
+### Changed in dev-essentials
+
+- `skills/review-loop`: the Full format of the reviewer report has a **Fix plan** line in each finding, and a Common Rule asks for it. Step 5a takes the plan from the report. A plan dispatch on `--reviewer-model` runs only for a finding with no usable plan. The cases are an `audit-team` or orchestrated-mode report, and the regression fix of the failure check. Another case is a fix that the triage changed with no fix named by the user (issue #221).
+- `skills/review-loop`: step 5b chooses the fixer with the delegation tests of Rule 1 of `subagent-orchestration`, mostly the context test. A few bounded edits stay in the orchestrator, which follows `references/verify-fix-discipline.md`. A fix set whose reads and edits put many files into the main context keeps the fixer subagent. An explicit `--fixer`, `--fixer-model`, or `--fixer-effort` keeps it too. The Brief format of a cycle names the fixer and the test (issue #221).
+- `skills/review-loop`: the parameter texts, the reference files of the fixer, the `audit-team` adapter, the orchestrated mode, and both examples follow the new steps (issue #221).
+- `skills/implement-batch`, `skills/research-implement-review-report`, and `skills/subagent-orchestration`: the text no longer says that a fixer subagent always runs (issue #221).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-failing-build`: a new behavior case. The docs build of the repository already fails before the branch, because a sibling theme folder is missing. The graders make sure that the loop fixes the defect and commits. They make sure that it runs `failure_check.py` on the build command and stops with `stop-blocked`. No grader reads the verdict of the script. In an eval run, the sandbox keeps `.git/worktrees` read-only, so the script cannot make its temporary worktree (issue #232). They also make sure that the build tool stays as it is and that nothing is pushed (issue #221).
+- `evals/review-loop`: the cases `rl-off-by-one`, `rl-null-guard`, and `rl-unbounded-query` get three route graders. They show whether a subagent edited a file. They show whether the reviewer brief asks for a fix plan. They also count the dispatches on the reviewer model (issue #221).
+
+### Changed in the repository
+
+- `tests/test_review_loop_text.py`: a new test module pins the plan line, the plan dispatch rule, and the choice of the fixer (issue #221).
+- `tests/test_eval_cases.py`: samples for the route graders of the fold and for the graders of `rl-failing-build` (issue #221).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case. A new test makes sure that only its build fails and that `failure_check.py` gives `SAME-AT-PARENT` on it (issue #221).
+- `docs/evals.md`: the suite `review-loop` has 6 cases (issue #221).
+
 ## dotnet-backend-dev 1.7.8 in release [4.16.1] - 2026-11-17
 
 This release prepares the repository for a public home. The README, the docs, and `CLAUDE.md` no longer call the repository private, and the examples of `dotnet-backend-dev` use a neutral namespace for the test helpers.
@@ -1845,7 +1868,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.17.0...HEAD
+[4.17.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.1...v4.17.0
 [4.16.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.16.0...v4.16.1
 [4.16.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.14.5...v4.15.0

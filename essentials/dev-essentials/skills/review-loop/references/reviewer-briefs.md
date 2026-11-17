@@ -43,6 +43,8 @@ Every reviewer report must follow these rules. Each brief below ends with "Apply
 
 **Proof before a confident fix**: if you propose a concrete fix, prove it with a primary source. A primary source is official docs, a known working example, the working code of the repository, or a throwaway test. Present a claim without such proof as a theory ("this can be ..."), not as a fix.
 
+**Fix plan for each finding**: give each finding a fix plan, in the Full format. The loop applies the fixes from your plans, and no other agent plans them. Base each plan on how the code of the repository already solves the same case. Do not edit any file.
+
 **Ask, do not guess**: if the material is not enough, do not guess. File an explicit question as a finding, with the type `Docs` or `Spec` and the severity `Low`. If the question blocks the review, use a higher severity.
 
 **Missing tests**: name missing tests or weak coverage explicitly, with the type `Test`.
@@ -86,6 +88,7 @@ For each row from the table:
 - **Verification source** (when proposing a concrete fix): the primary source consulted (official
   docs / known-working example / throwaway test) per `dev-essentials:engineering-discipline`.
   If unverified, frame as a theory ("this might be …"), not a fix.
+- **Fix plan:** the approach of the fix in 1 to 3 sentences, not code: the files to change, and the existing code or text that already solves the same case (`path:line`), so that the fix follows it. Name the test or the command that shows that the fix works. If the finding needs no change, write `none`.
 
 ## Conclusion
 
@@ -117,7 +120,7 @@ aggregates them in the cycle summary).
 **Scope:** `git diff origin/<BASE>...HEAD`. The diff is below.
 **Round:** Round `<N>`. Use this value. Do not infer it from the conversation.
 
-Find the problems that this diff brings in. Phase 4 triages your report, and a fixer acts on each finding that holds.
+Find the problems that this diff brings in. Phase 4 triages your report, and a fixer applies your fix plan of each finding that holds.
 
 **Focus areas (in priority order):**
 
@@ -143,7 +146,7 @@ Apply common rules.
 **Source → target:** `<SOURCE_REF>` → `<TARGET_REF>`
 **Round:** Round `<N>`.
 
-Find the problems that this diff brings in. Phase 4 triages your report, and a fixer acts on each finding that holds.
+Find the problems that this diff brings in. Phase 4 triages your report, and a fixer applies your fix plan of each finding that holds.
 
 The diff below comes from PR `<PR_ID>`. The remote-tracking refs `origin/<TARGET_BRANCH>` and `origin/pull/<PR_ID>/head` (the head of the PR) exist locally. **Do not rely on `HEAD`**, because it can point to a local branch that has nothing to do with this PR.
 
