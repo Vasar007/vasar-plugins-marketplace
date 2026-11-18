@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.25.1 in release [4.23.1] - 2026-11-18
+
+This release adds the first eval cases of `optimize-skill`. In the eval runs, a fold of the review fixer into the main session showed no proved gain. So the skill text does not change (issue #256).
+
+### Added in dev-essentials
+
+- `evals/optimize-skill/os-review-fixes`: the first behavior case of the skill. The scaffold makes a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 has an accepted finding in each run. Scored graders need the restored rule, the kept safety rule, at most two local commits, no push, an unchanged `CLAUDE.md`, and both reports. Route graders count the dispatches, the review fixer, and the second commit. They also find each seeded issue in the audit report (issue #256).
+- `evals/triggers/optimize-skill-fires` and `evals/triggers/optimize-skill-near-miss-trim`: the first trigger cases of the skill. The near-miss asks to trim a notes file, which `trim-artifacts` owns (issue #256).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: tests of the graders of the new cases on the fixture, on a right run, and on wrong runs (issue #256).
+- `docs/evals.md`: the new suite, its tag, and the finding of the user in the prompt of `os-review-fixes` (issue #256).
+
 ## dev-essentials 3.25.0 in release [4.23.0] - 2026-11-18
 
 With no agent count, `/audit-team` now reviews with two points of view. The main session reviews with the five roles as lenses, and one fresh agent takes the devil's advocate role. An explicit count still starts one agent for each of the first N roles. A new eval case plants one defect for each role (issue #254).
@@ -2022,7 +2036,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...HEAD
+[4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
 [4.23.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...v4.23.0
 [4.22.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.22.1
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0

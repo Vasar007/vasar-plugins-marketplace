@@ -48,12 +48,15 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `composers` | `dev-essentials` | 4 | WSL |
 | `trim-artifacts` | `dev-essentials` | 1 | WSL |
 | `audit-team` | `dev-essentials` | 1 | WSL |
+| `optimize-skill` | `dev-essentials` | 1 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 2 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | WSL2 or Linux, because its hook needs `python3` |
 | `style-compare-se` | `doc-styles` | 9 | WSL2 or Linux, because its hooks need `python3` and `node` |
 | `style-compare-both` | `doc-styles` | 3 | WSL2 or Linux, because its hooks need `python3` and `node` |
 
-The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, `--tag write-tests`, and `--tag audit-team` also run the trigger cases in `evals/triggers/` of their plugin. The tag `composers` selects only the behavior cases. The trigger cases of its skills carry the tags `compose-pr`, `compose-task`, and `create-documentation`.
+The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, `--tag write-tests`, `--tag audit-team`, and `--tag optimize-skill` also run the trigger cases in `evals/triggers/` of their plugin. The tag `composers` selects only the behavior cases. The trigger cases of its skills carry the tags `compose-pr`, `compose-task`, and `create-documentation`.
+
+The case `os-review-fixes` gives one finding of the user in its prompt. So step 6 of `optimize-skill` always has an accepted finding to apply, on both sides of a comparison. The route grader `route-step6-reached` passes only for a run that made the second commit.
 
 The `style-compare-*` suites compare the style of `doc-styles` with `simple-english`. The tag `style-compare` selects the cases of all `style-compare-*` suites. The suite `style-compare-openbsd` runs the skill on the documents in `evals/style-compare/openbsd/` of `doc-styles`. The suite `style-compare-se` runs the same prompts with `simple-english`, from `evals/style-compare/simple-english/`. The suite `style-compare-both` runs the documents in `evals/style-compare/coexist/` with both plugins loaded. The `simple-english` side loads the stand-in in `tests/evals/stubs/simple-english`, a byte copy of simple-english 2.1.1. If a newer simple-english is installed, a test fails, so that the copy does not fall behind in silence. The trigger cases of `doc-styles` in `evals/triggers/` carry the tag `openbsd-style-docs`, and its probes in `evals/probes/` carry the tag `probe`.
 
