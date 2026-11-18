@@ -1,5 +1,5 @@
 ---
-description: An optimize-skill run on a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 always has an accepted finding. The run must restore the lost rule, keep the safety rule, make at most two local commits, push nothing, and change no CLAUDE.md file.
+description: An optimize-skill run on a small plugin with four seeded issues and an agent file with a safety rule. A long reference file with no contents list is no seed. The auditor brief does not ask for such a list, and the runs of this case grant no web tool. The prompt adds one finding of the user, so that step 6 always has an accepted finding. The run must restore the lost rule, keep the safety rule, make at most two local commits, push nothing, and change no CLAUDE.md file.
 tags: [optimize-skill, route]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite, TaskCreate, TaskList, TaskUpdate]
 max_turns: 200
