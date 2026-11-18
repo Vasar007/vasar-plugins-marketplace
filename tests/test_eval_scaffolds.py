@@ -55,6 +55,7 @@ EXPECTED_BRANCH = {
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
     "os-review-fixes": "main",
+    "at-seeded-design": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -701,6 +702,41 @@ class DotnetWarmTests(FixtureCase):
                 env = self.warm_environment(f"home-{case.name}")
                 done = run([self.bash, script.as_posix()], env=env, cwd=self.workspace(case.name), timeout=SCAFFOLD_SECONDS)
                 self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+
+class DotnetNodeReuseTests(FixtureCase):
+    """Each dotnet command of dotnet_warm turns off the reuse of MSBuild nodes (issue 250)."""
+
+    FAKE_DOTNET_ARGUMENTS = """#!/usr/bin/env bash
+# A fake dotnet that logs the arguments of each call on one line.
+echo "$*" >>"$FAKE_DOTNET_LOG"
+"""
+
+    def test_every_dotnet_command_of_dotnet_warm_turns_off_node_reuse(self):
+        if shutil.which("flock") is None:
+            tool_missing(self, "flock not found")
+        folder = self.tmp / "bin"
+        folder.mkdir()
+        (folder / "dotnet").write_bytes(self.FAKE_DOTNET_ARGUMENTS.encode("utf-8"))
+        (folder / "dotnet").chmod(0o755)
+        log = self.tmp / "dotnet.log"
+        temp = self.tmp / "temp"
+        temp.mkdir()
+        env = self.environment(skip_dotnet=False)
+        env.update({
+            "TMPDIR": temp.as_posix(),
+            "PATH": f"{folder.as_posix()}{os.pathsep}{env['PATH']}",
+            "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
+            "FAKE_DOTNET_LOG": log.as_posix(),
+        })
+        library = REPO / "essentials" / "dev-essentials" / "evals" / "_lib" / "dotnet-fixture.sh"
+        done = run([self.bash, "-c", f'source "{library.as_posix()}"\ndotnet_warm Fake.sln NUnit@5.0.0'],
+                   env=env, cwd=self.tmp, timeout=SCAFFOLD_SECONDS)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        calls = log.read_text(encoding="utf-8").splitlines()
+        self.assertEqual([call.split()[0] for call in calls], ["restore", "restore", "restore", "build"])
+        self.assertEqual([call for call in calls if "-nodeReuse:false" not in call.split()], [],
+                         "a dotnet command can reuse an MSBuild node of an earlier run")
 
 
 class LibraryTests(FixtureCase):
@@ -1692,6 +1728,84 @@ class OptimizeSkillFixtureTests(FixtureCase):
         code, output = self.git(workspace, "push", "-q", "origin", "main")
         self.assertEqual(code, 0, output)
         self.assertEqual(self.scored(workspace), {"at-most-two-commits", "no-push"})
+
+
+class AuditTeamSeededDesignTests(FixtureCase):
+    """The design of at-seeded-design holds one planted defect for each role, and each defect grader names its defect."""
+
+    CASE = "at-seeded-design"
+    DESIGN = "docs/design/refund-export.md"
+    # Each defect grader, and a text that the grader and the design both hold.
+    DEFECTS = {
+        "found-missing-acceptance": "R3",
+        "found-wrong-assumption": "already retries a failed upload",
+        "found-untestable-step": "the network is stable",
+        "found-name-pattern": "RefundExportManager",
+        "found-contradiction": "7 days",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def setUp(self):
+        super().setUp()
+        self.files = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], self.files)
+        self.design = self.read(self.DESIGN)
+
+    def read(self, path):
+        return (self.files / path).read_bytes().decode("utf-8")
+
+    def section(self, heading):
+        start = self.design.index(f"\n## {heading}\n")
+        end = self.design.find("\n## ", start + 1)
+        return self.design[start:] if end < 0 else self.design[start:end]
+
+    def test_r3_is_the_only_requirement_with_no_acceptance_case(self):
+        requirements = re.findall(r"^- (R\d+): ", self.section("Requirements"), re.MULTILINE)
+        covered = re.findall(r"^- A\d+ \((R\d+)\): ", self.section("Acceptance cases"), re.MULTILINE)
+        self.assertEqual(requirements, ["R1", "R2", "R3", "R4"])
+        self.assertEqual(covered, ["R1", "R2", "R4"])
+
+    def test_the_upload_of_the_storage_client_has_no_retry(self):
+        code = self.read("app/storage_client.py")
+        upload = code[code.index("    def upload("):]
+        self.assertNotRegex(upload, r"\b(?:for|while|retry|retries)\b")
+        self.assertIn("already retries a failed upload", self.section("Components"))
+
+    def test_step_4_waits_for_a_condition_that_the_design_does_not_define(self):
+        self.assertIn("4. If the upload fails", self.section("Steps of the job"))
+        self.assertIn("wait until the network is stable", self.section("Steps of the job"))
+        self.assertEqual(self.design.count("stable"), 1)
+
+    def test_the_new_names_break_the_pattern_of_the_handlers(self):
+        handlers = sorted(path.name for path in (self.files / "app" / "handlers").glob("*_export_handler.py"))
+        self.assertEqual(handlers, ["invoice_export_handler.py", "order_export_handler.py"])
+        for name in handlers:
+            with self.subTest(handler=name):
+                stem = name[:-len("_export_handler.py")]
+                self.assertIn(f"class {stem.capitalize()}ExportHandler:", self.read(f"app/handlers/{name}"))
+        self.assertIn("`app/handlers/<name>_export_handler.py`", self.read("README.md"))
+        self.assertIn("`app/handlers/RefundExporter.py`", self.section("Components"))
+        self.assertIn("`RefundExportManager`", self.section("Components"))
+        self.assertNotIn("RefundExportHandler", self.design)
+
+    def test_retention_and_cleanup_give_two_ages(self):
+        self.assertIn("30 days", self.section("Retention"))
+        self.assertIn("older than 7 days", self.section("Cleanup"))
+
+    def test_each_defect_grader_names_a_text_of_the_design(self):
+        defects = {name for name in self.case.graders if name.startswith("found-")}
+        self.assertEqual(defects, set(self.DEFECTS))
+        for name, text in self.DEFECTS.items():
+            with self.subTest(grader=name):
+                meta, body = self.case.graders[name]
+                self.assertEqual((meta["type"], meta["focus"]), ("llm", "last_message"))
+                self.assertIn(text, body)
+                self.assertIn(text, self.design)
+                self.assertIn("the result is PASS", body)
+                self.assertIn("the result is FAIL", body)
 
 
 if __name__ == "__main__":

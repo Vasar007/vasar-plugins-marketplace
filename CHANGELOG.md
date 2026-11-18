@@ -9,24 +9,50 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 3.26.0 in release [4.24.0] - 2026-11-17
+## dev-essentials 3.25.1 in release [4.23.1] - 2026-11-18
 
-This release lets the main session of `optimize-skill` apply the accepted findings of the behavior review. For a small fix set, no review fixer agent starts. The flag `--review-fixer-model` keeps the old dispatch (issue #256).
-
-### Changed in dev-essentials
-
-- `skills/optimize-skill`: step 6 chooses who applies the accepted findings, with the delegation tests of Rule 1 of `subagent-orchestration`. If the fix plans put few files into the main context, the main session applies them itself. It does steps 1 to 5 of the review fixer brief and makes the second commit. Else it dispatches the review fixer as before. With `--review-fixer-model`, it always dispatches the review fixer. Rule 8 says how the main session repairs its own step-6 commit. The table of agents and the table of parameters name the new default (issue #256).
-- `skills/optimize-skill/references/briefs.md`: one line names the two cases in which step 6 dispatches the review fixer brief (issue #256).
+This release adds the first eval cases of `optimize-skill`. In the eval runs, a fold of the review fixer into the main session showed no proved gain. So the skill text does not change (issue #256).
 
 ### Added in dev-essentials
 
-- `evals/optimize-skill/os-review-fixes`: the first behavior case of the skill. The scaffold makes a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 has an accepted finding in each run. Scored graders need the restored rule, the kept safety rule, at most two local commits, no push, an unchanged `CLAUDE.md`, and both reports. Route graders count the dispatches and the second commit. They also find each seeded issue in the audit report (issue #256).
+- `evals/optimize-skill/os-review-fixes`: the first behavior case of the skill. The scaffold makes a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 has an accepted finding in each run. Scored graders need the restored rule, the kept safety rule, at most two local commits, no push, an unchanged `CLAUDE.md`, and both reports. Route graders count the dispatches, the review fixer, and the second commit. They also find each seeded issue in the audit report (issue #256).
 - `evals/triggers/optimize-skill-fires` and `evals/triggers/optimize-skill-near-miss-trim`: the first trigger cases of the skill. The near-miss asks to trim a notes file, which `trim-artifacts` owns (issue #256).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: tests of the graders of the new cases on the fixture, on a right run, and on wrong runs. A test also makes sure that step 6 still points to steps 1 to 5 of the review fixer brief (issue #256).
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: tests of the graders of the new cases on the fixture, on a right run, and on wrong runs (issue #256).
 - `docs/evals.md`: the new suite, its tag, and the finding of the user in the prompt of `os-review-fixes` (issue #256).
+
+## dev-essentials 3.25.0 in release [4.23.0] - 2026-11-18
+
+With no agent count, `/audit-team` now reviews with two points of view. The main session reviews with the five roles as lenses, and one fresh agent takes the devil's advocate role. An explicit count still starts one agent for each of the first N roles. A new eval case plants one defect for each role (issue #254).
+
+### Changed in dev-essentials
+
+- `commands/audit-team`: with no `agent-count`, the run takes the two-view route. Before, it started five role agents, and each one read the whole target again. If the second argument is not a whole number and names a model, it is the model of the agent. So `/audit-team <path> opus` now works with no count. The report keeps its form. On the two-view route, a consensus in the agreement matrix needs a flag of the main session and a flag of the agent (issue #254).
+- `skills/review-loop`: the `audit-team` adapter and the spec review example pass a count of 5 as a fixed value, so `--reviewer audit-team` keeps the five-role team (issue #254).
+
+### Added in dev-essentials
+
+- `evals/audit-team/at-seeded-design`: a new case. A design file has five planted defects, one for each role. One requirement has no acceptance case, and one claim about the code is wrong. One step has a condition that no test can check, and one name breaks the pattern of the project. Two sections disagree. A judge reads the final report for each defect. A route grader counts the role agents (issue #254).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py` and `tests/test_eval_cases.py`: tests of the planted design and of the graders of the new case (issue #254).
+- `tests/test_review_loop_text.py`: four tests pin the fixed count of the adapter, the explicit count of the command, and the two-view route (issue #254).
+- `docs/evals.md`: a new suite row for `audit-team` with 1 case, and the tag sentence: `--tag audit-team` also runs the two trigger cases of the command (issue #254).
+
+## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17
+
+This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each .NET scaffold after the first .NET run failed on a NuGet lock in the sealed `tmp` folder of that run (issue #250).
+
+### Fixed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: each `dotnet` command of `dotnet_warm` has `-nodeReuse:false`. Before, the first scaffold of a command left an MSBuild node, and the next scaffold in the same session used that node. NuGet in that node kept its lock folder in the `TMPDIR` of the first run. The eval tool seals that folder after a kept run, so the restore failed after about 31 seconds. Each later scaffold now takes about 1 second more. The fixture of dotnet-backend-dev is a link to this file, so it gets the fix too (issue #250).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: the new test class `DotnetNodeReuseTests` runs `dotnet_warm` with a fake `dotnet`. It makes sure that each of the four `dotnet` commands has `-nodeReuse:false` (issue #250).
 
 ## dev-essentials 3.24.0 in release [4.22.0] - 2026-11-17
 
@@ -2010,8 +2036,10 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...HEAD
-[4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.24.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...HEAD
+[4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
+[4.23.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...v4.23.0
+[4.22.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.22.1
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0

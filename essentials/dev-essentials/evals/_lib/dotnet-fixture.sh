@@ -16,6 +16,8 @@
 # and nuget.config names that folder. If the shared folder is a link or another user owns it, dotnet_warm stops.
 # Each run has its own TMPDIR, so the file locks of NuGet do not guard the shared folder. So dotnet_warm holds
 # a lock on /tmp/plugin-evals/nuget.lock while it restores into the shared folder and copies it. The lock needs flock (util-linux).
+# Each dotnet command has -nodeReuse:false. A reused MSBuild node keeps the NuGet lock folder in the TMPDIR of an earlier run.
+# The eval tool seals the tmp folder of a kept run, so the next scaffold then fails on that lock (issue 250).
 # The dotnet commands write their output to stderr. In the failed runs of issue 147, the error message of the scaffold was empty, and dotnet writes its errors to stdout.
 # The scaffold never runs the tests. If EVAL_FIXTURE_SKIP_DOTNET=1, dotnet_warm does nothing.
 # EVAL_FIXTURE_DOTNET_CACHE replaces the folder /tmp/plugin-evals. Only a test sets these two variables.
@@ -176,13 +178,13 @@ dotnet_warm() {
         for package in "$@"; do
             printf '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="%s" Version="%s" /></ItemGroup></Project>\n' \
                 "${package%@*}" "${package#*@}" > "$folder/prefetch.csproj"
-            dotnet restore "$folder/prefetch.csproj" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+            dotnet restore "$folder/prefetch.csproj" --packages "$cache/nuget" --verbosity quiet -nodeReuse:false >&2 9>&-
         done
-        dotnet restore "$solution" --packages "$cache/nuget" --verbosity quiet >&2 9>&-
+        dotnet restore "$solution" --packages "$cache/nuget" --verbosity quiet -nodeReuse:false >&2 9>&-
         mkdir -p "$HOME/.nuget/packages"
         cp -R "$cache/nuget/." "$HOME/.nuget/packages/"
     ) 9>"$cache/nuget.lock"
     # The agent builds with the same nuget.config, so its restore finds every package and needs no network.
-    dotnet restore "$solution" --verbosity quiet >&2
-    dotnet build "$solution" --no-restore --verbosity quiet >&2
+    dotnet restore "$solution" --verbosity quiet -nodeReuse:false >&2
+    dotnet build "$solution" --no-restore --verbosity quiet -nodeReuse:false >&2
 }
