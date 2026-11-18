@@ -4270,6 +4270,12 @@ class AuditTeamRouteGraderTests(unittest.TestCase):
         self.assertIsNone(re.search(meta["pattern"], template.replace("Agreement matrix", "Summary"), flags))
         self.assertIsNone(re.search(meta["pattern"], "The design looks fine. I found no issue.", flags))
 
+    def test_step_3_keeps_the_heading_and_the_labels_of_the_form(self):
+        rule = "Keep its heading and each bold label word for word, also `**Agreement matrix:**`."
+        self.assertIn("- Present a unified report in the form below. " + rule, self.command)
+        self.assertIn("`review-loop` reads the buckets and the agreement matrix by these labels.", self.command)
+        self.assertLess(self.command.index(rule), self.command.index("### Team Review Report"))
+
 
 if __name__ == "__main__":
     unittest.main()
