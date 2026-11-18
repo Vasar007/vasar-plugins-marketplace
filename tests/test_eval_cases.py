@@ -4621,7 +4621,7 @@ class RirrFinishCaseTests(unittest.TestCase):
         self.assertLess(merge.index("fixture_publish main\n"), merge.index("git checkout -q -b work/retry-limit\n"))
         self.assertIn('fixture_commit "lower the HTTP retry limit to 3"\n', merge)
         self.assertIn("Verdict `stop-clean`.", merge)
-        # A resume needs the verdict and the commit that the loop ended on. The report names it as the head commit.
+        # A resume needs the verdict and the head commit at the end of the run. The report names it as the head commit.
         self.assertIn("- **Head commit**: HEAD_SHA\n", merge)
         self.assertIn('sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-limit-report.md\n', merge)
         gate = (self.cases["rirr-merge-gate"].path / "scaffold.sh").read_text(encoding="utf-8")
@@ -4643,6 +4643,8 @@ class RirrFinishCaseTests(unittest.TestCase):
         self.assertIn("to finish the earlier run on the branch `work/retry-limit`. Its report is "
                       "`notes/Results/retry-limit-report.md`.", self.cases["rirr-merge"].prompt_body)
         self.assertNotIn("--mode", self.cases["rirr-final-gate"].prompt_body)
+        # With no repository in the request and no GitHub remote, finish.md asks no question, and the grader route-gate-question fails.
+        self.assertIn("The GitHub repository is example-org/users-app.", self.cases["rirr-final-gate"].prompt_body)
         # The older cases run in the full mode. Their request forbids the push, and that outranks the mode.
         for case in ("rirr-retry-limit", "rirr-single-commit"):
             with self.subTest(case=case):

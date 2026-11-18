@@ -83,11 +83,11 @@ def autonomy(text):
 
 
 def text_files():
-    """Each Markdown file of each plugin, each eval prompt, the docs pages, and the root README, but work-modes."""
+    """Each Markdown file of each plugin, each eval prompt, the docs pages, and the root README, but the two files of work-modes."""
     files = [p for base in ("essentials", "dotnet", "knowledge") for p in (REPO / base).rglob("*.md")
              if "/graders/" not in p.as_posix() and "/results/" not in p.as_posix()]
     files += sorted((REPO / "docs").glob("*.md")) + [REPO / "README.md"]
-    return [p for p in files if p != WORK_MODES and "/mocks/" not in p.as_posix()]
+    return [p for p in files if p not in (WORK_MODES, FINISH) and "/mocks/" not in p.as_posix()]
 
 
 class WorkModesSkillTests(unittest.TestCase):
@@ -269,10 +269,13 @@ class FinishStepTests(unittest.TestCase):
                          "Dispatch the agent `dev-essentials:pr-composer`.",
                          "Call `mcp__plugin_github_github__create_pull_request` with `owner`, `repo`, `base` (the base branch of the run), "
                          "`head` (the branch), `title`, and `body`.",
-                         "If the call fails, do not call it again.",
+                         "If the call fails, report the error and the pushed branch, and end the run.",
                          "1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with "
                          "`owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`.",
-                         "If a pull request exists, use it, skip the rest of step 4, and say so in the finish report.",
+                         "If the base of a found pull request is the base branch of the run, use it. "
+                         "Skip the rest of step 4, and say so in the finish report. "
+                         "If its base is another branch, do no later step. Outside the full mode, ask the user (hard stop 6). "
+                         "In the full mode, report it, and end the run (hard stop 5).",
                          "- Each review loop of the run ended `stop-clean`, or `stop-max-rounds` with no open blocking finding."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, steps)
@@ -289,28 +292,43 @@ class FinishStepTests(unittest.TestCase):
                          "In a fork clone with no other remote, the pull request goes to the fork."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
-        # A clone with no GitHub remote is no hard stop: the run does no step, in every mode, and asks nothing.
+        # A clone with no GitHub remote is no hard stop: the run does no pull request and no merge, in every mode, and asks nothing.
         self.assertNotIn("- No source names a repository.", self.text)
-        self.assertIn("If the request names no repository, and no remote of the clone is on `github.com`, do no step, and ask no question. "
-                      "The finish report says that the steps did not run, and why. This holds in every mode.", self.text)
+        self.assertIn("If the request names no repository, and no remote of the clone is on `github.com`, ask no question. "
+                      "Do not do step 4 or step 5. Do steps 1 to 3 only for the old flag `--push`. "
+                      "The finish report says which steps did not run, and why. This holds in every mode.", self.text)
 
     def test_a_run_that_never_pushes_skips_the_search_for_the_repository(self):
-        self.assertIn("If the request forbids the push, or an old spelling approves no push, do no step, and do not look for the repository.",
-                      self.text)
+        self.assertIn("If the request forbids the push, do no step, and do not look for the repository.", self.text)
+        self.assertIn("The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push and nothing more. "
+                      "Do not look for the repository. With `--push`, do steps 1 to 3 with no question, "
+                      "and skip the question, step 4, and step 5. With no `--push`, do no step.", self.text)
+
+    def test_each_run_matches_one_bullet_of_the_section_when_the_steps_run(self):
+        when = self.text[self.text.index("## When the steps run"):self.text.index("## The repository")]
+        bullets = [line for line in when.splitlines() if line.startswith("- ")]
+        self.assertEqual(len(bullets), 3)
+        self.assertIn("Take the first bullet that fits the run:", when)
+        self.assertEqual(bullets[0], "- In the full mode, do the steps with no question. "
+                                     "The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.")
+        self.assertTrue(bullets[1].startswith("- The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push"))
+        self.assertTrue(bullets[2].startswith("- In every other run of the partial mode and of the interactive mode, the final gate comes after "))
+        # The old spellings are named only where they pick a bullet. work-modes says how to read each one.
+        self.assertIn("`dev-essentials:work-modes` says how to read an old spelling.", when)
+        self.assertNotIn("--interactive", when)
 
     def test_a_pull_request_body_that_asks_a_question_is_asked_again_in_the_full_mode(self):
-        for sentence in ("3. If the agent returns a question or no body, ask the user (hard stop 6). In the full mode, do not ask. "
-                         "Dispatch the agent one more time, and tell it to write the body from the facts that it has. "
-                         "Tell it to mark each open point with `Not confirmed:`. "
-                         "If it still returns no body, report the pushed branch, and end the run (hard stop 5)."):
-            with self.subTest(sentence=sentence):
-                self.assertIn(sentence, self.text)
+        self.assertIn("3. If the agent returns a question or no body, and the mode is not full, ask the user (hard stop 6). "
+                      "In the full mode, dispatch the agent one more time, and tell it to write the body from the facts that it has. "
+                      "Tell it to mark each open point with `Not confirmed:`. "
+                      "If it still returns no body, report the pushed branch, and end the run (hard stop 5).", self.text)
 
     def test_a_resume_needs_the_verdict_and_the_reviewed_commit(self):
         resume = self.text[self.text.index("## Resume"):self.text.index("## The finish report")]
-        for sentence in ("The report of the earlier run must give the verdict of each review loop and the commit that the last loop ended on.",
+        for sentence in ("Take the report of the earlier run from a file or from this conversation. "
+                         "It must give the verdict of each review loop and the head commit at the end of that run.",
                          "The head of the branch must be that commit.",
-                         "If a fact is missing, do no step. Outside the full mode, ask the user (hard stop 6). "
+                         "If a fact is missing, or no report exists, or the head differs, do no step. Outside the full mode, ask the user (hard stop 6). "
                          "In the full mode, report the state, and end the run (hard stop 5)."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, resume)
@@ -328,8 +346,7 @@ class FinishStepTests(unittest.TestCase):
                          "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. "
                          "For a failed merge gate, name the failed item from the report of `merge-pr`.",
                          "Do not repair the cause, and do not do a step again.",
-                         "Take the old flag `--push` with no `--mode full` in the request. Then do steps 1 to 3 with no question, "
-                         "and skip the question, step 4, and step 5."):
+                         "In the full mode, do the steps with no question.", "Take the first bullet that fits the run:"):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
 
@@ -343,8 +360,9 @@ class FinishCallerTests(unittest.TestCase):
                 self.assertIn(f"| {step}{FINISH_ROW}", autonomy(text))
                 self.assertIn(REPOSITORY_ROW, autonomy(text))
                 self.assertIn(REPOSITORY_ROW_SKIP, autonomy(text))
-                # The final report names the commit that the review loop ended on. A resume compares it with the head of the branch.
-                self.assertIn("the head commit at the end of the review loop", text)
+                # The final report names the head commit at the end of the run. A resume compares it with the head of the branch.
+                self.assertIn("the head commit at the end of the run", text)
+                self.assertNotIn("the head commit at the end of the review loop", text)
                 self.assertIn(f"goes straight to {step}, as \"Resume\" in its file `finish.md` says.", text)
                 # The old flag --push is an old spelling, so only work-modes names it.
                 self.assertNotIn("--push", text)
@@ -373,8 +391,8 @@ class FinishCallerTests(unittest.TestCase):
                          "In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push "
                          "and no pull request, as before.",
                          "- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more.",
-                         "With `--mode full`, the run does all finish steps, and with the old `--autonomous`, "
-                         "it pushes with no stop and does nothing more."):
+                         "With `--mode full` or `--autonomous --merge`, the run does all finish steps. "
+                         "With the old `--autonomous` and no `--merge`, it pushes with no stop and does nothing more."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, text)
 

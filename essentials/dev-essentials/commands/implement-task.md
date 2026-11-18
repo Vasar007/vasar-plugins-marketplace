@@ -151,7 +151,7 @@ Return control to **Phase 4 (Report)** of RIRR. Tell it not to run its Phase 5 (
 - The Phase 2 sweep: the items read, the pattern that they set, how the implementation followed it, each conflict and its resolution, and the path of the context document.
 - The Phase 4 pass: ran or skipped, what it changed, its commit subject, and the real output of the build and tests after it.
 - **The real commit topology**: `git -C "<worktree>" log --oneline <RUN_BASE_SHA>..HEAD`. In `single` mode, the expected result is **one task commit plus one simplify commit**, or only the task commit after an empty pass. If the result differs, report it and explain why. For Phase 4, `git -C "<worktree>" log --oneline <SIMPLIFY_BASE_SHA>..HEAD` must show exactly one commit, or zero after an empty pass.
-- The absolute worktree path, the branch name, and the head commit at the end of the review loop.
+- The absolute worktree path, the branch name, and the head commit at the end of the run.
 - Each gate that this run or RIRR passed without a stop.
 
 Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Outside the full mode, Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. In the full mode, ask no question. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.

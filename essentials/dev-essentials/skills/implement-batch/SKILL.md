@@ -148,7 +148,7 @@ For task `i`:
 - For each task: what was implemented, which files, the review-loop verdict (`stop-clean`, `stop-max-rounds`, or `stop-blocked`), and the subject of the squashed commit.
 - The paths of the N plan files. They are not in any commit.
 - For the batch: the verdict of the final review, the build and test state at `HEAD`, and each decision that needed a sign-off with its outcome. Also each gate that this run passed without a stop, and each finding deferred by agreement. In the full mode, also list each decision that the run made for the user under "Decisions for your review".
-- The absolute worktree path, the branch name, and the head commit at the end of the review loop.
+- The absolute worktree path, the branch name, and the head commit at the end of the run.
 
 ### Step 6 — Finish (push, pull request, merge)
 

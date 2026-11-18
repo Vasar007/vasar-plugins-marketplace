@@ -1,16 +1,20 @@
 # Finish: Push, Pull Request, Merge
 
-These are the finish steps of three workflows: `research-implement-review-report`, `implement-task`, and `implement-batch`. The steps push the branch, open a pull request, and merge it after the gate of `dev-essentials:merge-pr`.
+These are the finish steps of three workflows: `research-implement-review-report`, `implement-task`, and `implement-batch`.
 
-Read this file at the finish step of each run, also in a later run of the same session.
+Read this file at the finish step of each run.
 
 ## When the steps run
 
-- In the full mode, do the steps with no question.
-- In the partial mode and in the interactive mode, the final gate comes after the final report. Show the verdict of each review loop of the run. Then ask one question: "Push the branch, open a pull request, and merge it after the gate of merge-pr? (yes / push and pull request only / no)". Do no step before the answer. With "push and pull request only", skip step 5. With "no", do no step.
-- If the end of the run has another question, for example the cleanup question of `save-context`, ask both questions in one message.
-- An old spelling can approve less. `dev-essentials:work-modes` says how to read it. Take the old flag `--push` with no `--mode full` in the request. Then do steps 1 to 3 with no question, and skip the question, step 4, and step 5.
-- An instruction of the user outranks the mode (hard stop 7 of `dev-essentials:work-modes`). If the request forbids the push, or an old spelling approves no push, do no step, and do not look for the repository. If the request forbids only the merge, skip step 5.
+`dev-essentials:work-modes` says how to read an old spelling. Take the first bullet that fits the run:
+
+- In the full mode, do the steps with no question. The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.
+- The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push and nothing more. Do not look for the repository. With `--push`, do steps 1 to 3 with no question, and skip the question, step 4, and step 5. With no `--push`, do no step.
+- In every other run of the partial mode and of the interactive mode, the final gate comes after the final report. Show the verdict of each review loop of the run. Then ask one question: "Push the branch, open a pull request, and merge it after the gate of merge-pr? (yes / push and pull request only / no)". Do no step before the answer. With "push and pull request only", skip step 5. With "no", do no step.
+
+If the end of the run has another question, for example the cleanup question of `save-context`, ask both questions in one message.
+
+An instruction of the user outranks the mode (hard stop 7 of `dev-essentials:work-modes`). If the request forbids the push, do no step, and do not look for the repository. If the request forbids only the merge, skip step 5.
 
 ## The repository
 
@@ -19,9 +23,9 @@ Read this file at the finish step of each run, also in a later run of the same s
 1. The request of the user: `owner/repo` in words, or a GitHub URL of the repository, of an issue, or of a pull request. Parse a URL as Rule 1 of `dev-essentials:github-mcp-conventions` says.
 2. Outside the interactive mode: the `origin` remote, by the exception in Rule 1 of `dev-essentials:github-mcp-conventions`. If `git remote get-url origin` prints no URL of `github.com`, do not use it.
 
-Step 3 pushes to `origin`, so only the repository of `origin` holds the branch of the pull request. So the remote is a safe source here. In a fork clone with no other remote, the pull request goes to the fork.
+Step 3 pushes to `origin`, so only the repository of `origin` holds the branch of the pull request. In a fork clone with no other remote, the pull request goes to the fork.
 
-If the request names no repository, and no remote of the clone is on `github.com`, do no step, and ask no question. The finish report says that the steps did not run, and why. This holds in every mode.
+If the request names no repository, and no remote of the clone is on `github.com`, ask no question. Do not do step 4 or step 5. Do steps 1 to 3 only for the old flag `--push`. The finish report says which steps did not run, and why. This holds in every mode.
 
 These cases are hard stop 6 of `dev-essentials:work-modes`. Ask the user, and do no step before the answer:
 
@@ -39,13 +43,13 @@ In the full mode, find the repository before the first step of the workflow. In 
 2. Run the build and the tests one time, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the build or a test fails, do no later step, and report it (hard stop 5).
 3. Push with `git -C "<work tree>" push -u origin <branch>`. Never force the push, and never pass `--no-verify`. If the push fails, do not push again with other options. Report the error and the local state, and end the run. A push protection block is hard stop 4.
 4. Open the pull request:
-   1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`. If the tool is not loaded, load it with `ToolSearch` first. Follow `dev-essentials:github-mcp-conventions` in each call of this step. If a pull request exists, use it, skip the rest of step 4, and say so in the finish report.
+   1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`. Follow `dev-essentials:github-mcp-conventions` in each call of this step. If the base of a found pull request is the base branch of the run, use it. Skip the rest of step 4, and say so in the finish report. If its base is another branch, do no later step. Outside the full mode, ask the user (hard stop 6). In the full mode, report it, and end the run (hard stop 5).
    2. Dispatch the agent `dev-essentials:pr-composer`. Give it the absolute path of the work tree, the base branch, the branch, and the task text. Also give the paths of the plan files and of the report of the run. If the task is a GitHub issue of this repository, also give its closing line, for example `Closes #42.`. The agent returns the body.
-   3. If the agent returns a question or no body, ask the user (hard stop 6). In the full mode, do not ask. Dispatch the agent one more time, and tell it to write the body from the facts that it has. Tell it to mark each open point with `Not confirmed:`. If it still returns no body, report the pushed branch, and end the run (hard stop 5).
+   3. If the agent returns a question or no body, and the mode is not full, ask the user (hard stop 6). In the full mode, dispatch the agent one more time, and tell it to write the body from the facts that it has. Tell it to mark each open point with `Not confirmed:`. If it still returns no body, report the pushed branch, and end the run (hard stop 5).
    4. Write a title of at most 72 characters from the section `## What` of the body.
    5. Call `mcp__plugin_github_github__create_pull_request` with `owner`, `repo`, `base` (the base branch of the run), `head` (the branch), `title`, and `body`.
-   6. If the call fails, do not call it again. Report the error and the pushed branch, and end the run.
-5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request. The full mode of the run, or the yes of the final gate, is the approval that its section "Approval" asks for. Its Step 2 waits for the checks that still run, up to its time limit. If its gate fails, it does not merge, and the pull request stays open.
+   6. If the call fails, report the error and the pushed branch, and end the run.
+5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request. The full mode of the run, or the yes of the final gate, is the approval that its section "Approval" asks for. If its gate fails, it does not merge, and the pull request stays open.
 
 ## A failed step in the full mode
 
@@ -53,7 +57,7 @@ A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Re
 
 ## Resume
 
-The user can ask a workflow to finish an earlier run. Examples are a run with the answer "no" at the final gate, and a run with a failed step. The request names the report of that run, or its branch. Then skip the other steps of the workflow. Check out that branch, or work in the worktree that holds it (`git worktree list`). Do the steps of this file from step 1. A resume needs two facts. The report of the earlier run must give the verdict of each review loop and the commit that the last loop ended on. The head of the branch must be that commit. If a fact is missing, do no step. Outside the full mode, ask the user (hard stop 6). In the full mode, report the state, and end the run (hard stop 5).
+The user can ask a workflow to finish an earlier run. The request names the report of that run, or its branch. Then skip the other steps of the workflow. Check out that branch, or work in the worktree that holds it (`git worktree list`). Do the steps of this file from step 1. A resume needs two facts. Take the report of the earlier run from a file or from this conversation. It must give the verdict of each review loop and the head commit at the end of that run. The head of the branch must be that commit. If a fact is missing, or no report exists, or the head differs, do no step. Outside the full mode, ask the user (hard stop 6). In the full mode, report the state, and end the run (hard stop 5).
 
 ## The finish report
 

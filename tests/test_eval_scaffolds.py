@@ -1561,7 +1561,7 @@ class TrimFullPassTests(FixtureCase):
 
 
 class RirrMergeReportTests(FixtureCase):
-    """The planted report of rirr-merge names the head commit that the review loop ended on (issue #271)."""
+    """The planted report of rirr-merge names the head of the branch as its head commit (issue #271)."""
 
     def test_the_report_names_the_head_of_the_branch(self):
         case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-merge"]
