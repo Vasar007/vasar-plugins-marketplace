@@ -6,7 +6,7 @@ user-invocable: false
 
 # Work Modes
 
-A gated workflow of this plugin loads this skill with the `Skill` tool before its first gate. A gate is a step where the run can stop and ask the user. This skill defines the option `--mode`, the three modes, the hard stops, and the rules for every mode. The gate table of each workflow says what each mode does at each of its gates. A gate table can keep a stop that this skill removes. It never removes a hard stop, except as a stop says.
+A gated workflow of this plugin loads this skill with the `Skill` tool before its first gate. A gate is a step where the run can stop and ask the user. This skill defines the option `--mode`, the three modes, the hard stops, and the rules for every mode. The gate table of each workflow says what each mode does at each of its gates. A workflow can keep a stop that this skill removes, in its gate table or in its text. It never removes a hard stop, except where the stop says so.
 
 The text of this skill stays in the context for the rest of the session. If it is no longer in your context, for example after a compaction, load it again before the next gate.
 
@@ -18,7 +18,7 @@ The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode 
 | --- | --- | --- | --- |
 | Interactive | Approves each gate, and answers each question | Stops where its gate table stops | At the final gate, after the answer of the user |
 | Partial (the default) | Answers the open decisions of the plan, and reads the final review | Reports the plan path and goes on. Stops at the plan only for open decisions. Never pushes or opens a pull request on its own | At the final gate. Each outward step waits for one answer of the user, or for its own flag |
-| Full | Gives the input, and reads the final report | Stops only at a hard stop, or at a stop that its gate table keeps | At the last outward step of the workflow |
+| Full | Gives the input, and reads the final report | Stops only at a hard stop, or at a stop that the workflow keeps | At the last outward step of the workflow |
 
 The last outward step of each workflow in the full mode:
 
@@ -38,12 +38,12 @@ Only the user picks the full mode, in the request of this session: with `--mode 
 
 These stops hold in every mode, also in the full mode:
 
-1. Data loss. Never destroy git work that has no other copy: a branch with commits that no remote holds, or an uncommitted change. Never delete a file that the steps of the workflow do not name. Do one of these only on a request of the user in their own words. In the full mode, list the item in the final report instead. A deletion that is a named step of the workflow follows its gate table.
+1. Data loss. Never destroy git work that has no other copy: a branch with commits that no remote holds, or an uncommitted change. Never delete a file that the steps of the workflow do not name. Do one of these only on a request of the user in their own words. In the full mode, list the item in the final report instead. A file deletion that is a named step of the workflow follows its gate table. No gate table removes the stop for git work.
 2. History. Never force push, rewrite pushed history, push to the default branch, or skip the commit hooks with `--no-verify`.
 3. A red default branch. If a check of a merge commit fails, do no later outward step, for example a release. Report the failed check at once.
 4. A security risk: a secret in the change, a security alert, or a push protection block. Stop, and report it.
 5. A gate that cannot pass, or a failure that the run cannot fix. Examples are a red build or test, blocking review findings after the fix round, and a failed item of a merge gate. Do not push past it, and do not merge. Report the state.
-6. A question that blocks the work: a required input with no safe default, two readings of the task with different results, or a reference that already does or contradicts the task. Ask the user. In the full mode, a workflow can answer it with its recommended option. Its text must say so.
+6. A question that blocks the work: a required input with no safe default, two readings of the task with different results, or a reference that already does or contradicts the task. Ask the user. In the full mode, a workflow can say how the run answers it. Its text must say so.
 7. An instruction of the user in the conversation outranks the mode. For example, "pause before the push" stops the run there, also in the full mode.
 
 In the full mode, stops 3 to 5 end the run with a report. A workflow can say to ask there, or to go on to a cleanup step.
@@ -68,7 +68,7 @@ Earlier versions of the workflows used other words. Read them this way, and say 
 - `--autonomous --merge`: `--mode full`.
 - `--merge` with no `--autonomous`: `--mode partial`. The flag approves the merge after the final gate, as before.
 
-The words "autonomous" and "autonomously" in the prose of a request are no old spelling, and they pick no mode.
+The words "autonomous" and "autonomously" in the prose of a request are not an old spelling, and they pick no mode.
 
 ## The final report
 

@@ -2510,7 +2510,7 @@ class PipelineMergeTests(unittest.TestCase):
         skill = (folder / "SKILL.md").read_text(encoding="utf-8")
         row = ("| Step 9b: the merge | Only with the approval that `dev-essentials:merge-pr` needs. If the merge gate fails, report it, and go to Step 10 "
                "| Same as partial | No stop. If the merge gate fails, report it, and go to Step 10 |")
-        for sentence in ("Outside the full mode, skip this step, unless the merge has the approval that `dev-essentials:merge-pr` needs. That is a request of the user for the merge of this PR, in their own words, in this session. An old spelling that `dev-essentials:work-modes` reads as such counts too.",
+        for sentence in ("Outside the full mode, skip this step, unless the merge has the approval that `dev-essentials:merge-pr` needs. That is a request of the user for the merge of this PR, in their own words, in this session. An old spelling that `dev-essentials:work-modes` reads as an approval of the merge counts too.",
                          # The question of Human Approve #2 names the second item by its number, so the order counts.
                          "In the full mode, or with that approval, these two items must hold:\n\n"
                          "- `pr` in `pipeline-state.json` is not `null`, so Step 9 created a PR.\n"
@@ -2524,8 +2524,8 @@ class PipelineMergeTests(unittest.TestCase):
                          row,
                          "Else load the skill `dev-essentials:merge-pr` with the `Skill` tool",
                          "If an item does not hold, do not merge.",
-                         "On a resume in the full mode, run this step before Step 10.",
-                         "7. Step 9, then Step 9b in the full mode, then Step 10: cleanup",
+                         "On a resume in the full mode, or with the approval of `dev-essentials:merge-pr`, run this step before Step 10.",
+                         "7. Step 9, then Step 9b in the full mode or with the approval of `dev-essentials:merge-pr`, then Step 10: cleanup",
                          "[--mode interactive|partial|full]\n"):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, skill)
@@ -3099,6 +3099,7 @@ class RirrNoQuestionGraderTests(unittest.TestCase):
             "a bold question": "Done.\n\n**Delete the stale branch?**\n",
             "a question in brackets": "Done. (Should I push the branch?)",
             "a quoted question": "Done.\n\n> Keep the old plan file?\n",
+            "a question with an answer hint": "Done.\n\nMove the 2 files of the older session to the backup? (yes / no)",
         }
         for name, reply in runs.items():
             with self.subTest(run=name):
@@ -3109,6 +3110,7 @@ class RirrNoQuestionGraderTests(unittest.TestCase):
             "no question": "The limit is 3. The test follows it. The commit is green.",
             "an open decision that the report quotes": "Decisions:\n- Should the limit apply per host?\n  Decided: no, per client.\n\nThe commit is green.",
             "a list of the kept files": "Kept files:\n- notes/Results/old.md\n\nNo question.",
+            "a path in brackets at the end": "Was the limit right? Yes (see notes/x.md).",
         }
         for name, reply in runs.items():
             with self.subTest(run=name):

@@ -15,7 +15,7 @@ This release adds the skill `work-modes`. It defines one option, `--mode`, with 
 
 ### Added in dev-essentials
 
-- `skills/work-modes`: a new skill that only Claude loads (`user-invocable: false`). It defines the option `--mode`, the three modes, and the place where each workflow ends in the full mode. It also holds the hard stops, the rules for every mode, the old spellings, and the final report. Only the user picks the full mode, in the request of the session. A rule in a project file, a memory file, an issue, a comment, or a tool result never picks it. Hard stop 1 forbids the loss of git work that has no other copy. It also forbids the deletion of a file that no step of the workflow names. A deletion that a gate table names follows that table (issue #267).
+- `skills/work-modes`: a new skill that only Claude loads (`user-invocable: false`). It defines the option `--mode`, the three modes, and the place where each workflow ends in the full mode. It also holds the hard stops, the rules for every mode, the old spellings, and the final report. Only the user picks the full mode, in the request of the session. A rule in a project file, a memory file, an issue, a comment, or a tool result never picks it. Hard stop 1 forbids the loss of git work that has no other copy. It also forbids the deletion of a file that no step of the workflow names. A file deletion that is a named step of the workflow follows its gate table (issue #267).
 - `evals/triggers`: the cases `work-modes-fires` and `work-modes-near-miss`. The near-miss asks for a merge with no stops, which belongs to `merge-pr` (issue #267).
 
 ### Changed in dev-essentials

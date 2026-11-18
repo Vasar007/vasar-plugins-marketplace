@@ -162,7 +162,7 @@ changed on purpose" list. If a part is missing, send the auditor the list of gap
 
 1. List the open items.
 2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
-3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. In the interactive mode, ask the user instead. This step is an exception to the critical-decision rule of `dev-essentials:work-modes`. The audit report is not an approved plan, and the choice keeps the current behavior.
+3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. In the interactive mode, ask the user instead. This step is an exception to the critical-decision rule of `dev-essentials:work-modes`.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
 5. If an item deletes a file that this run did not create, ask the user before step 3. If the user approved that deletion earlier or the run is in the full mode, do not ask.
 6. In the interactive mode, show the decisions and wait for the user's OK. Else continue.
