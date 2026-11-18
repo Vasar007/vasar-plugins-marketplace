@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.27.0 in release [4.25.0] - 2026-11-18
 
-This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262).
+This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262). The release also holds the new maintainer tools in the folder `tools/`, which no plugin ships (issue #255).
 
 ### Added in dev-essentials
 
@@ -28,6 +28,11 @@ This release adds the flag `--merge` to the workflow `feature-pipeline`. With `-
 - `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the two new cases. `ScaffoldTests` makes sure that the head of the pull request in `fixtures/pull/get.json` is the branch and the last commit of the scaffold. The new method `check_pipeline_state` reads the state file that a resume case plants. That file must be valid JSON with the keys of the schema, and its pull request must be the mocked one. Its task ID must be the task of the prompt, and its stage names must be stage keys of the skill (issue #262).
 - `docs/permissions.md`: `feature-pipeline` calls `merge-pr` only with the flag `--merge` (issue #262).
 - `docs/evals.md`: the suite `feature-pipeline` has 12 cases, and a new paragraph says why two cases test the flag (issue #262).
+- `tools/changelog_merge.py`: a new script for the maintainers. After a merge of `main` into an open branch that you start with `git merge --no-commit`, it writes `CHANGELOG.md` and the `version` of each `plugin.json` new. It takes a release of one or more plugins, or the entries that the branch added under `[Unreleased]`. If the result loses a line that a side added, the script stops. If the result has a line that a side removed, the script stops too (issue #255).
+- `tools/eval_results.py`: a new script that reads the results of eval runs. It prints the runs of `baseline.json` files and tests the spend against a cap. It also lists the kept run folders and prints the tool calls of a trace (issue #255).
+- `tools/wsl/`: new scripts that run the unit suite and one command of `compare_versions.py` in WSL2 from Git Bash. A branch goes to WSL2 as a git bundle, and no Linux command reads a Windows drive. The eval runner stops on a `claude` below `/mnt` (issue #255).
+- `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`: the tests of the new scripts. The job `test-windows` of `.github/workflows/tests.yml` runs the first two (issue #255).
+- `docs/tools.md`: a new page that says how to run the scripts. `docs/authoring.md`, `docs/testing.md`, and `README.md` point to it (issue #255).
 
 ## dev-essentials 3.26.0 in release [4.24.0] - 2026-11-18
 

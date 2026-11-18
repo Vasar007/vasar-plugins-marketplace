@@ -13,6 +13,7 @@ These items at the repository root are not part of a plugin:
 - `.github/workflows/tests.yml` runs the tests in CI.
 - `.markdownlint.jsonc` holds the markdownlint rules for the `.md` files.
 - `docs/` holds the guides for contributors and the permission rules for users.
+- `tools/` holds the scripts of the maintainers: the CHANGELOG step of a merge of `main`, the readers of eval results, and the WSL2 runners. No plugin ships them. See [Maintainer tools](tools.md).
 - `tests/` holds the tests of the repository. `tests/evals/stubs/` holds the stand-in plugins of the eval cases. They are outside the plugin folders, because the claude.ai sync skips a plugin that holds a second `.claude-plugin/plugin.json`.
 
 ## Rules for `marketplace.json`
