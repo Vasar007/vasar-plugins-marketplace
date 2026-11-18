@@ -43,7 +43,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Before Step 0: the GitHub repository of the pull request | Find it after the answer of the final gate | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says |
+| Before Step 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as partial |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
@@ -148,7 +148,7 @@ For task `i`:
 - For each task: what was implemented, which files, the review-loop verdict (`stop-clean`, `stop-max-rounds`, or `stop-blocked`), and the subject of the squashed commit.
 - The paths of the N plan files. They are not in any commit.
 - For the batch: the verdict of the final review, the build and test state at `HEAD`, and each decision that needed a sign-off with its outcome. Also each gate that this run passed without a stop, and each finding deferred by agreement. In the full mode, also list each decision that the run made for the user under "Decisions for your review".
-- The absolute worktree path and the branch name.
+- The absolute worktree path, the branch name, and the head commit at the end of the review loop.
 
 ### Step 6 — Finish (push, pull request, merge)
 

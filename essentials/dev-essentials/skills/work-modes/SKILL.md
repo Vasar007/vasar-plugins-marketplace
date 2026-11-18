@@ -68,7 +68,7 @@ Earlier versions of the workflows used other words. Read them this way, and say 
 - `--autonomous` with no `--merge`, or the argument `autonomous` of `process-pr-comments`: `--mode full`, with no approval of a merge. The run does not stop, and it does not merge. In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push and no pull request, as before.
 - `--autonomous --merge`: `--mode full`.
 - `--merge` with no `--autonomous`: `--mode partial`. The flag approves the merge after the final gate, as before.
-- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more. The run pushes after the final report with no question.
+- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more. The run pushes after the final report with no question. With `--mode full`, the run does all finish steps, and with the old `--autonomous`, it pushes with no stop and does nothing more.
 
 The words "autonomous" and "autonomously" in the prose of a request are not an old spelling, and they pick no mode.
 

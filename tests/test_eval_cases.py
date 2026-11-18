@@ -4593,7 +4593,7 @@ class RirrFinishCaseTests(unittest.TestCase):
                 created = json.loads(self.mock_file(case, "fixtures", f"pull-{self.NUMBERS[case]}.json").read_text(encoding="utf-8"))
                 self.assertEqual(body.strip(), f"{{{{file:fixtures/pull-{self.NUMBERS[case]}.json}}}}")
                 self.assertEqual(created["number"], self.NUMBERS[case])
-                for mock in ("pull_request_read.md", "merge_pull_request.md"):
+                for mock in ("pull_request_read.md", "merge_pull_request.md", "list_pull_requests.md"):
                     lines, _body = split_frontmatter(self.mock_file(case, mock).read_text(encoding="utf-8"))
                     self.assertEqual(parse_block(lines)["expect"], self.REPOSITORY)
                 pull = self.pull_fixture(case, "get")
@@ -4607,6 +4607,13 @@ class RirrFinishCaseTests(unittest.TestCase):
                                  [("completed", "success")] * runs["total_count"])
                 self.assertEqual(self.pull_fixture(case, "get_reviews"), [])
 
+    def test_the_list_of_open_pull_requests_is_empty_so_that_step_4_goes_on_to_create_one(self):
+        # Step 4 of finish.md first lists the open pull requests of the branch. A pull request in the answer would skip the create call.
+        for case in self.BRANCHES:
+            with self.subTest(case=case):
+                _lines, body = split_frontmatter(self.mock_file(case, "list_pull_requests.md").read_text(encoding="utf-8"))
+                self.assertEqual(json.loads(body), [])
+
     def test_the_head_of_the_pull_request_is_the_planted_commit(self):
         """ScaffoldTests makes sure that each head SHA is the last commit of its scaffold. This test pins which commit that is."""
         merge = (self.cases["rirr-merge"].path / "scaffold.sh").read_text(encoding="utf-8")
@@ -4614,6 +4621,9 @@ class RirrFinishCaseTests(unittest.TestCase):
         self.assertLess(merge.index("fixture_publish main\n"), merge.index("git checkout -q -b work/retry-limit\n"))
         self.assertIn('fixture_commit "lower the HTTP retry limit to 3"\n', merge)
         self.assertIn("Verdict `stop-clean`.", merge)
+        # A resume needs the verdict and the commit that the loop ended on. The report names it as the head commit.
+        self.assertIn("- **Head commit**: HEAD_SHA\n", merge)
+        self.assertIn('sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-limit-report.md\n', merge)
         gate = (self.cases["rirr-merge-gate"].path / "scaffold.sh").read_text(encoding="utf-8")
         # The gate case: the head is the commit before the run. So the commit of the run is one that the PR lacks.
         self.assertIn('fixture_commit "ignore the notes folder"\n# The mock of pull_request_read gives this commit as the head of the '

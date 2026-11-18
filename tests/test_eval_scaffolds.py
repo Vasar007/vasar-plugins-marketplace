@@ -1560,6 +1560,19 @@ class TrimFullPassTests(FixtureCase):
         self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
+class RirrMergeReportTests(FixtureCase):
+    """The planted report of rirr-merge names the head commit that the review loop ended on (issue #271)."""
+
+    def test_the_report_names_the_head_of_the_branch(self):
+        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-merge"]
+        workspace = self.workspace()
+        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+        _code, head = self.git(workspace, "rev-parse", "HEAD")
+        report = (workspace / "notes/Results/retry-limit-report.md").read_text(encoding="utf-8")
+        self.assertIn(f"- **Head commit**: {head}\n", report)
+        self.assertNotIn("HEAD_SHA", report)
+
+
 class RirrSquashGraderTests(FixtureCase):
     """The grader route-squashed-last passes only for a squash by the script. The grader squashed-on-main passes for any squash onto main."""
 

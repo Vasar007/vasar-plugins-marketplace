@@ -246,8 +246,10 @@ FINISH_POINTER = "`${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`
 FINISH_UNITS = {"skills/research-implement-review-report/SKILL.md": "Phase 5", "commands/implement-task.md": "Phase 6",
                 "skills/implement-batch/SKILL.md": "Step 6"}
 FINISH_ROW = ": push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |"
-REPOSITORY_ROW = ("the GitHub repository of the pull request | Find it after the answer of the final gate | Same | "
+REPOSITORY_ROW = ("the GitHub repository of the pull request | Find it at the final gate, before its question | Same | "
                   "Find it now, as \"The repository\" in `references/finish.md` of `dev-essentials:work-modes` says")
+# The row points at "When the steps run" and "The repository" for a run that does no step.
+REPOSITORY_ROW_SKIP = "that file says to do no step"
 
 
 class FinishStepTests(unittest.TestCase):
@@ -260,7 +262,7 @@ class FinishStepTests(unittest.TestCase):
         steps = self.text[self.text.index("## Steps"):self.text.index("## A failed step in the full mode")]
         order = ["1. Make sure that each start condition holds.", "2. Run the build and the tests one time",
                  '3. Push with `git -C "<work tree>" push -u origin <branch>`.', "4. Open the pull request:",
-                 "5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the new pull request."]
+                 "5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request."]
         positions = [steps.index(step) for step in order]
         self.assertEqual(positions, sorted(positions))
         for sentence in ("Never force the push, and never pass `--no-verify`.",
@@ -268,6 +270,9 @@ class FinishStepTests(unittest.TestCase):
                          "Call `mcp__plugin_github_github__create_pull_request` with `owner`, `repo`, `base` (the base branch of the run), "
                          "`head` (the branch), `title`, and `body`.",
                          "If the call fails, do not call it again.",
+                         "1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with "
+                         "`owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`.",
+                         "If a pull request exists, use it, skip the rest of step 4, and say so in the finish report.",
                          "- Each review loop of the run ended `stop-clean`, or `stop-max-rounds` with no open blocking finding."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, steps)
@@ -276,19 +281,55 @@ class FinishStepTests(unittest.TestCase):
         for sentence in ("1. The request of the user: `owner/repo` in words, or a GitHub URL of the repository, of an issue, or of a pull request.",
                          "2. Outside the interactive mode: the `origin` remote, by the exception in Rule 1 of `dev-essentials:github-mcp-conventions`.",
                          "If `git remote get-url origin` prints no URL of `github.com`, do not use it.",
-                         "- No source names a repository.",
                          "- Another remote of the clone names a repository on `github.com`",
                          "- The request names a repository, and `origin` names another repository on `github.com`.",
-                         "In the full mode, find the repository before the first step of the workflow."):
+                         "In the full mode, find the repository before the first step of the workflow.",
+                         "In the other modes, find it at the final gate, before its question.",
+                         "The interactive mode asks for a missing repository in the question of the final gate.",
+                         "In a fork clone with no other remote, the pull request goes to the fork."):
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, self.text)
+        # A clone with no GitHub remote is no hard stop: the run does no step, in every mode, and asks nothing.
+        self.assertNotIn("- No source names a repository.", self.text)
+        self.assertIn("If the request names no repository, and no remote of the clone is on `github.com`, do no step, and ask no question. "
+                      "The finish report says that the steps did not run, and why. This holds in every mode.", self.text)
+
+    def test_a_run_that_never_pushes_skips_the_search_for_the_repository(self):
+        self.assertIn("If the request forbids the push, or an old spelling approves no push, do no step, and do not look for the repository.",
+                      self.text)
+
+    def test_a_pull_request_body_that_asks_a_question_is_asked_again_in_the_full_mode(self):
+        for sentence in ("3. If the agent returns a question or no body, ask the user (hard stop 6). In the full mode, do not ask. "
+                         "Dispatch the agent one more time, and tell it to write the body from the facts that it has. "
+                         "Tell it to mark each open point with `Not confirmed:`. "
+                         "If it still returns no body, report the pushed branch, and end the run (hard stop 5)."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
 
+    def test_a_resume_needs_the_verdict_and_the_reviewed_commit(self):
+        resume = self.text[self.text.index("## Resume"):self.text.index("## The finish report")]
+        for sentence in ("The report of the earlier run must give the verdict of each review loop and the commit that the last loop ended on.",
+                         "The head of the branch must be that commit.",
+                         "If a fact is missing, do no step. Outside the full mode, ask the user (hard stop 6). "
+                         "In the full mode, report the state, and end the run (hard stop 5)."):
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, resume)
+        # The step 4 look-up of the open pull request replaces the pull request number in a report.
+        self.assertNotIn("names an open pull request", self.text)
+
+    def test_the_text_keeps_no_sentence_that_other_text_says(self):
+        for gone in ("## Who does the steps", "`feature-pipeline`", "Then a question comes while the user is still there.",
+                     "Workflow C of `dev-essentials:git-worktree-management`", "- A failed push: the branch and its commits stay local."):
+            with self.subTest(gone=gone):
+                self.assertNotIn(gone, self.text)
+
     def test_the_final_gate_asks_one_question_and_a_failed_step_ends_a_full_run(self):
         for sentence in ("(yes / push and pull request only / no)", "Do no step before the answer.",
-                         "If the request forbids the push, do no step, and do not look for the repository.",
-                         "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run:",
+                         "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. "
+                         "For a failed merge gate, name the failed item from the report of `merge-pr`.",
                          "Do not repair the cause, and do not do a step again.",
-                         "For the old flag `--push`, do steps 1 to 3 with no question"):
+                         "Take the old flag `--push` with no `--mode full` in the request. Then do steps 1 to 3 with no question, "
+                         "and skip the question, step 4, and step 5."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
 
@@ -301,6 +342,9 @@ class FinishCallerTests(unittest.TestCase):
                 self.assertIn(FINISH_POINTER, text)
                 self.assertIn(f"| {step}{FINISH_ROW}", autonomy(text))
                 self.assertIn(REPOSITORY_ROW, autonomy(text))
+                self.assertIn(REPOSITORY_ROW_SKIP, autonomy(text))
+                # The final report names the commit that the review loop ended on. A resume compares it with the head of the branch.
+                self.assertIn("the head commit at the end of the review loop", text)
                 self.assertIn(f"goes straight to {step}, as \"Resume\" in its file `finish.md` says.", text)
                 # The old flag --push is an old spelling, so only work-modes names it.
                 self.assertNotIn("--push", text)
@@ -328,7 +372,9 @@ class FinishCallerTests(unittest.TestCase):
                          "after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill",
                          "In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push "
                          "and no pull request, as before.",
-                         "- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more."):
+                         "- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more.",
+                         "With `--mode full`, the run does all finish steps, and with the old `--autonomous`, "
+                         "it pushes with no stop and does nothing more."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, text)
 

@@ -32,6 +32,7 @@ fixture_write notes/Results/retry-limit-report.md <<'REPORT_EOF'
 
 - **Branch**: work/retry-limit
 - **Base branch**: main
+- **Head commit**: HEAD_SHA
 - **Worktree**: none, the main work tree
 - **Plan**: notes/Plans/retry-limit-plan.md
 
@@ -44,3 +45,5 @@ fixture_write notes/Results/retry-limit-report.md <<'REPORT_EOF'
 
 The branch is not pushed. The final gate asked about the push, the pull request, and the merge, and the answer was no.
 REPORT_EOF
+# The head commit is the commit that the review loop ended on. It has the SHA that the mock gives as the head of the pull request.
+sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-limit-report.md
