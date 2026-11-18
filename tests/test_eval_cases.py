@@ -4289,6 +4289,7 @@ class WorktreeScriptCaseTests(unittest.TestCase):
         routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
         self.assertEqual(routes, {"route-skill-fired", "route-create-script"})
         self.assertIn(ROUTE_TAG, self.case.tags)
+        self.assertIn("git-worktree-management", self.case.tags)
         self.assertEqual(set(self.case.graders) - routes, {"failure-reported", "no-stand-in"})
 
     def test_the_create_grader_counts_a_create_call_of_the_script(self):
@@ -4300,6 +4301,11 @@ class WorktreeScriptCaseTests(unittest.TestCase):
             "a line break": ('python3 -I "/p/scripts/worktree.py" \\\n  create eval/tasks/42-add-paging', True),
             "a shell variable": ('S="/p/scripts/worktree.py"; python3 -I "$S" create eval/tasks/42-add-paging', True),
             "the plan form": ("python3 -I /p/scripts/worktree.py create eval/tasks/42-add-paging --plan", True),
+            "a line break with no indent": ('python3 -I "/p/scripts/worktree.py" \\\ncreate eval/tasks/42-add-paging',
+                                            True),
+            "a tab": ('python3 -I "/p/scripts/worktree.py"\tcreate eval/tasks/42-add-paging', True),
+            "a grep of the script": ('cat /p/scripts/worktree.py | grep -n -A3 " create "', False),
+            "a grep of the help": ('python3 -I /p/scripts/worktree.py --help | grep -A8 "  create <branch>"', False),
             "help": ("python3 -I /p/scripts/worktree.py create --help", False),
             "short help": ("python3 -I /p/scripts/worktree.py create -h", False),
             "the remove subcommand": ("python3 -I /p/scripts/worktree.py remove eval/tasks/42-add-paging", False),

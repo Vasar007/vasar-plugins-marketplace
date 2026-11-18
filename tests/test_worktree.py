@@ -11,17 +11,22 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from support import REPO, load_module, tool_missing
-from testkit import ScratchCase, git_init, run
+from testkit import ScratchCase, clean_env, git_init, remove_tree, run
 
 SCRIPT = REPO / "essentials/dev-essentials/skills/git-worktree-management/scripts/worktree.py"
 wt = load_module("worktree", SCRIPT)
 REF = "feature/tasks/1370383-add-export"
 SETTINGS = '{"permissions": {}}\n'
+TEMPLATE = []
+KEYS = ("MODE", "REPO", "REF", "PATH", "CASE", "BASE", "IGNORE", "EXCLUDE", "FETCHED", "MADE", "UPSTREAM", "SETTINGS",
+        "NOTES", "BRANCH", "HEAD", "FOLDER", "CHANGED", "HIDDEN", "IGNORED", "PRUNE", "REFUSED:", "STEP", "FAILED",
+        "LEFT", "REMOVED", "RESULT:")
 
 
 class WorktreeCase(ScratchCase):
@@ -29,6 +34,8 @@ class WorktreeCase(ScratchCase):
         if shutil.which("git") is None:
             tool_missing(self, "git not found")
         super().setUp()
+        # git prints the long form of an 8.3 short name, such as RUNNER~1 in TEMP.
+        self.tmp = self.tmp.resolve()
         config = self.tmp / "gitconfig"
         config.write_bytes(b"")
         patcher = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config), "GIT_CONFIG_NOSYSTEM": "1"})
@@ -37,6 +44,18 @@ class WorktreeCase(ScratchCase):
         self.repo = self.make_repo(self.tmp / "repo")
 
     def make_repo(self, path):
+        """A copy of the template repository and of its bare remote. The first call builds the template."""
+        if not TEMPLATE:
+            root = Path(tempfile.mkdtemp()).resolve()
+            unittest.addModuleCleanup(remove_tree, root)
+            TEMPLATE.append(self.build_repo(root / "repo"))
+        origin = path.parent / (path.name + "-origin.git")
+        shutil.copytree(TEMPLATE[0], path)
+        shutil.copytree(TEMPLATE[0].parent / "repo-origin.git", origin)
+        self.git("remote", "set-url", "origin", origin.as_posix(), cwd=path)
+        return path
+
+    def build_repo(self, path):
         """A repository with one commit on main, a bare remote origin, and origin/HEAD on main."""
         git_init(path)
         self.git("config", "core.autocrlf", "false", cwd=path)
@@ -71,6 +90,8 @@ class WorktreeCase(ScratchCase):
     def script(self, *args, code=0, cwd=None):
         result = run([sys.executable, "-I", SCRIPT, *args], cwd=cwd or self.repo)
         self.assertResult(result, code)
+        for line in result.stdout.splitlines():
+            self.assertIn(line.split(" ", 1)[0], KEYS, result.stdout)
         return result.stdout
 
     def is_listed(self, path):
@@ -332,7 +353,7 @@ class CreateTests(WorktreeCase):
         self.git("push", "-q", "origin", "main")
         out = self.script("create", REF, code=1)
         self.assertRegex(out, r"(?m)^FAILED the notes folder: ")
-        self.assertIn("RESULT: CREATED, BUT 1 BOOTSTRAP STEPS FAILED.", out)
+        self.assertIn("RESULT: CREATED, BUT BOOTSTRAP STEPS FAILED: 1.", out)
         self.assertTrue(self.is_listed(self.path()))
 
     def test_repository_path_with_a_space_and_non_ascii_letters(self):
@@ -346,6 +367,85 @@ class CreateTests(WorktreeCase):
         out = self.script("create", "feature/second", cwd=self.path())
         self.assertIn(f"MADE {self.path('feature/second')}", out)
         self.assertFalse((self.path() / ".claude" / "worktrees").exists())
+
+    def test_rule_that_starts_with_a_bang_is_not_an_ignore_rule(self):
+        self.write(".gitignore", ".*\n!.gitignore\n!.claude/\n!.claude/**\n")
+        self.commit_all("dot files ignored, .claude kept")
+        self.git("push", "-q", "origin", "main")
+        exclude = self.repo / ".git" / "info" / "exclude"
+        before = exclude.read_bytes()
+        for extra in ((), ("--add-exclude",), ("--plan",)):
+            with self.subTest(extra=extra):
+                out = self.script("create", REF, *extra, code=3)
+                self.assertIn("REFUSED: the rule .gitignore:4:!.claude/** keeps .claude/worktrees/ not ignored", out)
+        self.assertEqual(self.branches(), ["main"])
+        self.assertFalse((self.repo / ".claude").exists())
+        self.assertEqual(exclude.read_bytes(), before)
+
+    def test_name_that_differs_only_in_case_is_refused_on_a_file_system_with_no_case(self):
+        self.git("branch", "feature/one")
+        no_case = self.git("config", "--type=bool", "--default", "false", "core.ignorecase") == "true"
+        for name, twin in (("Main", "main"), ("Feature/two", "feature/one")):
+            with self.subTest(name=name):
+                out = self.script("create", name, "--plan", code=3 if no_case else 0)
+                if no_case:
+                    self.assertIn(f"REFUSED: the branch {twin} differs from this name only in the case of letters", out)
+        self.assertIn("RESULT: READY", self.script("create", "feature/two", "--plan"))
+
+    def test_base_that_origin_does_not_have_is_refused(self):
+        self.write(".gitignore", "Notes/\n")
+        self.commit_all("no rule")
+        exclude = self.repo / ".git" / "info" / "exclude"
+        before = exclude.read_bytes()
+        for extra in (("--plan",), ("--add-exclude",)):
+            with self.subTest(extra=extra):
+                out = self.script("create", REF, "--base", "nope", *extra, code=3)
+                self.assertIn("REFUSED: origin has no branch nope.", out)
+        self.assertEqual(exclude.read_bytes(), before)
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_base_outside_the_fetch_configuration_is_fetched(self):
+        self.git("config", "remote.origin.fetch", "+refs/heads/main:refs/remotes/origin/main")
+        self.git("push", "-q", "origin", "main:refs/heads/develop")
+        self.assertNotIn("origin/develop", self.git("branch", "-r"))
+        out = self.script("create", REF, "--base", "develop")
+        self.assertIn("FETCHED origin develop", out)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.path()), self.git("rev-parse", "main"))
+
+    def test_exclude_file_that_cannot_be_written_is_a_failed_step(self):
+        self.write(".gitignore", "Notes/\n")
+        self.commit_all("no rule")
+        exclude = self.repo / ".git" / "info" / "exclude"
+        exclude.unlink()
+        exclude.mkdir()
+        out = self.script("create", REF, "--add-exclude", code=1)
+        self.assertRegex(out, r"(?m)^FAILED the write of the exclude file .+")
+        self.ends_with(out, "RESULT: FAILED. No worktree was made.")
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_path_inside_another_worktree_is_refused(self):
+        self.git("worktree", "add", "-q", "--detach", str(self.path("a")), "main")
+        out = self.script("create", "a/b", code=3)
+        self.assertIn(f"REFUSED: the path is inside the worktree {self.path('a')}", out)
+        self.assertEqual(self.branches(), ["main"])
+        self.assertFalse(os.path.lexists(self.path("a/b")))
+
+    def test_name_that_is_not_printable_is_refused_and_shown_as_json(self):
+        for name, shown in (("a\tb", '"a\\tb"'), ("a\u200bb", '"a\\u200bb"')):
+            with self.subTest(name=name):
+                out = self.script("create", "--", name, code=3)
+                self.assertIn(f"REFUSED: the branch {shown} is not a valid branch name", out.splitlines())
+        self.assertEqual(self.branches(), ["main"])
+
+    def test_remote_commands_get_a_time_limit(self):
+        with mock.patch.object(subprocess, "run") as fake:
+            fake.return_value = subprocess.CompletedProcess([], 0, b"", b"")
+            for command, seconds in (("ls-remote", wt.REMOTE_SECONDS), ("fetch", wt.REMOTE_SECONDS), ("status", None)):
+                wt.git_result(self.repo, command)
+                self.assertEqual(fake.call_args.kwargs["timeout"], seconds, command)
+            fake.side_effect = subprocess.TimeoutExpired(["git"], wt.REMOTE_SECONDS)
+            self.assertEqual(wt.git_result(self.repo, "fetch", "origin"),
+                             (124, "", f"no answer after {wt.REMOTE_SECONDS} seconds"))
 
     def test_git_gets_no_input_and_no_terminal_prompt(self):
         with mock.patch.object(subprocess, "run") as fake:
@@ -382,7 +482,66 @@ class RemoveTests(WorktreeCase):
         self.git("checkout", "-q", "--detach", cwd=self.path())
         out = self.script("remove", REF, "--apply")
         self.assertIn("BRANCH none (detached HEAD)", out)
-        self.ends_with(out, "RESULT: REMOVED. The branch (none) and its commits stay.")
+        head = self.git("rev-parse", "main")[:12]
+        self.ends_with(out, f"RESULT: REMOVED. The worktree had no branch. Another ref holds its commit {head}.")
+
+    def test_detached_head_with_its_own_commit_is_refused(self):
+        self.git("checkout", "-q", "--detach", cwd=self.path())
+        self.write("src/d.txt", "d\n", cwd=self.path())
+        work = self.commit_all("work on no branch", cwd=self.path())
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("remove", REF, *extra, code=3)
+                self.assertIn(f"REFUSED: the detached HEAD {work[:12]} has commits that no branch, tag, or remote "
+                              "branch holds: 1.", out)
+        self.assertTrue(self.is_listed(self.path()))
+        self.git("branch", "keep", work)
+        out = self.script("remove", REF, "--apply")
+        self.ends_with(out, f"RESULT: REMOVED. The worktree had no branch. Another ref holds its commit {work[:12]}.")
+        self.assertEqual(self.git("rev-parse", "keep"), work)
+
+    def test_worktree_that_holds_another_worktree_is_refused(self):
+        nested = self.path() / "Notes" / "wt"  # The repository ignores Notes/, so git status does not show it.
+        self.git("worktree", "add", "-q", "-b", "feature/nested", str(nested), "main")
+        (nested / "draft.txt").write_bytes(b"draft\n")
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("remove", REF, *extra, code=3)
+                self.assertIn(f"REFUSED: the worktree {nested} is inside this worktree. Remove it first", out)
+        self.assertEqual((nested / "draft.txt").read_bytes(), b"draft\n")
+        self.git("worktree", "remove", "--force", str(nested))
+        self.assertIn("RESULT: REMOVED", self.script("remove", REF, "--apply"))
+
+    def test_untracked_file_is_refused_when_the_configuration_hides_it(self):
+        self.git("config", "status.showUntrackedFiles", "no")
+        self.write("new.txt", "untracked\n", cwd=self.path())
+        out = self.script("remove", REF, "--apply", code=3)
+        self.assertIn("CHANGED ?? new.txt", out)
+        self.assertEqual((self.path() / "new.txt").read_text(encoding="utf-8"), "untracked\n")
+
+    def test_file_with_a_flag_that_hides_its_change_is_refused(self):
+        self.write("README.md", "my local value\n", cwd=self.path())
+        for flag in ("--skip-worktree", "--assume-unchanged"):
+            with self.subTest(flag=flag):
+                self.git("update-index", flag, "README.md", cwd=self.path())
+                self.assertEqual(self.git("status", "--porcelain", cwd=self.path()), "")
+                out = self.script("remove", REF, "--apply", code=3)
+                self.assertIn("HIDDEN README.md", out.splitlines())
+                self.assertIn("REFUSED: git status does not report a change of the files with the flag skip-worktree "
+                              "or assume-unchanged: 1.", out)
+                self.git("update-index", "--no-skip-worktree", "--no-assume-unchanged", "README.md", cwd=self.path())
+        self.assertEqual((self.path() / "README.md").read_text(encoding="utf-8"), "my local value\n")
+
+    def test_flagged_file_that_is_not_in_the_folder_does_not_block_the_removal(self):
+        self.git("update-index", "--skip-worktree", "README.md", cwd=self.path())
+        (self.path() / "README.md").unlink()
+        self.assertIn("RESULT: REMOVED", self.script("remove", REF, "--apply"))
+
+    @unittest.skipIf(os.name == "nt" or sys.platform == "darwin", "the file system takes only names in Unicode")
+    def test_file_name_that_is_not_utf8_is_shown_as_json(self):
+        (self.path() / os.fsdecode(b"bad\xffname.txt")).write_bytes(b"x\n")
+        out = self.script("remove", REF, code=3)
+        self.assertIn('CHANGED "?? bad\\udcffname.txt"', out.splitlines())
 
     def test_changes_are_refused_in_both_modes(self):
         self.write("new.txt", "untracked\n", cwd=self.path())
@@ -394,6 +553,7 @@ class RemoveTests(WorktreeCase):
                 self.assertIn("CHANGED ?? new.txt", out)
                 self.assertIn("REFUSED: the worktree has changes or untracked files: 2.", out)
                 self.assertNotIn("STEP", out)
+                self.assertEqual([line for line in out.splitlines() if line.startswith("IGNORED")], ["IGNORED Notes/"])
         self.assertTrue(self.is_listed(self.path()))
         self.assertEqual((self.path() / "new.txt").read_text(encoding="utf-8"), "untracked\n")
 
@@ -471,7 +631,9 @@ class RemoveTests(WorktreeCase):
             code, out = self.in_process("remove", REF, "--repo", self.repo)
         self.assertEqual(code, 3, out)
         self.assertIn("more characters", out)
-        self.assertTrue(all(len(line) <= 60 + 30 for line in out.splitlines()), out)
+        lines = out.splitlines()
+        self.assertIn(f"PATH {self.path()}", lines)
+        self.assertTrue(all(len(line) <= 60 + 30 for line in lines if not line.startswith("PATH ")), out)
 
 
 class PruneTests(WorktreeCase):
@@ -488,7 +650,7 @@ class PruneTests(WorktreeCase):
         self.ends_with(out, "RESULT: READY. Nothing changed. Run again with the same arguments and --apply.")
         self.assertTrue(self.is_listed(self.path()))
         out = self.script("prune", "--apply")
-        self.ends_with(out, "RESULT: PRUNED. git no longer lists 1 worktrees.")
+        self.ends_with(out, "RESULT: PRUNED. Worktrees that git no longer lists: 1.")
         self.assertFalse(self.is_listed(self.path()))
         self.assertIn(REF, self.branches())
 
@@ -506,6 +668,48 @@ class PruneTests(WorktreeCase):
                 self.assertTrue(self.is_listed(outside))
                 self.git("worktree", "remove", str(outside))
         self.assertTrue(self.is_listed(self.path()))
+
+    def test_stale_entry_with_a_detached_head_and_its_own_commit_is_refused(self):
+        self.script("create", REF)
+        self.git("checkout", "-q", "--detach", cwd=self.path())
+        self.write("src/d.txt", "d\n", cwd=self.path())
+        work = self.commit_all("work on no branch", cwd=self.path())
+        shutil.rmtree(self.path())
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("prune", *extra, code=3)
+                self.assertIn(f"REFUSED: the detached HEAD {work[:12]} has commits that no branch, tag, or remote "
+                              f"branch holds. Keep them first: git branch <name> {work[:12]}.", out)
+        self.assertTrue(self.is_listed(self.path()))
+        self.git("branch", "keep", work)
+        self.assertIn("RESULT: PRUNED", self.script("prune", "--apply"))
+
+    def test_failed_prune_and_an_entry_that_stays_are_failed_steps(self):
+        self.script("create", REF)
+        shutil.rmtree(self.path())
+        real = wt.git_result
+        for answer, lines in (((128, "", "fatal: Permission denied"),
+                               ("FAILED git worktree prune: fatal: Permission denied", "RESULT: FAILED.")),
+                              ((0, "", ""), (f"LEFT worktree {self.path()}",
+                                             "RESULT: FAILED. git still lists each LEFT worktree."))):
+            def fake(cwd, *args, answer=answer):
+                return answer if args == ("worktree", "prune") else real(cwd, *args)
+
+            with self.subTest(answer=answer), mock.patch.object(wt, "git_result", fake):
+                code, out = self.in_process("prune", "--apply", "--repo", self.repo)
+                self.assertEqual(code, 1, out)
+                self.assertEqual(tuple(out.splitlines()[-2:]), lines)
+
+    def test_refused_lines_have_a_limit_and_a_count(self):
+        for number in range(2):
+            outside = self.tmp / f"outside-{number}"
+            self.git("worktree", "add", "-q", "-b", f"feature/outside-{number}", str(outside), "main")
+            shutil.rmtree(outside)
+        with mock.patch.object(wt, "MAX_PATHS", 1):
+            code, out = self.in_process("prune", "--repo", self.repo)
+        self.assertEqual(code, 3, out)
+        self.assertEqual(out.count("REFUSED: the entry "), 1)
+        self.assertIn("REFUSED: 1 more entries are outside .claude/worktrees/", out)
 
     def test_locked_stale_entry_is_not_pruned(self):
         self.script("create", REF)
@@ -530,6 +734,30 @@ class SetupTests(WorktreeCase):
     def test_bare_repository_is_a_setup_error(self):
         result = run([sys.executable, "-I", SCRIPT, "prune", "--repo", self.tmp / "repo-origin.git"])
         self.assertResult(result, 2, "error: a bare repository has no main worktree")
+
+    def test_missing_git_is_a_setup_error(self):
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        result = run([sys.executable, "-I", SCRIPT, "prune"], cwd=self.repo, env=clean_env(PATH=str(empty)))
+        self.assertResult(result, 2, "error: git not found")
+
+    def test_link_at_the_claude_folder_is_a_setup_error(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        try:
+            (self.repo / ".claude").symlink_to(outside, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"no right to make a link: {error}")
+        result = run([sys.executable, "-I", SCRIPT, "create", REF], cwd=self.repo)
+        self.assertResult(result, 2, "is not inside the repository")
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipIf(os.name == "nt", "a Windows path has no line break")
+    def test_repository_path_with_a_line_break_is_a_setup_error(self):
+        repo = self.make_repo(self.tmp / "line\nbreak")
+        result = run([sys.executable, "-I", SCRIPT, "prune"], cwd=repo)
+        self.assertResult(result, 2, "error: the path of the repository has a line break")
+        self.assertEqual(result.stdout, "")
 
     def test_old_git_is_a_setup_error(self):
         real = wt.git_result
