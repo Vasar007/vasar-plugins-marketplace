@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.28.0 in release [4.26.0] - 2026-11-18
+
+This release adds the script `worktree.py` to the skill `git-worktree-management`. The script does the fixed git steps of a worktree. The skill keeps the steps that need a judgment, a question, or a GitHub tool (issue #270).
+
+### Added in dev-essentials
+
+- `skills/git-worktree-management/scripts/worktree.py`: a new script with three subcommands. `create` checks the branch name, the path, and the ignore rule, picks the case of the branch, runs `git worktree add`, and does the bootstrap. The bootstrap gives the new branch no upstream and makes the notes folder. If git ignores `.claude/settings.local.json`, the bootstrap also copies that file. With `--plan`, `create` prints the plan and changes nothing. `remove` and `prune` print their plan and change nothing, unless you pass `--apply`. `remove` never passes `--force`. It refuses a worktree with a change or an untracked file, a locked worktree, and a folder that git does not list. The script refuses each path outside `.claude/worktrees/`, and it asks for no input (issue #270).
+- `evals/git-worktree-management/gwm-create-blocked`: a route case. The user asks for a worktree and approves it in advance. The sandbox of an eval run keeps `.git/worktrees` read-only, so `git worktree add` fails. The run must call `worktree.py create`, and its final reply must say that the worktree was not made and why (issue #270).
+- `evals/triggers`: the cases `git-worktree-management-fires` and `git-worktree-management-near-miss`. The near-miss asks to merge the Claude Code project folders of worktrees, which belongs to `merge-worktree-projects` (issue #270).
+
+### Changed in dev-essentials
+
+- `skills/git-worktree-management`: Workflows A, C, and D and the fallback for a missing worktree call the script in place of the git commands. These rules stay as they were: the approval prompt of Workflow A Step 3 and its pipeline mode, and the rule that keeps a worktree until its pull request is merged. The rule that `--autonomous` destroys no work with no other copy stays too. The fallback no longer runs `git worktree remove --force` (issue #270).
+
+### Changed in the repository
+
+- `tests/test_worktree.py`: the tests of the new script, on Linux and on Windows. The job `test-windows` of `.github/workflows/tests.yml` runs them (issue #270).
+- `tests/test_eval_cases.py`: the new class `WorktreeScriptCaseTests` tests the graders of the three new cases on right and wrong runs (issue #270).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case (issue #270).
+- `docs/testing.md` and `docs/evals.md`: the new test module, the new suite, and why no eval case can make a worktree (issue #270).
+
 ## dev-essentials 3.27.0 in release [4.25.0] - 2026-11-18
 
 This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262). The release also holds the new maintainer tools in the folder `tools/`, which no plugin ships (issue #255).
@@ -2079,7 +2100,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...HEAD
+[4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.26.0
 [4.25.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...v4.24.0
 [4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1

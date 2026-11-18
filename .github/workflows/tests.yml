@@ -89,4 +89,4 @@ jobs:
 
       - name: Run the tests of the plugin scripts and the maintainer tools
         working-directory: tests
-        run: python -m unittest -v test_backup_move test_merge_projects test_failure_check test_group_diff test_squash_task test_check_report test_trim_report test_openbsd_lint test_kb_plugin test_changelog_merge test_eval_results test_testkit test_support
+        run: python -m unittest -v test_backup_move test_merge_projects test_failure_check test_group_diff test_squash_task test_worktree test_check_report test_trim_report test_openbsd_lint test_kb_plugin test_changelog_merge test_eval_results test_testkit test_support

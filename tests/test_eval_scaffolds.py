@@ -61,6 +61,7 @@ EXPECTED_BRANCH = {
     "mp-no-merge-word": "feature/paging",
     "os-review-fixes": "main",
     "at-seeded-design": "main",
+    "gwm-create-blocked": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
