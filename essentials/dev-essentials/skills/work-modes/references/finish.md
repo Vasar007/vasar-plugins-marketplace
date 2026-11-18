@@ -32,7 +32,7 @@ These cases are hard stop 6 of `dev-essentials:work-modes`. Ask the user, and do
 - Another remote of the clone names a repository on `github.com`, for example the `upstream` remote of a fork.
 - The request names a repository, and `origin` names another repository on `github.com`.
 
-In the full mode, find the repository before the first step of the workflow. In the other modes, find it at the final gate, before its question. The interactive mode asks for a missing repository in the question of the final gate.
+Where this file says not to look for the repository, skip this section. In the full mode, find the repository before the first step of the workflow. In the other modes, find it at the final gate, before its question. The interactive mode asks for a missing repository in the question of the final gate.
 
 ## Steps
 
@@ -43,7 +43,7 @@ In the full mode, find the repository before the first step of the workflow. In 
 2. Run the build and the tests one time, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the build or a test fails, do no later step, and report it (hard stop 5).
 3. Push with `git -C "<work tree>" push -u origin <branch>`. Never force the push, and never pass `--no-verify`. If the push fails, do not push again with other options. Report the error and the local state, and end the run. A push protection block is hard stop 4.
 4. Open the pull request:
-   1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`. Follow `dev-essentials:github-mcp-conventions` in each call of this step. If the base of a found pull request is the base branch of the run, use it. Skip the rest of step 4, and say so in the finish report. If its base is another branch, do no later step. Outside the full mode, ask the user (hard stop 6). In the full mode, report it, and end the run (hard stop 5).
+   1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`. Follow `dev-essentials:github-mcp-conventions` in each call of this step. If a found pull request has the base branch of the run as its base, use it. Skip the rest of step 4, and say so in the finish report. If each found pull request has another base, do no later step. Outside the full mode, ask the user (hard stop 6). In the full mode, report it, and end the run (hard stop 5).
    2. Dispatch the agent `dev-essentials:pr-composer`. Give it the absolute path of the work tree, the base branch, the branch, and the task text. Also give the paths of the plan files and of the report of the run. If the task is a GitHub issue of this repository, also give its closing line, for example `Closes #42.`. The agent returns the body.
    3. If the agent returns a question or no body, and the mode is not full, ask the user (hard stop 6). In the full mode, dispatch the agent one more time, and tell it to write the body from the facts that it has. Tell it to mark each open point with `Not confirmed:`. If it still returns no body, report the pushed branch, and end the run (hard stop 5).
    4. Write a title of at most 72 characters from the section `## What` of the body.

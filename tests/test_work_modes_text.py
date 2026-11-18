@@ -272,9 +272,9 @@ class FinishStepTests(unittest.TestCase):
                          "If the call fails, report the error and the pushed branch, and end the run.",
                          "1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with "
                          "`owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`.",
-                         "If the base of a found pull request is the base branch of the run, use it. "
+                         "If a found pull request has the base branch of the run as its base, use it. "
                          "Skip the rest of step 4, and say so in the finish report. "
-                         "If its base is another branch, do no later step. Outside the full mode, ask the user (hard stop 6). "
+                         "If each found pull request has another base, do no later step. Outside the full mode, ask the user (hard stop 6). "
                          "In the full mode, report it, and end the run (hard stop 5).",
                          "- Each review loop of the run ended `stop-clean`, or `stop-max-rounds` with no open blocking finding."):
             with self.subTest(sentence=sentence):
@@ -300,6 +300,7 @@ class FinishStepTests(unittest.TestCase):
 
     def test_a_run_that_never_pushes_skips_the_search_for_the_repository(self):
         self.assertIn("If the request forbids the push, do no step, and do not look for the repository.", self.text)
+        self.assertIn("Where this file says not to look for the repository, skip this section. In the full mode, find the repository", self.text)
         self.assertIn("The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no outward step. For both, "
                       "do not look for the repository. With `--push`, do steps 1 to 3 with no question, "
                       "and skip the question, step 4, and step 5. With no `--push`, do no step.", self.text)
