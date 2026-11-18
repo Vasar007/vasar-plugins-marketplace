@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# A small plugin with the skill export-orders as the target of optimize-skill. The skill holds five seeded issues: one
-# rule in two files, a MUST line with no reason, an unlinked reference file, a reference file over 100 lines with no
-# contents list, and a "double-check your work" line. The agent file holds a safety rule. The second fixture commit
+# A small plugin with the skill export-orders as the target of optimize-skill. The skill holds four seeded issues: one
+# rule in two files, a MUST line with no reason, an unlinked reference file, and a "double-check your work" line. The
+# reference file csv-format.md is over 100 lines and has no contents list. It is no seed. The list "What to look for"
+# of the auditor has no such item. The example audit keeps that point on purpose. The runs of this case grant no web
+# tool. The agent file holds a safety rule. The second fixture commit
 # deletes the 50 MB rule of step 4, and the prompt asks the run to restore it at step 6.
 lib="$(dirname "${BASH_SOURCE[0]}")/../../_lib"
 source "$lib/git-fixture.sh"

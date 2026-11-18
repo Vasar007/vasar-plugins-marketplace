@@ -4121,8 +4121,14 @@ class OptimizeSkillCaseTests(unittest.TestCase):
         routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
         self.assertEqual(routes, {"route-skill-fired", "route-auditor-agent", "route-applier-agent", "route-reviewer-agent",
                                   "route-review-fixer", "route-step6-reached", "route-seed-duplicate", "route-seed-must",
-                                  "route-seed-unlinked", "route-seed-contents", "route-seed-double-check"})
+                                  "route-seed-unlinked", "route-seed-double-check"})
         self.assertIn(ROUTE_TAG, self.case.tags)
+
+    def test_no_grader_looks_for_a_contents_list(self):
+        """The runs of this case grant no web tool, so the auditor does not learn the rule for long reference files (issue #268)."""
+        pattern = r"(?i)contents.{0,8}?(?:list|section)|table.{0,8}?of.{0,8}?contents|toc\b"
+        found = [name for name, (meta, body) in self.case.graders.items() if re.search(pattern, f"{name} {meta} {body}")]
+        self.assertEqual(found, [])
 
     def test_the_fixer_grader_needs_a_review_fixer(self):
         meta = self.case.graders["route-review-fixer"][0]
@@ -4171,7 +4177,6 @@ class OptimizeSkillCaseTests(unittest.TestCase):
             "route-seed-duplicate": "The rule about the temporary name is in two files.",
             "route-seed-must": "The line `You MUST dispatch` gives no reason.",
             "route-seed-unlinked": "No step links `references/old-retry-notes.md`.",
-            "route-seed-contents": "Add a contents list to csv-format.md.",
             "route-seed-double-check": "Cut the line `Double-check your work`.",
         }
         empty = "# Optimization audit\n\nNo item.\n"
@@ -4180,10 +4185,9 @@ class OptimizeSkillCaseTests(unittest.TestCase):
                 self.assertTrue(self.regex_passes(grader, hit))
                 self.assertFalse(self.regex_passes(grader, empty))
         self.assertFalse(self.regex_passes("route-seed-must", "You must dispatch the agent."))
-        form = "# Audit\n\n## Contents\n\n- Sources\n- Items\n\nTarget files:\n- /w/plugin/skills/export-orders/references/csv-format.md\n- /w/plugin/skills/export-orders/references/old-retry-notes.md\n"
-        form += "\n- Fix plan: Delete the repeated rule in SKILL.md.\n" + "- Filler line of the audit.\n" * 15 + "- SKILL.md needs no table of contents.\n"
-        for grader in ("route-seed-contents", "route-seed-unlinked"):
-            self.assertFalse(self.regex_passes(grader, form))
+        form = "# Audit\n\n## Contents\n\n- Sources\n- Items\n\nTarget files:\n- /w/plugin/skills/export-orders/references/old-retry-notes.md\n"
+        form += "\n- Fix plan: Delete the repeated rule in SKILL.md.\n"
+        self.assertFalse(self.regex_passes("route-seed-unlinked", form))
 
     def test_the_trigger_cases_name_optimize_skill_and_trim_artifacts(self):
         skills = {"dev-essentials:optimize-skill": "optimize", "optimize-skill": "optimize",
