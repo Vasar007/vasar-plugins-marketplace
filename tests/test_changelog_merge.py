@@ -143,6 +143,16 @@ class ReleaseTests(MergeCase):
                       "- fix the parser", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
+    def test_stop_line_names_the_bullet_before_its_indented_line(self):
+        base = dict(BASE)
+        entry = "### Changed in the repository\n\n- fix the parser\n  - see docs/testing.md\n\n"
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + entry)
+        main = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- fix the parser\n", "- fix the lexer\n")}
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "fix the parser"))
+        clone = self.merge(branch, main=main, base=base)
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased", code=3)
+        self.assertIn("so merge CHANGELOG.md by hand: - fix the parser", out)
+
     def test_indented_line_below_a_bullet_that_main_has_refuses(self):
         main = {"CHANGELOG.md": BASE["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a test fix:\n\n")}
         branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix:", "the change of the branch:"))
@@ -227,7 +237,6 @@ class ReleaseTests(MergeCase):
         self.assertIn("### Changed in the repository\n\n- the change\n\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
 
-    @unittest.skipUnless(sys.platform == "win32", "core.autocrlf=true writes CRLF only on Windows")
     def test_crlf_work_tree_keeps_crlf(self):
         clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), crlf=True)
         self.tool(clone, "release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.22.2")
@@ -630,6 +639,12 @@ class UnreleasedTests(MergeCase):
         clone = self.merge(branch, main=main, base=base)
         self.tool(clone, "unreleased")
         self.assertIn(TOP + "### Changed in the repository\n\n- a test fix:\n  - see docs/testing.md\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_line_of_only_spaces_in_the_branch_block_is_no_refusal(self):
+        clone = self.merge(self.branch("### Changed in the repository\n\n- a test fix\n  \n\n"))
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n- a test fix\n\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
 
     def test_line_that_the_branch_removed_from_a_release_refuses(self):

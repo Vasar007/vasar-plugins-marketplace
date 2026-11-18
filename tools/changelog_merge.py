@@ -343,7 +343,8 @@ def miscounted(base, ours, theirs, result):
     """
     b, o, t, r = (Counter(line for line in text.split(LF) if line.strip() and not line.startswith(("#", "[")))
                   for text in (base, ours, theirs, result))
-    for line in sorted(set(b) | set(o) | set(t) | set(r)):
+    # A bullet names the entry better than an indented line, which many entries can share.
+    for line in sorted(set(b) | set(o) | set(t) | set(r), key=lambda line: (line.startswith((" ", "\t")), line)):
         kept = min(b[line], o[line], t[line])
         added = (max(o[line] - b[line], 0), max(t[line] - b[line], 0))
         if not kept + max(added) <= r[line] <= kept + sum(added):
