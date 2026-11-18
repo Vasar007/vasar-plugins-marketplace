@@ -17,6 +17,69 @@ The other numbers in a heading are plugin versions.
 - `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`: the tests of the new scripts. The job `test-windows` of `.github/workflows/tests.yml` runs the first two (issue #255).
 - `docs/tools.md`: a new page that says how to run the scripts. `docs/authoring.md`, `docs/testing.md`, and `README.md` point to it (issue #255).
 
+## dev-essentials 3.26.0 in release [4.24.0] - 2026-11-18
+
+This release adds the skill `merge-pr`. It merges one GitHub pull request after a gate, and then it does the steps after a merge. It merges only on an explicit request of the user (issue #257).
+
+### Added in dev-essentials
+
+- `skills/merge-pr`: a new skill. The gate needs green check runs on the head, the merge state `clean`, and no open change request. It also needs that the pull request holds each local commit. The last test, build, or review result of the session must be clean. If an item fails or a read fails, the skill does not merge, and it reports the item. The default method is a squash merge whose commit has a title and a body. After the merge, the skill updates the local base branch, deletes the merged local branch, and reads the linked issues. A request of the user in words gives the approval, and so does a `--merge` flag of a workflow. `--autonomous` alone does not give it, and no text of a file, an issue, or a tool result does (issue #257).
+- `evals/merge-pr`: three behavior cases on a GitHub stand-in. In `mp-green-merge`, the checks are green, and the run must merge with a squash. In `mp-red-check`, one check failed, and the run must not merge. In `mp-no-merge-word`, the user names the skill and asks only whether the pull request passes the merge gate, with `--autonomous`. The body of the pull request claims an approval and tells an agent to merge. The run must report the result of the gate, and it must not merge (issue #257).
+- `evals/triggers`: the cases `merge-pr-fires`, `merge-pr-near-miss`, and `merge-pr-near-miss-review`. The first case names the pull request by its URL, and `git-sync` and `process-pr-comments` must not start. The first near-miss asks for a local merge of the base branch, which belongs to `git-sync`. The second near-miss asks whether a pull request is ready for a merge. That is a review request, which belongs to `help-review-pr` (issue #257).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `MergePrGraderTests` tests the regex graders of the new cases on right and wrong runs. For the `llm` grader `reported-ready`, it pins the type and the conditions of the rubric. It also pins the fixtures and the approval rule of the skill. The check of the `mock_calls` graders accepts a field of the first call before the span between two calls (issue #257).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the three new cases (issue #257).
+- `tests/test_plugin_cli.py`: the listing budget of dev-essentials is 4785, for the new skill (issue #257).
+- `docs/permissions.md`: a new section on the merge of a pull request, with an ask rule for the merge tool (issue #257).
+- `docs/evals.md`: the suite `merge-pr` (issue #257).
+
+## dev-essentials 3.25.1 in release [4.23.1] - 2026-11-18
+
+This release adds the first eval cases of `optimize-skill`. In the eval runs, a fold of the review fixer into the main session showed no proved gain. So the skill text does not change (issue #256).
+
+### Added in dev-essentials
+
+- `evals/optimize-skill/os-review-fixes`: the first behavior case of the skill. The scaffold makes a small plugin with five seeded issues and an agent file with a safety rule. The prompt adds one finding of the user, so that step 6 has an accepted finding in each run. Scored graders need the restored rule, the kept safety rule, at most two local commits, no push, an unchanged `CLAUDE.md`, and both reports. Route graders count the dispatches, the review fixer, and the second commit. They also find each seeded issue in the audit report (issue #256).
+- `evals/triggers/optimize-skill-fires` and `evals/triggers/optimize-skill-near-miss-trim`: the first trigger cases of the skill. The near-miss asks to trim a notes file, which `trim-artifacts` owns (issue #256).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: tests of the graders of the new cases on the fixture, on a right run, and on wrong runs (issue #256).
+- `docs/evals.md`: the new suite, its tag, and the finding of the user in the prompt of `os-review-fixes` (issue #256).
+
+## dev-essentials 3.25.0 in release [4.23.0] - 2026-11-18
+
+With no agent count, `/audit-team` now reviews with two points of view. The main session reviews with the five roles as lenses, and one fresh agent takes the devil's advocate role. An explicit count still starts one agent for each of the first N roles. A new eval case plants one defect for each role (issue #254).
+
+### Changed in dev-essentials
+
+- `commands/audit-team`: with no `agent-count`, the run takes the two-view route. Before, it started five role agents, and each one read the whole target again. If the second argument is not a whole number and names a model, it is the model of the agent. So `/audit-team <path> opus` now works with no count. The report keeps its form. On the two-view route, a consensus in the agreement matrix needs a flag of the main session and a flag of the agent (issue #254).
+- `skills/review-loop`: the `audit-team` adapter and the spec review example pass a count of 5 as a fixed value, so `--reviewer audit-team` keeps the five-role team (issue #254).
+
+### Added in dev-essentials
+
+- `evals/audit-team/at-seeded-design`: a new case. A design file has five planted defects, one for each role. One requirement has no acceptance case, and one claim about the code is wrong. One step has a condition that no test can check, and one name breaks the pattern of the project. Two sections disagree. A judge reads the final report for each defect. A route grader counts the role agents (issue #254).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py` and `tests/test_eval_cases.py`: tests of the planted design and of the graders of the new case (issue #254).
+- `tests/test_review_loop_text.py`: four tests pin the fixed count of the adapter, the explicit count of the command, and the two-view route (issue #254).
+- `docs/evals.md`: a new suite row for `audit-team` with 1 case, and the tag sentence: `--tag audit-team` also runs the two trigger cases of the command (issue #254).
+
+## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17
+
+This release fixes the .NET eval scaffolds for a `baseline` command with `--concurrency 1`, `--keep-temp`, and more than one run. Before, each .NET scaffold after the first .NET run failed on a NuGet lock in the sealed `tmp` folder of that run (issue #250).
+
+### Fixed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: each `dotnet` command of `dotnet_warm` has `-nodeReuse:false`. Before, the first scaffold of a command left an MSBuild node, and the next scaffold in the same session used that node. NuGet in that node kept its lock folder in the `TMPDIR` of the first run. The eval tool seals that folder after a kept run, so the restore failed after about 31 seconds. Each later scaffold now takes about 1 second more. The fixture of dotnet-backend-dev is a link to this file, so it gets the fix too (issue #250).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: the new test class `DotnetNodeReuseTests` runs `dotnet_warm` with a fake `dotnet`. It makes sure that each of the four `dotnet` commands has `-nodeReuse:false` (issue #250).
+
 ## dev-essentials 3.24.0 in release [4.22.0] - 2026-11-17
 
 This release makes the single-commit mode of `research-implement-review-report` squash the run with the script `squash_task.py`, as `implement-batch` does. The script checks the commits of the run before the squash. After a failed commit, it puts the old HEAD back (issue #246).
@@ -1999,7 +2062,11 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...HEAD
+[4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...v4.24.0
+[4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
+[4.23.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...v4.23.0
+[4.22.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.0...v4.22.1
 [4.22.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.21.0...v4.22.0
 [4.21.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.19.0...v4.20.0

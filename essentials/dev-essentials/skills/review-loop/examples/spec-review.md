@@ -49,7 +49,7 @@ Reading full file... 412 lines loaded.
 
 ## Phase 2 — Resolve reviewer + fixer
 
-`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the default of `/audit-team` (`5`). `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team openspec/changes/add-tenant-quotas/proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
+`--reviewer audit-team`: the target is `spec <path>`, a documentation path, so the adapter applies with no fallback. Argument mapping: `<path>` is the resolved path of `proposal.md`. `--audit-team-args` is not set, so `[agent-count]` gets the fixed value `5` of the adapter, which keeps the five-role team. `--reviewer-model` is `opus`, the default of this skill for the flag. So the skill passes it as the `[model]` argument of `/audit-team`, and the dispatch is `/audit-team openspec/changes/add-tenant-quotas/proposal.md 5 opus`. `--fixer general-purpose` (the default) resolves with no fallback.
 
 ---
 

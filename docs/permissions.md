@@ -45,3 +45,19 @@ You can also add ask rules for a push. With these rules, Claude Code prompts you
 ```
 
 These rules guard the usual form of a command. They are not a security boundary. A rule matches the command text that Claude writes. It does not match other forms, for example `git -c push.default=current push`, a `+` refspec such as `git push origin +main`, or `git commit -n`. A rule with `*` also blocks a command that only contains the text, for example a commit message that names `--no-verify`. Then write the message to a file, and commit with `git commit -F <file>`. A force push that you want is blocked by the deny rules. Run it in your own terminal. See the [permissions page](https://code.claude.com/docs/en/permissions) of the Claude Code documentation for the rule syntax.
+
+## A merge of a pull request
+
+No skill of this marketplace merges a pull request on its own. The skill `merge-pr` merges only after you ask for the merge in your own words. Before the merge, it makes sure that the checks of the pull request are green and that the merge state is clean. An `--autonomous` flag alone does not approve a merge. This rule is also only text. To get a prompt before each merge, add an ask rule for the merge tool of the GitHub MCP server:
+
+```json
+{
+  "permissions": {
+    "ask": [
+        "mcp__plugin_github_github__merge_pull_request"
+    ]
+  }
+}
+```
+
+In `dontAsk` mode, Claude Code denies the merge instead. To forbid each merge, put the same rule in the `deny` list.

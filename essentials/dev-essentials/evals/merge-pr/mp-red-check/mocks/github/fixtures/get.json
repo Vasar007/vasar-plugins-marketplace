@@ -1,0 +1,20 @@
+{
+  "number": 42,
+  "title": "Add paging to the order list",
+  "body": "Adds `page_slice`, which returns the items of one page of a list.\n\nThe order list needs it to show 20 orders on each page.\n\nCloses #7.",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "unstable",
+  "html_url": "https://github.com/example-org/pager/pull/42",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "feature/paging",
+    "sha": "6439c0debab1fd094662d57f949caeb0032b6d93"
+  },
+  "user": {
+    "login": "example-author"
+  }
+}
