@@ -19,10 +19,13 @@ Steps:
 If `git worktree add` fails and makes no folder, the script writes the files of
 the commit into that folder as a temporary export, and runs the command there.
 An export is the checkout of a worktree with no git data: git writes the files
-with the same line ends, links, and modes, and runs no hook. So a command that
-reads git data, for example a build that reads the commit, can fail or give
-another result in an export. Then the verdict can be OTHER, or SAME-AT-PARENT
-if both runs fail in the same way because the git data is missing.
+with the same line ends, links, and modes, and does not run the post-checkout
+hook. In a repository with a sparse checkout, an export holds each file of the
+commit. In an export, git finds no repository. So a command that reads git
+data, for example a build that reads the commit, fails or gives another result
+in an export. Then the verdict can be OTHER, or SAME-AT-PARENT if both runs
+fail in the same way because the git data is missing. If the command passes
+only in an export, the verdict is OTHER.
 
 The command runs with `bash -c`, in the same folder relative to the work tree
 root as --cwd, and stops after --timeout seconds. The temporary worktrees and
@@ -34,6 +37,7 @@ Output on stdout, in this order. Each line holds one fact:
   MAIN WORKTREE: <state>      clean or not clean, and the commit of HEAD
   CHANGED: <path>             a path that git status lists
   MADE <path>                 a temporary worktree that this run made
+  NO WORKTREE: <text>         the error of git worktree add, before an export
   EXPORTED <path>             a temporary export that this run made
   RUN <side> <sha> in <folder>: <result>
                               a run of the command, with its exit code or its stop
@@ -43,13 +47,13 @@ Output on stdout, in this order. Each line holds one fact:
   WARN: <text>                a worktree or a folder that the script cannot delete
   VERDICT: <token>
   REASON: <text>
-The MADE or EXPORTED line and the RUN, ERROR, and TAIL lines come one time
-for each run. After 20
-CHANGED lines, and after 20 ERROR lines of a run, one more line of that kind
-gives the count of the other paths or lines. An ERROR or TAIL line shows at
-most 300 characters of an output line, and then the count of the other
-characters. A path with a character that is not printable prints as a JSON
-string. Each error message of the script goes to stderr.
+The MADE line, or the NO WORKTREE and EXPORTED lines, and the RUN, ERROR, and
+TAIL lines come one time for each run. After 20 CHANGED lines, and after 20
+ERROR lines of a run, one more line of that kind gives the count of the other
+paths or lines. An ERROR or TAIL line shows at most 300 characters of an
+output line, and then the count of the other characters. A path with a
+character that is not printable prints as a JSON string. Each error message
+of the script goes to stderr.
 
 The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
@@ -85,6 +89,7 @@ import os
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -351,7 +356,7 @@ def wait(proc, deadline):
                 raise
 
 
-def run_command(run, bash, command, timeout, log):
+def run_command(run, bash, command, timeout, log, env=None):
     run.limit = timeout
     if not Path(run.folder).is_dir():
         run.start_error = f"the folder {run.folder} does not exist at this commit"
@@ -361,7 +366,7 @@ def run_command(run, bash, command, timeout, log):
     with open(log, "wb") as out:
         try:
             proc = subprocess.Popen([bash, "-c", command], cwd=run.folder, stdin=subprocess.DEVNULL,
-                                    stdout=out, stderr=subprocess.STDOUT, **options)
+                                    stdout=out, stderr=subprocess.STDOUT, env=env, **options)
         except OSError as error:
             run.start_error = str(error)
             return run
@@ -381,6 +386,19 @@ def run_command(run, bash, command, timeout, log):
     run.seconds = time.monotonic() - start
     run.lines = Path(log).read_bytes().decode("utf-8", "replace").splitlines()
     return run
+
+
+def delete_tree(path):
+    """Delete a folder. A failure leaves the rest of it. A read-only file of Windows becomes writable first."""
+    def retry(function, target, _error):
+        with contextlib.suppress(OSError):
+            os.chmod(target, stat.S_IWRITE)
+            function(target)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=retry)
+    else:
+        shutil.rmtree(path, onerror=retry)
 
 
 class Worktrees:
@@ -407,6 +425,7 @@ class Worktrees:
         """Write the files of the commit into a new folder with no git data, as git checks out a worktree.
 
         The index of this export is a file in the temporary folder, so the index of the repository stays as it is.
+        The export folder is the work tree of the checkout, so git reads the attributes of the commit.
         """
         path = self.root / name
         try:
@@ -418,8 +437,13 @@ class Worktrees:
         env = dict(os.environ, GIT_INDEX_FILE=str(self.root / f"{name}.index"))
         code, _, err = git_result(self.top, "read-tree", sha, env=env)
         if code == 0:
-            code, _, err = git_result(self.top, "checkout-index", "--all", f"--prefix={path.as_posix()}/", env=env)
+            code, _, err = git_result(self.top, f"--work-tree={path}", "checkout-index", "--all", env=env)
         return (path, None) if code == 0 else (None, err)
+
+    def command_env(self):
+        """The environment of a command in an export. In it, git finds no repository above the temporary folder."""
+        ceilings = [str(self.root), os.environ.get("GIT_CEILING_DIRECTORIES", "")]
+        return dict(os.environ, GIT_CEILING_DIRECTORIES=os.pathsep.join(part for part in ceilings if part))
 
     def remove(self):
         failed = []
@@ -431,7 +455,7 @@ class Worktrees:
                 failed.append((path, err))
         self.made = []
         exported, self.exported = self.exported, []
-        shutil.rmtree(self.root, ignore_errors=True)
+        delete_tree(self.root)
         for path in exported:
             if not path.exists():
                 print(f"REMOVED {path}", flush=True)
@@ -449,9 +473,14 @@ def verdict(clean, fix, parent, roots):
     if fix.passed:
         if clean:
             return "OTHER", "the command passed in a second run in the clean main worktree."
+        if fix.where == "temporary export":
+            return "OTHER", "the command passes at the fix commit only in a temporary export, which has no git data."
         return "UNCOMMITTED", "the command passes at the fix commit, so the state of the main worktree causes the failure."
     if not fix.runnable_failure:
         return "OTHER", "the command did not run to an end at the fix commit."
+    if parent.passed and parent.where == "temporary export":
+        return "OTHER", ("the command passes at the commit before the fix commit only in a temporary export, "
+                         "which has no git data.")
     if parent.passed:
         return "REGRESSION", "the command fails at the fix commit and passes at the commit before it."
     if not parent.runnable_failure:
@@ -467,17 +496,17 @@ def verdict(clean, fix, parent, roots):
 def run_in_worktree(trees, side, sha, rel, args, bash):
     """Run the command in a temporary worktree at the commit, or in an export if git adds no worktree and no folder."""
     path, err = trees.add(side, sha)
-    where = "temporary worktree"
+    where, error, env = "temporary worktree", f"git worktree add failed: {err}", None
     if path is None and not (trees.root / side).exists():
-        where = "temporary export"
+        print(f"NO WORKTREE: {cut(err)}", flush=True)
+        where, env = "temporary export", trees.command_env()
         path, export_err = trees.export(side, sha)
-        if path is None:
-            err = f"{err}. The export failed too: {export_err}"
+        error = f"git worktree add failed, and the export failed too: {export_err}"
     run = Run(side, sha, (path or trees.root / side) / rel, where)
     if path is None:
-        run.start_error = f"git worktree add failed: {err}"
+        run.start_error = error
     else:
-        run_command(run, bash, args.command, args.timeout, trees.root / f"{side}.log")
+        run_command(run, bash, args.command, args.timeout, trees.root / f"{side}.log", env)
     return run
 
 

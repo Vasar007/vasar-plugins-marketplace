@@ -346,6 +346,7 @@ class IgnoreAndLimitTests(FailureCheckCase):
         self.assertNotIn("RUN parent", out)
         self.assertRegex(out, r"RUN fix \w+ in temporary worktree ")
         self.assertNotIn("EXPORTED", out)
+        self.assertNotIn("NO WORKTREE", out)
         self.assertEqual(re.findall(r"^VERDICT: .*$", out, re.M), ["VERDICT: OTHER"])
 
     def test_worktree_with_no_git_file_is_removed(self):
@@ -382,6 +383,17 @@ def block_worktrees(repo):
     A plain file in the place of .git/worktrees blocks it for each user, also for root, on Linux and on Windows.
     """
     (Path(repo) / ".git" / "worktrees").write_bytes(b"")
+
+
+def can_make_links(folder):
+    """True if this system can make a symbolic link in the folder. On Windows, that needs a right of the user."""
+    link = Path(folder) / "link-probe"
+    try:
+        os.symlink("link-target", str(link))
+    except OSError:
+        return False
+    link.unlink()
+    return True
 
 
 def snapshot(folder):
@@ -424,6 +436,7 @@ class ExportTests(FailureCheckCase):
         self.assertRegex(out, r"RUN fix \w+ in temporary export .*review-loop-fc-\w+[/\\]fix[/\\]sub: exit 1 ")
         self.assertRegex(out, r"RUN parent \w+ in temporary export .*review-loop-fc-\w+[/\\]parent[/\\]sub: exit 1 ")
         self.assertEqual((out.count("EXPORTED "), out.count("REMOVED "), out.count("MADE ")), (2, 2, 0))
+        self.assertEqual(len(re.findall(r"(?m)^NO WORKTREE: .+\nEXPORTED ", out)), 2)
         self.assertNotIn("WARN", out)
         self.assertTrue(out.endswith(f"VERDICT: SAME-AT-PARENT\n{self.SAME}\n"), out)
 
@@ -447,12 +460,25 @@ class ExportTests(FailureCheckCase):
         out = self.check(fix)
         self.assertRegex(out, r"RUN fix \w+ in main worktree .*[/\\]repo[/\\]sub: exit 1 ")
         self.assertRegex(out, r"RUN parent \w+ in temporary export .*review-loop-fc-\w+[/\\]parent[/\\]sub: exit 0 ")
-        self.assertEqual(self.verdict(out), "REGRESSION")
+        self.assertEqual(self.verdict(out), "OTHER")
+        self.assertIn("REASON: the command passes at the commit before the fix commit only in a temporary export", out)
+
+    def test_blocked_worktree_gives_other_if_the_fix_passes_only_in_an_export(self):
+        self.write("sub/other.txt", "fix\n")
+        fix = self.commit("fix")
+        self.write("dirty.txt", "x\n")
+        block_worktrees(self.repo)
+        out = self.check(fix)
+        self.assertRegex(out, r"RUN fix \w+ in temporary export .*: exit 0 ")
+        self.assertNotIn("RUN parent", out)
+        self.assertEqual(self.verdict(out), "OTHER")
+        self.assertIn("REASON: the command passes at the fix commit only in a temporary export", out)
 
     def assertExportFailed(self, out, error):
-        """The fix run could not start, both errors are in its RUN line, and the script printed one verdict."""
-        self.assertRegex(out, r"(?m)^RUN fix \w+ in temporary export .*: could not start: git worktree add failed: "
-                              r".*\. The export failed too: .*" + error)
+        """The fix run could not start, each error has its line, and the script printed one verdict."""
+        self.assertRegex(out, r"(?m)^NO WORKTREE: .+\nEXPORTED ")
+        self.assertRegex(out, r"(?m)^RUN fix \w+ in temporary export .*: could not start: git worktree add failed, "
+                              r"and the export failed too: .*" + error)
         self.assertEqual((out.count("EXPORTED "), out.count("REMOVED ")), (1, 1))
         self.assertNotIn("RUN parent", out)
         self.assertEqual(re.findall(r"^VERDICT: .*$", out, re.M), ["VERDICT: OTHER"])
@@ -474,7 +500,7 @@ class ExportTests(FailureCheckCase):
         fix = run(["git", "-C", self.repo, "hash-object", "-t", "commit", "-w", "--stdin"], stdin=text.encode(),
                   text=False, check=True).stdout.decode().strip()
         block_worktrees(self.repo)
-        self.assertExportFailed(self.check(fix), "failed to unpack tree object")
+        self.assertExportFailed(self.check(fix), fix)
 
     def test_export_has_the_files_of_a_worktree(self):
         for path, data in self.FILES:
@@ -483,8 +509,11 @@ class ExportTests(FailureCheckCase):
             self.git("update-index", "--add", "--cacheinfo", f"{self.MODES.get(path, '100644')},{blob},{path}")
         self.git("commit", "-q", "-m", "fix")
         fix = self.git("rev-parse", "HEAD")
-        for symlinks, autocrlf in (("true", "true"), ("false", "true"), ("true", "false")):
+        links = can_make_links(self.tmp)
+        for symlinks, autocrlf in (("true", "true"), ("false", "true"), ("true", "false"), ("false", "false")):
             with self.subTest(symlinks=symlinks, autocrlf=autocrlf):
+                if symlinks == "true" and not links:
+                    continue
                 self.git("config", "core.symlinks", symlinks)
                 self.git("config", "core.autocrlf", autocrlf)
                 reference = self.tmp / "reference"
@@ -493,6 +522,7 @@ class ExportTests(FailureCheckCase):
                 self.git("worktree", "remove", "--force", reference)
                 index = (self.repo / ".git" / "index").read_bytes()
                 git_files = sorted(path for path in (self.repo / ".git").rglob("*") if path.is_file())
+                status = self.git("status", "--porcelain", "--untracked-files=all")
                 trees = fc.Worktrees(self.repo)
                 try:
                     with contextlib.redirect_stdout(io.StringIO()):
@@ -500,11 +530,79 @@ class ExportTests(FailureCheckCase):
                     self.assertIsNone(err)
                     self.assertEqual(snapshot(path), expected)
                     self.assertIn("link.txt", expected)
+                    self.assertFalse((path / ".git").exists(), "the export holds git data")
                 finally:
                     with contextlib.redirect_stdout(io.StringIO()):
                         trees.remove()
                 self.assertEqual((self.repo / ".git" / "index").read_bytes(), index, "the export changed the index")
                 self.assertEqual(sorted(path for path in (self.repo / ".git").rglob("*") if path.is_file()), git_files)
+                self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), status,
+                                 "the export changed the main worktree")
+
+    def export_of(self, name, sha, trees):
+        with contextlib.redirect_stdout(io.StringIO()):
+            path, err = trees.export(name, sha)
+        self.assertIsNone(err)
+        return path
+
+    def test_export_takes_the_attributes_of_its_commit(self):
+        self.git("config", "core.autocrlf", "false")
+        self.write("a.txt", "one\ntwo\n")
+        parent = self.commit("parent")
+        self.write(".gitattributes", "*.txt text eol=crlf\n")
+        fix = self.commit("fix")
+        for name, sha, expected in (("parent", parent, b"one\ntwo\n"), ("fix", fix, b"one\r\ntwo\r\n")):
+            with self.subTest(commit=name):
+                trees = fc.Worktrees(self.repo)
+                try:
+                    path = self.export_of(name, sha, trees)
+                    self.assertEqual((path / "a.txt").read_bytes(), expected)
+                finally:
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        trees.remove()
+
+    def test_export_does_not_read_an_attributes_file_that_is_not_committed(self):
+        self.git("config", "core.autocrlf", "false")
+        self.write("a.txt", "one\ntwo\n")
+        fix = self.commit("fix")
+        self.write(".gitattributes", "*.txt text eol=crlf\n")
+        trees = fc.Worktrees(self.repo)
+        try:
+            path = self.export_of("fix", fix, trees)
+            self.assertEqual((path / "a.txt").read_bytes(), b"one\ntwo\n")
+        finally:
+            with contextlib.redirect_stdout(io.StringIO()):
+                trees.remove()
+
+    def test_command_in_an_export_finds_no_repository_above_the_temporary_folder(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("dirty.txt", "x\n")
+        block_worktrees(self.repo)
+        temp = git_init(self.tmp / "outer") / "temp"
+        temp.mkdir()
+        env = clean_env(TMPDIR=str(temp), TEMP=str(temp), TMP=str(temp))
+        command = "git rev-parse --git-dir > /dev/null 2>&1 && echo found-a-repository; echo error: stop; exit 1"
+        out = self.check(fix, command, env=env)
+        self.assertEqual(out.count(" in temporary export "), 2)
+        self.assertNotIn("found-a-repository", out)
+        self.assertEqual(list(temp.iterdir()), [], "a temporary folder is left")
+
+    def test_read_only_file_of_the_command_does_not_keep_the_export(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        block_worktrees(self.repo)
+        out = self.check(fix, "echo x > made.txt && chmod 444 made.txt && " + CHECK)
+        self.assertEqual((out.count("EXPORTED "), out.count("REMOVED "), out.count("WARN")), (1, 1, 0))
+
+    def test_export_gets_the_git_settings_of_the_environment(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("dirty.txt", "x\n")
+        block_worktrees(self.repo)
+        env = dict(self.env, GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="core.autocrlf", GIT_CONFIG_VALUE_0="true")
+        out = self.check(fix, 'echo "error: value.txt has $(wc -c < value.txt) bytes"; exit 1', env=env)
+        self.assertRegex(out, r"RUN fix \w+ in temporary export .*\n  ERROR \| error: value\.txt has +5 bytes")
 
 
 class UsageTests(FailureCheckCase):
@@ -819,8 +917,8 @@ class UnitTests(unittest.TestCase):
         self.assertIn(f"after {fc.DEFAULT_TIMEOUT} seconds", SKILL.read_bytes().decode("utf-8"))
 
     def test_help_text_names_each_kind_of_output_line(self):
-        for kind in ("FIX <sha>", "MAIN WORKTREE:", "CHANGED:", "MADE <path>", "EXPORTED <path>", "RUN <side>", "ERROR |",
-                     "TAIL  |", "REMOVED <path>", "WARN:", "VERDICT:", "REASON:"):
+        for kind in ("FIX <sha>", "MAIN WORKTREE:", "CHANGED:", "MADE <path>", "NO WORKTREE:", "EXPORTED <path>", "RUN <side>",
+                     "ERROR |", "TAIL  |", "REMOVED <path>", "WARN:", "VERDICT:", "REASON:"):
             self.assertIn(kind, fc.__doc__)
 
     def test_forms_of_a_windows_folder(self):
