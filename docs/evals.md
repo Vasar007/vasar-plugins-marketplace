@@ -43,7 +43,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `process-pr-comments` | `dev-essentials` | 10 | WSL |
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
-| `feature-pipeline` | `dev-essentials` | 10 | WSL |
+| `feature-pipeline` | `dev-essentials` | 12 | WSL |
 | `research-implement-review-report` | `dev-essentials` | 2 | WSL |
 | `composers` | `dev-essentials` | 4 | WSL |
 | `trim-artifacts` | `dev-essentials` | 1 | WSL |
@@ -104,6 +104,8 @@ The tool prints one line for each grader of each run, with four fields that a ta
 The tool does not know the arm of a run, and it does not read the `arm` key of a grader. It replays each grader on each run that you give, and each failed grader gives exit code 1. The replay is not `claude plugin eval`, so a later Claude Code version can grade in another way. Like the graded text, the replay lacks the calls of a subagent of a subagent.
 
 A mock of the type `agent` does not see a call that a fixed mock answered (Claude Code 2.1.325). In `cmp-issue-create`, a fixed mock answered the create call, and an agent mock answered the read-back call with another issue. So each run that read the issue back reported that the read-back did not match. A mock that reads back what an earlier call wrote gets a fixed fixture.
+
+No mock can give the SHA of a commit that the run makes. The merge gate of `merge-pr` compares the head SHA of the pull request with the local branch. So two cases test the flag `--merge` of `feature-pipeline`. The case `fp-e2-merge` starts after Step 9, and its scaffold makes the head commit. Its run must merge. The case `fp-e2-merge-gate` is a full run. Its mock gives the last commit of the scaffold as the head, so the pull request lacks the commit of the run. Its run must read the gate and must not merge. `ScaffoldTests` in `tests/test_eval_scaffolds.py` makes sure that the head SHA in `fixtures/pull/get.json` of each case is the last commit of its scaffold.
 
 A grader that must see no push is a `file_exists` grader with `exists: false` and the path `.remote/origin.git/logs/refs/heads/**`. Only `fp-e3-autonomous-main` reads `.remote/origin.git/logs/refs/heads/main`, because its run must push a work branch. The scaffold turns on the reflogs of the bare remote after its own push. So each later push of a branch writes a new file below that folder. In Claude Code 2.1.325, `**` also matches a branch name with a slash, such as `work/813`. A grader that must see no commit on a branch reads the reflog of that branch with `match: not_contains` and the pattern `\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)`. Each reflog line that the fixture did not write fails it, except a `branch: Created from` line. Examples are a commit, an amend, a reset, a merge, a cherry-pick, a rebase, and a revert. `fp-e1-clean-change` also reads `.git/logs/HEAD`, so that a commit on a new branch fails too. `GraderBranchTests` and `CommitGraderTests` in `tests/test_eval_scaffolds.py` pin these forms. These seven forms still pass:
 
