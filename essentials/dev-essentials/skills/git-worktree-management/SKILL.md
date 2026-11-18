@@ -10,6 +10,8 @@ when_to_use: Use it for "create worktree", "list worktrees", "remove worktree", 
 
 Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/`. Each branch gets its own folder, so you can work on several branches at the same time. Repos usually gitignore this path (`**/.claude/worktrees/`), and Workflow A Step 4 makes sure of it. So worktrees stay out of `git status` and need no cleanup outside the repo.
 
+The script `scripts/worktree.py` of this skill does the fixed git steps: the path rule, the ignore check, `git worktree add` in its three cases, the bootstrap, `git worktree remove`, and `git worktree prune`. You keep each step that needs a judgment, a question to the user, or a GitHub MCP tool. The script needs Python 3.8 or later and git 2.31 or later. On Windows, run it in the Bash tool (Git Bash). It asks for no input, and it refuses each path outside `.claude/worktrees/`.
+
 To get the approval prompts of Workflow A, write `--interactive` in the request. To also remove the approval prompts of Workflows C and D, write `--autonomous` in the request.
 
 ---
@@ -50,23 +52,17 @@ If the user did not give the branch ref, stop and ask. With `--interactive`, als
 
 ### Step 1: Get repository root
 
-```bash
-git rev-parse --show-toplevel
-```
+The script takes the main worktree as the repository root: the first entry of `git worktree list`. Also from a linked worktree, the root is the main worktree. The `REPO` line of the script names the root.
 
 ### Step 2: Determine base branch
 
-```bash
-git symbolic-ref refs/remotes/origin/HEAD
-```
-
-The output looks like `refs/remotes/origin/main`. Take the branch name from it. If the base branch is ambiguous, ask the user.
+For a new branch, the base is the branch of `origin/HEAD`. If the caller names a base branch, pass it with `--base <base-branch>`. The script uses the base only for a new branch, and its `BASE` line names the base and where it came from. If the script refuses because `origin/HEAD` is not set, or because `origin` has no branch of that name, ask the user for the base branch.
 
 ### Step 3: Construct path and ask for confirmation
 
 Path rule: `<repo-root>/.claude/worktrees/<full-branch-ref>/`
 
-Copy the branch ref as it is, with its slashes. Do not flatten it.
+Copy the branch ref as it is, with its slashes. Do not flatten it. The script builds the path by this rule.
 
 Example: the branch `feature/tasks/1370383-terminate-reservation` gives the path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`.
 
@@ -74,7 +70,13 @@ Example: the branch `feature/tasks/1370383-terminate-reservation` gives the path
 
 **Pipeline mode (in every mode)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the approval gate in this case.
 
-**With `--interactive`, stop and show an approval prompt before you create the worktree:**
+**With `--interactive`, stop and show an approval prompt before you create the worktree.** First run the plan form. It prints the `PATH`, `CASE`, and `BASE` lines, and it changes nothing. If no caller named a base branch, leave out `--base`:
+
+```bash
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --plan
+```
+
+Show these lines in the prompt:
 
 > I will create a worktree with the following settings:
 >
@@ -88,66 +90,45 @@ Wait for an explicit yes. Do not continue without it.
 
 ### Step 4: Verify `.claude/worktrees/` is gitignored
 
-```bash
-git -C <repo-root> check-ignore -v .claude/worktrees/placeholder
-```
+The script checks the ignore rule with `git check-ignore`. Its `IGNORE` line names the rule that ignores the folder, or says that no rule does.
 
-If the path is not gitignored: without `--interactive`, add the line `.claude/worktrees/` to the local exclude file `$(git -C <repo-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
+If the path is not gitignored: without `--interactive`, pass `--add-exclude` in Step 5. The script then adds the line `.claude/worktrees/` to the local exclude file `info/exclude` of the common git folder, and prints an `EXCLUDE` line. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 
-Wait for the user's answer. Do not add it silently.
+Wait for the user's answer. Do not add it silently. On a yes, add the line `.claude/worktrees/` to `.gitignore`. If the user wants the local exclude file instead, pass `--add-exclude` in Step 5.
 
 ### Step 5: Create the worktree
 
-Three cases, by the state of the branch:
-
-**Case A, new branch (most common):**
+Run the script with the branch ref. Pass `--base` as Step 2 says, `--add-exclude` as Step 4 says, and `--notes-dir` as Step 6 says:
 
 ```bash
-git fetch origin <base-branch>
-git worktree add -b <branch-ref> <path> origin/<base-branch>
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --add-exclude --notes-dir <notes-folder>
 ```
 
-**Case B, the branch already exists locally:**
+The script picks one of three cases by the state of the branch. Its `CASE` line names the case:
 
-```bash
-git worktree add <path> <branch-ref>
-```
+- Case A, a new branch (most common): it fetches the base branch from `origin`, and runs `git worktree add --no-track -b <branch-ref> <path> origin/<base-branch>`.
+- Case B, the branch already exists locally: it runs `git worktree add <path> <branch-ref>`, with no `-b`.
+- Case C, the branch exists on the remote only: it fetches the branch, and runs `git worktree add --no-track -b <branch-ref> <path> origin/<branch-ref>`.
 
-Do not pass `-b` here. With `-b`, the command fails for an existing branch.
+Read the exit code and the last line, `RESULT`:
 
-**Case C, the branch exists on the remote only:**
+- Exit code 0, `RESULT: CREATED`: the script also ran Step 6. Go to Step 7.
+- Exit code 3, `RESULT: REFUSED`: nothing changed. Each `REFUSED` line gives a reason. Tell the user the reason. For a path that exists, see "Error Handling".
+- Exit code 1, `RESULT: FAILED`: no worktree exists. Report each `FAILED` line and each `LEFT` line to the user, and stop. Do not make the worktree in another way, for example with a plain `git worktree add` or a copy of the repository.
+- Exit code 1, `RESULT: CREATED, BUT`: the worktree exists, but a sub-step of Step 6 failed. Do the sub-step of each `FAILED` line by hand, as Step 6 describes it.
+- `python3` is not available, or exit code 2: the script cannot run, for example with git older than 2.31. Report the error, and stop. Do not make the worktree with plain git commands.
 
-```bash
-git fetch origin <branch-ref>
-git worktree add -b <branch-ref> <path> origin/<branch-ref>
-```
+The `PATH` line gives the absolute path of the worktree. Use that path from here on, and report it in Step 7. If a caller passed a path that differs, tell the caller the path of the `PATH` line. For a worktree of another repository, add `--repo <a folder of that repository>` after the subcommand in each call of the script.
 
 ### Step 6: Post-create bootstrap (mandatory — run every time)
 
-Run all three sub-steps immediately after `git worktree add`, before dispatching any subagent into the worktree:
+The create command of Step 5 runs these three sub-steps right after `git worktree add`. So they are done before you dispatch a subagent into the worktree. Each sub-step prints one line:
 
-```bash
-# 1. Unset upstream tracking — prevents "git branch -vv" hiding local commits
-#    behind the base branch and stops accidental push/pull to the wrong target
-git -C <worktree-path> branch --unset-upstream
-#    In Case B the local branch may have no upstream. Then the command exits with 128
-#    ("has no upstream information"). That is harmless: go on to the next sub-step.
-#    Push with an explicit "origin <branch-ref>".
-
-# 2. Copy gitignored Claude Code config from master worktree so subagents
-#    inherit the same allow-list, hooks, and permissions without re-prompting
-[ -f <repo-root>/.claude/settings.local.json ] && mkdir -p <worktree-path>/.claude && cp <repo-root>/.claude/settings.local.json <worktree-path>/.claude/settings.local.json
-# Note: inspect .gitignore for other .claude/... patterns (e.g., local CLAUDE.md
-# overrides, .claude/state/, plugin caches) and replicate each one the same way.
-
-# 3. Create the notes folder for plans, drafts, and scratch files.
-#    The configured notes folder is ${user_config.notes_dir}.
-#    If that value still shows as a placeholder, no value is saved: use Notes.
-#    A location that the CLAUDE.md of the repo names wins.
-mkdir -p <worktree-path>/<notes-folder>
-```
+1. `UPSTREAM`: if the branch has an upstream, the script removes it with `git branch --unset-upstream <branch-ref>`. Then `git branch -vv` does not hide local commits behind the base branch, and no push or pull goes to the wrong target. Push with an explicit `origin <branch-ref>`.
+2. `SETTINGS`: the script copies `.claude/settings.local.json` of the main worktree into the worktree, so that subagents get the same allow-list, hooks, and permissions with no new prompt. If git does not ignore the file, or if the branch has its own copy, the script does not copy it. Look in `.gitignore` for other ignored files below `.claude/`, for example a local CLAUDE.md override or `.claude/state/`. Copy each one yourself in the same way.
+3. `NOTES`: the script makes the notes folder for plans, drafts, and scratch files. Pass the folder with `--notes-dir`. The configured notes folder is ${user_config.notes_dir}. If that value still shows as a placeholder, no value is saved: use Notes. A location that the CLAUDE.md of the repo names wins.
 
 ### Step 7: Find the solution or project file and report
 
@@ -210,16 +191,23 @@ If the PR is still open or in review **and the user did not explicitly ask for t
 
 ### Step 2: Get confirmation
 
-Show the worktree path and branch. Ask for explicit yes. With `--autonomous`, show them and continue without the question.
+Run the plan form of the removal. The branch ref is the path below `.claude/worktrees/`, as Workflow D Step 2 item 1 says. The plan form changes nothing:
+
+```bash
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref>
+```
+
+Show the `PATH` line, the `BRANCH` line, and each `IGNORED` line. The removal deletes the ignored files that the `IGNORED` lines name. Ask for explicit yes. With `--autonomous`, show them and continue without the question. If the plan ends with `RESULT: REFUSED`, nothing changed. Tell the user each `REFUSED` line. For changes in the worktree, see "Error Handling".
 
 ### Step 3: Remove
 
-**Before the first removal attempt, archive anything worth keeping** (for example `Notes/` drafts and task artifacts) to a location outside the worktree. A removal can fail halfway: git unregisters the worktree but leaves part of the folder on disk. So do not wait for a failed attempt before you archive.
+**Before the first removal attempt, archive anything worth keeping** to a location outside the worktree. Examples are `Notes/` drafts and task artifacts, and the files that the `IGNORED` lines name. A removal can fail halfway: git unregisters the worktree but leaves part of the folder on disk. So do not wait for a failed attempt before you archive.
 
 ```bash
-git worktree remove <path>
-git worktree list   # verify removal
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
 ```
+
+`RESULT: REMOVED` ends this step. Git no longer lists the worktree, and the branch and its commits stay. After a `FAILED` line, each `LEFT` line names what is still there. After `REMOVED`, a `LEFT folder` line names a folder that git did not delete, for example because a junction is in it. Name that folder in the report, and delete nothing by yourself.
 
 **Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on removal is usually not an IDE file lock. Work through this diagnosis in order:
 
@@ -233,7 +221,7 @@ git worktree list   # verify removal
    Set-Location <repo-root>    # PowerShell
    ```
 
-   Then run `git worktree remove <path>` again. If a folder remains, run a plain `Remove-Item -Recurse -Force <path>` (or `rm -rf <path>`). For a worktree path of short or medium length, this step alone is enough.
+   Then run the `remove <branch-ref> --apply` command of the script again. If a folder remains, run a plain `Remove-Item -Recurse -Force <path>` (or `rm -rf <path>`). For a worktree path of short or medium length, this step alone is enough.
 
 2. **Step 2: long path (use it only after Step 1 failed)**. The worktree path plus a deep source tree often exceeds the Windows `MAX_PATH` limit of 260 characters. This also shows as `Permission denied`. You can try the PowerShell extended-path literal first:
 
@@ -302,11 +290,13 @@ Without `--autonomous`, **stop and wait for an explicit yes.** With `--autonomou
 For each path, first archive anything worth keeping, as Workflow C Step 3 says. Whoever runs this workflow also removes each eligible path itself. The Rule 7 note of Workflow C applies to each path here too, not only to the removal of a single worktree.
 
 ```bash
-git worktree remove <path-1>
-git worktree remove <path-2>
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref-1> --apply
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref-2> --apply
 # ...
-git worktree prune
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" prune --apply
 ```
+
+A removal that ends with `RESULT: REFUSED` or `RESULT: FAILED` keeps that worktree. Name it in the report. The prune removes only the git data of a worktree whose folder is gone. If the prune refuses an entry, name the entry in the report, and leave it. The prune refuses an entry outside `.claude/worktrees/`. It also refuses an entry with a detached HEAD whose commits no branch, tag, or remote branch holds.
 
 ---
 
@@ -324,16 +314,15 @@ You can remove a worktree in two cases. First, the PR is merged, by the rule of 
 
 The worktree can be missing despite the lifecycle rule, for example after a manual removal, an IDE prune, or `git worktree prune`. If the branch has an active PR, recreate the worktree before you do any work.
 
-**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Try the git-native removal first (`git worktree remove --force`). It follows the safety model of git for an entry that git registered but that is missing on disk. If a physical directory still exists after that (an unregistered orphan stub), list its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
+**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Run the removal of the script first, as the block below shows. It removes an entry that git lists but whose folder is missing, with no `--force`. If the script refuses with `no worktree is at this path`, git lists no entry and no folder is there. Nothing is left to remove, so go on to the recreation. If the script refuses with `git does not list this folder as a worktree`, the folder is an unregistered orphan stub. List its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
 
 ```bash
-git fetch origin <branch-ref>
-# Only for a path under .claude/worktrees/ (see the rule above).
-git worktree remove --force .claude/worktrees/<branch-ref> 2>/dev/null || true
-# If a directory remains: list it and ask the user. Never chain a blind `rm -rf`.
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
+# A refusal for a folder that git does not list: list the folder and ask the user. Never chain a blind `rm -rf`.
+# A refusal "no worktree is at this path": nothing to remove. Go on to the recreation.
 ```
 
-Then recreate the worktree at `.claude/worktrees/<branch-ref>` with Workflow A Step 5. If `git branch --list <branch-ref>` prints a line, use Case B. If it prints nothing, the local branch is gone, so use Case C. After that, run all of Workflow A Step 6 (the post-create bootstrap).
+Then recreate the worktree at `.claude/worktrees/<branch-ref>` with Workflow A Step 5. If the local branch still exists, the script uses Case B. If only `origin` has the branch, it uses Case C. It also runs all of Workflow A Step 6 (the post-create bootstrap).
 
 Then work in the recreated worktree. Do not work from the main worktree through `git show <branch>:<path>`.
 
@@ -345,6 +334,12 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Cannot remove main worktree:** The main repo worktree cannot be removed with this skill. Only secondary worktrees under `.claude/worktrees/` can be removed.
 
-**Uncommitted changes in worktree:** Git will refuse removal. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
+**Uncommitted changes in worktree:** The script refuses the removal, and a `CHANGED` line names each change. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
+
+**Hidden changes in worktree:** The script prints a `HIDDEN` line for each tracked file that has the flag skip-worktree or assume-unchanged. Git does not report a change of such a file. The removal deletes the change. Ask the user to look at each file, to save the change, and to clear the flag. With `--autonomous`, keep that worktree, and name it in the final report.
+
+**Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. With `--autonomous`, keep that worktree, and name it in the final report.
+
+**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. With `--autonomous`, keep the outer worktree, and name the folder in the final report.
 
 **Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.
