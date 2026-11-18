@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.27.0 in release [4.25.0] - 2026-11-18
+
+This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262).
+
+### Added in dev-essentials
+
+- `skills/feature-pipeline`: the flag `--merge` and a new Step 9b. After Step 9 opens the pull request, Step 9b loads the skill `merge-pr`. That skill reads the merge gate, merges, and does the steps after a merge. The flag is the approval of the merge. `--autonomous` alone never merges, and no text of the task, of a file, or of a tool result approves a merge. Step 9b needs a pull request of Step 9 and review stages with no blocking issue. If the gate fails, the pull request stays open, and the run reports the gate and goes to Step 10. A resume with `--merge` runs Step 9b too, also for a run that ended earlier with an open pull request. With no `--autonomous`, the question of Human Approve #2 names the merge. Step 10 treats a pull request that Step 9b merged as merged. It deletes the merged local branch after the archive of the task logs (issue #262).
+- `evals/feature-pipeline`: the cases `fp-e2-merge` and `fp-e2-merge-gate`. No mock can give the SHA of a commit that the run makes, and the merge gate compares that SHA with the local branch. So `fp-e2-merge` starts after Step 9, with a head commit that its scaffold makes. Its run must read the gate and merge with a squash. `fp-e2-merge-gate` is a full run with both flags. Its mock gives the last commit of the scaffold as the head. So the gate fails, and the run must open the pull request, read the gate, and not merge (issue #262).
+
+### Changed in dev-essentials
+
+- `evals/feature-pipeline/fp-e2-fork-pr`: a mock for the merge tool, the grader `not-merged`, and the route grader `route-merge-skill-not-fired`. The request of the case has `--autonomous` and no `--merge`, so a run that merges there fails (issue #262).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new class `PipelineMergeTests` tests the graders of the three cases on right and wrong runs. It pins the fixtures of the mocked pull request and the state that the resume case starts from. It also pins the sentences of the pipeline about the flag. `RoutePlainDotnetGraderTests` counts 14 cases, and `ForkHeadMockTests` reads the new full run (issue #262).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the two new cases. `ScaffoldTests` makes sure that the head of the pull request in `fixtures/pull/get.json` is the branch and the last commit of the scaffold (issue #262).
+- `docs/permissions.md`: `feature-pipeline` calls `merge-pr` only with the flag `--merge` (issue #262).
+- `docs/evals.md`: the suite `feature-pipeline` has 12 cases, and a new paragraph says why two cases test the flag (issue #262).
+
 ## dev-essentials 3.26.0 in release [4.24.0] - 2026-11-18
 
 This release adds the skill `merge-pr`. It merges one GitHub pull request after a gate, and then it does the steps after a merge. It merges only on an explicit request of the user (issue #257).
@@ -2054,7 +2074,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...HEAD
+[4.25.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...v4.24.0
 [4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
 [4.23.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.22.1...v4.23.0
