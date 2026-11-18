@@ -549,6 +549,39 @@ class RemoveTests(WorktreeCase):
         self.assertEqual((notes / "other" / "draft.txt").read_bytes(), b"draft\n")
         self.assertTrue(self.is_listed(self.path()))
 
+    def test_nested_worktree_with_no_registration_is_refused(self):
+        notes = self.path() / "Notes"
+        for depth in ("gone", "deep/er/gone"):
+            self.git("worktree", "add", "-q", "-b", f"feature/{depth.replace('/', '-')}", str(notes / depth), "main")
+            self.write("draft.txt", "draft\n", cwd=notes / depth)
+            shutil.rmtree(self.repo / ".git" / "worktrees" / Path(depth).name)
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("remove", REF, *extra, code=3)
+                for depth in ("gone", "deep/er/gone"):
+                    self.assertIn(f"REFUSED: the folder Notes/{depth} is a git repository or a worktree inside this "
+                                  "worktree. Move it out first", out)
+        for depth in ("gone", "deep/er/gone"):
+            self.assertEqual((notes / depth / "draft.txt").read_bytes(), b"draft\n")
+        self.assertTrue(self.is_listed(self.path()))
+
+    def test_ignored_folder_with_no_git_entry_does_not_block_the_removal(self):
+        self.write("Notes/deep/er/draft.txt", "draft\n", cwd=self.path())
+        self.assertIn("IGNORED Notes/", self.script("remove", REF))
+        self.assertIn("RESULT: REMOVED", self.script("remove", REF, "--apply"))
+        self.assertFalse(os.path.lexists(self.path()))
+
+    def test_ignored_folder_that_the_walk_cannot_read_is_refused(self):
+        def fake_walk(top, onerror=None, **options):
+            onerror(PermissionError(13, "denied", os.path.join(top, "sub")))
+            return iter(())
+
+        with mock.patch.object(os, "walk", fake_walk):
+            code, out = self.in_process("remove", REF, "--repo", self.repo)
+        self.assertEqual(code, 3)
+        self.assertIn("REFUSED: the script cannot read the folder Notes/sub, so it cannot look for a git repository "
+                      "in it. Look at it first", out)
+
     def test_worktree_that_holds_another_worktree_is_refused(self):
         nested = self.path() / "Notes" / "wt"  # The repository ignores Notes/, so git status does not show it.
         self.git("worktree", "add", "-q", "-b", "feature/nested", str(nested), "main")

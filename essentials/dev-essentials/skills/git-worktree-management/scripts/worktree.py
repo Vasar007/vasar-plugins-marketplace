@@ -28,10 +28,11 @@ Subcommands:
       Without --apply, print the plan and change nothing. With --apply, run "git worktree remove <path>".
       It refuses a folder that git does not list, a locked worktree, a worktree with a change or an
       untracked file, a tracked file with the flag skip-worktree or assume-unchanged, another worktree
-      inside this one, a git repository inside it (also in an ignored folder), a detached HEAD whose
-      commits no branch, tag, or remote branch holds, and a run from a folder inside the worktree. It
-      never passes --force. The removal also deletes the ignored files of the worktree, and an IGNORED
-      line names each one first. The branch and its commits stay.
+      inside this one, a git repository inside it (the script looks for a .git entry in each ignored
+      folder, and refuses a folder that it cannot read), a detached HEAD whose commits no branch, tag,
+      or remote branch holds, and a run from a folder inside the worktree. It never passes --force. The
+      removal also deletes the ignored files of the worktree, and an IGNORED line names each one first.
+      The branch and its commits stay.
   prune [--apply]
       Without --apply, print the entries that "git worktree prune" removes and change nothing. With
       --apply, run it. It refuses if an entry is outside .claude/worktrees/, or if the detached HEAD of an
@@ -473,6 +474,28 @@ def hidden_files(path):
             if (entry[0] == "S" or entry[0].islower()) and os.path.lexists(os.path.join(str(path), entry[2:]))]
 
 
+def inner_git_entries(path, folders):
+    """Look in each ignored folder for an entry named .git, at any depth, with no link followed.
+
+    git clean skips a nested worktree whose registration is gone, so git does not report it. Return the
+    folders that hold a .git entry, and the folders that the walk could not read. Both are relative to path.
+    """
+    found, unread = [], []
+
+    def relative(folder):
+        return Path(os.path.relpath(folder, str(path))).as_posix()
+
+    def cannot_read(error):
+        unread.append(relative(error.filename or path))
+
+    for folder in folders:
+        for top, dirs, files in os.walk(os.path.join(str(path), folder), onerror=cannot_read):
+            if ".git" in dirs or ".git" in files:
+                found.append(relative(top))
+                dirs.clear()
+    return found, unread
+
+
 def remove(repo, args):
     emit("MODE REMOVE APPLY" if args.apply else "MODE REMOVE PLAN: nothing changes")
     emit(f"REPO {show(str(repo.root))}")
@@ -522,9 +545,15 @@ def remove(repo, args):
         skip = "Would skip repository "
         cleaned = git(path, "clean", "-n", "-d", "-x").splitlines()
         nested = [line[len(skip):] for line in cleaned if line.startswith(skip)]
+        known = listed_inside | {norm(path / folder) for folder in nested}
+        found, unread = inner_git_entries(path, [entry for entry in ignored if entry.endswith("/")])
+        nested += [folder for folder in found if norm(path / folder) not in known]
         for folder in [folder for folder in nested if norm(path / folder) not in listed_inside][:MAX_PATHS]:
             refusals.append(f"the folder {show(folder)} is a git repository or a worktree inside this worktree. "
                             "Move it out first")
+        for folder in unread[:MAX_PATHS]:
+            refusals.append(f"the script cannot read the folder {show(folder)}, so it cannot look for a git "
+                            "repository in it. Look at it first")
     for reason in refusals:
         emit(f"REFUSED: {reason}")
     if refusals:
