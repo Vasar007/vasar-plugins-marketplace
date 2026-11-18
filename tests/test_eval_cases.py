@@ -2478,7 +2478,8 @@ class PipelineMergeTests(unittest.TestCase):
         done = ["requirements", "spec", "implementation", "test-coverage", "docs", "review", "security-review", "finalization"]
         self.assertIn(f'"completed": {json.dumps(done)},', scaffold)
         self.assertIn('"pr": {\n    "number": 77,', scaffold)
-        # ScaffoldTests reads the state file only at this path. At another path, the run finds no file and starts each stage.
+        # ScaffoldTests reads the state file only at .pipeline/*/pipeline-state.json.
+        # At another path, the run finds no file and starts each stage.
         self.assertIn("fixture_write .pipeline/822/pipeline-state.json <<FP_EOF\n", scaffold)
         # A stage that is not in completed runs again, unless the request skips it.
         self.assertIn("--skip=simplifier,plan-artifact ", self.cases["fp-e2-merge"].prompt_body)
