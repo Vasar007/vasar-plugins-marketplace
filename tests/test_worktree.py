@@ -582,6 +582,32 @@ class RemoveTests(WorktreeCase):
         self.assertIn("REFUSED: the script cannot read the folder Notes/sub, so it cannot look for a git repository "
                       "in it. Look at it first", out)
 
+    def test_bare_repository_in_an_ignored_folder_is_refused(self):
+        mirror = self.path() / "Notes" / "mirror.git"
+        run(["git", "init", "-q", "--bare", mirror], check=True)
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("remove", REF, *extra, code=3)
+                self.assertIn("REFUSED: the folder Notes/mirror.git is a git repository or a worktree inside this "
+                              "worktree. Move it out first", out)
+        self.assertTrue((mirror / "HEAD").is_file())
+
+    @unittest.skipUnless(os.name == "nt", "a junction exists only on Windows")
+    def test_junction_in_an_ignored_folder_is_not_walked(self):
+        run(["git", "init", "-q", self.tmp / "outside" / "deep" / "inner"], check=True)
+        link = self.path() / "Notes" / "linked"
+        link.parent.mkdir(parents=True, exist_ok=True)
+        run(["cmd", "/c", "mklink", "/J", link, self.tmp / "outside"], check=True)
+        self.assertIn("RESULT: READY", self.script("remove", REF))
+
+    @unittest.skipUnless(os.name == "nt", "a junction exists only on Windows")
+    def test_junction_that_a_rule_ignores_is_not_walked(self):
+        run(["git", "init", "-q", self.tmp / "outside" / "inner"], check=True)
+        with open(self.repo / ".git" / "info" / "exclude", "a", encoding="utf-8") as handle:
+            handle.write("linked/\n")
+        run(["cmd", "/c", "mklink", "/J", self.path() / "linked", self.tmp / "outside"], check=True)
+        self.assertIn("RESULT: READY", self.script("remove", REF))
+
     def test_worktree_that_holds_another_worktree_is_refused(self):
         nested = self.path() / "Notes" / "wt"  # The repository ignores Notes/, so git status does not show it.
         self.git("worktree", "add", "-q", "-b", "feature/nested", str(nested), "main")
@@ -590,6 +616,7 @@ class RemoveTests(WorktreeCase):
             with self.subTest(apply=bool(extra)):
                 out = self.script("remove", REF, *extra, code=3)
                 self.assertIn(f"REFUSED: the worktree {nested} is inside this worktree. Remove it first", out)
+                self.assertNotIn("is a git repository or a worktree inside", out)
         self.assertEqual((nested / "draft.txt").read_bytes(), b"draft\n")
         self.git("worktree", "remove", "--force", str(nested))
         self.assertIn("RESULT: REMOVED", self.script("remove", REF, "--apply"))

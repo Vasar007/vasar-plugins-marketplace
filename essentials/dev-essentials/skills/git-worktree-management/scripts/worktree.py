@@ -12,8 +12,8 @@ Subcommands:
       1. Check the branch name, the path, and the ignore rule for .claude/worktrees/. If no rule ignores
          the folder, refuse, or with --add-exclude add the line ".claude/worktrees/" to the local file
          info/exclude of git. Git does not track that file. It also refuses a rule of a .gitignore file
-         that starts with "!", a name that differs from a local branch only in case on a file system
-         with no case, and a path inside another worktree.
+         that starts with "!", a name with a part that differs from a part of a local branch only in
+         case on a file system with no case, and a path inside another worktree.
       2. Pick the case. B: the local branch exists. C: only origin has the branch. A: a new branch from
          origin/<base>, and origin must have that base. Without --base, the base is the branch of
          origin/HEAD.
@@ -28,11 +28,11 @@ Subcommands:
       Without --apply, print the plan and change nothing. With --apply, run "git worktree remove <path>".
       It refuses a folder that git does not list, a locked worktree, a worktree with a change or an
       untracked file, a tracked file with the flag skip-worktree or assume-unchanged, another worktree
-      inside this one, a git repository inside it (the script looks for a .git entry in each ignored
-      folder, and refuses a folder that it cannot read), a detached HEAD whose commits no branch, tag,
-      or remote branch holds, and a run from a folder inside the worktree. It never passes --force. The
-      removal also deletes the ignored files of the worktree, and an IGNORED line names each one first.
-      The branch and its commits stay.
+      inside this one, a git repository inside it (the script looks for a .git entry or a bare
+      repository in each ignored folder, and refuses a folder that it cannot read), a detached HEAD
+      whose commits no branch, tag, or remote branch holds, and a run from a folder inside the worktree.
+      It never passes --force. The removal also deletes the ignored files of the worktree, and an IGNORED
+      line names each one first. The branch and its commits stay.
   prune [--apply]
       Without --apply, print the entries that "git worktree prune" removes and change nothing. With
       --apply, run it. It refuses if an entry is outside .claude/worktrees/, or if the detached HEAD of an
@@ -66,6 +66,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path, PurePath
@@ -475,10 +476,11 @@ def hidden_files(path):
 
 
 def inner_git_entries(path, folders):
-    """Look in each ignored folder for an entry named .git, at any depth, with no link followed.
+    """Look in each ignored folder for a .git entry or a bare repository, at any depth.
 
-    git clean skips a nested worktree whose registration is gone, so git does not report it. Return the
-    folders that hold a .git entry, and the folders that the walk could not read. Both are relative to path.
+    The walk does not go into a symbolic link or a junction, and it skips a listed folder that is one. git
+    status does not look into an ignored folder, so it does not report a repository there. Return the
+    folders that hold a repository, and the folders that the walk could not read. Both are relative to path.
     """
     found, unread = [], []
 
@@ -488,11 +490,24 @@ def inner_git_entries(path, folders):
     def cannot_read(error):
         unread.append(relative(error.filename or path))
 
+    def is_link(name):
+        # os.walk follows a Windows junction, so skip each link and each junction here.
+        try:
+            info = os.lstat(name)
+        except OSError:
+            return False
+        junction = getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", -1)  # Only Windows has this tag.
+        return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == junction
+
     for folder in folders:
+        if is_link(os.path.join(str(path), folder.rstrip("/"))):
+            continue
         for top, dirs, files in os.walk(os.path.join(str(path), folder), onerror=cannot_read):
-            if ".git" in dirs or ".git" in files:
+            # A bare repository or a separate git folder has no .git entry, but it has HEAD, objects, and refs.
+            if ".git" in dirs or ".git" in files or ("HEAD" in files and {"objects", "refs"} <= set(dirs)):
                 found.append(relative(top))
                 dirs.clear()
+            dirs[:] = [name for name in dirs if not is_link(os.path.join(top, name))]
     return found, unread
 
 
@@ -542,13 +557,8 @@ def remove(repo, args):
                             "git update-index --no-skip-worktree --no-assume-unchanged <file>")
         ignored = [entry[3:] for entry in changes(path, "--ignored=matching") if entry.startswith("!! ")]
         emit_all("IGNORED", ignored)
-        skip = "Would skip repository "
-        cleaned = git(path, "clean", "-n", "-d", "-x").splitlines()
-        nested = [line[len(skip):] for line in cleaned if line.startswith(skip)]
-        known = listed_inside | {norm(path / folder) for folder in nested}
         found, unread = inner_git_entries(path, [entry for entry in ignored if entry.endswith("/")])
-        nested += [folder for folder in found if norm(path / folder) not in known]
-        for folder in [folder for folder in nested if norm(path / folder) not in listed_inside][:MAX_PATHS]:
+        for folder in [folder for folder in found if norm(path / folder) not in listed_inside][:MAX_PATHS]:
             refusals.append(f"the folder {show(folder)} is a git repository or a worktree inside this worktree. "
                             "Move it out first")
         for folder in unread[:MAX_PATHS]:
