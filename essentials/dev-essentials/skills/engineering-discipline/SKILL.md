@@ -40,7 +40,7 @@ Why: defaults that an AI picks are wrong in most cases. Example: a refactor repl
 How to apply:
 
 - An A-or-B decision that nothing in front of you names is the trigger. Stop, write the question, and ask.
-- A workflow that approves its own plan by default does not change this rule. If the auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user. One exception: the user runs the workflow with `--autonomous`. Then choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each such decision in the final report for the user to review.
+- A workflow that approves its own plan by default does not change this rule. If the auto-approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Else the decision stays a question for the user. One exception: the user runs the workflow in the full mode. Then choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each such decision in the final report for the user to review.
 - A test that you reframe until it passes is the most common violation of this rule. It looks like progress, but it almost never is.
 - "Implicit by convention" is not a citation. If a convention drives the decision, point to the file or the skill that documents the convention. If you cannot, treat the decision as undocumented and ask.
 

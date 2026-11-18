@@ -12,18 +12,16 @@ Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/`.
 
 The script `scripts/worktree.py` of this skill does the fixed git steps: the path rule, the ignore check, `git worktree add` in its three cases, the bootstrap, `git worktree remove`, and `git worktree prune`. You keep each step that needs a judgment, a question to the user, or a GitHub MCP tool. The script needs Python 3.8 or later and git 2.31 or later. On Windows, run it in the Bash tool (Git Bash). It asks for no input, and it refuses each path outside `.claude/worktrees/`.
 
-To get the approval prompts of Workflow A, write `--interactive` in the request. To also remove the approval prompts of Workflows C and D, write `--autonomous` in the request.
-
 ---
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Workflow A Step 3: create | Announce the path and the branch, and continue | Approval prompt | Same as default |
-| Workflow A Step 4: path not gitignored | Add it to `info/exclude`, and say so | Ask | Same as default |
+| Workflow A Step 3: create | Announce the path and the branch, and continue | Approval prompt | Same as partial |
+| Workflow A Step 4: path not gitignored | Add it to `info/exclude`, and say so | Ask | Same as partial |
 | Workflow C Step 2: remove one worktree | Ask for a yes | Same | Show the path, and continue |
 | Workflow D Step 3: remove the merged worktrees | Ask for a yes | Same | Show the list, and continue |
 | Workflow D Step 2 item 4: unknown PR status | Ask | Same | Keep the worktree, and report it |
@@ -31,16 +29,6 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Recreate-If-Missing: an orphan stub folder | List its contents, and ask for a yes before the deletion | Same | Do not delete it, and list it in the final report |
 
 Pipeline mode skips the Workflow A Step 3 prompt in every mode.
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: a branch with unmerged commits, or a worktree with uncommitted changes. List such an action in the final report instead.
 
 ## Workflow A: Creating a New Worktree
 
@@ -51,9 +39,9 @@ These rules apply in every mode:
 You need:
 
 - The full branch ref (for example `feature/tasks/1370383-foo`). It can include any prefix segment. Do not flatten it, and do not drop a segment.
-- A short description. You need it only with `--interactive`, for your approval prompt. The path comes only from the branch ref.
+- A short description. You need it only in the interactive mode, for your approval prompt. The path comes only from the branch ref.
 
-If the user did not give the branch ref, stop and ask. With `--interactive`, also ask for the description:
+If the user did not give the branch ref, stop and ask. In the interactive mode, also ask for the description:
 
 > To create a worktree I need:
 >
@@ -76,11 +64,11 @@ Copy the branch ref as it is, with its slashes. Do not flatten it. The script bu
 
 Example: the branch `feature/tasks/1370383-terminate-reservation` gives the path `.claude/worktrees/feature/tasks/1370383-terminate-reservation`.
 
-**Without `--interactive` (default):** announce the settings below in one status line, then continue to Step 4.
+**Outside the interactive mode (the default):** announce the settings below in one status line, then continue to Step 4.
 
 **Pipeline mode (in every mode)**: an orchestrator skill (for example `dev-essentials:feature-pipeline`) can announce the resolved path and branch. It can also state that the user authorized creation by starting the pipeline. In that case, Step 3 is done. Skip the prompt and continue to Step 4. The orchestrator is the approval gate in this case.
 
-**With `--interactive`, stop and show an approval prompt before you create the worktree.** First run the plan form. It prints the `PATH`, `CASE`, and `BASE` lines, and it changes nothing. If no caller named a base branch, leave out `--base`:
+**In the interactive mode, stop and show an approval prompt before you create the worktree.** First run the plan form. It prints the `PATH`, `CASE`, and `BASE` lines, and it changes nothing. If no caller named a base branch, leave out `--base`:
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --plan
@@ -102,7 +90,7 @@ Wait for an explicit yes. Do not continue without it.
 
 The script checks the ignore rule with `git check-ignore`. Its `IGNORE` line names the rule that ignores the folder, or says that no rule does.
 
-If the path is not gitignored: without `--interactive`, pass `--add-exclude` in Step 5. The script then adds the line `.claude/worktrees/` to the local exclude file `info/exclude` of the common git folder, and prints an `EXCLUDE` line. Git does not track that file. Tell the user in one line. With `--interactive`, tell the user:
+If the path is not gitignored: outside the interactive mode, pass `--add-exclude` in Step 5. The script then adds the line `.claude/worktrees/` to the local exclude file `info/exclude` of the common git folder, and prints an `EXCLUDE` line. Git does not track that file. Tell the user in one line. In the interactive mode, tell the user:
 
 > `.claude/worktrees/` is not gitignored in this repo. Worktrees placed here will appear in `git status`. Do you want me to add `.claude/worktrees/` to `.gitignore` before continuing?
 
@@ -207,7 +195,7 @@ Run the plan form of the removal. The branch ref is the path below `.claude/work
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref>
 ```
 
-Show the `PATH` line, the `BRANCH` line, and each `IGNORED` line. The removal deletes the ignored files that the `IGNORED` lines name. Ask for explicit yes. With `--autonomous`, show them and continue without the question. If the plan ends with `RESULT: REFUSED`, nothing changed. Tell the user each `REFUSED` line. For changes in the worktree, see "Error Handling".
+Show the `PATH` line, the `BRANCH` line, and each `IGNORED` line. The removal deletes the ignored files that the `IGNORED` lines name. Ask for explicit yes. In the full mode, show them and continue without the question. If the plan ends with `RESULT: REFUSED`, nothing changed. Tell the user each `REFUSED` line. For changes in the worktree, see "Error Handling".
 
 ### Step 3: Remove
 
@@ -275,7 +263,7 @@ For each secondary worktree (path contains `.claude/worktrees/`), derive its bra
 
 3. **Apply the merged filter**. If the PR status that you read does not say that the PR is merged, the worktree is not eligible for removal. Any other status (open, draft, closed without a merge, or no PR found) means that you must not remove the worktree automatically.
 
-4. **If discovery fails or is ambiguous**, **stop and ask the user** about that specific worktree: its PR status, or whether to remove it. Examples: MCP is not available, several PRs come back for the same source branch, or no PR comes back but the branch looks active. Do not guess or silently skip. With `--autonomous`, do not stop: keep that worktree, and name it in the final report.
+4. **If discovery fails or is ambiguous**, **stop and ask the user** about that specific worktree: its PR status, or whether to remove it. Examples: MCP is not available, several PRs come back for the same source branch, or no PR comes back but the branch looks active. Do not guess or silently skip. In the full mode, do not stop: keep that worktree, and name it in the final report.
 
 Worktrees with open or undiscoverable PRs must not be removed.
 
@@ -293,7 +281,7 @@ The main worktree will be preserved.
 Proceed with removing the 1 eligible worktree? (yes/no)
 ```
 
-Without `--autonomous`, **stop and wait for an explicit yes.** With `--autonomous`, show the list and continue.
+Outside the full mode, **stop and wait for an explicit yes.** In the full mode, show the list and continue.
 
 ### Step 4: Remove each eligible worktree
 
@@ -324,7 +312,7 @@ You can remove a worktree in two cases. First, the PR is merged, by the rule of 
 
 The worktree can be missing despite the lifecycle rule, for example after a manual removal, an IDE prune, or `git worktree prune`. If the branch has an active PR, recreate the worktree before you do any work.
 
-**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Run the removal of the script first, as the block below shows. It removes an entry that git lists but whose folder is missing, with no `--force`. If the script refuses with `no worktree is at this path`, git lists no entry and no folder is there. Nothing is left to remove, so go on to the recreation. If the script refuses with `git does not list this folder as a worktree`, the folder is an unregistered orphan stub. List its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. With `--autonomous`, do not delete such a folder. List it in the final report.
+**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Run the removal of the script first, as the block below shows. It removes an entry that git lists but whose folder is missing, with no `--force`. If the script refuses with `no worktree is at this path`, git lists no entry and no folder is there. Nothing is left to remove, so go on to the recreation. If the script refuses with `git does not list this folder as a worktree`, the folder is an unregistered orphan stub. List its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. In the full mode, do not delete such a folder. List it in the final report.
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
@@ -344,12 +332,12 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Cannot remove main worktree:** The main repo worktree cannot be removed with this skill. Only secondary worktrees under `.claude/worktrees/` can be removed.
 
-**Uncommitted changes in worktree:** The script refuses the removal, and a `CHANGED` line names each change. Ask the user to commit or stash first. With `--autonomous`, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
+**Uncommitted changes in worktree:** The script refuses the removal, and a `CHANGED` line names each change. Ask the user to commit or stash first. In the full mode, keep that worktree, and name it in the final report. Do not suggest `--force` removal without an explicit warning that uncommitted changes will be lost.
 
-**Hidden changes in worktree:** The script prints a `HIDDEN` line for each tracked file that has the flag skip-worktree or assume-unchanged. Git does not report a change of such a file. The removal deletes the change. Ask the user to look at each file, to save the change, and to clear the flag. With `--autonomous`, keep that worktree, and name it in the final report.
+**Hidden changes in worktree:** The script prints a `HIDDEN` line for each tracked file that has the flag skip-worktree or assume-unchanged. Git does not report a change of such a file. The removal deletes the change. Ask the user to look at each file, to save the change, and to clear the flag. In the full mode, keep that worktree, and name it in the final report.
 
-**Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. With `--autonomous`, keep that worktree, and name it in the final report.
+**Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. In the full mode, keep that worktree, and name it in the final report.
 
-**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. With `--autonomous`, keep the outer worktree, and name the folder in the final report.
+**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. In the full mode, keep the outer worktree, and name the folder in the final report.
 
 **Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.

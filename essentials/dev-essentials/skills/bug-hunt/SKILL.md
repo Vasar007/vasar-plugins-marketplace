@@ -9,7 +9,7 @@ when_to_use: >-
   Use it for "bug hunt", "find new bugs in this project", or "audit the codebase
   for bugs". Do not use it to review one diff or one pull request. Use
   review-loop for that.
-argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--interactive] [--autonomous]"
+argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--base-from=local|remote] [--report-dir=<path>] [--report-file=<name>] [--github=<owner/repo>] [--known=<file>...] [--bug-label=<label>] [--context=<file>] [--role=<text>] [--name=<project>] [--areas=N] [--split-threshold=N] [--experiments=yes|no] [--stop-after=<points>] [--resume-at=<HH:MM,...>] [--start-at=<HH:MM>] [--hunter-model=<model>] [--hunter-effort=<level>] [--verifier-model=<model>] [--verifier-effort=<level>] [--auditor-model=<model>] [--auditor-effort=<level>] [--mode interactive|partial|full]"
 ---
 
 # Bug hunt
@@ -38,26 +38,16 @@ agent output (rule 3), and all text follows plain English (rule 5).
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Step 0 and rule 8: the meta-plan and the run format | Continue, unless the user objects | Wait for the OK | Same as default |
-| Step 0 item 1 in [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md): the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as default |
-| Rule 7: Dispatches of Fable (or the strongest model) in the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as default |
+| Step 0 and rule 8: the meta-plan and the run format | Continue, unless the user objects | Wait for the OK | Same as partial |
+| Step 0 item 1 in [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md): the GitHub repository from the remote | Take it, and mark it in the Scope section | Ask | Same as partial |
+| Rule 7: Dispatches of Fable (or the strongest model) in the meta-plan | The meta-plan approves them | The OK of the user approves them | Same as partial |
 | Step 6: cleanup | Delete only the paths that this run made, with no stop | Same | Same |
 
 The run never commits, pushes, or writes to GitHub.
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
 
 ## Rules for the whole run
 
@@ -118,7 +108,7 @@ the report with the Edit tool, not with a script that rewrites the file.
 ### 7. Models, effort, and dispatch
 
 - Use the models and effort levels of the approved meta-plan. The user's explicit choice of a model or an effort level always wins.
-- Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts, is never dispatched silently. The step-0 meta-plan names each dispatch of it and its effort level. With `--interactive`, the OK of the user approves them, and without that OK you do not dispatch it. Without `--interactive`, the meta-plan approves them, because that model is the documented default of this skill for the hunter.
+- Fable, or the strongest model that the `model` parameter of the `Agent` tool accepts, is never dispatched silently. The step-0 meta-plan names each dispatch of it and its effort level. In the interactive mode, the OK of the user approves them, and without that OK you do not dispatch it. Outside the interactive mode, the meta-plan approves them, because that model is the documented default of this skill for the hunter.
 - Pass `model` and `effort` on every dispatch of the plugin agents `dev-essentials:bug-hunter`, `dev-essentials:bug-verifier`, and `dev-essentials:bug-report-auditor`. Their agent files default to Opus.
 - Dispatch the hunter, verifier, and auditor only with their plugin `subagent_type`, because their briefs do not carry the read-only rules. If that type is not available, stop the run and report it under "Blocked on me".
 - Every dispatch is a single unnamed `Agent` call: no `name` and no `team_name`. A restore still uses `SendMessage` with the recorded agent ID.

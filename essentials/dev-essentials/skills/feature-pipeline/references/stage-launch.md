@@ -88,7 +88,7 @@ The review stage writes no file. It runs no git command that changes state. The 
 
 A final reply of Stage 1 or Stage 2 can start with the line `QUESTIONS:`. Then do the steps of "Stage questions" instead of the steps below.
 
-Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work ("Autonomy" in `SKILL.md`): ask the user in every mode, then run the stage again or stop.
+Read the final reply of each stage before the output check. A stage can report a stop, a blocker, or an escalation. Examples are a blocked `implementation`, earlier test failures, and `[Ignore]` tests for implementation bugs. If it does, do not add the stage to `completed`. Handle it as a question that blocks the work (hard stop 6 of `dev-essentials:work-modes`): ask the user in every mode, then run the stage again or stop.
 
 If the final reply of a commit-capable stage names a path of `startChanges` that the stage edited, note the path. Use the noted paths at Step 9 (`stages/finalization.md`), and name them in the final report of the run. If a resume or a compaction lost these notes, use "unknown".
 
@@ -127,8 +127,8 @@ Before you run `implementation` again for review findings, apply Safeguard 2 of 
 Stages 1 and 2 can end with a final reply that starts with the line `QUESTIONS:`. Such a run writes no file. A subagent has no `AskUserQuestion` tool, so the stage returns its questions to you. Then do these steps:
 
 1. Do not run the output check, and do not update the checkpoint.
-2. Without `--autonomous`, ask the user the questions with `AskUserQuestion`, at most 4 questions in each call.
-3. With `--autonomous`, do not ask. For each question, take the option that the stage recommends. If a question has no recommended option, decide it as "Autonomy" in `SKILL.md` says for a critical decision. List each answer that you picked in the final report under "Decisions for your review". Answer at most 2 rounds of questions in each stage. If the stage returns questions after the second round, stop the run, and report the open questions to the user. This step overrides the rule of "Autonomy" that a question that blocks the work stops the run in every mode.
+2. Outside the full mode, ask the user the questions with `AskUserQuestion`, at most 4 questions in each call.
+3. In the full mode, do not ask. For each question, take the option that the stage recommends. If a question has no recommended option, decide it as `dev-essentials:work-modes` says for a critical decision. List each answer that you picked in the final report under "Decisions for your review". Answer at most 2 rounds of questions in each stage. If the stage returns questions after the second round, stop the run, and report the open questions to the user. This step overrides the hard stop of `dev-essentials:work-modes` for a question that blocks the work.
 4. Launch the stage again. Its prompt gets a `<clarifications>` block with each question and its answer. Include the questions and answers of the earlier rounds of the same stage.
 
 ## Output Validation

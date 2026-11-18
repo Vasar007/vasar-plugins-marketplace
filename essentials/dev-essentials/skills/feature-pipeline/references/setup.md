@@ -85,7 +85,7 @@ If the MCP server cannot give the required capabilities, stop at once. If the MC
 
 With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no branch, runs no Pre-build command, and writes no file. Sub-steps 6, 7, 10, 11, and 12 say what to do instead. Sub-step 15 reports the result.
 
-1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). Take the task as "Task input" says. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, `--autonomous`, and `--merge`.
+1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). Take the task as "Task input" says. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, and `--mode`.
 2. Resolve the project context with the three sources above (explicit file, then `CLAUDE.md`, then questions to the user). Make sure that every required field has a value. Then resolve the task as "Task input" says, and record `taskSource`: `provider` or `request`.
 3. Only for a task ID: look at the MCP tools with the prefix from the project context. Pick the methods that give the required provider capabilities.
 4. Only for a task ID: fetch the task details and the task comments through the MCP server.
@@ -99,8 +99,8 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
    - If `git -C "{WORKTREE_PATH}" branch --show-current` prints nothing, the HEAD is detached, and the push of Step 9 fails later.
    - If the HEAD is detached, do not commit on it. The same holds for the default branch and for the base branch of the project context. In these three cases, do one of these steps:
      - With `--dry-run`, report the result, and switch nothing.
-     - Else, with `--autonomous`, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it. If that branch already exists, run `git -C "{WORKTREE_PATH}" switch -C <branch-name>` when `git -C "{WORKTREE_PATH}" rev-list HEAD..<branch-name>` prints nothing. The branch then has no commit that is not on HEAD, so the reset loses no commit. Else stop, and report it.
-     - Else (the default mode and `--interactive`), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
+     - Else, in the full mode, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it. If that branch already exists, run `git -C "{WORKTREE_PATH}" switch -C <branch-name>` when `git -C "{WORKTREE_PATH}" rev-list HEAD..<branch-name>` prints nothing. The branch then has no commit that is not on HEAD, so the reset loses no commit. Else stop, and report it.
+     - Else (the partial and the interactive modes), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
    - If the HEAD is on another branch, use the current branch as it is. Do not create or switch branches.
    - Log: "Running in-place on branch `<current-branch>`".
    - Skip the worktree creation, the branch fetch, and the copy of `settings.local.json`.

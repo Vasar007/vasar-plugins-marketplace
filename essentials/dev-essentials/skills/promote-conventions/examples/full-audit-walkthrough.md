@@ -29,7 +29,7 @@ audit-personal-conventions --scope=all --projects=auto --marketplace=. --target-
 After the triage, the user starts the promotion:
 
 ```text
-promote-conventions --rounds=2 --interactive
+promote-conventions --rounds=2 --mode interactive
 ```
 
 ---
@@ -175,7 +175,7 @@ reject: 2
 
 Note: #2 was rejected, because the max-attempts default goes into the description of #1 and does not stand alone. #4 and #10 were deferred until the "needs your call" question of section 7 gets an answer. #13 was deferred explicitly. A dedicated `redact-auth-tokens` skill needs its own authoring pass, not a rushed fold-in next to the retry-backoff skill. Every other item that the reply does not name (#5, #6, #9, #12) is deferred by default. In practice, A and B items stay alone for good, because a later run shows them again only after new corroboration appears.
 
-Item #2 was rejected out of the retry-policy cluster, so the shape of the new skill narrows to #1 + #3. This run has `--interactive`, so before authoring, the run showed the smaller shape and got a new yes: "a 2-rule skill covering backoff-with-jitter and retry logging".
+Item #2 was rejected out of the retry-policy cluster, so the shape of the new skill narrows to #1 + #3. This run is in the interactive mode, so before authoring, the run showed the smaller shape and got a new yes: "a 2-rule skill covering backoff-with-jitter and retry logging".
 
 ---
 
@@ -203,7 +203,7 @@ The review-round commit (see Phase 7) follows once review completes.
 
 ## Phase 7 — Review loop
 
-`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2 --interactive`, run on the two authored or edited files. The range is a two-dot range from the `<pre-authoring-sha>` of Phase 6, not a branch-base `main...HEAD` diff. The call adds `--interactive`, because this run has it (Phase 7). The configured review-loop defaults of this session applied, because this session had them. Round 1: 1 Medium finding (a missing anti-pattern example in Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
+`dev-essentials:review-loop target=diff a1b2c3d..HEAD --rounds=2 --mode interactive`, run on the two authored or edited files. The range is a two-dot range from the `<pre-authoring-sha>` of Phase 6, not a branch-base `main...HEAD` diff. The call adds `--mode interactive`, because this run is in that mode (Phase 7). The configured review-loop defaults of this session applied, because this session had them. Round 1: 1 Medium finding (a missing anti-pattern example in Rule 2). Fixed. Round 2: clean. Stop verdict: `stop-clean`.
 
 Commit:
 
@@ -378,9 +378,9 @@ Manual TODOs:
 
 | Gate | Default taken | Saved to |
 | --- | --- | --- |
-| none | not applicable, because the run was not autonomous | not applicable |
+| none | not applicable, because the run was in the interactive mode | not applicable |
 
-## Actions taken under --autonomous
+## Actions taken in the full mode
 
 - none
 

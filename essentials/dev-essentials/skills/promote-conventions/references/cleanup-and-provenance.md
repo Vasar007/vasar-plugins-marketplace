@@ -22,7 +22,7 @@ Phase 9 of `SKILL.md` reads this file. It holds, in this order: the matrix of su
 
 Phase 9 of `SKILL.md` gives the risk order of 9a to 9c. 9d sits between 9a and 9b. Like 9a, it touches only the non-repo configuration of the user. But a deletion is harder to undo than a stub of a memory file. So its opt-in path adds three gates before it removes anything (see 9d below).
 
-With `--autonomous`, every gate and every question in this file passes without a stop. The precondition tests still run. See SKILL.md Phase 9.
+In the full mode, every gate and every question in this file passes without a stop. The precondition tests still run. See SKILL.md Phase 9.
 
 ---
 
@@ -159,7 +159,7 @@ Process the repos one after the other, in ascending order of absolute path. The 
 
    Fetch the resolved branch. If the fetch fails (for example, no network or no configured remote), **stop and ask the user**. Do not fall back in silence to a stale local `<default-branch>` ref.
 2. **Branch name**. `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>` (see `--branch-prefix` in the Arguments table of `SKILL.md`). Every repo of this run gets the same branch name. The prefix `chores/` fits better than `researches/`, because this is routine maintenance in the product repo of someone else, not exploratory work.
-3. **Worktree creation**. If the target marketplace has its own worktree-management skill, delegate to it. In this marketplace, that skill is `dev-essentials:git-worktree-management`, with its pipeline mode. The `--cross-repo` flag and the 9c.3 sequencing gate already count as the approval, so the worktree skill needs no second question. Tell the worktree skill that `.gitignore` of repo B is off limits. If `.claude/worktrees/` is not ignored, use the local exclude file of repo B without a question, even with `--interactive`. Its path is `$(git -C <repo-B-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`, so the line goes into repo B and not into the calling repo. If the target marketplace has no such skill, create the worktree directly with `git worktree add`, with the same path convention (`<repo-root>/.claude/worktrees/<branch>/`). Note the degraded path explicitly in the report.
+3. **Worktree creation**. If the target marketplace has its own worktree-management skill, delegate to it. In this marketplace, that skill is `dev-essentials:git-worktree-management`, with its pipeline mode. The `--cross-repo` flag and the 9c.3 sequencing gate already count as the approval, so the worktree skill needs no second question. Tell the worktree skill that `.gitignore` of repo B is off limits. If `.claude/worktrees/` is not ignored, use the local exclude file of repo B without a question, even in the interactive mode. Its path is `$(git -C <repo-B-root> rev-parse --path-format=absolute --git-common-dir)/info/exclude`, so the line goes into repo B and not into the calling repo. If the target marketplace has no such skill, create the worktree directly with `git worktree add`, with the same path convention (`<repo-root>/.claude/worktrees/<branch>/`). Note the degraded path explicitly in the report.
 4. **Surgical edit**. Remove the promoted section. Insert or extend the pointer with the 9c.5 template below. Touch nothing else. Before the commit, run `git status --porcelain`. It must show exactly the target file or files.
 5. **Commit**. One commit for each repo. Stage with an explicit `git add <path>`, never with `-A` or `.`. The commit message names the target marketplace, the plugin, the skill, and the version. Take the marketplace name from the resolved `--marketplace` value. Never hardcode it:
 
@@ -172,7 +172,7 @@ Process the repos one after the other, in ascending order of absolute path. The 
 
 6. **Push gate**. See 9c.8.
 7. **PR creation**. Find the host from `git config --get remote.origin.url`. For a GitHub remote, take the first option that applies:
-   1. The GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo. Name that source in the report, as the exception of Rule 1 allows. With `--interactive`, show both values in the push gate of 9c.8. Then the `yes` of the user also approves them. If an MCP call fails because of a wrong parameter, fix the call as Rule 5 says. Do not go to option 2.
+   1. The GitHub MCP tools are available: create the PR with `mcp__plugin_github_github__create_pull_request`. Follow `dev-essentials:github-mcp-conventions`. Pass `owner` and `repo` on every call (Rule 2). Take them from the `origin` URL of the target repo. Name that source in the report, as the exception of Rule 1 allows. In the interactive mode, show both values in the push gate of 9c.8. Then the `yes` of the user also approves them. If an MCP call fails because of a wrong parameter, fix the call as Rule 5 says. Do not go to option 2.
    2. The GitHub MCP tools are not available, and `gh auth status` succeeds: create the PR with `gh pr create --repo <owner>/<repo> --base <default-branch> --head <branch> --title "<title>" --body-file <file>`. If the MCP tools are missing from the session, count them as not available. Do the same after an MCP call fails with a connection error or an authentication error. Take `owner` and `repo` as in option 1, and the default branch from step 1. Write the body to a temporary file outside the repo. Report the PR URL that `gh` prints. In the report, say that the PR came from `gh`. Give the reason: the MCP tools were missing, or the error of the MCP call. This is a named exception to Rule 5 of `dev-essentials:github-mcp-conventions`. It holds only for this step. Use no `gh` command other than `gh auth status` and `gh pr create` in this skill.
    3. Neither is available, or `gh` fails: use the manual path below. In the report, say that the GitHub MCP tools and an authenticated `gh` were both unusable.
 
@@ -288,7 +288,7 @@ List each superseded personal file in the "Manual TODOs" list of the Phase 10 re
 ```markdown
 - `<claude-root>/commands/<name>.md` — superseded by `<plugin>:<entity>`. Suggested action: delete
   (its entire content is now covered by the promoted entity), or edit to reference it instead.
-  Resume by running `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --interactive`,
+  Resume by running `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --mode interactive`,
   and approve the F item at Phase 5 — once the
   marketplace PR merges, if `<plugin>:<entity>` was promoted this run; immediately, if
   `<plugin>:<entity>` was already shipped.
@@ -297,7 +297,7 @@ List each superseded personal file in the "Manual TODOs" list of the Phase 10 re
 This default deletes and edits nothing. The two routes recover in different ways:
 
 - A deferral **promoted or E-fixed in this run** becomes reachable after the marketplace PR merges. A later run then classifies the file F-stale, because the entity is already shipped. The file then takes the F-stale branch of the same three gates below.
-- An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Run `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --interactive`, and approve the F item at Phase 5.
+- An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Run `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --mode interactive`, and approve the F item at Phase 5.
 
 ### Partially superseded wrapper
 

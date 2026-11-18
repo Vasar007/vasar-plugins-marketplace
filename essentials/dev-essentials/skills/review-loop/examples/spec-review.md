@@ -29,10 +29,10 @@ The example shows how a spec review differs from a code review. There is no buil
 ## Invocation
 
 ```text
-/review-loop target=spec openspec/changes/add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --interactive
+/review-loop target=spec openspec/changes/add-tenant-quotas/proposal.md --rounds=1 --reviewer=audit-team --skip=medium,low,nit --mode interactive
 ```
 
-Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`, `--fixer=general-purpose` (the default), and `--skip=medium,low,nit` (explicit, because the default is `none`). `--interactive` is set, so that this example shows the stop at the triage.
+Resolved parameters: `target=spec <path>`, `--rounds=1`, `--reviewer=audit-team`, `--fixer=general-purpose` (the default), and `--skip=medium,low,nit` (explicit, because the default is `none`). The mode is interactive, so that this example shows the stop at the triage.
 
 ---
 

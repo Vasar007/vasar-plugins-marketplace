@@ -6,4 +6,4 @@ max_turns: 200
 timeout_seconds: 3600
 ---
 
-Use the dev-essentials research-implement-review-report skill on the plan file `notes/Plans/retry-and-timeout-plan.md`. The arguments are `--base=main --branch-prefix=eval --rounds=1 --commit-mode=single --autonomous`. The notes folder of this repository is `notes/`.
+Use the dev-essentials research-implement-review-report skill on the plan file `notes/Plans/retry-and-timeout-plan.md`. The arguments are `--base=main --branch-prefix=eval --rounds=1 --commit-mode=single --mode full`. The notes folder of this repository is `notes/`.

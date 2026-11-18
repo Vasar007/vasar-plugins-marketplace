@@ -25,7 +25,7 @@ The feature branch `feature/<username>/tasks/1234567-add-pagination` is 5 commit
 **Invocation:**
 
 ```text
-/review-loop target=branch --rounds=2 --reviewer=dual --base=main --skip=medium,low,nit --interactive
+/review-loop target=branch --rounds=2 --reviewer=dual --base=main --skip=medium,low,nit --mode interactive
 ```
 
 ---
@@ -92,7 +92,7 @@ The 5 findings after the merge:
 
 ## Phase 4 — Triage
 
-`--interactive` is set, so the skill prints the triage in chat and waits for the acknowledgment:
+The mode is interactive, so the skill prints the triage in chat and waits for the acknowledgment:
 
 ```text
 Round 1 findings:

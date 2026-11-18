@@ -14,7 +14,7 @@ The section "Model selection" of `SKILL.md` holds the model matrix and its two r
 ## The model of the orchestrating session
 
 - Run the orchestrating session on Opus or Sonnet, never on Haiku, because it makes the decisions of the workflow. If the session runs on Haiku, say so to the user before the first dispatch. Suggest a new session on Sonnet or Opus, for example with `claude --model sonnet`.
-- On a Sonnet session, give each critical decision that the workflow makes without the user to a short Opus subagent. An example is a run with `--autonomous`. `dev-essentials:engineering-discipline` Rule 2 defines a critical decision. The brief holds the options, the plan, and the facts from the code. The subagent returns its choice and the reason.
+- On a Sonnet session, give each critical decision that the workflow makes without the user to a short Opus subagent. An example is a run in the full mode. `dev-essentials:engineering-discipline` Rule 2 defines a critical decision. The brief holds the options, the plan, and the facts from the code. The subagent returns its choice and the reason.
 
 ## Plan → execute split
 

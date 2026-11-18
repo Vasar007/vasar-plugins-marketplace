@@ -1,7 +1,7 @@
 ---
 name: research-implement-review-report
 description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. Needs no spec change (unlike opsx-implement), and does not stop before the review (unlike implement).
-argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--interactive] [--autonomous]
+argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--mode interactive|partial|full]
 ---
 
 # Research → Implement → Review-Loop → Report
@@ -37,38 +37,24 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed to `dev-essentials:review-loop` as `--rounds`. |
 | `--context=<path>` | auto | A research or handoff file to load, instead of fresh research or in addition to it. The resolution is the same as for the `--context` of `dev-essentials:implement`. **Repeatable**: the run reads every path, and no path replaces another. |
 | `--skip-research` | off | Skip Phase 1, for example to resume a session whose plan exists and is current. Phase 2 still loads each `--context`. |
-| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
-| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
+| `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Phase 0 step 2: branch pattern for an issue of unknown type | Use the `tasks` pattern, and say so | Ask | Same as default |
-| Phase 1 step 4: plan sign-off | Report the plan path, and start Phase 2 | Wait for sign-off | Same as default |
+| Phase 0 step 2: branch pattern for an issue of unknown type | Use the `tasks` pattern, and say so | Ask | Same as partial |
+| Phase 1 step 4: plan sign-off | Report the plan path, and start Phase 2 | Wait for sign-off | Same as partial |
 | Phase 1 step 4: open decisions of the plan | Ask them all in one message | Ask | Decide, and write each one into the plan |
 | Commit cadence, single mode: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
 | Commit cadence, single mode: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
-| Phase 3: review loop | Its gates, with the flag of this run | Same | Same |
-| Phase 4: `save-context` cleanup | Runs with no flag. It asks before it moves a file of an older session | Same | Same |
-| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as default |
+| Phase 3: review loop | Its gates, with the mode of this run | Same | Same |
+| Phase 4: `save-context` cleanup of a file of an older session or a stale branch | Ask once, after the report | Same | Keep the files and the branches, and list them in the report |
+| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 This skill has no push step.
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
-- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
-- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
-- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
 
 ## Subagent dispatch
 
@@ -76,11 +62,11 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 
 - **Models**: fact gathering in a Phase 1 subagent uses Haiku, through the agent type `dev-essentials:fact-gatherer`. A Phase 1 question that needs judgment goes to a researcher on Opus. Planning (Phase 1) and review (Phase 3) use Opus. An implementer subagent of Phase 2 and a fixer subagent of Phase 3 use Sonnet. If a task that the plan gives as an explicit 1-2-3 edit list goes to a subagent, that subagent uses Haiku. A code search that a test of Rule 1 sends to a subagent uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the phases below name only the role. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - **Effort**: pass `effort` on each dispatch of a general agent type. A Phase 1 researcher and the planner: `high`. The planner of a large plan, or of a change on the critical path: `xhigh`. A Phase 2 implementer: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and of a fixer subagent of Phase 3 with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels. All follow Rule 5 of `dev-essentials:subagent-orchestration`.
-- Fable is for exceptional cases only. Never dispatch it silently on your own initiative. With `--interactive`, ask the user before each Fable dispatch, also where the model matrix allows Fable. Without `--interactive`, follow "Autonomy".
+- Fable is for exceptional cases only. Never dispatch it silently on your own initiative. In the interactive mode, ask the user before each Fable dispatch, also where the model matrix allows Fable. In the other modes, follow "Autonomy".
 
 ## Guardrails
 
-- **Do not improvise**. If the right resolution of a research finding, a plan ambiguity, or a review finding is unclear, ask the user. Do not guess. With `--autonomous`, decide as "Autonomy" says.
+- **Do not improvise**. If the right resolution of a research finding, a plan ambiguity, or a review finding is unclear, ask the user. Do not guess. In the full mode, decide as `dev-essentials:work-modes` says.
 - **Own every red signal** from the build and test steps of Phase 2 and Phase 3 in this session (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates this run.
 - **Never push without the explicit go-ahead of the user, each time.**
 
@@ -106,7 +92,7 @@ Keep a task list with one entry for each phase (Research & Plan, Implement, Revi
    | GitHub issue, any other type/label `<type>` | `<branch-prefix>/<type>s/<ID>-<short-description>` | `jdoe/features/123456-add-x` |
    | Research (no issue at all) | `<branch-prefix>/researches/<short-description>` | `jdoe/researches/investigate-y` |
 
-   `<ID>` is the issue number from $ARGUMENTS. For example, `Issue 123456` or `#123456` gives `123456`. The research pattern has no `<ID>` part. `<short-description>` is a short kebab-case slug of the task description. If the type or label of the issue is unknown and the task is not research, do this. Without `--interactive`, use the `tasks` pattern, and say so in the final report. With `--interactive`, ask the user which pattern applies, and do not guess.
+   `<ID>` is the issue number from $ARGUMENTS. For example, `Issue 123456` or `#123456` gives `123456`. The research pattern has no `<ID>` part. `<short-description>` is a short kebab-case slug of the task description. If the type or label of the issue is unknown and the task is not research, do this. Outside the interactive mode, use the `tasks` pattern, and say so in the final report. In the interactive mode, ask the user which pattern applies, and do not guess.
 3. If $ARGUMENTS asks for a worktree (for example "Create a worktree ... from ..."), create it with `dev-essentials:git-worktree-management`, from the base branch of step 1 and with the branch name of step 2. Else create the branch, or check it out, as `dev-essentials:git-sync` says.
 4. Run every later phase in that branch or worktree.
 
@@ -120,9 +106,9 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 2. Find the facts by the tests of Rule 1 of `dev-essentials:subagent-orchestration`. For a small task, look them up in the main loop. For questions that are independent and that each read many files, dispatch fact gatherers in parallel. Give each one narrow question, in one message (Rule 3). The research works from the real code, not from assumptions. The research finds out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. For example: one question on the production code path, one on the test coverage, and one on the callers of a method that the task changes. Each brief holds the question, the absolute worktree path, and the scope. It also holds the context of the user verbatim and each rule of the project `CLAUDE.md` that matters. A question that needs judgment goes whole to a researcher, not to a fact gatherer. Examples: an ambiguous change of behavior, a permission, a public contract, or a choice between designs. The researcher gets the same brief, and returns its findings with `path:line` evidence.
 3. When the facts of step 2 are in, dispatch a planner. Paste each report, or the facts that the main loop found, verbatim into its brief. The planner reads only the lines that a critical decision of the plan depends on, and does no new broad research. If it needs a location that no report holds, it can dispatch `dev-essentials:code-locator` for it. It turns the research into a concrete plan: ordered tasks or phases, and for each task the exact paths, the anchors (`path:line` and method names), and the key signatures. The plan also lists the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).
 4. Save the plan to the location that the `CLAUDE.md` of the repo documents. Else save it to `Plans/<slug>-plan.md` in the notes folder. This is the plan sign-off gate:
-   - Without `--interactive`, report the plan path in one status line, and start Phase 2.
-   - With `--interactive`, **show the plan to the user for sign-off before Phase 2 starts**. Resolve here each open question that the user raises.
-   - If the plan lists open decisions, handle them before Phase 2. Without `--autonomous`, ask them all in one message, and start Phase 2 after the answers. With `--autonomous`, decide them as "Autonomy" says, write each decision into the plan, and start Phase 2.
+   - Outside the interactive mode, report the plan path in one status line, and start Phase 2.
+   - In the interactive mode, **show the plan to the user for sign-off before Phase 2 starts**. Resolve here each open question that the user raises.
+   - If the plan lists open decisions, handle them before Phase 2. Outside the full mode, ask them all in one message, and start Phase 2 after the answers. In the full mode, decide them as `dev-essentials:work-modes` says, write each decision into the plan, and start Phase 2.
 
    Do not carry ambiguity into Phase 2.
 
@@ -142,22 +128,22 @@ If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that p
 Invoke `dev-essentials:review-loop` on the output of Phase 2: `target=branch` in the common case, or `target=diff <range>` to review only part of the work. Do not reimplement its mechanics. Its section "Default configuration" is what this skill wants, so override nothing. Pass only these options of this skill:
 
 - `--rounds=<N>` from the `--rounds` of this skill (default `2`).
-- `--interactive` or `--autonomous`, for a run that has it.
+- The `--mode` of this run.
 
 Record each finding that the user and the orchestrating session agree to defer, as deferred in the Phase 4 report. "Commit cadence" says how the commits of each loop round fit the commit mode.
 
 ### Phase 4 — Report
 
-Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Results/<slug>-report.md` in the notes folder as its path argument. Pass no flag. This also applies to `--plan` and to the mode flag of this run. It is an exception to the last rule of "Autonomy". `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its default mode, also in a run with `--autonomous`. It runs its Step 5 cleanup and prints no continuation prompt. Before it moves a file of an older session to the backup, its Step 5 asks the user. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
+Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Results/<slug>-report.md` in the notes folder as its path argument. Pass no flag. This also applies to `--plan` and to the `--mode` of this run. It is an exception to the rule of `dev-essentials:work-modes` that passes the mode on. `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its partial mode, also in a run in the full mode. It runs its Step 5 cleanup and prints no continuation prompt. Outside the full mode, its Step 5 asks the user before it moves a file of an older session to the backup. In the full mode, tell the cleanup to keep each file of an older session and each stale branch. It lists them as kept, and it asks no question. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
 
 - **Overview**: what this run covered, the branch, the worktree, and the date.
 - **What Was Done**: for each phase, the research findings, the plan, each implemented task, and the outcome of each review round.
-- **Key Decisions**: a table with the reasons. It holds each decision that Phase 1 or Phase 3 asked the user to sign off. It also holds each gate that this run passed without a stop. With `--autonomous`, also list each decision that the run made for the user under "Decisions for your review".
+- **Key Decisions**: a table with the reasons. It holds each decision that Phase 1 or Phase 3 asked the user to sign off. It also holds each gate that this run passed without a stop. In the full mode, also list each decision that the run made for the user under "Decisions for your review".
 - **Issues Found**: what this run found but did not cover, candidate follow-up issues, and each process problem to report to the user.
 - **Key File Paths**: grouped by category (core, tests, configuration, docs).
 - **What's Next**: the remaining work. Say whether the branch is pushed or has a PR. The default is no, because a push needs the explicit go-ahead of the user.
 
-Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Step 5 can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
+Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Outside the full mode, Step 5 can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. In the full mode, ask no question, and list the kept files and branches in the report. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
 ## Commit cadence
 
@@ -180,11 +166,11 @@ Tell the user where the report is. Give the same one-line summary as `save-conte
 
   - Take the SHAs from the commits that this run made, never from `git log` of the range. A list from the log hides the commit of someone else.
   - The script makes each check before the squash. It refuses a commit of the range that is not a `--commit`, and a merge commit. It also refuses a changed tracked file, a staged plan file, a detached HEAD, and a plan file in the commits. A refusal changes nothing.
-  - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, `MISSING`, `CHANGED`, and `PLAN FILE` lines. Never squash across the commit of someone else. With `--autonomous`, do not stop. Skip the squash, keep the commits as they are, and report the refusal.
+  - `RESULT: REFUSED` (exit code 3) is the squash-base safety stop. **Stop and ask the user**, and show the `REFUSED`, `COMMIT`, `MISSING`, `CHANGED`, and `PLAN FILE` lines. Never squash across the commit of someone else. In the full mode, do not stop. Skip the squash, keep the commits as they are, and report the refusal.
   - `RESULT: ONE COMMIT`: the run made only one commit, so it needs no squash. The script makes no commit. Say so.
   - `RESULT: SQUASHED`: the `NEW` line gives the SHA of the run commit. Report each `WARN` line.
   - `RESULT: FAILED` (exit code 1), for example after a failed commit hook: the script put the old HEAD back. Show the `FAILED` and `OUTPUT` lines to the user, and ask. If the `RESULT` line says `NOT RESTORED`, first run `git -C "<work tree>" reset --soft <OLD HEAD>`. After a `RESTORED` line, this command changes nothing.
   - An `OLD HEAD` line and no `RESULT` line: an error, for example Ctrl+C, stopped the script after it moved the branch. This output has no `OUTPUT` line, so show the last line of the error output to the user, and ask. After a `RESTORED HEAD` line, the old HEAD is back and nothing needs an undo. With no `RESTORED HEAD` line, the restore failed: show the output to the user, and give the command `git -C "<work tree>" reset --soft <OLD HEAD>`.
-  - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. If the output has no `RESULT` line and no `OLD HEAD` line, do the same. With `--autonomous`, report the problem instead.
+  - If `python3` is not available, or the script exits with code 2, keep the commits as they are, and ask the user. If the output has no `RESULT` line and no `OLD HEAD` line, do the same. In the full mode, report the problem instead.
 - **The `stop-blocked` exception**. If the review loop ends with `stop-blocked`, do not squash. Keep the round commits as they are, so that the caller can inspect the red state, and report the verdict.
 - A caller can run this mode on a branch where others can also commit, for example a shared PR branch. That caller must make sure that nothing else commits between `RUN_BASE_SHA` and the squash. This skill does not coordinate it for the caller.

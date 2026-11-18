@@ -27,8 +27,8 @@ These examples show the parameters of `references/parameters.md` in use.
 # Bundle all fixes from this cycle under a single commit; push still needs your explicit go-ahead
 /process-pr-comments pr=42 owner=my-org repo=my-repo squash
 
-# Full autonomy: implement, decide, reply, push. A new issue that the search did not find, and a few named questions, still ask (a human still reviews and approves the PR before merge)
-/process-pr-comments pr=42 owner=my-org repo=my-repo autonomous
+# The full mode: implement, decide, reply, create the new issues, push. Two named questions still ask (a human still reviews and approves the PR before merge)
+/process-pr-comments pr=42 owner=my-org repo=my-repo --mode full
 
 # Route one Medium/Large [ToFix] thread through research-implement-review-report instead of drafting it
 /process-pr-comments pr=42 owner=my-org repo=my-repo deep-fix=T#2201458823
@@ -36,8 +36,8 @@ These examples show the parameters of `references/parameters.md` in use.
 # Same, with a 3-round review loop instead of the default 2
 /process-pr-comments pr=42 owner=my-org repo=my-repo deep-fix=2201458823 deep-fix-rounds=3
 
-# Old default: draft and wait for larger fixes
-/process-pr-comments pr=42 owner=my-org repo=my-repo interactive
+# The interactive mode: draft and wait for larger fixes
+/process-pr-comments pr=42 owner=my-org repo=my-repo --mode interactive
 
 # Already wrapped in /loop — outer harness controls cadence
 /loop 15m /process-pr-comments pr=42 owner=my-org repo=my-repo

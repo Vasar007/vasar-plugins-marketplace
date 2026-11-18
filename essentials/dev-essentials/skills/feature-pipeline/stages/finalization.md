@@ -1,6 +1,6 @@
 # Stage 9: Finalization + PR
 
-The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is the absolute path `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or `--autonomous` did.
+The master agent does these steps itself, in the main session, at Step 9 of `SKILL.md`. No subagent runs them. The project root is the absolute path `{WORKTREE_PATH}`, and the main session can run in another folder. So run every git command as `git -C "{WORKTREE_PATH}" ...`. Run every other shell command (build, test, lint, push, and PR) as `cd "{WORKTREE_PATH}" && <command>`. Human Approve #2 approved the commit, the push, and the PR, or the full mode did.
 
 ## Contents
 

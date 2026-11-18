@@ -76,7 +76,7 @@ An unresolved `blocking: true` finding forces `stop-max-rounds`, at any severity
 
 ## Triage-presentation format (Phase 4)
 
-After all reviewer output is in, and before any fix, print the `Round <N> findings` block of Phase 4 in `SKILL.md`. That template is the canonical one, including the `(<Y> blocking)` count of each severity. Wait for the acknowledgment of the user only with `--interactive`.
+After all reviewer output is in, and before any fix, print the `Round <N> findings` block of Phase 4 in `SKILL.md`. That template is the canonical one, including the `(<Y> blocking)` count of each severity. Wait for the acknowledgment of the user only in the interactive mode.
 
 A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row whose severity is not in `--skip` shows `(will fix)`. With `--skip none`, no row shows a `--skip` deferral. If Phase 4 deferred a finding of that severity on its merits, the row shows `(will fix <F>; deferred <D> on merit)`.
 

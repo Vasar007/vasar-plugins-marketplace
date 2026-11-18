@@ -21,7 +21,7 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 
 **The user's explicit choice outranks this matrix**. Use the model that the user names for a task, also against the matrix and against the model defaults of any skill. Leave a model that the user set for the session as it is. Never "correct" it back to a default.
 
-**Fable is never dispatched silently.** The matrix can make Fable eligible on the agent's own initiative, as opposed to the user naming it. In that case, ask the user before dispatching it, every time. Exception: a workflow that runs without stops at its decision gates (its default autonomy) does not ask. It uses Opus, and names the Fable-eligible step in its final report. A Fable default that the workflow itself documents is not the agent's own initiative.
+**Fable is never dispatched silently.** The matrix can make Fable eligible on the agent's own initiative, as opposed to the user naming it. In that case, ask the user before dispatching it, every time. Exception: a workflow outside the interactive mode of `dev-essentials:work-modes` does not ask. It uses Opus, and names the Fable-eligible step in its final report. A Fable default that the workflow itself documents is not the agent's own initiative.
 
 The rest of this section is in `references/model-selection.md`. It covers how a model gets applied, the model of the orchestrating session, the plan → execute split, and the Haiku scope. Read it before the first dispatch that sets a `model`.
 
@@ -216,7 +216,7 @@ Do not accept "the failure was there before" as a reason to ignore a red build o
 
 ## Run format agreement
 
-A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate with `--interactive`, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
+A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate in the interactive mode, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
 
 Check scope: the skill names its concrete checks for tiers 1 and 2 of `Trust but verify`. Tier 3 still applies.
 
@@ -230,7 +230,7 @@ Reporting:
 Agreement:
 
 - State the run format once, at the start of the run. Do not add a new stop only for this.
-- With `--interactive`, the user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Else the user agrees by not objecting. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
+- In the interactive mode, the user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Else the user agrees by not objecting. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
 - The user can change the format at any time. Follow the change.
 - When the format is agreed, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the `Trust but verify` section above. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
 

@@ -91,7 +91,7 @@ Do these checks on each write, and on each load at a resume:
 - If `spec` runs again, also remove `plan-artifact` from `completed`, so that the HTML artifact renders again from the new spec.
 - If `requirements` or `spec` runs again, clear both task-comment checkpoints, so that both comments post fresh summaries.
 - If a code, test, docs, review, or security stage runs again after Task Comment #2 was posted, clear only the checkpoint of Task Comment #2.
-- If `taskSource` is `provider`, and Step 3 or a later stage will run, and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the default mode, Human Approve #2 posts it instead.
+- If `taskSource` is `provider`, and Step 3 or a later stage will run, and `taskComments.analysisPostedAt` is missing, post Task Comment #1 first. In the partial mode, Human Approve #2 posts it instead.
 - If Step 9 will run and `taskComments.preFinalizationPostedAt` is missing, show Human Approve #2 first, also on a resume. If Human Approve #2 already passed in this session, do not show it again. "Autonomy" in `SKILL.md` says how the gate works in the mode of this invocation. A request run never sets this field, so a resumed request run always shows the gate again.
 - If `taskSource` is `provider`, and Step 9 will run, and `taskComments.preFinalizationPostedAt` is missing, post Task Comment #2 after Human Approve #2. If the field is set, the gate and the comment are done, so run neither.
 - If Step 4 or a later stage will run and `buildGate.result` is not `pass` or `pass-after-retry`, run the Build Gate first.
