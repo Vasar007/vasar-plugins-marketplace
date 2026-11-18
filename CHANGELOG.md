@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.27.3 in release [4.25.3] - 2026-11-18
+
+If `git worktree add` fails, for example in the sandbox of an eval run, this release lets `failure_check.py` of `review-loop` reach a verdict. The script then writes the files of the commit into the same temporary folder and runs the command there (issue #232).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: if `git worktree add` fails and makes no folder, the script exports the commit with `git read-tree` and `git checkout-index` into that folder. A temporary index file keeps the index of the repository as it is. The export gets the same line ends, links, and modes as a worktree, and no git data. A new line `EXPORTED <path>` names the export, and the RUN line says `in temporary export`. If the export fails too, the RUN line holds both errors, and the verdict is `OTHER`. The verdict rules do not change. The help text says that a command that reads git data can give another result in an export. The `CHANGED:` lines still list the stub files of the sandbox, because they do not change a verdict (issue #232).
+
+### Changed in dev-essentials
+
+- `evals/review-loop/rl-failing-build`: the route grader `route-verdict-same-at-parent`. It reads the trace for the line `VERDICT: SAME-AT-PARENT` and the start of the `REASON:` line after it (issue #232).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the new class `ExportTests` blocks `git worktree add` with a plain file in the place of `.git/worktrees`. Its tests run the script with two exports, and with the main worktree and one export. They also run it with an export that fails, and with the stub files of the sandbox. One test compares an export with a worktree for two links, an executable file, CRLF line ends, and a path with a space. New tests of `UnitTests` and `SignalTests` cover the remove step and a stop by a signal during a run in an export (issue #232).
+- `tests/test_eval_cases.py`: the new class `FailureCheckExportGraderTests` tests the new grader on right and wrong traces (issue #232).
+- `docs/testing.md`: the tests of `failure_check.py` reach one more Windows path, an export with links and CRLF line ends (issue #232).
+
 ## dev-essentials 3.27.0 in release [4.25.0] - 2026-11-18
 
 This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262). The release also holds the new maintainer tools in the folder `tools/`, which no plugin ships (issue #255).
@@ -2079,7 +2097,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...HEAD
+[4.25.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.25.3
 [4.25.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...v4.24.0
 [4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
