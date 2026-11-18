@@ -21,6 +21,18 @@ This release makes the final report of `/audit-team` keep the heading and the la
 
 - `tests/test_eval_cases.py`: the new test `test_step_3_keeps_the_heading_and_the_labels_of_the_form` of `AuditTeamRouteGraderTests` pins the new sentences of Step 3. It also makes sure that they come before the form (issue #259).
 
+## dev-essentials 3.27.1 in release [4.25.1] - 2026-11-18
+
+This release fixes the eval case `os-review-fixes` of `optimize-skill`. Its route grader `route-seed-contents` failed in each run. The auditor brief does not ask for a contents list, and the runs of the case grant no web tool (issue #268).
+
+### Fixed in dev-essentials
+
+- `evals/optimize-skill/os-review-fixes`: the route grader `route-seed-contents` is gone, so the case has four seed graders. That grader looked for a contents list of the long reference file `csv-format.md` in the audit report. The rule for such a list is on the best practice page for skills. The list "What to look for" of the auditor has no item for it. The example audit of the skill keeps that point on purpose. In each of the 7 runs of the first eval, the auditor tried to read that page, and the sandbox refused the request. The scaffold comment and the description of the case now name four seeded issues. The fixture file does not change (issue #268).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `OptimizeSkillCaseTests` pins the four seed graders. If a grader of the case looks for a contents list again, a new test fails (issue #268).
+
 ## dev-essentials 3.27.0 in release [4.25.0] - 2026-11-18
 
 This release adds the flag `--merge` to the workflow `feature-pipeline`. With `--autonomous --merge`, a run goes from the task to the merged pull request with no human step. Without `--merge`, the pipeline does what it did before (issue #262). The release also holds the new maintainer tools in the folder `tools/`, which no plugin ships (issue #255).
@@ -2092,7 +2104,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.2...HEAD
-[4.25.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.25.2
+[4.25.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.1...v4.25.2
+[4.25.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.25.1
 [4.25.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.1...v4.24.0
 [4.23.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.23.0...v4.23.1
