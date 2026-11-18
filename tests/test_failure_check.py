@@ -598,10 +598,30 @@ class ExportTests(FailureCheckCase):
         out = self.check(fix, "echo x > made.txt && chmod 444 made.txt && " + CHECK)
         self.assertEqual((out.count("EXPORTED "), out.count("REMOVED "), out.count("WARN")), (1, 1, 0))
 
+    @unittest.skipUnless(os.name == "nt", "only Windows keeps a read-only link")
+    def test_delete_tree_deletes_a_read_only_link(self):
+        tree = self.tmp / "tree"
+        tree.mkdir()
+        if not can_make_links(tree):
+            self.skipTest("this user cannot make links")
+        target = self.tmp / "target.txt"
+        target.write_text("keep\n")
+        os.chmod(target, stat.S_IREAD)
+        self.addCleanup(os.chmod, target, stat.S_IWRITE)
+        os.symlink(target, tree / "link")
+        os.chmod(tree / "link", stat.S_IREAD, follow_symlinks=False)
+        fc.delete_tree(tree)
+        self.assertFalse(tree.exists(), "the read-only link keeps the folder")
+        self.assertFalse(os.access(target, os.W_OK), "the target becomes writable")
+
     @unittest.skipIf(os.name == "nt", "a read-only folder does not keep a file on Windows")
     def test_delete_keeps_the_mode_of_a_folder_outside_the_run(self):
+        prefix = []
         if os.geteuid() == 0:
-            self.skipTest("root deletes a read-only folder")
+            capsh = shutil.which("capsh")
+            if not capsh:
+                self.skipTest("root deletes a read-only folder")
+            prefix = [capsh, "--drop=cap_dac_override,cap_dac_read_search", "--", "-c", 'exec "$0" "$@"']
         self.write("sub/value.txt", "bad\n")
         fix = self.commit("fix")
         self.write("dirty.txt", "x\n")
@@ -612,8 +632,8 @@ class ExportTests(FailureCheckCase):
         self.addCleanup(os.chmod, outside, 0o755)
         command = f"mkdir cache && ln -s {shlex.quote(outside.as_posix())} cache/data && chmod 555 cache && " + CHECK
         try:
-            out = run([sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command", command, "--cwd",
-                       self.repo / "sub"], env=self.env, timeout=120).stdout
+            out = run(prefix + [sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command", command, "--cwd",
+                                self.repo / "sub"], env=self.env, timeout=120).stdout
         finally:
             run(["chmod", "-R", "u+rwx", self.temp])
         self.assertEqual(oct(stat.S_IMODE(outside.stat().st_mode)), oct(0o755))
