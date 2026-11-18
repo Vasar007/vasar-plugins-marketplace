@@ -59,6 +59,6 @@ The keep-until-merged rule has its main text in the "Lifecycle Rule" section of 
 
 ## 5. Announce the end of the run
 
-If Step 9b left item 3 of Step 4 of `dev-essentials:merge-pr` to this step, do that item first. It deletes the merged local branch.
+If Step 9b merged the PR, or found it merged, first do item 3 of Step 4 of `dev-essentials:merge-pr`. It deletes the merged local branch.
 
 Report the final branch or PR outcome. Say whether the run removed the worktree or kept it on purpose, and why. Say whether the run archived the task logs or left them in place until the PR review ends.

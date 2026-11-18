@@ -446,6 +446,7 @@ class ScaffoldTests(FixtureCase):
             self.check_remote(repo, bare, text)
             self.check_mocked_pull_request(case, bare)
         self.check_pipeline_pull_request(case, repo, branch)
+        self.check_pipeline_state(case, repo, branch)
         self.check_pr_head(case, repo, branch)
         if (repo / "tests").is_dir() and not list(repo.glob("*.sln")):
             self.check_python_tests(case, repo)
@@ -503,6 +504,27 @@ class ScaffoldTests(FixtureCase):
         self.assertEqual(pull["head"]["ref"], branch)
         self.assertEqual(pull["head"]["sha"], self.git(repo, "rev-parse", "HEAD")[1],
                          f"the head SHA in pull/{mock.name} is not the last commit of the scaffold")
+
+    def check_pipeline_state(self, case, repo, branch):
+        """A resume case plants pipeline-state.json. It must be valid JSON with the keys of the schema, and its PR must be the mocked one.
+
+        The run reads this file first. A wrong file stops the resume, or it sends a call that the mock refuses.
+        """
+        states = sorted(repo.glob(".pipeline/*/pipeline-state.json"))
+        if not states:
+            return
+        state = json.loads(states[0].read_text(encoding="utf-8"))
+        protocol = REPO / "essentials/dev-essentials/skills/feature-pipeline/references/checkpoint-protocol.md"
+        schema = json.loads(re.search(r"```json\n(\{\n.*?\n\})\n```", protocol.read_text(encoding="utf-8"), re.DOTALL).group(1))
+        self.assertEqual(sorted(state), sorted(schema))
+        self.assertEqual((state["worktree"], state["noWorktree"]), (branch, True))
+        mocks = case.path / "mocks" / "github"
+        lines, _body = split_frontmatter((mocks / "pull_request_read.md").read_text(encoding="utf-8"))
+        expect = parse_block(lines)["expect"]
+        pull = json.loads((mocks / "fixtures" / "pull" / "get.json").read_text(encoding="utf-8"))
+        self.assertEqual(state["pr"], {"number": pull["number"], "url": pull["html_url"], "owner": expect["owner"], "repo": expect["repo"]})
+        for stage, sha in state["stageStartSha"].items():
+            self.assertEqual(self.git(repo, "cat-file", "-e", sha + "^{commit}")[0], 0, f"stageStartSha of {stage} is no commit")
 
     def check_pr_head(self, case, repo, branch):
         """The head, the owner, and the repo in the expect block of the PR mock must be the values that the project context of the scaffold gives."""

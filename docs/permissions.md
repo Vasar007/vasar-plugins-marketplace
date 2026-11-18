@@ -48,7 +48,7 @@ These rules guard the usual form of a command. They are not a security boundary.
 
 ## A merge of a pull request
 
-No skill of this marketplace merges a pull request on its own. The skill `merge-pr` merges only after you ask for the merge in your own words. The workflow `feature-pipeline` calls it only with the flag `--merge`. Before the merge, it makes sure that the checks of the pull request are green and that the merge state is clean. An `--autonomous` flag alone does not approve a merge. This rule is also only text. To get a prompt before each merge, add an ask rule for the merge tool of the GitHub MCP server:
+No skill of this marketplace merges a pull request on its own. The skill `merge-pr` merges only after you ask for the merge in your own words. The flag `--merge` of the workflow `feature-pipeline` also counts as that request, and the workflow calls the skill only with this flag. Before the merge, the skill makes sure that the checks of the pull request are green and that the merge state is clean. An `--autonomous` flag alone does not approve a merge. This rule is also only text. To get a prompt before each merge, add an ask rule for the merge tool of the GitHub MCP server:
 
 ```json
 {

@@ -195,7 +195,7 @@ Show the user:
 
 If the run skipped `review` or `security-review`, show "skipped" in place of its file. The blocking issues then come only from the review file that exists.
 
-Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)". For a request, ask "Approve finalization (push, PR)? (yes / request changes)". With `--merge`, write "PR, merge" in place of "PR" in the question.
+Then ask this question: "Approve finalization (task comments, push, PR)? (yes / request changes)". For a request, ask "Approve finalization (push, PR)? (yes / request changes)". If the run has `--merge` and the second item of Step 9b holds, write "PR, merge" in place of "PR" in the question.
 
 The anti-bypass clause of Human Approve #1 applies to this gate too, also in the default mode. The same lists of phrases count and do not count.
 
@@ -216,7 +216,7 @@ Run the stage `finalization` yourself, in the main session. Read [stages/finaliz
 
 Add `finalization` to `completed` only after these steps. Put the "Not committed" list of the stage into the final report. Then update the checkpoint, and report the branch or PR status.
 
-If the run created a PR, write its `number`, `url`, `owner`, and `repo` into `pr` of `pipeline-state.json` before Step 10. If it created no PR (a branch-only flow, or no PR command), leave `pr` as `null`.
+If the run created a PR, write its `number`, `url`, `owner`, and `repo` into `pr` of `pipeline-state.json` before the next step. If it created no PR (a branch-only flow, or no PR command), leave `pr` as `null`.
 
 ### Step 9b: Merge (only with `--merge`)
 
