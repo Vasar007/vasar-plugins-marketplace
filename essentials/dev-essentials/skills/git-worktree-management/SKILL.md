@@ -306,7 +306,7 @@ python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref-2> --app
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" prune --apply
 ```
 
-A removal that ends with `RESULT: REFUSED` or `RESULT: FAILED` keeps that worktree. Name it in the report. The prune removes only the git data of a worktree whose folder is gone. If the prune refuses an entry, name the entry in the report, and leave it. The prune refuses an entry outside `.claude/worktrees/`. It also refuses an entry with a detached HEAD whose commits no ref holds.
+A removal that ends with `RESULT: REFUSED` or `RESULT: FAILED` keeps that worktree. Name it in the report. The prune removes only the git data of a worktree whose folder is gone. If the prune refuses an entry, name the entry in the report, and leave it. The prune refuses an entry outside `.claude/worktrees/`. It also refuses an entry with a detached HEAD whose commits no branch, tag, or remote branch holds.
 
 ---
 
@@ -348,8 +348,8 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Hidden changes in worktree:** The script prints a `HIDDEN` line for each tracked file that has the flag skip-worktree or assume-unchanged. Git does not report a change of such a file. The removal deletes the change. Ask the user to look at each file, to save the change, and to clear the flag. With `--autonomous`, keep that worktree, and name it in the final report.
 
-**Commits that no ref holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. With `--autonomous`, keep that worktree, and name it in the final report.
+**Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. With `--autonomous`, keep that worktree, and name it in the final report.
 
-**Another worktree inside the worktree:** The script refuses a worktree that holds another worktree. Tell the user the path of the inner worktree. It can hold work that has no other copy. Ask the user to look at it and to remove it first. With `--autonomous`, keep the outer worktree, and name it in the final report.
+**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. This includes an ignored folder such as `Notes/`. A `REFUSED` line names each such folder. Tell the user the path of the inner folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. With `--autonomous`, keep the outer worktree, and name the folder in the final report.
 
 **Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.

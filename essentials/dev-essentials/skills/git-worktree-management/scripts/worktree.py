@@ -11,9 +11,9 @@ Subcommands:
   create <branch> [--base <branch>] [--add-exclude] [--notes-dir <folder>] [--plan]
       1. Check the branch name, the path, and the ignore rule for .claude/worktrees/. If no rule ignores
          the folder, refuse, or with --add-exclude add the line ".claude/worktrees/" to the local file
-         info/exclude of git. Git does not track that file. It also refuses a rule that starts with "!",
-         a name that differs from a local branch only in case on a file system with no case, and a path
-         inside another worktree.
+         info/exclude of git. Git does not track that file. It also refuses a rule of a .gitignore file
+         that starts with "!", a name that differs from a local branch only in case on a file system
+         with no case, and a path inside another worktree.
       2. Pick the case. B: the local branch exists. C: only origin has the branch. A: a new branch from
          origin/<base>, and origin must have that base. Without --base, the base is the branch of
          origin/HEAD.
@@ -28,14 +28,15 @@ Subcommands:
       Without --apply, print the plan and change nothing. With --apply, run "git worktree remove <path>".
       It refuses a folder that git does not list, a locked worktree, a worktree with a change or an
       untracked file, a tracked file with the flag skip-worktree or assume-unchanged, another worktree
-      inside this one, a detached HEAD whose commits no ref holds, and a run from a folder inside the
-      worktree. It never passes --force. The removal also deletes the ignored files of the worktree, and
-      an IGNORED line names each one first. The branch and its commits stay.
+      inside this one, a git repository inside it (also in an ignored folder), a detached HEAD whose
+      commits no branch, tag, or remote branch holds, and a run from a folder inside the worktree. It
+      never passes --force. The removal also deletes the ignored files of the worktree, and an IGNORED
+      line names each one first. The branch and its commits stay.
   prune [--apply]
       Without --apply, print the entries that "git worktree prune" removes and change nothing. With
       --apply, run it. It refuses if an entry is outside .claude/worktrees/, or if the detached HEAD of an
-      entry has commits that no ref holds. A prune deletes no folder. It removes only the git data of a
-      worktree whose folder is gone.
+      entry has commits that no branch, tag, or remote branch holds. A prune deletes no folder. It removes
+      only the git data of a worktree whose folder is gone.
 
 Each subcommand also takes --repo <folder> (default: the current folder).
 
@@ -116,9 +117,13 @@ def git_result(cwd, *args):
     """Run git with no input and no terminal prompt. Return its exit code, its stdout, and its stderr as one line.
 
     A command that talks to the remote gets REMOTE_SECONDS. After that time, git stops, and the exit code is 124.
+    Git also stops an http transfer that gets no data for that time. The output of git is in English.
     """
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", LC_ALL="C", LANGUAGE="C")
     seconds = REMOTE_SECONDS if args[0] in REMOTE_COMMANDS else None
+    if seconds is not None:
+        # On Windows, the http helper of git holds the pipes, so the timeout alone does not end the wait.
+        args = ("-c", "http.lowSpeedLimit=1", "-c", f"http.lowSpeedTime={seconds}", *args)
     try:
         result = subprocess.run(["git", "-C", str(cwd), *args], stdin=subprocess.DEVNULL, capture_output=True, env=env,
                                 timeout=seconds)
@@ -214,15 +219,16 @@ def check_branch(repo, name, what):
 
 
 def case_twin(repo, ref):
-    """A local branch that differs from ref only in the case of letters, if the file system has no case. Else None."""
+    """The part of a local branch that differs from ref only in case, if the file system has no case. Else None."""
     if git_result(repo.root, "config", "--type=bool", "core.ignorecase")[1].strip() != "true":
         return None
     parts = ref.split("/")
     for name in git(repo.root, "for-each-ref", "--format=%(refname)", "refs/heads").splitlines():
-        for mine, other in zip(parts, name[len("refs/heads/"):].split("/")):
+        branch = name[len("refs/heads/"):]
+        for mine, other in zip(parts, branch.split("/")):
             if mine != other:
                 if mine.casefold() == other.casefold():
-                    return name[len("refs/heads/"):]
+                    return f"the part {other} of the local branch {branch} differs from {mine}"
                 break
     return None
 
@@ -265,6 +271,10 @@ def ignore_rule(repo):
     rule = out.split("\t", 1)[0].strip()
     # With -v, git also names a rule that starts with "!". Such a rule keeps the folder not ignored.
     if git_result(repo.root, "check-ignore", "-q", target)[0] != 0:
+        source = re.match(r"(.*?):\d+:", rule)
+        # A rule of info/exclude or of core.excludesFile loses to the line that --add-exclude adds.
+        if source is not None and (os.path.isabs(source.group(1)) or source.group(1).startswith(".git/")):
+            return None
         raise Refused(f"the rule {show(rule)} keeps {EXCLUDE_LINE} not ignored, and the local exclude file cannot "
                       "change that. Change the rule first")
     return rule
@@ -295,8 +305,8 @@ def plan_create(repo, args):
     emit(f"PATH {show(str(path))}", whole=True)
     twin = case_twin(repo, ref)
     if twin is not None:
-        raise Refused(f"the branch {show(twin)} differs from this name only in the case of letters, and this file "
-                      "system has no case. Use the same letters")
+        raise Refused(f"{show(twin)} only in the case of letters, and this file system has no case. "
+                      "Use the same letters")
     entries = repo.entries()
     if any(norm(entry.path) == norm(path) for entry in entries):
         raise Refused("git already lists a worktree at this path. Use it, or remove it first")
@@ -486,8 +496,10 @@ def remove(repo, args):
     if loose:
         refusals.append(f"the detached HEAD {short(entry.head)} has commits that no branch, tag, or remote branch "
                         f"holds: {loose}. Keep them first: git branch <name> {short(entry.head)}")
+    listed_inside = set()
     for other in repo.entries():
         if inside(other.path, path) and os.path.lexists(str(other.path)):
+            listed_inside.add(norm(other.path))
             refusals.append(f"the worktree {show(str(other.path))} is inside this worktree. Remove it first")
     if not path.is_dir():
         emit("FOLDER missing. git still lists the worktree")
@@ -507,6 +519,12 @@ def remove(repo, args):
                             "git update-index --no-skip-worktree --no-assume-unchanged <file>")
         ignored = [entry[3:] for entry in changes(path, "--ignored=matching") if entry.startswith("!! ")]
         emit_all("IGNORED", ignored)
+        skip = "Would skip repository "
+        cleaned = git(path, "clean", "-n", "-d", "-x").splitlines()
+        nested = [line[len(skip):] for line in cleaned if line.startswith(skip)]
+        for folder in [folder for folder in nested if norm(path / folder) not in listed_inside][:MAX_PATHS]:
+            refusals.append(f"the folder {show(folder)} is a git repository or a worktree inside this worktree. "
+                            "Move it out first")
     for reason in refusals:
         emit(f"REFUSED: {reason}")
     if refusals:
@@ -546,7 +564,7 @@ def prune(repo, args):
     loose = [entry for entry in stale if loose_commits(repo, entry)]
     for entry in loose[:MAX_PATHS]:
         emit(f"REFUSED: the detached HEAD {short(entry.head)} has commits that no branch, tag, or remote branch holds. "
-             f"Keep them first: git branch <name> {short(entry.head)}. The entry is {show(str(entry.path))}")
+             f"Keep them first: git branch <name> {short(entry.head)}. The entry is {show(str(entry.path))}", whole=True)
     if outside or loose:
         emit("RESULT: REFUSED. Nothing changed. Each REFUSED line gives a reason.")
         return 3

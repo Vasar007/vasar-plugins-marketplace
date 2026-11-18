@@ -385,12 +385,24 @@ class CreateTests(WorktreeCase):
     def test_name_that_differs_only_in_case_is_refused_on_a_file_system_with_no_case(self):
         self.git("branch", "feature/one")
         no_case = self.git("config", "--type=bool", "--default", "false", "core.ignorecase") == "true"
-        for name, twin in (("Main", "main"), ("Feature/two", "feature/one")):
+        pairs = (("Main", "the part main of the local branch main differs from Main"),
+                 ("Feature/two", "the part feature of the local branch feature/one differs from Feature"))
+        for name, twin in pairs:
             with self.subTest(name=name):
                 out = self.script("create", name, "--plan", code=3 if no_case else 0)
                 if no_case:
-                    self.assertIn(f"REFUSED: the branch {twin} differs from this name only in the case of letters", out)
+                    self.assertIn(f"REFUSED: {twin} only in the case of letters", out)
         self.assertIn("RESULT: READY", self.script("create", "feature/two", "--plan"))
+        self.assertIn("RESULT: READY", self.script("create", "fix/One", "--plan"))
+
+    def test_rule_with_a_bang_in_the_global_file_is_fixed_by_the_exclude_line(self):
+        self.write(".gitignore", "Notes/\n")
+        self.commit_all("no rule")
+        self.git("push", "-q", "origin", "main")
+        (self.tmp / "global-ignore").write_bytes(b".*\n!.claude/\n!.claude/**\n")
+        self.git("config", "core.excludesFile", (self.tmp / "global-ignore").as_posix())
+        self.assertIn("RESULT: CREATED", self.script("create", REF, "--add-exclude"))
+        self.assertEqual(self.git("status", "--porcelain"), "")
 
     def test_base_that_origin_does_not_have_is_refused(self):
         self.write(".gitignore", "Notes/\n")
@@ -443,6 +455,7 @@ class CreateTests(WorktreeCase):
             for command, seconds in (("ls-remote", wt.REMOTE_SECONDS), ("fetch", wt.REMOTE_SECONDS), ("status", None)):
                 wt.git_result(self.repo, command)
                 self.assertEqual(fake.call_args.kwargs["timeout"], seconds, command)
+                self.assertEqual(f"http.lowSpeedTime={wt.REMOTE_SECONDS}" in fake.call_args.args[0], seconds is not None)
             fake.side_effect = subprocess.TimeoutExpired(["git"], wt.REMOTE_SECONDS)
             self.assertEqual(wt.git_result(self.repo, "fetch", "origin"),
                              (124, "", f"no answer after {wt.REMOTE_SECONDS} seconds"))
@@ -499,6 +512,42 @@ class RemoveTests(WorktreeCase):
         out = self.script("remove", REF, "--apply")
         self.ends_with(out, f"RESULT: REMOVED. The worktree had no branch. Another ref holds its commit {work[:12]}.")
         self.assertEqual(self.git("rev-parse", "keep"), work)
+
+    def test_detached_head_that_a_tag_or_a_remote_branch_holds_is_not_refused(self):
+        self.git("checkout", "-q", "--detach", cwd=self.path())
+        self.write("src/d.txt", "d\n", cwd=self.path())
+        work = self.commit_all("work on no branch", cwd=self.path())
+        for ref in ("refs/tags/keep", "refs/remotes/origin/keep"):
+            with self.subTest(ref=ref):
+                self.git("update-ref", ref, work)
+                self.assertIn("RESULT: READY", self.script("remove", REF))
+                self.git("update-ref", "-d", ref)
+
+    def test_stale_entry_of_a_nested_worktree_does_not_block_the_removal(self):
+        nested = self.path() / "Notes" / "wt"
+        self.git("worktree", "add", "-q", "-b", "feature/nested", str(nested), "main")
+        shutil.rmtree(nested)
+        self.assertIn("RESULT: REMOVED", self.script("remove", REF, "--apply"))
+
+    def test_git_repository_in_an_ignored_folder_is_refused(self):
+        notes = self.path() / "Notes"  # The repository ignores Notes/, so git status does not show it.
+        clone = notes / "clone"
+        run(["git", "clone", "-q", self.repo.parent / "repo-origin.git", clone], check=True)
+        self.git("-c", "user.name=T", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "only copy",
+                 cwd=clone)
+        work = self.git("rev-parse", "HEAD", cwd=clone)
+        other = self.make_repo(self.tmp / "other")
+        self.git("worktree", "add", "-q", "-b", "other/work", str(notes / "other"), "main", cwd=other)
+        self.write("draft.txt", "draft\n", cwd=notes / "other")
+        for extra in ((), ("--apply",)):
+            with self.subTest(apply=bool(extra)):
+                out = self.script("remove", REF, *extra, code=3)
+                for name in ("clone", "other"):
+                    self.assertIn(f"REFUSED: the folder Notes/{name} is a git repository or a worktree inside this "
+                                  "worktree. Move it out first", out)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=clone), work)
+        self.assertEqual((notes / "other" / "draft.txt").read_bytes(), b"draft\n")
+        self.assertTrue(self.is_listed(self.path()))
 
     def test_worktree_that_holds_another_worktree_is_refused(self):
         nested = self.path() / "Notes" / "wt"  # The repository ignores Notes/, so git status does not show it.
@@ -680,6 +729,11 @@ class PruneTests(WorktreeCase):
                 out = self.script("prune", *extra, code=3)
                 self.assertIn(f"REFUSED: the detached HEAD {work[:12]} has commits that no branch, tag, or remote "
                               f"branch holds. Keep them first: git branch <name> {work[:12]}.", out)
+                self.assertIn(f"The entry is {self.path()}", out)
+        with mock.patch.object(wt, "LINE_CHARS", 100):
+            code, out = self.in_process("prune", "--repo", self.repo)
+        self.assertEqual(code, 3)
+        self.assertIn(f"The entry is {self.path()}\n", out)
         self.assertTrue(self.is_listed(self.path()))
         self.git("branch", "keep", work)
         self.assertIn("RESULT: PRUNED", self.script("prune", "--apply"))
