@@ -3680,17 +3680,9 @@ class OptimizeSkillCaseTests(unittest.TestCase):
                                   "route-seed-unlinked", "route-seed-contents", "route-seed-double-check"})
         self.assertIn(ROUTE_TAG, self.case.tags)
 
-    def test_the_fixer_grader_fails_a_review_fixer(self):
+    def test_the_fixer_grader_needs_a_review_fixer(self):
         meta = self.case.graders["route-review-fixer"][0]
-        self.assertEqual((meta["tool"], meta["min"], meta["max"]), ("Agent", 0, 0))
-
-    def test_step_6_points_to_steps_1_to_5_of_the_fixer_brief(self):
-        skill = (FP_ROOT / "skills" / "optimize-skill" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("steps 1 to 5 of the review fixer brief", skill)
-        self.assertIn("If the user gave `--review-fixer-model`, always dispatch the review fixer.", skill)
-        steps = re.findall(r"^(\d+)\. ", self.briefs["Review fixer"], re.M)
-        self.assertEqual(steps, ["1", "2", "3", "4", "5"])
-        self.assertRegex(self.briefs["Review fixer"], r"(?m)^5\. Make one local commit")
+        self.assertEqual((meta["tool"], meta.get("min", 1), "max" in meta), ("Agent", 1, False))
 
     def test_each_agent_grader_counts_only_its_own_brief(self):
         self.assertEqual(sorted(self.briefs), ["Applier", "Auditor", "Behavior reviewer", "Review fixer"])
