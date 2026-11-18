@@ -130,5 +130,43 @@ class FixerChoiceTextTests(unittest.TestCase):
         self.assertIn("Fixer: <orchestrator | subagent | none>", read("references/output-formats.md"))
 
 
+AUDIT_TEAM = REPO / "essentials/dev-essentials/commands/audit-team.md"
+
+
+class AuditTeamCountTextTests(unittest.TestCase):
+    """The adapter keeps the five-role team of /audit-team, and the command keeps the meaning of an explicit count."""
+
+    def test_the_adapter_always_passes_a_count_of_5(self):
+        line = section(read("references/audit-team-adapter.md"), "- `[agent-count]`", "\n")
+        self.assertIn("the value from `--audit-team-args`, or else `5`.", line)
+        self.assertIn("This skill keeps the five-role team.", line)
+        self.assertIn("must produce `/audit-team <path> 5 opus`", line)
+        self.assertNotIn("the default of `/audit-team`", line)
+
+    def test_the_spec_example_passes_the_fixed_count(self):
+        example = read("examples/spec-review.md")
+        self.assertIn("gets the fixed value `5` of the adapter", example)
+        self.assertIn("`/audit-team openspec/changes/add-tenant-quotas/proposal.md 5 opus`", example)
+        self.assertNotIn("the default of `/audit-team`", example)
+
+    def test_the_command_keeps_the_team_route_for_an_explicit_count(self):
+        command = AUDIT_TEAM.read_text(encoding="utf-8")
+        self.assertIn("With a count, the run takes the team route. With no count, it takes the two-view route.", command)
+        self.assertIn("one agent for each of the first N roles, in the order of the table.", command)
+        self.assertIn("If the second argument is not a whole number and names a model, it is the model, and the run "
+                      "takes the two-view route. For any other second argument, or for a third argument after a "
+                      "model, use **AskUserQuestion**.", command)
+        self.assertNotIn("default: 5", command)
+
+    def test_the_command_starts_one_agent_on_the_two_view_route(self):
+        command = AUDIT_TEAM.read_text(encoding="utf-8")
+        self.assertIn("Then one fresh agent takes the devil's advocate role.", command)
+        self.assertIn("2. Launch one role agent for the devil's advocate role.", command)
+        self.assertIn("Fill its prompt with the summary of Step 1 only, and put none of your findings in it.", command)
+        self.assertIn("If the main session and the agent both flag a finding, the finding has consensus.", command)
+        self.assertIn("The lenses of the main session are one view, so an agreement of two lenses is not consensus.",
+                      command)
+
+
 if __name__ == "__main__":
     unittest.main()

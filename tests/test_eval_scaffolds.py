@@ -57,6 +57,8 @@ EXPECTED_BRANCH = {
     "mp-green-merge": "feature/paging",
     "mp-red-check": "feature/paging",
     "mp-no-merge-word": "feature/paging",
+    "os-review-fixes": "main",
+    "at-seeded-design": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -703,6 +705,41 @@ class DotnetWarmTests(FixtureCase):
                 env = self.warm_environment(f"home-{case.name}")
                 done = run([self.bash, script.as_posix()], env=env, cwd=self.workspace(case.name), timeout=SCAFFOLD_SECONDS)
                 self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+
+class DotnetNodeReuseTests(FixtureCase):
+    """Each dotnet command of dotnet_warm turns off the reuse of MSBuild nodes (issue 250)."""
+
+    FAKE_DOTNET_ARGUMENTS = """#!/usr/bin/env bash
+# A fake dotnet that logs the arguments of each call on one line.
+echo "$*" >>"$FAKE_DOTNET_LOG"
+"""
+
+    def test_every_dotnet_command_of_dotnet_warm_turns_off_node_reuse(self):
+        if shutil.which("flock") is None:
+            tool_missing(self, "flock not found")
+        folder = self.tmp / "bin"
+        folder.mkdir()
+        (folder / "dotnet").write_bytes(self.FAKE_DOTNET_ARGUMENTS.encode("utf-8"))
+        (folder / "dotnet").chmod(0o755)
+        log = self.tmp / "dotnet.log"
+        temp = self.tmp / "temp"
+        temp.mkdir()
+        env = self.environment(skip_dotnet=False)
+        env.update({
+            "TMPDIR": temp.as_posix(),
+            "PATH": f"{folder.as_posix()}{os.pathsep}{env['PATH']}",
+            "EVAL_FIXTURE_DOTNET_CACHE": (self.tmp / "cache").as_posix(),
+            "FAKE_DOTNET_LOG": log.as_posix(),
+        })
+        library = REPO / "essentials" / "dev-essentials" / "evals" / "_lib" / "dotnet-fixture.sh"
+        done = run([self.bash, "-c", f'source "{library.as_posix()}"\ndotnet_warm Fake.sln NUnit@5.0.0'],
+                   env=env, cwd=self.tmp, timeout=SCAFFOLD_SECONDS)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        calls = log.read_text(encoding="utf-8").splitlines()
+        self.assertEqual([call.split()[0] for call in calls], ["restore", "restore", "restore", "build"])
+        self.assertEqual([call for call in calls if "-nodeReuse:false" not in call.split()], [],
+                         "a dotnet command can reuse an MSBuild node of an earlier run")
 
 
 class LibraryTests(FixtureCase):
@@ -1561,6 +1598,217 @@ class RirrSquashGraderTests(FixtureCase):
         self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "A commit on main")
         self.assertFalse(self.passes(workspace))
         self.assertFalse(self.passes(workspace, self.outcome))
+
+
+class OptimizeSkillFixtureTests(FixtureCase):
+    """The fixture of os-review-fixes holds the seeded issues and the lost rule. Its file graders fail on the fixture
+    where they must, pass on a right run with two commits, and fail on a lost rule, a third commit, and a push."""
+
+    CASE = "os-review-fixes"
+    SKILL = "plugin/skills/export-orders/SKILL.md"
+    REFERENCES = "plugin/skills/export-orders/references"
+    AGENT = "plugin/agents/export-checker.md"
+    SIZE_RULE = "Never upload a CSV file that is larger than 50 MB. Split such a file into parts of at most 50 MB first."
+    SAFETY_RULE = "Never delete, move, or change a file in `exports/`."
+    DUPLICATE = "Write each CSV file to a temporary name first, and rename it when the file is complete."
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def scaffold(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, workspace, name):
+        """The verdict of a regex grader on its file, or of a file_exists grader. A path that ends in /** is any file below it."""
+        options = self.case.graders[name][0]
+        if options["type"] == "file_exists":
+            path = options["path"]
+            found = any(p.is_file() for p in (workspace / path[:-3]).rglob("*")) if path.endswith("/**") \
+                else (workspace / path).is_file()
+            return found == options.get("exists", True)
+        file = workspace / options["target"]["path"]
+        if not file.is_file():
+            return False
+        flags = sum(REGEX_FLAGS[flag] for flag in options.get("flags", ""))
+        found = re.search(options["pattern"], file.read_bytes().decode("utf-8"), flags) is not None
+        return not found if options.get("match") == "not_contains" else found
+
+    def scored(self, workspace):
+        """The names of the scored graders that fail."""
+        return {name for name in self.case.graders if not name.startswith("route-") and not self.passes(workspace, name)}
+
+    def read(self, workspace, path):
+        return (workspace / path).read_bytes().decode("utf-8")
+
+    def write(self, workspace, path, text):
+        (workspace / path).write_bytes(text.encode("utf-8"))
+
+    def commit(self, workspace, message, *paths):
+        code, output = self.git(workspace, "commit", "-q", "-m", message, "--", *paths)
+        self.assertEqual(code, 0, output)
+
+    def right_run(self, workspace):
+        """The reports, a step-3 commit that cuts the double-check line, and a step-6 commit that restores the rule."""
+        self.write(workspace, "opt-reports/optimization-audit-export-orders.md", "# Audit\n")
+        self.write(workspace, "opt-reports/optimization-review-export-orders.md", "# Review\n")
+        skill = self.read(workspace, self.SKILL)
+        self.write(workspace, self.SKILL, skill.replace("- Double-check your work before you report to the user.\n", ""))
+        self.commit(workspace, "Optimize export-orders", self.SKILL)
+        skill = self.read(workspace, self.SKILL)
+        anchor = "the count of orders, and the size of the file.\n"
+        self.write(workspace, self.SKILL, skill.replace(anchor, f"{anchor}\n{self.SIZE_RULE}\n"))
+        self.commit(workspace, "Fix U-1", self.SKILL)
+
+    def test_the_fixture_has_the_seeded_issues(self):
+        workspace = self.scaffold()
+        skill = self.read(workspace, self.SKILL)
+        csv_format = self.read(workspace, f"{self.REFERENCES}/csv-format.md")
+        self.assertGreater(len(csv_format.splitlines()), 100)
+        self.assertNotRegex(csv_format, r"(?i)contents")
+        self.assertIn(self.DUPLICATE, skill)
+        self.assertIn(self.DUPLICATE, csv_format)
+        self.assertIn("You MUST dispatch the export-checker agent before the upload.\n", skill)
+        self.assertIn("Double-check your work", skill)
+        self.assertTrue((workspace / self.REFERENCES / "old-retry-notes.md").is_file())
+        self.assertNotIn("old-retry-notes", skill)
+        self.assertIn(self.SAFETY_RULE, self.read(workspace, self.AGENT))
+        self.assertIn('subagent_type: "export-kit:export-checker"', skill)
+        self.assertEqual(self.git(workspace, "check-ignore", "-q", "opt-reports/")[0], 0)
+
+    def test_the_last_fixture_commit_deletes_the_size_rule(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.git(workspace, "log", "-1", "--format=%s")[1], "fixture: shorten the upload step")
+        self.assertIn(self.SIZE_RULE, self.git(workspace, "show", f"HEAD~1:{self.SKILL}")[1])
+        self.assertNotIn("50 MB", self.read(workspace, self.SKILL))
+        prompt = (self.case.path / "prompt.md").read_text(encoding="utf-8")
+        self.assertIn(f'"{self.SIZE_RULE}"', prompt)
+        self.assertIn('"fixture: shorten the upload step"', prompt)
+
+    def test_the_graders_on_the_fixture(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.scored(workspace), {"size-rule-restored", "audit-report-written", "review-report-written"})
+        self.assertFalse(self.passes(workspace, "route-step6-reached"))
+
+    def test_a_right_run_passes_every_scored_grader(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        self.assertEqual(self.scored(workspace), set())
+        self.assertTrue(self.passes(workspace, "route-step6-reached"))
+
+    def test_an_amend_of_the_step_6_commit_still_passes(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        code, output = self.git(workspace, "commit", "-q", "--amend", "-m", "Fix U-1 and R-01")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.scored(workspace), set())
+        self.assertTrue(self.passes(workspace, "route-step6-reached"))
+
+    def test_each_loss_fails_its_grader(self):
+        losses = {
+            "safety-rule-kept": (self.AGENT, self.SAFETY_RULE, "Do not change the exports."),
+            "claude-md-unchanged": ("CLAUDE.md", "- No CHANGELOG.\n", "- No CHANGELOG.\n- Keep each rule in one place.\n"),
+            "size-rule-restored": (self.SKILL, self.SIZE_RULE, "Split a large file first."),
+        }
+        for name, (path, old, new) in losses.items():
+            with self.subTest(grader=name):
+                workspace = self.scaffold()
+                self.right_run(workspace)
+                text = self.read(workspace, path)
+                self.assertIn(old, text)
+                self.write(workspace, path, text.replace(old, new))
+                self.assertEqual(self.scored(workspace), {name})
+                remove_tree(workspace)
+
+    def test_a_third_commit_or_a_push_fails(self):
+        workspace = self.scaffold()
+        self.right_run(workspace)
+        self.write(workspace, "README.md", "# export-kit\n")
+        self.commit(workspace, "A third commit", "README.md")
+        self.assertEqual(self.scored(workspace), {"at-most-two-commits"})
+        code, output = self.git(workspace, "push", "-q", "origin", "main")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.scored(workspace), {"at-most-two-commits", "no-push"})
+
+
+class AuditTeamSeededDesignTests(FixtureCase):
+    """The design of at-seeded-design holds one planted defect for each role, and each defect grader names its defect."""
+
+    CASE = "at-seeded-design"
+    DESIGN = "docs/design/refund-export.md"
+    # Each defect grader, and a text that the grader and the design both hold.
+    DEFECTS = {
+        "found-missing-acceptance": "R3",
+        "found-wrong-assumption": "already retries a failed upload",
+        "found-untestable-step": "the network is stable",
+        "found-name-pattern": "RefundExportManager",
+        "found-contradiction": "7 days",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def setUp(self):
+        super().setUp()
+        self.files = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], self.files)
+        self.design = self.read(self.DESIGN)
+
+    def read(self, path):
+        return (self.files / path).read_bytes().decode("utf-8")
+
+    def section(self, heading):
+        start = self.design.index(f"\n## {heading}\n")
+        end = self.design.find("\n## ", start + 1)
+        return self.design[start:] if end < 0 else self.design[start:end]
+
+    def test_r3_is_the_only_requirement_with_no_acceptance_case(self):
+        requirements = re.findall(r"^- (R\d+): ", self.section("Requirements"), re.MULTILINE)
+        covered = re.findall(r"^- A\d+ \((R\d+)\): ", self.section("Acceptance cases"), re.MULTILINE)
+        self.assertEqual(requirements, ["R1", "R2", "R3", "R4"])
+        self.assertEqual(covered, ["R1", "R2", "R4"])
+
+    def test_the_upload_of_the_storage_client_has_no_retry(self):
+        code = self.read("app/storage_client.py")
+        upload = code[code.index("    def upload("):]
+        self.assertNotRegex(upload, r"\b(?:for|while|retry|retries)\b")
+        self.assertIn("already retries a failed upload", self.section("Components"))
+
+    def test_step_4_waits_for_a_condition_that_the_design_does_not_define(self):
+        self.assertIn("4. If the upload fails", self.section("Steps of the job"))
+        self.assertIn("wait until the network is stable", self.section("Steps of the job"))
+        self.assertEqual(self.design.count("stable"), 1)
+
+    def test_the_new_names_break_the_pattern_of_the_handlers(self):
+        handlers = sorted(path.name for path in (self.files / "app" / "handlers").glob("*_export_handler.py"))
+        self.assertEqual(handlers, ["invoice_export_handler.py", "order_export_handler.py"])
+        for name in handlers:
+            with self.subTest(handler=name):
+                stem = name[:-len("_export_handler.py")]
+                self.assertIn(f"class {stem.capitalize()}ExportHandler:", self.read(f"app/handlers/{name}"))
+        self.assertIn("`app/handlers/<name>_export_handler.py`", self.read("README.md"))
+        self.assertIn("`app/handlers/RefundExporter.py`", self.section("Components"))
+        self.assertIn("`RefundExportManager`", self.section("Components"))
+        self.assertNotIn("RefundExportHandler", self.design)
+
+    def test_retention_and_cleanup_give_two_ages(self):
+        self.assertIn("30 days", self.section("Retention"))
+        self.assertIn("older than 7 days", self.section("Cleanup"))
+
+    def test_each_defect_grader_names_a_text_of_the_design(self):
+        defects = {name for name in self.case.graders if name.startswith("found-")}
+        self.assertEqual(defects, set(self.DEFECTS))
+        for name, text in self.DEFECTS.items():
+            with self.subTest(grader=name):
+                meta, body = self.case.graders[name]
+                self.assertEqual((meta["type"], meta["focus"]), ("llm", "last_message"))
+                self.assertIn(text, body)
+                self.assertIn(text, self.design)
+                self.assertIn("the result is PASS", body)
+                self.assertIn("the result is FAIL", body)
 
 
 if __name__ == "__main__":
