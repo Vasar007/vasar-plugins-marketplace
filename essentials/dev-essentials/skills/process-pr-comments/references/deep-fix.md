@@ -41,7 +41,7 @@ An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles
 5. **Squash window**. No other commit lands on this branch between the recorded `HEAD` and the squash (see "Place in the cycle"). The safety stop of that skill for the squash base can still trip. Then let it stop and report. Do not override it.
 6. **Scope**. The fix stays inside the files and areas that the PR diff already touches, and it addresses only this thread.
 7. **Artifacts**. Never stage or commit the research, plan, or report artifacts of that skill. Never put their paths in the thread reply or the commit message. Pipeline-internal artifacts stay out of anything that ships (`dev-essentials:engineering-discipline` Rule 3).
-8. **No push**. This skill owns the one push of the cycle. `/research-implement-review-report` never pushes without an explicit go-ahead of the user.
+8. **No finish steps**. This skill owns the one push of the cycle. Tell `/research-implement-review-report` not to run its Phase 5 (Finish). When another workflow runs that skill, it skips the phase anyway.
 9. Expect back: the squash SHA, the stop verdict of the review loop, the round count, and the list of deferred findings. The stop verdict is `stop-clean`, `stop-max-rounds`, or `stop-blocked`. On `stop-blocked`, do not squash. Keep the round commits as they are.
 10. The `--mode` of the invocation.
 11. **Review scope**. Run the review loop of that skill with `target=diff <recorded-HEAD>..HEAD`, the range of this arc only, not `target=branch`.

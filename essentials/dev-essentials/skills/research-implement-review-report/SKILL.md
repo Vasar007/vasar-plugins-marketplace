@@ -45,6 +45,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
+| Before Phase 0: the GitHub repository of the pull request | Find it after the answer of the final gate | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When another workflow runs this skill, skip this row |
 | Phase 0 step 2: branch pattern for an issue of unknown type | Use the `tasks` pattern, and say so | Ask | Same as partial |
 | Phase 1 step 4: plan sign-off | Report the plan path, and start Phase 2 | Wait for sign-off | Same as partial |
 | Phase 1 step 4: open decisions of the plan | Ask them all in one message | Ask | Decide, and write each one into the plan |
@@ -52,9 +53,10 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Commit cadence, single mode: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
 | Phase 3: review loop | Its gates, with the mode of this run | Same | Same |
 | Phase 4: `save-context` cleanup of a file of an older session or a stale branch | Ask once, after the report | Same | Keep the files and the branches, and list them in the report |
+| Phase 5: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
-This skill has no push step.
+Phase 5 holds the push, the pull request, and the merge. When another workflow runs this skill, Phase 5 does not run, and that workflow does the finish steps at its own end.
 
 ## Subagent dispatch
 
@@ -68,13 +70,15 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 
 - **Do not improvise**. If the right resolution of a research finding, a plan ambiguity, or a review finding is unclear, ask the user. Do not guess. In the full mode, decide as `dev-essentials:work-modes` says.
 - **Own every red signal** from the build and test steps of Phase 2 and Phase 3 in this session (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates this run.
-- **Never push without the explicit go-ahead of the user, each time.**
+- **Push only in Phase 5.** The file `references/finish.md` of `dev-essentials:work-modes` gives the approval rules of the push.
 
 ## Progress tracking for the user
 
 Keep a task list with one entry for each phase (Research & Plan, Implement, Review loop, Report), and update it. After Phase 2 knows the tasks, add one entry for each task. Use `TodoWrite`, or `TaskCreate`, `TaskUpdate`, and `TaskList`, whichever this session has. Without such a tool, use the boxes of the plan file and a short status line at the top of each reply. The list is for the user only, never for coordination between subagents. The plan file stays the source of truth.
 
 ## Phases
+
+A request to finish an earlier run of this skill goes straight to Phase 5, as "Resume" in its file `finish.md` says.
 
 ### Phase 0 — Branch & worktree setup
 
@@ -134,16 +138,22 @@ Record each finding that the user and the orchestrating session agree to defer, 
 
 ### Phase 4 — Report
 
-Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Results/<slug>-report.md` in the notes folder as its path argument. Pass no flag. This also applies to `--plan` and to the `--mode` of this run. It is an exception to the rule of `dev-essentials:work-modes` that passes the mode on. `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its partial mode, also in a run in the full mode. It runs its Step 5 cleanup and prints no continuation prompt. Outside the full mode, its Step 5 asks the user before it moves a file of an older session to the backup. In the full mode, tell the cleanup to keep each file of an older session and each stale branch. It lists them as kept, and it asks no question. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
+Write the handoff document with `dev-essentials:save-context`, and follow all of its steps. Pass the path `Results/<slug>-report.md` in the notes folder as its path argument. Pass no flag. This also applies to `--plan` and to the `--mode` of this run. It is an exception to the rule of `dev-essentials:work-modes` that passes the mode on. `save-context` finds the plan of Phase 1 in the conversation (its Step 1). So `save-context` runs in its partial mode, also in a run in the full mode. It runs its Step 5 cleanup and prints no continuation prompt. Outside the full mode, its Step 5 asks the user before it moves a file of an older session to the backup. In the full mode, tell the cleanup to keep each file of an older session and each stale branch. It lists them as kept, and it asks no question. If another command follows the steps of `save-context`, the cleanup runs only when that command asks for it. This phase is the last local step of the run, so ask for the cleanup. Also tell the cleanup to keep every file of this run, except a `_`-prefixed progress file whose task is done. These are the plan, the review reports, the report, and each context document of a wrapper such as `implement-task`. The branch of this run is not merged, and the user still reviews it. If the repo documents its own path, use that. For a run that continues a numbered session sequence of the user, use a `-handoff-N.md` name. The report has these sections:
 
-- **Overview**: what this run covered, the branch, the worktree, and the date.
+- **Overview**: what this run covered, the branch, the base branch, the worktree, and the date.
 - **What Was Done**: for each phase, the research findings, the plan, each implemented task, and the outcome of each review round.
 - **Key Decisions**: a table with the reasons. It holds each decision that Phase 1 or Phase 3 asked the user to sign off. It also holds each gate that this run passed without a stop. In the full mode, also list each decision that the run made for the user under "Decisions for your review".
 - **Issues Found**: what this run found but did not cover, candidate follow-up issues, and each process problem to report to the user.
 - **Key File Paths**: grouped by category (core, tests, configuration, docs).
-- **What's Next**: the remaining work. Say whether the branch is pushed or has a PR. The default is no, because a push needs the explicit go-ahead of the user.
+- **What's Next**: the remaining work. The branch is not pushed yet. Say whether Phase 5 runs next, or whether the calling workflow does the finish steps.
 
 Tell the user where the report is. Give the same one-line summary as `save-context`, and say what its Step 5 cleanup did. Also give the final verdict of the review loop (`stop-clean`, `stop-max-rounds`, or `stop-blocked`). Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Outside the full mode, Step 5 can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. In the full mode, ask no question, and list the kept files and branches in the report. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
+
+### Phase 5 — Finish (push, pull request, merge)
+
+When another workflow runs this skill, skip this phase. Examples are `dev-essentials:implement-task` and the `deep-fix` of `dev-essentials:process-pr-comments`. That workflow does the finish steps at its own end.
+
+Else read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps on the branch of this run. The base branch is the base of Phase 0, and the verdict of the review loop is the verdict of Phase 3. In the partial mode and in the interactive mode, ask the question of its final gate after the Phase 4 report.
 
 ## Commit cadence
 

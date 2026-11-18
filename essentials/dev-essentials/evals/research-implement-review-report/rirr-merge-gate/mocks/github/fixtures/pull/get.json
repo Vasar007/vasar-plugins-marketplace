@@ -1,0 +1,20 @@
+{
+  "number": 32,
+  "title": "Lower the HTTP retry limit to 3",
+  "body": "## What\nLower the HTTP retry limit of the users app from 5 to 3.\n\n## Why\nFive retries made a failed call wait too long.\n\n## Changes\n- **Settings**: `HTTP_RETRY_LIMIT` is 3.\n- **Tests**: the client test expects 3.",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "clean",
+  "html_url": "https://github.com/example-org/users-app/pull/32",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "work/retry-gate",
+    "sha": "4be08abc09b3da9da483763fca103659cb20319e"
+  },
+  "user": {
+    "login": "eval-user"
+  }
+}

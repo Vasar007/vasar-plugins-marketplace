@@ -7,8 +7,8 @@ This page covers the work modes of the workflows of this marketplace, and the ch
 Each gated workflow of `dev-essentials` takes the option `--mode`. It has three values. The `--mode` of `help-review-pr` picks its posts, and it is not a work mode.
 
 - `--mode interactive`: the workflow stops at each of its gates, and you approve each step.
-- `--mode partial`: the default. The workflow reports its plan and goes on. It stops at the plan only for open decisions. It does not push or open a pull request without your answer or a push flag such as `--push`.
-- `--mode full`: the workflow asks no question, except at a hard stop or at a stop that the workflow keeps. It ends at its last outward step. In `feature-pipeline`, that is the merge of the pull request. In `process-pr-comments`, that is the push of the fixes and the posted replies.
+- `--mode partial`: the default. The workflow reports its plan and goes on. It stops at the plan only for open decisions. It does not push or open a pull request without your answer or a push flag such as `--commit-push`. `research-implement-review-report`, `implement-task`, and `implement-batch` ask one question about these steps at their end.
+- `--mode full`: the workflow asks no question, except at a hard stop or at a stop that the workflow keeps. It ends at its last outward step. In `feature-pipeline`, `research-implement-review-report`, `implement-task`, and `implement-batch`, that is the merge of the pull request. In `process-pr-comments`, that is the push of the fixes and the posted replies.
 
 The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules. The older mode flags of the workflows still work, and the workflows read them as a mode.
 
@@ -20,7 +20,7 @@ If the review comes within the cache lifetime after the build, stay in the build
 
 After a pause longer than the cache lifetime, the cache is cold. The first call then processes the whole history again and writes it into the cache. A long session pays the most for that call. So write the hand-off file while the cache is still warm:
 
-1. When the build ends, run `/dev-essentials:save-context` in the build session. The skill `research-implement-review-report` and the command `implement-task` already do this as their last step.
+1. When the build ends, run `/dev-essentials:save-context` in the build session. The skill `research-implement-review-report` and the command `implement-task` already do this as their last local step.
 2. If the review comes after the cache lifetime, start a new session in the same folder, on the branch of the pull request.
 3. Run `/dev-essentials:process-pr-comments` in the new session.
 

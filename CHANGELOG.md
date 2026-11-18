@@ -9,6 +9,29 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
+
+Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
+
+### Added in dev-essentials
+
+- `skills/work-modes/references/finish.md`: the finish steps of the three workflows. It holds the start conditions and the source of the GitHub repository. It also holds the push, the pull request with a body from `pr-composer`, and the merge through `merge-pr`. It also holds the resume of an earlier run and the finish report. In the full mode, a failed step ends the run with a report (issue #271).
+- `evals/research-implement-review-report`: the cases `rirr-merge`, `rirr-merge-gate`, and `rirr-final-gate`. `rirr-merge` finishes an earlier run and merges its pull request. `rirr-merge-gate` is a full run that opens the pull request and stops at the merge gate. `rirr-final-gate` runs in the partial mode, asks the question of the final gate, and pushes nothing (issue #271).
+
+### Changed in dev-essentials
+
+- `skills/research-implement-review-report`: the new Phase 5 does the finish steps. When another workflow runs the skill, Phase 5 does not run. The report names the base branch (issue #271).
+- `commands/implement-task` and `skills/implement-batch`: the new Phase 6 and Step 6 do the finish steps. The flag `--push` is now an old spelling that `work-modes` reads. It still approves the push of the run and nothing more. Their descriptions no longer name `--push` (issue #271).
+- `skills/work-modes`: it names the end of the three workflows in the full mode, and it points at `references/finish.md`. The old spelling of the full mode with no merge still pushes nothing in these workflows (issue #271).
+- `skills/merge-pr`: a new kind of approval. The user can answer "yes" to a question of a workflow of this plugin that names the merge (issue #271).
+- `skills/process-pr-comments`: a `deep-fix` run tells `research-implement-review-report` not to run its finish steps, because this skill owns the push of the cycle (issue #271).
+- `evals`: the requests of `rirr-retry-limit` and `rirr-single-commit` say "Do not push the branch.". So the cases keep their end state in the full mode (issue #271).
+
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`, `tests/test_eval_cases.py`, and `tests/test_eval_scaffolds.py`: new tests for the finish steps and for the new cases (issue #271).
+- `docs/workflows.md`, `docs/permissions.md`, and `docs/evals.md`: they name the finish steps of the three workflows (issue #271).
+
 ## dev-essentials 3.29.0 in release [4.27.0] - 2026-11-18
 
 This release adds the skill `work-modes`. It defines one option, `--mode`, with three values: `interactive`, `partial` (the default), and `full`. The 14 gated units of the plugin point at it, and their copies of the common rules go. In the full mode, `feature-pipeline` ends with the merge of the pull request, and `process-pr-comments` creates a new out-of-scope issue with no question. The old mode flags still work, because `work-modes` reads them as a mode. An old `--merge` still approves the merge after the final gate, and an old `--autonomous` alone never merges (issue #267).
@@ -2168,7 +2191,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...HEAD
+[4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0
 [4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0
 [4.25.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.2...v4.25.3
