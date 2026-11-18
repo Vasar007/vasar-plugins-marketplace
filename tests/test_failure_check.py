@@ -11,6 +11,7 @@ import re
 import shlex
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -479,6 +480,8 @@ class ExportTests(FailureCheckCase):
         self.assertRegex(out, r"(?m)^NO WORKTREE: .+\nEXPORTED ")
         self.assertRegex(out, r"(?m)^RUN fix \w+ in temporary export .*: could not start: git worktree add failed, "
                               r"and the export failed too: .*" + error)
+        no_worktree = re.search(r"(?m)^NO WORKTREE: (.+)$", out).group(1)
+        self.assertNotIn(no_worktree, re.search(r"(?m)^RUN fix .*$", out).group(), "the RUN line repeats the error")
         self.assertEqual((out.count("EXPORTED "), out.count("REMOVED ")), (1, 1))
         self.assertNotIn("RUN parent", out)
         self.assertEqual(re.findall(r"^VERDICT: .*$", out, re.M), ["VERDICT: OTHER"])
@@ -594,6 +597,39 @@ class ExportTests(FailureCheckCase):
         block_worktrees(self.repo)
         out = self.check(fix, "echo x > made.txt && chmod 444 made.txt && " + CHECK)
         self.assertEqual((out.count("EXPORTED "), out.count("REMOVED "), out.count("WARN")), (1, 1, 0))
+
+    @unittest.skipIf(os.name == "nt", "a read-only folder does not keep a file on Windows")
+    def test_delete_keeps_the_mode_of_a_folder_outside_the_run(self):
+        if os.geteuid() == 0:
+            self.skipTest("root deletes a read-only folder")
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("dirty.txt", "x\n")
+        block_worktrees(self.repo)
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        os.chmod(outside, 0o755)
+        self.addCleanup(os.chmod, outside, 0o755)
+        command = f"mkdir cache && ln -s {shlex.quote(outside.as_posix())} cache/data && chmod 555 cache && " + CHECK
+        try:
+            out = run([sys.executable, "-I", SCRIPT, "--fix-commit", fix, "--command", command, "--cwd",
+                       self.repo / "sub"], env=self.env, timeout=120).stdout
+        finally:
+            run(["chmod", "-R", "u+rwx", self.temp])
+        self.assertEqual(oct(stat.S_IMODE(outside.stat().st_mode)), oct(0o755))
+        self.assertIn("WARN: could not delete the folder", out)
+        self.assertNotIn("REMOVED", out)
+
+    def test_command_in_an_export_keeps_the_ceiling_of_the_caller(self):
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("dirty.txt", "x\n")
+        block_worktrees(self.repo)
+        keep = str(self.tmp / "keep-me")
+        env = dict(self.env, GIT_CEILING_DIRECTORIES=keep)
+        out = self.check(fix, 'echo "error: ceiling $GIT_CEILING_DIRECTORIES"; exit 1', env=env)
+        self.assertRegex(out, r"RUN fix \w+ in temporary export .*\n  ERROR \| error: ceiling \S*review-loop-fc-\w+"
+                         + re.escape(os.pathsep + keep) + "\n")
 
     def test_export_gets_the_git_settings_of_the_environment(self):
         self.write("sub/value.txt", "bad\n")

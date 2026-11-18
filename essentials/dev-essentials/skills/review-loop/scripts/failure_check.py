@@ -391,9 +391,10 @@ def run_command(run, bash, command, timeout, log, env=None):
 def delete_tree(path):
     """Delete a folder. A failure leaves the rest of it. A read-only file of Windows becomes writable first."""
     def retry(function, target, _error):
-        with contextlib.suppress(OSError):
-            os.chmod(target, stat.S_IWRITE)
-            function(target)
+        if os.name == "nt" and not os.path.islink(target):
+            with contextlib.suppress(OSError):
+                os.chmod(target, stat.S_IWRITE)
+                function(target)
 
     if sys.version_info >= (3, 12):
         shutil.rmtree(path, onexc=retry)
