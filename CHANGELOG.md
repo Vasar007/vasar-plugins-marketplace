@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.27.3 in release [4.25.3] - 2026-11-18
+
+If `git worktree add` fails, for example in the sandbox of an eval run, this release lets `failure_check.py` of `review-loop` reach a verdict. The script then writes the files of the commit into the same temporary folder and runs the command there (issue #232).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: if `git worktree add` fails and makes no folder, the script exports the commit with `git read-tree` and `git checkout-index` into that folder. The folder is the work tree of the checkout. A temporary index file keeps the index of the repository as it is. The export gets the same line ends, links, and modes as a worktree, and no git data. Git reads the attributes of the commit, not of the main worktree. A command in an export runs with `GIT_CEILING_DIRECTORIES`, so git finds no repository above the temporary folder. On Windows, the script now deletes a read-only file that the command made. A new line `EXPORTED <path>` names the export, and the RUN line says `in temporary export`. A new line `NO WORKTREE: <text>` holds the error of `git worktree add` before each export. If the export fails too, the RUN line holds the error of the export, and the verdict is `OTHER`. If the command passes only in an export, the verdict is `OTHER`, because an export has no git data. The help text says that a command that reads git data can give another result in an export. It also says that an export of a sparse checkout holds each file. The `CHANGED:` lines still list the stub files of the sandbox. They do not change the verdict of a command that reads no git data (issue #232).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: the part "Failure check" of Phase 6 has four new sentences. A `RUN` line with the words `in temporary export` means that the command ran in a folder with no git data. So read the `ERROR` and `TAIL` lines before you trust `SAME-AT-PARENT`. If one of them shows missing git data, treat the verdict as `OTHER`. An `EXPORTED <path>` line with no `REMOVED <path>` line names a plain folder that is still there. The skill says to delete it by hand (issue #232).
+- `evals/review-loop/rl-failing-build`: the route grader `route-verdict-same-at-parent`. It reads the trace for the line `VERDICT: SAME-AT-PARENT` and the start of the `REASON:` line after it (issue #232).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the new class `ExportTests` blocks `git worktree add` with a plain file in the place of `.git/worktrees`. Its tests run the script with two exports, and with the main worktree and one export. They also run it with an export that fails, and with the stub files of the sandbox. Other tests make sure that an export ignores a `.gitattributes` of the main worktree. They also make sure that git finds no repository above the temporary folder, and that a read-only file does not keep the export. A Linux test makes sure that the delete keeps the mode of an outside folder. A Windows test makes sure that the delete removes a read-only link. Another test makes sure that a ceiling of the caller stays. Two more tests cover a command that passes only in an export, and the environment of git in an export. One test compares an export with a worktree for two links, an executable file, CRLF line ends, and a path with a space. New tests of `UnitTests` and `SignalTests` cover the remove step and a stop by a signal during a run in an export (issue #232).
+- `tests/test_eval_cases.py`: the new class `FailureCheckExportGraderTests` tests the new grader on right and wrong traces (issue #232).
+- `docs/testing.md`: the tests of `failure_check.py` reach two more Windows paths: an export with links and CRLF line ends, and the delete of a read-only file that the command made (issue #232).
+
 ## dev-essentials 3.27.2 in release [4.25.2] - 2026-11-18
 
 This release makes the final report of `/audit-team` keep the heading and the labels of its form. Before, the report often left out the heading "Team Review Report" or the label "Agreement matrix" (issue #259).
@@ -2103,7 +2122,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...HEAD
+[4.25.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.2...v4.25.3
 [4.25.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.1...v4.25.2
 [4.25.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.25.1
 [4.25.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.24.0...v4.25.0
