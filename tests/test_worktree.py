@@ -608,6 +608,18 @@ class RemoveTests(WorktreeCase):
         run(["cmd", "/c", "mklink", "/J", self.path() / "linked", self.tmp / "outside"], check=True)
         self.assertIn("RESULT: READY", self.script("remove", REF))
 
+    @unittest.skipUnless(os.name == "nt", "a junction exists only on Windows")
+    def test_junction_that_git_leaves_gets_a_left_line(self):
+        (self.tmp / "outside").mkdir()
+        (self.tmp / "outside" / "keep.txt").write_bytes(b"keep\n")
+        with open(self.repo / ".git" / "info" / "exclude", "a", encoding="utf-8") as handle:
+            handle.write("linked/\n")
+        run(["cmd", "/c", "mklink", "/J", self.path() / "linked", self.tmp / "outside"], check=True)
+        out = self.script("remove", REF, "--apply")
+        self.assertIn(f"LEFT folder {self.path()}", out)
+        self.assertNotIn(f"REMOVED {self.path()}", out)
+        self.assertEqual((self.tmp / "outside" / "keep.txt").read_bytes(), b"keep\n")
+
     def test_worktree_that_holds_another_worktree_is_refused(self):
         nested = self.path() / "Notes" / "wt"  # The repository ignores Notes/, so git status does not show it.
         self.git("worktree", "add", "-q", "-b", "feature/nested", str(nested), "main")

@@ -28,9 +28,10 @@ Subcommands:
       Without --apply, print the plan and change nothing. With --apply, run "git worktree remove <path>".
       It refuses a folder that git does not list, a locked worktree, a worktree with a change or an
       untracked file, a tracked file with the flag skip-worktree or assume-unchanged, another worktree
-      inside this one, a git repository inside it (the script looks for a .git entry or a bare
-      repository in each ignored folder, and refuses a folder that it cannot read), a detached HEAD
-      whose commits no branch, tag, or remote branch holds, and a run from a folder inside the worktree.
+      inside this one, a git repository inside it (the script looks for a .git entry, a bare
+      repository, or a separate git folder in each ignored folder, and refuses a folder that it cannot
+      read), a detached HEAD whose commits no branch, tag, or remote branch holds, and a run from a
+      folder inside the worktree.
       It never passes --force. The removal also deletes the ignored files of the worktree, and an IGNORED
       line names each one first. The branch and its commits stay.
   prune [--apply]
@@ -476,7 +477,7 @@ def hidden_files(path):
 
 
 def inner_git_entries(path, folders):
-    """Look in each ignored folder for a .git entry or a bare repository, at any depth.
+    """Look in each ignored folder for a .git entry, a bare repository, or a separate git folder, at any depth.
 
     The walk does not go into a symbolic link or a junction, and it skips a listed folder that is one. git
     status does not look into an ignored folder, so it does not report a repository there. Return the
@@ -579,11 +580,15 @@ def remove(repo, args):
         report_left(repo, path)
         emit("RESULT: FAILED. Read the LEFT lines.")
         return 1
-    emit(f"REMOVED {show(str(path))}")
-    if branch:
-        emit(f"RESULT: REMOVED. The branch {show(branch)} and its commits stay.")
+    kept = "git no longer lists the worktree, but its folder is still there. Read the LEFT line. " if os.path.lexists(str(path)) else ""
+    if kept:
+        emit(f"LEFT folder {show(str(path))}. git did not delete it, for example because a junction is in it")
     else:
-        emit(f"RESULT: REMOVED. The worktree had no branch. Another ref holds its commit {short(entry.head)}.")
+        emit(f"REMOVED {show(str(path))}")
+    if branch:
+        emit(f"RESULT: REMOVED. {kept}The branch {show(branch)} and its commits stay.")
+    else:
+        emit(f"RESULT: REMOVED. {kept}The worktree had no branch. Another ref holds its commit {short(entry.head)}.")
     return 0
 
 

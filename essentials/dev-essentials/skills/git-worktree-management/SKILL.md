@@ -217,7 +217,7 @@ Show the `PATH` line, the `BRANCH` line, and each `IGNORED` line. The removal de
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
 ```
 
-`RESULT: REMOVED` ends this step. Git no longer lists the worktree, and the branch and its commits stay. After a `FAILED` line, each `LEFT` line names what is still there.
+`RESULT: REMOVED` ends this step. Git no longer lists the worktree, and the branch and its commits stay. After a `FAILED` line, each `LEFT` line names what is still there. After `REMOVED`, a `LEFT folder` line names a folder that git did not delete, for example because a junction is in it. Name that folder in the report, and delete nothing by yourself.
 
 **Never use `rm -rf` as a first resort.** On Windows, `Permission denied` on removal is usually not an IDE file lock. Work through this diagnosis in order:
 
@@ -350,6 +350,6 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. With `--autonomous`, keep that worktree, and name it in the final report.
 
-**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry or a bare repository. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. With `--autonomous`, keep the outer worktree, and name the folder in the final report.
+**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. With `--autonomous`, keep the outer worktree, and name the folder in the final report.
 
 **Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.
