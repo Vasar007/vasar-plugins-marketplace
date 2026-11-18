@@ -3931,6 +3931,57 @@ class FailingBuildGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("build-tool-kept", changed))
 
 
+class FailureCheckExportGraderTests(unittest.TestCase):
+    """The grader route-verdict-same-at-parent of rl-failing-build reads the verdict of failure_check.py in the trace."""
+
+    CASE = "rl-failing-build"
+    GRADER = "route-verdict-same-at-parent"
+    OUTPUT = ("EXPORTED /t/review-loop-fc-ab12/parent\n"
+              "RUN parent 7093eac7d9ad in temporary export /t/review-loop-fc-ab12/parent: exit 1 after 0.0 s\n"
+              "  ERROR | error: the docs theme is missing. Clone the pager-docs-theme repository next to this repository.\n"
+              "REMOVED /t/review-loop-fc-ab12/parent\n"
+              "VERDICT: SAME-AT-PARENT\n"
+              "REASON: the command fails at both commits with the same exit code, the same error lines, "
+              "and the same last lines after the first error line.\n")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.meta = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE].graders[cls.GRADER][0]
+
+    def passes(self, text):
+        return re.search(self.meta["pattern"], text) is not None
+
+    def bash_result(self, output):
+        """The trace record of a Bash call result, with the output as a JSON string, as the eval runner writes it."""
+        return trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": output, "is_error": False}]},
+            "parent_tool_use_id": None, "tool_use_result": {"stdout": output, "stderr": "", "interrupted": False}})
+
+    def test_grader_is_a_route_grader_on_the_trace(self):
+        self.assertEqual((self.meta["type"], self.meta["target"]), ("regex", "trace"))
+        self.assertEqual(self.meta.get("match", "contains"), "contains")
+
+    def test_verdict_line_and_reason_of_a_run_pass(self):
+        self.assertTrue(self.passes(self.bash_result(self.OUTPUT)))
+        self.assertTrue(self.passes(self.bash_result(self.OUTPUT.replace("\n", "\r\n"))))
+
+    def test_other_verdicts_and_reads_of_the_files_fail(self):
+        script = REPO / "essentials/dev-essentials/skills/review-loop/scripts/failure_check.py"
+        skill = REPO / "essentials/dev-essentials/skills/review-loop/SKILL.md"
+        wrong = {
+            "the verdict OTHER": self.OUTPUT.replace("VERDICT: SAME-AT-PARENT", "VERDICT: OTHER"),
+            "a read of the script": script.read_text(encoding="utf-8"),
+            "a read of the skill": skill.read_text(encoding="utf-8"),
+            "the verdict with no reason line": "VERDICT: SAME-AT-PARENT\nThe build fails at both commits.\n",
+        }
+        for name, text in wrong.items():
+            with self.subTest(text=name):
+                self.assertFalse(self.passes(self.bash_result(text)))
+
+    def test_output_with_real_line_breaks_is_not_the_trace_form(self):
+        self.assertFalse(self.passes(self.OUTPUT))
+
+
 class RirrSquashRouteGraderTests(unittest.TestCase):
     """The graders route-squash-script, route-no-soft-reset, and route-tree-kept of rirr-single-commit."""
 
