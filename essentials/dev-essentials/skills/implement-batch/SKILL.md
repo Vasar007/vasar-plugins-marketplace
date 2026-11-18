@@ -1,7 +1,7 @@
 ---
 name: implement-batch
-description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks. Pushes only with --push.
-argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--push] [--mode interactive|partial|full]
+description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks.
+argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--mode interactive|partial|full]
 ---
 
 # Implement Batch (N tasks, N commits + at most 1 final-review commit)
@@ -35,7 +35,6 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
 | `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
-| `--push` | off | Push the finished stack after the final report. **Off unless the user asks for it in this invocation.** |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 ## Autonomy
@@ -44,12 +43,13 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
+| Before Step 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as partial |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
 | Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
 | Steps 3.6 and 4.4: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
-| Step 5: push | Only with `--push`, after the report | Same | Same |
+| Step 6: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 When this workflow passes its mode on, it does not pass the interactive mode to the Step 2 plan-review loops (see "Review-loop configuration").
@@ -80,6 +80,8 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 Keep a task list with one entry for each task and one for the final review, and update it. Use `TodoWrite`, or `TaskCreate`, `TaskUpdate`, and `TaskList`, whichever this session has. The list is for the user only, never for coordination between subagents.
 
 ## Steps
+
+A request to finish an earlier run of this skill goes straight to Step 6, as "Resume" in its file `finish.md` says.
 
 ### Step 0 — Resolve the batch
 
@@ -139,14 +141,18 @@ For task `i`:
 3. Commit once for each review cycle, as the loop does by default. Record the SHA of each commit that the loop makes.
 4. **Squash only the commits of this pass**, from `FINAL_BASE_SHA` to `HEAD`, with the script of Step 3.6: the same `--repo` and `--plan-dir`, `--base <FINAL_BASE_SHA>`, one `--commit` for each commit of the final loop, and `--message "Final review across <N> tasks — <summary of fixes>"`. The N task commits of Step 3 stay as they are. The rules of Step 3.6 for each output of the script apply, also the squash-base safety stop. If the final loop made no commit, there is nothing to squash, so do not run the script. Report N commits and no final-review commit. Do not invent one.
 
-### Step 5 — Report and stop
+### Step 5 — Report
 
-- **Do not push.** Report and wait for the review of the user. Push only with `--push` in this invocation, and only after you deliver the report.
+- Push nothing in this step. Step 6 holds the push, the pull request, and the merge.
 - Report the real commit topology: `git -C "<worktree>" log --oneline <BATCH_BASE_SHA>..HEAD`. The expected end state is **N task commits plus at most 1 final-review commit**. If the real topology differs, report it and explain why. Never report the planned shape as a fact.
 - For each task: what was implemented, which files, the review-loop verdict (`stop-clean`, `stop-max-rounds`, or `stop-blocked`), and the subject of the squashed commit.
 - The paths of the N plan files. They are not in any commit.
 - For the batch: the verdict of the final review, the build and test state at `HEAD`, and each decision that needed a sign-off with its outcome. Also each gate that this run passed without a stop, and each finding deferred by agreement. In the full mode, also list each decision that the run made for the user under "Decisions for your review".
-- The absolute worktree path and the branch name.
+- The absolute worktree path, the branch name, and the head commit at the end of the run.
+
+### Step 6 — Finish (push, pull request, merge)
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. The base branch is the Step 0 base. The review verdicts are the verdicts of the Step 3 loops and of the Step 4 loop. In the partial mode and in the interactive mode, ask the question of its final gate after the Step 5 report.
 
 ## Review-loop configuration
 

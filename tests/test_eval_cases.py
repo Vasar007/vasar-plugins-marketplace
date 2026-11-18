@@ -4480,5 +4480,231 @@ class WorktreeScriptCaseTests(unittest.TestCase):
             self.assertNotIn("Bash", case.field("allowed_tools"))
 
 
+class RirrFinishCaseTests(unittest.TestCase):
+    """The cases of the finish steps of research-implement-review-report: the graders, the mocks, and the fixtures (issue #271).
+
+    A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
+    """
+
+    BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate"}
+    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32}
+    REPOSITORY = {"owner": "example-org", "repo": "users-app"}
+    # A scored grader must be one that the base side can pass. A grader that only the finish steps can pass is a route grader.
+    SCORED = {"rirr-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+              "rirr-merge-gate": ["committed", "limit-lowered", "main-not-pushed", "not-merged"],
+              "rirr-final-gate": ["committed", "limit-lowered", "no-push"]}
+    call = staticmethod(PipelineMergeTests.call)
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def meta(self, case, grader):
+        return self.cases[case].graders[grader][0]
+
+    def found(self, case, grader, text):
+        meta = self.meta(case, grader)
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+        return re.search(meta.get("pattern") or meta["input_match"], text, flags) is not None
+
+    def passes(self, case, grader, calls):
+        self.assertEqual(self.meta(case, grader).get("target"), "mock_calls")
+        found = self.found(case, grader, "\n".join(calls))
+        return not found if self.meta(case, grader).get("match") == "not_contains" else found
+
+    def mock_file(self, case, *parts):
+        return (self.cases[case].path / "mocks" / "github").joinpath(*parts)
+
+    def pull_fixture(self, case, method):
+        return json.loads(self.mock_file(case, "fixtures", "pull", f"{method}.json").read_text(encoding="utf-8"))
+
+    def pull(self, case):
+        return {**self.REPOSITORY, "pullNumber": self.NUMBERS[case]}
+
+    def pr(self, case):
+        return self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": self.BRANCHES[case],
+                                                 "title": "Lower the HTTP retry limit to 3"}, f'{{"number": {self.NUMBERS[case]}}}')
+
+    def read(self, case, method):
+        return self.call("pull_request_read", {"method": method, **self.pull(case)})
+
+    def merge(self, case, method="squash"):
+        return self.call("merge_pull_request", {**self.pull(case), "merge_method": method}, '{"merged": true}')
+
+    def gate_reads(self, case):
+        return [self.read(case, method) for method in ("get", "get_check_runs", "get_status", "get_reviews")]
+
+    def test_each_scored_grader_is_one_that_the_base_side_can_pass(self):
+        for case, scored in self.SCORED.items():
+            with self.subTest(case=case):
+                names = sorted(name for name in self.cases[case].graders if not name.startswith("route-"))
+                self.assertEqual(names, scored)
+
+    def test_the_shared_graders_are_the_graders_of_rirr_retry_limit(self):
+        retry = self.cases["rirr-retry-limit"].graders
+        for case in self.SCORED:
+            for grader in ("limit-lowered", "committed", "no-push", "route-work-modes"):
+                if grader in self.cases[case].graders:
+                    with self.subTest(case=case, grader=grader):
+                        self.assertEqual(self.meta(case, grader), retry[grader][0])
+
+    def test_a_right_finish_run_passes_each_mock_calls_grader_of_the_merge_case(self):
+        case = "rirr-merge"
+        names = sorted(name for name, (meta, _body) in self.cases[case].graders.items() if meta.get("target") == "mock_calls")
+        self.assertEqual(names, ["route-checks-read", "route-merged", "route-pr-created", "route-read-before-merge", "route-squash-method"])
+        calls = [self.pr(case)] + self.gate_reads(case) + [self.merge(case)]
+        for name in names:
+            with self.subTest(grader=name):
+                self.assertTrue(self.passes(case, name, calls))
+
+    def test_each_wrong_run_fails_its_grader_of_the_merge_case(self):
+        case = "rirr-merge"
+        runs = {"no merge call": ("route-merged", [self.pr(case)] + self.gate_reads(case)),
+                "a merge commit": ("route-squash-method", self.gate_reads(case) + [self.merge(case, "merge")]),
+                "no PR call": ("route-pr-created", self.gate_reads(case) + [self.merge(case)]),
+                "the check runs read only after the merge": ("route-read-before-merge",
+                                                             [self.read(case, "get"), self.merge(case), self.read(case, "get_check_runs")])}
+        for name, (grader, calls) in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes(case, grader, calls))
+
+    def test_a_merge_call_fails_the_gate_case(self):
+        case = "rirr-merge-gate"
+        self.assertTrue(self.passes(case, "not-merged", [self.pr(case)] + self.gate_reads(case)))
+        self.assertFalse(self.passes(case, "not-merged", [self.pr(case)] + self.gate_reads(case) + [self.merge(case)]))
+        # With no mock file, the session has no merge tool, and the grader not-merged proves nothing.
+        self.assertTrue(self.mock_file(case, "merge_pull_request.md").is_file())
+        checks = self.read(case, "get_check_runs")
+        self.assertTrue(self.passes(case, "route-checks-read-after-pr", [self.pr(case), self.read(case, "get"), checks]))
+        self.assertFalse(self.passes(case, "route-checks-read-after-pr", [checks, self.pr(case)]))
+        meta = self.meta(case, "route-merge-skill-after-pr")
+        self.assertEqual(meta, self.cases["fp-e2-merge-gate"].graders["route-merge-skill-after-pr"][0])
+        pr = self.tool_use("mcp__plugin_github_github__create_pull_request", {"owner": "example-org", "head": "work/retry-gate"})
+        skill = self.tool_use("Skill", {"skill": "dev-essentials:merge-pr", "args": "PR 32"})
+        self.assertTrue(self.found(case, "route-merge-skill-after-pr", "\n".join([pr, skill])))
+        self.assertFalse(self.found(case, "route-merge-skill-after-pr", "\n".join([skill, pr])))
+
+    def test_the_grader_route_finish_read_takes_a_read_call_and_a_shell_command(self):
+        path = "/plugins/dev-essentials/skills/work-modes/references/finish.md"
+        # The text of the skill names the path too, so a tool result with that text must not pass the grader.
+        skill_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Else read `{path}`, and do its steps."}]}})
+        for case in self.BRANCHES:
+            with self.subTest(case=case):
+                meta = self.meta(case, "route-finish-read")
+                self.assertEqual((meta["type"], meta["target"], meta.get("match")), ("regex", "trace", None))
+                self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path})))
+                self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
+                self.assertFalse(self.found(case, "route-finish-read", skill_text))
+                self.assertFalse(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path.replace("finish", "other")})))
+
+    def test_the_mocks_guard_the_repository_and_the_branch(self):
+        for case, branch in self.BRANCHES.items():
+            with self.subTest(case=case):
+                lines, body = split_frontmatter(self.mock_file(case, "create_pull_request.md").read_text(encoding="utf-8"))
+                self.assertEqual(parse_block(lines)["expect"], {**self.REPOSITORY, "base": "main", "head": branch})
+                created = json.loads(self.mock_file(case, "fixtures", f"pull-{self.NUMBERS[case]}.json").read_text(encoding="utf-8"))
+                self.assertEqual(body.strip(), f"{{{{file:fixtures/pull-{self.NUMBERS[case]}.json}}}}")
+                self.assertEqual(created["number"], self.NUMBERS[case])
+                for mock in ("pull_request_read.md", "merge_pull_request.md", "list_pull_requests.md"):
+                    lines, _body = split_frontmatter(self.mock_file(case, mock).read_text(encoding="utf-8"))
+                    self.assertEqual(parse_block(lines)["expect"], self.REPOSITORY)
+                pull = self.pull_fixture(case, "get")
+                self.assertEqual((pull["number"], pull["state"], pull["draft"], pull["merged"], pull["mergeable_state"]),
+                                 (self.NUMBERS[case], "open", False, False, "clean"))
+                self.assertEqual((pull["base"]["ref"], pull["head"]["ref"]), ("main", branch))
+                status = self.pull_fixture(case, "get_status")
+                self.assertEqual((status["sha"], status["state"], status["total_count"]), (pull["head"]["sha"], "pending", 0))
+                runs = self.pull_fixture(case, "get_check_runs")
+                self.assertEqual([(run["status"], run["conclusion"]) for run in runs["check_runs"]],
+                                 [("completed", "success")] * runs["total_count"])
+                self.assertEqual(self.pull_fixture(case, "get_reviews"), [])
+
+    def test_the_list_of_open_pull_requests_is_empty_so_that_step_4_goes_on_to_create_one(self):
+        # Step 4 of finish.md first lists the open pull requests of the branch. A pull request in the answer would skip the create call.
+        for case in self.BRANCHES:
+            with self.subTest(case=case):
+                _lines, body = split_frontmatter(self.mock_file(case, "list_pull_requests.md").read_text(encoding="utf-8"))
+                self.assertEqual(json.loads(body), [])
+
+    def test_the_head_of_the_pull_request_is_the_planted_commit(self):
+        """ScaffoldTests makes sure that each head SHA is the last commit of its scaffold. This test pins which commit that is."""
+        merge = (self.cases["rirr-merge"].path / "scaffold.sh").read_text(encoding="utf-8")
+        # The resume case: the scaffold makes the reviewed commit on a branch that no remote holds, so the run pushes it.
+        self.assertLess(merge.index("fixture_publish main\n"), merge.index("git checkout -q -b work/retry-limit\n"))
+        self.assertIn('fixture_commit "lower the HTTP retry limit to 3"\n', merge)
+        self.assertIn("Verdict `stop-clean`.", merge)
+        # A resume needs the verdict and the head commit at the end of the run. The report names it as the head commit.
+        self.assertIn("- **Head commit**: HEAD_SHA\n", merge)
+        self.assertIn('sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-limit-report.md\n', merge)
+        gate = (self.cases["rirr-merge-gate"].path / "scaffold.sh").read_text(encoding="utf-8")
+        # The gate case: the head is the commit before the run. So the commit of the run is one that the PR lacks.
+        self.assertIn('fixture_commit "ignore the notes folder"\n# The mock of pull_request_read gives this commit as the head of the '
+                      "pull request. A test pins its SHA.\ngit checkout -q -b work/retry-gate\nfixture_publish work/retry-gate\n", gate)
+        heads = {case: self.pull_fixture(case, "get")["head"]["sha"] for case in self.BRANCHES}
+        self.assertNotEqual(heads["rirr-merge"], heads["rirr-merge-gate"])
+        self.assertEqual(self.pull_fixture("rirr-merge", "get_commits")[0]["sha"], heads["rirr-merge"])
+        self.assertEqual(self.pull_fixture("rirr-merge-gate", "get_commits"), [])
+
+    def test_the_prompts_pick_the_mode_and_name_the_repository(self):
+        for case in self.BRANCHES:
+            with self.subTest(case=case):
+                body = self.cases[case].prompt_body
+                self.assertIn(" --mode full`.", body)
+                self.assertIn("The GitHub repository is example-org/users-app.", body)
+                self.assertIn(f"`{self.BRANCHES[case]}`", body)
+        self.assertIn("to finish the earlier run on the branch `work/retry-limit`. Its report is "
+                      "`notes/Results/retry-limit-report.md`.", self.cases["rirr-merge"].prompt_body)
+        self.assertNotIn("--mode", self.cases["rirr-final-gate"].prompt_body)
+        # With no repository in the request and no GitHub remote, finish.md asks no question, and the grader route-gate-question fails.
+        self.assertIn("The GitHub repository is example-org/users-app.", self.cases["rirr-final-gate"].prompt_body)
+        # The older cases run in the full mode. Their request forbids the push, and that outranks the mode.
+        for case in ("rirr-retry-limit", "rirr-single-commit"):
+            with self.subTest(case=case):
+                body = self.cases[case].prompt_body
+                self.assertIn(" --mode full`.", body)
+                self.assertTrue(body.rstrip("\n").endswith("\n\nDo not push the branch. I push it myself."))
+
+    def test_the_no_force_push_grader_reads_the_push_command(self):
+        commands = {"git push -u origin work/retry-limit": False,
+                    'git -C \\"/w\\" push -u origin work/retry-limit && git status': False,
+                    "git push --force origin work/retry-limit": True,
+                    "git push --force-with-lease origin work/retry-limit": True,
+                    "git push -f origin work/retry-limit": True,
+                    "git push origin +work/retry-limit": True,
+                    'git -C \\"/w\\" push --force origin x': True}
+        for command, expected in commands.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.found("rirr-merge", "no-force-push", f'{{"command":"{command}"}}'), expected)
+
+    def test_the_no_run_commit_grader_skips_the_lines_of_the_fixture(self):
+        lines = {"\tcommit: fixture: lower the HTTP retry limit to 3": False,
+                 "\tcommit (initial): fixture: add the users app": False,
+                 "\tcheckout: moving from main to work/retry-limit": False,
+                 "\tcommit: Lower the retry limit": True,
+                 "\tcommit (amend): fixture: amended": False,
+                 "\tcommit (amend): Lower the retry limit": True,
+                 "\trevert: Revert \"fixture: x\"": True}
+        for line, expected in lines.items():
+            with self.subTest(line=line):
+                self.assertEqual(self.found("rirr-merge", "no-run-commit", "a b 1 +0000" + line), expected)
+
+    def test_the_route_graders_of_the_order_read_the_trace(self):
+        test = trace_bash("python3 -m unittest discover -s tests")
+        push = trace_bash("git push -u origin work/retry-limit")
+        self.assertTrue(self.found("rirr-merge", "route-tests-before-push", "\n".join([test, push])))
+        self.assertFalse(self.found("rirr-merge", "route-tests-before-push", "\n".join([push, test])))
+
+    def test_the_gate_question_grader_needs_the_merge_and_a_question(self):
+        replies = {"the question of the final gate": ("Report done.\n\nPush the branch, open a pull request, and merge it after the gate "
+                                                      "of merge-pr? (yes / push and pull request only / no)", True),
+                   "a report with no question": ("The report is notes/Results/retry-limit-report.md. Nothing is pushed.", False),
+                   "a question with no merge": ("Do you want the backup of the old files?", False)}
+        for name, (reply, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(self.found("rirr-final-gate", "route-gate-question", reply), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

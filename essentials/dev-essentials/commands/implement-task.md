@@ -1,6 +1,6 @@
 ---
-description: Work one task end-to-end with research, a plan, the implementation, a review, and a report. Sweep the extra context first (PR or issue links, notes), and add a /simplify commit at the end. Pushes only with --push.
-argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--push] [--mode interactive|partial|full]
+description: Work one task end-to-end with research, a plan, the implementation, a review, and a report. Sweep the extra context first (PR or issue links, notes), and add a /simplify commit at the end.
+argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--mode interactive|partial|full]
 ---
 
 # Implement Task (context sweep → full cycle → simplify commit)
@@ -14,7 +14,7 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. Subagents run its stages from the requirements to the reviews, the session pushes and opens the PR, and it has its own approval gates.
 
-This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
+This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). It also owns the finish steps (Phase 6). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
 
 The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
 
@@ -38,7 +38,6 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed verbatim to the `--rounds` of RIRR. |
 | `--notes-dir=<path>` | the notes folder | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
 | `--no-simplify` | off | Skip Phase 4. Use it only for a run in which the user does not want the pass. |
-| `--push` | off | Push after the final report. **Off unless the user asks for it in this invocation.** |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 The other options of RIRR (`--context`, `--skip-research`, and `--branch-prefix`) pass through. For `--context`, see Phase 3.
@@ -49,11 +48,12 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
+| Before Phase 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Phase 2: a reference that implements or contradicts the task | Ask before Phase 3 | Same | Same |
 | Phase 3: RIRR | Its gates, with the mode of this run | Same | Same |
 | Phase 4 step 3: a cleanup that needs a change of behavior | Stop that cleanup, and put the question in the report | Same | Keep the code, and list the skipped cleanup |
 | Phase 5: `save-context` cleanup of a file of an older session or a stale branch | Ask once, after the report | Same | Keep the files and the branches, and list them in the report |
-| Phase 5: push | Only with `--push`, after the report | Same | Same |
+| Phase 6: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
 | Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 ## Subagent dispatch
@@ -78,6 +78,8 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 Keep a task list with one entry for each phase, and update it as each phase runs. Use `TodoWrite`, or `TaskCreate`, `TaskUpdate`, and `TaskList`, whichever this session has. The list is for the user only, never for coordination between subagents.
 
 ## Phases
+
+A request to finish an earlier run of this command goes straight to Phase 6, as "Resume" in its file `finish.md` says.
 
 ### Phase 0 — Resolve the ask
 
@@ -142,16 +144,18 @@ Skip this phase only with `--no-simplify`. `/simplify` is an external skill that
    In `single` mode, it goes on top of the squashed commit. **Never `--amend` into that commit, and never squash again.** The end state is two commits. In `per-phase` mode, it goes on top of the phase and review-round commits.
 7. A pass that changes nothing is valid. Make no empty commit and invent no cleanup. Report "simplify pass found nothing worth changing" and go on.
 
-### Phase 5 — Report and stop
+### Phase 5 — Report
 
-Return control to **Phase 4 (Report)** of RIRR. It writes the report through `dev-essentials:save-context`, as the last step of the run. The call passes no flag, so `save-context` runs in its partial mode. Its cleanup keeps every file of this run, also the Phase 2 context document. Outside the full mode, it asks the user before it moves a file of an older session to the backup. In the full mode, it keeps each file of an older session and each stale branch, and lists them (Phase 4 of RIRR). It prints no continuation prompt, unless the user asks for one in this run. Do not assume the default path `<--notes-dir>/Results/<slug>-report.md`. Take the path from the message in which that phase names it. Add to the report:
+Return control to **Phase 4 (Report)** of RIRR. Tell it not to run its Phase 5 (Finish), because Phase 6 of this command does the finish steps. Phase 4 writes the report through `dev-essentials:save-context`, as the last local step of the run. The call passes no flag, so `save-context` runs in its partial mode. Its cleanup keeps every file of this run, also the Phase 2 context document. Outside the full mode, it asks the user before it moves a file of an older session to the backup. In the full mode, it keeps each file of an older session and each stale branch, and lists them (Phase 4 of RIRR). It prints no continuation prompt, unless the user asks for one in this run. Do not assume the default path `<--notes-dir>/Results/<slug>-report.md`. Take the path from the message in which that phase names it. Add to the report:
 
 - The Phase 2 sweep: the items read, the pattern that they set, how the implementation followed it, each conflict and its resolution, and the path of the context document.
 - The Phase 4 pass: ran or skipped, what it changed, its commit subject, and the real output of the build and tests after it.
 - **The real commit topology**: `git -C "<worktree>" log --oneline <RUN_BASE_SHA>..HEAD`. In `single` mode, the expected result is **one task commit plus one simplify commit**, or only the task commit after an empty pass. If the result differs, report it and explain why. For Phase 4, `git -C "<worktree>" log --oneline <SIMPLIFY_BASE_SHA>..HEAD` must show exactly one commit, or zero after an empty pass.
-- The absolute worktree path and the branch name.
+- The absolute worktree path, the branch name, and the head commit at the end of the run.
 - Each gate that this run or RIRR passed without a stop.
 
 Print the report only, and end it with the `Route:` line of Rule 1 of `dev-essentials:subagent-orchestration`. Outside the full mode, Step 5 of `save-context` can list files or branches that wait for the yes of the user. If it does, ask its one Step 6 question after the report. In the full mode, ask no question. When the user says yes, move the listed files to the backup in this session, as Step 5 of `save-context` says. If the user asks for a continuation prompt in this run, print it last. Else print no continuation prompt for the next session.
 
-**Do not push.** Wait for the review of the user. Push only with `--push` in this invocation, and only after the report.
+### Phase 6 — Finish (push, pull request, merge)
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. The base branch is the Phase 0 base, and the verdict of the review loop is the verdict that RIRR reported. In the partial mode and in the interactive mode, ask the question of its final gate after the Phase 5 report.

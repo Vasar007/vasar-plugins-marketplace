@@ -24,7 +24,8 @@ The last outward step of each workflow in the full mode:
 
 - `feature-pipeline`: the merge of the pull request, after the gate of `dev-essentials:merge-pr`.
 - `process-pr-comments`: the pushed fixes, the posted replies, and the resolved threads. It never merges, because the reviewers of the pull request approve it first.
-- Each other workflow: the last outward step that its gate table names for the full mode, or that its own flag approves, such as `--push`. With no such step, the run ends with local work: commits, files, or a report.
+- `research-implement-review-report`, `implement-task`, and `implement-batch`: the merge of the pull request, after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill.
+- Each other workflow: the last outward step that its gate table names for the full mode, or that its own flag approves, such as `--commit-push`. With no such step, the run ends with local work: commits, files, or a report.
 
 In the partial mode, a user who wants a stop after the plan writes "stop after the plan" in the request, or uses `--mode interactive`.
 
@@ -52,7 +53,7 @@ In the full mode, stops 3 to 5 end the run with a report. A workflow can say to 
 
 - Ask a question only at a hard stop. Ask also where a gate row, the text of the workflow, or a rule below says to ask. Do not ask in other cases.
 - At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- A mode removes stops. It adds no steps, except the outward steps of the full mode in the list above. A step that runs only with a flag, such as `--push`, still needs that flag, and the flag is the approval of that step.
+- A mode removes stops. It adds no steps, except the outward steps of the full mode in the list above. A step that runs only with a flag, such as `--commit-push`, still needs that flag, and the flag is the approval of that step.
 - If the request names two modes, stop before the first step, and ask the user once which mode to use.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Outside the full mode, ask the user about every other critical decision.
 - In the full mode, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
@@ -64,9 +65,10 @@ In the full mode, stops 3 to 5 end the run with a report. A workflow can say to 
 Earlier versions of the workflows used other words. Read them this way, and say in the final report that the spelling is old:
 
 - `--interactive`, or the argument `interactive` of `process-pr-comments`: `--mode interactive`.
-- `--autonomous` with no `--merge`, or the argument `autonomous` of `process-pr-comments`: `--mode full`, with no approval of a merge. The run does not stop, and it does not merge.
+- `--autonomous` with no `--merge`, or the argument `autonomous` of `process-pr-comments`: `--mode full`, with no approval of a merge. The run does not stop, and it does not merge. In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push and no pull request, as before.
 - `--autonomous --merge`: `--mode full`.
 - `--merge` with no `--autonomous`: `--mode partial`. The flag approves the merge after the final gate, as before.
+- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more. The run pushes after the final report with no question. With `--mode full` or `--autonomous --merge`, the run does all finish steps. With the old `--autonomous` and no `--merge`, it pushes with no stop and does nothing more.
 
 The words "autonomous" and "autonomously" in the prose of a request are not an old spelling, and they pick no mode.
 

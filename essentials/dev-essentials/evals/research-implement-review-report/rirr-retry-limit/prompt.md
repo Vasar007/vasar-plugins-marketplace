@@ -7,3 +7,5 @@ timeout_seconds: 3600
 ---
 
 Use the dev-essentials research-implement-review-report skill on this task: lower the HTTP retry limit of the users app from 5 to 3. The arguments are `--base=main --branch-prefix=eval --rounds=1 --mode full`. The notes folder of this repository is `notes/`.
+
+Do not push the branch. I push it myself.

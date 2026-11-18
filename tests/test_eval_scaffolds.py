@@ -60,6 +60,9 @@ EXPECTED_BRANCH = {
     "mp-red-check": "feature/paging",
     "mp-no-merge-word": "feature/paging",
     "os-review-fixes": "main",
+    "rirr-merge": "work/retry-limit",
+    "rirr-merge-gate": "work/retry-gate",
+    "rirr-final-gate": "main",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
 }
@@ -83,9 +86,10 @@ FAILING_TESTS = {"so-two-fixes": 2}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
                   "rirr-retry-limit": "committed"}
-# A "no push" grader reads every branch of the remote. fp-e3-autonomous-main must push a work branch, so its grader names main.
+# A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
-NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed")}
+NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
+                      ("rirr-merge-gate", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
@@ -93,7 +97,8 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "ppc-build-context": ("no-commit",), "ppc-gated-threads": ("no-commit",),
                      "ppc-open-items-answered": ("no-commit",),
                      "ppc-ride-along-commit": ("no-commit",), "rl-clean-branch": ("no-fix-commit",),
-                     "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed")}
+                     "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed"),
+                     "rirr-merge": ("no-run-commit",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -1553,6 +1558,19 @@ class TrimFullPassTests(FixtureCase):
         shutil.rmtree(workspace / "trim-backup")
         self.listing(workspace)
         self.assertFalse(self.passes(workspace, "backup-kept"))
+
+
+class RirrMergeReportTests(FixtureCase):
+    """The planted report of rirr-merge names the head of the branch as its head commit (issue #271)."""
+
+    def test_the_report_names_the_head_of_the_branch(self):
+        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-merge"]
+        workspace = self.workspace()
+        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+        _code, head = self.git(workspace, "rev-parse", "HEAD")
+        report = (workspace / "notes/Results/retry-limit-report.md").read_text(encoding="utf-8")
+        self.assertIn(f"- **Head commit**: {head}\n", report)
+        self.assertNotIn("HEAD_SHA", report)
 
 
 class RirrSquashGraderTests(FixtureCase):
