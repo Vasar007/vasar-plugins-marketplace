@@ -85,7 +85,7 @@ If the MCP server cannot give the required capabilities, stop at once. If the MC
 
 With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no branch, runs no Pre-build command, and writes no file. Sub-steps 6, 7, 10, 11, and 12 say what to do instead. Sub-step 15 reports the result.
 
-1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). Take the task as "Task input" says. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, and `--autonomous`.
+1. Parse the arguments of this run (the "Arguments" section of `SKILL.md` shows them). Take the task as "Task input" says. The flags are `--dry-run`, `--no-worktree`, `--start-from`, `--skip`, `--model-override`, `--commit-mode`, `--interactive`, `--autonomous`, and `--merge`.
 2. Resolve the project context with the three sources above (explicit file, then `CLAUDE.md`, then questions to the user). Make sure that every required field has a value. Then resolve the task as "Task input" says, and record `taskSource`: `provider` or `request`.
 3. Only for a task ID: look at the MCP tools with the prefix from the project context. Pick the methods that give the required provider capabilities.
 4. Only for a task ID: fetch the task details and the task comments through the MCP server.

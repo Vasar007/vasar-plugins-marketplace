@@ -6,6 +6,7 @@ The master agent reads this file at Step 10 of `SKILL.md`, after the result of S
 
 Steps 2 and 4 both use this status, so look it up only once.
 
+- Step 9b merged the PR in this run, or found it merged: the PR is merged. Skip the lookup.
 - No PR: `pr` in `pipeline-state.json` is `null` (a branch-only flow, or the run created no PR). Skip the lookup. No PR exists to wait for.
 - A PR exists: fetch the PR status from GitHub again, with the `pr` fields of `pipeline-state.json`. Follow `dev-essentials:github-mcp-conventions` Rules 1 and 2.
 
@@ -57,5 +58,7 @@ If the removal can run, remove the worktree by `{WORKTREE_PATH}` (the absolute p
 The keep-until-merged rule has its main text in the "Lifecycle Rule" section of `dev-essentials:git-worktree-management`.
 
 ## 5. Announce the end of the run
+
+If Step 9b left item 3 of Step 4 of `dev-essentials:merge-pr` to this step, do that item first. It deletes the merged local branch.
 
 Report the final branch or PR outcome. Say whether the run removed the worktree or kept it on purpose, and why. Say whether the run archived the task logs or left them in place until the PR review ends.
