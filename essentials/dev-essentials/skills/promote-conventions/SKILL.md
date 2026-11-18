@@ -98,7 +98,7 @@ Phases 0 to 4 run in `dev-essentials:audit-personal-conventions`. The phase numb
 
 ### Phase 5 — Approval gate (hard gate)
 
-Phase 5 starts from the Phase 4 triage (see "Start rule"). If the arguments hold a reply with the Phase 5 verbs, that reply answers this gate, with or outside the interactive mode. Else, outside the interactive mode, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. In the interactive mode, wait for the reply of the user, as below.
+Phase 5 starts from the Phase 4 triage (see "Start rule"). If the arguments hold a reply with the Phase 5 verbs, that reply answers this gate in every mode. Else, outside the interactive mode, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. In the interactive mode, wait for the reply of the user, as below.
 
 Number the items with one global `#N` numbering across every table of Phase 4. The reply has three verbs, `approve`, `defer`, and `reject`, and two shorthands, `approve all promotes` and `approve none`. **Anything not named is deferred, always.** No approval is implicit.
 

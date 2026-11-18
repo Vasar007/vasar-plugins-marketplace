@@ -100,7 +100,7 @@ With `--dry-run`, Step 0 changes nothing on disk. It creates no worktree and no 
    - If the HEAD is detached, do not commit on it. The same holds for the default branch and for the base branch of the project context. In these three cases, do one of these steps:
      - With `--dry-run`, report the result, and switch nothing.
      - Else, in the full mode, run `git -C "{WORKTREE_PATH}" switch -c <branch-name>`, with the branch name of sub-step 5, and log it. If that branch already exists, run `git -C "{WORKTREE_PATH}" switch -C <branch-name>` when `git -C "{WORKTREE_PATH}" rev-list HEAD..<branch-name>` prints nothing. The branch then has no commit that is not on HEAD, so the reset loses no commit. Else stop, and report it.
-     - Else (the partial and the interactive mode), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
+     - Else (the partial and the interactive modes), stop. Ask the user for a branch name, or for an explicit yes to work on the current branch. For a branch name, use the same `switch -c` command.
    - If the HEAD is on another branch, use the current branch as it is. Do not create or switch branches.
    - Log: "Running in-place on branch `<current-branch>`".
    - Skip the worktree creation, the branch fetch, and the copy of `settings.local.json`.

@@ -378,7 +378,7 @@ Manual TODOs:
 
 | Gate | Default taken | Saved to |
 | --- | --- | --- |
-| none | not applicable, because the run was not autonomous | not applicable |
+| none | not applicable, because the run was in the interactive mode | not applicable |
 
 ## Actions taken in the full mode
 
