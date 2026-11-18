@@ -69,7 +69,7 @@ OLD_SPELLINGS = (
 )
 # Lines that keep an old flag on purpose, as (path, count). The body of git-worktree-management changes after the
 # task that rewrites its workflows merges, so that the two branches do not conflict. Remove the entry then.
-KNOWN_OLD_FLAGS = {"essentials/dev-essentials/skills/git-worktree-management/SKILL.md": 14}
+KNOWN_OLD_FLAGS = {}
 
 
 def read(path):
