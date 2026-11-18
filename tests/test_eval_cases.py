@@ -2392,7 +2392,7 @@ class PipelineMergeTests(unittest.TestCase):
                 self.assertFalse(self.passes(case, "not-merged", [self.pr()] + self.gate_reads() + [self.merge()]))
                 # With no mock file, the session has no merge tool, and the grader not-merged proves nothing.
                 self.assertTrue(self.mock_file(case, "merge_pull_request.md").is_file())
-        # A call that breaks the expect block of a mock ends the run with score 0 and no grader result.
+        # A call that breaks the expect block of a mock ends the run with score 0.
         for case in (*self.BRANCHES, self.FORK_CASE):
             for mock in ("merge_pull_request.md", "issue_read.md", "add_issue_comment.md"):
                 with self.subTest(case=case, mock=mock):
@@ -2478,6 +2478,8 @@ class PipelineMergeTests(unittest.TestCase):
         done = ["requirements", "spec", "implementation", "test-coverage", "docs", "review", "security-review", "finalization"]
         self.assertIn(f'"completed": {json.dumps(done)},', scaffold)
         self.assertIn('"pr": {\n    "number": 77,', scaffold)
+        # ScaffoldTests reads the state file only at this path. At another path, the run finds no file and starts each stage.
+        self.assertIn("fixture_write .pipeline/822/pipeline-state.json <<FP_EOF\n", scaffold)
         # A stage that is not in completed runs again, unless the request skips it.
         self.assertIn("--skip=simplifier,plan-artifact ", self.cases["fp-e2-merge"].prompt_body)
         for name in ("review.md", "security-review.md"):

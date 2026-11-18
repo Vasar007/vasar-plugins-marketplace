@@ -523,7 +523,8 @@ class ScaffoldTests(FixtureCase):
         self.assertIn(f"arguments: `{task} ", case.prompt_body)
         # The resume stops on a stage name that the Overview table of the skill does not have.
         skill = (protocol.parent.parent / "SKILL.md").read_text(encoding="utf-8")
-        stages = set(re.findall(r"^\| \w+ \| `([a-z0-9-]+)` \| ", skill, re.MULTILINE))
+        table = re.search(r"^\| *# *\| *Stage key *\|.*\n\|[ :|-]+\n((?:\|.*\n)+)", skill, re.MULTILINE).group(1)
+        stages = {row.split("|")[2].strip(" `") for row in table.splitlines()}
         self.assertEqual(len(stages), 10)
         self.assertIn(state["stage"], stages | {None})
         self.assertLessEqual(set(state["completed"]), stages)
