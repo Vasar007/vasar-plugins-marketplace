@@ -24,7 +24,7 @@ A merge of `main` into an open branch gives the same conflicts each time: the to
 4. If another file has a conflict in which both sides must stay, add `--keep-both <file>` for that file. Give the file as a path from the top folder of the repository. The side of `main` comes first.
 5. Read `git diff`. Then stage the files and commit the merge.
 
-If `main` has entries under `## [Unreleased]`, the subcommand `release` stops. Only the pull request that merges next takes these entries into its release section. For that pull request, add `--absorb-unreleased`. The script also stops on a line that the branch added to `CHANGELOG.md` and that the result does not have. With no merge in progress, the script stops too. It also stops for a `--theirs` that is not the commit that merges in. The last stop is for a `plugin.json` in which both sides changed lines other than the version. A line that starts with `STOP` gives the reason, and the script then changes no file. If the script cannot write a file, the exit code is 1, and the `RESULT` line gives the count of the written files.
+If `main` has entries under `## [Unreleased]`, the subcommand `release` stops. Only the pull request that merges next takes these entries into its release section. For that pull request, add `--absorb-unreleased`. The script also stops on a line that the branch added to `CHANGELOG.md` and that the result does not have. The subcommand `unreleased` stops on an entry of the merge base under `## [Unreleased]` that the branch changed or removed. Then merge `CHANGELOG.md` by hand. It also stops on an entry of both sides with one first line but other indented lines. With no merge in progress, the script stops too. It also stops for a `--theirs` that is not the commit that merges in. The last stop is for a `plugin.json` in which both sides changed lines other than the version. A line that starts with `STOP` gives the reason, and the script then changes no file. If the script cannot write a file, the exit code is 1, and the `RESULT` line gives the count of the written files.
 
 ## Read the results of eval runs
 
@@ -33,7 +33,7 @@ The script `tools/eval_results.py` reads the `baseline.json` files of `tests/eva
 - `runs <file>...` prints one line for each run: the score, the cost, the time, the run folder, and the failed graders. A `PARTIAL` line marks a file whose suite did not finish, and `NO RUN` marks a case with no run.
 - `spend --cap <USD> --rest <USD> <file>...` adds the cost of the files to the estimate of the runs to come. If the sum is over the cap, the exit code is 3. If a cost, `--cap`, or `--rest` is not a number of 0 or more, the exit code is 2. A queue of eval runs can call it before each run, because `--max-cost-usd` of a run is tested only before that run starts.
 - `kept <file>...` prints one line for each kept run folder, for a note of the kept runs.
-- `trace <trace.jsonl>` prints the text, the tool calls, and the tool results of a run in order. By default, it shows 80 lines, and it cuts the text, the input, or the result of each line at 250 characters. `--max-lines` and `--limit` change these numbers.
+- `trace <trace.jsonl>` prints the text, the tool calls, and the tool results of a run in order. By default, it shows 80 lines. It cuts a text or an input at 250 characters, and a result at 125. `--max-lines` and `--limit` change these numbers.
 
 ## Run the unit suite and eval runs in WSL2
 

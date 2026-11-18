@@ -209,7 +209,7 @@ def parse_args(argv=None):
     kept.set_defaults(handler=show_kept)
     trace = commands.add_parser("trace", help="the text and the tool calls of one trace.jsonl")
     trace.add_argument("file", metavar="FILE")
-    trace.add_argument("--limit", type=positive, default=LIMIT, help=f"characters of each text (default {LIMIT})")
+    trace.add_argument("--limit", type=positive, default=LIMIT, help=f"characters of each text or input (default {LIMIT}), and half of it for a result")
     trace.add_argument("--max-lines", type=positive, default=MAX_LINES, help=f"lines to show (default {MAX_LINES})")
     trace.set_defaults(handler=show_trace)
     return parser.parse_args(argv)

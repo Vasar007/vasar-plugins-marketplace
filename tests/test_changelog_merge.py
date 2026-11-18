@@ -559,17 +559,55 @@ class UnreleasedTests(MergeCase):
 
     def test_new_indented_line_below_a_bullet_of_main_refuses(self):
         nested = "- the parent entry:\n  - the first child\n"
-        base = dict(BASE)
-        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n" + nested + "\n")
         main = dict(MAIN_RELEASE)
         main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
             TOP, TOP + "### Changed in the repository\n\n" + nested + "- an entry of main\n\n")
-        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("  - the first child\n", "  - the first child\n  - a child of the branch\n")}
+        branch = {"CHANGELOG.md": BASE["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n" + nested + "  - a child of the branch\n\n")}
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("both sides have the entry '- the parent entry:' with other indented lines", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_entry_of_the_base_that_the_branch_changed_refuses(self):
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- fix the parser\n\n")
+        main = {"CHANGELOG.md": base["CHANGELOG.md"].replace(
+            "- fix the parser\n", "- fix the parser\n\n### Changed in kb\n\n- an entry of main\n")}
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- fix the parser\n", "- fix the lexer\n")}
         clone = self.merge(branch, main=main, base=base)
         before = self.text(clone, "CHANGELOG.md")
         out = self.tool(clone, "unreleased", code=3)
-        self.assertIn("lines that the branch added would be lost, the first:   - a child of the branch", out)
+        self.assertIn("the branch changed or removed an entry of the merge base, so merge CHANGELOG.md by hand: "
+                      "- fix the parser", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_bullet_with_another_indented_line_that_an_old_release_has_refuses(self):
+        old = OLD.replace("- the old change\n", "- the old change:\n  - see docs/testing.md\n")
+        base = {"CHANGELOG.md": INTRO + old + links(("4.22.0", "4.21.0"))}
+        main = {"CHANGELOG.md": base["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n- a test fix:\n  - see docs/evals.md\n\n")}
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n- a test fix:\n  - see docs/testing.md\n\n")}
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("both sides have the entry '- a test fix:' with other indented lines", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_new_entry_with_an_indented_line_of_a_released_entry_keeps_it(self):
+        entry = "- an entry of the base:\n  - see docs/testing.md\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n" + entry + "\n")
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = (INTRO + section("dev-essentials 3.24.1", "4.22.1", ["an entry of the base:"]).replace(
+            "- an entry of the base:\n", entry) + OLD + links(("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace(entry, entry + "- a test fix:\n  - see docs/testing.md\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n- a test fix:\n  - see docs/testing.md\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
 
     def test_branch_with_entries_and_a_release_section_refuses(self):
         branch = branch_release("dotnet-backend-dev 1.8.1")

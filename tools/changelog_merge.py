@@ -34,7 +34,9 @@ The script refuses, and writes nothing, in each of these cases:
   - release: --theirs has entries under [Unreleased], and --absorb-unreleased is not given.
   - release: both sides changed lines of a plugin.json other than the version.
   - unreleased: the branch has no entries under [Unreleased], or it adds a release section.
+  - unreleased: the branch changed or removed an entry that the merge base has under [Unreleased].
   - A line that the branch added to CHANGELOG.md is not in the result.
+  - Both sides have an entry with the same first line under one heading, but with other indented lines.
   - A --keep-both file has no conflict, or a conflict marker stays after the step.
 
 Output lines, one fact on each line: MODE, OURS, THEIRS, BASE, HEADING, DROPPED, ABSORBED, ADDED, LINK,
@@ -166,7 +168,9 @@ def merge_block(target, extra, kind):
         for line in body:
             # An indented line belongs to the bullet above it, so it stays or goes with that bullet.
             if not line.startswith((" ", "\t")):
-                keep = line not in present
+                keep, bullet = line not in present, line
+            elif not keep and line not in present:
+                raise Refused(f"both sides have the entry '{bullet}' with other indented lines, so merge {CHANGELOG} by hand")
             if keep:
                 new.append(line)
         for line in new:
@@ -302,9 +306,14 @@ def unreleased_changelog(ours, theirs_text, base):
     _, ours_block, ours_rest = split_top(ours, "--ours")
     head, theirs_block, theirs_rest = split_top(theirs_text, "--theirs")
     # Only the entries that the branch added since the merge base go in. --theirs decides on the others.
-    old = set(entries(split_top(base, "the merge base")[1]))
+    old, mine = entries(split_top(base, "the merge base")[1]), entries(ours_block)
+    changed = [entry for heading, entry in old if (heading, entry) not in mine]
+    if changed:
+        raise Refused(f"the branch changed or removed an entry of the merge base, so merge {CHANGELOG} by hand: "
+                      f"{changed[0].split(LF)[0]}")
+    old = set(old)
     groups = {}
-    for heading, entry in entries(ours_block):
+    for heading, entry in mine:
         if (heading, entry) not in old:
             groups.setdefault(heading, []).append(entry)
     if not groups:

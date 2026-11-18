@@ -353,6 +353,13 @@ class RunEvalTests(WslCase):
         self.assertResult(done, 3, "STOP: no claude command in Linux")
         self.assertFalse((self.home / "shim.log").exists(), "the script ran no file below /mnt")
 
+    def test_no_claude_command_stops(self):
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        done = run([shutil.which("bash"), WSL / "linux" / "eval-run.sh", self.tmp / "none.bundle", "main",
+                    self.tmp / "out", self.tmp / "clone", "no", "baseline"], env=dict(self.env, PATH=str(empty)))
+        self.assertResult(done, 3, "STOP: no claude command in Linux")
+
     def test_bundle_on_a_windows_drive_stops(self):
         out = run(["bash", WSL / "linux" / "eval-run.sh", "/mnt/c/x.bundle", "main", "/tmp/o", "/tmp/c", "no",
                    "baseline"], env=self.env)
