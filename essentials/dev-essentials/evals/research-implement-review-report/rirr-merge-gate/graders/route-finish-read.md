@@ -1,5 +1,5 @@
 ---
-type: tool_used
-tool: Read
-input_match: 'work-modes/references/finish\.md'
+type: regex
+pattern: '(?:"name":"Read","input":\{"file_path":"|"command":")(?:[^"\\]|\\.)*?work-modes/references/finish\.md'
+target: trace
 ---

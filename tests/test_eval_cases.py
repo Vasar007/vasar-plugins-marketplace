@@ -4585,6 +4585,20 @@ class RirrFinishCaseTests(unittest.TestCase):
         self.assertTrue(self.found(case, "route-merge-skill-after-pr", "\n".join([pr, skill])))
         self.assertFalse(self.found(case, "route-merge-skill-after-pr", "\n".join([skill, pr])))
 
+    def test_the_grader_route_finish_read_takes_a_read_call_and_a_shell_command(self):
+        path = "/plugins/dev-essentials/skills/work-modes/references/finish.md"
+        # The text of the skill names the path too, so a tool result with that text must not pass the grader.
+        skill_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Else read `{path}`, and do its steps."}]}})
+        for case in self.BRANCHES:
+            with self.subTest(case=case):
+                meta = self.meta(case, "route-finish-read")
+                self.assertEqual((meta["type"], meta["target"], meta.get("match")), ("regex", "trace", None))
+                self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path})))
+                self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
+                self.assertFalse(self.found(case, "route-finish-read", skill_text))
+                self.assertFalse(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path.replace("finish", "other")})))
+
     def test_the_mocks_guard_the_repository_and_the_branch(self):
         for case, branch in self.BRANCHES.items():
             with self.subTest(case=case):
