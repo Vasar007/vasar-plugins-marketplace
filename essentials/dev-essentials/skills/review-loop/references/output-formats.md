@@ -34,7 +34,7 @@ Fixed files: <path of each fixed file | none>
   <#> REJECT: <reason>
   ...
 
-### Decisions for your review (only with `--autonomous`)
+### Decisions for your review (only in the full mode)
   <#> <finding>: <decision and reason>
   ...
 ```

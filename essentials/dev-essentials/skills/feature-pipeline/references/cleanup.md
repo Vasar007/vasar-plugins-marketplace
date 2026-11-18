@@ -19,7 +19,7 @@ Steps 2 and 4 both use this status, so look it up only once.
   )
   ```
 
-  If the GitHub MCP call fails (MCP not loaded, a network error, or an authentication timeout), stop and ask the user: `GitHub PR lookup failed; should I proceed with cleanup based on the cached state, or wait?` Do not skip the lookup silently and continue to the archive or the worktree removal. With `--autonomous`, do not stop. Skip the archive and the worktree removal, and report the failed lookup.
+  If the GitHub MCP call fails (MCP not loaded, a network error, or an authentication timeout), stop and ask the user: `GitHub PR lookup failed; should I proceed with cleanup based on the cached state, or wait?` Do not skip the lookup silently and continue to the archive or the worktree removal. In the full mode, do not stop. Skip the archive and the worktree removal, and report the failed lookup.
 
 If a PR exists, step 2 (archive) and step 4 (worktree removal) use the PR eligibility test. The action of a step can run in one of two cases:
 

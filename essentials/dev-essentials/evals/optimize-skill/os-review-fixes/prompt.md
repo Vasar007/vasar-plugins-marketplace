@@ -6,7 +6,7 @@ max_turns: 200
 timeout_seconds: 3600
 ---
 
-Optimize the skill in ./plugin/skills/export-orders with the optimize-skill skill. Use --report-dir=./opt-reports and --autonomous.
+Optimize the skill in ./plugin/skills/export-orders with the optimize-skill skill. Use --report-dir=./opt-reports and --mode full.
 
 My answers, in advance:
 

@@ -6,7 +6,7 @@ Step 3 of `SKILL.md` points here.
 
 **Pre-flight conditions.** Both must be true. If one is false, stop.
 
-- The user explicitly asked for or approved `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill with `autonomous` (or `--autonomous`), and the brief says so.
+- The user explicitly asked for or approved `mode: create`, or used equivalent words ("publish", "create issue", "add to GitHub"). A calling skill can give this approval for the user: the user ran that skill in the full mode of `dev-essentials:work-modes`, and the brief says so.
 - The user gave the explicit GitHub **`owner/repo`** pair. Never infer it from context, from the git remote, or from the session state (see `dev-essentials:github-mcp-conventions` Rule 1). If `owner/repo` is missing, stop and ask for it. Do not guess.
 
 **Step 1: Create the issue. If the user asked for a parent, attach it in the same call.**

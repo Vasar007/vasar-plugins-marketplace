@@ -10,8 +10,8 @@ The orchestrator reads this file at step 0 and follows "Step 0 procedure". After
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat, with every part that "Parts of the meta-plan" lists.
 6. Ask only questions that block the run.
-7. Without `--interactive`, and with no question that blocks the run, continue. The meta-plan in chat states the run. With `--interactive`, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
-8. After the OK, or after item 7 without `--interactive`, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" lists. If a start time is set, schedule the start as [pauses.md](pauses.md) says, and end the turn.
+7. Outside the interactive mode, and with no question that blocks the run, continue. The meta-plan in chat states the run. In the interactive mode, wait for the user's explicit OK. If the user changes a value, apply the change. If the change raises a new question, show the meta-plan again. Else do not show it again.
+8. After the OK, or after item 7 outside the interactive mode, do this. Write `_bug-hunt-session-progress.md` in the report folder, with the values that "Session progress file" lists. If a start time is set, schedule the start as [pauses.md](pauses.md) says, and end the turn.
 
 ## Inputs
 
@@ -21,7 +21,7 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | --- | --- | --- |
 | Repository path | first argument | If the current working directory is a git repository, that directory |
 | Project name | `--name` | The folder name of the repository |
-| GitHub repository | `--github` | Without `--interactive`: `owner/repo` from the `origin` remote. Mark it in the Scope section as `Not confirmed: taken from the remote`. With `--interactive`: ask, propose `owner/repo` from the `origin` remote, and say that the remote can hold an old name. |
+| GitHub repository | `--github` | Outside the interactive mode: `owner/repo` from the `origin` remote. Mark it in the Scope section as `Not confirmed: taken from the remote`. In the interactive mode: ask, propose `owner/repo` from the `origin` remote, and say that the remote can hold an old name. |
 | Analyzed commit | `--ref` | `HEAD` of the repository. The orchestrator resolves it to a commit SHA. |
 | Base branch | `--base` | The default branch of `origin`, as a branch name without the remote prefix (`main`, not `origin/main`). If git cannot tell, ask. `none` turns off the base comparison. |
 | Base source | `--base-from` | Default: `local`. `local`: the local branch. `remote`: a fresh clone of the branch from the remote into the scratch folder. |
@@ -33,7 +33,7 @@ The user gives the inputs as arguments or answers the step-0 questions.
 | Role of the user | `--role` | "Not stated" |
 | Number of areas | `--areas` | 5 |
 | Split threshold for pass 1 | `--split-threshold` | 40 findings |
-| Experiments | `--experiments` | `yes` without `--interactive`. With `--interactive`, ask at step 0, and propose `yes`. `yes`: agents can build, restore, test, and run code on snapshot copies in their work folders. `no`: agents only read code. |
+| Experiments | `--experiments` | `yes` outside the interactive mode. In the interactive mode, ask at step 0, and propose `yes`. `yes`: agents can build, restore, test, and run code on snapshot copies in their work folders. `no`: agents only read code. |
 | Services for experiments | step-0 answer | None. Examples: a database server, a container runtime. |
 | Pause points | `--stop-after` | None. See [pauses.md](pauses.md). |
 | Resume and start times | `--resume-at`, `--start-at` | None |
@@ -69,7 +69,7 @@ For the defaults, use only these light read-only calls:
 10. Run format: the orchestrator checks only the structure of the output (rule 3), and the verifiers and the auditor check the content. Chat gets at most one status line for each step and one final report (rule 8). Say in one sentence how this run format is accepted (rule 8).
 11. Plain English: whether `simple-english` is installed, or the fallback is used.
 12. Cleanup: the list of what step 6 deletes and what it keeps.
-13. Questions: a numbered list. With `--interactive`, always ask the user to approve the analyzed commit, the base and its source, and the GitHub repository name. Also ask for the bug label, the other known-bug sources, the experiments and services, and the pause points. Without `--interactive`, list these values with their defaults instead. In both modes, add each question that blocks the run.
+13. Questions: a numbered list. In the interactive mode, always ask the user to approve the analyzed commit, the base and its source, and the GitHub repository name. Also ask for the bug label, the other known-bug sources, the experiments and services, and the pause points. Outside the interactive mode, list these values with their defaults instead. In each mode, add each question that blocks the run.
 
 ## Questions that block the run
 
@@ -78,7 +78,7 @@ Ask a question in these cases:
 - The report folder is missing, or the report file exists.
 - The report folder already holds a `bug-hunt-artifacts` folder or a `_bug-hunt-progress-*.md` file, and no resume applies. A new run then writes into the files of the old run.
 - The run context file or the final summary file exists, and no resume applies. Offer to reuse the context file, or to use the dated names `bug-hunt-context-<YYYY-MM-DD>.md` and `bug-hunt-final-summary-<YYYY-MM-DD>.md`.
-- The base branch is unknown. With `--interactive`, also: the GitHub repository is not approved.
+- The base branch is unknown. In the interactive mode, also: the GitHub repository is not approved.
 - The model or the plugin agent type of the hunter, the verifier, or the auditor is not available.
 - There is no known-issue source.
 

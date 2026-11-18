@@ -19,7 +19,7 @@ Pass the `owner` and `repo` that the user supplied **verbatim** to every GitHub 
 - If the user says "review PR #42 in `octo-org/octo-repo`", pass `owner: "octo-org"` and `repo: "octo-repo"`. Do not infer them from any metadata.
 - If the user gives only a URL (for example `https://github.com/<owner>/<repo>/pull/<id>`), parse `owner` and `repo` from the URL path. Pass them exactly as parsed.
 - If `owner` or `repo` is ambiguous (not supplied and not parseable from a URL), **ask the user** before you make any call.
-- One exception: without `--interactive`, a workflow that documents it can take `owner/repo` from the `origin` remote of the repository under work. It must report that value as taken from the remote. With `--interactive`, this rule holds as written.
+- One exception: outside the interactive mode, a workflow that documents it can take `owner/repo` from the `origin` remote of the repository under work. It must report that value as taken from the remote. In the interactive mode, this rule holds as written.
 
 **Anti-patterns**:
 

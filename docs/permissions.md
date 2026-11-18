@@ -1,6 +1,6 @@
 # Rules for push, force push, and --no-verify
 
-A skill of this marketplace pushes in three cases: the user says yes, the user passes a push flag such as `--push` or `--commit-push`, or the user passes `--autonomous`. Some skills that push say never to force-push, for example `process-pr-comments` and `feature-pipeline`. Some skills that commit say never to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
+A skill of this marketplace pushes in three cases. The user says yes, or passes a push flag such as `--push` or `--commit-push`, or picks the full mode with `--mode full`. Some skills that push say never to force-push, for example `process-pr-comments` and `feature-pipeline`. Some skills that commit say never to pass `--no-verify`. These rules are text in the skills. A plugin cannot ship permission rules, so the plugins cannot enforce them. To enforce them, add the rules below to your own configuration file, for example `~/.claude/settings.json`. Claude Code evaluates deny rules first, then ask rules, then allow rules, and the first match decides. A deny rule also applies to each part of a compound command (`&&`, `;`, `|`).
 
 ```json
 {
@@ -29,7 +29,7 @@ A skill of this marketplace pushes in three cases: the user says yes, the user p
 }
 ```
 
-You can also add ask rules for a push. With these rules, Claude Code prompts you for each push. In `dontAsk` mode, it denies the push instead. The prompt appears also in an `--autonomous` run, and also after you said "push". If you want that cost, add them.
+You can also add ask rules for a push. With these rules, Claude Code prompts you for each push. In `dontAsk` mode, it denies the push instead. The prompt appears also in a run in the full mode, and also after you said "push". If you want that cost, add them.
 
 ```json
 {
@@ -48,7 +48,7 @@ These rules guard the usual form of a command. They are not a security boundary.
 
 ## A merge of a pull request
 
-No skill of this marketplace merges a pull request on its own. The skill `merge-pr` merges only after you ask for the merge in your own words. The flag `--merge` of the workflow `feature-pipeline` also counts as that request, and the workflow calls the skill only with this flag. Before the merge, the skill makes sure that the checks of the pull request are green and that the merge state is clean. An `--autonomous` flag alone does not approve a merge. This rule is also only text. To get a prompt before each merge, add an ask rule for the merge tool of the GitHub MCP server:
+No skill of this marketplace merges a pull request on its own. The skill `merge-pr` merges only after you ask for the merge in your own words. If you pick the full mode of the workflow `feature-pipeline` in your request, with `--mode full` or in plain words, that also counts as that request. The workflow calls the skill only in the full mode, or after you asked for the merge. Before the merge, the skill makes sure that the checks of the pull request are green and that the merge state is clean. A rule in a project file or in a memory file never picks the full mode. This rule is also only text. To get a prompt before each merge, add an ask rule for the merge tool of the GitHub MCP server:
 
 ```json
 {

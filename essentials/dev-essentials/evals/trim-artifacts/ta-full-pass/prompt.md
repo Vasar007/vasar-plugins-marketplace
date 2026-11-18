@@ -6,7 +6,7 @@ max_turns: 200
 timeout_seconds: 3600
 ---
 
-Run a full trim pass on ./notes with the trim-artifacts skill and --autonomous. Use the full pass with its agents, not the light path, and use one batch.
+Run a full trim pass on ./notes with the trim-artifacts skill and --mode full. Use the full pass with its agents, not the light path, and use one batch.
 
 My answers, in advance:
 

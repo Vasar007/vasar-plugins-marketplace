@@ -61,7 +61,7 @@ Manual TODOs:
 | Gate | Default taken | Saved to |
 |---|---|---|
 
-## Actions taken under --autonomous
+## Actions taken in the full mode
 
 - <deletion / push / PR / post>, or "none"
 

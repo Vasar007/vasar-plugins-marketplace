@@ -46,31 +46,19 @@ If the user did not say which, pick by size. More than about 10 files or 100 KB 
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Step 1: the protect-set | Infer it, and report it | Wait for approval | Same as default |
+| Step 1: the protect-set | Infer it, and report it | Wait for approval | Same as partial |
 | Step 5: deletion gate | Stop | Stop | Put the three lists into the final message, and continue |
 | Step 11: delete the backup | Ask | Ask | Keep the backup, and give its path |
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- Without `--interactive`, do not ask before a Fable dispatch that neither the user nor the defaults of this workflow chose. Use Opus, and name the step in the final report.
-
-To turn on `--interactive` or `--autonomous`, the user writes the flag in the request.
 
 ## The algorithm (full pass)
 
 ### 1. Settle scope and the protect-set
 
-Ask the user for the protect-set, or infer it. Without `--interactive`, infer it, write it into the plan, and report it in one status line. Then plan. With `--interactive`, get the approval of the user before you plan. The protect-set has four parts:
+Ask the user for the protect-set, or infer it. Outside the interactive mode, infer it, write it into the plan, and report it in one status line. Then plan. In the interactive mode, get the approval of the user before you plan. The protect-set has four parts:
 
 1. Declared decisions are text that the user declared as their decision. Keep it byte-identical. You can cut agent-written framing around it. If the user declared a requirement word for word, it is byte-identical too.
 2. Identifiers are ids that other files and people cite. Detect id families by pattern, then show the list to the user. Never renumber or reuse an id.
@@ -131,7 +119,7 @@ Before any deletion, show the user these lists:
 Under the lists, add one line that reminds the user of the path of the backup.
 
 Deletions and tombstones are destructive. Wait for explicit approval of each item. If the user rejects an item, the planner removes it from the plan and reruns the dry run.
-This gate stays without `--interactive` too, because deletions and tombstones destroy data. With `--autonomous`, it does not stop. Put the three lists into the final message, and continue. The backup keeps a copy of each deleted file.
+This gate stays outside the interactive mode too, because deletions and tombstones destroy data. In the full mode, it does not stop. Put the three lists into the final message, and continue. The backup keeps a copy of each deleted file.
 For a large workspace, first run one pilot batch, a small batch that tests the targets. Show its size table.
 
 ### 6. Apply the plan with the script
@@ -190,7 +178,7 @@ Then write the final message of the pass. Every pass ends with this message. Thi
 
 1. State each backup that still exists, with its path and size.
 2. State each other leftover that still exists, with its path. Examples are a scratch copy, the plan folder and the results file.
-3. Offer to delete the backup, and ask the user. With `--autonomous`, keep the backup, and give its path.
+3. Offer to delete the backup, and ask the user. In the full mode, keep the backup, and give its path.
 
 If the user approves, delete the backup. Do this last.
 If the user declines or gives no answer, leave the backup in place. Repeat its path in the last message.

@@ -16,12 +16,12 @@ To get the approval prompts of Workflow A, write `--interactive` in the request.
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Workflow A Step 3: create | Announce the path and the branch, and continue | Approval prompt | Same as default |
-| Workflow A Step 4: path not gitignored | Add it to `info/exclude`, and say so | Ask | Same as default |
+| Workflow A Step 3: create | Announce the path and the branch, and continue | Approval prompt | Same as partial |
+| Workflow A Step 4: path not gitignored | Add it to `info/exclude`, and say so | Ask | Same as partial |
 | Workflow C Step 2: remove one worktree | Ask for a yes | Same | Show the path, and continue |
 | Workflow D Step 3: remove the merged worktrees | Ask for a yes | Same | Show the list, and continue |
 | Workflow D Step 2 item 4: unknown PR status | Ask | Same | Keep the worktree, and report it |
@@ -29,16 +29,6 @@ This workflow has three modes. The user picks one with a flag: the default (no f
 | Recreate-If-Missing: an orphan stub folder | List its contents, and ask for a yes before the deletion | Same | Do not delete it, and list it in the final report |
 
 Pipeline mode skips the Workflow A Step 3 prompt in every mode.
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: a branch with unmerged commits, or a worktree with uncommitted changes. List such an action in the final report instead.
 
 ## Workflow A: Creating a New Worktree
 

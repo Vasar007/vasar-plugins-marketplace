@@ -8,7 +8,7 @@ when_to_use: >-
   Use it for "optimize this skill", "cut the tokens of this skill", or "audit
   this skill against the skill docs". Do not use it to review a code change.
   Use review-loop for that.
-argument-hint: "<skill-folder|plugin:skill> [--report-dir=<path>] [--settled=<file>] [--auditor-model=<model>] [--applier-model=<model>] [--reviewer-model=<model>] [--review-fixer-model=<model>] [--interactive] [--autonomous]"
+argument-hint: "<skill-folder|plugin:skill> [--report-dir=<path>] [--settled=<file>] [--auditor-model=<model>] [--applier-model=<model>] [--reviewer-model=<model>] [--review-fixer-model=<model>] [--mode interactive|partial|full]"
 ---
 
 # Optimize skill
@@ -44,31 +44,21 @@ orchestrator decides open items from the source of truth, not from the taste of 
 | `--applier-model` | `sonnet` | The model of the applier |
 | `--reviewer-model` | `opus` | The model of the behavior reviewer |
 | `--review-fixer-model` | `sonnet` | The model of the review fixer |
-| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
-| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
+| `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Step 0 item 8: the scope | Continue | Wait for the OK | Same as default |
-| Step 2 and Step 6: open items and disputed findings | Decide, and list them under "Decisions for your review" | Ask | Same as default |
+| Step 0 item 8: the scope | Continue | Wait for the OK | Same as partial |
+| Step 2 and Step 6: open items and disputed findings | Decide, and list them under "Decisions for your review" | Ask | Same as partial |
 | Step 2 item 5: delete a file that this run did not create | Ask before Step 3, unless the user approved it before | Same | No stop |
-| Step 2 item 6: the decisions | Continue | Wait for the OK | Same as default |
-| Step 6: the review triage | Continue | Wait for the OK | Same as default |
+| Step 2 item 6: the decisions | Continue | Wait for the OK | Same as partial |
+| Step 6: the review triage | Continue | Wait for the OK | Same as partial |
 
 The run never pushes and never posts.
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
 
 ## Rules for the whole run
 
@@ -155,7 +145,7 @@ The folder of this skill is `${CLAUDE_SKILL_DIR}`. The brief for each role is in
 5. Build the Settled list from the request, the `--settled` file, and the source of truth. Each line names the decision and its source.
 6. Find the earlier audits and plans of the target in the report folder and in the source of truth. The auditor must not repeat or undo their items.
 7. Look for `simple-english:simple-english` in the list of available skills. If it is not installed, make sure that the fallback file of rule 6 exists. If it does not, stop and ask.
-8. Write the scope in chat: the target files with their sizes (`wc -c -w`), the report folder, the base commit, and the branch. Also write the Settled list, the earlier audits, and the models. With `--interactive`, wait for the user's OK. Else continue.
+8. Write the scope in chat: the target files with their sizes (`wc -c -w`), the report folder, the base commit, and the branch. Also write the Settled list, the earlier audits, and the models. In the interactive mode, wait for the user's OK. Else continue.
 
 ### Step 1. Audit and plan
 
@@ -172,10 +162,10 @@ changed on purpose" list. If a part is missing, send the auditor the list of gap
 
 1. List the open items.
 2. Decide each one from the source of truth (rule 3). Write a "Decision:" line under every open item. The value is APPLY, APPLY alternative (and its name), or REJECT, with its source.
-3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. With `--interactive`, ask the user instead.
+3. If the source of truth does not decide an item, it is a critical decision. Choose the option that keeps the current behavior, because the audit report is not an approved plan. List the item under "Decisions for your review" in the final report. In the interactive mode, ask the user instead.
 4. If an item breaks the Settled list, mark it "Decision: REJECT (Settled)".
-5. If an item deletes a file that this run did not create, ask the user before step 3. If the user approved that deletion earlier or the run has `--autonomous`, do not ask.
-6. With `--interactive`, show the decisions and wait for the user's OK. Else continue.
+5. If an item deletes a file that this run did not create, ask the user before step 3. If the user approved that deletion earlier or the run is in the full mode, do not ask.
+6. In the interactive mode, show the decisions and wait for the user's OK. Else continue.
 7. If no item is left to apply, skip steps 3 to 6 and say so in the final report.
 
 ### Step 3. Apply
@@ -205,7 +195,7 @@ review report.
 
 ### Step 6. Fix the review findings
 
-1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3). With `--interactive`, show the triage and wait for the user's OK. Else continue.
+1. Triage each finding. Accept a finding that shows a lost or changed behavior. Reject a finding that only states a preference, or that breaks the Settled list. Decide disputed findings from the source of truth (rule 3). In the interactive mode, show the triage and wait for the user's OK. Else continue.
 2. If no finding is accepted, skip the dispatch.
 3. Else dispatch the review fixer with the accepted findings. It makes the second commit.
 4. Do the fact tests of step 3 again for this commit, with the step-3 commit in place of the base commit. In place of a class for each item, the reply gives a fix for each accepted finding.

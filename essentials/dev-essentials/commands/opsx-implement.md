@@ -28,34 +28,21 @@ This command needs the `openspec` CLI on the PATH. If an `openspec` command fail
 | `--commit`         | off     | Commit changes after each completed phase                |
 | `--commit-push`    | off     | Commit and push to remote after each completed phase     |
 | `--context <path>` | auto    | Path to a research/context file with prior session notes |
-| `--interactive` | off | Use the `--interactive` column of the gate table in "Autonomy". |
-| `--autonomous` | off | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
+| `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 If neither `--commit` nor `--commit-push` is specified, changes are left uncommitted (working tree only).
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
 | Step 3: the task list | Show it and continue | Show it and continue | Show it and continue |
 | Step 4 and Guardrails: a critical decision | Ask | Ask | Decide, and list it |
-| Guardrails: a plan issue with a clear fix | Update the artifacts, and list the change | Pause, and suggest updates | Same as default |
+| Guardrails: a plan issue with a clear fix | Update the artifacts, and list the change | Pause, and suggest updates | Same as partial |
 | Step 5: push | Only with `--commit-push`, which approves it | Same | Same |
-| Step 6: `/save-context` cleanup | Its own gates, with the flag of this run | Same | Same |
-
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Without `--autonomous`, ask the user about every other critical decision.
-- With `--autonomous`, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
-- When this workflow runs another workflow and this run has `--interactive` or `--autonomous`, pass that flag on.
+| Step 6: `/save-context` cleanup | Its own gates, with the mode of this run | Same | Same |
 
 ## Steps
 
@@ -86,7 +73,7 @@ These rules apply in every mode:
    For each pending task in the selected phases:
    - Announce which task is being worked on.
    - **Follow existing patterns** in the codebase. Read the related files before you write new code.
-   - **If unclear about something, ask the user**. Do not improvise. With `--autonomous`, decide as "Autonomy" says.
+   - **If unclear about something, ask the user**. Do not improvise. In the full mode, decide as `dev-essentials:work-modes` says.
    - Use the skills that fit the change type and the stack, for example `dotnet-backend-dev:create-domain-model` and `dotnet-backend-dev:create-tests` in a .NET repo with that plugin.
    - Mark each task complete in `tasks.md` as you finish it: `- [ ]` → `- [x]`
    - Keep the OpenSpec artifacts in sync with the code. If you find an inconsistency or an issue, update the artifacts that it affects (specs, design, tasks).
@@ -102,7 +89,7 @@ These rules apply in every mode:
 
 6. **Save research and findings**
 
-   Run this step after the selected phases. If the run stops because of a blocker, run it before the stop. Follow the `/save-context` command logic with `--change "<name>"`, plus `--interactive` or `--autonomous` for a run that has it.
+   Run this step after the selected phases. If the run stops because of a blocker, run it before the stop. Follow the `/save-context` command logic with `--change "<name>"`, plus the `--mode` of this run.
    - If `--context <path>` was given, save to that path. Else save to `Results/<change-name>-research.md` in the notes folder.
    - Include: what was done, decisions made, issues found, what's next.
    - If the user asks for a continuation prompt in this run, print it after the summary of Step 7. Else print no continuation prompt for the next session.
@@ -118,7 +105,7 @@ These rules apply in every mode:
 
 ## Guardrails
 
-- **Do not improvise**. If you are not sure, ask the user for clarification. With `--autonomous`, decide as "Autonomy" says.
+- **Do not improvise**. If you are not sure, ask the user for clarification. In the full mode, decide as `dev-essentials:work-modes` says.
 - Stop after the specified phases. Do not continue into phases that the user did not select.
 - Always save research findings before stopping
-- If implementation reveals design issues: without `--interactive`, update the artifacts for a clear fix, and list the change in the output. If the fix needs a critical decision, follow "Autonomy". With `--interactive`, pause and suggest artifact updates.
+- If implementation reveals design issues: outside the interactive mode, update the artifacts for a clear fix, and list the change in the output. If the fix needs a critical decision, follow "Autonomy". In the interactive mode, pause and suggest artifact updates.

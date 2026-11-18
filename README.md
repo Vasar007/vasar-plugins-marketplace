@@ -65,7 +65,7 @@ Some skills push, and some say never to force-push or to pass `--no-verify`. The
 | Page | What it covers |
 |---|---|
 | [Installing and updating](./docs/installing.md) | The shell form, the configuration files, and the steps for updates. |
-| [Working across sessions](./docs/workflows.md) | One session or a new one, and the costs that evals measured. |
+| [Working across sessions](./docs/workflows.md) | The work modes of the workflows, one session or a new one, and the costs that evals measured. |
 | [Rules for push, force push, and `--no-verify`](./docs/permissions.md) | The permission rules for the push rules of the skills. |
 | [Authoring reference](./docs/authoring.md) | The folders, the rules for `marketplace.json` and `plugin.json`, and the validator. |
 | [Testing](./docs/testing.md) | The test run and the CI workflow `.github/workflows/tests.yml`. |

@@ -1,6 +1,6 @@
 ---
 description: Save session context, findings, and progress to a research file for future sessions, then clean up finished context files
-argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--continuation-prompt] [--interactive] [--autonomous]"
+argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--continuation-prompt] [--mode interactive|partial|full]"
 ---
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
@@ -26,28 +26,19 @@ The notes folder is `${user_config.notes_dir}`. If that value still shows as a `
 | `--compact`                | When updating an existing file, aggressively compact old content    |
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
 | `--continuation-prompt`    | Print Step 7's next-session continuation prompt (off by default)    |
-| `--interactive`            | Use the `--interactive` column of the gate table in "Autonomy". |
-| `--autonomous`             | Use the `--autonomous` column of the gate table in "Autonomy". The run still stops for a question that blocks the work. |
+| `--mode interactive\|partial\|full` | The work mode. The default is `partial`. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
 ## Autonomy
 
-This workflow has three modes. The user picks one with a flag: the default (no flag), `--interactive`, or `--autonomous`. A gate is a step where the run can stop and ask the user. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
-| Gate | Default | `--interactive` | `--autonomous` |
+| Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
-| Step 1: no name for the file | Name it after the main topic, and say so | Ask | Same as default |
+| Step 1: no name for the file | Name it after the main topic, and say so | Ask | Same as partial |
 | Step 5: finished files of this session | Move them to the backup with no stop | Same | Same |
 | Step 5: a file of an older session, or a stale branch | List it, and act only after the yes of the user | Same | Move the file to the backup. Delete a branch only under the rule below |
 
-These rules apply in every mode:
-
-- If the work cannot continue without an answer, ask the user. Examples: a required input is missing and has no safe default, or two readings of the task give different results. A failure that the run cannot fix also stops the run. Do not ask in other cases.
-- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
-- The final report lists each gate that the run passed without a stop. With `--autonomous`, it also lists each deletion, post, push, and pull request that the run made.
-- `--autonomous` removes stops. It adds no steps. A step that runs only with a flag such as `--push` still needs that flag, and the flag is the approval of that step.
-- An instruction of the user in the conversation outranks these flags. For example, "pause before the push" stops the run before the push, also with `--autonomous`.
-- If the run has both `--interactive` and `--autonomous`, stop before the first step, and ask the user once which mode to use.
-- With `--autonomous`, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests`, with `head: "<owner>:<branch>"` and `state: "all"`. `<owner>` is the `owner` value of the call. The default state lists open pull requests only, and GitHub ignores a `head` value without the `<owner>:` prefix. Then read the pull request with `pull_request_read` (`method: "get"`), and make sure that `merged` is `true`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
+In the full mode, do not destroy git work that has no other copy. Examples: `git branch -D` on a branch with unmerged commits destroys commits that no other branch or remote holds. A worktree removal destroys the uncommitted changes of the worktree. Do not do such an action. List it in the final report. One exception: a squash merge makes `git branch -d` refuse a branch whose content is already in the base branch. If both checks below pass, you can delete such a branch with `git branch -D`. First, its pull request is merged. Find the pull request with `list_pull_requests`, with `head: "<owner>:<branch>"` and `state: "all"`. `<owner>` is the `owner` value of the call. The default state lists open pull requests only, and GitHub ignores a `head` value without the `<owner>:` prefix. Then read the pull request with `pull_request_read` (`method: "get"`), and make sure that `merged` is `true`. Use the GitHub MCP tools, not the `gh` CLI, as `dev-essentials:github-mcp-conventions` requires. Second, the local tip of the branch (`git rev-parse <branch>`) equals the head SHA of that merged pull request. If either check fails, or the run cannot read the state of the pull request, do not delete the branch. List it in the final report. This rule does not cover a context file that a cleanup step of this workflow classifies for deletion.
 
 ## Steps
 
@@ -64,7 +55,7 @@ Find the output path. The value of `--change` or `--plan` names the context sour
 - If a name (not a path) is given, write to `Results/<name>-research.md` in the notes folder.
 - If a path is given, write to that path.
 - If no name or path is given, use the context source. For a change, write to `Results/<change-name>-research.md` in the notes folder. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Results/my-plan-research.md` in the notes folder.
-- If nothing is given and nothing can be inferred: without `--interactive`, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. With `--interactive`, use **AskUserQuestion** to ask:
+- If nothing is given and nothing can be inferred: outside the interactive mode, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. In the interactive mode, use **AskUserQuestion** to ask:
   > "What name do you want for this research file? (for example, `investigate-bug-123` or `refactor-auth`)"
 
 ### 2. Gather context
@@ -161,7 +152,7 @@ This is a light pass, not a full trim. To trim one file in depth, use `dev-essen
    - Move to the backup (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
    - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
    - Keep: the saved file, the files of work that still runs, and raw history exports such as session transcripts.
-   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Move the file to the backup only after the user says yes. With `--autonomous`, put a file from an older session in the group "Move to the backup" and list it in Step 6. A branch follows the safety rules below.
+   - Ask: a file from an older session, and a branch that looks stale. List each one with the reason in Step 6. Move the file to the backup only after the user says yes. In the full mode, put a file from an older session in the group "Move to the backup" and list it in Step 6. A branch follows the safety rules below.
 3. Move the files of the group "Move to the backup" with the script `backup_move.py` of this plugin. The script moves each file to a backup folder outside the workspace and keeps its path relative to the workspace. It never deletes a file, so a wrong "finished" call loses nothing. First run it without `--apply`. It prints the plan and the `BACKUP` folder. Then run it with `--apply` and that folder:
 
    ```bash
@@ -178,8 +169,8 @@ Safety rules:
 - Never delete a notes file in this step. The backup folder keeps each moved file until the user deletes it.
 - Move only files that git does not track. The script refuses a tracked file. Before you trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
-- Do not move a file from an older session, and do not delete a branch, without the user's yes or `--autonomous`.
-- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. With `--autonomous`, use it only after both checks of the squash-merge exception in "Autonomy" pass. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.
+- Do not move a file from an older session, and do not delete a branch, without the user's yes or the full mode.
+- For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. In the full mode, use it only after both checks of the squash-merge exception in "Autonomy" pass. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.
 
 ### 6. Confirm to user
 
