@@ -15,7 +15,7 @@ This release makes the final report of `/audit-team` keep the heading and the la
 
 ### Fixed in dev-essentials
 
-- `commands/audit-team.md`: Step 3 now asks the report to keep the heading and each bold label of its form word for word, also `**Agreement matrix:**`. The adapter of `review-loop` reads the buckets and the agreement matrix by these labels. Before the change, the full form showed in 6 of 16 eval runs of the case `at-seeded-design`. Each of the other 10 runs renamed the label "Agreement matrix" or left it out. Six of them also changed the heading or left it out. With the change, the full form showed in 6 of 6 head runs, and in 2 of 4 base runs (issue #259).
+- `commands/audit-team.md`: Step 3 now asks the report to keep the heading and each bold label of its form word for word, also `**Agreement matrix:**`. The adapter of `review-loop` reads the parts Blockers, Warnings, and Suggestions and the agreement matrix by these labels. Before the change, the full form showed in 6 of 16 eval runs. Fifteen of them ran the case `at-seeded-design`, and one ran a local copy of it with a count of 5. Each of the other 10 runs renamed the label "Agreement matrix" or left it out. Six of them also changed the heading or left it out. With the change, the full form showed in 6 of 6 head runs, and in 2 of 4 base runs (issue #259).
 
 ### Changed in the repository
 
