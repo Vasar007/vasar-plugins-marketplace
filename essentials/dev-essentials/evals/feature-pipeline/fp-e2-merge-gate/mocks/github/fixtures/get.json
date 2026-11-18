@@ -1,0 +1,8 @@
+{
+  "number": 823,
+  "title": "Reject an empty sku",
+  "state": "open",
+  "html_url": "https://github.com/example-org/inventory/issues/823",
+  "labels": [],
+  "body": "If the sku is empty or only white space, SkuFormatter.Normalize must throw an ArgumentException. Add a test for it."
+}

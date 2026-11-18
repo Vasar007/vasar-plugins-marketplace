@@ -1,0 +1,14 @@
+[
+  {
+    "filename": "src/Inventory/SkuFormatter.cs",
+    "status": "modified",
+    "additions": 2,
+    "deletions": 1
+  },
+  {
+    "filename": "tests/Inventory.Tests/SkuFormatterTests.cs",
+    "status": "added",
+    "additions": 20,
+    "deletions": 0
+  }
+]
