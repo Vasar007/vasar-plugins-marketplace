@@ -9,7 +9,7 @@ Read this file at the finish step of each run.
 `dev-essentials:work-modes` says how to read an old spelling. Take the first bullet that fits the run:
 
 - In the full mode, do the steps with no question. The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.
-- The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push and nothing more. Do not look for the repository. With `--push`, do steps 1 to 3 with no question, and skip the question, step 4, and step 5. With no `--push`, do no step.
+- The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no outward step. For both, do not look for the repository. With `--push`, do steps 1 to 3 with no question, and skip the question, step 4, and step 5. With no `--push`, do no step.
 - In every other run of the partial mode and of the interactive mode, the final gate comes after the final report. Show the verdict of each review loop of the run. Then ask one question: "Push the branch, open a pull request, and merge it after the gate of merge-pr? (yes / push and pull request only / no)". Do no step before the answer. With "push and pull request only", skip step 5. With "no", do no step.
 
 If the end of the run has another question, for example the cleanup question of `save-context`, ask both questions in one message.

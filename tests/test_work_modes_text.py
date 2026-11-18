@@ -300,8 +300,8 @@ class FinishStepTests(unittest.TestCase):
 
     def test_a_run_that_never_pushes_skips_the_search_for_the_repository(self):
         self.assertIn("If the request forbids the push, do no step, and do not look for the repository.", self.text)
-        self.assertIn("The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push and nothing more. "
-                      "Do not look for the repository. With `--push`, do steps 1 to 3 with no question, "
+        self.assertIn("The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no outward step. For both, "
+                      "do not look for the repository. With `--push`, do steps 1 to 3 with no question, "
                       "and skip the question, step 4, and step 5. With no `--push`, do no step.", self.text)
 
     def test_each_run_matches_one_bullet_of_the_section_when_the_steps_run(self):
@@ -311,7 +311,7 @@ class FinishStepTests(unittest.TestCase):
         self.assertIn("Take the first bullet that fits the run:", when)
         self.assertEqual(bullets[0], "- In the full mode, do the steps with no question. "
                                      "The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.")
-        self.assertTrue(bullets[1].startswith("- The old flag `--push`, and the old `--autonomous` with no `--merge`, approve a push"))
+        self.assertTrue(bullets[1].startswith("- The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no"))
         self.assertTrue(bullets[2].startswith("- In every other run of the partial mode and of the interactive mode, the final gate comes after "))
         # The old spellings are named only where they pick a bullet. work-modes says how to read each one.
         self.assertIn("`dev-essentials:work-modes` says how to read an old spelling.", when)
