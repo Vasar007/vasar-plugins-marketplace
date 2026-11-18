@@ -1,0 +1,20 @@
+{
+  "number": 77,
+  "title": "Reject an empty sku",
+  "body": "## What\nReject an empty sku in `SkuFormatter.Normalize`.\n\n## Why\nAn empty sku reached the stock queries as an empty text.\n\n## Changes\n- **SkuFormatter**: `Normalize` throws an `ArgumentException` for an empty sku and for a sku of white space only.\n- **Tests**: `SkuFormatterTests` covers both inputs.\n\nTask: https://github.com/example-org/inventory/issues/822",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "clean",
+  "html_url": "https://github.com/example-org/inventory/pull/77",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "work/merge",
+    "sha": "0f205a0fcacbc41748b32f9a3f84196e94f7357a"
+  },
+  "user": {
+    "login": "eval-user"
+  }
+}

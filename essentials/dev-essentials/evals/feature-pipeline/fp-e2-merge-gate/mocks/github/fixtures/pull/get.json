@@ -1,0 +1,20 @@
+{
+  "number": 77,
+  "title": "Reject an empty sku",
+  "body": "Reject an empty sku in `SkuFormatter.Normalize`.\n\nTask: https://github.com/example-org/inventory/issues/823",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "clean",
+  "html_url": "https://github.com/example-org/inventory/pull/77",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "work/merge-gate",
+    "sha": "1a1b63eb2d9e7df30311c1786fb2a726a9094c50"
+  },
+  "user": {
+    "login": "eval-user"
+  }
+}

@@ -43,6 +43,8 @@ EXPECTED_BRANCH = {
     "fp-e1-border-auth": "work/border-auth",
     "fp-e2-untracked-file": "work/untracked-file",
     "fp-e2-fork-pr": "work/fork-pr",
+    "fp-e2-merge": "work/merge",
+    "fp-e2-merge-gate": "work/merge-gate",
     "fp-e3-autonomous-main": "main",
     "fp-e4-package-bump": "work/package-bump",
     "fp-e5-breaking-change": "work/breaking-change",
@@ -443,6 +445,7 @@ class ScaffoldTests(FixtureCase):
         if bare.exists():
             self.check_remote(repo, bare, text)
             self.check_mocked_pull_request(case, bare)
+        self.check_pipeline_pull_request(case, repo, branch)
         self.check_pr_head(case, repo, branch)
         if (repo / "tests").is_dir() and not list(repo.glob("*.sln")):
             self.check_python_tests(case, repo)
@@ -487,6 +490,19 @@ class ScaffoldTests(FixtureCase):
         ref = f"refs/pull/{pull['number']}/head"
         self.assertEqual(pull["head"]["sha"], self.git(bare, "rev-parse", "--verify", ref)[1],
                          f"the head SHA in {mock.name} is not the commit of {ref}")
+
+    def check_pipeline_pull_request(self, case, repo, branch):
+        """A pipeline case keeps the mocked pull request in fixtures/pull/. Its head must be the scaffold branch and its last commit.
+
+        The merge gate compares this SHA with the local branch, so a wrong SHA changes what the case tests.
+        """
+        mock = case.path / "mocks" / "github" / "fixtures" / "pull" / "get.json"
+        if not mock.is_file():
+            return
+        pull = json.loads(mock.read_text(encoding="utf-8"))
+        self.assertEqual(pull["head"]["ref"], branch)
+        self.assertEqual(pull["head"]["sha"], self.git(repo, "rev-parse", "HEAD")[1],
+                         f"the head SHA in pull/{mock.name} is not the last commit of the scaffold")
 
     def check_pr_head(self, case, repo, branch):
         """The head, the owner, and the repo in the expect block of the PR mock must be the values that the project context of the scaffold gives."""
