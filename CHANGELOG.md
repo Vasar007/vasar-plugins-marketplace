@@ -11,11 +11,11 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 3.27.1 in release [4.25.1] - 2026-11-18
 
-This release fixes the eval case `os-review-fixes` of `optimize-skill`. Its route grader `route-seed-contents` failed in each run, because an eval run can read no web page (issue #268).
+This release fixes the eval case `os-review-fixes` of `optimize-skill`. Its route grader `route-seed-contents` failed in each run. The auditor brief does not ask for a contents list, and the runs of the case grant no web tool (issue #268).
 
-### Changed in dev-essentials
+### Fixed in dev-essentials
 
-- `evals/optimize-skill/os-review-fixes`: the route grader `route-seed-contents` is gone, so the case has four seed graders. That grader looked for a contents list of the long reference file `csv-format.md` in the audit report. Only the best practice page for skills holds the rule for such a list. In each of the 7 runs of the first eval, the auditor tried to read that page, and the sandbox refused the request. The scaffold comment and the description of the case now name four seeded issues. The fixture file does not change (issue #268).
+- `evals/optimize-skill/os-review-fixes`: the route grader `route-seed-contents` is gone, so the case has four seed graders. That grader looked for a contents list of the long reference file `csv-format.md` in the audit report. The rule for such a list is on the best practice page for skills. The list "What to look for" of the auditor has no item for it. The example audit of the skill keeps that point on purpose. In each of the 7 runs of the first eval, the auditor tried to read that page, and the sandbox refused the request. The scaffold comment and the description of the case now name four seeded issues. The fixture file does not change (issue #268).
 
 ### Changed in the repository
 

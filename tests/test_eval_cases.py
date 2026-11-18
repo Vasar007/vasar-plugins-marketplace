@@ -4125,8 +4125,9 @@ class OptimizeSkillCaseTests(unittest.TestCase):
         self.assertIn(ROUTE_TAG, self.case.tags)
 
     def test_no_grader_looks_for_a_contents_list(self):
-        """An eval run can read no web page, so the auditor cannot learn the rule for long reference files (issue #268)."""
-        found = [name for name, options in self.case.graders.items() if re.search(r"(?i)contents", f"{name} {options}")]
+        """The runs of this case grant no web tool, so the auditor does not learn the rule for long reference files (issue #268)."""
+        pattern = r"(?i)contents (?:list|section)|table of contents|toc\b"
+        found = [name for name, (meta, body) in self.case.graders.items() if re.search(pattern, f"{name} {meta} {body}")]
         self.assertEqual(found, [])
 
     def test_the_fixer_grader_needs_a_review_fixer(self):
