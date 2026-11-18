@@ -4126,7 +4126,7 @@ class OptimizeSkillCaseTests(unittest.TestCase):
 
     def test_no_grader_looks_for_a_contents_list(self):
         """The runs of this case grant no web tool, so the auditor does not learn the rule for long reference files (issue #268)."""
-        pattern = r"(?i)contents (?:list|section)|table of contents|toc\b"
+        pattern = r"(?i)contents.{0,8}?(?:list|section)|table.{0,8}?of.{0,8}?contents|toc\b"
         found = [name for name, (meta, body) in self.case.graders.items() if re.search(pattern, f"{name} {meta} {body}")]
         self.assertEqual(found, [])
 
