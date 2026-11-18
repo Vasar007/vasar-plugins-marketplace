@@ -54,6 +54,9 @@ EXPECTED_BRANCH = {
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
+    "mp-green-merge": "feature/paging",
+    "mp-red-check": "feature/paging",
+    "mp-no-merge-word": "feature/paging",
     "os-review-fixes": "main",
     "at-seeded-design": "main",
 }
