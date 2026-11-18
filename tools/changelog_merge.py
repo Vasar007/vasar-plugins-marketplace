@@ -36,6 +36,8 @@ The script refuses, and writes nothing, in each of these cases:
   - unreleased: the branch has no entries under [Unreleased], or it adds a release section.
   - unreleased: the branch changed or removed an entry that the merge base has under [Unreleased].
   - A line that the branch added to CHANGELOG.md is not in the result.
+  - The result has a line of CHANGELOG.md more often or less often than the two sides keep it, for example
+    a line that a side removed or changed since the merge base.
   - Both sides have an entry with the same first line under one heading, but with other indented lines.
   - A --keep-both file has no conflict, or a conflict marker stays after the step.
 
@@ -57,6 +59,7 @@ import json
 import re
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 LF = "\n"
@@ -333,6 +336,21 @@ def lost_lines(base, ours, result, ignore):
     return [line for line in ours.split(LF) if line.strip() and line not in known and not ignore(line)]
 
 
+def miscounted(base, ours, theirs, result):
+    """The first line that the result has more often or less often than a merge keeps it, and True if more often.
+
+    A merge keeps the copies that both sides keep, and adds the copies that each side added. Headings and links do not count.
+    """
+    b, o, t, r = (Counter(line for line in text.split(LF) if line.strip() and not line.startswith(("#", "[")))
+                  for text in (base, ours, theirs, result))
+    for line in sorted(set(b) | set(o) | set(t) | set(r)):
+        kept = min(b[line], o[line], t[line])
+        added = (max(o[line] - b[line], 0), max(t[line] - b[line], 0))
+        if not kept + max(added) <= r[line] <= kept + sum(added):
+            return line, r[line] > kept + sum(added)
+    return None
+
+
 def keep_both(top, name):
     """The text of the file with both sides of each conflict, the side of --theirs first, and the conflict count."""
     try:
@@ -424,6 +442,11 @@ def execute(args):
     lost = lost_lines(base, ours, text, ignore)
     if lost:
         raise Refused(f"{len(lost)} lines that the branch added would be lost, the first: {lost[0]}")
+    wrong = miscounted(base, ours, theirs, text)
+    if wrong:
+        line, extra = wrong
+        what = "has a line that a side removed or changed" if extra else "loses a line that a side added"
+        raise Refused(f"the result {what} since the merge base, so merge {CHANGELOG} by hand: {line}")
     files[CHANGELOG] = text
     for name in args.keep_both:
         files[name], count = keep_both(top, name)

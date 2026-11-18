@@ -131,6 +131,29 @@ class MergeCase(ScratchCase):
 
 
 class ReleaseTests(MergeCase):
+    def test_entry_that_main_changed_after_the_branch_took_it_refuses(self):
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- fix the parser\n\n")
+        main = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- fix the parser\n", "- fix the lexer\n")}
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "fix the parser"))
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased", code=3)
+        self.assertIn("the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- fix the parser", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_indented_line_below_a_bullet_that_main_has_refuses(self):
+        main = {"CHANGELOG.md": BASE["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a test fix:\n\n")}
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix:", "the change of the branch:"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(":\n", ":\n  - see docs/evals.md\n")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased", code=3)
+        self.assertIn("the result loses a line that a side added since the merge base, so merge CHANGELOG.md by hand: "
+                      "  - see docs/evals.md", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
         main[MANIFEST] = described("1.8.0", "A text of both sides.")
@@ -608,6 +631,18 @@ class UnreleasedTests(MergeCase):
         self.tool(clone, "unreleased")
         self.assertIn(TOP + "### Changed in the repository\n\n- a test fix:\n  - see docs/testing.md\n\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
+
+    def test_line_that_the_branch_removed_from_a_release_refuses(self):
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace("- the old change\n", "- the old change\n- a wrong entry\n")
+        main = {"docs/notes.md": "# Notes\n\nThe first line.\nThe line of main.\n"}
+        branch = {"CHANGELOG.md": BASE["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a new entry\n\n")}
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- a wrong entry", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
     def test_branch_with_entries_and_a_release_section_refuses(self):
         branch = branch_release("dotnet-backend-dev 1.8.1")
