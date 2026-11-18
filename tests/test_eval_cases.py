@@ -2392,11 +2392,12 @@ class PipelineMergeTests(unittest.TestCase):
                 self.assertFalse(self.passes(case, "not-merged", [self.pr()] + self.gate_reads() + [self.merge()]))
                 # With no mock file, the session has no merge tool, and the grader not-merged proves nothing.
                 self.assertTrue(self.mock_file(case, "merge_pull_request.md").is_file())
-        # A merge call that breaks the expect block ends the run with score 0 and no grader result.
+        # A call that breaks the expect block of a mock ends the run with score 0 and no grader result.
         for case in (*self.BRANCHES, self.FORK_CASE):
-            with self.subTest(mock=case):
-                lines, _body = split_frontmatter(self.mock_file(case, "merge_pull_request.md").read_text(encoding="utf-8"))
-                self.assertEqual(parse_block(lines)["expect"], {"owner": "example-org", "repo": "inventory"})
+            for mock in ("merge_pull_request.md", "issue_read.md", "add_issue_comment.md"):
+                with self.subTest(case=case, mock=mock):
+                    lines, _body = split_frontmatter(self.mock_file(case, mock).read_text(encoding="utf-8"))
+                    self.assertEqual(parse_block(lines)["expect"], {"owner": "example-org", "repo": "inventory"})
 
     def test_the_route_graders_of_the_gate_case_need_the_pr_call_first(self):
         checks = self.read("get_check_runs")
@@ -2505,8 +2506,11 @@ class PipelineMergeTests(unittest.TestCase):
         row = "| Step 9b: the merge, only with `--merge` | No stop. If the merge gate fails, report it, and go to Step 10 | Same | Same |"
         for sentence in ("Without `--merge`, skip this step.",
                          "`--autonomous` alone never merges.",
-                         "- `pr` in `pipeline-state.json` is not `null`, so Step 9 created a PR.\n",
+                         # The question of Human Approve #2 names the second item by its number, so the order counts.
+                         "With `--merge`, these two items must hold:\n\n"
+                         "- `pr` in `pipeline-state.json` is not `null`, so Step 9 created a PR.\n"
                          "- The stages `review` and `security-review` are in `completed`, and the reviews have no blocking issues.\n",
+                         "into `pr` of `pipeline-state.json` before the next step.",
                          "Leave item 3 of its Step 4, the merged local branch, to Step 10",
                          "This holds also for a run that ended earlier with an open PR and no `--merge`.",
                          'If the run has `--merge` and the second item of Step 9b holds, write "PR, merge" in place of "PR" in the question.',

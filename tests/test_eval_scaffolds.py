@@ -517,6 +517,16 @@ class ScaffoldTests(FixtureCase):
         protocol = REPO / "essentials/dev-essentials/skills/feature-pipeline/references/checkpoint-protocol.md"
         schema = json.loads(re.search(r"```json\n(\{\n.*?\n\})\n```", protocol.read_text(encoding="utf-8"), re.DOTALL).group(1))
         self.assertEqual(sorted(state), sorted(schema))
+        # The run looks for the state file in the folder of its task ID. With another ID, it starts a new run.
+        task = states[0].parent.name
+        self.assertEqual(state["taskId"], task)
+        self.assertIn(f"arguments: `{task} ", case.prompt_body)
+        # The resume stops on a stage name that the Overview table of the skill does not have.
+        skill = (protocol.parent.parent / "SKILL.md").read_text(encoding="utf-8")
+        stages = set(re.findall(r"^\| \w+ \| `([a-z0-9-]+)` \| ", skill, re.MULTILINE))
+        self.assertEqual(len(stages), 10)
+        self.assertIn(state["stage"], stages | {None})
+        self.assertLessEqual(set(state["completed"]), stages)
         self.assertEqual((state["worktree"], state["noWorktree"]), (branch, True))
         mocks = case.path / "mocks" / "github"
         lines, _body = split_frontmatter((mocks / "pull_request_read.md").read_text(encoding="utf-8"))

@@ -24,8 +24,8 @@ This release adds the flag `--merge` to the workflow `feature-pipeline`. With `-
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: the new class `PipelineMergeTests` tests the graders of the three cases on right and wrong runs. It pins the fixtures of the mocked pull request and the state that the resume case starts from. It also pins the sentences of the pipeline about the flag and the two items of Step 9b. `RoutePlainDotnetGraderTests` counts 14 cases, and `ForkHeadMockTests` reads the new full run (issue #262).
-- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the two new cases. `ScaffoldTests` makes sure that the head of the pull request in `fixtures/pull/get.json` is the branch and the last commit of the scaffold. The new method `check_pipeline_state` reads the state file that a resume case plants. That file must be valid JSON with the keys of the schema, and its pull request must be the mocked one (issue #262).
+- `tests/test_eval_cases.py`: the new class `PipelineMergeTests` tests the graders of the three cases on right and wrong runs. It pins the fixtures of the mocked pull request and the state that the resume case starts from. It also pins the sentences of the pipeline about the flag and the two items of Step 9b in their order. `RoutePlainDotnetGraderTests` counts 14 cases, and `ForkHeadMockTests` reads the new full run (issue #262).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the two new cases. `ScaffoldTests` makes sure that the head of the pull request in `fixtures/pull/get.json` is the branch and the last commit of the scaffold. The new method `check_pipeline_state` reads the state file that a resume case plants. That file must be valid JSON with the keys of the schema, and its pull request must be the mocked one. Its task ID must be the task of the prompt, and its stage names must be stage keys of the skill (issue #262).
 - `docs/permissions.md`: `feature-pipeline` calls `merge-pr` only with the flag `--merge` (issue #262).
 - `docs/evals.md`: the suite `feature-pipeline` has 12 cases, and a new paragraph says why two cases test the flag (issue #262).
 
