@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 3.28.0 in release [4.26.0] - 2026-11-18
+
+This release adds the script `worktree.py` to the skill `git-worktree-management`. The script does the fixed git steps of a worktree. The skill keeps the steps that need a judgment, a question, or a GitHub tool (issue #270).
+
+### Added in dev-essentials
+
+- `skills/git-worktree-management/scripts/worktree.py`: a new script with three subcommands. `create` checks the branch name, the path, and the ignore rule, picks the case of the branch, runs `git worktree add`, and does the bootstrap. The bootstrap gives the new branch no upstream and makes the notes folder. If git ignores `.claude/settings.local.json`, the bootstrap also copies that file. With `--plan`, `create` prints the plan and changes nothing. If no rule ignores `.claude/worktrees/`, `--add-exclude` adds that line to the local exclude file of git. `create` refuses a base that origin does not have and a path inside another worktree. It also refuses a rule of a `.gitignore` file with `!` that keeps `.claude/worktrees/` not ignored. On a file system with no case, it also refuses a name that clashes with a local branch. A part of the name differs from a part of that branch only in case. The commands `ls-remote` and `fetch` stop after 120 seconds. Git also stops an http transfer that gets no data for that time. Unless you pass `--apply`, `remove` and `prune` print their plan and change nothing. `remove` never passes `--force`. It prints an `IGNORED` line for each ignored file that the removal deletes. It refuses a worktree with a change or an untracked file, a locked worktree, and a folder that git does not list. It also refuses a tracked file with the flag skip-worktree or assume-unchanged, because git status hides its change. It refuses a worktree that holds another worktree or another git repository. It looks in each ignored folder for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. It does so also for a worktree that git no longer lists. It refuses an ignored folder that it cannot read. It refuses a detached HEAD with commits that no branch, tag, or remote branch holds. If git leaves the folder, for example with a junction in it, a `LEFT` line names it. `prune` refuses the same detached HEAD. The script refuses each path outside `.claude/worktrees/`, and it asks for no input (issue #270).
+- `evals/git-worktree-management/gwm-create-blocked`: a route case. The user asks for a worktree and approves it in advance. The sandbox of an eval run keeps `.git/worktrees` read-only, so `git worktree add` fails. The run must call `worktree.py create`, and its final reply must say that the worktree was not made and why (issue #270).
+- `evals/triggers`: the cases `git-worktree-management-fires` and `git-worktree-management-near-miss`. The near-miss asks to merge the Claude Code project folders of worktrees, which belongs to `merge-worktree-projects` (issue #270).
+
+### Changed in dev-essentials
+
+- `skills/git-worktree-management`: Workflows A, C, and D and the fallback for a missing worktree call the script in place of the git commands. These rules stay as they were: the approval prompt of Workflow A Step 3 and its pipeline mode, and the rule that keeps a worktree until its pull request is merged. The rule that `--autonomous` destroys no work with no other copy stays too. The fallback no longer runs `git worktree remove --force`. The bootstrap no longer copies a `.claude/settings.local.json` that git does not ignore, because the copy blocked the removal later. The repository root is now the main worktree, also in a run from a linked worktree. A removal from a folder inside the worktree is refused. If one stale entry is outside `.claude/worktrees/`, Workflow D prunes no entry and names it in the report. A stale entry with a detached HEAD and its own commits also blocks the prune. No branch, tag, or remote branch holds those commits (issue #270).
+
+### Changed in the repository
+
+- `tests/test_worktree.py`: the tests of the new script, on Linux and on Windows. The job `test-windows` of `.github/workflows/tests.yml` runs them (issue #270).
+- `tests/test_eval_cases.py`: the new class `WorktreeScriptCaseTests` tests the graders of the three new cases on right and wrong runs (issue #270).
+- `tests/test_eval_scaffolds.py`: `EXPECTED_BRANCH` names the branch of the new case (issue #270).
+- `docs/testing.md` and `docs/evals.md`: the new test module, the new suite, and why no eval case can make a worktree (issue #270).
+
 ## dev-essentials 3.27.3 in release [4.25.3] - 2026-11-18
 
 If `git worktree add` fails, for example in the sandbox of an eval run, this release lets `failure_check.py` of `review-loop` reach a verdict. The script then writes the files of the commit into the same temporary folder and runs the command there (issue #232).
@@ -2122,7 +2143,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...HEAD
+[4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0
 [4.25.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.2...v4.25.3
 [4.25.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.1...v4.25.2
 [4.25.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.0...v4.25.1

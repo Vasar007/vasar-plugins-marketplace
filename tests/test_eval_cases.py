@@ -4333,5 +4333,96 @@ class AuditTeamRouteGraderTests(unittest.TestCase):
         self.assertLess(self.command.index(line), self.command.index("### Team Review Report"))
 
 
+class WorktreeScriptCaseTests(unittest.TestCase):
+    """The route case gwm-create-blocked and the two trigger cases of git-worktree-management."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cases["gwm-create-blocked"]
+        cls.fires = cases["git-worktree-management-fires"]
+        cls.near_miss = cases["git-worktree-management-near-miss"]
+
+    @staticmethod
+    def counts(case, grader, text):
+        return re.search(case.graders[grader][0]["input_match"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-skill-fired", "route-create-script"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        self.assertIn("git-worktree-management", self.case.tags)
+        self.assertEqual(set(self.case.graders) - routes, {"failure-reported", "no-stand-in"})
+
+    def test_the_create_grader_counts_a_create_call_of_the_script(self):
+        runs = {
+            "the form of the skill": ('python3 -I "/p/skills/git-worktree-management/scripts/worktree.py" create '
+                                      "eval/tasks/42-add-paging --base main --add-exclude --notes-dir Notes", True),
+            "the options first": ("python3 -I /p/scripts/worktree.py create --base main eval/tasks/42-add-paging", True),
+            "a quoted branch": ('python3 -I /p/scripts/worktree.py create "eval/tasks/42-add-paging"', True),
+            "a line break": ('python3 -I "/p/scripts/worktree.py" \\\n  create eval/tasks/42-add-paging', True),
+            "a shell variable": ('S="/p/scripts/worktree.py"; python3 -I "$S" create eval/tasks/42-add-paging', True),
+            "the plan form": ("python3 -I /p/scripts/worktree.py create eval/tasks/42-add-paging --plan", True),
+            "a line break with no indent": ('python3 -I "/p/scripts/worktree.py" \\\ncreate eval/tasks/42-add-paging',
+                                            True),
+            "a tab": ('python3 -I "/p/scripts/worktree.py"\tcreate eval/tasks/42-add-paging', True),
+            "a grep of the script": ('cat /p/scripts/worktree.py | grep -n -A3 " create "', False),
+            "a grep of the help": ('python3 -I /p/scripts/worktree.py --help | grep -A8 "  create <branch>"', False),
+            "help": ("python3 -I /p/scripts/worktree.py create --help", False),
+            "short help": ("python3 -I /p/scripts/worktree.py create -h", False),
+            "the remove subcommand": ("python3 -I /p/scripts/worktree.py remove eval/tasks/42-add-paging", False),
+            "a plain git worktree add": ("git worktree add -b eval/tasks/42-add-paging .claude/worktrees/x origin/main",
+                                         False),
+            "a read of the script": ("sed -n '1,40p' /p/scripts/worktree.py", False),
+            "create with no branch": ("python3 -I /p/scripts/worktree.py create", False),
+        }
+        for name, (command, expected) in runs.items():
+            with self.subTest(run=name):
+                text = json.dumps({"command": command, "description": "Make the worktree"})
+                self.assertEqual(self.counts(self.case, "route-create-script", text), expected)
+
+    def test_the_create_grader_reads_the_command_and_not_the_description(self):
+        text = json.dumps({"command": "git status", "description": "Then run worktree.py create eval/x"})
+        self.assertFalse(self.counts(self.case, "route-create-script", text))
+        text = json.dumps({"description": "Make the worktree", "command": "python3 -I /p/worktree.py create eval/x"})
+        self.assertTrue(self.counts(self.case, "route-create-script", text))
+
+    def test_the_scored_graders_can_pass_on_the_base_side(self):
+        meta, body = self.case.graders["failure-reported"]
+        self.assertEqual((meta["type"], meta["focus"]), ("llm", "last_message"))
+        self.assertIn("eval/tasks/42-add-paging", body)
+        self.assertNotIn("worktree.py", body, "the base side runs no script, so the rubric must not need it")
+        meta = self.case.graders["no-stand-in"][0]
+        self.assertEqual((meta["type"], meta["path"], meta["exists"]),
+                         ("file_exists", ".claude/worktrees/eval/tasks/42-add-paging/**", False))
+
+    def test_the_prompt_approves_the_worktree_and_names_the_branch(self):
+        prompt = self.case.prompt_body
+        self.assertIn("`eval/tasks/42-add-paging`", prompt)
+        self.assertIn("I approve the worktree in advance", prompt)
+        self.assertNotIn("Bash", self.case.field("allowed_tools"))
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        self.assertIn("printf '.claude/worktrees/\\n' >> .gitignore", scaffold)
+
+    def test_the_trigger_cases_name_git_worktree_management_and_merge_worktree_projects(self):
+        units = {"dev-essentials:git-worktree-management": "worktree", "git-worktree-management": "worktree",
+                 "dev-essentials:merge-worktree-projects": "merge", "merge-worktree-projects": "merge",
+                 "dev-essentials:git-worktree-management-extra": None, "dev-essentials:git-sync": None}
+        graders = {(self.fires, "fires"): "worktree", (self.fires, "merge-worktree-projects-not-fired"): "merge",
+                   (self.near_miss, "merge-worktree-projects-fires"): "merge", (self.near_miss, "not-fired"): "worktree",
+                   (self.case, "route-skill-fired"): "worktree"}
+        for (case, grader), owner in graders.items():
+            meta = case.graders[grader][0]
+            self.assertEqual(meta["tool"], "Skill")
+            if grader.endswith("not-fired"):
+                self.assertEqual((meta["min"], meta["max"], meta["arm"]), (0, 0, "both"))
+            for unit, unit_owner in units.items():
+                with self.subTest(case=case.name, grader=grader, unit=unit):
+                    self.assertEqual(self.counts(case, grader, json.dumps({"skill": unit})), unit_owner == owner)
+        for case in (self.fires, self.near_miss):
+            self.assertIn("git-worktree-management", case.tags)
+            self.assertNotIn("Bash", case.field("allowed_tools"))
+
+
 if __name__ == "__main__":
     unittest.main()
