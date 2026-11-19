@@ -68,6 +68,12 @@
       "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
     },
     {
+      "file": "essentials/dev-essentials/evals/subagent-orchestration/so-ladder-start/graders/billing-fixed.md",
+      "rule": "sentence_over_limit",
+      "text": "?\\* ?total|1 ?- ?percent ?/ ?100|\\(100 ?- ?percent\\) ?/{1,2} ?100|\\(1 ?- ?percen…",
+      "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
+    },
+    {
       "file": "essentials/dev-essentials/evals/research-implement-review-report/rirr-retry-limit/graders/limit-lowered.md",
       "rule": "synonym_rotation",
       "text": "settings (config-settings)",
@@ -126,6 +132,12 @@
       "rule": "em_dash",
       "text": "--",
       "reason": "The `--` is the syntax of the write-tests command. Text after it goes to each agent as extra instructions. The prompt needs it, because the environment note must reach the agents."
+    },
+    {
+      "file": "dotnet/dotnet-backend-dev/evals/write-tests/wt-useful-tests/prompt.md",
+      "rule": "em_dash",
+      "text": "--",
+      "reason": "The `--` is the syntax of the write-tests command. Text after it is extra instructions for the main session. The prompt needs it, because the environment note must reach the session that runs the build."
     },
     {
       "file": "dotnet/dotnet-backend-dev/skills/create-tests/examples/migration-tests.md",

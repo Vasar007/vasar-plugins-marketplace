@@ -39,7 +39,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | Suite | Plugin | Cases | Where it runs |
 | --- | --- | ---: | --- |
 | `review-loop` | `dev-essentials` | 6 | WSL |
-| `subagent-orchestration` | `dev-essentials` | 4 | WSL |
+| `subagent-orchestration` | `dev-essentials` | 5 | WSL |
 | `process-pr-comments` | `dev-essentials` | 10 | WSL |
 | `bug-hunt` | `dev-essentials` | 2 | WSL |
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
@@ -53,7 +53,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `optimize-skill` | `dev-essentials` | 1 | WSL |
 | `merge-pr` | `dev-essentials` | 3 | WSL |
 | `git-worktree-management` | `dev-essentials` | 1 | WSL |
-| `write-tests` | `dotnet-backend-dev` | 2 | WSL |
+| `write-tests` | `dotnet-backend-dev` | 3 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | WSL2 or Linux, because its hook needs `python3` |
 | `style-compare-se` | `doc-styles` | 9 | WSL2 or Linux, because its hooks need `python3` and `node` |
 | `style-compare-both` | `doc-styles` | 3 | WSL2 or Linux, because its hooks need `python3` and `node` |

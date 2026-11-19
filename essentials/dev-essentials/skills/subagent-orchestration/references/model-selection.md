@@ -1,12 +1,12 @@
 # Model Selection Details
 
-The section "Model selection" of `SKILL.md` holds the model matrix and its two rules. This file holds the rest of that section and the effort rules of Rule 5.
+The section "Model selection" of `SKILL.md` holds the model matrix and its rules. This file holds the rest of that section and the effort rules of Rule 5.
 
 ## How a model gets applied
 
 - A session does not switch its own model in the middle of a conversation. It keeps the model that it runs.
 - To reach any other model, **dispatch a subagent with the `model` parameter of the `Agent` tool**. Never use `/model`. Use a name that this parameter accepts. The current names are `sonnet`, `opus`, `haiku`, and `fable`. The tool can add newer names.
-- So **work for any model other than the model of the session must be delegated**. If a skill or the user names a model that the session does not run, that work becomes a subagent dispatch. The same holds for a stronger model in the matrix, but not for a cheaper one (Rule 1).
+- So **work for any model other than the model of the session must be delegated**. If a skill or the user names a model that the session does not run, that work becomes a subagent dispatch. The same holds for a stronger model in the matrix, but not for a cheaper one (Rule 1). On a Sonnet session, a code change that Rule 1 keeps in the main loop stays there, also a bug fix with no fix plan. A plan, a review, and a decision that no plan settles still go to an Opus subagent.
 - **`subagent_type: "fork"` ignores `model`**. A fork inherits the model of the parent. If a task needs a specific model, use an agent type that is not a fork.
 - **A plugin agent type can set its own model.** Its agent file sets `model`. A dispatch of that type can then leave out the `model` parameter. A `model` parameter in the call wins over the agent file. Leave out `model` for `dev-essentials:code-locator`, `dev-essentials:fact-gatherer`, and `dev-essentials:test-runner`.
 - **Only an agent file sets the auto-compact window.** The field is `autoCompactWindow`. The subagent compacts its context at that size. The `Agent` tool has no parameter for it. About 100,000 tokens is a good size for search, fact, and build-check work. A larger context often costs more and adds noise. A `general-purpose` dispatch does not compact at this size. The three agent types above handle a code search, a fact question, and a long build and test run. Their files set `autoCompactWindow: 100000`. If a test of Rule 1 sends one of these kinds of work to a subagent, dispatch the matching type.
@@ -33,11 +33,11 @@ Haiku is not only for one-step lookups. Prefer Haiku over Sonnet for a short seq
 
 ## Effort
 
-Pass `effort` on each dispatch of a general agent type such as `general-purpose`. Use the level that the user or a skill names. If no one names a level, pass the level that the task needs. For any other agent type, pass `effort` in two cases: the user or a skill names a level, or the session runs at a lower effort than the task needs. Two kinds of dispatch differ:
+Pass `effort` on each dispatch of a general agent type such as `general-purpose`. Use the level that the user or a skill names. If no one names a level, pass `medium`, the start of the ladder in `SKILL.md`. A review starts at `high`, because no self-test shows that it fell short. Mechanical work can use `low`. A model that does not support a level runs at the highest level below it. For any other agent type, pass `effort` in two cases: the user or a skill names a level, or the session runs at a lower effort than the task needs. Two kinds of dispatch differ:
 
 - An agent type whose file sets `effort`, for example `dev-essentials:test-runner`, needs no `effort` parameter. A parameter in the call wins over the file.
 - A fork takes no `effort` parameter.
 
-If the `Agent` tool has no `effort` parameter, leave it out.
+If the `Agent` tool has no `effort` parameter, or the model has no effort levels, leave it out. Then the ladder makes no move that only raises the effort.
 
 Do not set the effort of the session with the environment variable `CLAUDE_CODE_EFFORT_LEVEL`. It overrides the `effort` parameter and the agent file of every subagent. To set the effort of the session, use `/effort` or the `--effort` flag.
