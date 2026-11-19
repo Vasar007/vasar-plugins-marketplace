@@ -11,16 +11,16 @@ The other numbers in a heading are plugin versions.
 
 ## dotnet-backend-dev 1.8.1 in release [5.0.1] - 2026-11-19
 
-The skill `create-tests` now asks for useful tests only. A useful test can fail for a bug or for a bad change of behavior. A test that only asserts that a constant or a property with no logic has its value is not useful. The repository guidance has the same rule for its own tests and eval cases (issue #280).
+The skill `create-tests` now asks for useful tests only. A useful test can fail for a bug or for a bad change of behavior. A test that only asserts that a constant or a property with a fixed value has its value is not useful. The repository guidance has the same rule for its own tests and eval cases (issue #280).
 
 ### Added in dotnet-backend-dev
 
-- `evals/write-tests/wt-useful-tests`: a new behavior case. The class under test has four public constants and a property with no logic, next to a method with real logic. Scored graders need tests of the method and of its guards, a passed test run, and an unchanged class. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant or of the property (issue #280).
+- `evals/write-tests/wt-useful-tests`: a new behavior case. The class under test has four public constants and a property with no logic, next to a method with real logic. Scored graders need tests of the method and of a guard, a passed test run, and an unchanged class. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant or of the property (issue #280).
 
 ### Changed in dotnet-backend-dev
 
-- `skills/create-tests`: the new section "Useful Tests" and one new item of the checklist. The section gives the rule, its reason, and three kinds of tests that are not useful. It also names the values that can still have a test of their own: a wire format, a persisted value, or an error code (issue #280).
-- `skills/create-tests/examples/domain-model-tests.md`: the two example tests that a record keeps the values of its constructor are gone, and so is their helper. Key point 6 asks for a constructor test only for a constructor with logic (issue #280).
+- `skills/create-tests`: the new section "Useful Tests" and one new item of the checklist. The section gives the rule, its reason, and three kinds of tests that are not useful. It also names the values that can still have a test of their own: a wire format, a persisted value, an error code, or the default of a configuration option (issue #280).
+- `skills/create-tests/examples/domain-model-tests.md`: key point 6 asks for a constructor test for a hand-written constructor only, not for a positional record. The two example tests of the hand-written constructors stay, and they lose their `NotBeNull()` line (issue #280).
 - `skills/dotnet-conventions/testing.md`: one sentence points at the new section of `create-tests` (issue #280).
 
 ### Changed in the repository

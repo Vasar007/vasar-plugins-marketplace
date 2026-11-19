@@ -4206,6 +4206,7 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
     TEST_FILE = "tests/Billing.Domain.Tests/Shipping/ShippingFeeCalculatorTests.cs"
     SOURCE_FILE = "src/Billing.Domain/Shipping/ShippingFeeCalculator.cs"
     # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
+    # Known limits: the grader misses a cast and reflection, and it fails a fee test that puts the constant first.
     SAMPLES = {
         "a constant with a literal": ("ShippingFeeCalculator.BaseFee.Should().Be(4.90m);", True),
         "a constant with an expected variable": ("var expected = 30;\nShippingFeeCalculator.MaxWeightKilograms.Should().Be(expected);", True),
@@ -4222,7 +4223,17 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
         "a classic assertion with a variable": ("ClassicAssert.AreEqual(expected, ShippingFeeCalculator.MaxWeightKilograms);", True),
         "a classic assertion in the other order": ("Assert.AreEqual(ShippingFeeCalculator.FreeShippingThreshold, 50m);", True),
         "an xUnit assertion": ("Assert.Equal(30, ShippingFeeCalculator.MaxWeightKilograms);", True),
+        "a constant copied into a local": ("var actual = ShippingFeeCalculator.BaseFee;\nactual.Should().Be(expected);", True),
+        "the property copied into a local": ("var carrier = calculator.Carrier;\ncarrier.Should().Be(expected);", True),
+        "an NUnit constraint with the literal first": ("Assert.That(4.90m, Is.EqualTo(ShippingFeeCalculator.BaseFee));", True),
+        "an NUnit comparison": ("Assert.That(ShippingFeeCalculator.BaseFee == 4.90m);", True),
+        "a classic assertion with a message": ('ClassicAssert.AreEqual(4.90m, ShippingFeeCalculator.BaseFee, "The base fee changed.");', True),
+        "an xUnit assertion with a type argument": ("Assert.Equal<Decimal>(4.90m, ShippingFeeCalculator.BaseFee);", True),
         "a fee test with the constant as the expected value": ("var fee = calculator.GetFee(10m, 1);\nfee.Should().Be(ShippingFeeCalculator.BaseFee);", False),
+        "a constant as the input in a local": ("var weight = ShippingFeeCalculator.MaxWeightKilograms;\ncalculator.GetFee(10m, weight).Should().Be(expected);", False),
+        "an expected value from a constant in a local": ("var expected = ShippingFeeCalculator.BaseFee;\ncalculator.GetFee(10m, 1).Should().Be(expected);", False),
+        "an NUnit comparison of the fee": ("Assert.That(calculator.GetFee(10m, 1) == ShippingFeeCalculator.BaseFee);", False),
+        "a classic assertion of the fee with a message": ('Assert.AreEqual(ShippingFeeCalculator.BaseFee, calculator.GetFee(10m, 1), "fee");', False),
         "a fee test with the constant as the input": ("calculator.GetFee(ShippingFeeCalculator.FreeShippingThreshold, 1).Should().Be(0m);", False),
         "a fee test with the constant as the second input": ("calculator.GetFee(10m, ShippingFeeCalculator.MaxWeightKilograms).Should().Be(expected);", False),
         "a computed expected value": ("var expected = ShippingFeeCalculator.BaseFee + ShippingFeeCalculator.FeePerKilogram * 2;\n"
@@ -4235,12 +4246,6 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
         "an NUnit constraint on the fee": ("Assert.That(calculator.GetFee(10m, 1), Is.EqualTo(ShippingFeeCalculator.BaseFee));", False),
         "a variable with a longer name": ("expectedBaseFee.Should().Be(4.90m);", False),
         "a comment": ("// The fee is ShippingFeeCalculator.BaseFee for one kilogram.", False),
-        # Known limits: the grader misses these tests of a constant.
-        "a limit: a copy into a variable": ("var actual = ShippingFeeCalculator.BaseFee;\nactual.Should().Be(4.90m);", False),
-        "a limit: a cast": ("((Decimal)ShippingFeeCalculator.BaseFee).Should().Be(4.90m);", False),
-        "a limit: reflection": ('typeof(ShippingFeeCalculator).GetField("BaseFee")!.GetValue(null).Should().Be(4.90m);', False),
-        # A known limit the other way: the grader fails a fee test that puts the constant first.
-        "a limit: a fee test with the constant as the subject": ("ShippingFeeCalculator.BaseFee.Should().Be(calculator.GetFee(10m, 1));", True),
     }
 
     @classmethod
@@ -4263,6 +4268,12 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
         for name, (text, found) in self.SAMPLES.items():
             with self.subTest(sample=name):
                 self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_cover_graders_find_the_fee_call_and_the_guard(self):
+        text = self.SAMPLES["a guard test"][0]
+        for grader in ("covers-get-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertIsNotNone(re.compile(self.meta(grader)["pattern"]).search(text))
 
     def test_the_source_grader_matches_the_class_of_the_scaffold_only(self):
         scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
