@@ -12,6 +12,8 @@ Each gated workflow of `dev-essentials` takes the option `--mode`. It has three 
 
 Some runs have no GitHub repository: the request names none, and no remote of the clone is on `github.com`. Then `research-implement-review-report`, `implement-task`, and `implement-batch` open no pull request and merge nothing, in every mode. They also ask no question about these steps.
 
+`feature-pipeline`, `implement-task`, and `implement-batch` make a git worktree for each run. With `--no-worktree`, they work in the current folder instead. This option is for a user who already works in a worktree or wants none. On the default branch or the base branch, the full mode then creates a branch first, and the other modes ask.
+
 The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules. The older mode flags of the workflows still work, and the workflows read them as a mode.
 
 ## One session or a new one

@@ -1,7 +1,7 @@
 ---
 name: implement-batch
 description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks.
-argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--mode interactive|partial|full]
+argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--no-worktree] [--plan-dir=<path>] [--rounds=N] [--mode interactive|partial|full]
 ---
 
 # Implement Batch (N tasks, N commits + at most 1 final-review commit)
@@ -32,7 +32,8 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
+| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. With `--no-worktree`, the ref names only the branch that Step 1 creates, so resolve it only then. |
+| `--no-worktree` | off | Make no worktree, and work on the current branch in the current folder. Step 1 says what the run does on the default branch, the base branch, or a detached HEAD. |
 | `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
@@ -45,6 +46,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | --- | --- | --- | --- |
 | Before Step 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as partial |
+| Step 1: `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask for a branch name, or for a yes to work on the current branch | Same | Create the branch of the `--worktree` row, and name it in the final report |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
 | Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
@@ -95,7 +97,14 @@ A request to finish an earlier run of this skill goes straight to Step 6, as "Re
 
 ### Step 1 — Worktree setup
 
-Create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path. Each write-capable dispatch from here on carries it (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
+Without `--no-worktree`, create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path.
+
+With `--no-worktree`, make no worktree. Record the absolute path of the current folder as the worktree path, and use it wherever this file names the worktree. The default branch is the name after `origin/` that `git -C "<worktree>" symbolic-ref --short refs/remotes/origin/HEAD` prints. If it prints nothing, treat `main` and `master` as the default branch. Then run `git -C "<worktree>" branch --show-current`:
+
+- If it prints the default branch, the Step 0 base branch, or nothing (a detached HEAD), do not commit there. Do what the `--no-worktree` row of "Autonomy" says. For a new branch, run `git -C "<worktree>" switch -c <branch>`. If a branch of that name exists, ask the user (hard stop 6 of `dev-essentials:work-modes`).
+- If it prints another branch, work on that branch, and create no branch.
+
+Each write-capable dispatch from here on carries the worktree path (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
 
 Then record `BATCH_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 

@@ -1,6 +1,6 @@
 ---
 description: Work one task end-to-end with research, a plan, the implementation, a review, and a report. Sweep the extra context first (PR or issue links, notes), and add a /simplify commit at the end.
-argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--mode interactive|partial|full]
+argument-hint: <issue reference or task description> [--base=<branch>] [--worktree=<branch-ref>] [--no-worktree] [--refs=<url|id|text>...] [--commit-mode=per-phase|single] [--rounds=N] [--notes-dir=<path>] [--no-simplify] [--mode interactive|partial|full]
 ---
 
 # Implement Task (context sweep → full cycle → simplify commit)
@@ -32,7 +32,8 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build it with the branch-name table in Phase 0 of RIRR. Take `<prefix>` from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
+| `--worktree=<branch-ref>` | ask or derive | Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build it with the branch-name table in Phase 0 of RIRR. Take `<prefix>` from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. With `--no-worktree`, the ref names only the branch that Phase 1 creates, so resolve it only then. |
+| `--no-worktree` | off | Make no worktree, and work on the current branch in the current folder. Phase 1 says what the run does on the default branch, the base branch, or a detached HEAD. |
 | `--refs=<url\|id\|text>` | none | Extra context, repeatable, added to the references in the prose. A value is **a URL or an ID** (a PR, an issue, a document, or a wiki page). Or it is **plain free text** with nothing to fetch. The way that a value reads decides its kind, not a tag. Read-only (see Phase 2). |
 | `--commit-mode=<per-phase\|single>` | `single` | Passed verbatim to the `--commit-mode` of RIRR. RIRR defaults to `per-phase`. This command defaults to `single`, because the goal is one task commit plus one simplify commit. Both modes work (see Phase 4). |
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed verbatim to the `--rounds` of RIRR. |
@@ -49,6 +50,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
 | Before Phase 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
+| Phase 1: `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask for a branch name, or for a yes to work on the current branch | Same | Create the branch of the `--worktree` row, and name it in the final report |
 | Phase 2: a reference that implements or contradicts the task | Ask before Phase 3 | Same | Same |
 | Phase 3: RIRR | Its gates, with the mode of this run | Same | Same |
 | Phase 4 step 3: a cleanup that needs a change of behavior | Stop that cleanup, and put the question in the report | Same | Keep the code, and list the skipped cleanup |
@@ -85,12 +87,19 @@ A request to finish an earlier run of this command goes straight to Phase 6, as 
 
 1. Take these items from $ARGUMENTS verbatim: the task, the base branch, the worktree branch ref, every context item (from `--refs` and from the prose), and each scope guard of the user. Sort the context items as the `--refs` row says. Pass all of it verbatim into every brief.
 2. Resolve `--base` and `--worktree` as the Options table says.
-3. Before any work, echo one short block: the task, the base branch, the worktree branch ref, the context list, the commit mode, and whether the simplify pass runs.
+3. Before any work, echo one short block: the task, the base branch, the worktree branch ref or `--no-worktree`, the context list, the commit mode, and whether the simplify pass runs.
 4. If a material fact is missing or unclear, ask with the **AskUserQuestion** tool before any work. Examples: the task, the branch, the worktree name, which of two readings applies, or whether a link is context or the thing to change. If nothing is unclear, start without a round of approval.
 
 ### Phase 1 — Worktree setup
 
-Create the worktree from the Phase 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path. Each write-capable dispatch from here on carries it (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
+Without `--no-worktree`, create the worktree from the Phase 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path.
+
+With `--no-worktree`, make no worktree. Record the absolute path of the current folder as the worktree path, and use it wherever this file names the worktree. The default branch is the name after `origin/` that `git -C "<worktree>" symbolic-ref --short refs/remotes/origin/HEAD` prints. If it prints nothing, treat `main` and `master` as the default branch. Then run `git -C "<worktree>" branch --show-current`:
+
+- If it prints the default branch, the Phase 0 base branch, or nothing (a detached HEAD), do not commit there. Do what the `--no-worktree` row of "Autonomy" says. For a new branch, run `git -C "<worktree>" switch -c <branch>`. If a branch of that name exists, ask the user (hard stop 6 of `dev-essentials:work-modes`).
+- If it prints another branch, work on that branch, and create no branch.
+
+Each write-capable dispatch from here on carries the worktree path (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
 
 Then record `RUN_BASE_SHA = git -C "<worktree>" rev-parse HEAD` for Phase 4 and Phase 5.
 

@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
+
+`implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
+
+### Added in dev-essentials
+
+- `commands/implement-task` and `skills/implement-batch`: the option `--no-worktree`. The run makes no worktree, and it works on the current branch in the current folder. On the default branch, the base branch, or a detached HEAD, the full mode first creates the branch of the `--worktree` row. The partial mode and the interactive mode ask for a branch name, or for a yes to work on the current branch. If that branch already exists, the run asks (issue #282).
+- `evals/implement-task` and `evals/implement-batch`: the cases `it-no-worktree` and `ib-no-worktree`. Each one runs its workflow with `--no-worktree` and `--mode full` in a clone on `main`. The run must create its branch, make one commit for each task, and push nothing. Before them, no eval case ran these workflows from their start, because `git worktree add` fails in an eval run (issue #282).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `NoWorktreeBranchGraderTests` tests the branch graders of the two new cases on real commits. The new scaffolds join the tables of the scaffold tests (issue #282).
+- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the cells of the new gate row that ask outside the full mode (issue #282).
+- `docs/workflows.md` and `docs/evals.md`: they name the option `--no-worktree` and the two new cases (issue #282).
+
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
 Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
@@ -2190,7 +2205,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.2.0
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0
 [4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0

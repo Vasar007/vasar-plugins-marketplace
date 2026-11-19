@@ -402,5 +402,22 @@ class FinishCallerTests(unittest.TestCase):
         self.assertIn("A yes of the user to a question of this session that names the merge is a request in their own words.", merge)
 
 
+NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}
+# Outside the full mode, a run with --no-worktree asks before it works on the default branch, the base branch, or a detached HEAD.
+NO_WORKTREE_ROW = (": `--no-worktree` on the default branch, the base branch, or a detached HEAD | "
+                   "Ask for a branch name, or for a yes to work on the current branch | Same |")
+
+
+class NoWorktreeTests(unittest.TestCase):
+    """The option --no-worktree of implement-batch and implement-task (issue #282)."""
+
+    def test_outside_the_full_mode_the_run_asks_before_it_works_on_the_default_branch(self):
+        for rel, step in NO_WORKTREE_UNITS.items():
+            text = read(PLUGIN / rel)
+            with self.subTest(unit=rel):
+                self.assertIn(f"| {step}{NO_WORKTREE_ROW}", autonomy(text))
+                self.assertIn("or nothing (a detached HEAD), do not commit there.", text)
+
+
 if __name__ == "__main__":
     unittest.main()
