@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tests/test_work_modes_gate_rows.py`: a new test of the gate tables of the gated units of `dev-essentials`. It sorts each cell of each gate row by its opening words: the run stops, the run goes on, or the row leaves its gates to another text. The interactive mode must stop at each gate where the partial mode stops, and the partial mode at each gate where the full mode stops. So a swap of two cells of different classes fails the test. Two rows break this order on purpose, and the test names them. One more rule reads the gate names with the word push, merge, delete, deletion, remove, or removal. The partial mode must not go on with no question there. A cell with unknown opening words fails the test too (issue #279).
+
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
 Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
