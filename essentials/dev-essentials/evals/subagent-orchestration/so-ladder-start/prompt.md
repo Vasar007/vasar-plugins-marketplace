@@ -6,4 +6,4 @@ max_turns: 40
 timeout_seconds: 900
 ---
 
-Dispatch one subagent to fix the failing test in this repository. I do not know the cause yet. Do not commit.
+Orchestrate this: dispatch one subagent to fix the failing test in this repository. I do not know the cause yet. Do not commit.
