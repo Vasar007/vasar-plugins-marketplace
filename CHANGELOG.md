@@ -30,6 +30,37 @@ This release turns the model matrix of `subagent-orchestration` into a ladder. A
 - `tests/test_eval_cases.py`: the new class `ModelLadderCaseTests` tests the grader `route-ladder-start` on right and wrong `Agent` calls (issue #281).
 - `tests/test_eval_scaffolds.py`, `tests/test_work_modes_text.py`, `tests/simple-english-baseline.json`, and `docs/evals.md`: the new case and the new sentence of `work-modes` (issue #281).
 
+## dev-essentials 4.0.0 in release [5.0.0] - 2026-11-19
+
+The gated workflows no longer read the old mode flags. Only `--mode interactive|partial|full`, another form of that option, and plain words that name a mode pick a mode. A request can name an unknown mode, or a flag that the workflow does not define. Then the run asks which mode to use before its first step (issue #278).
+
+### Changed in dev-essentials
+
+- `skills/work-modes`: the section "Old spellings" goes. Another form of the option, for example `--mode=full`, picks that mode. A request can name an unknown mode, or a flag that the workflow does not define. Then the run asks the user which mode to use. The run does no work before the answer, and a guess never picks the full mode (issue #278).
+- `skills/work-modes/references/finish.md`: the finish steps name no old flag. In the full mode, the run does the steps with no question. In the other modes, it asks the question of the final gate. A run with no GitHub repository does no step and asks no question, in every mode (issue #278).
+- `skills/merge-pr` and `skills/feature-pipeline`: an old spelling no longer approves a merge. Another form of `--mode full` that `work-modes` accepts still counts as the full mode (issue #278).
+- `evals/research-implement-review-report/rirr-merge`: the request writes the option as `--mode=full`. So the case also tests another form of the option (issue #278).
+
+### Removed in dev-essentials
+
+- The old mode flags `--interactive`, `--autonomous`, `--merge`, and `--push`, and the arguments `interactive` and `autonomous` of `process-pr-comments`. No unit defines them now (issue #278).
+
+### Breaking changes in dev-essentials
+
+- A run that gets one of the old flags asks which mode to use before its first step. Write the new form in place of the old flag.
+- `--interactive`, or the argument `interactive` of `process-pr-comments`: write `--mode interactive`.
+- `--autonomous`, or the argument `autonomous` of `process-pr-comments`: write `--mode full`. Where the workflow ends with a merge, the full mode also pushes, opens the pull request, and merges. To stop before these steps, add "Do not push the branch." or "Do not merge the pull request." to the request.
+- `--autonomous --merge`: write `--mode full`.
+- `--merge` alone: write no flag, and ask for the merge in your own words, for example "and merge it". In `research-implement-review-report`, `implement-task`, and `implement-batch`, you can also answer yes to the question of the final gate.
+- `--push` of `implement-task` and `implement-batch`: write no flag, and answer "push and pull request only" to the question of the final gate. This answer also opens a pull request. The old flag only pushed the branch.
+
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`: the pins of the old spellings go. The test of the old mode flags now also reads `work-modes` and `finish.md`, and it also finds `--push`. Its list of allowed files goes (issue #278).
+- `tests/test_eval_cases.py`: the pins of `merge-pr`, of `feature-pipeline`, and of the request of `rirr-merge` follow the new text (issue #278).
+- `docs/workflows.md` and `docs/permissions.md`: they name no old flag (issue #278).
+- `tests/test_work_modes_gate_rows.py`: a new test of the gate tables of the gated units of `dev-essentials`. It sorts each cell of each gate row by its opening words: the run stops, the run goes on, or the row leaves its gates to another text. The interactive mode must stop at each gate where the partial mode stops, and the partial mode at each gate where the full mode stops. So a swap of two cells of different classes fails the test. Two rows break this order on purpose, and the test names them. One more rule reads the gate names with the word push, merge, delete, deletion, remove, or removal. The partial mode must not go on with no question there. A cell with unknown opening words fails the test too (issue #279).
+
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
 Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
@@ -2212,7 +2243,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...HEAD
-[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.1.0
+[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.1.0
+[5.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.0.0
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0
 [4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0
