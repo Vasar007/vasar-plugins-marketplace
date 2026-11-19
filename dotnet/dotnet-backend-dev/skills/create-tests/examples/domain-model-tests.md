@@ -94,34 +94,6 @@ public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments
     }
 
     [Test]
-    public void Constructor_SetsPropertiesCorrectly()
-    {
-        // Arrange.
-        var outboundShipmentId = GenerateShipmentId();
-        var returnShipmentId = GenerateShipmentId();
-        var replacementShipmentId = GenerateShipmentId();
-        var exchangeShipmentId = GenerateShipmentId();
-        var storeId = GenerateStoreId();
-
-        // Act.
-        var shipments = CreateStoreShipments(
-            outboundShipmentId: outboundShipmentId,
-            returnShipmentId: returnShipmentId,
-            replacementShipmentId: replacementShipmentId,
-            exchangeShipmentId: exchangeShipmentId,
-            storeId: storeId
-        );
-
-        // Assert.
-        shipments.Should().NotBeNull();
-        shipments.OutboundShipmentId.Should().Be(outboundShipmentId);
-        shipments.ReturnShipmentId.Should().Be(returnShipmentId);
-        shipments.ReplacementShipmentId.Should().Be(replacementShipmentId);
-        shipments.ExchangeShipmentId.Should().Be(exchangeShipmentId);
-        shipments.StoreId.Should().Be(storeId);
-    }
-
-    [Test]
     public void ToString_ShouldReturnStringContainingAllProperties()
     {
         // Arrange.
@@ -156,22 +128,6 @@ public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments
     }
 
     // NOTE: Do NOT override GetValueMutatorsForEquality — only needed when some fields are excluded from equality
-
-    private StoreShipments CreateStoreShipments(
-        ShipmentId outboundShipmentId,
-        ShipmentId returnShipmentId,
-        ShipmentId replacementShipmentId,
-        ShipmentId exchangeShipmentId,
-        StoreId storeId)
-    {
-        return _storeGenerator.CreateStoreShipments(
-            outboundShipmentId: outboundShipmentId,
-            returnShipmentId: returnShipmentId,
-            replacementShipmentId: replacementShipmentId,
-            exchangeShipmentId: exchangeShipmentId,
-            storeId: storeId
-        );
-    }
 
     private ShipmentId GenerateShipmentId()
     {
@@ -241,23 +197,6 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
     // --- Additional tests beyond automatic equality tests ---
 
     [Test]
-    public void Constructor_Sets_Properties_Correctly()
-    {
-        // Arrange.
-        var customerId = GenerateCustomerId();
-        var customerName = GenerateCustomerName();
-        // ...
-
-        // Act.
-        var customer = CreateCustomer(customerId: customerId, customerName: customerName, ...);
-
-        // Assert.
-        customer.Should().NotBeNull();
-        customer.CustomerId.Should().Be(customerId);
-        customer.CustomerName.Should().Be(customerName);
-    }
-
-    [Test]
     public void ToString_ShouldReturnStringContainingAllProperties()
     {
         // Arrange.
@@ -325,7 +264,7 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
 
 5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do not override it
 
-6. **Additional tests**: add constructor, `ToString`, and method behavior tests as test methods next to the automatic equality tests
+6. **Additional tests**: add `ToString` and method behavior tests as test methods next to the automatic equality tests. Add a constructor test only for a constructor with logic, for example a check of its arguments (see [Useful Tests](../SKILL.md#useful-tests))
 
 7. **Private helpers**: make all generator and factory calls through private methods, with the same rules as in [SKILL.md](../SKILL.md)
 

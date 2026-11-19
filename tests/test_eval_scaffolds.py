@@ -52,6 +52,7 @@ EXPECTED_BRANCH = {
     "fp-free-text": "work/free-text",
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
+    "wt-useful-tests": "work/tests",
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",

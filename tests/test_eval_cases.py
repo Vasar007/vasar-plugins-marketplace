@@ -2068,7 +2068,7 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
                 self.assertEqual(self.pattern.search(bash_input(command)) is not None, expected)
 
     def test_every_dotnet_case_has_the_same_grader(self):
-        self.assertEqual(len(self.graders), 14)
+        self.assertEqual(len(self.graders), 15)
         self.assertEqual(len({grader["input_match"] for grader in self.graders.values()}), 1)
         for label, grader in self.graders.items():
             with self.subTest(case=label):
@@ -4161,6 +4161,8 @@ class TrimFullPassRouteGraderTests(unittest.TestCase):
 TEST_ENGINEER_TYPES = (("dotnet-backend-dev:test-engineer", True), ("test-engineer", True),
                        ("general-purpose", False), ("dev-essentials:test-runner", False),
                        ("dotnet-backend-dev:test-engineer-old", False), ("my-test-engineer", False))
+# The cases of the write-tests suite that name one class, so that the main session writes the tests.
+ONE_CLASS_CASES = ("wt-one-class", "wt-useful-tests")
 
 
 class WriteTestsRouteGraderTests(unittest.TestCase):
@@ -4177,9 +4179,11 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
                 self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
 
     def test_one_class_asks_for_no_test_engineer(self):
-        meta = self.cases["wt-one-class"].graders["route-agent"][0]
-        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
-        self.check_pattern(meta)
+        for name in ONE_CLASS_CASES:
+            with self.subTest(case=name):
+                meta = self.cases[name].graders["route-agent"][0]
+                self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
+                self.check_pattern(meta)
 
     def test_folder_still_asks_for_a_test_engineer(self):
         meta = self.cases["wt-pricing-folder"].graders["route-agent"][0]
@@ -4189,8 +4193,91 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
         self.check_pattern(meta)
 
     def test_one_class_case_keeps_the_agent_tool(self):
-        tools = self.cases["wt-one-class"].field("allowed_tools")
-        self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+        for name in ONE_CLASS_CASES:
+            with self.subTest(case=name):
+                tools = self.cases[name].field("allowed_tools")
+                self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+
+
+
+class WriteTestsUsefulTestGraderTests(unittest.TestCase):
+    """The graders of wt-useful-tests: a test that only asserts a constant or the property fails the case, a test of GetFee does not."""
+
+    TEST_FILE = "tests/Billing.Domain.Tests/Shipping/ShippingFeeCalculatorTests.cs"
+    SOURCE_FILE = "src/Billing.Domain/Shipping/ShippingFeeCalculator.cs"
+    # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
+    SAMPLES = {
+        "a constant with a literal": ("ShippingFeeCalculator.BaseFee.Should().Be(4.90m);", True),
+        "a constant with an expected variable": ("var expected = 30;\nShippingFeeCalculator.MaxWeightKilograms.Should().Be(expected);", True),
+        "a constant on the next line": ("ShippingFeeCalculator.FreeShippingThreshold\n    .Should().Be(50m);", True),
+        "a constant with the namespace": ("Billing.Domain.Shipping.ShippingFeeCalculator.FeePerKilogram.Should().Be(1.20m);", True),
+        "a constant after using static": ("BaseFee.Should().Be(4.90m);", True),
+        "the property": ('calculator.Carrier.Should().Be("Standard Post");', True),
+        "the property with another assertion": ("calculator.Carrier.Should().NotBeNullOrWhiteSpace();", True),
+        "a literal subject": ("4.90m.Should().Be(ShippingFeeCalculator.BaseFee);", True),
+        "a text literal subject": ('"Standard Post".Should().Be(calculator.Carrier);', True),
+        "an NUnit constraint": ("Assert.That(ShippingFeeCalculator.BaseFee, Is.EqualTo(4.90m));", True),
+        "an NUnit constraint on the property": ('Assert.That(calculator.Carrier, Is.EqualTo("Standard Post"));', True),
+        "a classic assertion": ("ClassicAssert.AreEqual(4.90m, ShippingFeeCalculator.BaseFee);", True),
+        "a classic assertion with a variable": ("ClassicAssert.AreEqual(expected, ShippingFeeCalculator.MaxWeightKilograms);", True),
+        "a classic assertion in the other order": ("Assert.AreEqual(ShippingFeeCalculator.FreeShippingThreshold, 50m);", True),
+        "an xUnit assertion": ("Assert.Equal(30, ShippingFeeCalculator.MaxWeightKilograms);", True),
+        "a fee test with the constant as the expected value": ("var fee = calculator.GetFee(10m, 1);\nfee.Should().Be(ShippingFeeCalculator.BaseFee);", False),
+        "a fee test with the constant as the input": ("calculator.GetFee(ShippingFeeCalculator.FreeShippingThreshold, 1).Should().Be(0m);", False),
+        "a fee test with the constant as the second input": ("calculator.GetFee(10m, ShippingFeeCalculator.MaxWeightKilograms).Should().Be(expected);", False),
+        "a computed expected value": ("var expected = ShippingFeeCalculator.BaseFee + ShippingFeeCalculator.FeePerKilogram * 2;\n"
+                                      "calculator.GetFee(10m, 3).Should().Be(expected);", False),
+        "a guard test": ("var act = () => calculator.GetFee(10m, ShippingFeeCalculator.MaxWeightKilograms + 1);\n"
+                         "act.Should().Throw<ArgumentOutOfRangeException>();", False),
+        "a test case with the constant": ("[TestCase(ShippingFeeCalculator.MaxWeightKilograms + 1)]", False),
+        "a classic assertion of the fee": ("Assert.AreEqual(ShippingFeeCalculator.BaseFee, calculator.GetFee(10m, 1));", False),
+        "a classic assertion of a fee variable": ("Assert.AreEqual(ShippingFeeCalculator.BaseFee, fee);", False),
+        "an NUnit constraint on the fee": ("Assert.That(calculator.GetFee(10m, 1), Is.EqualTo(ShippingFeeCalculator.BaseFee));", False),
+        "a variable with a longer name": ("expectedBaseFee.Should().Be(4.90m);", False),
+        "a comment": ("// The fee is ShippingFeeCalculator.BaseFee for one kilogram.", False),
+        # Known limits: the grader misses these tests of a constant.
+        "a limit: a copy into a variable": ("var actual = ShippingFeeCalculator.BaseFee;\nactual.Should().Be(4.90m);", False),
+        "a limit: a cast": ("((Decimal)ShippingFeeCalculator.BaseFee).Should().Be(4.90m);", False),
+        "a limit: reflection": ('typeof(ShippingFeeCalculator).GetField("BaseFee")!.GetValue(null).Should().Be(4.90m);', False),
+        # A known limit the other way: the grader fails a fee test that puts the constant first.
+        "a limit: a fee test with the constant as the subject": ("ShippingFeeCalculator.BaseFee.Should().Be(calculator.GetFee(10m, 1));", True),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(DOTNET_ROOT)}["wt-useful-tests"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def test_the_grader_reads_the_test_file_and_needs_no_match(self):
+        meta = self.meta("no-constant-test")
+        self.assertEqual((meta["type"], meta["match"], meta["target"]),
+                         ("regex", "not_contains", {"source": "file", "path": self.TEST_FILE}))
+        for grader in ("covers-get-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader)["target"], {"source": "file", "path": self.TEST_FILE})
+
+    def test_the_grader_finds_each_test_of_a_value_and_no_test_of_the_fee(self):
+        pattern = re.compile(self.meta("no-constant-test")["pattern"])
+        for name, (text, found) in self.SAMPLES.items():
+            with self.subTest(sample=name):
+                self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_source_grader_matches_the_class_of_the_scaffold_only(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        source = re.search(rf"fixture_write {re.escape(self.SOURCE_FILE)} <<'DOTNET_EOF'\n(.*?)^DOTNET_EOF$", scaffold, re.S | re.M)
+        self.assertIsNotNone(source, "The scaffold must write the class with a DOTNET_EOF heredoc.")
+        meta = self.meta("source-unchanged")
+        self.assertEqual(meta["target"], {"source": "file", "path": self.SOURCE_FILE})
+        pattern = re.compile(meta["pattern"])
+        text = source.group(1)
+        self.assertIsNotNone(pattern.search(text))
+        changes = {"a changed fee": ("return 0m;", "return 1m;"), "a removed constant": ("    public const int MaxWeightKilograms = 30;\n", "")}
+        for name, (old, new) in changes.items():
+            with self.subTest(change=name):
+                self.assertIn(old, text)
+                self.assertIsNone(pattern.search(text.replace(old, new)))
 
 
 class OptimizeSkillCaseTests(unittest.TestCase):
