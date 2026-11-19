@@ -5110,6 +5110,9 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
         status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
         read = self.tool_use("Read", {"file_path": self.PATH})
         cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
+        # A right run read the file as `cd <folder> && cat no-worktree.md`, with the folder and the name apart.
+        folder = self.PATH.rsplit("/", 1)[0]
+        cd_cat = self.tool_use("Bash", {"command": f"cd {folder} && cat no-worktree.md; echo ====; cat finish.md"})
         switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
         edit = self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"})
         # A line break after `branch ` is a backslash in the trace, but it starts no branch name.
@@ -5121,6 +5124,7 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                 self.assertTrue(self.found(case, "\n".join([wrapped, trailing, read, switch])))
                 self.assertTrue(self.found(case, "\n".join([init, todo, status, read, switch, edit])))
                 self.assertTrue(self.found(case, "\n".join([cat, switch])))
+                self.assertTrue(self.found(case, "\n".join([status, cd_cat, switch, edit])))
 
     def test_a_read_after_the_branch_or_an_edit_fails(self):
         read = self.tool_use("Read", {"file_path": self.PATH})
