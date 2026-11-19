@@ -20,7 +20,7 @@ The terms "useful test" and "bad test" now have one general home: the new Rule 8
 
 ### Changed in dotnet-backend-dev
 
-- `skills/create-tests`: the section "Useful Tests" starts with new sentences and points at Rule 8 of `dev-essentials:engineering-discipline` for the terms. It keeps its three .NET examples. Its last sentence keeps two examples of a contract value: an error code and the default of a configuration option (issue #294).
+- `skills/create-tests`: the section "Useful Tests" starts with new sentences and points at Rule 8 of `dev-essentials:engineering-discipline` for the terms. It keeps its three .NET examples. The first one now asks for the input and the expected value as written values, not as the name of the constant. Its last sentence keeps two examples of a contract value: an error code and the default of a configuration option (issue #294).
 - `skills/dotnet-conventions/testing.md`: the sentence on useful tests points at Rule 8 and at the .NET examples of `create-tests` (issue #294).
 
 ### Changed in the repository
