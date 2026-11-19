@@ -4965,5 +4965,125 @@ class ModelLadderCaseTests(unittest.TestCase):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
 
 
+class UsefulTestsCaseGraderTests(unittest.TestCase):
+    """The graders of ed-useful-tests: a test that only asserts a constant fails the case, a test of shipping_fee does not."""
+
+    TEST_FILE = "tests/test_shipping.py"
+    SOURCE_FILE = "app/shipping.py"
+    # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
+    SAMPLES = {
+        "a constant with a literal": ("self.assertEqual(shipping.BASE_FEE, 4.90)", True),
+        "a bare constant": ("self.assertEqual(MAX_WEIGHT_KILOGRAMS, 30)", True),
+        "the full module path": ("self.assertEqual(app.shipping.FREE_SHIPPING_THRESHOLD, 50.0)", True),
+        "the literal first": ("self.assertEqual(1.20, FEE_PER_KILOGRAM)", True),
+        "an almost equal check": ("self.assertAlmostEqual(BASE_FEE, 4.9, places=2)", True),
+        "a sign check": ("self.assertGreater(BASE_FEE, 0)", True),
+        "a type check": ("self.assertIsInstance(MAX_WEIGHT_KILOGRAMS, int)", True),
+        "a type check with a tuple": ("self.assertIsInstance(BASE_FEE, (int, float))", True),
+        "a check of one constant": ("self.assertTrue(BASE_FEE)", True),
+        "a none check": ("self.assertIsNotNone(MAX_WEIGHT_KILOGRAMS)", True),
+        "two constants": ("self.assertLess(BASE_FEE, FREE_SHIPPING_THRESHOLD)", True),
+        "a true check": ("self.assertTrue(FREE_SHIPPING_THRESHOLD > 0)", True),
+        "a bare assert": ("assert shipping.MAX_WEIGHT_KILOGRAMS == 30", True),
+        "a bare assert with the literal first": ("assert 4.90 == BASE_FEE", True),
+        "the constant on the next line": ("self.assertEqual(\n    BASE_FEE,\n    4.90,\n)", True),
+        "a fee test": ("self.assertEqual(shipping_fee(10.0, 1), 4.90)", False),
+        "a fee test with the constant as the expected value": ("self.assertEqual(shipping_fee(10.0, 1), BASE_FEE)", False),
+        "the constant first and the fee second": ("self.assertEqual(BASE_FEE, shipping_fee(10.0, 1))", False),
+        "the constant as the input": ("self.assertEqual(shipping_fee(FREE_SHIPPING_THRESHOLD, 1), 0.0)", False),
+        "a computed expected value": ("self.assertAlmostEqual(shipping_fee(10.0, 3), BASE_FEE + 2 * FEE_PER_KILOGRAM)", False),
+        "the sum of constants first": ("self.assertAlmostEqual(BASE_FEE + 2 * FEE_PER_KILOGRAM, shipping_fee(10.0, 3))", False),
+        "a guard test": ("with self.assertRaises(ValueError):\n    shipping_fee(10.0, MAX_WEIGHT_KILOGRAMS + 1)", False),
+        "a fee variable": ("self.assertEqual(BASE_FEE, fee)", False),
+        "a bare assert of the fee": ("assert shipping_fee(10.0, 1) == BASE_FEE", False),
+        "a comment": ("# BASE_FEE is the fee for one kilogram.", False),
+        "an import": ("from app.shipping import BASE_FEE, MAX_WEIGHT_KILOGRAMS, shipping_fee", False),
+        "a fee helper with the constant first": ("self.assert_fee(BASE_FEE, 10.0, 1)", False),
+        "a fee helper with the limit": ("self._assert_fee(10.0, MAX_WEIGHT_KILOGRAMS, 39.7)", False),
+        # Known limits: the grader misses these tests of a constant.
+        "a limit: getattr in a loop": ("self.assertEqual(getattr(shipping, name), value)", False),
+        "a limit: a copy into a variable": ("actual = BASE_FEE\nself.assertEqual(actual, 4.90)", False),
+        "a limit: the literal first in assertTrue": ("self.assertTrue(0 < BASE_FEE)", False),
+        "a limit: a call around the constant": ("self.assertEqual(round(BASE_FEE, 2), 4.9)", False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["ed-useful-tests"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def test_the_graders_read_the_test_file(self):
+        meta = self.meta("no-constant-test")
+        self.assertEqual((meta["type"], meta["match"], meta["target"]),
+                         ("regex", "not_contains", {"source": "file", "path": self.TEST_FILE}))
+        for grader in ("covers-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader)["target"], {"source": "file", "path": self.TEST_FILE})
+
+    def test_the_grader_finds_each_test_of_a_value_and_no_test_of_the_fee(self):
+        pattern = re.compile(self.meta("no-constant-test")["pattern"])
+        for name, (text, found) in self.SAMPLES.items():
+            with self.subTest(sample=name):
+                self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_cover_graders_need_a_call_and_a_guard(self):
+        samples = {
+            "covers-fee": {"self.assertEqual(shipping_fee(10.0, 1), 4.90)": True,
+                           "self.assertEqual(shipping.shipping_fee(order_total=10.0, weight_kilograms=1), 4.9)": True,
+                           "fee = shipping_fee(10.0, 3)": True,
+                           "self.assertEqual(shipping_fee(*case[:2]), case[2])": True,
+                           "with self.assertRaises(ValueError):\n    shipping_fee(-1.0, 1)": False,
+                           "self.assertRaises(ValueError, lambda: shipping_fee(-1.0, 1))": False,
+                           "from app.shipping import shipping_fee": False, "# shipping_fee() returns the fee.": False},
+            "covers-guard": {"with self.assertRaises(ValueError):": True, 'self.assertRaisesRegex(ValueError, "weight")': True,
+                             "with self.assertRaises(TypeError):": False, "# The function raises ValueError.": False},
+        }
+        for grader, texts in samples.items():
+            pattern = re.compile(self.meta(grader)["pattern"])
+            for text, found in texts.items():
+                with self.subTest(grader=grader, text=text):
+                    self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_test_run_grader_needs_a_passed_run_in_the_trace(self):
+        meta = self.meta("tests-passed")
+        self.assertEqual(meta["target"], "trace")
+        pattern = re.compile(meta["pattern"])
+        outputs = {"a passed run": ("..\n------\nRan 6 tests in 0.002s\n\nOK\n", True),
+                   "a passed run with a skip": ("Ran 6 tests in 0.002s\n\nOK (skipped=1)\n", True),
+                   "a failed run": ("Ran 6 tests in 0.002s\n\nFAILED (failures=1)\n", False),
+                   "no test": ("Ran 0 tests in 0.000s\n\nNO TESTS RAN\n", False)}
+        for name, (output, found) in outputs.items():
+            line = json.dumps({"type": "user", "message": {"content": [{"type": "tool_result", "content": output}]}})
+            with self.subTest(output=name):
+                self.assertEqual(pattern.search(line) is not None, found)
+
+    def test_the_source_grader_matches_the_module_of_the_scaffold_only(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        source = re.search(rf"fixture_write {re.escape(self.SOURCE_FILE)} <<'FIX_EOF'\n(.*?)^FIX_EOF$", scaffold, re.S | re.M)
+        self.assertIsNotNone(source, "The scaffold must write the module with a FIX_EOF heredoc.")
+        meta = self.meta("source-unchanged")
+        self.assertEqual(meta["target"], {"source": "file", "path": self.SOURCE_FILE})
+        pattern = re.compile(meta["pattern"])
+        text = source.group(1)
+        self.assertIsNotNone(pattern.search(text))
+        changes = {"a changed fee": ("BASE_FEE = 4.90", "BASE_FEE = 5.90"),
+                   "a changed free branch": ("return 0.0", "return 1.0"),
+                   "a removed constant": ('MAX_WEIGHT_KILOGRAMS = 30\n"""The largest parcel weight in kilograms."""\n', "")}
+        for name, (old, new) in changes.items():
+            with self.subTest(change=name):
+                self.assertIn(old, text)
+                self.assertIsNone(pattern.search(text.replace(old, new)))
+
+    def test_the_module_shows_no_constant_to_a_user(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        messages = re.findall(r"raise ValueError\(([^)]*)\)", scaffold)
+        self.assertTrue(messages, "The module must raise ValueError with a message.")
+        for message in messages:
+            with self.subTest(message=message):
+                self.assertRegex(message.strip(), r"""^(["'])[^"'\d{]*\1$""")
+
+
 if __name__ == "__main__":
     unittest.main()
