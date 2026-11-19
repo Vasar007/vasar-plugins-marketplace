@@ -14,6 +14,8 @@ OLD_RULES = (
     "the Fable-eligible step",
     "Default. The executor for coding work",
     "pass the level that the task needs",
+    "| Keep Opus |",
+    "keep Opus (see",
 )
 
 
