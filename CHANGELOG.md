@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tests/test_work_modes_gate_rows.py`: a new test of the gate tables of the gated units of `dev-essentials`. It sorts each cell of each gate row by its opening words: the run stops, the run goes on, or the row leaves its gates to another text. The interactive mode must stop at each gate where the partial mode stops, and the partial mode at each gate where the full mode stops. So a swap of two cells of different classes fails the test. Two rows break this order on purpose, and the test names them. A cell with unknown opening words fails the test too (issue #279).
+- `tests/test_work_modes_gate_rows.py`: a new test of the gate tables of the gated units of `dev-essentials`. It sorts each cell of each gate row by its opening words: the run stops, the run goes on, or the row leaves its gates to another text. The interactive mode must stop at each gate where the partial mode stops, and the partial mode at each gate where the full mode stops. So a swap of two cells of different classes fails the test. Two rows break this order on purpose, and the test names them. The partial mode must also stop at each push, merge, or deletion gate. A cell with unknown opening words fails the test too (issue #279).
 
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 

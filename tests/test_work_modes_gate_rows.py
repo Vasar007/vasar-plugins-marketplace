@@ -24,6 +24,8 @@ OPENERS = {
 # A cell with one of these words takes the cell of the partial mode.
 SAME = ("Same", "Same as partial")
 RANK = {GO: 0, STOP: 1}
+# A gate with one of these words is an outward step or a deletion. The partial mode stops there.
+OUTWARD = re.compile(r"\b(?:push|merge|delete|deletion|remove|removal)\b", re.IGNORECASE)
 # Rows that break the order on purpose, with the classes of their partial, interactive, and full cells.
 ORDER_EXCEPTIONS = {
     # The interactive mode stops at Human Approve #1 before this post. The partial mode posts after Human Approve #2.
@@ -36,11 +38,13 @@ ORDER_EXCEPTIONS = {
 def gate_rows(rel):
     """The rows of the gate table of a unit, each as a tuple of its cells."""
     lines = autonomy(read(PLUGIN / rel)).splitlines()
+    if HEADER not in lines:
+        raise AssertionError(f"{rel} has no line {HEADER!r} in its Autonomy section.")
     rows = []
     for line in lines[lines.index(HEADER) + 2:]:
-        if not line.startswith("|"):
+        if not line.lstrip().startswith("|"):
             break
-        rows.append(tuple(cell.strip() for cell in line.strip().strip("|").split("|")))
+        rows.append(tuple(cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip().strip("|"))))
     return rows
 
 
@@ -65,21 +69,27 @@ def classes(row):
 class GateRowTests(unittest.TestCase):
     def test_no_mode_stops_where_a_mode_with_more_stops_goes_on(self):
         for rel in TABLE_UNITS:
-            rows = gate_rows(rel)
-            self.assertTrue(rows, f"{rel} has no gate rows below its header.")
+            rows = []
+            with self.subTest(unit=rel):
+                rows = gate_rows(rel)
+                self.assertTrue(rows, f"{rel} has no gate rows below its header.")
             for row in rows:
                 with self.subTest(unit=rel, gate=row[0]):
                     self.assertEqual(len(row), 4, f"The row needs a gate and three cells: {row}")
                     found = classes(row)
+                    if OUTWARD.search(row[0]):
+                        self.assertEqual(found[0], STOP, "The partial mode pushes, merges, or deletes with no question. Start the partial cell with the words of a stop.")
+                    why = (f"Cells {row[1:]} have the classes {found} by their opening words in OPENERS. "
+                           "If a class is wrong, start the cell with the words of its class. "
+                           "If the row breaks the order on purpose, add it to ORDER_EXCEPTIONS.")
                     if (rel, row[0]) in ORDER_EXCEPTIONS:
-                        self.assertEqual(found, ORDER_EXCEPTIONS[rel, row[0]])
+                        self.assertEqual(found, ORDER_EXCEPTIONS[rel, row[0]], why)
                     elif OWN in found:
                         self.assertEqual(set(found), {OWN}, "A row that leaves its gates to another text does so in each mode.")
                     else:
                         partial, interactive, full = (RANK[name] for name in found)
-                        self.assertGreaterEqual(interactive, partial, "The interactive mode goes on where the partial mode stops.")
-                        self.assertGreaterEqual(partial, full, "The full mode stops where the partial mode goes on.")
-
+                        self.assertGreaterEqual(interactive, partial, "The interactive mode goes on where the partial mode stops. " + why)
+                        self.assertGreaterEqual(partial, full, "The full mode stops where the partial mode goes on. " + why)
 
 if __name__ == "__main__":
     unittest.main()
