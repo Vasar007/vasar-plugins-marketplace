@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.1 in release [5.4.1] - 2026-11-19
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: if no output line of a run holds an error word, the signature of the run takes each line of the output. Before, the signature of such a run was empty, so the verdict was `OTHER`. A lint such as flake8 prints no error word. A new lint hit at any place of the output still gives `OTHER`. The help of `--command`, the docstring, and the reason text name the lint and the new compare (issue #301).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: three new unit tests. The same lint output at both commits gives `SAME-AT-PARENT`. A new hit above the last 15 lines gives `OTHER`. Another hit with the same line count also gives `OTHER`. The reason line of `ExportTests` holds the new reason text. So does the sample of `FailureCheckExportGraderTests` in `tests/test_eval_cases.py` (issue #301).
+
 ## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
 
 `review-loop` gets three changes. The re-review of a round gets the findings, the verdicts, and the fix plans of the round before it (issue #296). For a branch, a pull request, commits, or a diff, Phase 6 takes its commands from the `CLAUDE.md` at the base of the target. Phase 1 pins that base to a SHA (issue #297). A failed lint of the command that `CLAUDE.md` names now fails Phase 6 (issue #298).
@@ -2368,7 +2380,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...HEAD
+[5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
 [5.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...v5.3.1
 [5.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.1...v5.3.0
