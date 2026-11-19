@@ -165,6 +165,7 @@ git commit -m "Review round 1: Fix rate-limit algorithm, §3/§7 contradiction, 
 Rounds: 1 of 1 max
 Build: skipped (spec target — no compile command)
 Tests: not run
+Lint: not run (no lint command)
 Spec validation: passing (openspec validate add-tenant-quotas)
 Stop verdict: stop-max-rounds
 

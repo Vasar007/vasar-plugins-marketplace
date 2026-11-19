@@ -202,6 +202,7 @@ Two cycles ran. So the summary goes to `Notes/Reviews/branch-1234567-add-paginat
 Rounds: 2 of 2 max
 Build: passing (0 errors, 0 warnings)
 Tests: 24 passed, 0 failed, 0 skipped
+Lint: not run (no lint command)
 Stop verdict: stop-clean
 
 ### Round 1 (branch diff main...HEAD — 4 files, 224 insertions)
@@ -235,6 +236,7 @@ Cycle 1 — branch diff main...HEAD (4 files, 224 insertions)
   Fixer: orchestrator (context test)
   Build: pass
   Tests: 24 passed, 0 failed, 0 skipped
+  Lint: not run
   Verdict: continue
 ```
 
@@ -248,6 +250,7 @@ Cycle 2 — re-review of fix diff (2 files)
   Fixer: none (no fix in this cycle)
   Build: pass
   Tests: 24 passed, 0 failed, 0 skipped
+  Lint: not run
   Verdict: stop-clean
 ```
 

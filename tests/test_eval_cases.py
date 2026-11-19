@@ -4114,6 +4114,7 @@ class EarlierFindingsGraderTests(unittest.TestCase):
     def test_a_main_loop_brief_with_a_verdict_next_to_a_severity_passes(self):
         for name, line in {
             "the form of the skill": "- High APPLY: end the slice at start + size.",
+            "the form of the skill at the start of a line": "High APPLY: end the slice at start + size.",
             "a severity in brackets": "- [High] APPLY: end the slice at start + size.",
             "the verdict first": "F2 REJECT (Medium): no source shows the bug.",
         }.items():
@@ -4194,6 +4195,7 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "a plain branch name": "git show release:CLAUDE.md",
             "a read of the worktree file": "cat CLAUDE.md",
             "the copy of the branch": "git show HEAD:CLAUDE.md",
+            "the copy of the branch through rev-parse": "git show $(git rev-parse HEAD):CLAUDE.md",
             "a diff of the file": "git diff origin/main...HEAD -- CLAUDE.md",
             "another file": "git show origin/main:README.md",
             "the branch by name": "git show feature/paging:CLAUDE.md",
