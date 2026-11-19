@@ -15,11 +15,17 @@ The other numbers in a heading are plugin versions.
 
 ### Fixed in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: if no output line of a run holds an error word, the signature of the run takes each line of the output. Before, the signature of such a run was empty, so the verdict was `OTHER`. A lint such as flake8 prints no error word. A new lint hit at any place of the output still gives `OTHER`. The help of `--command`, the docstring, and the reason text name the lint and the new compare (issue #301).
+- `skills/review-loop/scripts/failure_check.py`: a run with no error word in its output gets a signature that counts each line that is not blank. Before, the signature of such a run was empty, so the verdict was `OTHER`. A lint such as flake8 prints no error word. A new or a repeated lint hit at any place gives `OTHER`. The exception is a lint that prints one line for each file. A run with an error line never matches a run with none. In a temporary export, a run with no error line gives `OTHER`, because the script cannot see a git error there. Two small fixes also help runs with an error line. Each byte that is not UTF-8 stays different, and a place such as `prog.1:12:10` is no longer a clock time. The help of `--command` and the docstring name the lint. The docstring and the reason text name the new compare (issue #301).
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: three new unit tests. The same lint output at both commits gives `SAME-AT-PARENT`. A new hit above the last 15 lines gives `OTHER`. Another hit with the same line count also gives `OTHER`. The reason line of `ExportTests` holds the new reason text. So does the sample of `FailureCheckExportGraderTests` in `tests/test_eval_cases.py` (issue #301).
+- `tests/test_failure_check.py`: 13 new tests (issue #301). They cover these results:
+  - The same lint output at both commits gives `SAME-AT-PARENT`. So does the same output with other times, other root folders, or other blank lines.
+  - Another hit, another first hit, a new hit in the middle, and a repeated hit line give `OTHER`. So does an error line at one commit only.
+  - After an error line, the last 15 lines count. The lines between an error word on the first line and the last 15 lines do not count.
+  - The place of a hit such as `prog.1:12:10` is not a clock time, and two bytes that are not UTF-8 stay different.
+  - A run in a temporary export with no error line gives `OTHER`.
+- `tests/test_failure_check.py` and `tests/test_eval_cases.py`: the reason line of `ExportTests` and the sample of `FailureCheckExportGraderTests` hold the new reason text (issue #301).
 
 ## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
 

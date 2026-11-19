@@ -25,7 +25,8 @@ commit. In an export, git finds no repository. So a command that reads git
 data, for example a build that reads the commit, fails or gives another result
 in an export. Then the verdict can be OTHER, or SAME-AT-PARENT if both runs
 fail in the same way because the git data is missing. If the command passes
-only in an export, the verdict is OTHER.
+only in an export, the verdict is OTHER. If a run in an export prints no error
+line, the verdict is OTHER too, because the script cannot see a git error.
 
 The command runs with `bash -c`, in the same folder relative to the work tree
 root as --cwd, and stops after --timeout seconds. The temporary worktrees and
@@ -60,7 +61,8 @@ The last two lines are the verdict and its reason:
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
   VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error
                            lines, and the same last lines after the first error line.
-                           With no error line, each line of the output is the same
+                           With no error line, each line that is not blank and its count are
+                           the same
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
 Before the compare, each count of passed or skipped tests becomes a token. A count of failures
@@ -68,6 +70,9 @@ or errors stays. The line of a single test also stays, for example a PASSED line
 or an ok line of unittest -v. So a new test can still give OTHER in three ways: its line is in
 the last lines, its line holds an error word, or no line of the output holds an error word. An
 error word is fail, traceback, or a word that ends with error or exception.
+If the command prints the same lines for two different failures, for example only a banner,
+the verdict is also SAME-AT-PARENT. A lint that prints one line for each file prints the same
+lines for a new problem in a file that already fails. Then the verdict is SAME-AT-PARENT too.
 Each MADE or EXPORTED line has a REMOVED line after it. A MADE line with no REMOVED
 line names a worktree that is still there. Remove it with `git worktree remove --force`.
 An EXPORTED line with no REMOVED line names a plain folder that is still there. Delete it.
@@ -83,6 +88,7 @@ Example:
       --cwd /path/to/repo --ignore "Notes/Reviews/my-branch-*"
 """
 import argparse
+import collections
 import contextlib
 import fnmatch
 import json
@@ -112,7 +118,7 @@ NOISE = [
     (re.compile(r"\x1b\[[0-9;]*m"), ""),
     (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
-    (re.compile(r"\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
+    (re.compile(r"(?<![:.])\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
     # The count rules come after the time rules, because some of them look for the token <time>.
@@ -251,12 +257,12 @@ class Run:
     def signature(self, roots):
         """The error lines and the last lines, with a token for each root folder, time, address, and count of tests.
 
-        With no error line, the signature takes each line. So a new lint hit at any place changes it.
+        With no error line, it takes each line that is not blank and its count, so a new lint hit changes it.
         """
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
         rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE
-        found = set()
+        found = collections.Counter()
         first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), None)
         start = 0 if first is None else max(first, len(self.lines) - TAIL_LINES)
         for i, line in enumerate(self.lines):
@@ -264,8 +270,11 @@ class Run:
                 text = line
                 for pattern, token in rules:
                     text = pattern.sub(token, text)
-                found.add(text.strip())
-        return found
+                found[text.strip()] += 1
+        if first is not None:
+            return set(found)
+        # A pair never equals a line, so a run with no error line never matches a run with one.
+        return {(text, count) for text, count in found.items() if text}
 
     def report(self):
         if self.start_error:
@@ -388,7 +397,7 @@ def run_command(run, bash, command, timeout, log, env=None):
             if job is not None:
                 KERNEL32.CloseHandle(job)
     run.seconds = time.monotonic() - start
-    run.lines = Path(log).read_bytes().decode("utf-8", "replace").splitlines()
+    run.lines = Path(log).read_bytes().decode("utf-8", "backslashreplace").splitlines()
     return run
 
 
@@ -490,13 +499,18 @@ def verdict(clean, fix, parent, roots):
         return "REGRESSION", "the command fails at the fix commit and passes at the commit before it."
     if not parent.runnable_failure:
         return "OTHER", "the command did not run to an end at the commit before the fix commit."
+    in_export = "temporary export" in (fix.where, parent.where)
+    if in_export and not any(ERROR.search(line) for line in fix.lines + parent.lines):
+        return "OTHER", ("the command fails at both commits, and a temporary export has no git data. "
+                         "No output line holds an error word, so the script cannot rule out missing git data.")
     signature = fix.signature(roots)
     if signature and parent.code == fix.code and signature == parent.signature(roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
-                                  "and the same last lines after the first error line, or the same output with "
-                                  "no error line.")
+                                  "and the same last lines after the first error line. "
+                                  "With no error line, the lines of the output and their counts are the same.")
     return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
-                     "the last lines after the first error line, or the output with no error line differ.")
+                     "or the last lines after the first error line differ. "
+                     "With no error line, the lines of the output or their counts differ.")
 
 
 def run_in_worktree(trees, side, sha, rel, args, bash):

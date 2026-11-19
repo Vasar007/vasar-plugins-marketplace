@@ -3998,7 +3998,8 @@ class FailureCheckExportGraderTests(unittest.TestCase):
               "REMOVED /t/review-loop-fc-ab12/parent\n"
               "VERDICT: SAME-AT-PARENT\n"
               "REASON: the command fails at both commits with the same exit code, the same error lines, "
-              "and the same last lines after the first error line, or the same output with no error line.\n")
+              "and the same last lines after the first error line. "
+              "With no error line, the lines of the output and their counts are the same.\n")
 
     @classmethod
     def setUpClass(cls):

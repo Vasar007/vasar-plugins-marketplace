@@ -211,6 +211,18 @@ class VerdictTests(FailureCheckCase):
         fix = self.commit("fix")
         self.assertEqual(self.verdict(self.check(fix, "exit 1")), "OTHER")
 
+    def test_two_lint_hits_that_differ_only_in_a_byte_that_is_not_utf8_are_other(self):
+        hit = b"src/caf%s.py:1:1: F401 'os' imported but unused\n"
+        self.write("sub/code.txt", "1\n")
+        (self.repo / "sub/msg.txt").write_bytes(hit % b"\xe8")
+        self.commit("parent")
+        (self.repo / "sub/msg.txt").write_bytes(hit % b"\xe9")
+        fix = self.commit("fix")
+        out = self.check(fix, FAIL_WITH)
+        self.assertIn("TAIL  | src/caf\\xe9.py:1:1: F401", out)
+        self.assertIn("TAIL  | src/caf\\xe8.py:1:1: F401", out)
+        self.assertEqual(self.verdict(out), "OTHER")
+
     def test_more_than_twenty_error_lines_are_cut(self):
         self.write("sub/value.txt", "bad\n")
         fix = self.commit("fix")
@@ -416,7 +428,8 @@ class ExportTests(FailureCheckCase):
     """git worktree add fails and makes no folder, so the script runs the command in an export (issue #232)."""
 
     SAME = ("REASON: the command fails at both commits with the same exit code, the same error lines, "
-            "and the same last lines after the first error line, or the same output with no error line.")
+            "and the same last lines after the first error line. "
+            "With no error line, the lines of the output and their counts are the same.")
     FILES = (("target.txt", b"target text\nline two\n"), ("ignored.txt", b"not in an archive\n"),
              ("subst.txt", b"commit $Format:%H$\n"),
              (".gitattributes", b"ignored.txt export-ignore\nsubst.txt export-subst\n"),
@@ -786,26 +799,89 @@ class UnitTests(unittest.TestCase):
         b.lines = ["  Restored /tmp/a.csproj (in 191 ms).", "a.cs(5,6): error CS0246"]
         self.assertEqual(a.signature(set()), b.signature(set()))
 
-    def lint_verdict(self, fix_lines, parent_lines):
+    def lint_verdict(self, fix_lines, parent_lines, roots=(), fix_where="main worktree", parent_where="temporary worktree"):
         """The verdict for a lint that fails with exit code 1 at both commits and prints the given lines."""
-        fix = fc.Run("fix", "a" * 40, "x", "main worktree")
+        fix = fc.Run("fix", "a" * 40, "x", fix_where)
         fix.code, fix.lines = 1, fix_lines
-        parent = fc.Run("parent", "b" * 40, "y", "temporary worktree")
+        parent = fc.Run("parent", "b" * 40, "y", parent_where)
         parent.code, parent.lines = 1, parent_lines
-        return fc.verdict(False, fix, parent, set())[0]
+        return fc.verdict(False, fix, parent, set(roots))[0]
 
     def test_same_lint_output_with_no_error_word_is_same_at_parent(self):
         hit = "src/a.py:1:1: F401 'os' imported but unused"
         self.assertEqual(self.lint_verdict([hit, "Done in 0.31s"], [hit, "Done in 1.02s"]), "SAME-AT-PARENT")
 
-    def test_new_lint_hit_above_the_last_lines_is_other(self):
-        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(20)]
+    def test_new_lint_hit_between_the_first_and_the_last_lines_is_other(self):
+        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(30)]
         new = "src/new.py:3:1: E302 expected 2 blank lines, found 1"
-        self.assertEqual(self.lint_verdict([new, *hits], hits), "OTHER")
+        self.assertEqual(self.lint_verdict([*hits[:15], new, *hits[15:]], hits), "OTHER")
 
     def test_other_lint_output_with_the_same_line_count_is_other(self):
         self.assertEqual(self.lint_verdict(["src/a.py:1:1: F401 'os' imported but unused"],
                                            ["src/b.py:3:1: E302 expected 2 blank lines, found 1"]), "OTHER")
+
+    def test_other_first_lint_hit_with_the_same_other_lines_is_other(self):
+        rest = ["src/b.py:3:1: E302 expected 2 blank lines, found 1", "Done in 0.31s"]
+        self.assertEqual(self.lint_verdict(["src/a.py:9:1: F401 'os' imported but unused", *rest],
+                                           ["src/a.py:1:1: F401 'os' imported but unused", *rest]), "OTHER")
+
+    def test_second_lint_hit_with_the_text_of_a_hit_of_another_file_is_other(self):
+        doc_start = '  1:1       warning  missing document start "---"  (document-start)'
+        truthy = "  3:5       warning  truthy value should be one of [false, true]  (truthy)"
+        parent = ["a.yaml", truthy, "", "b.yaml", doc_start, ""]
+        self.assertEqual(self.lint_verdict(["a.yaml", doc_start, truthy, "", "b.yaml", doc_start, ""], parent), "OTHER")
+        self.assertEqual(self.lint_verdict(parent[3:] + parent[:3], parent), "SAME-AT-PARENT")
+
+    def test_blank_lines_with_no_error_line_do_not_count(self):
+        hit = "src/a.py:1:1: F401 'os' imported but unused"
+        self.assertEqual(self.lint_verdict([""], ["", "", ""]), "OTHER")
+        self.assertEqual(self.lint_verdict(["", "  \t"], ["", "  \t"]), "OTHER")
+        self.assertEqual(self.lint_verdict([hit, "", ""], ["", hit]), "SAME-AT-PARENT")
+
+    def test_error_line_at_only_one_commit_is_other(self):
+        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(15)]
+        new = "src/a_new.py:3:1: E302 expected 2 blank lines, found 1"
+        roots = ["/work/errors/repo", "/tmp/review-loop-fc-ab12/parent"]
+        self.assertEqual(self.lint_verdict(["Linting /work/errors/repo", new, *hits],
+                                           ["Linting /tmp/review-loop-fc-ab12/parent", *hits], roots), "OTHER")
+
+    def test_lines_between_an_error_on_the_first_line_and_the_last_lines_do_not_count(self):
+        tail = [f"step {i}" for i in range(15)]
+        self.assertEqual(self.lint_verdict(["error: boom", "compiling a.py", *tail],
+                                           ["error: boom", "compiling b.py", *tail]), "SAME-AT-PARENT")
+
+    def test_error_line_above_the_last_lines_counts_and_another_line_there_does_not(self):
+        def signature(error, changed=None):
+            run = fc.Run("fix", "a" * 40, "x", "main")
+            run.lines = [error, *(f"line {i}" for i in range(20))]
+            if changed is not None:
+                run.lines[changed] = "another line"
+            return run.signature(set())
+
+        # The output has 21 lines, so the last 15 lines start at index 6.
+        self.assertNotEqual(signature("error: a"), signature("error: b"))
+        self.assertEqual(signature("error: a", changed=5), signature("error: a"))
+        self.assertNotEqual(signature("error: a", changed=6), signature("error: a"))
+
+    def test_same_lint_output_with_the_folder_of_each_run_is_same_at_parent(self):
+        hit = "/src/a.py:1:1: F401 'os' imported but unused"
+        roots = ["/work/repo", "/tmp/review-loop-fc-ab12/parent"]
+        self.assertEqual(self.lint_verdict(["/work/repo" + hit], ["/tmp/review-loop-fc-ab12/parent" + hit], roots),
+                         "SAME-AT-PARENT")
+
+    def test_place_of_a_lint_hit_is_not_a_clock_time(self):
+        self.assertEqual(self.lint_verdict(["prog.1:12:10: bad macro"], ["prog.1:34:56: bad macro"]), "OTHER")
+        self.assertEqual(self.lint_verdict(["a.py:12:10:15: x"], ["a.py:34:56:15: x"]), "OTHER")
+        self.assertEqual(self.lint_verdict(["a.py:1:1: x", "at 10:15:01"], ["a.py:1:1: x", "at 9:07:59.250"]),
+                         "SAME-AT-PARENT")
+
+    def test_lint_with_no_error_line_in_a_temporary_export_is_other(self):
+        hit = "src/a.py:1:1: F401 'os' imported but unused"
+        self.assertEqual(self.lint_verdict([hit], [hit], parent_where="temporary export"), "OTHER")
+        self.assertEqual(self.lint_verdict([hit], [hit], fix_where="temporary export"), "OTHER")
+        error = "fatal: not a git repository"
+        self.assertEqual(self.lint_verdict(["error: x", error], ["error: x", error], parent_where="temporary export"),
+                         "SAME-AT-PARENT")
 
     def test_error_rule_matches_class_names_and_plural_forms(self):
         for line in ("KeyError: 'x'", "System.InvalidOperationException: y", "3 exceptions", "test_x fails"):
