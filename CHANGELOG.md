@@ -30,8 +30,8 @@ The gated workflows no longer read the old mode flags. Only `--mode interactive|
 - `--interactive`, or the argument `interactive` of `process-pr-comments`: write `--mode interactive`.
 - `--autonomous`, or the argument `autonomous` of `process-pr-comments`: write `--mode full`. Where the workflow ends with a merge, the full mode also pushes, opens the pull request, and merges. To stop before these steps, add "Do not push the branch." or "Do not merge the pull request." to the request.
 - `--autonomous --merge`: write `--mode full`.
-- `--merge` alone: write no flag, and answer yes to the question of the final gate. You can also ask for the merge in your own words, for example "and merge it".
-- `--push` of `implement-task` and `implement-batch`: write no flag, and answer "push and pull request only" to the question of the final gate.
+- `--merge` alone: write no flag, and ask for the merge in your own words, for example "and merge it". In `research-implement-review-report`, `implement-task`, and `implement-batch`, you can also answer yes to the question of the final gate.
+- `--push` of `implement-task` and `implement-batch`: write no flag, and answer "push and pull request only" to the question of the final gate. This answer also opens a pull request. The old flag only pushed the branch.
 
 ### Changed in the repository
 

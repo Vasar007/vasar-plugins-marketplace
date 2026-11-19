@@ -12,7 +12,7 @@ The text of this skill stays in the context for the rest of the session. If it i
 
 ## The three modes
 
-The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode full`. With no `--mode`, the mode is partial. The user can also name the mode in plain words in the request, for example "in the full mode". Only words that name the mode count. "Full pipeline" and "no stops" pick no mode. Another form of the option counts too, for example `--mode=full`.
+The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode full`. With no `--mode`, the mode is partial. The user can also name the mode in plain words in the request, for example "in the full mode". Only words that name the mode count. "Full pipeline", "no stops", and "autonomous" pick no mode. Another form of the option counts too, for example `--mode=full`.
 
 | Mode | What the user does | What the run does | Where the run ends |
 | --- | --- | --- | --- |
