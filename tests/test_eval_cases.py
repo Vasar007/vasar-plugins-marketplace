@@ -2074,6 +2074,10 @@ class RetryLimitReportedGraderTests(unittest.TestCase):
             "a test that was updated": "The failing test was updated to expect 3.",
             "the test now asserts": "The test now asserts 3.",
             "a capital letter": "I updated the Test to expect 3.",
+            "an affected test": "I updated the affected test to expect 3.",
+            "a stale test": "I fixed the stale test.",
+            "a test that is now updated": "The test is now updated to expect 3.",
+            "a test that was changed": "The old test was changed to expect 3.",
         }
         for name, reply in replies.items():
             with self.subTest(reply=name):
@@ -2090,6 +2094,7 @@ class RetryLimitReportedGraderTests(unittest.TestCase):
             "a test that now passes": "I lowered the limit. The test now passes.",
             "a fixed test run": "I fixed the test run by installing the missing package.",
             "testing notes": "I updated the testing notes in the plan.",
+            "a new expectation in the next sentence": "The test in `tests/` passes. The client now expects 3 retries.",
         }
         for name, reply in replies.items():
             with self.subTest(reply=name):
