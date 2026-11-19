@@ -31,6 +31,59 @@ The other numbers in a heading are plugin versions.
 - `tests/test_eval_scaffolds.py`: two new tests run the new scaffolds. One shows that the narrowed test command skips the failing test. The other shows that the lint fails at both commits, so `failure_check.py` gives `SAME-AT-PARENT`. It also shows that the lint break is on `main`, outside the diff. The new cases join the tables of the scaffold tests (issues #297 and #298).
 - `docs/evals.md`: the suite `review-loop` has 8 cases (issues #297 and #298).
 
+## dev-essentials 4.3.1 in release [5.3.1] - 2026-11-19
+
+The rules of the option `--no-worktree` have one home now: `references/no-worktree.md` of `work-modes`. `implement-task` and `implement-batch` read it only in a run with that option. So a run with no option loads 370 fewer words of each unit (issues #290 and #295).
+
+### Added in dev-essentials
+
+- `skills/work-modes/references/no-worktree.md`: the steps of the option `--no-worktree` of `implement-task` and `implement-batch`. The steps are the text of the two units, word for word. Only the names of the workflow file and of the base branch changed. A short head gives the order of the steps and says what the workflow file is (issue #290).
+- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read`. It passes only for a run that reads the new file before its first branch command and its first Edit or Write call. A read, an Edit, or a Write of a subagent does not count (issue #290).
+
+### Changed in dev-essentials
+
+- `commands/implement-task` and `skills/implement-batch`: Phase 1 and Step 1 keep one pointer sentence in place of the rules. A run with `--no-worktree` reads the new file before any other step there. The option row, the gate row, the user file list for the agent, and the finish sentences stay in each unit (issue #290).
+- `skills/research-implement-review-report`: the line of the effort levels no longer points at Rule 5 of `subagent-orchestration`, which is the rule for named teammates. The line of the models already points at "Model selection" (issue #295).
+
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the safety sentences in the new file. It also makes sure that each unit points at the file in its worktree setup and holds no second copy of the rules (issue #290).
+- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` tests the new route grader with a read before and after the first step (issue #290).
+- `docs/evals.md`: it names the new route grader (issue #290).
+
+## dev-essentials 4.3.0 and dotnet-backend-dev 1.8.2 in release [5.3.0] - 2026-11-19
+
+The terms "useful test" and "bad test" now have one general home: the new Rule 8 of the skill `engineering-discipline`. It names the classes of bad tests with no stack name, and the one exception for a contract value. The skill `create-tests` keeps its .NET examples and points at the rule (issue #294).
+
+### Added in dev-essentials
+
+- `skills/engineering-discipline`: Rule 8, "Write only useful tests". A useful test fails for a bug or for a bad change of behavior. The rule names four classes of bad tests, for example a test that only reads back a fixed value. A test can pin a contract value, which other systems, users, or stored data read. The description of the skill names the new rule (issue #294).
+- `evals/engineering-discipline/ed-useful-tests`: a new behavior case. The request loads `engineering-discipline` and asks for unit tests of one Python module with public constants and one function. Scored graders need a test that calls the function in an assertion or an assignment. They also need a test of a guard, a passed test run, and an unchanged module. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant (issue #294).
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`: the section "Useful Tests" starts with new sentences and points at Rule 8 of `dev-essentials:engineering-discipline` for the terms. It keeps its three .NET examples. The first one now asks for the input and the expected value as written values, not as the name of the constant. Its last sentence keeps two examples of a contract value: an error code and the default of a configuration option (issue #294).
+- `skills/dotnet-conventions/testing.md`: the sentence on useful tests points at Rule 8 and at the .NET examples of `create-tests` (issue #294).
+
+### Changed in the repository
+
+- `tests/test_rule_references.py`: a new test. Each reference to a numbered rule of `engineering-discipline` in a plugin file must name an existing rule. This includes a table row whose first cell is that skill. The section "Useful Tests" of `create-tests` must point at the rule for useful tests (issue #294).
+- `tests/test_eval_cases.py`: the new class `UsefulTestsCaseGraderTests` tests the graders of the new case on samples (issue #294).
+- `docs/testing.md` and `docs/evals.md`: a link to Rule 8, and the new suite `engineering-discipline` with one case (issue #294).
+
+## dev-essentials 4.2.1 in release [5.2.1] - 2026-11-19
+
+This release fixes one grader of an eval case. No skill text changes (issue #292).
+
+### Fixed in dev-essentials
+
+- `evals/research-implement-review-report/rirr-retry-limit`: the grader `reported` also takes a last message that says that the run changed a test. An example is "updated the one test that checks it". Before, only the file name `test_http_client.py` passed, so a right run failed. A message that names no test change still fails (issue #292).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `RetryLimitReportedGraderTests` runs the grader `reported` of `rirr-retry-limit` on sample replies. A reply that names a test change passes. A reply that only says that the tests pass fails (issue #292).
+- `tests/evals/compare_versions.py`: `run` takes the option `--keep-temp`, the same as `baseline`. It passes the option to the base side and to the head side. The commands of a report that run the cases again keep the option. Before, `run --keep-temp` stopped with exit code 2. `tests/evals/test_compare_versions.py` tests the change, and `docs/evals.md` names it (issue #291).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
@@ -2316,7 +2369,10 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...HEAD
-[5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.4.0
+[5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
+[5.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...v5.3.1
+[5.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.1...v5.3.0
+[5.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2

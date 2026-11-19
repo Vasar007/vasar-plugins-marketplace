@@ -2045,6 +2045,62 @@ class RouteReportedGraderTests(unittest.TestCase):
                 self.assertTrue(self.matches("rirr-retry-limit", line))
 
 
+class RetryLimitReportedGraderTests(unittest.TestCase):
+    """The grader reported of rirr-retry-limit needs a last message that names the test file or a test change."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.grader = cases["rirr-retry-limit"].graders["reported"][0]
+        cls.pattern = re.compile(cls.grader["pattern"], sum(REGEX_FLAGS.get(f, 0) for f in cls.grader.get("flags", "")))
+
+    def test_the_grader_reads_the_last_message(self):
+        self.assertEqual(self.grader.get("target"), "last_message")
+
+    def test_a_reply_that_names_a_test_change_matches(self):
+        replies = {
+            "the file name": "`tests/test_http_client.py:8` now expects `retries=3`.",
+            "the reply of a right run": ("I lowered `HTTP_RETRY_LIMIT` in `config/settings.py` from 5 to 3"
+                                         " and updated the one test that checks it."),
+            "an adjusted test": "I adjusted the test that reads the value.",
+            "a changed test at the start of a sentence": "Changed the test in the tests folder to expect 3.",
+            "an updated expected value": "I updated the expected value of the client test.",
+            "the test now expects": "The test in `tests` now expects `retries=3`.",
+            "the test that checks the value": "The one test that checks the value now expects `retries=3`.",
+            "an edited test": "I edited the test that reads the limit.",
+            "a fixed test": "I fixed the failing test.",
+            "a modified test": "I modified the old test to expect 3.",
+            "an existing test": "I updated the existing test to expect 3.",
+            "a test that was updated": "The failing test was updated to expect 3.",
+            "the test now asserts": "The test now asserts 3.",
+            "a capital letter": "I updated the Test to expect 3.",
+            "an affected test": "I updated the affected test to expect 3.",
+            "a stale test": "I fixed the stale test.",
+            "a test that is now updated": "The test is now updated to expect 3.",
+            "a test that was changed": "The old test was changed to expect 3.",
+        }
+        for name, reply in replies.items():
+            with self.subTest(reply=name):
+                self.assertRegex(reply, self.pattern)
+
+    def test_a_reply_that_names_no_test_change_does_not_match(self):
+        replies = {
+            "a changed setting": "I changed the setting, and the tests pass.",
+            "the setting only": "I lowered `HTTP_RETRY_LIMIT` in `config/settings.py` from 5 to 3. All tests pass.",
+            "a green suite": "I lowered the limit and ran the tests. The test suite is green.",
+            "a green test run": "I changed one setting. The test run is green, and I committed the change.",
+            "a change and a suite": "No test covers an explicit retries value. I changed it and the test suite passes.",
+            "a changed setting with no comma": "I changed the setting and the tests pass.",
+            "a test that now passes": "I lowered the limit. The test now passes.",
+            "a fixed test run": "I fixed the test run by installing the missing package.",
+            "testing notes": "I updated the testing notes in the plan.",
+            "a new expectation in the next sentence": "The test in `tests/` passes. The client now expects 3 retries.",
+        }
+        for name, reply in replies.items():
+            with self.subTest(reply=name):
+                self.assertNotRegex(reply, self.pattern)
+
+
 DOTNET_ROOT = REPO / "dotnet" / "dotnet-backend-dev"
 
 
@@ -5071,6 +5127,209 @@ class ModelLadderCaseTests(unittest.TestCase):
         for name, (text, expected) in calls.items():
             with self.subTest(call=name):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
+
+
+class UsefulTestsCaseGraderTests(unittest.TestCase):
+    """The graders of ed-useful-tests: a test that only asserts a constant fails the case, a test of shipping_fee does not."""
+
+    TEST_FILE = "tests/test_shipping.py"
+    SOURCE_FILE = "app/shipping.py"
+    # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
+    SAMPLES = {
+        "a constant with a literal": ("self.assertEqual(shipping.BASE_FEE, 4.90)", True),
+        "a bare constant": ("self.assertEqual(MAX_WEIGHT_KILOGRAMS, 30)", True),
+        "the full module path": ("self.assertEqual(app.shipping.FREE_SHIPPING_THRESHOLD, 50.0)", True),
+        "the literal first": ("self.assertEqual(1.20, FEE_PER_KILOGRAM)", True),
+        "an almost equal check": ("self.assertAlmostEqual(BASE_FEE, 4.9, places=2)", True),
+        "a sign check": ("self.assertGreater(BASE_FEE, 0)", True),
+        "a type check": ("self.assertIsInstance(MAX_WEIGHT_KILOGRAMS, int)", True),
+        "a type check with a tuple": ("self.assertIsInstance(BASE_FEE, (int, float))", True),
+        "a check of one constant": ("self.assertTrue(BASE_FEE)", True),
+        "a none check": ("self.assertIsNotNone(MAX_WEIGHT_KILOGRAMS)", True),
+        "two constants": ("self.assertLess(BASE_FEE, FREE_SHIPPING_THRESHOLD)", True),
+        "a true check": ("self.assertTrue(FREE_SHIPPING_THRESHOLD > 0)", True),
+        "a bare assert": ("assert shipping.MAX_WEIGHT_KILOGRAMS == 30", True),
+        "a bare assert with the literal first": ("assert 4.90 == BASE_FEE", True),
+        "the constant on the next line": ("self.assertEqual(\n    BASE_FEE,\n    4.90,\n)", True),
+        "a fee test": ("self.assertEqual(shipping_fee(10.0, 1), 4.90)", False),
+        "a fee test with the constant as the expected value": ("self.assertEqual(shipping_fee(10.0, 1), BASE_FEE)", False),
+        "the constant first and the fee second": ("self.assertEqual(BASE_FEE, shipping_fee(10.0, 1))", False),
+        "the constant as the input": ("self.assertEqual(shipping_fee(FREE_SHIPPING_THRESHOLD, 1), 0.0)", False),
+        "a computed expected value": ("self.assertAlmostEqual(shipping_fee(10.0, 3), BASE_FEE + 2 * FEE_PER_KILOGRAM)", False),
+        "the sum of constants first": ("self.assertAlmostEqual(BASE_FEE + 2 * FEE_PER_KILOGRAM, shipping_fee(10.0, 3))", False),
+        "a guard test": ("with self.assertRaises(ValueError):\n    shipping_fee(10.0, MAX_WEIGHT_KILOGRAMS + 1)", False),
+        "a fee variable": ("self.assertEqual(BASE_FEE, fee)", False),
+        "a bare assert of the fee": ("assert shipping_fee(10.0, 1) == BASE_FEE", False),
+        "a comment": ("# BASE_FEE is the fee for one kilogram.", False),
+        "an import": ("from app.shipping import BASE_FEE, MAX_WEIGHT_KILOGRAMS, shipping_fee", False),
+        "a fee helper with the constant first": ("self.assert_fee(BASE_FEE, 10.0, 1)", False),
+        "a fee helper with the limit": ("self._assert_fee(10.0, MAX_WEIGHT_KILOGRAMS, 39.7)", False),
+        # Known limits: the grader misses these tests of a constant.
+        "a limit: getattr in a loop": ("self.assertEqual(getattr(shipping, name), value)", False),
+        "a limit: a copy into a variable": ("actual = BASE_FEE\nself.assertEqual(actual, 4.90)", False),
+        "a limit: the literal first in assertTrue": ("self.assertTrue(0 < BASE_FEE)", False),
+        "a limit: a call around the constant": ("self.assertEqual(round(BASE_FEE, 2), 4.9)", False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["ed-useful-tests"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def test_the_graders_read_the_test_file(self):
+        meta = self.meta("no-constant-test")
+        self.assertEqual((meta["type"], meta["match"], meta["target"]),
+                         ("regex", "not_contains", {"source": "file", "path": self.TEST_FILE}))
+        for grader in ("covers-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader)["target"], {"source": "file", "path": self.TEST_FILE})
+
+    def test_the_grader_finds_each_test_of_a_value_and_no_test_of_the_fee(self):
+        pattern = re.compile(self.meta("no-constant-test")["pattern"])
+        for name, (text, found) in self.SAMPLES.items():
+            with self.subTest(sample=name):
+                self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_cover_graders_need_a_call_and_a_guard(self):
+        samples = {
+            "covers-fee": {"self.assertEqual(shipping_fee(10.0, 1), 4.90)": True,
+                           "self.assertEqual(shipping.shipping_fee(order_total=10.0, weight_kilograms=1), 4.9)": True,
+                           "fee = shipping_fee(10.0, 3)": True,
+                           "self.assertEqual(shipping_fee(*case[:2]), case[2])": True,
+                           "with self.assertRaises(ValueError):\n    shipping_fee(-1.0, 1)": False,
+                           "self.assertRaises(ValueError, lambda: shipping_fee(-1.0, 1))": False,
+                           "from app.shipping import shipping_fee": False, "# shipping_fee() returns the fee.": False},
+            "covers-guard": {"with self.assertRaises(ValueError):": True, 'self.assertRaisesRegex(ValueError, "weight")': True,
+                             "with self.assertRaises(TypeError):": False, "# The function raises ValueError.": False},
+        }
+        for grader, texts in samples.items():
+            pattern = re.compile(self.meta(grader)["pattern"])
+            for text, found in texts.items():
+                with self.subTest(grader=grader, text=text):
+                    self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_test_run_grader_needs_a_passed_run_in_the_trace(self):
+        meta = self.meta("tests-passed")
+        self.assertEqual(meta["target"], "trace")
+        pattern = re.compile(meta["pattern"])
+        outputs = {"a passed run": ("..\n------\nRan 6 tests in 0.002s\n\nOK\n", True),
+                   "a passed run with a skip": ("Ran 6 tests in 0.002s\n\nOK (skipped=1)\n", True),
+                   "a failed run": ("Ran 6 tests in 0.002s\n\nFAILED (failures=1)\n", False),
+                   "no test": ("Ran 0 tests in 0.000s\n\nNO TESTS RAN\n", False)}
+        for name, (output, found) in outputs.items():
+            line = json.dumps({"type": "user", "message": {"content": [{"type": "tool_result", "content": output}]}})
+            with self.subTest(output=name):
+                self.assertEqual(pattern.search(line) is not None, found)
+
+    def test_the_source_grader_matches_the_module_of_the_scaffold_only(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        source = re.search(rf"fixture_write {re.escape(self.SOURCE_FILE)} <<'FIX_EOF'\n(.*?)^FIX_EOF$", scaffold, re.S | re.M)
+        self.assertIsNotNone(source, "The scaffold must write the module with a FIX_EOF heredoc.")
+        meta = self.meta("source-unchanged")
+        self.assertEqual(meta["target"], {"source": "file", "path": self.SOURCE_FILE})
+        pattern = re.compile(meta["pattern"])
+        text = source.group(1)
+        self.assertIsNotNone(pattern.search(text))
+        changes = {"a changed fee": ("BASE_FEE = 4.90", "BASE_FEE = 5.90"),
+                   "a changed free branch": ("return 0.0", "return 1.0"),
+                   "a removed constant": ('MAX_WEIGHT_KILOGRAMS = 30\n"""The largest parcel weight in kilograms."""\n', "")}
+        for name, (old, new) in changes.items():
+            with self.subTest(change=name):
+                self.assertIn(old, text)
+                self.assertIsNone(pattern.search(text.replace(old, new)))
+
+    def test_the_module_shows_no_constant_to_a_user(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        messages = re.findall(r"raise ValueError\(([^)]*)\)", scaffold)
+        self.assertTrue(messages, "The module must raise ValueError with a message.")
+        for message in messages:
+            with self.subTest(message=message):
+                self.assertRegex(message.strip(), r"""^(["'])[^"'\d{]*\1$""")
+
+
+class NoWorktreeReadGraderTests(unittest.TestCase):
+    """The route grader of it-no-worktree and ib-no-worktree: the run reads the rules of --no-worktree first (issue #290).
+
+    A run must read the file before it creates its branch and before it edits a file.
+    """
+
+    CASES = ("it-no-worktree", "ib-no-worktree")
+    PATH = "/plugins/dev-essentials/skills/work-modes/references/no-worktree.md"
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def found(self, case, text):
+        meta = self.cases[case].graders["route-no-worktree-read"][0]
+        self.assertEqual((meta["type"], meta["target"], meta.get("match"), meta.get("flags")), ("regex", "trace", None, None))
+        return re.search(meta["pattern"], text) is not None
+
+    def test_a_read_before_the_first_step_passes(self):
+        init = trace_record({"type": "system", "subtype": "init", "tools": ["Bash", "Edit", "Read", "TodoWrite", "Write"]})
+        todo = self.tool_use("TodoWrite", {"todos": [{"content": "Phase 1", "status": "in_progress"}]})
+        status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
+        # A right run read the file as `cd <folder> && cat no-worktree.md`, with the folder and the name apart.
+        folder = self.PATH.rsplit("/", 1)[0]
+        cd_cat = self.tool_use("Bash", {"command": f"cd {folder} && cat no-worktree.md; echo ====; cat finish.md"})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        edit = self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"})
+        # A line break after `branch ` is a backslash in the trace, but it starts no branch name.
+        wrapped = self.tool_use("Bash", {"command": 'git -C "/repo" branch \\\n  --show-current'})
+        trailing = self.tool_use("Bash", {"command": 'git -C "/repo" branch \ngit -C "/repo" status'})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertTrue(self.found(case, "\n".join([read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([wrapped, trailing, read, switch])))
+                self.assertTrue(self.found(case, "\n".join([init, todo, status, read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([cat, switch])))
+                self.assertTrue(self.found(case, "\n".join([status, cd_cat, switch, edit])))
+
+    def test_a_read_after_the_branch_or_an_edit_fails(self):
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        steps = {"switch": self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'}),
+                 "checkout": self.tool_use("Bash", {"command": "git checkout -b eval/retry-limit"}),
+                 "edit": self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}),
+                 "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"}),
+                 "switch -C": self.tool_use("Bash", {"command": 'git -C "/repo" switch -C eval/retry-limit'}),
+                 "switch --create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --create eval/retry-limit'}),
+                 "switch --force-create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --force-create eval/retry-limit'}),
+                 "checkout -B": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -B eval/retry-limit'}),
+                 "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
+                 "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
+                 "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"})}
+        for case in self.CASES:
+            for name, step in steps.items():
+                with self.subTest(case=case, step=name):
+                    self.assertFalse(self.found(case, "\n".join([step, read])))
+
+    def test_only_the_main_loop_counts(self):
+        def sub(name, tool_input):
+            return trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "id": "toolu_2", "name": name, "input": tool_input}]}, "parent_tool_use_id": "toolu_1"})
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        show = self.tool_use("Bash", {"command": 'git -C "/repo" branch --show-current'})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, "\n".join([sub("Read", {"file_path": self.PATH}), switch])))
+                self.assertTrue(self.found(case, "\n".join([sub("Edit", {"file_path": "/repo/a.py", "old_string": "a", "new_string": "b"}), read])))
+                self.assertTrue(self.found(case, "\n".join([show, read, switch])))
+
+    def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
+        # The text of the unit names the path too, so a tool result with that text must not pass the grader.
+        unit_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Read `{self.PATH}` before any other step."}]}})
+        other = self.tool_use("Read", {"file_path": self.PATH.replace("no-worktree", "finish")})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, unit_text))
+                self.assertFalse(self.found(case, other))
 
 
 if __name__ == "__main__":

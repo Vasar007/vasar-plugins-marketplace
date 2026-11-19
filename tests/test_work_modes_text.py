@@ -371,6 +371,10 @@ class FinishCallerTests(unittest.TestCase):
 
 
 NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}
+# The one home of the rules of --no-worktree (issue #290).
+NO_WORKTREE = PLUGIN / "skills/work-modes/references/no-worktree.md"
+NO_WORKTREE_POINTER = ("With `--no-worktree`, make no worktree. "
+                       "Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/no-worktree.md` before any other step of ")
 # Outside the full mode, a run with --no-worktree asks before it works on the default branch, the base branch, or a detached HEAD.
 NO_WORKTREE_ROW = (": `--no-worktree` on the default branch, the base branch, or a detached HEAD | "
                    "Ask for a branch name. On a branch, also offer a yes to work on it, with local commits and no finish step | Same |")
@@ -383,12 +387,27 @@ NO_WORKTREE_PROTECTIONS = (
     "ls-remote --symref origin HEAD",
     "If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).",
     "ls-files --others --exclude-standard`. Each file in it is a file of the user with no other copy. Never write, stage, or delete one of them.",
-    "rev-list --count origin/<base>..HEAD",
+    "rev-list --count origin/<base>..HEAD`, with the base branch.",
+    "and use it wherever the workflow file names the worktree.",
+    "Do the steps in their order, before any other step of the worktree setup. "
+    "\"The workflow file\" is the file of the workflow that sent you here. It names the base branch.",
+    "Then go on with the worktree setup of the workflow file.",
     "If it fails, or prints more than 0, the pull request can take commits",
     "Outside the full mode, list the commits or the error, and ask the user (hard stop 6 of `dev-essentials:work-modes`).",
     "In the full mode, go on. List the commits or the error in the final report as the reason that the run does no step of `finish.md`.",
+)
+# A unit holds no marker of the rules, so the rules have one home.
+NO_WORKTREE_MARKERS = (
+    "status --porcelain --untracked-files=no",
+    "ls-files --others --exclude-standard",
+    "symbolic-ref --quiet --short",
+    "rev-list --count",
+    "show-toplevel",
+)
+# The finish step of each unit keeps the folder of the user and a branch that a linked worktree holds.
+NO_WORKTREE_FINISH = (
     "With `--no-worktree`, the worktree is the folder of the user, so remove no worktree in item 3 of Step 4 of `dev-essentials:merge-pr`. "
-    "If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch.",
+    "If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch."
 )
 # The agent that writes the files of a task gets the list of the user files (issue #282).
 NO_WORKTREE_HANDOFF = {
@@ -405,18 +424,34 @@ class NoWorktreeTests(unittest.TestCase):
 
     def test_outside_the_full_mode_the_run_asks_before_it_works_on_the_default_branch(self):
         for rel, step in NO_WORKTREE_UNITS.items():
-            text = read(PLUGIN / rel)
             with self.subTest(unit=rel):
-                self.assertIn(f"| {step}{NO_WORKTREE_ROW}", autonomy(text))
-                self.assertIn(f"If it prints the default branch, the {step[:-2]} 0 base branch, or nothing (a detached HEAD), do not commit there.", text)
-                self.assertIn("If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`.", text)
+                self.assertIn(f"| {step}{NO_WORKTREE_ROW}", autonomy(read(PLUGIN / rel)))
+        home = read(NO_WORKTREE)
+        self.assertIn("If it prints the default branch, the base branch, or nothing (a detached HEAD), do not commit there. "
+                      "Do what the `--no-worktree` row of \"Autonomy\" in the workflow file says.", home)
+        self.assertIn("If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`.", home)
 
     def test_the_run_protects_the_work_that_the_user_has_in_the_folder(self):
+        home = read(NO_WORKTREE)
+        for sentence in NO_WORKTREE_PROTECTIONS:
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, home)
         for rel in NO_WORKTREE_UNITS:
+            with self.subTest(unit=rel):
+                self.assertIn(NO_WORKTREE_FINISH, read(PLUGIN / rel))
+
+    def test_each_unit_reads_the_rules_before_its_worktree_setup_goes_on(self):
+        for rel, step in NO_WORKTREE_UNITS.items():
             text = read(PLUGIN / rel)
-            for sentence in NO_WORKTREE_PROTECTIONS:
-                with self.subTest(unit=rel, sentence=sentence):
-                    self.assertIn(sentence, text)
+            start = text.index(f"### {step} — Worktree setup\n")
+            setup = text[start:text.index("\n### ", start + 1)]
+            with self.subTest(unit=rel):
+                # The pointer stands in the worktree setup, so the run reads the rules before it creates a branch or a commit.
+                self.assertIn(NO_WORKTREE_POINTER + step + ", and do its steps.", setup)
+                self.assertIn(f"In that file, the base branch is the {step[:-2]} 0 base branch.", setup)
+                # The rules have one home. A second copy in a unit can drift from it.
+                for marker in NO_WORKTREE_MARKERS:
+                    self.assertNotIn(marker, text)
 
     def test_the_agent_that_writes_gets_the_files_of_the_user(self):
         for rel, sentence in NO_WORKTREE_HANDOFF.items():
