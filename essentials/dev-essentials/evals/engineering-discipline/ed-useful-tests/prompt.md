@@ -6,4 +6,4 @@ max_turns: 60
 timeout_seconds: 900
 ---
 
-Use the dev-essentials engineering-discipline skill for this work. Write unit tests for `app/shipping.py` in `tests/test_shipping.py`, and run them. Do not commit.
+Use the dev-essentials engineering-discipline skill for this work. Write complete unit tests for the public API of `app/shipping.py` in `tests/test_shipping.py`, and run them. Do not commit.
