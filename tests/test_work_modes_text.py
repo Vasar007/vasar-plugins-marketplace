@@ -389,6 +389,9 @@ NO_WORKTREE_PROTECTIONS = (
     "ls-files --others --exclude-standard`. Each file in it is a file of the user with no other copy. Never write, stage, or delete one of them.",
     "rev-list --count origin/<base>..HEAD`, with the base branch.",
     "and use it wherever the workflow file names the worktree.",
+    "Do the steps in their order, before any other step of the worktree setup. "
+    "\"The workflow file\" is the file of the workflow that sent you here. It names the base branch.",
+    "Then go on with the worktree setup of the workflow file.",
     "If it fails, or prints more than 0, the pull request can take commits",
     "Outside the full mode, list the commits or the error, and ask the user (hard stop 6 of `dev-essentials:work-modes`).",
     "In the full mode, go on. List the commits or the error in the final report as the reason that the run does no step of `finish.md`.",

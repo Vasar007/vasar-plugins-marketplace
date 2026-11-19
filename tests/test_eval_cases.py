@@ -4950,8 +4950,11 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                  "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"}),
                  "switch -C": self.tool_use("Bash", {"command": 'git -C "/repo" switch -C eval/retry-limit'}),
                  "switch --create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --create eval/retry-limit'}),
+                 "switch --force-create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --force-create eval/retry-limit'}),
                  "checkout -B": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -B eval/retry-limit'}),
-                 "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'})}
+                 "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
+                 "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
+                 "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"})}
         for case in self.CASES:
             for name, step in steps.items():
                 with self.subTest(case=case, step=name):

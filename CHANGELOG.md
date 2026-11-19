@@ -16,7 +16,7 @@ The rules of the option `--no-worktree` have one home now: `references/no-worktr
 ### Added in dev-essentials
 
 - `skills/work-modes/references/no-worktree.md`: the steps of the option `--no-worktree` of `implement-task` and `implement-batch`. The text is the text of the two units, word for word. Only the names of the workflow file and of the base branch changed (issue #290).
-- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read`. It passes only for a run that reads the new file before its first branch command and its first Edit or Write call. Only the main loop counts, not a subagent (issue #290).
+- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read`. It passes only for a run that reads the new file before its first branch command and its first Edit or Write call. A read, an Edit, or a Write of a subagent does not count (issue #290).
 
 ### Changed in dev-essentials
 
