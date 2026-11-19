@@ -1,10 +1,10 @@
 # Classification Framework — Phase 3 Decision Tree
 
-Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match the six-value enum in `SKILL.md` verbatim. Do not invent new tokens. The file holds the six dispositions, Steps 1 to 7, and six calibration cases.
+Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match the enum in `SKILL.md` verbatim. Do not invent new tokens. The file holds the dispositions, Steps 1 to 7, and the calibration cases.
 
 ## Contents
 
-- The six dispositions
+- The dispositions
 - Step 1: Corroborate first
 - Step 2: Check already-promoted status against on-disk manifests
 - Step 3: B-vs-C external-authority tie-breaker
@@ -16,7 +16,7 @@ Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match
 
 ---
 
-## The six dispositions
+## The dispositions
 
 | Disposition | Meaning | Output of Phase 6 |
 | --- | --- | --- |

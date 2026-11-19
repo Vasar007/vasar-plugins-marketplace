@@ -1,6 +1,6 @@
 # Resume and failure handling
 
-The orchestrator reads this file in three cases: the report folder holds `_bug-hunt-session-progress.md` at the start, an agent stops or fails, or a structure check fails.
+The orchestrator reads this file in these cases: the report folder holds `_bug-hunt-session-progress.md` at the start, an agent stops or fails, or a structure check fails.
 
 ## Resume check
 

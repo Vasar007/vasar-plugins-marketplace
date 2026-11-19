@@ -20,7 +20,7 @@ Phase 9 of `SKILL.md` reads this file. It holds, in this order: the matrix of su
 | 9c, cross-repo project CLAUDE.md | Off (report-only) | `--cross-repo=all\|<repo>[,<repo>...]` | Tracked CLAUDE.md files in OTHER repos, through a branch and a PR |
 | 9d, personal entities (commands, agents, skills) | Report-only | `--delete-personal-entities` | The personal global `commands/`, `agents/`, and `skills/` of the user under `<claude-root>` |
 
-Phase 9 of `SKILL.md` gives the risk order of 9a to 9c. 9d sits between 9a and 9b. Like 9a, it touches only the non-repo configuration of the user. But a deletion is harder to undo than a stub of a memory file. So its opt-in path adds three gates before it removes anything (see 9d below).
+Phase 9 of `SKILL.md` gives the risk order of 9a to 9c. 9d sits between 9a and 9b. Like 9a, it touches only the non-repo configuration of the user. But a deletion is harder to undo than a stub of a memory file. So its opt-in path adds gates before it removes anything (see 9d below).
 
 In the full mode, every gate and every question in this file passes without a stop. The precondition tests still run. See SKILL.md Phase 9.
 
@@ -103,12 +103,12 @@ git -C <repo-root> check-ignore -v <path>             # ignored?
 
 **9c-only re-entry mode**. With `--resume=<path>`, alone or with `--cross-repo=<value>`, the ignore-if-nothing-promoted rule below does not apply. Phase 9c then works on the promotion set that the `--resume` TODO file recorded in the earlier run (9c.7), although this run promoted nothing new. This mode makes the two-phase workflow possible: audit and promote now, then run 9c after the marketplace PR merges. Without the mode, the second run always promotes nothing, and the ignore rule always fires.
 
-Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning in two cases only:
+Outside the 9c-only re-entry mode, the run ignores `--cross-repo` with a warning only in these cases:
 
 - This run promoted nothing, **and** no `--resume` TODO file was given. Examples of a run that promotes nothing: a report-only run, an audit with no promotion, or a run where the user declined the Phase 5 approval gate for everything.
 - The flag names a repo that is not the source of any promoted rule of this run (or of the resumed TODO file).
 
-### 9c.2 — Three preconditions (all required, checked per promotion)
+### 9c.2 — Preconditions (all required, checked per promotion)
 
 | Precondition | Check | Failure behavior |
 | --- | --- | --- |
@@ -234,7 +234,7 @@ Write one entry for each pending repo. Inside it, write one `### <plugin>:<entit
 
 A later run resumes the file with `--resume=<path> --cross-repo=<repo|all>`, without a new full audit. The resume does **not** jump directly to 9c.4:
 
-1. It re-enters at 9c.2 and checks the three preconditions again against the current state, because time went by since the earlier run. It uses the marketplace root that Phase 0 of `SKILL.md` already resolved for this run (see the resume order of Phase 0).
+1. It re-enters at 9c.2 and checks the preconditions again against the current state, because time went by since the earlier run. It uses the marketplace root that Phase 0 of `SKILL.md` already resolved for this run (see the resume order of Phase 0).
 2. It runs the 9c.3 sequencing question again, once for the resumed set. The repeated gate keeps the guarantee of 9c.9 that sequencing is absolute.
 3. Only then does it go on to 9c.4 for the named repo or repos.
 
@@ -276,14 +276,14 @@ Then ask explicitly:
 
 ## 9d — Personal entities (commands/agents/skills) cleanup
 
-9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in two cases:
+9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in these cases:
 
 - An entity that this run promoted or E-fixed (Phase 6) fully supersedes the file.
 - The classification step of Phase 3 classified the file **F-stale**, because an already-shipped marketplace entity supersedes its content. F-stale for an unrelated reason does not count, for example a dangling reference to a deleted file. The F item must be approved at Phase 5. A deferred or rejected F item stays report-only.
 
 ### Default — report-only
 
-List each superseded personal file in the "Manual TODOs" list of the Phase 10 report, with a suggested manual action. The action is one of two: edit the file to point to the new marketplace entity instead of its own duplicated content, or delete the file outright. The list has the same shape as the entry for a project-repo CLAUDE.md file while `--cross-repo` is off:
+List each superseded personal file in the "Manual TODOs" list of the Phase 10 report, with a suggested manual action. The action is one of these: edit the file to point to the new marketplace entity instead of its own duplicated content, or delete the file outright. The list has the same shape as the entry for a project-repo CLAUDE.md file while `--cross-repo` is off:
 
 ```markdown
 - `<claude-root>/commands/<name>.md` — superseded by `<plugin>:<entity>`. Suggested action: delete
@@ -294,28 +294,28 @@ List each superseded personal file in the "Manual TODOs" list of the Phase 10 re
   `<plugin>:<entity>` was already shipped.
 ```
 
-This default deletes and edits nothing. The two routes recover in different ways:
+This default deletes and edits nothing. The routes recover in different ways:
 
-- A deferral **promoted or E-fixed in this run** becomes reachable after the marketplace PR merges. A later run then classifies the file F-stale, because the entity is already shipped. The file then takes the F-stale branch of the same three gates below.
+- A deferral **promoted or E-fixed in this run** becomes reachable after the marketplace PR merges. A later run then classifies the file F-stale, because the entity is already shipped. The file then takes the F-stale branch of the same gates below.
 - An **already-shipped, F-stale** deferral needs no PR merge at all. No promotion of this run exists for a later re-entry to key on, but nothing waits on a merge either. Run `audit-personal-conventions --scope=personal-entities`, then `promote-conventions --delete-personal-entities --mode interactive`, and approve the F item at Phase 5.
 
 ### Partially superseded wrapper
 
 A wrapper can still need its personal layer and also carry an F-stale section. The personal layer stays by the orthogonality rule of Step 4 in `references/classification-framework.md` of `audit-personal-conventions`, because it keeps B-taste or pure-forwarding sections. The F-stale section is a divergence that an upstream fix already removed. Step 4 tests the self-label of the wrapper against the current content of the shipped entity. Such a wrapper is **never eligible for deletion**, even with `--delete-personal-entities`.
 
-Handle it like a partially promoted memory file in 9a, which the run never stubs. Report only. Name each section to trim, and the shipped entity and version that now covers it. The two recovery routes of 9d apply:
+Handle it like a partially promoted memory file in 9a, which the run never stubs. Report only. Name each section to trim, and the shipped entity and version that now covers it. The recovery routes of 9d apply:
 
 - A section that an EARLIER run fixed with E-fix-shipped can be trimmed now.
 - A section whose fix landed in this run can be trimmed only after that promotion is published. The publish checks are the same as for a fully superseded file.
 
 ### Opt-in — `--delete-personal-entities` (bare boolean, default off)
 
-This flag lets the skill delete the personal entity files in scope itself. Its gates are like the 9c sequencing gate. But personal entities belong to no target repo. So the gates cover only three checks: the marketplace-publish check, the content-integrity check, and a load check on the caller side. Precondition B has no *repo-side* counterpart here. Its frame of repo B protects the other users of a product repo, and that does not apply. But its concern does apply, aimed at the caller: do not remove an entry point whose replacement the user cannot load. The content-integrity check of Precondition C is on the marketplace side and applies unchanged. So step 1 below reuses both:
+This flag lets the skill delete the personal entity files in scope itself. Its gates are like the 9c sequencing gate. But personal entities belong to no target repo. So the gates cover only these checks: the marketplace-publish check, the content-integrity check, and a load check on the caller side. Precondition B has no *repo-side* counterpart here. Its frame of repo B protects the other users of a product repo, and that does not apply. But its concern does apply, aimed at the caller: do not remove an entry point whose replacement the user cannot load. The content-integrity check of Precondition C is on the marketplace side and applies unchanged. So step 1 below reuses both:
 
 1. **Automated check of publication and local load**. Run it once for each run, before any question to the user. It runs Preconditions A and C of 9c.2 exactly as 9c.2 specifies them, against the target marketplace. This step does not restate their mechanics. Precondition A branches on the route that put the personal file in scope:
 
    - **Promoted or E-fixed in this run** (output of Phase 6): Precondition A **in full**. This includes its default-branch fallback chain and its fetch-failure rule. It also includes its fallback for a failed ancestor check: the entity still exists at the ref, and the published `plugin.json` version at that ref is `>=` the promoted `@version`. The fallback matters most here. The history of this marketplace uses squash merges, so the raw `git merge-base --is-ancestor` check often fails on a published promotion. Without the fallback, this step falls back to report-only after every normal merge. The reference point is always the Phase 8 bump of this run and `<this-run-marketplace-head-sha>`, not a persisted TODO field. The re-entry mode of 9c.1 is for 9c only.
-   - **Already shipped, F-stale** (classification of Phase 3): no commit of this run can prove the publication. The shipped entity that supersedes this file is older than this run. Precondition A still resolves the real default branch of the target marketplace with the fallback chain of 9c.4 step 1. It still runs `git fetch origin <default-branch>` under the same fetch-failure rule. A failed fetch is a hard Precondition A failure on this branch too, as on the promoted or E-fixed branch. This branch skips only two checks: the ancestor check (`git merge-base --is-ancestor`) and the version-floor check of `plugin.json`. No commit of this run and no recorded promotion version exist for them to compare with. After the run resolves and fetches the default branch, the existence check is left: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
+   - **Already shipped, F-stale** (classification of Phase 3): no commit of this run can prove the publication. The shipped entity that supersedes this file is older than this run. Precondition A still resolves the real default branch of the target marketplace with the fallback chain of 9c.4 step 1. It still runs `git fetch origin <default-branch>` under the same fetch-failure rule. A failed fetch is a hard Precondition A failure on this branch too, as on the promoted or E-fixed branch. This branch skips only these checks: the ancestor check (`git merge-base --is-ancestor`) and the version-floor check of `plugin.json`. No commit of this run and no recorded promotion version exist for them to compare with. After the run resolves and fetches the default branch, the existence check is left: `git -C <marketplace-root> cat-file -e origin/<default-branch>:<entity-path>`.
 
    Precondition C is UNCHANGED on both branches. It uses the same mechanism. It checks again that the shipped entity still covers each term in the `Load-bearing terms` that 9c.2 defines. The terms were picked for this personal file. The "still published" proof of A explicitly does not cover mangled content, so cover every term. For each superseded personal file, run Precondition C at the same ref that A resolved and fetched:
 

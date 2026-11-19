@@ -1,7 +1,7 @@
 # Stage 2b: Plan Artifact (HTML)
 
 <!--
-  Note for the master agent: replace the four placeholders that "Stage Launch"
+  Note for the master agent: replace the placeholders that "Stage Launch"
   in SKILL.md names.
 
   Task metadata is in the Task Context section above.
@@ -31,7 +31,7 @@ Invoke `dev-essentials:create-html-artifact` with the `Skill` tool. Use its `ref
 
 ### Step 2: Source content per section
 
-Map the source content onto the 8 sections of Recipe 1:
+Map the source content onto the sections of Recipe 1:
 
 - **Header card**: the task title and URL from the Task Context section above.
 - **Stats grid**: the step count of `spec.md` §4 (Execution Order), the file count of `spec.md` §3 (Implementation Steps), and the AC count of `requirements.md` §3 (Acceptance Criteria).

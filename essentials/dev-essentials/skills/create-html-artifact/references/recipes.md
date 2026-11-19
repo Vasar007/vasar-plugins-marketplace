@@ -1,6 +1,6 @@
-# Recipes — mapping common artifact types onto the 8 generic sections
+# Recipes — mapping common artifact types onto the generic sections
 
-The core structure in `SKILL.md` defines 8 generic sections. This file maps the domain content of two recurring artifact types onto those sections. A caller then does not have to work out the mapping each time. Both recipes are patterns, not templates to copy word for word. Adapt the field names to the data that the calling task has.
+The core structure in `SKILL.md` defines the generic sections. This file maps the domain content of two recurring artifact types onto those sections. A caller then does not have to work out the mapping each time. Both recipes are patterns, not templates to copy word for word. Adapt the field names to the data that the calling task has.
 
 ## Recipe 1 — Implementation-plan artifact
 

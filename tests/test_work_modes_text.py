@@ -1,6 +1,6 @@
 """Tests for the text of the work modes: the skill work-modes and the gated units that point at it (issue #267).
 
-The skill work-modes is the one place that defines the option --mode, the three modes, and the hard stops. These
+The skill work-modes is the one place that defines the option --mode, the modes, and the hard stops. These
 tests pin its main sentences, the pointer and the gate table header of each gated unit, the absence of the old
 mode flags in every file, and the absence of the old copies of the common block in every other file.
 """
@@ -11,7 +11,7 @@ from support import REPO
 
 PLUGIN = REPO / "essentials/dev-essentials"
 WORK_MODES = PLUGIN / "skills/work-modes/SKILL.md"
-POINTER = "load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes"
+POINTER = "load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode"
 HEADER = "| Gate | Partial (the default) | Interactive | Full |"
 # The gated units with a gate table. process-pr-comments is gated too, and its section has buckets, not a table.
 TABLE_UNITS = (
@@ -115,7 +115,7 @@ class WorkModesSkillTests(unittest.TestCase):
 
     def test_the_hard_stops_come_before_the_rules_for_every_mode(self):
         stops = self.text.index("## Hard stops")
-        self.assertLess(self.text.index("## The three modes"), stops)
+        self.assertLess(self.text.index("## The modes"), stops)
         self.assertLess(stops, self.text.index("## Rules for every mode"))
         for stop in HARD_STOPS:
             with self.subTest(stop=stop):
@@ -181,7 +181,7 @@ class UnitRuleTests(unittest.TestCase):
         "skills/optimize-skill/SKILL.md": (
             "This step is an exception to the critical-decision rule of `dev-essentials:work-modes`.",
             "| Step 2 item 5: delete a file that this run did not create | Ask before Step 3, unless the user approved it before | Same | No stop |"),
-        "skills/trim-artifacts/SKILL.md": ("| Step 5: deletion gate | Stop | Stop | Put the three lists into the final message, and continue |",),
+        "skills/trim-artifacts/SKILL.md": ("| Step 5: deletion gate | Stop | Stop | Put the lists into the final message, and continue |",),
         "skills/merge-pr/SKILL.md": (
             "A yes of the user to a question of this session that names the merge is a request in their own words.",),
         "skills/process-pr-comments/references/tag-actions.md": (
@@ -222,14 +222,17 @@ class FullModeEndTests(unittest.TestCase):
         self.assertIn("3. Else, in the full mode, ask no question.", read(folder / "references/tag-actions.md"))
         skill = read(folder / "SKILL.md")
         self.assertIn("If it finds none, ask no question, and create the new issue", skill)
-        self.assertIn("Two questions still stop in the full mode.", skill)
-        self.assertNotIn("Three questions", skill)
+        # The open items follow the second question, so a third question in this list fails the test.
+        self.assertIn("Some questions still stop in the full mode. "
+                      "The first is the question of Phase 2 step 5 for an `unconfirmed-commit-claim` thread. "
+                      "The second is the one push question in the push-gate item of Rules. "
+                      "The open items of Stage 2 also still stop", skill)
         self.assertIn("| `--mode` | `interactive`, `partial`, `full` | `partial` |", read(folder / "references/parameters.md"))
 
 
 FINISH = PLUGIN / "skills/work-modes/references/finish.md"
 FINISH_POINTER = "`${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps"
-# The three workflows that do the finish steps, and the step of each one that runs them.
+# The workflows that do the finish steps, and the step of each one that runs them.
 FINISH_UNITS = {"skills/research-implement-review-report/SKILL.md": "Phase 5", "commands/implement-task.md": "Phase 6",
                 "skills/implement-batch/SKILL.md": "Step 6"}
 FINISH_ROW = ": push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |"

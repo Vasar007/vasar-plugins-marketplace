@@ -1,7 +1,7 @@
 # Stage 3: Implementation
 
 <!--
-  Note for the master agent: replace the four placeholders that "Stage Launch"
+  Note for the master agent: replace the placeholders that "Stage Launch"
   in SKILL.md names.
 
   Task metadata is in the Task Context section above.
@@ -109,7 +109,7 @@ You can hit a blocker: a missing dependency, an unclear instruction, a test that
 
 Run this phase only for a re-entry: Phase 1 found `review-feedback.md`.
 
-The master agent writes the feedback file in two cases:
+The master agent writes the feedback file in these cases:
 
 - After the Build Gate: build errors, with an instruction to fix the compilation only. Fix only the compile errors. Add no features, and do no refactoring.
 - After the reviews: the blocking issues, with `file:line` references.

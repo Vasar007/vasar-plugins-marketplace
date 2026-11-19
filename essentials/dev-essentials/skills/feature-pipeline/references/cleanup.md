@@ -21,7 +21,7 @@ Steps 2 and 4 both use this status, so look it up only once.
 
   If the GitHub MCP call fails (MCP not loaded, a network error, or an authentication timeout), stop and ask the user: `GitHub PR lookup failed; should I proceed with cleanup based on the cached state, or wait?` Do not skip the lookup silently and continue to the archive or the worktree removal. In the full mode, do not stop. Skip the archive and the worktree removal, and report the failed lookup.
 
-If a PR exists, step 2 (archive) and step 4 (worktree removal) use the PR eligibility test. The action of a step can run in one of two cases:
+If a PR exists, step 2 (archive) and step 4 (worktree removal) use the PR eligibility test. The action of a step can run in one of these cases:
 
 - The PR `state` is `closed`, and `merged` is `true`.
 - The user explicitly asks for that action now. Examples for step 2: "archive the task logs now", "go ahead and archive", "archive it anyway". Examples for step 4: "clean up the worktree", "remove the worktree", "you can drop the worktree now". An equivalent explicit instruction also counts.
@@ -32,7 +32,7 @@ The test does not cover the case without a PR. Steps 2 and 4 handle that case in
 
 Do not archive by default right after the PR opens. While the PR is in review, the task artifacts are live documents. Examples: `spec.md`, `review.md`, the HTML artifact, and `pipeline-state.json`. The review rounds use the copy in the worktree.
 
-Archive `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` to `~/.claude/task-logs/{TASK_ID}/` in two cases only: the run has no PR, or the PR passes the eligibility test for the archive. If `~/.claude/task-logs/` does not exist, create it. If the target folder exists, overwrite its contents.
+Archive `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` to `~/.claude/task-logs/{TASK_ID}/` only in these cases: the run has no PR, or the PR passes the eligibility test for the archive. If `~/.claude/task-logs/` does not exist, create it. If the target folder exists, overwrite its contents.
 
 Else leave the artifacts in `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/`, skip the archive, and report that the archive waits for the PR review.
 

@@ -206,7 +206,7 @@ If you cannot change the type, for example a generated model, add a modifier to 
 
 A mask breaks the round trip. If a cache or a message must give the value back, do not serialize the wrapper type. Map it to a storage model that holds the encrypted value in a `String` property. Use the encryption API of the project, for example the ASP.NET Core Data Protection API (`IDataProtector.Protect()` and `IDataProtector.Unprotect()`). If you do not know which encryption API or secret store the project uses, ask the user.
 
-Some logging libraries build a structure from the properties of an object and do not use the converter. An example is the `@` operator of Serilog. Do not pass an object with sensitive data to such a call. The `[LogProperties]` attribute of the .NET logging extensions logs each public property of an object. By default, it calls `ToString()` on each property, so a property of a wrapper type keeps its placeholder. Three cases still log the raw value:
+Some logging libraries build a structure from the properties of an object and do not use the converter. An example is the `@` operator of Serilog. Do not pass an object with sensitive data to such a call. The `[LogProperties]` attribute of the .NET logging extensions logs each public property of an object. By default, it calls `ToString()` on each property, so a property of a wrapper type keeps its placeholder. These cases still log the raw value:
 
 - A plain `String` property logs its value as it is. Put `[LogPropertyIgnore]` on the property, or use a wrapper type.
 - `[LogProperties]` on a parameter of a wrapper type logs the public `Value` property of the wrapper. Do not put `[LogProperties]` on a wrapper type.

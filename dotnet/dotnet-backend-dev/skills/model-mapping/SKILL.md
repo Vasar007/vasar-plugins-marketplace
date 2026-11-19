@@ -279,7 +279,7 @@ public sealed partial class {Entity}Mapper
 
 - Sealed partial class (non-static, created internally by repository via `new {Entity}Mapper()`)
 - `{Entity}Mapper` naming convention
-- Three core methods: `ToEntity`, `ToDomain`, `UpdateEntity`
+- Core methods: `ToEntity`, `ToDomain`, `UpdateEntity`
 - `UpdateEntity` ignores immutable properties (IDs, timestamps)
 - No separate DI registration. Repositories create mappers in their constructor
 

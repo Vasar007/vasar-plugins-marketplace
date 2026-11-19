@@ -38,7 +38,7 @@ Before you launch a stage, do these steps in order:
 1. Make sure that each file in the "Reads" column of "Stage files" exists. If a file is missing, stop and name the missing files. This matters most after a `--start-from` that skipped earlier stages. One exception: if `--skip` removed the `review` stage from the plan, `review.md` is not required. Launch the stage without it.
 2. Resolve the model. If this invocation has a `--model-override` entry for this stage, use it. Else use the entry of this stage in `models` of `pipeline-state.json`, from an earlier run. Else use the default model of the Overview table in `SKILL.md`. Write the result into `models` (`{"<stage>": "<model>"}`). If an override of this invocation replaces a recorded entry, log the change. Pass the model in the `model` parameter of the `Agent` tool.
 3. For a commit-capable stage, write the output of `git rev-parse HEAD` into `stageStartSha` (`{"<stage>": "<sha>"}`). This records the branch tip at the start of the stage. A later resume uses it to find out whether HEAD moved while the stage was incomplete.
-4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to Stages 3 to 6, the commit-capable stages that run in a subagent. `<start-changes>` goes to the same four stages. If `startChanges` is empty, leave it out.
+4. Compose the prompt. Put these blocks above the text of the stage file, in this order. Every stage gets `<pipeline-discipline>` and `<worktree>`. `<clarifications>` goes only to a new launch of Stage 1 or 2 after questions (see "Stage questions"). `<commit-conventions>` goes only to Stages 3 to 6, the commit-capable stages that run in a subagent. `<start-changes>` goes to the same stages. If `startChanges` is empty, leave it out.
 
    ```md
    <project-context>
@@ -73,7 +73,7 @@ Before you launch a stage, do these steps in order:
    {text of the stage file}
    ```
 
-5. Replace the four placeholders in the composed prompt, also in the `<worktree>` block:
+5. Replace the placeholders in the composed prompt, also in the `<worktree>` block:
    - `{TASK_ID}`: the task ID.
    - `{WORKTREE_PATH}`: the absolute path of the project root. This is the worktree path, or the current working directory with `--no-worktree`.
    - `{ARTIFACTS_DIR}`: the repository-relative folder for the pipeline artifacts, for example `tasks` or `Notes/Tasks`.
@@ -94,7 +94,7 @@ If the final reply of a commit-capable stage names a path of `startChanges` that
 
 Then run the output check (see "Output Validation"), and update the checkpoint ("Checkpoints" in `SKILL.md`).
 
-Stage 2b does not block the pipeline. The stage failed in two cases: its final output has no `ARTIFACT: <path>` line, or the named file does not exist. If it failed, run it once more. If it fails again, log a warning, and continue without the artifact. Add `plan-artifact` to `completed` after each of the three outcomes: success, success at the retry, or give-up. Then a resume does not try a broken render again. Also record `planArtifact` (see the schema in `references/checkpoint-protocol.md`).
+Stage 2b does not block the pipeline. The stage failed in these cases: its final output has no `ARTIFACT: <path>` line, or the named file does not exist. If it failed, run it once more. If it fails again, log a warning, and continue without the artifact. Add `plan-artifact` to `completed` after each of these outcomes: success, success at the retry, or give-up. Then a resume does not try a broken render again. Also record `planArtifact` (see the schema in `references/checkpoint-protocol.md`).
 
 ## Re-entry of the implementation stage
 

@@ -52,7 +52,7 @@ This state is report-only in every mode, and no flag changes it, also not the fu
 
 ## Report modes
 
-These rules apply to the two outcomes below:
+These rules apply to the outcomes below:
 
 - With none of `dry-run`, `no-reply`, and `no-commit`, take the default action of the outcome.
 - With `no-reply`, ask the user no question. Print the report line of the outcome, and the human handles the thread.
@@ -66,7 +66,7 @@ These rules apply to the two outcomes below:
 The SHA resolves locally and is an ancestor of `origin/pull/<prId>/head`. The fix already landed on the remote through the push of an earlier cycle or invocation, but the resolve call is missing or failed. This is the catch-up path. Normally, the `is_resolved` filter of Phase 2 drops a resolved thread before this step. Always derive this state.
 
 - If `openFindingsMarker` is `true` for the thread (see `thread-state-schema.md`), do not resolve it. Report `T#<id> cured (open findings) — left open.`
-- Else call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId: <threadNodeId>` from the roster. Also pass `owner`, `repo`, and `pullNumber` from Phase 1. The schema of the tool requires all three on every call, although `resolve_thread` does not use their values. A resolve of an already resolved thread does nothing, so an old roster entry does no harm.
+- Else call `mcp__plugin_github_github__pull_request_review_write` with `method: resolve_thread` and `threadId: <threadNodeId>` from the roster. Also pass `owner`, `repo`, and `pullNumber` from Phase 1. The schema of the tool requires them on every call, although `resolve_thread` does not use their values. A resolve of an already resolved thread does nothing, so an old roster entry does no harm.
 - On success, report: `T#<id> resolved — <file>:<line>, commit <sha>.`
 - On an MCP error, report: `T#<id> cured — <file>:<line>, commit <sha> — resolve failed (<short reason>), resolve manually via GitHub UI.`
 
@@ -74,7 +74,7 @@ Stage 1 only derives `cured`. Stage 2 makes the resolve call after its own ances
 
 ## `unconfirmed-commit-claim`
 
-This outcome covers four cases:
+This outcome covers these cases:
 
 - The SHA resolves locally, but it is not yet an ancestor of the remote. The commit is on the local branch, or it is not (`isAncestorOfHead`).
 - The SHA does not resolve to a known commit in this checkout.

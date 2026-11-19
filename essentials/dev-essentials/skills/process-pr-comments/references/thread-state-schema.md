@@ -52,7 +52,7 @@ Fields:
 | `commentId` | yes | The GitHub comment ID that `pull_request_read` returns. |
 | `tag` | yes | The primary tag that the skill applied, or `AutoReview` or `Note`. |
 | `action` | yes | One of `fixed`, `drafted`, `noted`, `tracked`, and `skipped`. Write `skipped` only for an explicit final skip, for example the answer `skip` of the user to the approval question of a `[Question]` reply. Never write it for an exclusion by the `tags` filter. |
-| `verdict` | AutoReview only | One of the five verdicts of `automated-review-verification.md`. |
+| `verdict` | AutoReview only | One of the verdicts of `automated-review-verification.md`. |
 | `confidence` | AutoReview only | `high`, `medium`, or `low`. |
 | `replyPosted` | yes | `false` with `dry-run` or `no-reply`, and while the reply is pending (`commit-push-resolve.md` § "When replies post"). |
 | `replyCommentId` | optional | The ID that `add_reply_to_pull_request_comment` returns, for the user to look up. |
@@ -79,14 +79,14 @@ No stored entry tracks a fix that is committed but not pushed. Phase 2 step 5 fi
 
 ## Ancestry check — shared git mechanic
 
-Three steps of the skill test whether a commit SHA is on a target ref. All three use the same commands, and this section is their only description. Each step points here.
+Several steps of the skill test whether a commit SHA is on a target ref. They all use the same commands, and this section is their only description. Each step points here.
 
 The commands:
 
 1. The target ref can be a remote-tracking ref that is stale. Then fetch it first. For the head of the PR, run `git fetch origin "+refs/pull/<prId>/head:refs/remotes/origin/pull/<prId>/head"`. `<prId>` is the PR number. Do not fetch the head branch by its name (`headRefName`). For a PR from a fork, that branch is not on `origin`, but the `pull/<prId>/head` ref is. This fetch needs `origin` to be the base repository of the PR. If the fetch fails, stop, and ask the user which remote holds the base repository. Stage 1 puts this question in the `blockers` list of its report. Then use that remote in place of `origin`.
 2. Run `git merge-base --is-ancestor <sha> <target-ref>`. Exit code `0` means that the changes of `<sha>` are already on `<target-ref>`. Exit code `1` means not yet. For a SHA that this checkout does not know at all, git fails with another exit code, for example `128`. That is a different failure from "not yet an ancestor". A step that reports the result must keep the two cases apart.
 
-The three steps use these commands in the same way. They differ in `<target-ref>`, in the need for a new `git fetch`, and most of all in what they do with the result:
+The steps use these commands in the same way. They differ in `<target-ref>`, in the need for a new `git fetch`, and most of all in what they do with the result:
 
 | Step | `<target-ref>` | Fetch first? | SHA tested | On success | On failure or an unclear result |
 | --- | --- | --- | --- | --- | --- |
@@ -201,7 +201,7 @@ The report is not stored and not cached across cycles. Each cycle of a `/loop` r
 | `assessedState` | yes | The outcome of Phase 2 step 5: `fresh-unhandled`, `cured`, `unconfirmed-commit-claim`, `pr-commit-no-reply`, or `already-assessed`. See the mapping below. |
 | `claimedSha` | when any | The SHA from the affirmative commit claim, or of the newest unpushed local commit or commit of the PR that names the thread. `null` for a reply that claims a commit without a clear SHA. It is also `null` after a failed fetch of the base branch (step 6 of `committed-fix-state.md` § "Commit on the PR head with no reply"). |
 | `claimSource` | when any | `reply` for a commit claim in an AI reply. `local-commit` for an unpushed local commit that names a thread with no reply about it (`committed-fix-state.md` § "Local commit with no reply"). `pr-commit` for a commit of the PR that names a thread with no reply (`committed-fix-state.md` § "Commit on the PR head with no reply"). It also covers a failed fetch of the base branch (step 6 of that section). `null` with no claim. |
-| `shaResolvesLocally` / `isAncestorOfHead` / `isAncestorOfRemote` | when any | The raw results of three runs in Stage 1 (`committed-fix-state.md` § "SHA and ancestry check"). The first is the fetch of the PR head (§ "Ancestry check", command 1). The others are `git merge-base --is-ancestor <sha> HEAD` and `git merge-base --is-ancestor <sha> origin/pull/<prId>/head`. They stay next to `assessedState`. So Stage 2 can write the exact report words of Phase 2 step 5 without a new git run: `hasn't landed on the remote yet`, `the commit isn't on the local branch`, `this checkout can't resolve the SHA locally`, or `no SHA could be extracted`. If `shaResolvesLocally` and `isAncestorOfHead` are `true`, and `isAncestorOfRemote` is `false`, the claim can open a push (Rules in `SKILL.md`). |
+| `shaResolvesLocally` / `isAncestorOfHead` / `isAncestorOfRemote` | when any | The raw results of the runs in Stage 1 (`committed-fix-state.md` § "SHA and ancestry check"). The first is the fetch of the PR head (§ "Ancestry check", command 1). The others are `git merge-base --is-ancestor <sha> HEAD` and `git merge-base --is-ancestor <sha> origin/pull/<prId>/head`. They stay next to `assessedState`. So Stage 2 can write the exact report words of Phase 2 step 5 without a new git run: `hasn't landed on the remote yet`, `the commit isn't on the local branch`, `this checkout can't resolve the SHA locally`, or `no SHA could be extracted`. If `shaResolvesLocally` and `isAncestorOfHead` are `true`, and `isAncestorOfRemote` is `false`, the claim can open a push (Rules in `SKILL.md`). |
 | `newerHumanReply` / `newerHumanReplyCommentId` | yes | The guard of Phase 2 step 5: a reply that is not an AI reply came after the newest AI reply. With `true`, Stage 2 runs no catch-up branch on this thread. It classifies that newest human reply instead. It treats the thread like a thread with no earlier AI commit claim. |
 | `overrideCandidates` | yes | Possible overrides of the reviewer for one thread, which Stage 1 found by a plain phrase match: `[{ "commentId": 94, "phrase": "just fix it", "direction": "fix-directly" }]`. `direction` is `fix-directly` or `draft-first`. **Candidates only**. Stage 1 does the cheap substring match. Stage 2 decides whether the override really applies, and whether the intent of the reviewer is clear (`SKILL.md` Phase 3). An empty array, never left out. |
 | `aiReviewerExchangeCount` | yes | The count of `**[AI]**` replies with a reply of a reviewer after them. The count covers the full GitHub history of the thread (`SKILL.md` § "Stalemate detection"). Stage 1 makes the count, because it is mechanical. Stage 2 judges whether the last two replies show an open disagreement. |

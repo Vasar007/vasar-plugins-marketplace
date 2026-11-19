@@ -1,6 +1,6 @@
 # Worked examples
 
-Three real failures and the correct pattern for each. `SKILL.md` has the rules. This file shows how each rule applies.
+Real failures and the correct pattern for each. `SKILL.md` has the rules. This file shows how each rule applies.
 
 ## Rule 1: a bundled review loop
 

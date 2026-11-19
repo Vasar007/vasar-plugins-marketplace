@@ -46,7 +46,7 @@ Not every artifact needs every section. Pick the sections that fit, and keep thi
      4. Copy a small theme into the `<style>` block of the artifact: the few `.hljs-*` color rules. Do not load a CDN `<link>` stylesheet. The rule on external references in "Output conventions" allows `<script src>` tags only.
 8. **Recommendation or next steps**: one or two closing paragraphs. Say what matters now and what can wait.
 
-`references/recipes.md` maps these 8 sections onto two common artifact types: an implementation-plan view and a PR or code review. Use it as a starting template, not as a fixed rule. Adapt it to the content.
+`references/recipes.md` maps these sections onto two common artifact types: an implementation-plan view and a PR or code review. Use it as a starting template, not as a fixed rule. Adapt it to the content.
 
 ## Component patterns
 

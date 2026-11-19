@@ -291,7 +291,7 @@ public void Constructor_SetsEntityId()
 
 ## Key Points
 
-1. **Implement all three Create overrides**: default, message-only, and message+inner
+1. **Implement all Create overrides**: default, message-only, and message+inner
 
 2. **Test factory methods separately**: test each static `Create()` factory method of your exception
 

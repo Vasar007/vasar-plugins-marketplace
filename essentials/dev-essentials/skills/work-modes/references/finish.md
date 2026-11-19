@@ -1,6 +1,6 @@
 # Finish: Push, Pull Request, Merge
 
-These are the finish steps of three workflows: `research-implement-review-report`, `implement-task`, and `implement-batch`.
+These are the finish steps of the workflows `research-implement-review-report`, `implement-task`, and `implement-batch`.
 
 Read this file at the finish step of each run.
 
@@ -54,7 +54,7 @@ A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Re
 
 ## Resume
 
-The user can ask a workflow to finish an earlier run. The request names the report of that run, or its branch. Then skip the other steps of the workflow. Check out that branch, or work in the worktree that holds it (`git worktree list`). Do the steps of this file from step 1. A resume needs two facts. Take the report of the earlier run from a file or from this conversation. It must give the verdict of each review loop and the head commit at the end of that run. The head of the branch must be that commit. If a fact is missing, or no report exists, or the head differs, do no step. Outside the full mode, ask the user (hard stop 6). In the full mode, report the state, and end the run (hard stop 5).
+The user can ask a workflow to finish an earlier run. The request names the report of that run, or its branch. Then skip the other steps of the workflow. Check out that branch, or work in the worktree that holds it (`git worktree list`). Do the steps of this file from step 1. Take the report of the earlier run from a file or from this conversation. It must give the verdict of each review loop and the head commit at the end of that run. The head of the branch must be that commit. If a fact is missing, or no report exists, or the head differs, do no step. Outside the full mode, ask the user (hard stop 6). In the full mode, report the state, and end the run (hard stop 5).
 
 ## The finish report
 

@@ -30,7 +30,7 @@ Fix before merge by default. Examples: an N+1 query inside a loop over rows, or 
 
 ### Medium
 
-A quality issue. Examples: a pattern violation that is consistent across the codebase but wrong, such as manual string formatting where a helper exists. Also a small coverage gap on a path that is not critical. Also a cleanup that makes the code easier to read, with no change of behavior. A Medium is not deferred automatically by its label. Phase 4 judges it on its merits. A Medium still gets a fix in two cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
+A quality issue. Examples: a pattern violation that is consistent across the codebase but wrong, such as manual string formatting where a helper exists. Also a small coverage gap on a path that is not critical. Also a cleanup that makes the code easier to read, with no change of behavior. A Medium is not deferred automatically by its label. Phase 4 judges it on its merits. A Medium still gets a fix in these cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
 
 ### Low
 
@@ -93,7 +93,7 @@ A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row
 | `critical,high,medium,low,nit` | Blocker only | Critical, High, Medium, Low, Nit |
 | `blocker` | Critical, High, Medium, Low, Nit | Blocker (deferred to the Phase 9 deferred list. No later cycle of this run fixes it. Use this only to ship known-broken code on purpose.) |
 
-Any subset of the six tokens is valid. Each token that the value leaves out can get a fix. Each token in the value is deferred. The rows above are examples, not the full set.
+Any subset of the tokens is valid. Each token that the value leaves out can get a fix. Each token in the value is deferred. The rows above are examples, not the full set.
 
 ---
 

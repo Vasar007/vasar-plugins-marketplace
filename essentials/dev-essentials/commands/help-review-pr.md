@@ -115,13 +115,13 @@ mcp__plugin_github_github__pull_request_read(
 
 Read all pages, and pass the `endCursor` of the previous page as `after` (`github-mcp-conventions` Rule 3). This method uses a cursor, not page numbers. The response has the `is_resolved` and `is_outdated` state of each thread, its comments, and the `path`, `line`, and `html_url` of each comment.
 
-Compare each finding that you plan to post with each existing thread, whoever wrote it. Use a simple test with three parts:
+Compare each finding that you plan to post with each existing thread, whoever wrote it. Use a simple test with these parts:
 
 1. The same `path`.
 2. A line that overlaps the anchor line of the thread or is near it (within a few lines), or a range of lines that overlaps.
 3. A similar one-line gist.
 
-A clear match on all three parts makes the finding a duplicate. Do not post a duplicate. List each one in the Output summary, with the `html_url` of the existing thread, and do not drop it in silence.
+A clear match on all parts makes the finding a duplicate. Do not post a duplicate. List each one in the Output summary, with the `html_url` of the existing thread, and do not drop it in silence.
 
 ## Post via the GitHub MCP review workflow
 
@@ -181,7 +181,7 @@ Each subagent reports back in under 200 words: what the PR does, the finding cou
 
 # Arguments
 
-`$ARGUMENTS` has one of two top-level shapes:
+`$ARGUMENTS` has one of these top-level shapes:
 
 - `<pr-url> [--mode=<mode>] [--orchestrate]`: a review of one PR. `<pr-url>` is the first positional argument.
 - `--multi <url1> <url2> ... [--orchestrate]`: a review of several PRs (Phase 7). `--multi` takes the place of `<pr-url>` as the first argument. It takes the list of URLs after it, separated by spaces. This shape has no separate single-PR URL at the start.

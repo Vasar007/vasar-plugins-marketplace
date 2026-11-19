@@ -59,7 +59,7 @@ When the conversation has no triage, the Start rule passes these scope flags to 
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ Each Phase 9 gate runs only with its opt-in flag. The tests before each gate sti
 | `references/entity-authoring-conventions.md` | Phase 6: the entity kind, the frontmatter, the body structure, and the commit discipline. |
 | `references/cleanup-and-provenance.md` | Phase 9: the templates, the full 9c and 9d mechanics, the exact questions, and the dirty-repo matrix. |
 | `references/report-templates.md` | Phase 10: the run report template. |
-| `examples/full-audit-walkthrough.md` | A full run: invocation, triage, partial approval, authoring, review, version bump, all four Phase 9 sub-phases, and a 9c-only resume in a later invocation. |
+| `examples/full-audit-walkthrough.md` | A full run: invocation, triage, partial approval, authoring, review, version bump, all Phase 9 sub-phases, and a 9c-only resume in a later invocation. |
 
 ## Phases (the workflow)
 
@@ -100,7 +100,7 @@ Phases 0 to 4 run in `dev-essentials:audit-personal-conventions`. The phase numb
 
 Phase 5 starts from the Phase 4 triage (see "Start rule"). If the arguments hold a reply with the Phase 5 verbs, that reply answers this gate in every mode. Else, outside the interactive mode, the run answers this gate itself. It approves every C and D item that the triage recommends to promote, and every E item that it recommends to fix. It defers every F item and every item under "Needs your call". It writes these answers into the report in the "Approval" format, then starts Phase 6. In the interactive mode, wait for the reply of the user, as below.
 
-Number the items with one global `#N` numbering across every table of Phase 4. The reply has three verbs, `approve`, `defer`, and `reject`, and two shorthands, `approve all promotes` and `approve none`. **Anything not named is deferred, always.** No approval is implicit.
+Number the items with one global `#N` numbering across every table of Phase 4. The reply has the verbs `approve`, `defer`, and `reject`, and the shorthands `approve all promotes` and `approve none`. **Anything not named is deferred, always.** No approval is implicit.
 
 `reject` vs `defer`: the run records a rejected item as rejected, with the reason. A later run does not propose it again in the same form. A deferred item comes back on a later run, because nobody decided it this time.
 
@@ -144,7 +144,7 @@ After the version bump, record the new HEAD SHA of the target marketplace repo, 
 
 Read `references/cleanup-and-provenance.md` before any part of Phase 9. It holds the templates, the full 9c and 9d mechanics, the exact questions, and the dirty-repo matrix.
 
-Phase 9 has four sub-phases, and each one has its own gate, because the risk grows from 9a to 9c. **9a (personal memory files) is on by default.** It touches only private files of the user, outside any repo. `--cleanup-mode` controls it (`stub` by default). **9b, 9c, and 9d each need an explicit opt-in flag**. 9b edits the global CLAUDE.md, 9c edits project CLAUDE.md files in other repos, and 9d deletes personal entities. They also ask again before they write or delete. **Nothing in any OTHER repository changes without `--cross-repo`.**
+Each sub-phase of Phase 9 has its own gate, because the risk grows from 9a to 9c. **9a (personal memory files) is on by default.** It touches only private files of the user, outside any repo. `--cleanup-mode` controls it (`stub` by default). **9b, 9c, and 9d each need an explicit opt-in flag**. 9b edits the global CLAUDE.md, 9c edits project CLAUDE.md files in other repos, and 9d deletes personal entities. They also ask again before they write or delete. **Nothing in any OTHER repository changes without `--cross-repo`.**
 
 In the full mode, no gate of Phase 9 stops. This covers the 9a stub question, the 9b per-file question, and the 9c.3 sequencing gate. It also covers the 9c.8 push gate (push and open the PR) and the 9d questions. At the 9c.6 question about unrelated dirt, take its default: skip. At the 9c.7 path question, take the proposed path. The tests before each gate still run: Preconditions A, B, and C, and the hard stops of 9c.6. A failed test still skips or defers its repo or file. The final report lists each gate that passed and each push, PR, and deletion.
 
@@ -176,7 +176,7 @@ Read sections 9c.0 to 9c.9 of `references/cleanup-and-provenance.md` before any 
 
 - **9c.0, classify the source file with git.** A tracked file goes through this cross-repo flow. An untracked or ignored file goes through the private-file path of 9b: a direct edit and a question for each file, with no branch and no PR.
 - **9c.1, flag.** `--cross-repo` turns on a capability. It does not approve anything in advance. Each repo still needs its own push-gate yes (or the full mode) at 9c.8. In the 9c-only re-entry mode, `--resume=<path>` makes 9c work on the promotion set of the TODO file, and 9c starts at 9c.2.
-- **9c.2, three preconditions for each promotion, all required, before the run creates anything.** A: the promotion is published on the fetched default branch of the target marketplace. B: repo B can load the plugin. C: the published entity still holds each term of `Load-bearing terms`, matched as a fixed string. If a precondition fails for a repo, skip that repo, record it in the deferred TODO (9c.7), and continue with the other repos.
+- **9c.2, the preconditions for each promotion, all required, before the run creates anything.** A: the promotion is published on the fetched default branch of the target marketplace. B: repo B can load the plugin. C: the published entity still holds each term of `Load-bearing terms`, matched as a fixed string. If a precondition fails for a repo, skip that repo, record it in the deferred TODO (9c.7), and continue with the other repos.
 - **9c.3, sequencing gate, once for each run, before the run creates any worktree.** Show the results of Precondition A, and require an explicit `yes`. On any other answer, stop: write the deferred TODO, and touch no other repo. If Precondition A already failed, skip the question and defer.
 - **9c.4, mechanism for each repo.** Process the repos one at a time, in ascending order of absolute path. For each repo: preflight, the branch `<branch-prefix>/chores/claude-md-promotion-<YYYYMMDD>`, a worktree, a surgical edit, and one commit with an explicit `git add <path>`. Then the push gate, and the PR through the tools of the detected host.
 - **9c.5, pointer template.** Extend the `## Cross-project rules — migrated to marketplace skills` heading with one bullet for each promoted rule. Each bullet keeps a one-line gist.
@@ -193,7 +193,7 @@ Read sections 9c.0 to 9c.9 of `references/cleanup-and-provenance.md` before any 
 
 #### 9d — Personal entities: commands/agents/skills (default: report-only)
 
-Read the 9d section of `references/cleanup-and-provenance.md` before 9d. 9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in two cases:
+Read the 9d section of `references/cleanup-and-provenance.md` before 9d. 9d applies to personal global commands, agents, and skills under `<claude-root>/{commands,agents,skills}` in these cases:
 
 - An entity that this run promoted or E-fixed (Phase 6) fully supersedes the file.
 - Phase 3 classified the file **F-stale**, because an already-shipped entity supersedes it. F-stale for another reason does not count. The F item must be approved at Phase 5. A deferred or rejected F item stays report-only.
@@ -202,9 +202,9 @@ By default, 9d deletes and edits nothing. It lists each superseded file in the "
 
 A wrapper that still needs its personal layer but also carries an F-stale section is never eligible for deletion, even with `--delete-personal-entities`. The reference describes the report-only handling of this partially superseded wrapper.
 
-With `--delete-personal-entities`, three gates run in this order before the run removes a file:
+With `--delete-personal-entities`, these gates run in this order before the run removes a file:
 
-1. An automated check of publication and local load: Preconditions A and C of 9c.2, and a check that the `settings.json` of the caller registers or enables the plugin. The reference has the variant for each of the two cases.
+1. An automated check of publication and local load: Preconditions A and C of 9c.2, and a check that the `settings.json` of the caller registers or enables the plugin. The reference has the variant for each case.
 2. A marketplace-publish question, once for each run.
 3. A per-file `yes` right before each deletion, with the matching Precondition C lines as coverage quotes.
 
@@ -212,7 +212,7 @@ If step 1 fails, or the step 2 answer is not `yes`, all personal entity files of
 
 ### Phase 10 — Report
 
-By default, the report goes to chat. Do not assume that the calling repo has a `Notes/Plans` or `Notes/Results` convention. Write a file in two cases only: `--report=<path>` names one, or the calling repo clearly has its own convention for report files. In that case, propose the path, and ask before you write it. Copy the Phase 10 run report template from `references/report-templates.md`. If a row of "Shipped this run" is a new entity, add the restart notice of Phase 8.
+By default, the report goes to chat. Do not assume that the calling repo has a `Notes/Plans` or `Notes/Results` convention. Write a file only in these cases: `--report=<path>` names one, or the calling repo clearly has its own convention for report files. In that case, propose the path, and ask before you write it. Copy the Phase 10 run report template from `references/report-templates.md`. If a row of "Shipped this run" is a new entity, add the restart notice of Phase 8.
 
 ## Cross-references
 

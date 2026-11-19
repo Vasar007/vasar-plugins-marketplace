@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.2 and dotnet-backend-dev 1.8.3 in release [5.4.2] - 2026-11-19
+
+The text of the units no longer counts the items of a list. Each time an item joins or leaves a list, such a count is wrong, and it gives no instruction. Limits, thresholds, identifiers, and the numbers of examples stay (issue #309).
+
+### Changed in dev-essentials
+
+- `skills/engineering-discipline`, `skills/dotnet-build-test`, and `skills/work-modes`: the description loses its count word. It now starts with "Rules against", says "The exceptions to this rule", or says "Defines the work modes" (issue #309).
+- Each skill, reference file, stage file, agent, and command with such a count: the count word goes, or it becomes "these", "the", or "each". For example, the pointer to `work-modes` in each gated workflow now says "the modes". Each stage file of `feature-pipeline` that a subagent runs says "replace the placeholders" (issue #309).
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`, `skills/dotnet-conventions`, `skills/model-mapping`, `skills/add-migration`, `skills/add-session-logging`, and `skills/handle-sensitive-data`: the count word of a list goes (issue #309).
+
+### Changed in the repository
+
+- `README.md`: the count of the plugins and the count of the official pages go (issue #309).
+- `docs/permissions.md` and `docs/workflows.md`: the count of the push cases goes. So do the count of the values of `--mode` and the count of the steps of the usual chain (issue #309).
+- `tests/test_work_modes_text.py` and `tests/test_eval_cases.py`: the pins follow the new text. The pin of the questions that still stop in the full mode of `process-pr-comments` now holds both questions and the sentence after them (issue #309).
+
 ## dev-essentials 4.4.1 in release [5.4.1] - 2026-11-19
 
 This release fixes one grader that seven eval cases share. No skill text changes (issue #293).
@@ -2381,7 +2400,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...HEAD
+[5.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
 [5.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...v5.3.1

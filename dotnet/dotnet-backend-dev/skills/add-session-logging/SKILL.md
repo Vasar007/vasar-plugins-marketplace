@@ -12,7 +12,7 @@ The templates use the private shared framework of the `MyApp.Framework` namespac
 
 ## Two-Phase Logging Architecture
 
-The project uses two types of logging:
+The project uses these types of logging:
 
 | Type         | Interface               | Purpose                | Audience     |
 |--------------|-------------------------|------------------------|--------------|

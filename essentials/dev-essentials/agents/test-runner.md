@@ -20,7 +20,7 @@ The brief gives the absolute path of the worktree, the build command, and the te
 
 1. If the brief gives no absolute worktree path, stop. Ask for the path in your final reply.
 2. If the brief gives no build command and no test command, stop. Ask for the commands in your final reply. Do not guess a command from the files of the repository.
-3. If the brief asks for a test run and gives no test filter, stop and ask for one. There are two exceptions. The brief says in words that the whole test suite must run, or the brief names the command as a validator or a linter.
+3. If the brief asks for a test run and gives no test filter, stop and ask for one. This rule has exceptions. The brief says in words that the whole test suite must run, or the brief names the command as a validator or a linter.
 4. If the worktree has a `.sln`, `.slnx`, or `.csproj` file, the repository is .NET. Then load `dev-essentials:dotnet-build-test` with the Skill tool, and follow it. Also follow the section ".NET rules" below.
 
 ## Rules

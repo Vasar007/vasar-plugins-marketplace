@@ -49,9 +49,9 @@ The service's EF context lives in `Infrastructure/Persistence/` and is named aft
 - Repositories create mappers internally with `new TMapper()`. Do **not** use `IEntityDomainMappingService`.
 - Use the Find + Update pattern. Do not call `UpsertAsync` directly.
 
-## Reference Storage: Two Patterns
+## Reference Storage Patterns
 
-An entity can refer to a value that another model owns. Store the reference in one of two ways:
+An entity can refer to a value that another model owns. Store the reference in one of these ways:
 
 1. **A reference to an entity of this service**: store the `Guid` key of that entity as a foreign key, and configure it with `HasForeignKey`. Example: `Guid HomeStoreId` as the foreign key to `StoreEntity`.
 2. **A value that an external system gives as a string** (for example a country code): store the `String` directly. In the mapper, convert it to the domain wrapper through `SharedDomainWrappersConverter` (see [mappers.md](mappers.md)), for example with `.ToDomainCountryCode()`.

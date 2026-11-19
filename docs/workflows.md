@@ -4,7 +4,7 @@ This page covers the work modes of the workflows of this marketplace, and the ch
 
 ## Work modes
 
-Each gated workflow of `dev-essentials` takes the option `--mode`. It has three values. The `--mode` of `help-review-pr` picks its posts, and it is not a work mode.
+Each gated workflow of `dev-essentials` takes the option `--mode`. It has the values below. The `--mode` of `help-review-pr` picks its posts, and it is not a work mode.
 
 - `--mode interactive`: the workflow stops at each of its gates, and you approve each step.
 - `--mode partial`: the default. The workflow reports its plan and goes on. It stops at the plan only for open decisions. It does not push or open a pull request without your answer or a push flag such as `--commit-push`. `research-implement-review-report`, `implement-task`, and `implement-batch` ask one question about these steps at their end.
@@ -18,7 +18,7 @@ The hard stops hold in every mode. They are data loss, a change of pushed histor
 
 ## One session or a new one
 
-The usual chain has three steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.
+The usual chain has these steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.
 
 If the review comes within the cache lifetime after the build, stay in the build session. Its prompt cache is still warm. The prompt cache is a saved copy of the history on the server. A call that hits it pays only the low cached rate for that history. A cached prefix expires after a period of inactivity. By default, the main conversation gets a one-hour cache on a Claude subscription, within the usage of the plan. With an API key, or with usage credits after the plan limit, it gets five minutes. The setting `promptCacheTtl` can change this. The page [How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching#cache-lifetime) has the details.
 
