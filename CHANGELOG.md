@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.1.1 in release [5.1.1] - 2026-11-19
+
+This release adds four eval cases for the finish steps in `skills/work-modes/references/finish.md`. Two of them finish an earlier run of `implement-task` and of `implement-batch` in the full mode. The other two must stop before the push. No skill text changes (issue #283).
+
+### Added in dev-essentials
+
+- `evals/implement-task/it-merge` and `evals/implement-batch/ib-merge`: the first cases of the two workflows. Each case finishes an earlier run in the full mode. Its scaffold plants the commits of that run on a branch that no remote holds, and the report of that run. The run must push the branch, open the pull request, read the merge gate, and merge with a squash (issue #283).
+- `evals/research-implement-review-report/rirr-resume-moved-head`: the report of the earlier run names the reviewed commit. A later commit that no review saw is the head of the branch. The run must do no finish step (issue #283).
+- `evals/research-implement-review-report/rirr-upstream-remote`: the clone has an `upstream` remote on GitHub. The run must ask the user which repository gets the pull request. It must do no finish step before the answer (issue #283).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: the grader tests of `rirr-merge` also run on the new resume cases. A new test makes sure that each pull request call fails the two stop cases. `ResumeReportTests` makes sure that the report of each resume case names its head commit (issue #283).
+- `docs/evals.md`: the suite table and the text name the new cases (issue #283).
+
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
 Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
@@ -2190,7 +2205,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.1...HEAD
+[5.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.1.1
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0
 [4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0
