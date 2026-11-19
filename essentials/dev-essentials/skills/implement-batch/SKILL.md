@@ -50,7 +50,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
 | Steps 3.6 and 4.4: the squash script fails (`RESULT: FAILED`, or an `OLD HEAD` line and no `RESULT` line) | Stop and ask | Same | Stop and ask |
 | Step 6: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
-| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
+| Fable on the own initiative of the agent | Move up by the model ladder, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 When this workflow passes its mode on, it does not pass the interactive mode to the Step 2 plan-review loops (see "Review-loop configuration").
 
@@ -64,7 +64,6 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - **Parallel where safe, sequential where not.** All N tasks share one worktree. Two dispatches can run at the same time only under two rules. Each one writes its own path. Neither one runs a git command that changes the worktree, the index, or the history. Such commands are `add`, `commit`, `checkout`, `reset`, and branch operations, but not `log`, `show`, or `diff`.
   - The Step 2 planners qualify. Each one writes only its own `<--plan-dir>/<task-slug>-plan.md`, and uses git only to read (for example for `file:line` anchors). Dispatch them in parallel, and write both rules into every planner brief.
   - The implementation does not qualify. The Step 3 implementers edit shared product and test files, and the session commits their work. So implement and review **strictly one task at a time**. The same holds for the Step 2 plan-review loops and the Step 4 final loop, because this session runs each loop itself.
-- Fable is for exceptional cases only. Never dispatch it silently on your own initiative. In the interactive mode, ask the user before each Fable dispatch, also where the model matrix allows Fable. In the other modes, follow "Autonomy".
 - A bounded dispatch does the work itself, and does not delegate it again (Rule 7). Examples: the plan of one task, one implementation, or one fix.
 
 ## Guardrails

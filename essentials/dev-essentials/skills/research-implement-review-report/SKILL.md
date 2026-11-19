@@ -54,7 +54,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Phase 3: review loop | Its gates, with the mode of this run | Same | Same |
 | Phase 4: `save-context` cleanup of a file of an older session or a stale branch | Ask once, after the report | Same | Keep the files and the branches, and list them in the report |
 | Phase 5: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
-| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
+| Fable on the own initiative of the agent | Move up by the model ladder, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 Phase 5 holds the push, the pull request, and the merge. When another workflow runs this skill, Phase 5 does not run, and that workflow does the finish steps at its own end.
 
@@ -64,7 +64,6 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 
 - **Models**: fact gathering in a Phase 1 subagent uses Haiku, through the agent type `dev-essentials:fact-gatherer`. A Phase 1 question that needs judgment goes to a researcher on Opus. Planning (Phase 1) and review (Phase 3) use Opus. An implementer subagent of Phase 2 and a fixer subagent of Phase 3 use Sonnet. If a task that the plan gives as an explicit 1-2-3 edit list goes to a subagent, that subagent uses Haiku. A code search that a test of Rule 1 sends to a subagent uses Haiku, through `dev-essentials:code-locator`. This line is the one home of these models, and the phases below name only the role. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
 - **Effort**: pass `effort` on each dispatch of a general agent type. A Phase 1 researcher and the planner: `high`. The planner of a large plan, or of a change on the critical path: `xhigh`. A Phase 2 implementer: `high`. For a task that the plan gives with its exact files and edits, use `medium`. An edit-list implementer: `low`. `dev-essentials:review-loop` sets the effort of the reviewer and of a fixer subagent of Phase 3 with its `--reviewer-effort` and `--fixer-effort` options. This line is the one home of these effort levels. All follow Rule 5 of `dev-essentials:subagent-orchestration`.
-- Fable is for exceptional cases only. Never dispatch it silently on your own initiative. In the interactive mode, ask the user before each Fable dispatch, also where the model matrix allows Fable. In the other modes, follow "Autonomy".
 
 ## Guardrails
 

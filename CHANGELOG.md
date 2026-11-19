@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.1.0 in release [5.1.0] - 2026-11-19
+
+This release turns the model matrix of `subagent-orchestration` into a ladder. A dispatch with no better fit starts on Opus at `medium` effort. If a step falls short, the run first raises its effort, and only then moves the step to a larger model. Fable is the step after Opus at `xhigh`, not an exception. Well-scoped work still goes to Sonnet, and mechanical work to Haiku (issue #281).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-ladder-start`: a route case. The request sends one bug fix with no fix plan to one subagent. The route grader `route-ladder-start` shows a dispatch on Opus at `medium` effort (issue #281).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration`: Opus at `medium` effort is the default of the matrix. Sonnet takes well-scoped work: an approved plan, a written fix plan, or a brief settles each decision. The new ladder moves each step that runs in a subagent, also a dispatch that a workflow skill names. A model and an effort that a skill names are the start of the ladder for that step. A step falls short in two cases. First, its self-test fails again after one resume with the error lines. Second, its reviewer reports a finding that blocks the merge. A failure whose fix is out of the scope of the step is no fall short, and the run stops and tells the user. If a step falls short, the run raises the effort one level, up to `xhigh`. After that, it moves the step one model up, at `high`. The ladder ends after three moves of one step. A move from `low` to `medium` is not one of the three. The level `max` needs the word of the user or of a skill. A limit of tries that a skill names wins over the ladder. A move up to Fable is never silent. On a Sonnet session, a code change that Rule 1 keeps in the main loop stays there. A plan, a review, and a decision that no plan settles still go to Opus. In `references/model-selection.md`, a dispatch with no named effort starts at `medium`, and a review starts at `high`. If the `Agent` tool or the model has no effort levels, the ladder makes no move that only raises the effort. This changes the dispatches with no named effort of `optimize-skill`, `audit-team`, `process-pr-comments`, and `promote-conventions`. It also changes `trim-artifacts`, `feature-pipeline`, `help-review-pr`, and Phases 2 and 4 of `implement-task` (issue #281).
+- `skills/review-loop`: the rule "Keep Opus" of the partial mode holds for the reviewer only. A fixer subagent moves up by the model ladder, and the final summary names the step (issue #281).
+- `skills/work-modes`: outside the interactive mode, a workflow moves a step up to Fable by the ladder with no question. It names the move in the final report. Before, it used Opus (issue #281).
+- `skills/research-implement-review-report`, `commands/implement-task`, `skills/implement-batch`, and `skills/feature-pipeline`: in the partial and the full mode, the gate row for Fable follows the ladder. The first three lose the bullet "Fable is for exceptional cases only" (issue #281).
+
+### Changed in the repository
+
+- `tests/test_model_ladder_text.py`: a new test. A plugin file that keeps the old Fable rule, the old default row, or the old effort rule fails it (issue #281).
+- `tests/test_eval_cases.py`: the new class `ModelLadderCaseTests` tests the grader `route-ladder-start` on right and wrong `Agent` calls (issue #281).
+- `tests/test_eval_scaffolds.py`, `tests/test_work_modes_text.py`, `tests/simple-english-baseline.json`, and `docs/evals.md`: the new case and the new sentence of `work-modes` (issue #281).
+
 ## dotnet-backend-dev 1.8.1 in release [5.0.2] - 2026-11-19
 
 The skill `create-tests` now asks for useful tests only. A useful test can fail for a bug or for a bad change of behavior. A test that only asserts that a constant or a property with a fixed value has its value is not useful. The repository guidance has the same rule for its own tests and eval cases (issue #280).
@@ -2257,7 +2278,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.0.0

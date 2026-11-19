@@ -87,7 +87,7 @@ PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]
 # Without that part, Step 6 takes owner and repo from the Task Provider.
 PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
-FAILING_TESTS = {"so-two-fixes": 2}
+FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
                   "rirr-retry-limit": "committed"}
