@@ -4923,6 +4923,9 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
         "an almost equal check": ("self.assertAlmostEqual(BASE_FEE, 4.9, places=2)", True),
         "a sign check": ("self.assertGreater(BASE_FEE, 0)", True),
         "a type check": ("self.assertIsInstance(MAX_WEIGHT_KILOGRAMS, int)", True),
+        "a type check with a tuple": ("self.assertIsInstance(BASE_FEE, (int, float))", True),
+        "a check of one constant": ("self.assertTrue(BASE_FEE)", True),
+        "a none check": ("self.assertIsNotNone(MAX_WEIGHT_KILOGRAMS)", True),
         "two constants": ("self.assertLess(BASE_FEE, FREE_SHIPPING_THRESHOLD)", True),
         "a true check": ("self.assertTrue(FREE_SHIPPING_THRESHOLD > 0)", True),
         "a bare assert": ("assert shipping.MAX_WEIGHT_KILOGRAMS == 30", True),
@@ -4939,9 +4942,13 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
         "a bare assert of the fee": ("assert shipping_fee(10.0, 1) == BASE_FEE", False),
         "a comment": ("# BASE_FEE is the fee for one kilogram.", False),
         "an import": ("from app.shipping import BASE_FEE, MAX_WEIGHT_KILOGRAMS, shipping_fee", False),
+        "a fee helper with the constant first": ("self.assert_fee(BASE_FEE, 10.0, 1)", False),
+        "a fee helper with the limit": ("self._assert_fee(10.0, MAX_WEIGHT_KILOGRAMS, 39.7)", False),
         # Known limits: the grader misses these tests of a constant.
         "a limit: getattr in a loop": ("self.assertEqual(getattr(shipping, name), value)", False),
         "a limit: a copy into a variable": ("actual = BASE_FEE\nself.assertEqual(actual, 4.90)", False),
+        "a limit: the literal first in assertTrue": ("self.assertTrue(0 < BASE_FEE)", False),
+        "a limit: a call around the constant": ("self.assertEqual(round(BASE_FEE, 2), 4.9)", False),
     }
 
     @classmethod
@@ -4967,7 +4974,12 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
 
     def test_the_cover_graders_need_a_call_and_a_guard(self):
         samples = {
-            "covers-fee": {"shipping_fee(10.0, 1)": True, "shipping.shipping_fee(order_total=10.0, weight_kilograms=1)": True,
+            "covers-fee": {"self.assertEqual(shipping_fee(10.0, 1), 4.90)": True,
+                           "self.assertEqual(shipping.shipping_fee(order_total=10.0, weight_kilograms=1), 4.9)": True,
+                           "fee = shipping_fee(10.0, 3)": True,
+                           "self.assertEqual(shipping_fee(*case[:2]), case[2])": True,
+                           "with self.assertRaises(ValueError):\n    shipping_fee(-1.0, 1)": False,
+                           "self.assertRaises(ValueError, lambda: shipping_fee(-1.0, 1))": False,
                            "from app.shipping import shipping_fee": False, "# shipping_fee() returns the fee.": False},
             "covers-guard": {"with self.assertRaises(ValueError):": True, 'self.assertRaisesRegex(ValueError, "weight")': True,
                              "with self.assertRaises(TypeError):": False, "# The function raises ValueError.": False},
@@ -5007,6 +5019,14 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
             with self.subTest(change=name):
                 self.assertIn(old, text)
                 self.assertIsNone(pattern.search(text.replace(old, new)))
+
+    def test_the_module_shows_no_constant_to_a_user(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        messages = re.findall(r'raise ValueError\("([^"]*)"\)', scaffold)
+        self.assertTrue(messages, "The module must raise ValueError with a message.")
+        for message in messages:
+            with self.subTest(message=message):
+                self.assertNotRegex(message, r"\d")
 
 
 if __name__ == "__main__":

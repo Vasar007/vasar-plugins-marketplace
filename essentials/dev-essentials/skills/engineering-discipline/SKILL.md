@@ -140,14 +140,14 @@ A useful test fails for a bug or for a bad change of behavior in the code under 
 
 These tests are bad:
 
-- A test that only reads back a fixed value, such as a constant. Test the code that uses the value, because a wrong value fails that test too. If no code uses the value, it needs no test.
-- A test of code that the compiler or a framework writes, such as the constructor of a generated record type. A hand-written constructor can swap two values of one type, so a test of it is useful.
+- A test that only reads back a fixed value, such as a constant. Test the code that uses the value, and write the expected value out in that test. Then a wrong value fails that test too. If no code uses the value, it needs no test.
+- A test of code that the compiler or a framework writes, such as the constructor of a generated record type. But the input that you give to the framework can be wrong, for example a field order or a range limit. A hand-written constructor can also swap two values of one type. A test of such input or such a constructor is useful.
 - A test that a stand-in, such as a mock, returns the value that the test set up for it.
 - A test that copies a text or a value from a file and then compares it with the same file.
 
 One exception: a test can pin a contract value, which other systems, users, or stored data read. Examples are a wire format, a persisted value, an error code, a flag name, and the default of a configuration option. Only such a test catches a change that breaks those readers.
 
-Why: a bad test passes for working code and for broken code alike, so it costs run time and review time and catches nothing.
+Why: a bad test catches no bug that a useful test does not catch. It still costs run time and review time.
 
 How to apply:
 

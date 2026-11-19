@@ -16,7 +16,7 @@ The terms "useful test" and "bad test" now have one general home: the new Rule 8
 ### Added in dev-essentials
 
 - `skills/engineering-discipline`: Rule 8, "Write only useful tests". A useful test fails for a bug or for a bad change of behavior. The rule names four classes of bad tests, for example a test that only reads back a fixed value. A test can pin a contract value, which other systems, users, or stored data read. The description of the skill names the new rule (issue #294).
-- `evals/engineering-discipline/ed-useful-tests`: a new behavior case. The request loads `engineering-discipline` and asks for unit tests of one Python module with public constants and one function. Scored graders need tests of the function and of a guard, a passed test run, and an unchanged module. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant (issue #294).
+- `evals/engineering-discipline/ed-useful-tests`: a new behavior case. The request loads `engineering-discipline` and asks for unit tests of one Python module with public constants and one function. Scored graders need a test that calls the function in an assertion or an assignment. They also need a test of a guard, a passed test run, and an unchanged module. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant (issue #294).
 
 ### Changed in dotnet-backend-dev
 
@@ -25,7 +25,7 @@ The terms "useful test" and "bad test" now have one general home: the new Rule 8
 
 ### Changed in the repository
 
-- `tests/test_rule_references.py`: a new test. Each reference to a numbered rule of `engineering-discipline` in a plugin file must name an existing rule. The section "Useful Tests" of `create-tests` must point at the rule for useful tests (issue #294).
+- `tests/test_rule_references.py`: a new test. Each reference to a numbered rule of `engineering-discipline` in a plugin file must name an existing rule. This includes a table row whose first cell is that skill. The section "Useful Tests" of `create-tests` must point at the rule for useful tests (issue #294).
 - `tests/test_eval_cases.py`: the new class `UsefulTestsCaseGraderTests` tests the graders of the new case on samples (issue #294).
 - `docs/testing.md` and `docs/evals.md`: a link to Rule 8, and the new suite `engineering-discipline` with one case (issue #294).
 

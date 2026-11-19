@@ -44,7 +44,7 @@ def shipping_fee(order_total, weight_kilograms):
     if order_total < 0:
         raise ValueError("The order total must not be negative.")
     if not 1 <= weight_kilograms <= MAX_WEIGHT_KILOGRAMS:
-        raise ValueError("The weight must be from 1 to 30 kilograms.")
+        raise ValueError("The weight is out of the allowed range.")
     if order_total >= FREE_SHIPPING_THRESHOLD:
         return 0.0
     return round(BASE_FEE + FEE_PER_KILOGRAM * (weight_kilograms - 1), 2)

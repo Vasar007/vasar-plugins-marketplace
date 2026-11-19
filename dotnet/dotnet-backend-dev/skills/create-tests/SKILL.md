@@ -72,7 +72,7 @@ If no example matches your case, look for a similar test class in the test proje
 
 ## Useful Tests
 
-Write only useful tests. A useful test fails for a bug or for a bad change of behavior in the code under test. Rule 8 of `dev-essentials:engineering-discipline` defines a useful test and a bad test for all languages. In .NET, do not write a test that only asserts one of these:
+Write only useful tests. A useful test fails for a bug or for a bad change of behavior in the code under test. A test that fails only where a useful test also fails adds nothing. Rule 8 of `dev-essentials:engineering-discipline` defines a useful test and a bad test for all languages. In .NET, do not write a test that only asserts one of these:
 
 - A constant, or a property that returns a fixed value, has its value. Test the method that uses the value. If no method uses it, it needs no test.
 - A positional record keeps the values of its primary constructor. The compiler writes that code.

@@ -1,6 +1,7 @@
 """Tests for the references to the numbered rules of the skill engineering-discipline.
 
 Many plugin files point at a rule by its number, for example "Rule 8 of `dev-essentials:engineering-discipline`".
+A table row whose first cell is that skill points at each rule that it names.
 These tests fail if a rule loses its number or its heading, or if create-tests stops pointing at the rule for useful tests.
 """
 import re
@@ -12,6 +13,7 @@ HOME = REPO / "essentials" / "dev-essentials" / "skills" / "engineering-discipli
 CREATE_TESTS = REPO / "dotnet" / "dotnet-backend-dev" / "skills" / "create-tests" / "SKILL.md"
 SKILL = r"`dev-essentials:engineering-discipline`"
 REFERENCE = re.compile(rf"{SKILL} Rule (\d+)|Rule (\d+) of {SKILL}")
+TABLE_ROW = re.compile(rf"^\|\s*{SKILL}\s*\|(.*)$", re.MULTILINE)
 HEADING = re.compile(r"^## Rule (\d+) — (.+)$", re.MULTILINE)
 
 
@@ -22,7 +24,8 @@ def rule_titles():
 
 def references(text):
     """The rule numbers that a text points at."""
-    return [int(a or b) for a, b in REFERENCE.findall(text)]
+    in_rows = [int(n) for row in TABLE_ROW.findall(text) for n in re.findall(r"\bRule (\d+)\b", row)]
+    return [int(a or b) for a, b in REFERENCE.findall(text)] + in_rows
 
 
 class RuleReferenceTests(unittest.TestCase):
