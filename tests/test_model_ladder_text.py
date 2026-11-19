@@ -11,6 +11,9 @@ OLD_RULES = (
     "Fable is for exceptional cases only",
     "Exceptional cases only",
     "| Use Opus, and name the",
+    "the Fable-eligible step",
+    "Default. The executor for coding work",
+    "pass the level that the task needs",
 )
 
 

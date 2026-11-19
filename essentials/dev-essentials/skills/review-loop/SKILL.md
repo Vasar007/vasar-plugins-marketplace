@@ -44,7 +44,7 @@ The defaults in `references/parameters.md` are the configuration that this loop 
 - **The reviewer model plans each fix, and the fixer only carries it out**. The reviewer writes the fix plan of each finding in its report (Phase 3), so no separate dispatch plans the fixes. See Phase 5, step 5a. The model that found the problem chooses the approach before anyone edits a file. It bases the approach on how the existing code already solves the same case.
 - **The fix pass of every cycle gets its own commit**. Phase 7 commits after the first fix pass and after each later one. So the changes of each cycle land as a separate commit that a reader can review. If a caller wants a single commit, it squashes the round commits afterwards. Only `--no-commit` turns off Phase 7, for a target that stays out of commits.
 - **Nothing is deferred by label**. Severity still orders the triage table and the deferred list of Phase 9. It does not decide on its own what gets fixed. Phase 4 decides that on the merits of each finding.
-- **Fable is not a default reviewer, and never a silent one**. Use `--reviewer-model fable` only rarely, for large, complex, or critical-path change sets. Sometimes Fable is the idea of the orchestrator and not the instruction of the user. Then, in the interactive mode, ask the user first, every time, as the "Model selection" section of `dev-essentials:subagent-orchestration` says. Outside the interactive mode, keep Opus (see "Autonomy").
+- **Fable is not a default reviewer, and never a silent one**. Use `--reviewer-model fable` only rarely, for large, complex, or critical-path change sets. Sometimes Fable is the idea of the orchestrator and not the instruction of the user. Then, in the interactive mode, ask the user first, every time, as the "Model selection" section of `dev-essentials:subagent-orchestration` says. Outside the interactive mode, keep Opus for the reviewer (see "Autonomy").
 - **An explicit choice of the user outranks these defaults**. If the user names a round count, a reviewer, a fixer, a model, an effort level, or a `--skip` set for a run, use it. These defaults are the baseline, not a policy to push the user back to. An explicit `--fixer`, `--fixer-model`, or `--fixer-effort` also sends every fix set to the fixer subagent (Phase 5, step 5b).
 
 ## Autonomy
@@ -57,7 +57,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Phase 4: a fix that is not clearly safe or in scope | Ask | Ask | Decide, and list it under "Decisions for your review" |
 | Phase 5: head gate for `target=pr` and `target=diff` | Stop and ask | Same | Continue as `--dry-run`, and say why |
 | Push | Never, unless the user allows it in words | Same | Same |
-| Fable on the own initiative of the agent | Keep Opus | Ask before each Fable dispatch | Same as partial |
+| Fable on the own initiative of the agent | Keep Opus for the reviewer. A fixer subagent moves up by the model ladder, and the summary names the step | Ask before each Fable dispatch | Same as partial |
 
 ## Flag interaction matrix
 
