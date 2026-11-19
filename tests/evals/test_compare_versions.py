@@ -378,13 +378,14 @@ class RunTests(CompareCase):
         self.assertEqual((self.tmp / "out" / "head.json").read_text(encoding="utf-8"), "old result")
 
     def test_report_gives_the_commands_to_run_unclear_cases_again(self):
-        code, out, err = self.run_main(*self.run_args("--tag", "smoke"), runner=self.eval_with_one_worse_run)
+        code, out, err = self.run_main(*self.run_args("--keep-temp", "--tag", "smoke"),
+                                       runner=self.eval_with_one_worse_run)
         self.assertEqual(code, 0, err)
         folder = (self.tmp / "out").resolve().as_posix()
         self.assertIn("- off-by-one", out)
         self.assertRegex(out, r"run --plugin group/demo --base " + self.base_sha + r" --head [0-9a-f]{40} "
                               r"--model model-under-test-1 --judge-model judge-model-1 --case off-by-one --runs 4 "
-                              r"--out \S+out-more-1 .*--claude \S+ --tag smoke")
+                              r"--out \S+out-more-1 .*--claude \S+ --keep-temp --tag smoke")
         self.assertIn(f"compare --base {folder}/base.json {folder}-more-1/base.json "
                       f"--head {folder}/head.json {folder}-more-1/head.json", out)
 
@@ -822,6 +823,14 @@ class DependencyTests(CompareCase):
         command = self.calls[1]["command"]
         self.assertEqual(command[command.index("--ablation") + 1], "with-without")
         self.assertIn("--keep-temp", command)
+
+    def test_run_keeps_the_temporary_folders_of_both_sides_on_request(self):
+        self.run_main(*self.run_args())
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls], [0, 0])
+        shutil.rmtree(self.tmp / "out", ignore_errors=True)
+        code, out, err = self.run_main(*self.run_args("--keep-temp"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls[2:]], [1, 1])
 
     def test_baseline_with_an_unknown_ablation_is_refused(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
