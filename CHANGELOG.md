@@ -15,7 +15,7 @@ This release fixes one grader that seven eval cases share. No skill text changes
 
 ### Fixed in dev-essentials
 
-- `evals/*/graders/untested-commit.md` of `rirr-retry-limit`, `rl-null-guard`, `rl-off-by-one`, `rl-unbounded-query`, `so-rename-large`, `so-rename-small`, and `so-two-fixes`: the grader passes a run that tests between the edit and the commit in one chained command. This also holds after an earlier `git` step such as `git diff`. Before, the commit part of the pattern started at the earlier `git` step and took in the test run. So a right run failed. Both alternatives of the pattern change. A commit with no test run still fails (issue #293).
+- `evals/*/graders/untested-commit.md` of `rirr-retry-limit`, `rl-null-guard`, `rl-off-by-one`, `rl-unbounded-query`, `so-rename-large`, `so-rename-small`, and `so-two-fixes`: the grader passes a run that tests between the edit and the commit in one chained command. This also holds after an earlier `git` step such as `git diff`. Before, the commit part of the pattern started at the earlier `git` step and took in the test run. So a right run failed. Both alternatives of the pattern change. A commit with no test run still fails. The one exception is the word `unittest` between a `git` step and the `commit` of one command, and `docs/evals.md` names it (issue #293).
 
 ### Changed in the repository
 

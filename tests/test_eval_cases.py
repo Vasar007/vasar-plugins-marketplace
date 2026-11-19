@@ -1919,6 +1919,8 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
                 self.TEST_RUN, trace_bash("sed -i 's/import unittest/import pytest/' tests/test_a.py"), self.COMMIT],
             "a sed edit, git diff, and a commit in one command": [
                 self.TEST_RUN, trace_bash("sed -i 's/= 5/= 3/' config/settings.py && git diff && git commit -qam x")],
+            "a word that starts with unittest between git and commit": [
+                self.TEST_RUN, edit, trace_bash("git -C /w/unittest_x commit -qam x")],
         }
         good = {
             "test and commit": [self.TEST_RUN, self.COMMIT],
@@ -1966,6 +1968,9 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
                 self.assertEqual(re.search(pattern, trace) is not None, expected)
         with self.subTest(run="a bad run passes: the word unittest between git and commit"):
             trace = "\n".join([self.TEST_RUN, trace_edit("app/a.py"), trace_bash('git -c user.name="unittest" commit -qam x')])
+            self.assertIsNone(re.search(pattern, trace))
+        with self.subTest(run="a bad run passes: the word unittest in an earlier git step"):
+            trace = "\n".join([self.TEST_RUN, trace_edit("app/a.py"), trace_bash("git checkout -b fix/unittest-flake && git commit -qam x")])
             self.assertIsNone(re.search(pattern, trace))
 
     def test_the_untested_commit_grader_is_fast_on_many_sed_edits(self):
