@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tests/evals/compare_versions.py`: `run` takes the option `--keep-temp`, the same as `baseline`. It passes the option to the base side and to the head side. The commands of a report that run the cases again keep the option. Before, `run --keep-temp` stopped with exit code 2. `tests/evals/test_compare_versions.py` tests the change, and `docs/evals.md` names it (issue #291).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).

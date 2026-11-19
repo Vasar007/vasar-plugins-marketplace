@@ -361,7 +361,7 @@ def eval_command(args, plugin_dir, result, claude, suite):
         command += ["--case", args.case]
     if args.scaffold:
         command.append("--scaffold")
-    if getattr(args, "keep_temp", False):
+    if args.keep_temp:
         command.append("--keep-temp")
     if args.max_cost_usd is not None:
         command += ["--max-cost-usd", str(args.max_cost_usd)]
@@ -409,6 +409,8 @@ def option_words(args):
         words += ["--extra-dep", name]
     if args.scaffold:
         words.append("--scaffold")
+    if args.keep_temp:
+        words.append("--keep-temp")
     if args.max_cost_usd is not None:
         words += ["--max-cost-usd", str(args.max_cost_usd)]
     if args.concurrency:
@@ -577,6 +579,8 @@ def parse_args(argv):
     shared.add_argument("--tag", nargs="+", help="case tags, passed to claude plugin eval")
     shared.add_argument("--allow-tools", nargs="+", help="tool grants, passed to claude plugin eval")
     shared.add_argument("--scaffold", action="store_true", help="run the scaffold scripts of the cases")
+    shared.add_argument("--keep-temp", action="store_true",
+                        help="keep the temporary folder of each run, passed to claude plugin eval")
     shared.add_argument("--extra-dep", action="append", metavar="NAME",
                         help="also copy the marketplace plugin NAME into .deps/NAME, for a plugin that the cases load "
                              "but plugin.json does not list (repeatable)")
@@ -597,8 +601,6 @@ def parse_args(argv):
     baseline.add_argument("--commit", default="HEAD", help="commit, branch, or tag (default: HEAD)")
     baseline.add_argument("--ablation", choices=("none", "with-without"), default="none",
                           help="none, or with-without to also run an arm with no plugin (default: none)")
-    baseline.add_argument("--keep-temp", action="store_true",
-                          help="keep the temporary folder of each run, passed to claude plugin eval")
     baseline.add_argument("--out", required=True, help=f"folder for {BASELINE_FILE} and the output of claude plugin eval")
     compare_cmd = commands.add_parser("compare", help="compare finished result files",
                                       epilog=RULES, formatter_class=argparse.RawDescriptionHelpFormatter)
