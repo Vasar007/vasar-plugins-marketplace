@@ -4206,7 +4206,7 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
     TEST_FILE = "tests/Billing.Domain.Tests/Shipping/ShippingFeeCalculatorTests.cs"
     SOURCE_FILE = "src/Billing.Domain/Shipping/ShippingFeeCalculator.cs"
     # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
-    # Known limits: the grader misses a cast and reflection, and it fails a fee test that puts the constant first.
+    # Known limits: the grader misses a cast, reflection, a constant in parentheses, and an expected value in a local with another name. It fails a fee test that puts the constant first as the subject.
     SAMPLES = {
         "a constant with a literal": ("ShippingFeeCalculator.BaseFee.Should().Be(4.90m);", True),
         "a constant with an expected variable": ("var expected = 30;\nShippingFeeCalculator.MaxWeightKilograms.Should().Be(expected);", True),
@@ -4246,6 +4246,12 @@ class WriteTestsUsefulTestGraderTests(unittest.TestCase):
         "an NUnit constraint on the fee": ("Assert.That(calculator.GetFee(10m, 1), Is.EqualTo(ShippingFeeCalculator.BaseFee));", False),
         "a variable with a longer name": ("expectedBaseFee.Should().Be(4.90m);", False),
         "a comment": ("// The fee is ShippingFeeCalculator.BaseFee for one kilogram.", False),
+        "an NUnit comparison with an expected variable": ("Assert.That(ShippingFeeCalculator.BaseFee == expected);", True),
+        "an NUnit comparison of the fee with the constant first": ("Assert.That(ShippingFeeCalculator.BaseFee == fee);", False),
+        "a classic assertion with the fee first": ("Assert.AreEqual(fee, ShippingFeeCalculator.BaseFee);", False),
+        "a classic assertion in the other order with a message": ('Assert.AreEqual(ShippingFeeCalculator.FreeShippingThreshold, 50m, "The threshold changed.");', True),
+        "an xUnit assertion in the other order with a type argument": ("Assert.Equal<Int32>(ShippingFeeCalculator.MaxWeightKilograms, 30);", True),
+        "an expected value and the fee in locals": ("var expected = ShippingFeeCalculator.BaseFee;\nvar fee = calculator.GetFee(10m, 1);\nfee.Should().Be(expected);", False),
     }
 
     @classmethod

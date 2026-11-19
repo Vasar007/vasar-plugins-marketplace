@@ -27,7 +27,7 @@ The skill `create-tests` now asks for useful tests only. A useful test can fail 
 
 - `CLAUDE.md` and `docs/testing.md`: each test of the repository must be able to fail for a bug or for a bad change. Step 3 of "New and imported units" asks the same of each eval case: it must be able to fail for a real defect of its unit (issue #280).
 - `docs/evals.md`: the suite `write-tests` has three cases (issue #280).
-- `tests/test_eval_cases.py`: the new class `WriteTestsUsefulTestGraderTests` tests the graders `no-constant-test` and `source-unchanged` of the new case on samples. The route tests of one class also read the new case (issue #280).
+- `tests/test_eval_cases.py`: the new class `WriteTestsUsefulTestGraderTests` tests the graders `no-constant-test`, `covers-get-fee`, `covers-guard`, and `source-unchanged` of the new case on samples. The route tests of one class also read the new case (issue #280).
 - `tests/test_eval_scaffolds.py` and `tests/simple-english-baseline.json`: the branch of the new scaffold, and the `--` of its prompt (issue #280).
 
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
