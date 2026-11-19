@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dotnet-backend-dev 1.8.1 in release [5.0.2] - 2026-11-19
+
+The skill `create-tests` now asks for useful tests only. A useful test can fail for a bug or for a bad change of behavior. A test that only asserts that a constant or a property with a fixed value has its value is not useful. The repository guidance has the same rule for its own tests and eval cases (issue #280).
+
+### Added in dotnet-backend-dev
+
+- `evals/write-tests/wt-useful-tests`: a new behavior case. The class under test has four public constants and a property with no logic, next to a method with real logic. Scored graders need tests of the method and of a guard, a passed test run, and an unchanged class. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant or of the property (issue #280).
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`: the new section "Useful Tests" and one new item of the checklist. The section gives the rule, its reason, and three kinds of tests that are not useful. It also names the values that can still have a test of their own: a wire format, a persisted value, an error code, or the default of a configuration option (issue #280).
+- `skills/create-tests/examples/domain-model-tests.md`: key point 6 asks for a constructor test for a hand-written constructor only, not for a positional record. The two example tests of the hand-written constructors stay, and they lose their `NotBeNull()` line (issue #280).
+- `skills/dotnet-conventions/testing.md`: one sentence points at the new section of `create-tests` (issue #280).
+
+### Changed in the repository
+
+- `CLAUDE.md` and `docs/testing.md`: each test of the repository must be able to fail for a bug or for a bad change. Step 3 of "New and imported units" asks the same of each eval case: it must be able to fail for a real defect of its unit (issue #280).
+- `docs/evals.md`: the suite `write-tests` has three cases (issue #280).
+- `tests/test_eval_cases.py`: the new class `WriteTestsUsefulTestGraderTests` tests the graders `no-constant-test`, `covers-get-fee`, `covers-guard`, and `source-unchanged` of the new case on samples. The route tests of one class also read the new case (issue #280).
+- `tests/test_eval_scaffolds.py` and `tests/simple-english-baseline.json`: the branch of the new scaffold, and the `--` of its prompt (issue #280).
+
 ## dev-essentials 4.0.1 in release [5.0.1] - 2026-11-19
 
 This release adds four eval cases for the finish steps in `skills/work-modes/references/finish.md`. Two of them finish an earlier run of `implement-task` and of `implement-batch` in the full mode. The other two must stop before the push. No skill text changes (issue #283).
@@ -2236,7 +2257,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.0.0
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
