@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: a run with no error word in its output gets a signature that counts each line that is not blank. Before, the signature of such a run was empty, so the verdict was `OTHER`. A lint such as flake8 prints no error word. A new or a repeated lint hit at any place gives `OTHER`. The exception is a lint that prints one line for each file. A run with an error line never matches a run with none. In a temporary export, a run with no error line gives `OTHER`, because the script cannot see a git error there. Two small fixes also help runs with an error line. Each byte that is not UTF-8 stays different, and a place such as `prog.1:12:10` is no longer a clock time. The help of `--command` and the docstring name the lint. The docstring and the reason text name the new compare (issue #301).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: 15 new tests (issue #301). They cover these results:
+  - The same lint output at both commits gives `SAME-AT-PARENT`. So does the same output with other times, other root folders, or other blank lines.
+  - Another hit, another first hit, a new hit in the middle, and a repeated hit line give `OTHER`. So does an error line at one commit only.
+  - After an error line, the last 15 lines count. The lines between an error word on the first line and the last 15 lines do not count.
+  - The place of a hit such as `prog.1:12:10` is not a clock time, and two bytes that are not UTF-8 stay different.
+  - A run in a temporary export with no error line gives `OTHER`.
+  - Output with no line to compare gives `OTHER` with its own reason.
+- `tests/test_failure_check.py` and `tests/test_eval_cases.py`: the reason line of `ExportTests` and the sample of `FailureCheckExportGraderTests` hold the new reason text (issue #301).
+
 ## dev-essentials 4.4.2 and dotnet-backend-dev 1.8.3 in release [5.4.2] - 2026-11-19
 
 The text of the units no longer counts the items of a list. Each time an item joins or leaves a list, such a count is wrong, and it gives no instruction. Limits, thresholds, identifiers, and the numbers of examples stay (issue #309).
@@ -2400,7 +2419,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...HEAD
+[5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
