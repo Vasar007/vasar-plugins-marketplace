@@ -389,6 +389,14 @@ NO_WORKTREE_PROTECTIONS = (
     "With `--no-worktree`, the worktree is the folder of the user, so remove no worktree in item 3 of Step 4 of `dev-essentials:merge-pr`. "
     "If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch.",
 )
+# The agent that writes the files of a task gets the list of the user files (issue #282).
+NO_WORKTREE_HANDOFF = {
+    "skills/implement-batch/SKILL.md":
+        "With `--no-worktree`, also give it the files of the user from Step 1, which it must not write.",
+    "commands/implement-task.md":
+        "- With `--no-worktree`, the files of the user from Phase 1, and the rule that no task writes, stages, "
+        "or deletes one of them.",
+}
 
 
 class NoWorktreeTests(unittest.TestCase):
@@ -408,6 +416,11 @@ class NoWorktreeTests(unittest.TestCase):
             for sentence in NO_WORKTREE_PROTECTIONS:
                 with self.subTest(unit=rel, sentence=sentence):
                     self.assertIn(sentence, text)
+
+    def test_the_agent_that_writes_gets_the_files_of_the_user(self):
+        for rel, sentence in NO_WORKTREE_HANDOFF.items():
+            with self.subTest(unit=rel):
+                self.assertIn(sentence, read(PLUGIN / rel))
 
 
 if __name__ == "__main__":
