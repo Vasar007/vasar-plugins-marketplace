@@ -414,9 +414,13 @@ NO_WORKTREE_PROTECTIONS = (
     "symbolic-ref --quiet --short refs/remotes/origin/HEAD",
     "ls-remote --symref origin HEAD",
     "If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).",
+    "ls-files --others --exclude-standard`. Each file in it is a file of the user with no other copy. Never write, stage, or delete one of them.",
     "rev-list --count origin/<base>..HEAD",
-    "In the full mode, go on. List the commits in the final report, and do no step of `finish.md`.",
-    "In item 3 of Step 4 of `dev-essentials:merge-pr`, remove no worktree. If a linked worktree holds the branch, also keep the branch.",
+    "If it fails, or prints more than 0, the pull request can take commits",
+    "Outside the full mode, list the commits or the error, and ask the user (hard stop 6 of `dev-essentials:work-modes`).",
+    "In the full mode, go on. List the commits or the error in the final report as the reason that the run does no step of `finish.md`.",
+    "With `--no-worktree`, the worktree is the folder of the user, so remove no worktree in item 3 of Step 4 of `dev-essentials:merge-pr`. "
+    "If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch.",
 )
 
 
