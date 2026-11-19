@@ -4094,7 +4094,7 @@ class RirrSquashRouteGraderTests(unittest.TestCase):
         self.assertFalse(self.passes("route-tree-kept", read_of_the_script))
 
 
-STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build")
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate")
 
 
 class StopVerdictRouteGraderTests(unittest.TestCase):
@@ -4111,9 +4111,11 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
     def passes(self, case, text):
         return re.search(self.meta(case)["pattern"], text) is not None
 
-    def test_both_cases_have_the_same_grader_on_the_final_message(self):
-        first, second = (self.meta(case) for case in STOP_VERDICT_CASES)
-        self.assertEqual(first, second)
+    def test_each_case_has_the_same_grader_on_the_final_message(self):
+        first = self.meta(STOP_VERDICT_CASES[0])
+        for case in STOP_VERDICT_CASES[1:]:
+            with self.subTest(case=case):
+                self.assertEqual(self.meta(case), first)
         self.assertEqual(first["type"], "regex")
         self.assertEqual(first.get("target", "last_message"), "last_message")
         self.assertNotIn("match", first)
@@ -4140,6 +4142,168 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
             for name, text in questions.items():
                 with self.subTest(case=case, run=name):
                     self.assertFalse(self.passes(case, text))
+
+
+class EarlierFindingsGraderTests(unittest.TestCase):
+    """The grader route-earlier-findings of rl-off-by-one finds the earlier findings in the brief of the re-review."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.meta = {case.name: case for case in load_cases(FP_ROOT)}["rl-off-by-one"].graders["route-earlier-findings"][0]
+        skill = FP_ROOT / "skills" / "review-loop"
+        cls.briefs = (skill / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+        text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        cls.fixer_rules = text.split("The rules that the fixer must follow:", 1)[1].split(
+            "Follow `dev-essentials:engineering-discipline` Rule 2", 1)[0]
+
+    def passes(self, text):
+        return re.search(self.meta["pattern"], text) is not None
+
+    @staticmethod
+    def call(tool, tool_input, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    def test_grader_is_a_route_grader_on_the_trace(self):
+        self.assertEqual((self.meta["type"], self.meta["target"]), ("regex", "trace"))
+
+    def test_a_main_loop_brief_with_a_verdict_next_to_a_severity_passes(self):
+        for name, line in {
+            "the form of the skill": "- High APPLY: end the slice at start + size.",
+            "the form of the skill at the start of a line": "High APPLY: end the slice at start + size.",
+            "a severity in brackets": "- [High] APPLY: end the slice at start + size.",
+            "the verdict first": "F2 REJECT (Medium): no source shows the bug.",
+        }.items():
+            with self.subTest(brief=name):
+                prompt = f"{self.briefs}\nRound 2 re-review of src/pager.py.\n{line}\n"
+                self.assertTrue(self.passes(self.call("Agent", {"description": "Round 2 re-review", "prompt": prompt})))
+
+    def test_other_calls_and_briefs_fail(self):
+        line = "- High APPLY: end the slice at start + size."
+        wrong = {
+            "the brief of round 1": self.call("Agent", {"description": "Round 1 review",
+                                                        "prompt": self.briefs + "\n+def page_slice(items, page):\n"}),
+            "a fixer brief": self.call("Agent", {"description": "Round 1 fixer", "prompt":
+                                                 "1. High Bug src/pager.py:15. Fix plan: end the slice at start + size.\n"
+                                                 + self.fixer_rules}),
+            "a call of a subagent": self.call("Agent", {"prompt": line}, "toolu_1"),
+            "a Bash call": self.call("Bash", {"command": f"echo '{line}'"}),
+            "a tool result": trace_record({"type": "user", "message": {"role": "user", "content": [
+                {"tool_use_id": "toolu_1", "type": "tool_result", "content": line}]}, "parent_tool_use_id": None}),
+            "a verdict far from the severity": self.call("Agent", {"description": "Round 2 re-review",
+                                                                   "prompt": "Round 1 fixed one High finding (verdict APPLY)."}),
+        }
+        for name, text in wrong.items():
+            with self.subTest(text=name):
+                self.assertFalse(self.passes(text))
+
+
+class BaseRulesAndLintGraderTests(unittest.TestCase):
+    """The graders of rl-edited-rules and rl-lint-gate give the right verdict on right and wrong runs."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.rules, cls.lint, cls.off_by_one = cases["rl-edited-rules"], cases["rl-lint-gate"], cases["rl-off-by-one"]
+
+    @staticmethod
+    def passes(case, grader, text):
+        return re.search(case.graders[grader][0]["pattern"], text) is not None
+
+    @staticmethod
+    def bash(command, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": command}}]},
+            "parent_tool_use_id": parent})
+
+    def assert_main_loop_only(self, case, grader, right, wrong):
+        for name, command in right.items():
+            with self.subTest(grader=grader, run=name):
+                self.assertTrue(self.passes(case, grader, self.bash(command)))
+                self.assertFalse(self.passes(case, grader, self.bash(command, "toolu_1")))
+        for name, command in wrong.items():
+            with self.subTest(grader=grader, run=name):
+                self.assertFalse(self.passes(case, grader, self.bash(command)))
+
+    def test_shared_graders_are_the_graders_of_rl_off_by_one(self):
+        for case in (self.rules, self.lint):
+            for grader in ("defect-gone", "committed", "no-push", "route-skill-fired"):
+                with self.subTest(case=case.name, grader=grader):
+                    self.assertEqual(case.graders[grader][0], self.off_by_one.graders[grader][0])
+
+    def test_route_base_rule_file_needs_a_main_loop_read_of_the_base_copy(self):
+        self.assert_main_loop_only(self.rules, "route-base-rule-file", right={
+            "the form of the skill": "git show origin/main:CLAUDE.md",
+            "a shell variable": 'BASE=origin/main; git show "$BASE:CLAUDE.md"',
+            "a folder option": 'git -C "/w x" show origin/main:./CLAUDE.md',
+            "no pager": "cd /w && git --no-pager show origin/main:CLAUDE.md | head -20",
+            "the merge base": "git show $(git merge-base origin/main HEAD):CLAUDE.md",
+            "a full SHA": "git show 0123456789abcdef0123456789abcdef01234567:CLAUDE.md",
+            "a short SHA": "git show 0123abc:CLAUDE.md",
+            "a variable": "git show $BASE:CLAUDE.md",
+            "a variable in braces": "git show ${BASE}:CLAUDE.md",
+            "two steps": "B=$(git merge-base origin/main HEAD); git show $B:CLAUDE.md",
+            "two steps with quotes": 'B=$(git merge-base origin/main HEAD); git show "$B":CLAUDE.md',
+            "cat-file": "git cat-file -p 0123abc:CLAUDE.md",
+            "merge base with a folder option": "git show $(git -C /repo merge-base origin/main HEAD):CLAUDE.md",
+            "an option before the ref": "git show --no-color 0123abc:CLAUDE.md",
+        }, wrong={
+            "a plain branch name": "git show release:CLAUDE.md",
+            "a read of the worktree file": "cat CLAUDE.md",
+            "the copy of the branch": "git show HEAD:CLAUDE.md",
+            "the copy of the branch through rev-parse": "git show $(git rev-parse HEAD):CLAUDE.md",
+            "a diff of the file": "git diff origin/main...HEAD -- CLAUDE.md",
+            "another file": "git show origin/main:README.md",
+            "the branch by name": "git show feature/paging:CLAUDE.md",
+            "the index": "git show :CLAUDE.md",
+            "an option before HEAD": "git show --no-color HEAD:CLAUDE.md",
+            "two spaces before HEAD": "git show  HEAD:CLAUDE.md",
+            "the at sign": "git show @:CLAUDE.md",
+        })
+
+    def test_route_lint_check_needs_the_fix_commit_and_the_lint_command(self):
+        self.assert_main_loop_only(self.lint, "route-lint-check", right={
+            "the order of the skill": 'python3 -I "/p/scripts/failure_check.py" --fix-commit 1a2b3c4 --command "python3 tools/lint.py" --ignore "Notes/Reviews/feature-paging-*"',
+            "a shell variable": 'S=/p/failure_check.py; python3 -I $S --command "python3 tools/lint.py" --fix-commit 1a2b3c4',
+        }, wrong={
+            "the test command": 'python3 -I /p/failure_check.py --fix-commit 1a2b3c4 --command "python3 -m unittest"',
+            "help": "python3 -I /p/failure_check.py --help",
+            "the lint alone": "python3 tools/lint.py",
+            "no fix commit": 'python3 -I /p/failure_check.py --command "python3 tools/lint.py"',
+            "no command option": "python3 -I /p/failure_check.py --fix-commit 1a2b3c4 tools/lint.py",
+            "no script": "python3 tools/lint.py --fix-commit 1a2b3c4 --command x",
+        })
+
+    def test_stop_blocked_is_the_grader_of_rl_failing_build(self):
+        build = {case.name: case for case in load_cases(FP_ROOT)}["rl-failing-build"]
+        self.assertEqual(self.lint.graders["stop-blocked"][0], build.graders["stop-blocked"][0])
+        name = "graders/stop-blocked.md"
+        self.assertEqual((self.lint.path / name).read_bytes(), (build.path / name).read_bytes())
+        self.assertTrue(self.passes(self.lint, "stop-blocked", "Stop verdict: stop-blocked\nThe lint fails at the fix commit and at its parent."))
+        for verdict in ("stop-clean", "stop-max-rounds"):
+            with self.subTest(verdict=verdict):
+                self.assertFalse(self.passes(self.lint, "stop-blocked", f"Stop verdict: {verdict}"))
+
+    def test_lint_tool_kept_and_vendor_kept_need_the_files_of_the_scaffold(self):
+        script = (self.lint.path / "scaffold.sh").read_text(encoding="utf-8")
+        tool = script.split("fixture_write tools/lint.py <<'PAGER_EOF'\n", 1)[1].split("PAGER_EOF\n", 1)[0]
+        vendor = script.split("fixture_write src/vendor/legacy.py <<'PAGER_EOF'\n", 1)[1].split("PAGER_EOF\n", 1)[0]
+        self.assertTrue(self.passes(self.lint, "lint-tool-kept", tool))
+        self.assertTrue(self.passes(self.lint, "vendor-kept", vendor))
+        for name, changed in {
+            "an exit code of 0": tool.replace("sys.exit(int(failed))", "sys.exit(0)", 1),
+            "no failure flag": tool.replace("            failed = True\n", "            pass\n", 1),
+            "a warning": tool.replace(": error: ", ": warning: ", 1),
+            "a line at the end": tool + "sys.exit(0)\n",
+            "a line at the start": "raise SystemExit(0)\n" + tool,
+            "a skip of the vendored folder": tool.replace(
+                "    text = path.read_text", '    if "vendor" in path.parts:\n        continue\n    text = path.read_text', 1),
+        }.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes(self.lint, "lint-tool-kept", changed))
+        self.assertFalse(self.passes(self.lint, "vendor-kept", vendor.replace("import os\n", "", 1)))
+        self.assertFalse(self.passes(self.lint, "vendor-kept", vendor + '__all__ = ["os", "page_label"]\n'))
+        self.assertFalse(self.passes(self.lint, "vendor-kept", "# os\n" + vendor))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):

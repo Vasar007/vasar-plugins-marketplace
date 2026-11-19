@@ -9,6 +9,28 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
+
+`review-loop` gets three changes. The re-review of a round gets the findings, the verdicts, and the fix plans of the round before it (issue #296). For a branch, a pull request, commits, or a diff, Phase 6 takes its commands from the `CLAUDE.md` at the base of the target. Phase 1 pins that base to a SHA (issue #297). A failed lint of the command that `CLAUDE.md` names now fails Phase 6 (issue #298).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-edited-rules`: a new route case. The branch narrows the test command in `CLAUDE.md`, so that the test of its defect does not run. The route grader `route-base-rule-file` needs a read of `CLAUDE.md` at `main`, at a SHA, or at a shell variable in the main loop. A read of the copy of the branch does not pass (issue #297).
+- `evals/review-loop/rl-lint-gate`: a new route case. `CLAUDE.md` names a lint command, and the lint already fails on `main`. The route grader `route-lint-check` needs a run of `failure_check.py` with the lint command. The scored graders `lint-tool-kept` and `vendor-kept` need the whole lint script and the whole vendored file as they are. The scored grader `stop-blocked` needs `Stop verdict: stop-blocked` in the final message (issue #298).
+- `evals/review-loop/rl-off-by-one`: the new route grader `route-earlier-findings` needs a re-review brief with a verdict next to a severity (issue #296).
+
+### Changed in dev-essentials
+
+- `skills/review-loop`: the re-review of round N+1 gets one line for each finding of the fix pass of round N. The line gives the severity, the verdict, and the fix plan, from the cycle report of round N. A REJECT line also gives the reason of the fixer. The re-review reports a wrong REJECT only with a primary source (issue #296).
+- `skills/review-loop`: for a `branch`, `pr`, `commits`, or `diff` target, Phase 6 reads `CLAUDE.md` with `git show <base SHA>:CLAUDE.md`. Phase 1 pins the base SHA once, because each fix commit moves `HEAD`. It is the merge base for `branch` and `pr`, and for a three-dot range of `diff`. For `commits` and any other range of `diff`, it is the left side of the range. So a branch cannot edit the command lines that judge it. A script or a manifest that such a command runs still comes from the branch. With no root file at the base, Phase 6 reads `.claude/CLAUDE.md`, and it reads the files that `CLAUDE.md` imports with `@`. With no `CLAUDE.md` at the base, the manifest steps run as before (issue #297).
+- `skills/review-loop`: if `CLAUDE.md` names a lint command, a failed lint is a failed Phase 6. Phase 6 runs the lint after the tests, also after failed tests. A failed lint takes the path of a failed build to `failure_check.py`. With more than one failed command, the failure check gets the first one in the order build, tests, lint. The Phase 9 summary and the brief of each cycle get a `Lint:` line (issue #298).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new classes `EarlierFindingsGraderTests` and `BaseRulesAndLintGraderTests` test the new graders on right and wrong trace lines. `StopVerdictRouteGraderTests` covers the two new cases (issues #296, #297, and #298).
+- `tests/test_eval_scaffolds.py`: two new tests run the new scaffolds. One shows that the narrowed test command skips the failing test. The other shows that the lint fails at both commits, so `failure_check.py` gives `SAME-AT-PARENT`. It also shows that the lint break is on `main`, outside the diff. The new cases join the tables of the scaffold tests (issues #297 and #298).
+- `docs/evals.md`: the suite `review-loop` has 8 cases (issues #297 and #298).
+
 ## dev-essentials 4.3.1 in release [5.3.1] - 2026-11-19
 
 The rules of the option `--no-worktree` have one home now: `references/no-worktree.md` of `work-modes`. `implement-task` and `implement-batch` read it only in a run with that option. So a run with no option loads 370 fewer words of each unit (issues #290 and #295).
@@ -2346,7 +2368,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...HEAD
+[5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
 [5.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...v5.3.1
 [5.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.1...v5.3.0
 [5.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.2.1

@@ -38,6 +38,8 @@ EXPECTED_BRANCH = {
     "rl-clean-branch": "feature/clamp",
     "rl-pr-head-gate": "main",
     "rl-failing-build": "feature/paging",
+    "rl-edited-rules": "feature/paging",
+    "rl-lint-gate": "feature/paging",
     "fp-e1-seeded-defects": "work/seeded-defects",
     "fp-e1-clean-change": "work/clean-change",
     "fp-e1-border-auth": "work/border-auth",
@@ -89,7 +91,7 @@ PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]
 # Without that part, Step 6 takes owner and repo from the Task Provider.
 PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
-FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1}
+FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
                   "rirr-retry-limit": "committed"}
@@ -858,6 +860,44 @@ class LibraryTests(FixtureCase):
                               cwd=workspace, capture_output=True, text=True, env=self.environment(), timeout=120)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn("VERDICT: SAME-AT-PARENT", done.stdout)
+
+    def test_lint_gate_case_fails_only_its_lint_and_the_check_says_same_at_parent(self):
+        workspace = self.workspace()
+        case = REPO / "essentials/dev-essentials/evals/review-loop/rl-lint-gate"
+        self.run_bash([(case / "scaffold.sh").as_posix()], workspace)
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        self.assertIn("Lint command: `python3 tools/lint.py`", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        lint = subprocess.run([sys.executable, "tools/lint.py"], cwd=workspace, capture_output=True, text=True, env=env)
+        self.assertEqual((lint.returncode, lint.stdout), (1, "src/vendor/legacy.py: error: unused import os\n"))
+        self.assertEqual(self.git(workspace, "log", "-1", "--format=%s", "main")[1], "fixture: add the lint and the vendored helpers")
+        self.assertEqual(self.git(workspace, "cat-file", "-e", "main:src/vendor/legacy.py")[0], 0)
+        self.assertNotIn("src/vendor", self.git(workspace, "diff", "--name-only", "main...feature/paging")[1])
+        pager = workspace / "src" / "pager.py"
+        pager.write_text(pager.read_text(encoding="utf-8").replace("end = start + size - 1", "end = start + size"),
+                         encoding="utf-8")
+        self.assertEqual(self.git(workspace, "commit", "-q", "-am", "Review round 1: Fix page_slice")[0], 0)
+        script = REPO / "essentials/dev-essentials/skills/review-loop/scripts/failure_check.py"
+        done = subprocess.run([sys.executable, "-I", str(script), "--fix-commit", "HEAD",
+                               "--command", f'"{REPO.__class__(sys.executable).as_posix()}" tools/lint.py'],
+                              cwd=workspace, capture_output=True, text=True, env=self.environment(), timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("VERDICT: SAME-AT-PARENT", done.stdout)
+
+    def test_edited_rules_case_narrows_the_test_command_only_on_its_branch(self):
+        workspace = self.workspace()
+        case = REPO / "essentials/dev-essentials/evals/review-loop/rl-edited-rules"
+        self.run_bash([(case / "scaffold.sh").as_posix()], workspace)
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        self.assertIn('Test command: `python3 -m unittest discover -s tests -p "test_[!p]*.py"`',
+                      (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        self.assertIn("Test command: `python3 -m unittest discover -s tests`\n", self.git(workspace, "show", "main:CLAUDE.md")[1])
+        narrow = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_[!p]*.py"],
+                                cwd=workspace, capture_output=True, text=True, env=env)
+        self.assertEqual(narrow.returncode, 0, narrow.stderr)
+        full = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+                              cwd=workspace, capture_output=True, text=True, env=env)
+        self.assertEqual(full.returncode, 1, full.stderr)
+        self.assertIn("test_a_full_page_holds_size_items", full.stderr)
 
     def test_users_repos_have_the_named_number_of_modules_and_callers(self):
         for modules, callers in ((6, 3), (40, 25)):

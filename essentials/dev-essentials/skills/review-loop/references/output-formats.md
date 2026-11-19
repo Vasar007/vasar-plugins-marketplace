@@ -10,6 +10,7 @@ Phase 9 and the "Run format" section of `SKILL.md` use this file.
 Rounds: <N> of <max> max
 Build: <passing (0 errors, 0 warnings) | failing (<details>) | skipped (no command resolved)>
 Tests: <X passed, Y failed, Z skipped | not run>
+Lint: <passing | failing (<details>) | not run (no lint command)>
 Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
 Fixed files: <path of each fixed file | none>
 
@@ -53,6 +54,7 @@ Cycle <N> — <target-summary>
   Fixer: <orchestrator | subagent | none> (<the test of Rule 1, the fixer flag, or no fix in this cycle>)
   Build: <pass|fail|skipped (no command resolved)>
   Tests: <X passed, Y failed, Z skipped | not run>
+  Lint: <pass|fail|not run>
   Verdict: <continue|stop-clean|stop-max-rounds|stop-blocked>
 ```
 
