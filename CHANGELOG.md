@@ -38,6 +38,7 @@ The gated workflows no longer read the old mode flags. Only `--mode interactive|
 - `tests/test_work_modes_text.py`: the pins of the old spellings go. The test of the old mode flags now also reads `work-modes` and `finish.md`, and it also finds `--push`. Its list of allowed files goes (issue #278).
 - `tests/test_eval_cases.py`: the pins of `merge-pr`, of `feature-pipeline`, and of the request of `rirr-merge` follow the new text (issue #278).
 - `docs/workflows.md` and `docs/permissions.md`: they name no old flag (issue #278).
+- `tests/test_work_modes_gate_rows.py`: a new test of the gate tables of the gated units of `dev-essentials`. It sorts each cell of each gate row by its opening words: the run stops, the run goes on, or the row leaves its gates to another text. The interactive mode must stop at each gate where the partial mode stops, and the partial mode at each gate where the full mode stops. So a swap of two cells of different classes fails the test. Two rows break this order on purpose, and the test names them. One more rule reads the gate names with the word push, merge, delete, deletion, remove, or removal. The partial mode must not go on with no question there. A cell with unknown opening words fails the test too (issue #279).
 
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
