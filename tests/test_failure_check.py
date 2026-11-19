@@ -816,6 +816,11 @@ class UnitTests(unittest.TestCase):
         new = "src/m199a.py:3:1: E302 expected 2 blank lines, found 1"
         self.assertEqual(self.lint_verdict([*hits[:200], new, *hits[200:]], hits), "OTHER")
 
+    def test_new_lint_hit_in_the_middle_of_a_short_output_is_other(self):
+        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(30)]
+        new = "src/new.py:3:1: E302 expected 2 blank lines, found 1"
+        self.assertEqual(self.lint_verdict([*hits[:15], new, *hits[15:]], hits), "OTHER")
+
     def test_other_lint_output_with_the_same_line_count_is_other(self):
         self.assertEqual(self.lint_verdict(["src/a.py:1:1: F401 'os' imported but unused"],
                                            ["src/b.py:3:1: E302 expected 2 blank lines, found 1"]), "OTHER")

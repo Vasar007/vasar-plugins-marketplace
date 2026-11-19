@@ -509,7 +509,7 @@ def verdict(clean, fix, parent, roots):
     if not signature:
         return "OTHER", ("the command fails at both commits, but the output at the fix commit has no line to "
                          "compare. It holds no error line and no line that is not blank.")
-    if signature and parent.code == fix.code and signature == parent.signature(roots):
+    if parent.code == fix.code and signature == parent.signature(roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
                                   "and the same last lines after the first error line. "
                                   "With no error line, each line that is not blank and its count are the same.")

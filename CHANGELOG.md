@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-19
+## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
 
@@ -19,7 +19,7 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: 14 new tests (issue #301). They cover these results:
+- `tests/test_failure_check.py`: 15 new tests (issue #301). They cover these results:
   - The same lint output at both commits gives `SAME-AT-PARENT`. So does the same output with other times, other root folders, or other blank lines.
   - Another hit, another first hit, a new hit in the middle, and a repeated hit line give `OTHER`. So does an error line at one commit only.
   - After an error line, the last 15 lines count. The lines between an error word on the first line and the last 15 lines do not count.
