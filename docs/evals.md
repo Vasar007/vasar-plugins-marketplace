@@ -38,7 +38,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 
 | Suite | Plugin | Cases | Where it runs |
 | --- | --- | ---: | --- |
-| `review-loop` | `dev-essentials` | 6 | WSL |
+| `review-loop` | `dev-essentials` | 8 | WSL |
 | `subagent-orchestration` | `dev-essentials` | 5 | WSL |
 | `process-pr-comments` | `dev-essentials` | 10 | WSL |
 | `bug-hunt` | `dev-essentials` | 2 | WSL |

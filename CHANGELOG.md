@@ -9,6 +9,28 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
+
+`review-loop` gets three changes. The re-review of a round gets the findings, the verdicts, and the fix plans of the round before it (issue #296). For a branch, a pull request, commits, or a diff, Phase 6 takes its commands from `CLAUDE.md` of the base. The final message names a changed `CLAUDE.md` or `REVIEW.md` (issue #297). Phase 6 also runs the lint command that `CLAUDE.md` names (issue #298).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-edited-rules`: a new route case. The branch narrows the test command in `CLAUDE.md`, so that the test of its defect does not run. The route grader `route-base-rule-file` needs a read of `CLAUDE.md` of `main` in the main loop. The scored grader `rule-file-named` needs the changed file in the final message (issue #297).
+- `evals/review-loop/rl-lint-gate`: a new route case. `CLAUDE.md` names a lint command, and the lint already fails on `main`. The route graders need a run of the lint in the main loop, and a run of `failure_check.py` with the lint command. The scored graders need the lint script and the vendored file as they are (issue #298).
+- `evals/review-loop/rl-off-by-one`: the new route grader `route-earlier-findings` needs a re-review brief with a verdict next to a severity (issue #296).
+
+### Changed in dev-essentials
+
+- `skills/review-loop`: the re-review of round N+1 gets one line for each finding of the fix pass of round N. The line gives the severity, the verdict, and the fix plan, from the cycle report of round N (issue #296).
+- `skills/review-loop`: for a `branch`, `pr`, `commits`, or `diff` target, Phase 6 reads `CLAUDE.md` with `git show <base ref>:CLAUDE.md`. So a branch cannot pick the commands that judge it. With no `CLAUDE.md` at the base, the manifest steps run as before. If the diff changes `CLAUDE.md` or `REVIEW.md`, the final message names each such file. The note does not block `stop-clean` (issue #297).
+- `skills/review-loop`: if `CLAUDE.md` names a lint command, Phase 6 runs it after the tests. A failed lint is a failed Phase 6, and it takes the path of a failed build to `failure_check.py` (issue #298).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the new classes `EarlierFindingsGraderTests` and `BaseRulesAndLintGraderTests` test the new graders on right and wrong trace lines. `StopVerdictRouteGraderTests` covers the two new cases (issues #296, #297, and #298).
+- `tests/test_eval_scaffolds.py`: two new tests run the new scaffolds. One shows that the narrowed test command skips the failing test. The other shows that the lint fails at both commits, so `failure_check.py` gives `SAME-AT-PARENT`. The new cases join the tables of the scaffold tests (issues #297 and #298).
+- `docs/evals.md`: the suite `review-loop` has 8 cases (issues #297 and #298).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
@@ -2293,7 +2315,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...HEAD
+[5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.4.0
 [5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
