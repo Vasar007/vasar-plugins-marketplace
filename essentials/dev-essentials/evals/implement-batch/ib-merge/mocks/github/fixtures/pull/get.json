@@ -1,0 +1,20 @@
+{
+  "number": 34,
+  "title": "Lower the HTTP retry limit and the HTTP timeout",
+  "body": "## What\nLower the HTTP retry limit of the users app from 5 to 3, and the HTTP timeout from 30 to 10 seconds.\n\n## Why\nA failed call waited too long.\n\n## Changes\n- **Settings**: `HTTP_RETRY_LIMIT` is 3, and `TIMEOUT_SECONDS` is 10.\n- **Tests**: the client test expects 3.",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergeable_state": "clean",
+  "html_url": "https://github.com/example-org/users-app/pull/34",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "work/retry-batch",
+    "sha": "db3dd71efcec89d70a5a0167ff0d36af2c68647e"
+  },
+  "user": {
+    "login": "eval-user"
+  }
+}

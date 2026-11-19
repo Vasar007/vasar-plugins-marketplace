@@ -14,7 +14,7 @@ Some runs have no GitHub repository: the request names none, and no remote of th
 
 `feature-pipeline`, `implement-task`, and `implement-batch` make a git worktree for each run. With `--no-worktree`, they work in the current folder instead. This option is for a user who already works in a worktree or wants none. On the default branch or the base branch, the full mode then creates a branch first, and the other modes ask. If a tracked file has a change, `implement-task` and `implement-batch` also stop. They ask before a task writes an untracked file of the user. If the branch holds commits that are not on the remote base branch, or they cannot count them, they ask outside the full mode. In the full mode, they do no push. After a merge, they remove no worktree.
 
-The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules. The older mode flags of the workflows still work, and the workflows read them as a mode.
+The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules. Your request can name an unknown mode, or a flag that the workflow does not define. Then the workflow asks you which mode to use before it starts.
 
 ## One session or a new one
 
