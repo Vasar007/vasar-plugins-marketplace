@@ -4187,7 +4187,11 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "a variable in braces": "git show ${BASE}:CLAUDE.md",
             "two steps": "B=$(git merge-base origin/main HEAD); git show $B:CLAUDE.md",
             "two steps with quotes": 'B=$(git merge-base origin/main HEAD); git show "$B":CLAUDE.md',
+            "cat-file": "git cat-file -p 0123abc:CLAUDE.md",
+            "merge base with a folder option": "git show $(git -C /repo merge-base origin/main HEAD):CLAUDE.md",
+            "an option before the ref": "git show --no-color 0123abc:CLAUDE.md",
         }, wrong={
+            "a plain branch name": "git show release:CLAUDE.md",
             "a read of the worktree file": "cat CLAUDE.md",
             "the copy of the branch": "git show HEAD:CLAUDE.md",
             "a diff of the file": "git diff origin/main...HEAD -- CLAUDE.md",
@@ -4233,6 +4237,7 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "no failure flag": tool.replace("            failed = True\n", "            pass\n", 1),
             "a warning": tool.replace(": error: ", ": warning: ", 1),
             "a line at the end": tool + "sys.exit(0)\n",
+            "a line at the start": "raise SystemExit(0)\n" + tool,
             "a skip of the vendored folder": tool.replace(
                 "    text = path.read_text", '    if "vendor" in path.parts:\n        continue\n    text = path.read_text', 1),
         }.items():
@@ -4240,6 +4245,7 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes(self.lint, "lint-tool-kept", changed))
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor.replace("import os\n", "", 1)))
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor + '__all__ = ["os", "page_label"]\n'))
+        self.assertFalse(self.passes(self.lint, "vendor-kept", "# os\n" + vendor))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):
