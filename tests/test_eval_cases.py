@@ -4909,5 +4909,56 @@ class ModelLadderCaseTests(unittest.TestCase):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
 
 
+class NoWorktreeReadGraderTests(unittest.TestCase):
+    """The route grader of it-no-worktree and ib-no-worktree: the run reads the rules of --no-worktree first (issue #290).
+
+    A run must read the file before it creates its branch and before it edits a file.
+    """
+
+    CASES = ("it-no-worktree", "ib-no-worktree")
+    PATH = "/plugins/dev-essentials/skills/work-modes/references/no-worktree.md"
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def found(self, case, text):
+        meta = self.cases[case].graders["route-no-worktree-read"][0]
+        self.assertEqual((meta["type"], meta["target"], meta.get("match"), meta.get("flags")), ("regex", "trace", None, None))
+        return re.search(meta["pattern"], text) is not None
+
+    def test_a_read_before_the_first_step_passes(self):
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        edit = self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertTrue(self.found(case, "\n".join([read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([cat, switch])))
+
+    def test_a_read_after_the_branch_or_an_edit_fails(self):
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        steps = {"switch": self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'}),
+                 "checkout": self.tool_use("Bash", {"command": "git checkout -b eval/retry-limit"}),
+                 "edit": self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}),
+                 "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"})}
+        for case in self.CASES:
+            for name, step in steps.items():
+                with self.subTest(case=case, step=name):
+                    self.assertFalse(self.found(case, "\n".join([step, read])))
+
+    def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
+        # The text of the unit names the path too, so a tool result with that text must not pass the grader.
+        unit_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Read `{self.PATH}` before any other step."}]}})
+        other = self.tool_use("Read", {"file_path": self.PATH.replace("no-worktree", "finish")})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, unit_text))
+                self.assertFalse(self.found(case, other))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.1 in release [5.4.1] - 2026-11-19
+
+The rules of the option `--no-worktree` have one home now: `references/no-worktree.md` of `work-modes`. `implement-task` and `implement-batch` read it only in a run with that option. So a run with no option loads 370 fewer words of each unit (issues #290 and #295).
+
+### Added in dev-essentials
+
+- `skills/work-modes/references/no-worktree.md`: the steps of the option `--no-worktree` of `implement-task` and `implement-batch`. The text is the text of the two units, word for word. Only the names of the workflow file and of the base branch changed (issue #290).
+- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read`. It passes only for a run that reads the new file before it creates its branch or edits a file (issue #290).
+
+### Changed in dev-essentials
+
+- `commands/implement-task` and `skills/implement-batch`: Phase 1 and Step 1 keep one pointer sentence in place of the rules. A run with `--no-worktree` reads the new file before any other step there. The option row, the gate row, the user file list for the agent, and the finish sentences stay in each unit (issue #290).
+- `skills/research-implement-review-report`: the line of the effort levels no longer points at Rule 5 of `subagent-orchestration`, which is the rule for named teammates. The line of the models already points at "Model selection" (issue #295).
+
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the safety sentences in the new file. It also makes sure that each unit points at the file in its worktree setup and holds no second copy of the rules (issue #290).
+- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` tests the new route grader with a read before and after the first step (issue #290).
+- `docs/evals.md`: it names the new route grader (issue #290).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
@@ -2293,7 +2313,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...HEAD
+[5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.4.1
 [5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
