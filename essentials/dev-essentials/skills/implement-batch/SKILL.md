@@ -98,7 +98,7 @@ A request to finish an earlier run of this skill goes straight to Step 6, as "Re
 
 Without `--no-worktree`, create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path.
 
-With `--no-worktree`, make no worktree. Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/no-worktree.md` before any other step of this step, and do its steps. They keep the work of the user in the current folder safe. In that file, the base branch is the Step 0 base branch.
+With `--no-worktree`, make no worktree. Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/no-worktree.md` before any other step of Step 1, and do its steps. They keep the work of the user in the current folder safe. In that file, the base branch is the Step 0 base branch.
 
 Each write-capable dispatch from here on carries the worktree path (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
 

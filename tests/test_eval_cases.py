@@ -4929,6 +4929,9 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
         return re.search(meta["pattern"], text) is not None
 
     def test_a_read_before_the_first_step_passes(self):
+        init = trace_record({"type": "system", "subtype": "init", "tools": ["Bash", "Edit", "Read", "TodoWrite", "Write"]})
+        todo = self.tool_use("TodoWrite", {"todos": [{"content": "Phase 1", "status": "in_progress"}]})
+        status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
         read = self.tool_use("Read", {"file_path": self.PATH})
         cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
         switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
@@ -4936,6 +4939,7 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
         for case in self.CASES:
             with self.subTest(case=case):
                 self.assertTrue(self.found(case, "\n".join([read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([init, todo, status, read, switch, edit])))
                 self.assertTrue(self.found(case, "\n".join([cat, switch])))
 
     def test_a_read_after_the_branch_or_an_edit_fails(self):
@@ -4943,11 +4947,28 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
         steps = {"switch": self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'}),
                  "checkout": self.tool_use("Bash", {"command": "git checkout -b eval/retry-limit"}),
                  "edit": self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}),
-                 "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"})}
+                 "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"}),
+                 "switch -C": self.tool_use("Bash", {"command": 'git -C "/repo" switch -C eval/retry-limit'}),
+                 "switch --create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --create eval/retry-limit'}),
+                 "checkout -B": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -B eval/retry-limit'}),
+                 "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'})}
         for case in self.CASES:
             for name, step in steps.items():
                 with self.subTest(case=case, step=name):
                     self.assertFalse(self.found(case, "\n".join([step, read])))
+
+    def test_only_the_main_loop_counts(self):
+        def sub(name, tool_input):
+            return trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "id": "toolu_2", "name": name, "input": tool_input}]}, "parent_tool_use_id": "toolu_1"})
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        show = self.tool_use("Bash", {"command": 'git -C "/repo" branch --show-current'})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, "\n".join([sub("Read", {"file_path": self.PATH}), switch])))
+                self.assertTrue(self.found(case, "\n".join([sub("Edit", {"file_path": "/repo/a.py", "old_string": "a", "new_string": "b"}), read])))
+                self.assertTrue(self.found(case, "\n".join([show, read, switch])))
 
     def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
         # The text of the unit names the path too, so a tool result with that text must not pass the grader.
