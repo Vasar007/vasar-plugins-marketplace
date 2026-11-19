@@ -370,5 +370,59 @@ class FinishCallerTests(unittest.TestCase):
         self.assertIn("A yes of the user to a question of this session that names the merge is a request in their own words.", merge)
 
 
+NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}
+# Outside the full mode, a run with --no-worktree asks before it works on the default branch, the base branch, or a detached HEAD.
+NO_WORKTREE_ROW = (": `--no-worktree` on the default branch, the base branch, or a detached HEAD | "
+                   "Ask for a branch name. On a branch, also offer a yes to work on it, with local commits and no finish step | Same |")
+
+# Each sentence keeps work of the user safe, or keeps the run on the branch that the user means.
+NO_WORKTREE_PROTECTIONS = (
+    "`git rev-parse --show-toplevel` prints as the worktree path",
+    "status --porcelain --untracked-files=no`. If it prints a line, stop before any work, in every mode.",
+    "symbolic-ref --quiet --short refs/remotes/origin/HEAD",
+    "ls-remote --symref origin HEAD",
+    "If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).",
+    "ls-files --others --exclude-standard`. Each file in it is a file of the user with no other copy. Never write, stage, or delete one of them.",
+    "rev-list --count origin/<base>..HEAD",
+    "If it fails, or prints more than 0, the pull request can take commits",
+    "Outside the full mode, list the commits or the error, and ask the user (hard stop 6 of `dev-essentials:work-modes`).",
+    "In the full mode, go on. List the commits or the error in the final report as the reason that the run does no step of `finish.md`.",
+    "With `--no-worktree`, the worktree is the folder of the user, so remove no worktree in item 3 of Step 4 of `dev-essentials:merge-pr`. "
+    "If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch.",
+)
+# The agent that writes the files of a task gets the list of the user files (issue #282).
+NO_WORKTREE_HANDOFF = {
+    "skills/implement-batch/SKILL.md":
+        "With `--no-worktree`, also give it the files of the user from Step 1, which it must not write.",
+    "commands/implement-task.md":
+        "- With `--no-worktree`, the files of the user from Phase 1, and the rule that no task writes, stages, "
+        "or deletes one of them.",
+}
+
+
+class NoWorktreeTests(unittest.TestCase):
+    """The option --no-worktree of implement-batch and implement-task (issue #282)."""
+
+    def test_outside_the_full_mode_the_run_asks_before_it_works_on_the_default_branch(self):
+        for rel, step in NO_WORKTREE_UNITS.items():
+            text = read(PLUGIN / rel)
+            with self.subTest(unit=rel):
+                self.assertIn(f"| {step}{NO_WORKTREE_ROW}", autonomy(text))
+                self.assertIn(f"If it prints the default branch, the {step[:-2]} 0 base branch, or nothing (a detached HEAD), do not commit there.", text)
+                self.assertIn("If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`.", text)
+
+    def test_the_run_protects_the_work_that_the_user_has_in_the_folder(self):
+        for rel in NO_WORKTREE_UNITS:
+            text = read(PLUGIN / rel)
+            for sentence in NO_WORKTREE_PROTECTIONS:
+                with self.subTest(unit=rel, sentence=sentence):
+                    self.assertIn(sentence, text)
+
+    def test_the_agent_that_writes_gets_the_files_of_the_user(self):
+        for rel, sentence in NO_WORKTREE_HANDOFF.items():
+            with self.subTest(unit=rel):
+                self.assertIn(sentence, read(PLUGIN / rel))
+
+
 if __name__ == "__main__":
     unittest.main()

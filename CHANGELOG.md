@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
+
+`implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
+
+### Added in dev-essentials
+
+- `commands/implement-task` and `skills/implement-batch`: the option `--no-worktree`. The run makes no worktree, and it works on the current branch in the current folder. If a tracked file has a change, it stops. It asks before a task writes, stages, or deletes an untracked file of the user. On the default branch, the base branch, or a detached HEAD, the full mode first creates the branch of the `--worktree` row. The partial mode and the interactive mode ask for a branch name. On a branch, they also offer a yes to work on it, with local commits and no finish step. If that branch already exists, or the request names another branch ref, the run asks. If the branch holds commits that are not on the remote base branch, or the run cannot count them, it asks. In the full mode, it does no finish step and names those commits as the reason. After a merge, the run removes no worktree (issue #282).
+- `evals/implement-task` and `evals/implement-batch`: the cases `it-no-worktree` and `ib-no-worktree`. Each one runs its workflow with `--no-worktree` and `--mode full` in a clone on `main`. The run must create its branch, make one commit for each task, and push nothing. Before them, no eval case ran these workflows from their start, because `git worktree add` fails in an eval run (issue #282).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `NoWorktreeBranchGraderTests` tests the branch graders of the two new cases on real commits, also with an amend and a cherry-pick. The new scaffolds join the tables of the scaffold tests (issue #282).
+- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the cells of the new gate row that ask outside the full mode. It also pins the sentences that protect the work of the user (issue #282).
+- `docs/workflows.md` and `docs/evals.md`: they name the option `--no-worktree` and the two new cases (issue #282).
+
 ## dev-essentials 4.1.0 in release [5.1.0] - 2026-11-19
 
 This release turns the model matrix of `subagent-orchestration` into a ladder. A dispatch with no better fit starts on Opus at `medium` effort. If a step falls short, the run first raises its effort, and only then moves the step to a larger model. Fable is the step after Opus at `xhigh`, not an exception. Well-scoped work still goes to Sonnet, and mechanical work to Haiku (issue #281).
@@ -2278,7 +2293,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.0.1

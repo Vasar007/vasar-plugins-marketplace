@@ -45,8 +45,8 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `create-html-artifact` | `dev-essentials` | 2 | Windows, because it grants no shell tool |
 | `feature-pipeline` | `dev-essentials` | 12 | WSL |
 | `research-implement-review-report` | `dev-essentials` | 7 | WSL |
-| `implement-task` | `dev-essentials` | 1 | WSL |
-| `implement-batch` | `dev-essentials` | 1 | WSL |
+| `implement-task` | `dev-essentials` | 2 | WSL |
+| `implement-batch` | `dev-essentials` | 2 | WSL |
 | `composers` | `dev-essentials` | 4 | WSL |
 | `trim-artifacts` | `dev-essentials` | 1 | WSL |
 | `audit-team` | `dev-essentials` | 1 | WSL |
@@ -61,6 +61,8 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, `--tag merge-pr`, and `--tag write-tests` also run the trigger cases in `evals/triggers/` of their plugin. The tags `--tag audit-team`, `--tag optimize-skill`, `--tag git-worktree-management`, and `--tag implement-task` do the same. The tag `composers` selects only the behavior cases. The trigger cases of its skills carry the tags `compose-pr`, `compose-task`, and `create-documentation`.
 
 The sandbox of a run keeps `.git/worktrees` read-only ([#232](https://github.com/Vasar007/vasar-plugins-marketplace/issues/232)). So no eval case can make a git worktree. The case `gwm-create-blocked` tests the route and the report. Its run must call `worktree.py create`, and its final reply must say that the worktree was not made and why.
+
+The cases `it-no-worktree` and `ib-no-worktree` run `implement-task` and `implement-batch` with `--no-worktree`, so they make no worktree. Their scaffold leaves the clone on `main`, so each run must create its branch first. The scored graders `one-commit` and `one-commit-per-task` read the reflog of that branch. They follow the `commit:` lines from the start of the branch to its tip, so they count the commits on the branch at the end. An amend, a merge, a cherry-pick, or a rebase on the branch ends the chain, so the grader fails the run. A later squash of `squash_task.py` starts a new chain from the base of the task. `one-commit-per-task` passes 2 or 3 commits. So it cannot tell a task with two commits, or two tasks in one commit, from a final review commit. `NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py` tests both graders on real commits.
 
 The case `os-review-fixes` gives one finding of the user in its prompt. So step 6 of `optimize-skill` always has an accepted finding to apply, on both sides of a comparison. The route grader `route-step6-reached` passes only for a run that made the second commit.
 

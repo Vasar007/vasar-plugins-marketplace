@@ -70,6 +70,8 @@ EXPECTED_BRANCH = {
     "ib-merge": "work/retry-batch",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
+    "ib-no-worktree": "main",
+    "it-no-worktree": "main",
 }
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
@@ -106,7 +108,8 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed"),
                      "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
                      "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
-                     "ib-merge": ("no-run-commit",)}
+                     "ib-merge": ("no-run-commit",),
+                     "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -1715,6 +1718,165 @@ class RirrSquashGraderTests(FixtureCase):
         self.run_git(workspace, "commit", "-q", "--allow-empty", "-m", "A commit on main")
         self.assertFalse(self.passes(workspace))
         self.assertFalse(self.passes(workspace, self.outcome))
+
+
+class NoWorktreeBranchGraderTests(FixtureCase):
+    """The branch graders of it-no-worktree and ib-no-worktree pass only for the right number of commits on the branch at its end.
+
+    Each shape makes the branch of the case on the scaffold, and commits and squashes as a run does.
+    """
+
+    # The grader, the branch, and the counts of main..branch that the grader passes.
+    CASES = {"it-no-worktree": ("one-commit", "eval/retry-limit", {1}),
+             "ib-no-worktree": ("one-commit-per-task", "eval/retry-and-timeout", {2, 3})}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials") if case.name in cls.CASES}
+
+    def environment(self, skip_dotnet=True):
+        env = super().environment(skip_dotnet)
+        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/dev/null"})
+        return env
+
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
+        self.assertEqual(code, 0, output)
+        return output
+
+    def commit(self, workspace, subject):
+        with (workspace / "config" / "settings.py").open("a", encoding="utf-8") as stream:
+            stream.write(f"# {subject}\n")
+        self.run_git(workspace, "commit", "-q", "-am", subject)
+        return self.run_git(workspace, "rev-parse", "HEAD")
+
+    def task(self, workspace, commits):
+        """One task as Step 3 makes it: its commits, then the squash script from the base of the task."""
+        base = self.run_git(workspace, "rev-parse", "HEAD")
+        args = [sys.executable, "-I", str(SQUASH_SCRIPT), "--repo", str(workspace), "--plan-dir", "notes/Plans",
+                "--base", base, "--message", "One task", "--apply"]
+        for number in range(commits):
+            args += ["--commit", self.commit(workspace, f"commit {number}")]
+        done = run(args, env=self.environment(), cwd=workspace)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+    def check(self, name, shapes):
+        grader, branch, counts = self.CASES[name]
+        case = self.cases[name]
+        options = case.graders[grader][0]
+        self.assertEqual(options["target"]["path"], f".git/logs/refs/heads/{branch}")
+        self.assertIn(f"`{branch}`", case.prompt_body)
+        verdicts = set()
+        for shape in shapes:
+            with self.subTest(case=name, shape=shape.__name__):
+                workspace = self.workspace(f"{name}-{shape.__name__}")
+                self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+                self.run_git(workspace, "switch", "-q", "-c", branch)
+                shape(workspace)
+                count = int(self.run_git(workspace, "rev-list", "--count", f"main..{branch}"))
+                text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
+                verdict = re.search(options["pattern"], text) is not None
+                self.assertEqual(verdict, count in counts, f"the branch has {count} commits")
+                verdicts.add(verdict)
+        self.assertEqual(verdicts, {True, False}, "the shapes must give both verdicts")
+
+    def side_commit(self, workspace):
+        """A commit on a side branch of main. It does not conflict with the commits of the shapes."""
+        self.run_git(workspace, "switch", "-q", "-c", "side", "main")
+        (workspace / "side.txt").write_text("side\n", encoding="utf-8")
+        self.run_git(workspace, "add", "side.txt")
+        self.run_git(workspace, "commit", "-q", "-m", "side")
+        sha = self.run_git(workspace, "rev-parse", "HEAD")
+        self.run_git(workspace, "switch", "-q", "-")
+        return sha
+
+    def check_fails(self, name, shapes):
+        """Each shape has an amend or a cherry-pick. Its commit count can fit the grader, and the grader must still fail it."""
+        grader, branch, _ = self.CASES[name]
+        options = self.cases[name].graders[grader][0]
+        for shape in shapes:
+            with self.subTest(case=name, shape=shape.__name__):
+                workspace = self.workspace(f"{name}-{shape.__name__}")
+                self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
+                self.run_git(workspace, "switch", "-q", "-c", branch)
+                shape(workspace)
+                text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
+                self.assertIsNone(re.search(options["pattern"], text))
+
+    def amend(self, workspace):
+        self.run_git(workspace, "commit", "-q", "--amend", "-m", "amended")
+
+    def test_the_task_grader_fails_an_amend_and_a_cherry_pick(self):
+        def an_amend_of_the_commit_of_the_base(workspace):
+            self.amend(workspace)
+
+        def a_task_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def a_cherry_pick(workspace):
+            self.run_git(workspace, "cherry-pick", self.side_commit(workspace))
+
+        self.check_fails("it-no-worktree", [an_amend_of_the_commit_of_the_base, a_task_and_an_amend, a_cherry_pick])
+
+    def test_the_batch_grader_fails_an_amend_and_a_cherry_pick(self):
+        def one_task_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def two_tasks_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def one_task_and_a_cherry_pick(workspace):
+            self.task(workspace, 1)
+            self.run_git(workspace, "cherry-pick", self.side_commit(workspace))
+
+        self.check_fails("ib-no-worktree", [one_task_and_an_amend, two_tasks_and_an_amend, one_task_and_a_cherry_pick])
+
+    def test_the_task_grader_passes_only_for_one_commit_on_the_branch(self):
+        def one_commit(workspace):
+            self.task(workspace, 1)
+
+        def two_commits_squashed(workspace):
+            self.task(workspace, 2)
+
+        def two_commits(workspace):
+            self.commit(workspace, "task")
+            self.commit(workspace, "review")
+
+        def a_squash_and_a_later_commit(workspace):
+            self.task(workspace, 2)
+            self.commit(workspace, "later")
+
+        def two_commits_and_a_soft_reset_to_the_first(workspace):
+            first = self.commit(workspace, "task")
+            self.commit(workspace, "review")
+            self.run_git(workspace, "reset", "-q", "--soft", first)
+
+        self.check("it-no-worktree", [one_commit, two_commits_squashed, two_commits, a_squash_and_a_later_commit,
+                                      two_commits_and_a_soft_reset_to_the_first])
+
+    def test_the_batch_grader_passes_for_one_commit_for_each_task_and_at_most_one_final_commit(self):
+        def two_tasks(workspace):
+            self.task(workspace, 2)
+            self.task(workspace, 1)
+
+        def two_tasks_and_a_final_commit(workspace):
+            self.task(workspace, 1)
+            self.task(workspace, 2)
+            self.task(workspace, 1)
+
+        def one_commit_for_both_tasks(workspace):
+            self.task(workspace, 1)
+
+        def four_commits_and_no_squash(workspace):
+            for subject in ("task 1", "review 1", "task 2", "review 2"):
+                self.commit(workspace, subject)
+
+        self.check("ib-no-worktree", [two_tasks, two_tasks_and_a_final_commit, one_commit_for_both_tasks,
+                                      four_commits_and_no_squash])
 
 
 class OptimizeSkillFixtureTests(FixtureCase):

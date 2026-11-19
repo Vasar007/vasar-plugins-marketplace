@@ -1,7 +1,7 @@
 ---
 name: implement-batch
 description: Implement N related tasks in one branch or worktree. Plan and review each task, then make one squashed commit per task and one final review across all tasks.
-argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--plan-dir=<path>] [--rounds=N] [--mode interactive|partial|full]
+argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=<branch>] [--worktree=<branch-ref>] [--no-worktree] [--plan-dir=<path>] [--rounds=N] [--mode interactive|partial|full]
 ---
 
 # Implement Batch (N tasks, N commits + at most 1 final-review commit)
@@ -32,7 +32,8 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
-| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. |
+| `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. With `--no-worktree`, the ref names only the branch that Step 1 creates, so resolve it only then. |
+| `--no-worktree` | off | Make no worktree, and work on the current branch in the current folder. Step 1 says what the run does on the default branch, the base branch, or a detached HEAD. |
 | `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
@@ -45,6 +46,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | --- | --- | --- | --- |
 | Before Step 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as partial |
+| Step 1: `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask for a branch name. On a branch, also offer a yes to work on it, with local commits and no finish step | Same | Create the branch of the `--worktree` row, and name it in the final report |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
 | Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
@@ -94,7 +96,16 @@ A request to finish an earlier run of this skill goes straight to Step 6, as "Re
 
 ### Step 1 — Worktree setup
 
-Create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path. Each write-capable dispatch from here on carries it (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
+Without `--no-worktree`, create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path.
+
+With `--no-worktree`, make no worktree. Record the path that `git rev-parse --show-toplevel` prints as the worktree path, and use it wherever this file names the worktree. Then run `git -C "<worktree>" status --porcelain --untracked-files=no`. If it prints a line, stop before any work, in every mode. Name each changed file, and ask the user to commit or stash it (hard stop 1 of `dev-essentials:work-modes`). Else a change in a file of a task goes into the task commit. Then record the output of `git -C "<worktree>" ls-files --others --exclude-standard`. Each file in it is a file of the user with no other copy. Never write, stage, or delete one of them. A build or a test run of a task can still rewrite its own output in this list. An example is a compiled file that `.gitignore` does not name. If a task needs one, ask the user first (hard stop 1 of `dev-essentials:work-modes`). Find the default branch with `git -C "<worktree>" symbolic-ref --quiet --short refs/remotes/origin/HEAD`, and take the name after `origin/`. If the ref does not exist, take the name from the `ref: refs/heads/<name>` line of `git -C "<worktree>" ls-remote --symref origin HEAD`. If that also gives no name, treat `main` or `master` as the default branch. Then run `git -C "<worktree>" branch --show-current`:
+
+- If it prints the default branch, the Step 0 base branch, or nothing (a detached HEAD), do not commit there. Do what the `--no-worktree` row of "Autonomy" says. If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`. For a new branch, run `git -C "<worktree>" switch -c <branch>`. If a branch of that name exists, ask the user (hard stop 6 of `dev-essentials:work-modes`).
+- If it prints another branch, work on that branch, and create no branch. If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).
+
+Then, unless the user said yes to work on the current branch, run `git -C "<worktree>" rev-list --count origin/<base>..HEAD`, with the Step 0 base. If it fails, or prints more than 0, the pull request can take commits that no review loop of this run covers. Outside the full mode, list the commits or the error, and ask the user (hard stop 6 of `dev-essentials:work-modes`). In the full mode, go on. List the commits or the error in the final report as the reason that the run does no step of `finish.md`.
+
+Each write-capable dispatch from here on carries the worktree path (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
 
 Then record `BATCH_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 
@@ -113,7 +124,7 @@ Collect the open decisions of all N plans, and each finding that a plan-review f
 For task `i`:
 
 1. **Record the base SHA of the task**: `TASK_BASE_SHA[i] = git -C "<worktree>" rev-parse HEAD`.
-2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". The brief tells it not to commit, because the session makes the commit in item 4. Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
+2. **Implement.** Dispatch an implementer subagent with the absolute worktree path, the plan file, and the guard "implement only this task". With `--no-worktree`, also give it the files of the user from Step 1, which it must not write. The brief tells it not to commit, because the session makes the commit in item 4. Name the skills for the change type (domain models, tests, controllers, configuration, and others), and the build and test commands that prove the work done. It marks the plan items `- [ ]` → `- [x]` as they complete.
 3. **Build and test** before the commit. The implementer runs its own build and tests, and reports the verbatim result lines. Then run the build and test commands of the plan one time in the worktree, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the result differs from the report, or the run is red, resume the implementer with the error lines, and run again. Never give a red signal to the review loop. Own every failure of this session (`dev-essentials:engineering-discipline` Rule 1). For .NET, follow `dev-essentials:dotnet-build-test`.
 4. **Commit** the implementation of the task. Stage explicit paths, never `git add -A` or `git add .`: only the source and test changes of this task. Never stage a plan file (see "Guardrails"). Record the SHA of the commit in `TASK_COMMITS[i]`.
 5. **Review-loop the implementation** with `dev-essentials:review-loop` and `target=diff <TASK_BASE_SHA[i]>..HEAD`. Keep its commit for each review cycle. Add the SHA of each commit that the loop makes to `TASK_COMMITS[i]`.
@@ -151,7 +162,7 @@ For task `i`:
 
 ### Step 6 — Finish (push, pull request, merge)
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. The base branch is the Step 0 base. The review verdicts are the verdicts of the Step 3 loops and of the Step 4 loop. In the partial mode and in the interactive mode, ask the question of its final gate after the Step 5 report.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. With `--no-worktree`, the worktree is the folder of the user, so remove no worktree in item 3 of Step 4 of `dev-essentials:merge-pr`. If the run has `--no-worktree` and a linked worktree holds the branch, also keep the branch. Name both in the finish report. The base branch is the Step 0 base. The review verdicts are the verdicts of the Step 3 loops and of the Step 4 loop. In the partial mode and in the interactive mode, ask the question of its final gate after the Step 5 report.
 
 ## Review-loop configuration
 
