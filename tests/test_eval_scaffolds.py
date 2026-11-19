@@ -870,6 +870,8 @@ class LibraryTests(FixtureCase):
         lint = subprocess.run([sys.executable, "tools/lint.py"], cwd=workspace, capture_output=True, text=True, env=env)
         self.assertEqual((lint.returncode, lint.stdout), (1, "src/vendor/legacy.py: error: unused import os\n"))
         self.assertEqual(self.git(workspace, "log", "-1", "--format=%s", "main")[1], "fixture: add the lint and the vendored helpers")
+        self.assertEqual(self.git(workspace, "cat-file", "-e", "main:src/vendor/legacy.py")[0], 0)
+        self.assertNotIn("src/vendor", self.git(workspace, "diff", "--name-only", "main...feature/paging")[1])
         pager = workspace / "src" / "pager.py"
         pager.write_text(pager.read_text(encoding="utf-8").replace("end = start + size - 1", "end = start + size"),
                          encoding="utf-8")

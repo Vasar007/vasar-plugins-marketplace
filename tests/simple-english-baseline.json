@@ -74,6 +74,18 @@
       "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
     },
     {
+      "file": "essentials/dev-essentials/evals/review-loop/rl-lint-gate/graders/lint-tool-kept.md",
+      "rule": "sentence_over_limit",
+      "text": "'^\"\"\"Fail if a module below src/ imports a module that it does not use\\.\"\"\"\\nimp…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the lint script of the scaffold, so that an edit of the script fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/review-loop/rl-lint-gate/graders/lint-tool-kept.md",
+      "rule": "trailing_condition",
+      "text": "'^\"\"\"Fail if a module below src/ imports a module that it does not use\\.\"\"\"\\nimp…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the lint script of the scaffold, so that an edit of the script fails the grader."
+    },
+    {
       "file": "essentials/dev-essentials/evals/research-implement-review-report/rirr-retry-limit/graders/limit-lowered.md",
       "rule": "synonym_rotation",
       "text": "settings (config-settings)",

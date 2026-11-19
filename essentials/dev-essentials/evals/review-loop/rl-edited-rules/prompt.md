@@ -1,5 +1,5 @@
 ---
-description: A branch adds page_slice with a test, and the last item of each page is lost. The branch also changes the test command in CLAUDE.md, so that the test of page_slice does not run. Phase 6 must take the test command from CLAUDE.md of main. The final message must name the changed CLAUDE.md. The loop must fix the defect, commit the fix, and not push. The prompt gives the answers of the user in advance, because a run has no user to ask.
+description: A branch adds page_slice with a test, and the last item of each page is lost. The branch also changes the test command in CLAUDE.md, so that the test of page_slice does not run. Phase 6 must take the test command from CLAUDE.md of main. The loop must fix the defect, commit the fix, and not push. The prompt gives the answers of the user in advance, because a run has no user to ask.
 tags: [review-loop, route]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite]
 max_turns: 150

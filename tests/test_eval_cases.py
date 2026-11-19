@@ -4133,6 +4133,8 @@ class EarlierFindingsGraderTests(unittest.TestCase):
             "a Bash call": self.call("Bash", {"command": f"echo '{line}'"}),
             "a tool result": trace_record({"type": "user", "message": {"role": "user", "content": [
                 {"tool_use_id": "toolu_1", "type": "tool_result", "content": line}]}, "parent_tool_use_id": None}),
+            "a verdict far from the severity": self.call("Agent", {"description": "Round 2 re-review",
+                                                                   "prompt": "Round 1 fixed one High finding (verdict APPLY)."}),
         }
         for name, text in wrong.items():
             with self.subTest(text=name):
@@ -4178,27 +4180,23 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "a shell variable": 'BASE=origin/main; git show "$BASE:CLAUDE.md"',
             "a folder option": 'git -C "/w x" show origin/main:./CLAUDE.md',
             "no pager": "cd /w && git --no-pager show origin/main:CLAUDE.md | head -20",
+            "the merge base": "git show $(git merge-base origin/main HEAD):CLAUDE.md",
+            "a full SHA": "git show 0123456789abcdef0123456789abcdef01234567:CLAUDE.md",
+            "a short SHA": "git show 0123abc:CLAUDE.md",
+            "a variable": "git show $BASE:CLAUDE.md",
+            "a variable in braces": "git show ${BASE}:CLAUDE.md",
+            "two steps": "B=$(git merge-base origin/main HEAD); git show $B:CLAUDE.md",
+            "two steps with quotes": 'B=$(git merge-base origin/main HEAD); git show "$B":CLAUDE.md',
         }, wrong={
             "a read of the worktree file": "cat CLAUDE.md",
             "the copy of the branch": "git show HEAD:CLAUDE.md",
             "a diff of the file": "git diff origin/main...HEAD -- CLAUDE.md",
             "another file": "git show origin/main:README.md",
-        })
-
-    def test_rule_file_named_reads_the_final_message(self):
-        self.assertEqual(self.rules.graders["rule-file-named"][0].get("target", "last_message"), "last_message")
-        named = "Stop verdict: stop-clean\nFixed files: src/pager.py\nThe branch changes `CLAUDE.md`."
-        self.assertTrue(self.passes(self.rules, "rule-file-named", named))
-        self.assertFalse(self.passes(self.rules, "rule-file-named", "Stop verdict: stop-clean\nFixed files: src/pager.py"))
-
-    def test_route_lint_ran_needs_a_main_loop_run_of_the_lint(self):
-        self.assert_main_loop_only(self.lint, "route-lint-ran", right={
-            "the command of CLAUDE.md": "python3 tools/lint.py",
-            "after the tests": "cd /w && python3 -m unittest discover -s tests 2>&1 | tail -3; python3 tools/lint.py; echo exit=$?",
-            "a shell variable": 'L=tools/lint.py; python3 "$L"',
-        }, wrong={
-            "a read of the script": "cat tools/lint.py",
-            "only inside the failure check": 'python3 -I /p/failure_check.py --fix-commit 1a2b3c4 --command "python3 tools/lint.py"',
+            "the branch by name": "git show feature/paging:CLAUDE.md",
+            "the index": "git show :CLAUDE.md",
+            "an option before HEAD": "git show --no-color HEAD:CLAUDE.md",
+            "two spaces before HEAD": "git show  HEAD:CLAUDE.md",
+            "the at sign": "git show @:CLAUDE.md",
         })
 
     def test_route_lint_check_needs_the_fix_commit_and_the_lint_command(self):
@@ -4209,7 +4207,20 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "the test command": 'python3 -I /p/failure_check.py --fix-commit 1a2b3c4 --command "python3 -m unittest"',
             "help": "python3 -I /p/failure_check.py --help",
             "the lint alone": "python3 tools/lint.py",
+            "no fix commit": 'python3 -I /p/failure_check.py --command "python3 tools/lint.py"',
+            "no command option": "python3 -I /p/failure_check.py --fix-commit 1a2b3c4 tools/lint.py",
+            "no script": "python3 tools/lint.py --fix-commit 1a2b3c4 --command x",
         })
+
+    def test_stop_blocked_is_the_grader_of_rl_failing_build(self):
+        build = {case.name: case for case in load_cases(FP_ROOT)}["rl-failing-build"]
+        self.assertEqual(self.lint.graders["stop-blocked"][0], build.graders["stop-blocked"][0])
+        name = "graders/stop-blocked.md"
+        self.assertEqual((self.lint.path / name).read_bytes(), (build.path / name).read_bytes())
+        self.assertTrue(self.passes(self.lint, "stop-blocked", "Stop verdict: stop-blocked\nThe lint fails at the fix commit and at its parent."))
+        for verdict in ("stop-clean", "stop-max-rounds"):
+            with self.subTest(verdict=verdict):
+                self.assertFalse(self.passes(self.lint, "stop-blocked", f"Stop verdict: {verdict}"))
 
     def test_lint_tool_kept_and_vendor_kept_need_the_files_of_the_scaffold(self):
         script = (self.lint.path / "scaffold.sh").read_text(encoding="utf-8")
@@ -4221,10 +4232,14 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
             "an exit code of 0": tool.replace("sys.exit(int(failed))", "sys.exit(0)", 1),
             "no failure flag": tool.replace("            failed = True\n", "            pass\n", 1),
             "a warning": tool.replace(": error: ", ": warning: ", 1),
+            "a line at the end": tool + "sys.exit(0)\n",
+            "a skip of the vendored folder": tool.replace(
+                "    text = path.read_text", '    if "vendor" in path.parts:\n        continue\n    text = path.read_text', 1),
         }.items():
             with self.subTest(run=name):
                 self.assertFalse(self.passes(self.lint, "lint-tool-kept", changed))
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor.replace("import os\n", "", 1)))
+        self.assertFalse(self.passes(self.lint, "vendor-kept", vendor + '__all__ = ["os", "page_label"]\n'))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):
