@@ -416,7 +416,7 @@ class ExportTests(FailureCheckCase):
     """git worktree add fails and makes no folder, so the script runs the command in an export (issue #232)."""
 
     SAME = ("REASON: the command fails at both commits with the same exit code, the same error lines, "
-            "and the same last lines after the first error line.")
+            "and the same last lines after the first error line, or the same output with no error line.")
     FILES = (("target.txt", b"target text\nline two\n"), ("ignored.txt", b"not in an archive\n"),
              ("subst.txt", b"commit $Format:%H$\n"),
              (".gitattributes", b"ignored.txt export-ignore\nsubst.txt export-subst\n"),
@@ -785,6 +785,27 @@ class UnitTests(unittest.TestCase):
         b = fc.Run("parent", "b" * 40, "y", "temp")
         b.lines = ["  Restored /tmp/a.csproj (in 191 ms).", "a.cs(5,6): error CS0246"]
         self.assertEqual(a.signature(set()), b.signature(set()))
+
+    def lint_verdict(self, fix_lines, parent_lines):
+        """The verdict for a lint that fails with exit code 1 at both commits and prints the given lines."""
+        fix = fc.Run("fix", "a" * 40, "x", "main worktree")
+        fix.code, fix.lines = 1, fix_lines
+        parent = fc.Run("parent", "b" * 40, "y", "temporary worktree")
+        parent.code, parent.lines = 1, parent_lines
+        return fc.verdict(False, fix, parent, set())[0]
+
+    def test_same_lint_output_with_no_error_word_is_same_at_parent(self):
+        hit = "src/a.py:1:1: F401 'os' imported but unused"
+        self.assertEqual(self.lint_verdict([hit, "Done in 0.31s"], [hit, "Done in 1.02s"]), "SAME-AT-PARENT")
+
+    def test_new_lint_hit_above_the_last_lines_is_other(self):
+        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(20)]
+        new = "src/new.py:3:1: E302 expected 2 blank lines, found 1"
+        self.assertEqual(self.lint_verdict([new, *hits], hits), "OTHER")
+
+    def test_other_lint_output_with_the_same_line_count_is_other(self):
+        self.assertEqual(self.lint_verdict(["src/a.py:1:1: F401 'os' imported but unused"],
+                                           ["src/b.py:3:1: E302 expected 2 blank lines, found 1"]), "OTHER")
 
     def test_error_rule_matches_class_names_and_plural_forms(self):
         for line in ("KeyError: 'x'", "System.InvalidOperationException: y", "3 exceptions", "test_x fails"):

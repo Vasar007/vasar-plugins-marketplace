@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Find out whether the fix commit of a review round broke a build or a test command.
+"""Find out whether the fix commit of a review round broke a build, test, or lint command.
 
-Phase 6 of the review-loop skill runs this script after a failed build or test
-run and after the Phase 7 commit. It needs Python 3.7 or later, git, and bash,
-and uses only the standard library. On Windows, it runs the command with the
-bash of Git for Windows.
+Phase 6 of the review-loop skill runs this script after a failed build, test,
+or lint run and after the Phase 7 commit. It needs Python 3.7 or later, git,
+and bash, and uses only the standard library. On Windows, it runs the command
+with the bash of Git for Windows.
 
 Steps:
   1. Read `git status` of the main worktree. Paths that match an --ignore glob
@@ -59,14 +59,15 @@ The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
   VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error
-                           lines, and the same last lines after the first error line
+                           lines, and the same last lines after the first error line.
+                           With no error line, each line of the output is the same
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
 Before the compare, each count of passed or skipped tests becomes a token. A count of failures
 or errors stays. The line of a single test also stays, for example a PASSED line of pytest -v
-or an ok line of unittest -v. So a new test can still give OTHER: if its line is in the last
-lines, or if its line holds an error word, such as fail, traceback, or a word that ends with
-error or exception.
+or an ok line of unittest -v. So a new test can still give OTHER in three ways: its line is in
+the last lines, its line holds an error word, or no line of the output holds an error word. An
+error word is fail, traceback, or a word that ends with error or exception.
 Each MADE or EXPORTED line has a REMOVED line after it. A MADE line with no REMOVED
 line names a worktree that is still there. Remove it with `git worktree remove --force`.
 An EXPORTED line with no REMOVED line names a plain folder that is still there. Delete it.
@@ -248,15 +249,18 @@ class Run:
         return not self.passed and not self.timed_out and self.start_error is None and self.code not in NOT_STARTED
 
     def signature(self, roots):
-        """The error lines and the last lines, with a token for each root folder, time, address, and count of tests."""
+        """The error lines and the last lines, with a token for each root folder, time, address, and count of tests.
+
+        With no error line, the signature takes each line. So a new lint hit at any place changes it.
+        """
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
         rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE
         found = set()
-        first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), len(self.lines))
-        tail = self.lines[max(first, len(self.lines) - TAIL_LINES):]
-        for line in self.lines:
-            if ERROR.search(line) or line in tail:
+        first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), None)
+        start = 0 if first is None else max(first, len(self.lines) - TAIL_LINES)
+        for i, line in enumerate(self.lines):
+            if i >= start or ERROR.search(line):
                 text = line
                 for pattern, token in rules:
                     text = pattern.sub(token, text)
@@ -489,9 +493,10 @@ def verdict(clean, fix, parent, roots):
     signature = fix.signature(roots)
     if signature and parent.code == fix.code and signature == parent.signature(roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
-                                  "and the same last lines after the first error line.")
+                                  "and the same last lines after the first error line, or the same output with "
+                                  "no error line.")
     return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
-                     "or the last lines after the first error line differ.")
+                     "the last lines after the first error line, or the output with no error line differ.")
 
 
 def run_in_worktree(trees, side, sha, rel, args, bash):
@@ -567,7 +572,7 @@ def on_signal(number, _frame):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--fix-commit", required=True, help="the Phase 7 commit of the review fixes of this round")
-    parser.add_argument("--command", required=True, help="the build or test command that failed, as one bash string")
+    parser.add_argument("--command", required=True, help="the build, test, or lint command that failed, as one bash string")
     parser.add_argument("--cwd", default=".", help="the folder where Phase 6 ran the command (default: the current folder)")
     parser.add_argument("--ignore", action="append", default=[], metavar="GLOB",
                         help="a path glob, relative to the work tree root, that git status must ignore (repeatable)")
