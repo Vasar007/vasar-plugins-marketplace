@@ -2052,9 +2052,10 @@ class RetryLimitReportedGraderTests(unittest.TestCase):
     def setUpClass(cls):
         cases = {case.name: case for case in load_cases(FP_ROOT)}
         cls.grader = cases["rirr-retry-limit"].graders["reported"][0]
+        cls.pattern = re.compile(cls.grader["pattern"], sum(REGEX_FLAGS.get(f, 0) for f in cls.grader.get("flags", "")))
 
-    def test_the_grader_reads_the_last_message_with_no_flags(self):
-        self.assertEqual((self.grader.get("target"), self.grader.get("flags")), ("last_message", None))
+    def test_the_grader_reads_the_last_message(self):
+        self.assertEqual(self.grader.get("target"), "last_message")
 
     def test_a_reply_that_names_a_test_change_matches(self):
         replies = {
@@ -2065,10 +2066,18 @@ class RetryLimitReportedGraderTests(unittest.TestCase):
             "a changed test at the start of a sentence": "Changed the test in the tests folder to expect 3.",
             "an updated expected value": "I updated the expected value of the client test.",
             "the test now expects": "The test in `tests` now expects `retries=3`.",
+            "the test that checks the value": "The one test that checks the value now expects `retries=3`.",
+            "an edited test": "I edited the test that reads the limit.",
+            "a fixed test": "I fixed the failing test.",
+            "a modified test": "I modified the old test to expect 3.",
+            "an existing test": "I updated the existing test to expect 3.",
+            "a test that was updated": "The failing test was updated to expect 3.",
+            "the test now asserts": "The test now asserts 3.",
+            "a capital letter": "I updated the Test to expect 3.",
         }
         for name, reply in replies.items():
             with self.subTest(reply=name):
-                self.assertRegex(reply, self.grader["pattern"])
+                self.assertRegex(reply, self.pattern)
 
     def test_a_reply_that_names_no_test_change_does_not_match(self):
         replies = {
@@ -2077,10 +2086,14 @@ class RetryLimitReportedGraderTests(unittest.TestCase):
             "a green suite": "I lowered the limit and ran the tests. The test suite is green.",
             "a green test run": "I changed one setting. The test run is green, and I committed the change.",
             "a change and a suite": "No test covers an explicit retries value. I changed it and the test suite passes.",
+            "a changed setting with no comma": "I changed the setting and the tests pass.",
+            "a test that now passes": "I lowered the limit. The test now passes.",
+            "a fixed test run": "I fixed the test run by installing the missing package.",
+            "testing notes": "I updated the testing notes in the plan.",
         }
         for name, reply in replies.items():
             with self.subTest(reply=name):
-                self.assertNotRegex(reply, self.grader["pattern"])
+                self.assertNotRegex(reply, self.pattern)
 
 
 DOTNET_ROOT = REPO / "dotnet" / "dotnet-backend-dev"
