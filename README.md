@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vasar007/vasar-plugins-marketplace/actions/workflows/tests.yml) [![Latest release](https://img.shields.io/github/v/release/Vasar007/vasar-plugins-marketplace)](https://github.com/Vasar007/vasar-plugins-marketplace/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Claude Code plugin marketplace](https://img.shields.io/badge/Claude%20Code-plugin%20marketplace-D97757.svg)](https://code.claude.com/docs/en/plugin-marketplaces)
 
-This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace for developers who use Claude Code every day. It holds four plugins: `dev-essentials`, `doc-styles`, `dotnet-backend-dev`, and `kb`. They give generic developer workflows with a gated task pipeline and a writing style for technical documents. They add a .NET backend toolkit and the wiring for a personal knowledge base.
+This is a personal [Claude Code](https://code.claude.com/docs/en/overview) marketplace for developers who use Claude Code every day. It holds these plugins: `dev-essentials`, `doc-styles`, `dotnet-backend-dev`, and `kb`. They give generic developer workflows with a gated task pipeline and a writing style for technical documents. They add a .NET backend toolkit and the wiring for a personal knowledge base.
 
 The plugins are generic, except `dotnet-backend-dev`. It is for a .NET backend, and most of its templates assume a private shared framework of guard and wrapper types.
 
@@ -71,7 +71,7 @@ Some skills push, and some say never to force-push or to pass `--no-verify`. The
 | [Testing](./docs/testing.md) | The test run and the CI workflow `.github/workflows/tests.yml`. |
 | [Maintainer tools](./docs/tools.md) | The scripts in `tools/` for a merge of `main`, the eval results, and the runs in WSL2. |
 | [Evals](./docs/evals.md) | The eval cases, the script `tests/evals/compare_versions.py`, and the behavior suites. |
-| [Official documentation](./docs/installing.md#official-documentation) | Seven official pages about plugins. |
+| [Official documentation](./docs/installing.md#official-documentation) | The official pages about plugins. |
 
 ## Contributing
 

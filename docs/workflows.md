@@ -18,7 +18,7 @@ The hard stops hold in every mode. They are data loss, a change of pushed histor
 
 ## One session or a new one
 
-The usual chain has three steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.
+The usual chain has these steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.
 
 If the review comes within the cache lifetime after the build, stay in the build session. Its prompt cache is still warm. The prompt cache is a saved copy of the history on the server. A call that hits it pays only the low cached rate for that history. A cached prefix expires after a period of inactivity. By default, the main conversation gets a one-hour cache on a Claude subscription, within the usage of the plan. With an API key, or with usage credits after the plan limit, it gets five minutes. The setting `promptCacheTtl` can change this. The page [How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching#cache-lifetime) has the details.
 
