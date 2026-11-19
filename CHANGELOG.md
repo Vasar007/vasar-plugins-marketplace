@@ -16,7 +16,7 @@ The text of the units no longer counts the items of a list. Each time an item jo
 ### Changed in dev-essentials
 
 - `skills/engineering-discipline`, `skills/dotnet-build-test`, and `skills/work-modes`: the description loses its count word. It now starts with "Rules against", says "The exceptions to this rule", or says "Defines the work modes" (issue #309).
-- Each skill, reference file, stage file, agent, and command with such a count: the count word goes, or it becomes "these", "the", or "each". For example, the pointer to `work-modes` in each gated workflow now says "the modes". Each stage file of `feature-pipeline` says "replace the placeholders" (issue #309).
+- Each skill, reference file, stage file, agent, and command with such a count: the count word goes, or it becomes "these", "the", or "each". For example, the pointer to `work-modes` in each gated workflow now says "the modes". Each stage file of `feature-pipeline` that a subagent runs says "replace the placeholders" (issue #309).
 
 ### Changed in dotnet-backend-dev
 
