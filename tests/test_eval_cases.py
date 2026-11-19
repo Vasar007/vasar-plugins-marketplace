@@ -4936,9 +4936,13 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
         cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
         switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
         edit = self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"})
+        # A line break after `branch ` is a backslash in the trace, but it starts no branch name.
+        wrapped = self.tool_use("Bash", {"command": 'git -C "/repo" branch \\\n  --show-current'})
+        trailing = self.tool_use("Bash", {"command": 'git -C "/repo" branch \ngit -C "/repo" status'})
         for case in self.CASES:
             with self.subTest(case=case):
                 self.assertTrue(self.found(case, "\n".join([read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([wrapped, trailing, read, switch])))
                 self.assertTrue(self.found(case, "\n".join([init, todo, status, read, switch, edit])))
                 self.assertTrue(self.found(case, "\n".join([cat, switch])))
 
