@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.2.1 in release [5.2.1] - 2026-11-19
+
+This release fixes one grader of an eval case. No skill text changes (issue #292).
+
+### Fixed in dev-essentials
+
+- `evals/research-implement-review-report/rirr-retry-limit`: the grader `reported` also takes a last message that says that the run changed a test. An example is "updated the one test that checks it". Before, only the file name `test_http_client.py` passed, so a right run failed. A message that names no test change still fails (issue #292).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `RetryLimitReportedGraderTests` runs the grader `reported` of `rirr-retry-limit` on sample replies. A reply that names a test change passes. A reply that only says that the tests pass fails (issue #292).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
@@ -2293,7 +2305,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.1...HEAD
+[5.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
