@@ -20,6 +20,7 @@ This release fixes one grader of an eval case. No skill text changes (issue #292
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: `RetryLimitReportedGraderTests` runs the grader `reported` of `rirr-retry-limit` on sample replies. A reply that names a test change passes. A reply that only says that the tests pass fails (issue #292).
+- `tests/evals/compare_versions.py`: `run` takes the option `--keep-temp`, the same as `baseline`. It passes the option to the base side and to the head side. The commands of a report that run the cases again keep the option. Before, `run --keep-temp` stopped with exit code 2. `tests/evals/test_compare_versions.py` tests the change, and `docs/evals.md` names it (issue #291).
 
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
