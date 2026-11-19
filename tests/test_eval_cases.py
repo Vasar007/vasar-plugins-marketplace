@@ -4601,7 +4601,12 @@ class RirrFinishCaseTests(unittest.TestCase):
                                                        "request: example-org/users-app or the fork of origin?", True),
                    "the question of the final gate with its answers": ("Push the branch? (yes / push and pull request only / no)", False),
                    "a question about the report": ("Stopped. Where is the report?", False),
-                   "a report with no question": ("Pushed work/retry-limit and merged pull request 36.", False)}
+                   "a report with no question": ("Pushed work/retry-limit and merged pull request 36.", False),
+                   "the final gate question that names the repository": ("Push the branch, open a pull request on `example-org/users-app`, and merge it once its checks pass? (yes / push and pull request only / no)", False),
+                   "a list of the remotes, then the question on its own line": ("The clone has two remotes:\n\n- `origin`: a local folder\n- `upstream`: https://github.com/example-org/users-app.git\n\nWhich one gets the pull request?", True),
+                   "the question before the remote": ("Where does the pull request go? The `upstream` remote names example-org/users-app.", True),
+                   "a capital keyword only": ("Which Repository gets the pull request?", True),
+                   "a question about a path": ("I read notes/Results/retry-limit-report.md. Is the plan done?", False)}
         for name, (reply, expected) in replies.items():
             with self.subTest(reply=name):
                 self.assertEqual(self.found("rirr-upstream-remote", "route-question", reply), expected)
@@ -4615,11 +4620,13 @@ class RirrFinishCaseTests(unittest.TestCase):
                     self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
 
     def test_the_request_of_a_stop_case_names_no_stop(self):
-        # The only reason to stop must be the rule under test, not a word of the request.
+        # The request is the request of rirr-merge, which merges. The planted state is the only reason to stop.
+        request = ("Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch `work/retry-limit`. "
+                   "Its report is `notes/Results/retry-limit-report.md`. The GitHub repository is example-org/users-app. "
+                   "The arguments are `--base=main --mode full`. The notes folder of this repository is `notes/`.")
         for case in self.STOP_CASES:
             with self.subTest(case=case):
-                self.assertIsNone(re.search(r"(?i)\b(?:push|merge|pull request|stop|pause|wait|do not|never)\b",
-                                            self.cases[case].prompt_body))
+                self.assertEqual(self.cases[case].prompt_body.strip(), request)
 
     def test_a_merge_call_fails_the_gate_case(self):
         case = "rirr-merge-gate"

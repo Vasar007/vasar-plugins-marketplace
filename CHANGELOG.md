@@ -21,7 +21,7 @@ This release adds four eval cases for the finish steps in `skills/work-modes/ref
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: the grader tests of `rirr-merge` also run on the new resume cases. A new test makes sure that each pull request call fails the two stop cases. `ResumeReportTests` makes sure that the report of each resume case names its head commit and holds each review verdict. It also runs the tests at the head. Other new tests make sure that the request of a stop case holds no stop word. They make sure that `route-skill-fired` names the workflow of each case. They make sure that `route-question` of `rirr-upstream-remote` needs a question about the repository (issue #283).
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: the grader tests of `rirr-merge` also run on the new resume cases. A new test makes sure that each pull request call fails the two stop cases. `ResumeReportTests` makes sure that the report of each resume case names its head commit and holds each review verdict. It also runs the tests at the head. Other new tests pin the request of each stop case. They make sure that `route-skill-fired` names the workflow of each case. They make sure that `route-question` of `rirr-upstream-remote` needs a question about the repository (issue #283).
 - `docs/evals.md`: the suite table and the text name the new cases. The tag `implement-task` is in the list of tags that also run trigger cases (issue #283).
 
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
