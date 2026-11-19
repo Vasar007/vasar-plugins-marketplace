@@ -30,6 +30,42 @@ This release turns the model matrix of `subagent-orchestration` into a ladder. A
 - `tests/test_eval_cases.py`: the new class `ModelLadderCaseTests` tests the grader `route-ladder-start` on right and wrong `Agent` calls (issue #281).
 - `tests/test_eval_scaffolds.py`, `tests/test_work_modes_text.py`, `tests/simple-english-baseline.json`, and `docs/evals.md`: the new case and the new sentence of `work-modes` (issue #281).
 
+## dotnet-backend-dev 1.8.1 in release [5.0.2] - 2026-11-19
+
+The skill `create-tests` now asks for useful tests only. A useful test can fail for a bug or for a bad change of behavior. A test that only asserts that a constant or a property with a fixed value has its value is not useful. The repository guidance has the same rule for its own tests and eval cases (issue #280).
+
+### Added in dotnet-backend-dev
+
+- `evals/write-tests/wt-useful-tests`: a new behavior case. The class under test has four public constants and a property with no logic, next to a method with real logic. Scored graders need tests of the method and of a guard, a passed test run, and an unchanged class. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant or of the property (issue #280).
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`: the new section "Useful Tests" and one new item of the checklist. The section gives the rule, its reason, and three kinds of tests that are not useful. It also names the values that can still have a test of their own: a wire format, a persisted value, an error code, or the default of a configuration option (issue #280).
+- `skills/create-tests/examples/domain-model-tests.md`: key point 6 asks for a constructor test for a hand-written constructor only, not for a positional record. The two example tests of the hand-written constructors stay, and they lose their `NotBeNull()` line (issue #280).
+- `skills/dotnet-conventions/testing.md`: one sentence points at the new section of `create-tests` (issue #280).
+
+### Changed in the repository
+
+- `CLAUDE.md` and `docs/testing.md`: each test of the repository must be able to fail for a bug or for a bad change. Step 3 of "New and imported units" asks the same of each eval case: it must be able to fail for a real defect of its unit (issue #280).
+- `docs/evals.md`: the suite `write-tests` has three cases (issue #280).
+- `tests/test_eval_cases.py`: the new class `WriteTestsUsefulTestGraderTests` tests the graders `no-constant-test`, `covers-get-fee`, `covers-guard`, and `source-unchanged` of the new case on samples. The route tests of one class also read the new case (issue #280).
+- `tests/test_eval_scaffolds.py` and `tests/simple-english-baseline.json`: the branch of the new scaffold, and the `--` of its prompt (issue #280).
+
+## dev-essentials 4.0.1 in release [5.0.1] - 2026-11-19
+
+This release adds four eval cases for the finish steps in `skills/work-modes/references/finish.md`. Two of them finish an earlier run of `implement-task` and of `implement-batch` in the full mode. The other two must stop before the push. No skill text changes (issue #283).
+
+### Added in dev-essentials
+
+- `evals/implement-task/it-merge` and `evals/implement-batch/ib-merge`: the first cases of the two workflows. Each case finishes an earlier run in the full mode. Its scaffold plants the commits of that run on a branch that no remote holds, and the report of that run. The run must push the branch, open the pull request, read the merge gate, and merge with a squash (issue #283).
+- `evals/research-implement-review-report/rirr-resume-moved-head`: the report of the earlier run names the reviewed commit. A later commit that no review saw is the head of the branch. The run must do no finish step (issue #283).
+- `evals/research-implement-review-report/rirr-upstream-remote`: the clone has an `upstream` remote on GitHub. The run must ask the user which repository gets the pull request. It must do no finish step before the answer (issue #283).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: the grader tests of `rirr-merge` also run on the new resume cases. A new test makes sure that each pull request call fails the two stop cases. `ResumeReportTests` makes sure that the report of each resume case names its head commit and holds each review verdict. It also runs the tests at the head. Other new tests pin the request of each stop case. They make sure that `route-skill-fired` names the workflow of each case. They make sure that `route-question` of `rirr-upstream-remote` needs a question about the repository (issue #283).
+- `docs/evals.md`: the suite table and the text name the new cases. The tag `implement-task` is in the list of tags that also run trigger cases (issue #283).
+
 ## dev-essentials 4.0.0 in release [5.0.0] - 2026-11-19
 
 The gated workflows no longer read the old mode flags. Only `--mode interactive|partial|full`, another form of that option, and plain words that name a mode pick a mode. A request can name an unknown mode, or a flag that the workflow does not define. Then the run asks which mode to use before its first step (issue #278).
@@ -2243,7 +2279,9 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...HEAD
-[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.1.0
+[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
+[5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
+[5.0.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.0.0
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0

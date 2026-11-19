@@ -48,6 +48,8 @@ These base classes live in the repo's `*.Tests.Common` project (exact name varie
 
 Before you write any test, invoke the `create-tests` skill. It has a matching example for each test type: domain model, exception, wrapper, repository, options validation, binding, DI, controller, migration, and mocked service. Do not guess the shape of tests from memory.
 
+Each test must be able to fail for a bug or for a bad change. [Useful Tests](../create-tests/SKILL.md#useful-tests) of `create-tests` names the tests that cannot.
+
 ## Test Class Structure
 
 ```csharp

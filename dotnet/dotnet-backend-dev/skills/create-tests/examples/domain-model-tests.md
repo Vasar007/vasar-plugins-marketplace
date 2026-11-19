@@ -113,7 +113,6 @@ public sealed class StoreShipmentsTests : BaseEqualityMemberTests<StoreShipments
         );
 
         // Assert.
-        shipments.Should().NotBeNull();
         shipments.OutboundShipmentId.Should().Be(outboundShipmentId);
         shipments.ReturnShipmentId.Should().Be(returnShipmentId);
         shipments.ReplacementShipmentId.Should().Be(replacementShipmentId);
@@ -252,7 +251,6 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
         var customer = CreateCustomer(customerId: customerId, customerName: customerName, ...);
 
         // Assert.
-        customer.Should().NotBeNull();
         customer.CustomerId.Should().Be(customerId);
         customer.CustomerName.Should().Be(customerName);
     }
@@ -325,7 +323,7 @@ public sealed class CustomerTests : BaseEqualityMemberTests<Customer>
 
 5. **Mutators for equality**: override `GetValueMutatorsForEquality()` **only** for a model with fields that equality excludes, for example a mutable `Name` or `Status`. If all fields take part in equality, do not override it
 
-6. **Additional tests**: add constructor, `ToString`, and method behavior tests as test methods next to the automatic equality tests
+6. **Additional tests**: add `ToString` and method behavior tests as test methods next to the automatic equality tests. Add a constructor test for a hand-written constructor, because it can swap two values of one type. A positional record needs no such test (see [Useful Tests](../SKILL.md#useful-tests))
 
 7. **Private helpers**: make all generator and factory calls through private methods, with the same rules as in [SKILL.md](../SKILL.md)
 

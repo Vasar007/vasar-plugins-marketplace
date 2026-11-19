@@ -52,6 +52,7 @@ EXPECTED_BRANCH = {
     "fp-free-text": "work/free-text",
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
+    "wt-useful-tests": "work/tests",
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
@@ -63,6 +64,10 @@ EXPECTED_BRANCH = {
     "rirr-merge": "work/retry-limit",
     "rirr-merge-gate": "work/retry-gate",
     "rirr-final-gate": "main",
+    "rirr-resume-moved-head": "work/retry-limit",
+    "rirr-upstream-remote": "work/retry-limit",
+    "it-merge": "work/retry-limit",
+    "ib-merge": "work/retry-batch",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
 }
@@ -89,7 +94,8 @@ COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed"
 # A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
-                      ("rirr-merge-gate", "main-not-pushed")}
+                      ("rirr-merge-gate", "main-not-pushed"), ("it-merge", "main-not-pushed"),
+                      ("ib-merge", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
@@ -98,7 +104,9 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "ppc-open-items-answered": ("no-commit",),
                      "ppc-ride-along-commit": ("no-commit",), "rl-clean-branch": ("no-fix-commit",),
                      "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed"),
-                     "rirr-merge": ("no-run-commit",)}
+                     "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
+                     "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
+                     "ib-merge": ("no-run-commit",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -1560,17 +1568,58 @@ class TrimFullPassTests(FixtureCase):
         self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
-class RirrMergeReportTests(FixtureCase):
-    """The planted report of rirr-merge names the head of the branch as its head commit (issue #271)."""
+class ResumeReportTests(FixtureCase):
+    """The planted report of each resume case names its head commit (issues #271 and #283).
 
-    def test_the_report_names_the_head_of_the_branch(self):
-        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["rirr-merge"]
-        workspace = self.workspace()
-        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
-        _code, head = self.git(workspace, "rev-parse", "HEAD")
-        report = (workspace / "notes/Results/retry-limit-report.md").read_text(encoding="utf-8")
-        self.assertIn(f"- **Head commit**: {head}\n", report)
-        self.assertNotIn("HEAD_SHA", report)
+    The resume of finish.md runs only if the head of the branch is the head commit of the report.
+    """
+
+    # The report of each case, and the commit that its report must name.
+    REPORTS = {"rirr-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
+               "it-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
+               "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
+               "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
+               "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1")}
+    # The number of review verdicts that the report of each case holds.
+    VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
+
+    def scaffold(self, name):
+        workspace = self.workspace(name)
+        self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def test_the_report_names_the_head_commit_of_the_case(self):
+        for name, (path, commit) in self.REPORTS.items():
+            with self.subTest(case=name):
+                workspace = self.scaffold(name)
+                _code, named = self.git(workspace, "rev-parse", commit)
+                _code, head = self.git(workspace, "rev-parse", "HEAD")
+                report = (workspace / path).read_text(encoding="utf-8")
+                self.assertIn(f"- **Head commit**: {named}\n", report)
+                self.assertNotIn("HEAD_SHA", report)
+                # In the case of the moved head, a commit that no review saw is on top of the commit of the report.
+                self.assertEqual(head in report, commit == "HEAD")
+
+    def test_the_report_gives_each_verdict_and_the_tests_pass_at_the_head(self):
+        # A stop case must have no second reason to stop, and a merge case needs each fact of the resume.
+        for name, (path, _commit) in self.REPORTS.items():
+            with self.subTest(case=name):
+                workspace = self.scaffold(name)
+                report = (workspace / path).read_text(encoding="utf-8")
+                self.assertEqual(report.count("Verdict `stop-clean`."), self.VERDICTS[name])
+                done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                                      capture_output=True, text=True)
+                self.assertEqual(done.returncode, 0, done.stderr[-500:])
+
+    def test_only_the_upstream_remote_is_on_github(self):
+        workspace = self.scaffold("rirr-upstream-remote")
+        self.assertEqual(self.git(workspace, "remote", "get-url", "upstream"), (0, "https://github.com/example-org/users-app.git"))
+        _code, origin = self.git(workspace, "remote", "get-url", "origin")
+        self.assertNotIn("github.com", origin)
 
 
 class RirrSquashGraderTests(FixtureCase):

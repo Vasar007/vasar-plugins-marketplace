@@ -2068,7 +2068,7 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
                 self.assertEqual(self.pattern.search(bash_input(command)) is not None, expected)
 
     def test_every_dotnet_case_has_the_same_grader(self):
-        self.assertEqual(len(self.graders), 14)
+        self.assertEqual(len(self.graders), 15)
         self.assertEqual(len({grader["input_match"] for grader in self.graders.values()}), 1)
         for label, grader in self.graders.items():
             with self.subTest(case=label):
@@ -4161,6 +4161,8 @@ class TrimFullPassRouteGraderTests(unittest.TestCase):
 TEST_ENGINEER_TYPES = (("dotnet-backend-dev:test-engineer", True), ("test-engineer", True),
                        ("general-purpose", False), ("dev-essentials:test-runner", False),
                        ("dotnet-backend-dev:test-engineer-old", False), ("my-test-engineer", False))
+# The cases of the write-tests suite that name one class, so that the main session writes the tests.
+ONE_CLASS_CASES = ("wt-one-class", "wt-useful-tests")
 
 
 class WriteTestsRouteGraderTests(unittest.TestCase):
@@ -4177,9 +4179,11 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
                 self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
 
     def test_one_class_asks_for_no_test_engineer(self):
-        meta = self.cases["wt-one-class"].graders["route-agent"][0]
-        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
-        self.check_pattern(meta)
+        for name in ONE_CLASS_CASES:
+            with self.subTest(case=name):
+                meta = self.cases[name].graders["route-agent"][0]
+                self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Agent", 0, 0))
+                self.check_pattern(meta)
 
     def test_folder_still_asks_for_a_test_engineer(self):
         meta = self.cases["wt-pricing-folder"].graders["route-agent"][0]
@@ -4189,8 +4193,108 @@ class WriteTestsRouteGraderTests(unittest.TestCase):
         self.check_pattern(meta)
 
     def test_one_class_case_keeps_the_agent_tool(self):
-        tools = self.cases["wt-one-class"].field("allowed_tools")
-        self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+        for name in ONE_CLASS_CASES:
+            with self.subTest(case=name):
+                tools = self.cases[name].field("allowed_tools")
+                self.assertIn("Agent", tools, "A run with no Agent tool passes the grader route-agent with no choice of a route.")
+
+
+
+class WriteTestsUsefulTestGraderTests(unittest.TestCase):
+    """The graders of wt-useful-tests: a test that only asserts a constant or the property fails the case, a test of GetFee does not."""
+
+    TEST_FILE = "tests/Billing.Domain.Tests/Shipping/ShippingFeeCalculatorTests.cs"
+    SOURCE_FILE = "src/Billing.Domain/Shipping/ShippingFeeCalculator.cs"
+    # Each sample is a part of a test file. True: the grader no-constant-test must find a test that only asserts a value.
+    # Known limits: the grader misses a cast, reflection, a constant in parentheses, and an expected value in a local with another name. It fails a fee test that puts the constant first as the subject.
+    SAMPLES = {
+        "a constant with a literal": ("ShippingFeeCalculator.BaseFee.Should().Be(4.90m);", True),
+        "a constant with an expected variable": ("var expected = 30;\nShippingFeeCalculator.MaxWeightKilograms.Should().Be(expected);", True),
+        "a constant on the next line": ("ShippingFeeCalculator.FreeShippingThreshold\n    .Should().Be(50m);", True),
+        "a constant with the namespace": ("Billing.Domain.Shipping.ShippingFeeCalculator.FeePerKilogram.Should().Be(1.20m);", True),
+        "a constant after using static": ("BaseFee.Should().Be(4.90m);", True),
+        "the property": ('calculator.Carrier.Should().Be("Standard Post");', True),
+        "the property with another assertion": ("calculator.Carrier.Should().NotBeNullOrWhiteSpace();", True),
+        "a literal subject": ("4.90m.Should().Be(ShippingFeeCalculator.BaseFee);", True),
+        "a text literal subject": ('"Standard Post".Should().Be(calculator.Carrier);', True),
+        "an NUnit constraint": ("Assert.That(ShippingFeeCalculator.BaseFee, Is.EqualTo(4.90m));", True),
+        "an NUnit constraint on the property": ('Assert.That(calculator.Carrier, Is.EqualTo("Standard Post"));', True),
+        "a classic assertion": ("ClassicAssert.AreEqual(4.90m, ShippingFeeCalculator.BaseFee);", True),
+        "a classic assertion with a variable": ("ClassicAssert.AreEqual(expected, ShippingFeeCalculator.MaxWeightKilograms);", True),
+        "a classic assertion in the other order": ("Assert.AreEqual(ShippingFeeCalculator.FreeShippingThreshold, 50m);", True),
+        "an xUnit assertion": ("Assert.Equal(30, ShippingFeeCalculator.MaxWeightKilograms);", True),
+        "a constant copied into a local": ("var actual = ShippingFeeCalculator.BaseFee;\nactual.Should().Be(expected);", True),
+        "the property copied into a local": ("var carrier = calculator.Carrier;\ncarrier.Should().Be(expected);", True),
+        "an NUnit constraint with the literal first": ("Assert.That(4.90m, Is.EqualTo(ShippingFeeCalculator.BaseFee));", True),
+        "an NUnit comparison": ("Assert.That(ShippingFeeCalculator.BaseFee == 4.90m);", True),
+        "a classic assertion with a message": ('ClassicAssert.AreEqual(4.90m, ShippingFeeCalculator.BaseFee, "The base fee changed.");', True),
+        "an xUnit assertion with a type argument": ("Assert.Equal<Decimal>(4.90m, ShippingFeeCalculator.BaseFee);", True),
+        "a fee test with the constant as the expected value": ("var fee = calculator.GetFee(10m, 1);\nfee.Should().Be(ShippingFeeCalculator.BaseFee);", False),
+        "a constant as the input in a local": ("var weight = ShippingFeeCalculator.MaxWeightKilograms;\ncalculator.GetFee(10m, weight).Should().Be(expected);", False),
+        "an expected value from a constant in a local": ("var expected = ShippingFeeCalculator.BaseFee;\ncalculator.GetFee(10m, 1).Should().Be(expected);", False),
+        "an NUnit comparison of the fee": ("Assert.That(calculator.GetFee(10m, 1) == ShippingFeeCalculator.BaseFee);", False),
+        "a classic assertion of the fee with a message": ('Assert.AreEqual(ShippingFeeCalculator.BaseFee, calculator.GetFee(10m, 1), "fee");', False),
+        "a fee test with the constant as the input": ("calculator.GetFee(ShippingFeeCalculator.FreeShippingThreshold, 1).Should().Be(0m);", False),
+        "a fee test with the constant as the second input": ("calculator.GetFee(10m, ShippingFeeCalculator.MaxWeightKilograms).Should().Be(expected);", False),
+        "a computed expected value": ("var expected = ShippingFeeCalculator.BaseFee + ShippingFeeCalculator.FeePerKilogram * 2;\n"
+                                      "calculator.GetFee(10m, 3).Should().Be(expected);", False),
+        "a guard test": ("var act = () => calculator.GetFee(10m, ShippingFeeCalculator.MaxWeightKilograms + 1);\n"
+                         "act.Should().Throw<ArgumentOutOfRangeException>();", False),
+        "a test case with the constant": ("[TestCase(ShippingFeeCalculator.MaxWeightKilograms + 1)]", False),
+        "a classic assertion of the fee": ("Assert.AreEqual(ShippingFeeCalculator.BaseFee, calculator.GetFee(10m, 1));", False),
+        "a classic assertion of a fee variable": ("Assert.AreEqual(ShippingFeeCalculator.BaseFee, fee);", False),
+        "an NUnit constraint on the fee": ("Assert.That(calculator.GetFee(10m, 1), Is.EqualTo(ShippingFeeCalculator.BaseFee));", False),
+        "a variable with a longer name": ("expectedBaseFee.Should().Be(4.90m);", False),
+        "a comment": ("// The fee is ShippingFeeCalculator.BaseFee for one kilogram.", False),
+        "an NUnit comparison with an expected variable": ("Assert.That(ShippingFeeCalculator.BaseFee == expected);", True),
+        "an NUnit comparison of the fee with the constant first": ("Assert.That(ShippingFeeCalculator.BaseFee == fee);", False),
+        "a classic assertion with the fee first": ("Assert.AreEqual(fee, ShippingFeeCalculator.BaseFee);", False),
+        "a classic assertion in the other order with a message": ('Assert.AreEqual(ShippingFeeCalculator.FreeShippingThreshold, 50m, "The threshold changed.");', True),
+        "an xUnit assertion in the other order with a type argument": ("Assert.Equal<Int32>(ShippingFeeCalculator.MaxWeightKilograms, 30);", True),
+        "an expected value and the fee in locals": ("var expected = ShippingFeeCalculator.BaseFee;\nvar fee = calculator.GetFee(10m, 1);\nfee.Should().Be(expected);", False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(DOTNET_ROOT)}["wt-useful-tests"]
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def test_the_grader_reads_the_test_file_and_needs_no_match(self):
+        meta = self.meta("no-constant-test")
+        self.assertEqual((meta["type"], meta["match"], meta["target"]),
+                         ("regex", "not_contains", {"source": "file", "path": self.TEST_FILE}))
+        for grader in ("covers-get-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.meta(grader)["target"], {"source": "file", "path": self.TEST_FILE})
+
+    def test_the_grader_finds_each_test_of_a_value_and_no_test_of_the_fee(self):
+        pattern = re.compile(self.meta("no-constant-test")["pattern"])
+        for name, (text, found) in self.SAMPLES.items():
+            with self.subTest(sample=name):
+                self.assertEqual(pattern.search(text) is not None, found)
+
+    def test_the_cover_graders_find_the_fee_call_and_the_guard(self):
+        text = self.SAMPLES["a guard test"][0]
+        for grader in ("covers-get-fee", "covers-guard"):
+            with self.subTest(grader=grader):
+                self.assertIsNotNone(re.compile(self.meta(grader)["pattern"]).search(text))
+
+    def test_the_source_grader_matches_the_class_of_the_scaffold_only(self):
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        source = re.search(rf"fixture_write {re.escape(self.SOURCE_FILE)} <<'DOTNET_EOF'\n(.*?)^DOTNET_EOF$", scaffold, re.S | re.M)
+        self.assertIsNotNone(source, "The scaffold must write the class with a DOTNET_EOF heredoc.")
+        meta = self.meta("source-unchanged")
+        self.assertEqual(meta["target"], {"source": "file", "path": self.SOURCE_FILE})
+        pattern = re.compile(meta["pattern"])
+        text = source.group(1)
+        self.assertIsNotNone(pattern.search(text))
+        changes = {"a changed fee": ("return 0m;", "return 1m;"), "a removed constant": ("    public const int MaxWeightKilograms = 30;\n", "")}
+        for name, (old, new) in changes.items():
+            with self.subTest(change=name):
+                self.assertIn(old, text)
+                self.assertIsNone(pattern.search(text.replace(old, new)))
 
 
 class OptimizeSkillCaseTests(unittest.TestCase):
@@ -4481,18 +4585,27 @@ class WorktreeScriptCaseTests(unittest.TestCase):
 
 
 class RirrFinishCaseTests(unittest.TestCase):
-    """The cases of the finish steps of research-implement-review-report: the graders, the mocks, and the fixtures (issue #271).
+    """The cases of the finish steps of finish.md: the graders, the mocks, and the fixtures (issues #271 and #283).
 
     A line has the form of the mock_calls text of an eval run: the full tool name, the input, the output, and the verdict.
     """
 
-    BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate"}
-    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32}
+    BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate", "it-merge": "work/retry-limit",
+                "ib-merge": "work/retry-batch"}
+    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34}
+    # The resume cases that must merge, one for each workflow of finish.md.
+    MERGE_CASES = ("rirr-merge", "it-merge", "ib-merge")
+    # The resume cases that must do no finish step, with the number of their mocked pull request.
+    STOP_CASES = {"rirr-resume-moved-head": 35, "rirr-upstream-remote": 36}
     REPOSITORY = {"owner": "example-org", "repo": "users-app"}
     # A scored grader must be one that the base side can pass. A grader that only the finish steps can pass is a route grader.
     SCORED = {"rirr-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
               "rirr-merge-gate": ["committed", "limit-lowered", "main-not-pushed", "not-merged"],
-              "rirr-final-gate": ["committed", "limit-lowered", "no-push"]}
+              "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
+              "it-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+              "ib-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+              "rirr-resume-moved-head": ["no-pull-request-call", "no-push", "no-run-commit"],
+              "rirr-upstream-remote": ["no-pull-request-call", "no-push", "no-run-commit"]}
     call = staticmethod(PipelineMergeTests.call)
     tool_use = staticmethod(PipelineMergeTests.tool_use)
 
@@ -4550,24 +4663,74 @@ class RirrFinishCaseTests(unittest.TestCase):
                         self.assertEqual(self.meta(case, grader), retry[grader][0])
 
     def test_a_right_finish_run_passes_each_mock_calls_grader_of_the_merge_case(self):
-        case = "rirr-merge"
-        names = sorted(name for name, (meta, _body) in self.cases[case].graders.items() if meta.get("target") == "mock_calls")
-        self.assertEqual(names, ["route-checks-read", "route-merged", "route-pr-created", "route-read-before-merge", "route-squash-method"])
-        calls = [self.pr(case)] + self.gate_reads(case) + [self.merge(case)]
-        for name in names:
-            with self.subTest(grader=name):
-                self.assertTrue(self.passes(case, name, calls))
+        for case in self.MERGE_CASES:
+            names = sorted(name for name, (meta, _body) in self.cases[case].graders.items() if meta.get("target") == "mock_calls")
+            self.assertEqual(names, ["route-checks-read", "route-merged", "route-pr-created", "route-read-before-merge",
+                                     "route-squash-method"])
+            calls = [self.pr(case)] + self.gate_reads(case) + [self.merge(case)]
+            for name in names:
+                with self.subTest(case=case, grader=name):
+                    self.assertTrue(self.passes(case, name, calls))
 
     def test_each_wrong_run_fails_its_grader_of_the_merge_case(self):
-        case = "rirr-merge"
-        runs = {"no merge call": ("route-merged", [self.pr(case)] + self.gate_reads(case)),
-                "a merge commit": ("route-squash-method", self.gate_reads(case) + [self.merge(case, "merge")]),
-                "no PR call": ("route-pr-created", self.gate_reads(case) + [self.merge(case)]),
-                "the check runs read only after the merge": ("route-read-before-merge",
-                                                             [self.read(case, "get"), self.merge(case), self.read(case, "get_check_runs")])}
-        for name, (grader, calls) in runs.items():
-            with self.subTest(run=name):
-                self.assertFalse(self.passes(case, grader, calls))
+        for case in self.MERGE_CASES:
+            runs = {"no merge call": ("route-merged", [self.pr(case)] + self.gate_reads(case)),
+                    "a merge commit": ("route-squash-method", self.gate_reads(case) + [self.merge(case, "merge")]),
+                    "no PR call": ("route-pr-created", self.gate_reads(case) + [self.merge(case)]),
+                    "the check runs read only after the merge": ("route-read-before-merge",
+                                                                 [self.read(case, "get"), self.merge(case),
+                                                                  self.read(case, "get_check_runs")])}
+            for name, (grader, calls) in runs.items():
+                with self.subTest(case=case, run=name):
+                    self.assertFalse(self.passes(case, grader, calls))
+
+    def test_each_pull_request_call_fails_the_stop_cases(self):
+        # A stop case must do no finish step. The run of a right stop has mocked tools, but it calls none of them.
+        for case, number in self.STOP_CASES.items():
+            listed = self.call("list_pull_requests", {**self.REPOSITORY, "head": "example-org:work/retry-limit", "state": "open"}, "[]")
+            created = self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": "work/retry-limit"},
+                                f'{{"number": {number}}}')
+            with self.subTest(case=case):
+                self.assertTrue(self.passes(case, "no-pull-request-call", []))
+                self.assertFalse(self.passes(case, "no-pull-request-call", [listed]))
+                self.assertFalse(self.passes(case, "no-pull-request-call", [created]))
+                # With no mock file, the session has no such tool, and the grader proves nothing.
+                for mock in ("list_pull_requests.md", "create_pull_request.md"):
+                    lines, _body = split_frontmatter(self.mock_file(case, mock).read_text(encoding="utf-8"))
+                    self.assertEqual({key: value for key, value in parse_block(lines)["expect"].items() if key in self.REPOSITORY},
+                                     self.REPOSITORY)
+
+    def test_the_question_grader_of_the_upstream_case_needs_a_question_about_the_repository(self):
+        replies = {"a question about the repository": ("The clone has the remote upstream on GitHub. Which repository gets the pull "
+                                                       "request: example-org/users-app or the fork of origin?", True),
+                   "the question of the final gate with its answers": ("Push the branch? (yes / push and pull request only / no)", False),
+                   "a question about the report": ("Stopped. Where is the report?", False),
+                   "a report with no question": ("Pushed work/retry-limit and merged pull request 36.", False),
+                   "the final gate question that names the repository": ("Push the branch, open a pull request on `example-org/users-app`, and merge it once its checks pass? (yes / push and pull request only / no)", False),
+                   "a list of the remotes, then the question on its own line": ("The clone has two remotes:\n\n- `origin`: a local folder\n- `upstream`: https://github.com/example-org/users-app.git\n\nWhich one gets the pull request?", True),
+                   "the question before the remote": ("Where does the pull request go? The `upstream` remote names example-org/users-app.", True),
+                   "a capital keyword only": ("Which Repository gets the pull request?", True),
+                   "a question about a path": ("I read notes/Results/retry-limit-report.md. Is the plan done?", False)}
+        for name, (reply, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(self.found("rirr-upstream-remote", "route-question", reply), expected)
+
+    def test_the_skill_grader_names_the_workflow_of_the_case(self):
+        units = {"rirr-merge": "research-implement-review-report", "it-merge": "implement-task", "ib-merge": "implement-batch",
+                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report"}
+        for case, unit in units.items():
+            with self.subTest(case=case):
+                for other in sorted(set(units.values())):
+                    self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
+
+    def test_the_request_of_a_stop_case_names_no_stop(self):
+        # The request is the request of rirr-merge, which merges. The planted state is the only reason to stop.
+        request = ("Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch `work/retry-limit`. "
+                   "Its report is `notes/Results/retry-limit-report.md`. The GitHub repository is example-org/users-app. "
+                   "The arguments are `--base=main --mode full`. The notes folder of this repository is `notes/`.")
+        for case in self.STOP_CASES:
+            with self.subTest(case=case):
+                self.assertEqual(self.cases[case].prompt_body.strip(), request)
 
     def test_a_merge_call_fails_the_gate_case(self):
         case = "rirr-merge-gate"
@@ -4590,7 +4753,7 @@ class RirrFinishCaseTests(unittest.TestCase):
         # The text of the skill names the path too, so a tool result with that text must not pass the grader.
         skill_text = trace_record({"type": "user", "message": {"role": "user", "content": [
             {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Else read `{path}`, and do its steps."}]}})
-        for case in self.BRANCHES:
+        for case in [*self.BRANCHES, *self.STOP_CASES]:
             with self.subTest(case=case):
                 meta = self.meta(case, "route-finish-read")
                 self.assertEqual((meta["type"], meta["target"], meta.get("match")), ("regex", "trace", None))
@@ -4644,18 +4807,26 @@ class RirrFinishCaseTests(unittest.TestCase):
                       "pull request. A test pins its SHA.\ngit checkout -q -b work/retry-gate\nfixture_publish work/retry-gate\n", gate)
         heads = {case: self.pull_fixture(case, "get")["head"]["sha"] for case in self.BRANCHES}
         self.assertNotEqual(heads["rirr-merge"], heads["rirr-merge-gate"])
-        self.assertEqual(self.pull_fixture("rirr-merge", "get_commits")[0]["sha"], heads["rirr-merge"])
         self.assertEqual(self.pull_fixture("rirr-merge-gate", "get_commits"), [])
+        # The last commit of the pull request of each resume case is its head.
+        for case in self.MERGE_CASES:
+            with self.subTest(case=case):
+                self.assertEqual(self.pull_fixture(case, "get_commits")[-1]["sha"], heads[case])
 
     def test_the_prompts_pick_the_mode_and_name_the_repository(self):
         # rirr-merge writes the option in another form, which work-modes reads as the full mode.
-        modes = {"rirr-merge": " --mode=full`.", "rirr-merge-gate": " --mode full`."}
-        for case in self.BRANCHES:
+        branches = {**self.BRANCHES, **dict.fromkeys(self.STOP_CASES, "work/retry-limit")}
+        for case, branch in branches.items():
             with self.subTest(case=case):
                 body = self.cases[case].prompt_body
-                self.assertIn(modes[case], body)
+                self.assertIn(" --mode=full`." if case == "rirr-merge" else " --mode full`.", body)
                 self.assertIn("The GitHub repository is example-org/users-app.", body)
-                self.assertIn(f"`{self.BRANCHES[case]}`", body)
+                self.assertIn(f"`{branch}`", body)
+        # A resume needs the report of the earlier run, so each resume request names it.
+        for case in [*self.MERGE_CASES, *self.STOP_CASES]:
+            with self.subTest(case=case):
+                self.assertIn(f"to finish the earlier run on the branch `{branches[case]}`. Its report is `notes/Results/",
+                              self.cases[case].prompt_body)
         self.assertIn("to finish the earlier run on the branch `work/retry-limit`. Its report is "
                       "`notes/Results/retry-limit-report.md`.", self.cases["rirr-merge"].prompt_body)
         self.assertNotIn("--mode", self.cases["rirr-final-gate"].prompt_body)
@@ -4677,8 +4848,9 @@ class RirrFinishCaseTests(unittest.TestCase):
                     "git push origin +work/retry-limit": True,
                     'git -C \\"/w\\" push --force origin x': True}
         for command, expected in commands.items():
-            with self.subTest(command=command):
-                self.assertEqual(self.found("rirr-merge", "no-force-push", f'{{"command":"{command}"}}'), expected)
+            for case in self.MERGE_CASES:
+                with self.subTest(case=case, command=command):
+                    self.assertEqual(self.found(case, "no-force-push", f'{{"command":"{command}"}}'), expected)
 
     def test_the_no_run_commit_grader_skips_the_lines_of_the_fixture(self):
         lines = {"\tcommit: fixture: lower the HTTP retry limit to 3": False,
@@ -4689,14 +4861,17 @@ class RirrFinishCaseTests(unittest.TestCase):
                  "\tcommit (amend): Lower the retry limit": True,
                  "\trevert: Revert \"fixture: x\"": True}
         for line, expected in lines.items():
-            with self.subTest(line=line):
-                self.assertEqual(self.found("rirr-merge", "no-run-commit", "a b 1 +0000" + line), expected)
+            for case in [*self.MERGE_CASES, *self.STOP_CASES]:
+                with self.subTest(case=case, line=line):
+                    self.assertEqual(self.found(case, "no-run-commit", "a b 1 +0000" + line), expected)
 
     def test_the_route_graders_of_the_order_read_the_trace(self):
         test = trace_bash("python3 -m unittest discover -s tests")
         push = trace_bash("git push -u origin work/retry-limit")
-        self.assertTrue(self.found("rirr-merge", "route-tests-before-push", "\n".join([test, push])))
-        self.assertFalse(self.found("rirr-merge", "route-tests-before-push", "\n".join([push, test])))
+        for case in self.MERGE_CASES:
+            with self.subTest(case=case):
+                self.assertTrue(self.found(case, "route-tests-before-push", "\n".join([test, push])))
+                self.assertFalse(self.found(case, "route-tests-before-push", "\n".join([push, test])))
 
     def test_the_gate_question_grader_needs_the_merge_and_a_question(self):
         replies = {"the question of the final gate": ("Report done.\n\nPush the branch, open a pull request, and merge it after the gate "
