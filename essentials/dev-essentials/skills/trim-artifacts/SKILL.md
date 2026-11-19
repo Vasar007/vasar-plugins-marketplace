@@ -18,12 +18,12 @@ If a line helps a future reader decide, plan, build or answer, it stays. Other t
 
 - Workspace: the folder tree that the pass trims.
 - Orchestrator: the main agent that runs the steps and dispatches the roles.
-- Protect-set: the text and ids that the pass must keep. It has two tiers.
+- Protect-set: the text and ids that the pass must keep. It has the tiers below.
 - Byte-identical tier: declared decisions, requirements that the user declared word for word, and ids. The pass must not change one byte of them.
 - Substance tier: needed facts with their sources, uncertainty markers, and all other requirements. The pass can shorten the wording. The meaning, the source and the marker must stay.
 - Anchor: a short verbatim quote that marks the start of a cut. It must match its file exactly once.
 - Batch: a group of files that one planner handles.
-- Planner, reviewer, fixer: the three roles. The planner writes the cut plan. The script applies it in step 6. The reviewer tests the result. The fixer repairs the findings.
+- Planner, reviewer, fixer: the roles. The planner writes the cut plan. The script applies it in step 6. The reviewer tests the result. The fixer repairs the findings.
 - Tombstone: the one-line stub that replaces a withdrawn protected item. The id stays, so that old citations still resolve.
 - Deletion gate: step 5, where the user approves each file deletion and each tombstone.
 - Cut table: the list of allowed cut reasons in [references/cut-rules.md](references/cut-rules.md). That file also holds the tombstone template.
@@ -40,25 +40,25 @@ The script needs Python 3 and only its standard library. The example commands us
 ## Choose the path
 
 - The light path is for one file or a few small files. Run it inline with no subagents. See "Light path" below.
-- The full pass is for a folder tree or many files. Run the 12 steps with a separate agent for each role.
+- The full pass is for a folder tree or many files. Run the steps of the algorithm with a separate agent for each role.
 
 If the user did not say which, pick by size. More than about 10 files or 100 KB means a full pass.
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
 | Step 1: the protect-set | Infer it, and report it | Wait for approval | Same as partial |
-| Step 5: deletion gate | Stop | Stop | Put the three lists into the final message, and continue |
+| Step 5: deletion gate | Stop | Stop | Put the lists into the final message, and continue |
 | Step 11: delete the backup | Ask | Ask | Keep the backup, and give its path |
 
 ## The algorithm (full pass)
 
 ### 1. Settle scope and the protect-set
 
-Ask the user for the protect-set, or infer it. Outside the interactive mode, infer it, write it into the plan, and report it in one status line. Then plan. In the interactive mode, get the approval of the user before you plan. The protect-set has four parts:
+Ask the user for the protect-set, or infer it. Outside the interactive mode, infer it, write it into the plan, and report it in one status line. Then plan. In the interactive mode, get the approval of the user before you plan. The protect-set has these parts:
 
 1. Declared decisions are text that the user declared as their decision. Keep it byte-identical. You can cut agent-written framing around it. If the user declared a requirement word for word, it is byte-identical too.
 2. Identifiers are ids that other files and people cite. Detect id families by pattern, then show the list to the user. Never renumber or reuse an id.
@@ -119,7 +119,7 @@ Before any deletion, show the user these lists:
 Under the lists, add one line that reminds the user of the path of the backup.
 
 Deletions and tombstones are destructive. Wait for explicit approval of each item. If the user rejects an item, the planner removes it from the plan and reruns the dry run.
-This gate stays outside the interactive mode too, because deletions and tombstones destroy data. In the full mode, it does not stop. Put the three lists into the final message, and continue. The backup keeps a copy of each deleted file.
+This gate stays outside the interactive mode too, because deletions and tombstones destroy data. In the full mode, it does not stop. Put the lists into the final message, and continue. The backup keeps a copy of each deleted file.
 For a large workspace, first run one pilot batch, a small batch that tests the targets. Show its size table.
 
 ### 6. Apply the plan with the script
@@ -217,10 +217,10 @@ Use the same protections inline. Work in this order:
 1. Do step 1 of the full pass, with its glob, id regexes and protected-block regexes.
 2. Copy the whole folder to a backup folder outside the workspace, for example with `cp -a FOLDER BACKUP`. Then tell the user the path and size of the backup.
 3. Classify each file with a profile. List each cut with its anchor and a reason from the cut table. List the fixes for references that a deletion breaks. Prove that each anchor matches once.
-4. Before you delete a file or write a tombstone, run the deletion gate of step 5. Show its three lists, and follow its rules for each mode.
+4. Before you delete a file or write a tombstone, run the deletion gate of step 5. Show its lists, and follow its rules for each mode.
 5. Apply the approved cuts. Remove words, not line breaks.
 6. Run `python3 -I "${CLAUDE_SKILL_DIR}/scripts/trim_report.py" --before BACKUP --after FOLDER` with the regexes and one `--allow-changed` for each approved tombstone. Use one glob that covers every file that can cite the trimmed files. Do not narrow the glob to the trimmed files. Read the result as step 7 says, and fix every failure.
-7. Show the user the size table and a short list of what went. Then end the pass with the final message of step 11, and follow its three cases.
+7. Show the user the size table and a short list of what went. Then end the pass with the final message of step 11, and follow its cases.
 
 ## Reference files
 

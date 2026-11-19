@@ -43,7 +43,7 @@ Example (small):
 
 ### `[Performance]`
 
-The workflow is the same as for `[ToFix]`, with two additions:
+The workflow is the same as for `[ToFix]`, with these additions:
 
 1. In the reply, name each effect that you can observe, for example `inner loop tightened, removes N allocations per request`.
 2. If tests or benchmarks exist near the change, run them locally, and put the result in the chat log. If none exist, say so: `No benchmark covers this path — consider adding one if this is hot code.`
@@ -159,7 +159,7 @@ Pick one action with these rules, in this order:
 2. `[Note]` adds no action. If another tag is present, leave `[Note]` out.
 3. A workflow tag decides the workflow: `[OutOfScope]` first, then `[Repetition]`. Use the other tags as the underlying tag, with steps 4 and 5.
 4. Of the other tags, the tag that asks for the smaller code change wins. The order, from the smallest change: `[ToDiscuss]`, `[Question]`, `[Optional]`, `[Suggestion]`, then `[ToFix]` and `[Performance]`. The reviewer marked the change with the weaker tag, so do not do more than that tag asks.
-5. If `[Performance]` is present, also apply its two additions (the effect in the reply, and the local benchmark run).
+5. If `[Performance]` is present, also apply its additions (the effect in the reply, and the local benchmark run).
 
 Examples:
 

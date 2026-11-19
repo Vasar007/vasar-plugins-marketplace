@@ -15,7 +15,7 @@ Shared placeholders:
 | `{SKILL_DIR}` | Absolute path of this skill |
 | `{WORKSPACE}` | Absolute path of the tree to trim |
 | `{BACKUP}` | Absolute path of the backup taken before the pass |
-| `{PROTECT_SET}` | The two protect-set tiers (byte-identical and substance), in words, for this workspace |
+| `{PROTECT_SET}` | The protect-set tiers (byte-identical and substance), in words, for this workspace |
 | `{GLOB}` | One `--glob PATTERN` flag that covers every file type of the protect-set, or nothing for the default `**/*.md` |
 | `{ID_REGEXES}` | One `--id-regex` flag per id family |
 | `{PROTECTED_REGEXES}` | One `--protected-regex` flag per protected block type |

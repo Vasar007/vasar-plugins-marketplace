@@ -97,7 +97,7 @@ one misses a section that it probably needs:
    decide alone, and what needs the sign-off of the user (a public API shape,
    a new dependency, a schema change).
 
-Not every repo needs all seven. A personal repo with one contributor can skip
+Not every repo needs all of these items. A personal repo with one contributor can skip
 the decision-authority boundary. A repo with no own tooling can skip the
 skill-usage pointer. Add a section because the repo needs it, not because the
 menu lists it.

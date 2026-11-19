@@ -109,7 +109,7 @@ The verifier sets exactly one verdict for each finding:
 | Verdict | When | What happens to the entry |
 | --- | --- | --- |
 | `Confirmed` | The evidence holds, and the failure scenario is shown or proved from the code. | It stays in its area section. |
-| `Unconfirmed (needs owner review)` | The verifier did not refute it and did not prove it. | It stays in its area section. The Verification paragraph has the three lines below. |
+| `Unconfirmed (needs owner review)` | The verifier did not refute it and did not prove it. | It stays in its area section. The Verification paragraph has the lines below. |
 | `Rejected` | The finding is wrong, or it is not a real behavior bug. | It moves, whole and with its ID, to "Appendix: rejected findings". The first entry that moves there replaces "None yet.". No stub stays in the area section. |
 | `Duplicate of #NN`, `Duplicate of N-NN`, or `Duplicate of BH-NN` | A GitHub issue (`#NN`), a notes-file bug (`N-NN`), or an earlier entry (`BH-NN`) describes the same bug. | It stays in its area section. The Verification paragraph names the original. |
 
@@ -122,7 +122,7 @@ Each verifier adds a Verification paragraph after "Fix idea":
 Verification: <what the verifier did, what it found, and why it chose the verdict>
 ```
 
-For an Unconfirmed finding, three more lines follow the Verification paragraph, each as its
+For an Unconfirmed finding, the lines below follow the Verification paragraph, each as its
 own paragraph:
 
 ```markdown

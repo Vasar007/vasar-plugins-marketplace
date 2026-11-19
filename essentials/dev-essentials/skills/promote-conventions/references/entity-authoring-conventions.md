@@ -19,7 +19,7 @@ Phase 6 of `SKILL.md` reads this file. The conventions come from an earlier ad-h
 
 ## Skill vs. command vs. agent selection
 
-The three shapes grow in different ways. Pick the shape that the approved rules really need. Do not pick by habit, and do not default to a skill because "skills are more flexible".
+The shapes grow in different ways. Pick the shape that the approved rules really need. Do not pick by habit, and do not default to a skill because "skills are more flexible".
 
 - **Command**: a one-shot, single-file procedure that the user types, with no growth path. The user types `/plugin:name`, and the procedure runs once. Use a command for a fixed linear script with no branching phases and no reference-file depth.
 - **Skill**: model-invoked. It triggers from a description match, not only from a typed command. It needs triggering and progressive disclosure, and it often needs multi-file depth (`references/`, `examples/`). Use a skill for content with phases, flags, or decision trees, or for content that grows over time.
@@ -109,7 +109,7 @@ Item 5 also asks for one general term for each role. The table lists the general
 
 ## References vs. examples: conditional need and the 500-line limit
 
-Split content out into `references/*.md` or `examples/*.md` in two cases:
+Split content out into `references/*.md` or `examples/*.md` in these cases:
 
 1. A part applies conditionally: to only one of several invocation branches, target types, or flag combinations. A short `SKILL.md` does not change this. Example: a skill of only about 150 lines can need a `references/` split. A large part of it applies to one target type out of eight, or to one disposition out of six. Without the split, every reader scrolls past content that does not apply to their case.
 2. `SKILL.md` grows past 500 lines. The whole `SKILL.md` loads into the context at each invocation, so a long file costs tokens and hides the important rules. After a compaction, Claude Code also keeps only the first 5,000 tokens of an invoked skill. So keep the rules for every invocation in `SKILL.md`, near the top. Move the detailed material out with one or more of the options below. In `SKILL.md`, say which file to read or run, and when.

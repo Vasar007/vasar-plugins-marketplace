@@ -33,7 +33,7 @@ full. If `{RESUME_NOTE}` or `{DEFECTS}` is empty, leave out its line.
 | `{EARLIER_AUDITS}` | Absolute paths of earlier audits and plans of the target, or "none" |
 | `{REJECTED}` | The items that the applier rejected after a step-2 decision, with the reasons, or "none" |
 | `{FINDINGS}` | The accepted review findings, in full |
-| `{PLAIN_ENGLISH}` | One of the two plain-English blocks below |
+| `{PLAIN_ENGLISH}` | One of the plain-English blocks below |
 | `{RESUME_NOTE}` | The resume note below, or nothing |
 | `{DEFECTS}` | The list of defects for a repair, or nothing |
 

@@ -8,13 +8,13 @@ when_to_use: "Use it for 'draft an issue', 'write a task description', 'compose 
 
 Write concise task descriptions at the architecture level for project planning. Draft and edit them, and create them as GitHub issues only on an explicit request. Never implement the changes.
 
-Focus on **what** and **why**, not on implementation details. The maximum length is **2000 characters** in all three modes.
+Focus on **what** and **why**, not on implementation details. The maximum length is **2000 characters** in all modes.
 
 The modes `draft` and `response` need only file tools. The mode `create` needs the GitHub MCP tools (`mcp__plugin_github_github__*`). If they are missing, stop, and ask the user to reconnect them with `/mcp` (`dev-essentials:github-mcp-conventions` Rule 5).
 
 ## Mode Parameter
 
-Every invocation operates in one of three modes:
+Every invocation operates in one of these modes:
 
 | Mode | Side effects | Output |
 |------|--------------|--------|
@@ -36,7 +36,7 @@ A calling skill or a brief can also name the mode, for example `mode: response`.
 
 Begin with **Task Title** (H1, single line, suitable for issue tracker).
 
-Then two sections:
+Then these sections:
 
 ### Current State Analysis
 

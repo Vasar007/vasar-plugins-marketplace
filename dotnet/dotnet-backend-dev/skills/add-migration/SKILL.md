@@ -6,7 +6,7 @@ when_to_use: Use it for "add migration", "schema change", "data transformation",
 
 # Add Migration
 
-Add a migration for a schema change, a data transformation, or a product upgrade. A repo uses one of two migration systems: the standard migrations of EF Core, or the migration system of the framework (`IDatabaseMigration` and `IProductMigration`). Find out which system the repo uses before you write code.
+Add a migration for a schema change, a data transformation, or a product upgrade. A repo uses one of these migration systems: the standard migrations of EF Core, or the migration system of the framework (`IDatabaseMigration` and `IProductMigration`). Find out which system the repo uses before you write code.
 
 The templates use the private shared framework of the `MyApp.Framework` namespaces. If the repo does not use it, follow the closest existing code of the repo.
 

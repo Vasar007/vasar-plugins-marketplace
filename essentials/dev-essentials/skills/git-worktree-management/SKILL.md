@@ -10,13 +10,13 @@ when_to_use: Use it for "create worktree", "list worktrees", "remove worktree", 
 
 Manages git worktrees inside the repo at `.claude/worktrees/<full-branch-ref>/`. Each branch gets its own folder, so you can work on several branches at the same time. Repos usually gitignore this path (`**/.claude/worktrees/`), and Workflow A Step 4 makes sure of it. So worktrees stay out of `git status` and need no cleanup outside the repo.
 
-The script `scripts/worktree.py` of this skill does the fixed git steps: the path rule, the ignore check, `git worktree add` in its three cases, the bootstrap, `git worktree remove`, and `git worktree prune`. You keep each step that needs a judgment, a question to the user, or a GitHub MCP tool. The script needs Python 3.8 or later and git 2.31 or later. On Windows, run it in the Bash tool (Git Bash). It asks for no input, and it refuses each path outside `.claude/worktrees/`.
+The script `scripts/worktree.py` of this skill does the fixed git steps: the path rule, the ignore check, `git worktree add` in each of its cases, the bootstrap, `git worktree remove`, and `git worktree prune`. You keep each step that needs a judgment, a question to the user, or a GitHub MCP tool. The script needs Python 3.8 or later and git 2.31 or later. On Windows, run it in the Bash tool (Git Bash). It asks for no input, and it refuses each path outside `.claude/worktrees/`.
 
 ---
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ Run the script with the branch ref. Pass `--base` as Step 2 says, `--add-exclude
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --add-exclude --notes-dir <notes-folder>
 ```
 
-The script picks one of three cases by the state of the branch. Its `CASE` line names the case:
+The script picks one of these cases by the state of the branch. Its `CASE` line names the case:
 
 - Case A, a new branch (most common): it fetches the base branch from `origin`, and runs `git worktree add --no-track -b <branch-ref> <path> origin/<base-branch>`.
 - Case B, the branch already exists locally: it runs `git worktree add <path> <branch-ref>`, with no `-b`.
@@ -122,7 +122,7 @@ The `PATH` line gives the absolute path of the worktree. Use that path from here
 
 ### Step 6: Post-create bootstrap (mandatory — run every time)
 
-The create command of Step 5 runs these three sub-steps right after `git worktree add`. So they are done before you dispatch a subagent into the worktree. Each sub-step prints one line:
+The create command of Step 5 runs these sub-steps right after `git worktree add`. So they are done before you dispatch a subagent into the worktree. Each sub-step prints one line:
 
 1. `UPSTREAM`: if the branch has an upstream, the script removes it with `git branch --unset-upstream <branch-ref>`. Then `git branch -vv` does not hide local commits behind the base branch, and no push or pull goes to the wrong target. Push with an explicit `origin <branch-ref>`.
 2. `SETTINGS`: the script copies `.claude/settings.local.json` of the main worktree into the worktree, so that subagents get the same allow-list, hooks, and permissions with no new prompt. If git does not ignore the file, or if the branch has its own copy, the script does not copy it. Look in `.gitignore` for other ignored files below `.claude/`, for example a local CLAUDE.md override or `.claude/state/`. Copy each one yourself in the same way.
@@ -304,7 +304,7 @@ A removal that ends with `RESULT: REFUSED` or `RESULT: FAILED` keeps that worktr
 
 PR review feedback, follow-up fixes, and build and test runs at the branch HEAD all need the worktree.
 
-You can remove a worktree in two cases. First, the PR is merged, by the rule of the provider (GitHub: `merged: true`, or `state: closed` with `merged_at` set). Second, the user explicitly asks to remove a specific worktree (see Workflow C). Before each removal, read the PR status again.
+You can remove a worktree in these cases. First, the PR is merged, by the rule of the provider (GitHub: `merged: true`, or `state: closed` with `merged_at` set). Second, the user explicitly asks to remove a specific worktree (see Workflow C). Before each removal, read the PR status again.
 
 ---
 

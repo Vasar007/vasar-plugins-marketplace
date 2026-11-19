@@ -22,7 +22,7 @@ Take `owner`, `repo`, and the PR number from the request, or from the workflow o
 
 ## Step 2: The gate
 
-The gate has five items, and each one must hold. Read each item now. Do not reuse an older read.
+Each item of the gate must hold. Read each item now. Do not reuse an older read.
 
 1. Checks: call `pull_request_read` with `method: "get_check_runs"` and with `method: "get_status"`. Read each page of the check runs with `perPage: 100`, until you have `total_count` check runs. Each check run has the status `completed` and the conclusion `success`, `neutral`, or `skipped`. The combined status is `success`, or it holds no status. For a head with no status, GitHub reports `pending` with a count of 0.
 2. Merge state: `mergeable_state` of the PR is `clean`. On GitHub Enterprise Server, `has_hooks` also passes.
@@ -30,7 +30,7 @@ The gate has five items, and each one must hold. Read each item now. Do not reus
 4. Local commits: if this session has the branch of the PR in a local clone, `git rev-list <head.sha>..<branch>` exits with 0 and prints nothing. So the PR holds each local commit. If git does not know `<head.sha>`, run `git fetch origin pull/<PR number>/head`, and run the command again. An error of the command is a failed read.
 5. Session results: if this session ran the tests, a build, or a review of this branch, the last result is clean. The tests pass, and no blocking finding is open.
 
-Four states are not failures yet:
+These states are not failures yet:
 
 - A check run is not `completed`.
 - The combined status is `pending` with a count above 0.

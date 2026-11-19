@@ -31,12 +31,12 @@ Each output line starts with one word:
 
 If the command prints no `DEFECT` line and the `INFO` counts match the reply, the step passes.
 
-- If no base snapshot exists, use `--base no` at step 1. Two cases give no base snapshot: the analyzed commit is the base, or the base is `none`.
+- If no base snapshot exists, use `--base no` at step 1. These cases give no base snapshot: the analyzed commit is the base, or the base is `none`.
 - If the base is `none`, add `--base no` to the `report` commands. Then no entry has the field "Also on base".
 - During a resume, the progress file of the agent that `## NEXT` names can exist. Add `--allow <file name>` for it.
 - If there are no findings, skip the verifier commands. The auditor writes the Summary.
 
-Two more commands:
+More commands:
 
 - Next free ID: `python3 -I "$C" next-id --report "$R"`. It prints for example `BH-08`.
 - Open notes: `python3 -I "$C" open-notes --report "$R"`. It prints each note under "Notes for other areas" that names an area with the same or a lower number and has no `Result:`. The hunter of that area had already finished before the note was written.

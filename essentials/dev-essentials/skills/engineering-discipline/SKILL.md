@@ -1,6 +1,6 @@
 ---
 name: engineering-discipline
-description: "Eight rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, finish the refactor direction of the user, and write only useful tests."
+description: "Rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, finish the refactor direction of the user, and write only useful tests."
 when_to_use: "Use it in any session that writes, reviews, or commits code. Examples: 'implement this spec', 'fix tests', or 'process PR comments'."
 ---
 
@@ -97,7 +97,7 @@ How to apply:
 - If the user reports a live-system result that contradicts your repro or your reasoning, believe the user and apply the change. Do not argue from the repro.
 - Before you state a deciding claim to the user, read the methods yourself.
 - Before you list an item as an open question or a blocker, look for an answer in the spec or the design doc.
-- Sort each candidate item into one of two groups: "has a sensible default, take it and move on", or "blocks progress". Only the second group goes into the list of blockers.
+- Sort each candidate item into one of these groups: "has a sensible default, take it and move on", or "blocks progress". Only the second group goes into the list of blockers.
 - Answer the question that the user asked. Do not expand a narrow question into a survey of the subsystem around it.
 
 ## Rule 6 — Surface overblown or analyzer-dodging code, don't bury it
@@ -156,4 +156,4 @@ How to apply:
 
 ## How these rules relate
 
-All eight rules share one idea: the work is not done until what ships matches what was promised.
+All the rules share one idea: the work is not done until what ships matches what was promised.

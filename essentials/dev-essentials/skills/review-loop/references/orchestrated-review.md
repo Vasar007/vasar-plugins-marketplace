@@ -29,7 +29,7 @@ The threshold calls for judgment. It is not a fixed gate. A target just under it
 
 This file defines **roles and prompt shapes**: what each subagent does and what it returns. It does not repeat the **dispatch mechanics**, which `dev-essentials:subagent-orchestration` covers. An example is several independent `Agent` calls in one message, against calls in sequence. Follow that skill to launch these subagents. The roles below say which subagents to dispatch, and in which order.
 
-Three roles, in this order of dependency:
+The roles, in this order of dependency:
 
 1. **Target Explorer** (always): one subagent. It builds a fact map of the target, with no judgment.
 2. **Area Explorers** (always, after the Target Explorer returns): one subagent for each logical area, all dispatched together. They do not depend on each other.

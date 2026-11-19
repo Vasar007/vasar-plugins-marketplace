@@ -183,5 +183,5 @@ A local build or format pass can regenerate or reformat these shared files as a 
 
 1. Before you stage, run `git status --short` and review every entry.
 2. Stage only the files that the current task changes on purpose: `git add -- <path1> <path2>`.
-3. If one of the three files above shows as modified, and the task did not intend to change it, roll it back first. Use `git checkout -- <path>`, and do not stage it.
+3. If one of the files above shows as modified, and the task did not intend to change it, roll it back first. Use `git checkout -- <path>`, and do not stage it.
 4. If a change to one of those files IS an intended part of the task, you can stage it. The rule is about an accidental add through a blanket add, not a ban on these files.

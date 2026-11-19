@@ -34,7 +34,7 @@ An eligible `deep-fix` thread does not run Phase 4 steps 1 to 4. Stage 3 handles
 
 **Invocation**. Stage 3 runs `/research-implement-review-report` as the next phase of the orchestrating session. It never goes into the brief of a subagent, because a phase that runs its own subagents is its own dispatch (`dev-essentials:subagent-orchestration` Rule 1). That skill can stop on a question, and in the interactive mode on its Phase 1 sign-off gate. Questions and that gate belong to the session that talks to the user. Pass:
 
-1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That skill needs these two facts for its pre-existing-branch verification step.
+1. The **branch name** (the `headRefName` of the PR) and the **absolute worktree path**. That skill needs these facts for its pre-existing-branch verification step.
 2. `--base=<baseRefName>`: the target branch of the PR, which Phase 1 cached.
 3. `--commit-mode=single` and `--rounds=<deep-fix-rounds>`.
 4. **Commit subject**. The one squash commit must use the format of Phase 4 step 3 of this skill. The subject is `PR #<prId> T#<commentId>: <subject>`. The body explains *why* and names the point of the reviewer. The commit ends with the `Co-Authored-By` trailer.
@@ -81,10 +81,10 @@ Never link the report artifact of that skill from either reply. It is a pipeline
 **`stop-blocked`: cancel the push of the cycle**. With `--commit-mode=single`, `/research-implement-review-report` makes the commits of each review-loop round on the PR source branch. It makes them before it can know that the build is red. The rule of Phase 4 step 1 (no commit after a failed build) cannot stop commits that the arc of that skill already made. So:
 
 - Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
-- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user two facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
+- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user these facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
 - The pending replies of the other threads stay unposted, because the push of the cycle does not come. A later "push" of the user does not post them or push this cycle (Bucket B). The way back is a new invocation of the skill after the recovery below (`commit-push-resolve.md` § "When replies post").
 - In Phase 5, report it as `deep-fix — blocked (build red, not pushed)`.
-- Offer the two real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
+- Offer the real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
 
 ## Cycle log on a `deep-fix` cycle
 

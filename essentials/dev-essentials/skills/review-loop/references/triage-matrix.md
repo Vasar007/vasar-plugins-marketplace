@@ -93,7 +93,7 @@ A row whose severity is in `--skip` shows `(deferred — --skip <token>)`. A row
 | `critical,high,medium,low,nit` | Blocker only | Critical, High, Medium, Low, Nit |
 | `blocker` | Critical, High, Medium, Low, Nit | Blocker (deferred to the Phase 9 deferred list. No later cycle of this run fixes it. Use this only to ship known-broken code on purpose.) |
 
-Any subset of the six tokens is valid. Each token that the value leaves out can get a fix. Each token in the value is deferred. The rows above are examples, not the full set.
+Any subset of the tokens is valid. Each token that the value leaves out can get a fix. Each token in the value is deferred. The rows above are examples, not the full set.
 
 ---
 

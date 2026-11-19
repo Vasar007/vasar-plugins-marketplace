@@ -83,7 +83,7 @@ The orchestrating session pushes after steps 1 to 4 ran for every thread of the 
 
 ## Resolve threads and report
 
-This step runs after the push of this cycle succeeds. It covers two groups of threads: (a) the threads that this cycle committed and replied to, and (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle. Group (a) also holds a thread of an earlier cycle whose reply missed its batch and posted in this batch.
+This step runs after the push of this cycle succeeds. It covers these groups of threads: (a) the threads that this cycle committed and replied to, and (b) each thread that Phase 2 step 5 marked `unconfirmed-commit-claim` in this cycle. Group (a) also holds a thread of an earlier cycle whose reply missed its batch and posted in this batch.
 
 **Group (a), the threads of this cycle**. Skip a thread with `openFindingsMarker: true` (see `deep-fix.md`). For each other thread, run the ancestry check (`thread-state-schema.md` § "Ancestry check") for its commit SHA against `<pushed-tip>`. `<pushed-tip>` is the commit or branch state that the push of this cycle produced, not the remote-tracking ref.
 

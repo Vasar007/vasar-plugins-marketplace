@@ -1,7 +1,7 @@
 # Stage 2: Spec & Test Plan
 
 <!--
-  Note for the master agent: replace the four placeholders that "Stage Launch"
+  Note for the master agent: replace the placeholders that "Stage Launch"
   in SKILL.md names.
 
   Task metadata is in the Task Context section above.
@@ -30,7 +30,7 @@
 
 Design a detailed implementation spec and test plan. They guide the Implementation agent through the whole task without ambiguity.
 
-You write two files, in strict order:
+You write these files, in strict order:
 
 1. `spec.md` first: what code must be written (it defines the architecture)
 2. `test-plan.md` second: what tests must exist to validate the spec

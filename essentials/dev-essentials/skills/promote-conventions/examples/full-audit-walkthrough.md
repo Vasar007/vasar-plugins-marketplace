@@ -1,6 +1,6 @@
 # Full Audit Walkthrough — End-to-End Worked Example
 
-A sanitized, fictional run from end to end. Phases 0 to 4 run in `audit-personal-conventions`. Phases 5 to 10 run in `promote-conventions`, which the user starts after the triage. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all four Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
+A sanitized, fictional run from end to end. Phases 0 to 4 run in `audit-personal-conventions`. Phases 5 to 10 run in `promote-conventions`, which the user starts after the triage. It covers the scan, the triage, a partial approval, authoring, review, one version bump, and all Phase 9 cleanup sub-phases. Of these sub-phases, one is on by default, and one is skipped. One has a mixed outcome across two repos and resumes in a later invocation, and one is report-only. The rule content, the repo names (`RepoAlpha`, `RepoBeta`), and the branch prefix (`devuser`) are fictional. The name, the remote host, and the plugin root of the target marketplace appear only as placeholders (`<target-marketplace-name>`, `<git-host>`, `<plugin-root>`).
 
 ## Contents
 
@@ -67,7 +67,7 @@ Scope resolved:
 
 ## 0. Disposition legend
 
-(The six rows of the legend in the template, unchanged.)
+(The rows of the legend in the template, unchanged.)
 
 ## 1. Scan summary
 
@@ -307,7 +307,7 @@ blocked by "`--cross-repo` was off this run". The `RepoAlpha` entry, per the 9c.
 
 ## Phase 9d — Personal entities (report-only, no promoted personal entities this run)
 
-Neither of the two eligibility routes of 9d fired in this run. No promotion of this run superseded a personal command, agent, or skill file. Phase 3 also classified no file F-stale because of an already-shipped entity. So the report-only default of Phase 9d has nothing to list this time.
+No eligibility route of 9d fired in this run. No promotion of this run superseded a personal command, agent, or skill file. Phase 3 also classified no file F-stale because of an already-shipped entity. So the report-only default of Phase 9d has nothing to list this time.
 
 ---
 
@@ -417,7 +417,7 @@ ready for other repos to reference it? (yes / not yet)
 > yes
 ```
 
-**RepoAlpha**: all three preconditions pass.
+**RepoAlpha**: all preconditions pass.
 
 - A: passed, as shown above.
 - B: `RepoAlpha/.claude/settings.json` lists `<target-marketplace-name>` and `dev-essentials` as enabled.

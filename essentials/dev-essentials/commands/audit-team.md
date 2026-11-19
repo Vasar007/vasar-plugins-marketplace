@@ -25,7 +25,7 @@ If arguments are ambiguous or missing the path, use **AskUserQuestion** to clari
 
 ## Routes
 
-- **Two-view route** (no count): the main session reviews the target with all five roles as lenses. Then one fresh agent takes the devil's advocate role. The agent does not see the review of the main session, so it is the independent view. The main session already holds the target from Step 1, so its pass reads the target no second time. The `model` argument applies to the agent only.
+- **Two-view route** (no count): the main session reviews the target with all roles of the table as lenses. Then one fresh agent takes the devil's advocate role. The agent does not see the review of the main session, so it is the independent view. The main session already holds the target from Step 1, so its pass reads the target no second time. The `model` argument applies to the agent only.
 - **Team route** (a count): one agent for each of the first N roles, in the order of the table. If the count is more than 5, add roles like "security engineer", "performance engineer", "DX/usability reviewer" as needed.
 
 ## Steps
@@ -92,7 +92,7 @@ If arguments are ambiguous or missing the path, use **AskUserQuestion** to clari
    **Agreement matrix:** Note which findings had consensus (multiple roles) vs. single-role findings.
    ```
 
-   On the two-view route, the **Reviewers** line names the main session with its five lenses and the devil's advocate agent. If the main session and the agent both flag a finding, the finding has consensus. The lenses of the main session are one view, so an agreement of two lenses is not consensus.
+   On the two-view route, the **Reviewers** line names the main session with its lenses and the devil's advocate agent. If the main session and the agent both flag a finding, the finding has consensus. The lenses of the main session are one view, so an agreement of two lenses is not consensus.
 
 ## Guardrails
 

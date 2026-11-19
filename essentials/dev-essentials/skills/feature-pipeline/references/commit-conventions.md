@@ -4,9 +4,9 @@ The master agent reads this file at Step 0 of `SKILL.md`, and again before it co
 
 ## Injection rules
 
-- Four stages get the block: `implementation`, `test-coverage`, `simplifier`, and `docs`. No other stage gets it. At Step 9, the master agent follows the same block.
+- These stages get the block: `implementation`, `test-coverage`, `simplifier`, and `docs`. No other stage gets it. At Step 9, the master agent follows the same block.
 - Copy the fenced block below **verbatim**. Do not paraphrase, summarize, reorder, or trim its bullets.
-- Exactly two things change on the way in. The `{CADENCE_LINE}` token becomes the line for the resolved `{COMMIT_MODE}` (see "Cadence lines"). `{ARTIFACTS_DIR}` is replaced like every other placeholder.
+- Only these things change on the way in. The `{CADENCE_LINE}` token becomes the line for the resolved `{COMMIT_MODE}` (see "Cadence lines"). `{ARTIFACTS_DIR}` is replaced like every other placeholder.
 - Prepare the block once, after Step 0 resolves `{COMMIT_MODE}` and before the first stage launch. In one run, the block is the same for each stage that gets it.
 - If the block in a composed prompt differs from the source in any other way, the prompt has a defect. The stage subagents never see `SKILL.md`, so a paraphrase silently becomes the rule.
 

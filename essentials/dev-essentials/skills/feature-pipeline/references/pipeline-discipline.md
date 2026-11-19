@@ -1,6 +1,6 @@
 # Pipeline discipline
 
-The master agent reads this file at Step 0 of `SKILL.md`. These three safeguards apply to the master agent and to every stage. A stage subagent never sees this file. So step 4 of "Launch steps" in `references/stage-launch.md` copies the three safeguards into the prompt of each stage, and the subagents must follow them too.
+The master agent reads this file at Step 0 of `SKILL.md`. These safeguards apply to the master agent and to every stage. A stage subagent never sees this file. So step 4 of "Launch steps" in `references/stage-launch.md` copies the safeguards into the prompt of each stage, and the subagents must follow them too.
 
 ## Safeguard 1: claims about Claude Code
 
@@ -12,7 +12,7 @@ At any stage, you can find a schema error, a failed manifest validation, or a mi
 
 ## Safeguard 3: an MCP failure
 
-If the MCP server of the task provider fails, answer two questions before you look at the install state or advise a restart:
+If the MCP server of the task provider fails, answer these questions before you look at the install state or advise a restart:
 
 1. Does the server fail only in this session, or also in other Claude sessions that run at the same time?
 2. Which terminal hosts Claude Code? Warp and other sandboxed terminals isolate MCP child processes.

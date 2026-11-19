@@ -28,13 +28,13 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 | `--marketplace=<path>` | auto-detect | The root of the target marketplace repo, which receives the promoted entities. It can be a different marketplace than the one that ships this skill. If the current working tree contains `.claude-plugin/marketplace.json`, auto-detect uses it. Else, stop and ask. |
 | `--target-plugin=<name>` | none (ambiguous: ask) | The default destination plugin in the target marketplace. The triage can choose another plugin for each item. |
 | `--min-evidence=<N>` | `1` | Present only the promotion candidates that at least N independent sources corroborate. |
-| `--dispositions=<tokens>` | all | Filter for the triage that the run presents: `promote`, `promote-scoped`, `fix-shipped`, `prune`, `keep`. The tokens map to the six dispositions: `promote`=C, `promote-scoped`=D, `fix-shipped`=E, `prune`=F, `keep`=A+B. `keep` covers both leave-alone dispositions, because the run never acts on them. The filter can hide `keep` items from the detail table, but the summary always counts them. |
+| `--dispositions=<tokens>` | all | Filter for the triage that the run presents: `promote`, `promote-scoped`, `fix-shipped`, `prune`, `keep`. The tokens map to the dispositions: `promote`=C, `promote-scoped`=D, `fix-shipped`=E, `prune`=F, `keep`=A+B. `keep` covers both leave-alone dispositions, because the run never acts on them. The filter can hide `keep` items from the detail table, but the summary always counts them. |
 | `--include-vendored` | off (bare) | Include the vendored or third-party CLAUDE.md files in personal repos, with a clear label. By default, the run excludes them. |
 | `--dry-run` | off (bare) | Accepted for old invocations. The audit always stops after the triage. |
 
 `--dry-run` wins over every rule of this section. With `--dry-run`, the run always stops after the triage. This also applies to a promote request.
 
-A flag of the promotion, for example `--cross-repo`, `--resume`, `--delete-personal-entities`, or `--mode`, belongs to `promote-conventions`. Its command is `/dev-essentials:promote-conventions`. Say so. The old call still works in two cases only. The first case is `--resume`. Read `../promote-conventions/SKILL.md`, start at "Phase 0 for a resume run" of that file, and skip the audit. The second case is a promote request, with or without a flag of the promotion. A promote request asks the run to promote rules or to act on a triage. Examples are "promote my memory to skills" and "promote the recommended items". If this conversation already holds a Phase 4 triage, do not run the audit again. Else, run the audit first. Then read that file, and continue at its Phase 5 in the same run.
+A flag of the promotion, for example `--cross-repo`, `--resume`, `--delete-personal-entities`, or `--mode`, belongs to `promote-conventions`. Its command is `/dev-essentials:promote-conventions`. Say so. The old call still works only in these cases. The first case is `--resume`. Read `../promote-conventions/SKILL.md`, start at "Phase 0 for a resume run" of that file, and skip the audit. The second case is a promote request, with or without a flag of the promotion. A promote request asks the run to promote rules or to act on a triage. Examples are "promote my memory to skills" and "promote the recommended items". If this conversation already holds a Phase 4 triage, do not run the audit again. Else, run the audit first. Then read that file, and continue at its Phase 5 in the same run.
 
 Any other request is a question or an audit. Examples are "audit my memory", "which of my rules belong in the marketplace?", and a call with no request text. It stops after the triage. If it carries a flag of the promotion or a `--mode`, it still stops there. A mode adds no steps.
 
@@ -62,10 +62,10 @@ The audit has no approval gate and changes no file. A promotion that continues f
 
 | File | When to read |
 | --- | --- |
-| `references/source-inventory.md` | Phase 0 and Phase 1: the discovery paths, decode-and-probe, the worktree-sibling collapse, the wrapper diff, and the twelve structural landmines. |
+| `references/source-inventory.md` | Phase 0 and Phase 1: the discovery paths, decode-and-probe, the worktree-sibling collapse, the wrapper diff, and the structural landmines. |
 | `references/classification-framework.md` | Phase 3: the full decision tree, the tie-breakers, and the calibration cases. |
 | `references/report-templates.md` | Phase 4: the triage template. |
-| `examples/fix-shipped-entity.md` | The E-disposition path, with three worked cases from end to end. |
+| `examples/fix-shipped-entity.md` | The E-disposition path, with worked cases from end to end. |
 
 ## Phases (the workflow)
 
@@ -92,7 +92,7 @@ Follow `references/source-inventory.md`, which you read in Phase 0:
 - The decode-and-probe procedure for encoded project directory names.
 - The worktree-sibling collapse. A collapsed repo counts as one independent source for each rule in Phase 3.
 - The mandatory diff of each wrapper personal entity against the entity that it wraps.
-- The twelve structural landmines. Know them before you extract rules.
+- The structural landmines. Know them before you extract rules.
 
 ### Phase 2 — Extract atomic rules
 
@@ -109,7 +109,7 @@ Read `references/classification-framework.md` now, and apply its Steps 1 to 7 an
 
 1. **Corroborate first.** Count the independent sources of each cluster of equivalent rules. Repetition across sources is the strongest promote signal.
 2. **Check the already-promoted status against the on-disk plugin manifests of the target marketplace.** Never trust the "migrated" claim of a memory index. Never trust the runtime skills listing either. It mixes the personal global skills of the user with the shipped skills of the marketplace, and only the file location tells them apart.
-3. **Assign exactly one disposition** from the six-value enum:
+3. **Assign exactly one disposition** from this enum:
    - **A-local**: leave. Truly project-local, with no promotion value.
    - **B-taste**: leave, unless named evidence shows an established team code style.
    - **C-universal**: promote as a new entity, unscoped.

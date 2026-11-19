@@ -1,6 +1,6 @@
 # Source Inventory — Phase 0 and Phase 1
 
-Phase 0 and Phase 1 of `SKILL.md` read this file. It holds the discovery paths, the decode-and-probe procedure for encoded project names, the worktree-sibling collapse, the mandatory wrapper diff, and the twelve structural landmines.
+Phase 0 and Phase 1 of `SKILL.md` read this file. It holds the discovery paths, the decode-and-probe procedure for encoded project names, the worktree-sibling collapse, the mandatory wrapper diff, and the structural landmines.
 
 All paths in this file are relative to `<claude-root>`, the Claude config root. The path resolution rule in `SKILL.md` gives its value. If the environment variable `CLAUDE_CONFIG_DIR` is set, the root is its value. Else, the root is `<home>/.claude`. Never hardcode a concrete path in output. Show each path relative to `<claude-root>` or to the repo root.
 
@@ -36,7 +36,7 @@ Claude Code stores the session and memory data of each project in a directory. T
 A repository that the user works on through several git worktrees gets several encoded project directories under `<claude-root>/projects/`, one for each worktree path. For promotion, they are all the same real repository.
 
 - **Detect** a worktree-suffixed encoded name by a worktree marker in the decoded path. The usual marker is a `.claude/worktrees/<branch-ref>` segment, which is the path convention of `dev-essentials:git-worktree-management`. Detection does not depend on that convention. Any worktree path marker counts.
-- **Collapse** the siblings in two cases:
+- **Collapse** the siblings in these cases:
   - Worktree siblings decode to paths under the resolved path of a non-worktree sibling. Treat the non-worktree sibling as the one real parent repo.
   - Two or more worktree siblings, and no non-worktree sibling, resolve to the same repo root after you strip their worktree suffixes (step 4 of decode-and-probe). This all-worktree family is a real case, because some users always work through worktrees.
 
@@ -49,7 +49,7 @@ A repository that the user works on through several git worktrees gets several e
 
 ## Wrapper personal entities — mandatory diff against the wrapped entity
 
-This procedure is mandatory for each personal-entities file that is a wrapper. Two things make a file a wrapper: a signal of landmine 12 below, or your own judgment during the Phase 1 read. Never skip the procedure because the wrapper "looks like" it stays personal forever.
+This procedure is mandatory for each personal-entities file that is a wrapper. One of these things makes a file a wrapper: a signal of landmine 12 below, or your own judgment during the Phase 1 read. Never skip the procedure because the wrapper "looks like" it stays personal forever.
 
 1. **Resolve the on-disk path of the wrapped entity**. Reuse the on-disk-manifest lookup of Phase 3 (Step 2 of `references/classification-framework.md`), which greps the real plugin manifests of the target marketplace. Do not invent a second lookup.
 2. **Read the definition files of the base entity, scoped to its kind.** Step 1 already gives the kind: the `commands/`, `agents/`, or `skills/` tree of the resolved file.
@@ -59,13 +59,13 @@ This procedure is mandatory for each personal-entities file that is a wrapper. T
      3. Read only those files in full.
 
      The grep narrows the read. It does not replace judgment. A support file that the wrapper never mentions can still duplicate or contradict it in silence. If the scoped read leaves the behavior of the wrapper unclear, read more files.
-   - **Command or agent**: always read the single `commands/<name>.md` or `agents/<name>.md` file in full. In the Claude Code plugin layout, commands and agents are flat single files, with no `references/`, `stages/`, or `examples/` tree. So the three sub-steps above do not apply. But a command or an agent often delegates behavior to another entity. Signs: a `Skill` tool call that names another skill, a `skills:` frontmatter entry, or an explicit `<plugin>:<entity>` reference. For example, `commands/help-review-pr.md` takes its mechanics from the recipes of `create-html-artifact` and its tag taxonomy from `process-pr-comments`. `commands/implement-task.md` hands whole phases to `research-implement-review-report`. The real divergence of the wrapper can be in that delegated behavior. In that case, follow that ONE hop (no further), and apply the three sub-steps to the delegated entity.
+   - **Command or agent**: always read the single `commands/<name>.md` or `agents/<name>.md` file in full. In the Claude Code plugin layout, commands and agents are flat single files, with no `references/`, `stages/`, or `examples/` tree. So the sub-steps above do not apply. But a command or an agent often delegates behavior to another entity. Signs: a `Skill` tool call that names another skill, a `skills:` frontmatter entry, or an explicit `<plugin>:<entity>` reference. For example, `commands/help-review-pr.md` takes its mechanics from the recipes of `create-html-artifact` and its tag taxonomy from `process-pr-comments`. `commands/implement-task.md` hands whole phases to `research-implement-review-report`. The real divergence of the wrapper can be in that delegated behavior. In that case, follow that ONE hop (no further), and apply the sub-steps to the delegated entity.
 3. **List every divergence** between the wrapper and the base entity. Hand each one to Phase 2 as its own rule record. Exception: a pure forwarding or boilerplate divergence (argument passthrough, the flag parsing of the wrapper) gives no Phase 2 record, because it is not a rule. `references/classification-framework.md` states the same exclusion in "Wrapper divergences use the same rules, no new taxonomy". Each record cites a pair: the file and line of the wrapper, and the file and line of the base entity.
 4. **If the wrapped entity does not resolve on disk**, record an unresolvable-source note in the Phase 4 scan summary. Causes: a rename, a removal, or a target marketplace that does not ship it. Never skip the wrapper file in silence.
 
 ---
 
-## The twelve structural landmines
+## The structural landmines
 
 Read this list before you extract rules in Phase 2. If you skip a landmine, you misread a source in a specific way.
 
@@ -85,10 +85,10 @@ Read this list before you extract rules in Phase 2. If you skip a landmine, you 
 9. **Near-duplicate CLAUDE.md pairs with content drift**. A repo root `CLAUDE.md` and a nested `.claude/CLAUDE.md` (or a `CLAUDE.md` deeper in a subdirectory) can overlap heavily. Sometimes the deeper file is a STALE superset that someone copied once and never kept in sync. Dedupe by content, not by location. Read both files in full and reconcile them. Do not assume that the deeper file is more specific or more current.
 10. **Nested-file inheritance/scope-negation statements**. A nested CLAUDE.md sometimes narrows or negates a rule of the parent scope ("unlike the repo default, this subfolder does not use X"). In Phase 2, honor each such statement as you extract the rules. A flat scan that ignores nesting puts the rule on the wrong folder. Worse, it can drop the negation in silence and treat the parent rule as universal.
 11. **Vendored/third-party CLAUDE.md files**. A personal repo can contain a vendored or third-party dependency that ships its own `CLAUDE.md`. Exclude these files by default. They document the conventions of another project, not the conventions of the user. `--include-vendored` includes them, with a clear `vendored` label in the inventory output.
-12. **Wrapper personal entities**. A personal command, agent, or skill can wrap a shipped entity. Never read such a wrapper alone. Diff it against the entity that it wraps, with the wrapper-diff procedure above. Each of these two signals alone triggers the diff:
+12. **Wrapper personal entities**. A personal command, agent, or skill can wrap a shipped entity. Never read such a wrapper alone. Diff it against the entity that it wraps, with the wrapper-diff procedure above. Each of these signals alone triggers the diff:
     - (i) The body has a line that forwards `$ARGUMENTS`, anywhere in the file, not only as the first line.
     - (ii) The file name or the frontmatter `description` explicitly names, wraps, extends, or refines a shipped entity.
 
-    The two signals cover the two shapes that occur in practice: a forwarding wrapper and a wrapper that its name or description declares. Catch a wrapper of another shape by your own judgment during the Phase 1 read.
+    These signals cover the shapes that occur in practice: a forwarding wrapper and a wrapper that its name or description declares. Catch a wrapper of another shape by your own judgment during the Phase 1 read.
 
     If you read the wrapper alone, you can re-promote content that the wrapped entity already holds upstream. Or you can miss that the real delta of the wrapper is a bug report against the base entity (disposition **E** in `references/classification-framework.md`). `examples/fix-shipped-entity.md` Case 2 shows this landmine. The diff does not stop the wrapper from staying personal on purpose. By the orthogonality rule of Step 4 in `references/classification-framework.md`, an intentional wrapper can still carry divergences that each need their own disposition.

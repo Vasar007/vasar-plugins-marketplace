@@ -1,6 +1,6 @@
 ---
 name: dotnet-build-test
-description: "Build and test rules for .NET solutions. A plain `dotnet build` is the authority, not LSP or IDE diagnostics. Avoid `--no-incremental`. Run builds and tests in the foreground. The two exceptions to this rule are a request of the user and a long test run in a subagent."
+description: "Build and test rules for .NET solutions. A plain `dotnet build` is the authority, not LSP or IDE diagnostics. Avoid `--no-incremental`. Run builds and tests in the foreground. The exceptions to this rule are a request of the user and a long test run in a subagent."
 when_to_use: "Use it for 'build the solution', 'run the tests', 'check for compile errors', or 'the LSP says X is broken'. Use it before any build or test command in a .NET repo."
 ---
 
@@ -90,16 +90,16 @@ These errors are SDK and MSBuild infrastructure noise, not compile errors in the
 
 An incremental build reports diagnostics only for the projects where `CoreCompile` runs again. So its warning count covers only part of the solution. A count delta between an incremental build and a full build, or between two incremental builds with different changed files, means nothing. Example: two builds one commit apart reported `1176` and then `2362` warnings for a 6-character diff. The second commit touched a file that almost every project references, so most projects compiled again.
 
-To compare warnings, use one of these two ways:
+To compare warnings, use one of these ways:
 
 1. Make both sides full clean rebuilds. Delete `obj/` and `bin/`, then run a plain `dotnet build`. Never use `--no-incremental` for this (Rule 2).
 2. Compare by changed line numbers, not by totals. Get the changed lines with `git diff -U0 <parent> <commit> -- <file>`. Match them against the line numbers that the build log gives for that file. A warning on an unrelated line in a file that you touched is pre-existing.
 
 Two incremental builds are not a safe basis for a comparison. For a routine "is it green" build, still avoid `--no-incremental` (Rule 2).
 
-## Rule 3: Tests run foreground, with two exceptions
+## Rule 3: Tests run foreground, with exceptions
 
-Never run tests with `run_in_background: true` or an equivalent. Run tests in the foreground, and wait for the result. The same holds for builds, deploys, and any other long-running command. This rule has two exceptions: a request of the user, and a long test run in a subagent (see below).
+Never run tests with `run_in_background: true` or an equivalent. Run tests in the foreground, and wait for the result. The same holds for builds, deploys, and any other long-running command. This rule has these exceptions: a request of the user, and a long test run in a subagent (see below).
 
 ### Why
 
