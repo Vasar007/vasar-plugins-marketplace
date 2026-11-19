@@ -24,7 +24,7 @@ OPENERS = {
 # A cell with one of these words takes the cell of the partial mode.
 SAME = ("Same", "Same as partial")
 RANK = {GO: 0, STOP: 1}
-# A gate with one of these words is an outward step or a deletion. The partial mode stops there.
+# A gate with one of these words is an outward step or a deletion. The partial mode does not go on there with no question.
 OUTWARD = re.compile(r"\b(?:push|merge|delete|deletion|remove|removal)\b", re.IGNORECASE)
 # Rows that break the order on purpose, with the classes of their partial, interactive, and full cells.
 ORDER_EXCEPTIONS = {
@@ -77,8 +77,9 @@ class GateRowTests(unittest.TestCase):
                 with self.subTest(unit=rel, gate=row[0]):
                     self.assertEqual(len(row), 4, f"The row needs a gate and three cells: {row}")
                     found = classes(row)
-                    if OUTWARD.search(row[0]):
-                        self.assertEqual(found[0], STOP, "The partial mode pushes, merges, or deletes with no question. Start the partial cell with the words of a stop.")
+                    if OUTWARD.search(row[0]) and (rel, row[0]) not in ORDER_EXCEPTIONS:
+                        self.assertNotEqual(found[0], GO, "The partial mode pushes, merges, or deletes with no question. Start the partial cell with the words of a stop. "
+                                            "If the step needs no question on purpose, for example a deletion of only the paths that this run made, add the row to ORDER_EXCEPTIONS.")
                     why = (f"Cells {row[1:]} have the classes {found} by their opening words in OPENERS. "
                            "If a class is wrong, start the cell with the words of its class. "
                            "If the row breaks the order on purpose, add it to ORDER_EXCEPTIONS.")
@@ -90,6 +91,7 @@ class GateRowTests(unittest.TestCase):
                         partial, interactive, full = (RANK[name] for name in found)
                         self.assertGreaterEqual(interactive, partial, "The interactive mode goes on where the partial mode stops. " + why)
                         self.assertGreaterEqual(partial, full, "The full mode stops where the partial mode goes on. " + why)
+
 
 if __name__ == "__main__":
     unittest.main()
