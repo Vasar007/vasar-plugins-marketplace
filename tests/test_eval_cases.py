@@ -5022,11 +5022,11 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
 
     def test_the_module_shows_no_constant_to_a_user(self):
         scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
-        messages = re.findall(r'raise ValueError\("([^"]*)"\)', scaffold)
+        messages = re.findall(r"raise ValueError\((.*)\)", scaffold)
         self.assertTrue(messages, "The module must raise ValueError with a message.")
         for message in messages:
             with self.subTest(message=message):
-                self.assertNotRegex(message, r"\d")
+                self.assertNotRegex(message, r"\d|\{")
 
 
 if __name__ == "__main__":
