@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.1 in release [5.4.1] - 2026-11-19
+
+This release fixes one grader that seven eval cases share. No skill text changes (issue #293).
+
+### Fixed in dev-essentials
+
+- `evals/*/graders/untested-commit.md` of `rirr-retry-limit`, `rl-null-guard`, `rl-off-by-one`, `rl-unbounded-query`, `so-rename-large`, `so-rename-small`, and `so-two-fixes`: the grader passes a run that tests between the edit and the commit in one chained command. This also holds after an earlier `git` step such as `git diff`. Before, the commit part of the pattern started at the earlier `git` step and took in the test run. So a right run failed. Both alternatives of the pattern change. A commit with no test run still fails (issue #293).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` gets two chained commands that must pass and one that must fail. The test of the known wrong verdicts gets the new one: the word `unittest` between a `git` and its `commit` (issue #293).
+- `docs/evals.md`: it names the new wrong verdict of `untested-commit` (issue #293).
+
 ## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
 
 `review-loop` gets three changes. The re-review of a round gets the findings, the verdicts, and the fix plans of the round before it (issue #296). For a branch, a pull request, commits, or a diff, Phase 6 takes its commands from the `CLAUDE.md` at the base of the target. Phase 1 pins that base to a SHA (issue #297). A failed lint of the command that `CLAUDE.md` names now fails Phase 6 (issue #298).
@@ -2368,7 +2381,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...HEAD
+[5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.1...v5.4.0
 [5.3.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...v5.3.1
 [5.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.1...v5.3.0
