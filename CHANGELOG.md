@@ -15,13 +15,13 @@ The other numbers in a heading are plugin versions.
 
 ### Added in dev-essentials
 
-- `commands/implement-task` and `skills/implement-batch`: the option `--no-worktree`. The run makes no worktree, and it works on the current branch in the current folder. On the default branch, the base branch, or a detached HEAD, the full mode first creates the branch of the `--worktree` row. The partial mode and the interactive mode ask for a branch name, or for a yes to work on the current branch. If that branch already exists, the run asks (issue #282).
+- `commands/implement-task` and `skills/implement-batch`: the option `--no-worktree`. The run makes no worktree, and it works on the current branch in the current folder. If a tracked file has a change, it stops. On the default branch, the base branch, or a detached HEAD, the full mode first creates the branch of the `--worktree` row. The partial mode and the interactive mode ask for a branch name. On a branch, they also offer a yes to work on it, with local commits and no finish step. If that branch already exists, or the request names another branch ref, the run asks. If the branch holds commits that are not on the remote base branch, the run asks. In the full mode, it does no finish step. After a merge, the run removes no worktree (issue #282).
 - `evals/implement-task` and `evals/implement-batch`: the cases `it-no-worktree` and `ib-no-worktree`. Each one runs its workflow with `--no-worktree` and `--mode full` in a clone on `main`. The run must create its branch, make one commit for each task, and push nothing. Before them, no eval case ran these workflows from their start, because `git worktree add` fails in an eval run (issue #282).
 
 ### Changed in the repository
 
-- `tests/test_eval_scaffolds.py`: `NoWorktreeBranchGraderTests` tests the branch graders of the two new cases on real commits. The new scaffolds join the tables of the scaffold tests (issue #282).
-- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the cells of the new gate row that ask outside the full mode (issue #282).
+- `tests/test_eval_scaffolds.py`: `NoWorktreeBranchGraderTests` tests the branch graders of the two new cases on real commits, also with an amend and a cherry-pick. The new scaffolds join the tables of the scaffold tests (issue #282).
+- `tests/test_work_modes_text.py`: `NoWorktreeTests` pins the cells of the new gate row that ask outside the full mode. It also pins the sentences that protect the work of the user (issue #282).
 - `docs/workflows.md` and `docs/evals.md`: they name the option `--no-worktree` and the two new cases (issue #282).
 
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18

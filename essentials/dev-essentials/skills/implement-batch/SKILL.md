@@ -46,7 +46,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | --- | --- | --- | --- |
 | Before Step 0: the GitHub repository of the pull request | Find it at the final gate, before its question | Same | Find it now, as "The repository" in `references/finish.md` of `dev-essentials:work-modes` says. When that file says to do no step, skip this row |
 | Step 0: the sub-issue list of a parent issue | State it, and start | Wait for approval | Same as partial |
-| Step 1: `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask for a branch name, or for a yes to work on the current branch | Same | Create the branch of the `--worktree` row, and name it in the final report |
+| Step 1: `--no-worktree` on the default branch, the base branch, or a detached HEAD | Ask for a branch name. On a branch, also offer a yes to work on it, with local commits and no finish step | Same | Create the branch of the `--worktree` row, and name it in the final report |
 | Step 2: open decisions and unsure plan findings | Ask them all in one batch | Ask | Decide, and write each one into its plan |
 | Steps 2 to 4: review loops | See "Review-loop configuration" | Same | Same |
 | Steps 3.6 and 4.4: the squash script refuses (exit code 3) or cannot run (exit code 2, or no `RESULT` and no `OLD HEAD` line) | Stop and ask | Same | Skip the squash, and report it |
@@ -99,10 +99,12 @@ A request to finish an earlier run of this skill goes straight to Step 6, as "Re
 
 Without `--no-worktree`, create the worktree from the Step 0 base branch with `dev-essentials:git-worktree-management`, and run its post-create bootstrap. Record the absolute worktree path.
 
-With `--no-worktree`, make no worktree. Record the absolute path of the current folder as the worktree path, and use it wherever this file names the worktree. The default branch is the name after `origin/` that `git -C "<worktree>" symbolic-ref --short refs/remotes/origin/HEAD` prints. If it prints nothing, treat `main` and `master` as the default branch. Then run `git -C "<worktree>" branch --show-current`:
+With `--no-worktree`, make no worktree. Record the path that `git rev-parse --show-toplevel` prints as the worktree path, and use it wherever this file names the worktree. Then run `git -C "<worktree>" status --porcelain --untracked-files=no`. If it prints a line, stop before any work, in every mode. Name each changed file, and ask the user to commit or stash it (hard stop 1 of `dev-essentials:work-modes`). Else a change in a file of a task goes into the task commit. Find the default branch with `git -C "<worktree>" symbolic-ref --quiet --short refs/remotes/origin/HEAD`, and take the name after `origin/`. If the ref does not exist, take the name from the `ref: refs/heads/<name>` line of `git -C "<worktree>" ls-remote --symref origin HEAD`. If that also gives no name, treat `main` or `master` as the default branch. Then run `git -C "<worktree>" branch --show-current`:
 
-- If it prints the default branch, the Step 0 base branch, or nothing (a detached HEAD), do not commit there. Do what the `--no-worktree` row of "Autonomy" says. For a new branch, run `git -C "<worktree>" switch -c <branch>`. If a branch of that name exists, ask the user (hard stop 6 of `dev-essentials:work-modes`).
-- If it prints another branch, work on that branch, and create no branch.
+- If it prints the default branch, the Step 0 base branch, or nothing (a detached HEAD), do not commit there. Do what the `--no-worktree` row of "Autonomy" says. If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`. For a new branch, run `git -C "<worktree>" switch -c <branch>`. If a branch of that name exists, ask the user (hard stop 6 of `dev-essentials:work-modes`).
+- If it prints another branch, work on that branch, and create no branch. If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).
+
+Then run `git -C "<worktree>" rev-list --count origin/<base>..HEAD`, with the Step 0 base. If it prints more than 0, the pull request takes commits that no review loop of this run covers. Outside the full mode, list them, and ask the user (hard stop 6 of `dev-essentials:work-modes`). In the full mode, go on. List the commits in the final report, and do no step of `finish.md`.
 
 Each write-capable dispatch from here on carries the worktree path (Rule 6), and each git call uses `git -C "<abs worktree path>"`.
 
@@ -161,7 +163,7 @@ For task `i`:
 
 ### Step 6 — Finish (push, pull request, merge)
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. The base branch is the Step 0 base. The review verdicts are the verdicts of the Step 3 loops and of the Step 4 loop. In the partial mode and in the interactive mode, ask the question of its final gate after the Step 5 report.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/work-modes/references/finish.md`, and do its steps in the worktree. With `--no-worktree`, the worktree is the folder of the user. In item 3 of Step 4 of `dev-essentials:merge-pr`, remove no worktree. If a linked worktree holds the branch, also keep the branch. Name both in the finish report. The base branch is the Step 0 base. The review verdicts are the verdicts of the Step 3 loops and of the Step 4 loop. In the partial mode and in the interactive mode, ask the question of its final gate after the Step 5 report.
 
 ## Review-loop configuration
 

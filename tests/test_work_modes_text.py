@@ -405,7 +405,19 @@ class FinishCallerTests(unittest.TestCase):
 NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}
 # Outside the full mode, a run with --no-worktree asks before it works on the default branch, the base branch, or a detached HEAD.
 NO_WORKTREE_ROW = (": `--no-worktree` on the default branch, the base branch, or a detached HEAD | "
-                   "Ask for a branch name, or for a yes to work on the current branch | Same |")
+                   "Ask for a branch name. On a branch, also offer a yes to work on it, with local commits and no finish step | Same |")
+
+# Each sentence keeps work of the user safe, or keeps the run on the branch that the user means.
+NO_WORKTREE_PROTECTIONS = (
+    "`git rev-parse --show-toplevel` prints as the worktree path",
+    "status --porcelain --untracked-files=no`. If it prints a line, stop before any work, in every mode.",
+    "symbolic-ref --quiet --short refs/remotes/origin/HEAD",
+    "ls-remote --symref origin HEAD",
+    "If the request names another branch ref, ask the user first (hard stop 6 of `dev-essentials:work-modes`).",
+    "rev-list --count origin/<base>..HEAD",
+    "In the full mode, go on. List the commits in the final report, and do no step of `finish.md`.",
+    "In item 3 of Step 4 of `dev-essentials:merge-pr`, remove no worktree. If a linked worktree holds the branch, also keep the branch.",
+)
 
 
 class NoWorktreeTests(unittest.TestCase):
@@ -416,7 +428,15 @@ class NoWorktreeTests(unittest.TestCase):
             text = read(PLUGIN / rel)
             with self.subTest(unit=rel):
                 self.assertIn(f"| {step}{NO_WORKTREE_ROW}", autonomy(text))
-                self.assertIn("or nothing (a detached HEAD), do not commit there.", text)
+                self.assertIn(f"If it prints the default branch, the {step[:-2]} 0 base branch, or nothing (a detached HEAD), do not commit there.", text)
+                self.assertIn("If the user says yes to work on that branch, make local commits only, and do no step of `finish.md`.", text)
+
+    def test_the_run_protects_the_work_that_the_user_has_in_the_folder(self):
+        for rel in NO_WORKTREE_UNITS:
+            text = read(PLUGIN / rel)
+            for sentence in NO_WORKTREE_PROTECTIONS:
+                with self.subTest(unit=rel, sentence=sentence):
+                    self.assertIn(sentence, text)
 
 
 if __name__ == "__main__":

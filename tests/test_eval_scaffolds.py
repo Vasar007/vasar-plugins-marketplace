@@ -1731,6 +1731,61 @@ class NoWorktreeBranchGraderTests(FixtureCase):
                 verdicts.add(verdict)
         self.assertEqual(verdicts, {True, False}, "the shapes must give both verdicts")
 
+    def side_commit(self, workspace):
+        """A commit on a side branch of main. It does not conflict with the commits of the shapes."""
+        self.run_git(workspace, "switch", "-q", "-c", "side", "main")
+        (workspace / "side.txt").write_text("side\n", encoding="utf-8")
+        self.run_git(workspace, "add", "side.txt")
+        self.run_git(workspace, "commit", "-q", "-m", "side")
+        sha = self.run_git(workspace, "rev-parse", "HEAD")
+        self.run_git(workspace, "switch", "-q", "-")
+        return sha
+
+    def check_fails(self, name, shapes):
+        """Each shape has an amend or a cherry-pick. Its commit count can fit the grader, and the grader must still fail it."""
+        grader, branch, _ = self.CASES[name]
+        options = self.cases[name].graders[grader][0]
+        for shape in shapes:
+            with self.subTest(case=name, shape=shape.__name__):
+                workspace = self.workspace(f"{name}-{shape.__name__}")
+                self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
+                self.run_git(workspace, "switch", "-q", "-c", branch)
+                shape(workspace)
+                text = (workspace / options["target"]["path"]).read_text(encoding="utf-8")
+                self.assertIsNone(re.search(options["pattern"], text))
+
+    def amend(self, workspace):
+        self.run_git(workspace, "commit", "-q", "--amend", "-m", "amended")
+
+    def test_the_task_grader_fails_an_amend_and_a_cherry_pick(self):
+        def an_amend_of_the_commit_of_the_base(workspace):
+            self.amend(workspace)
+
+        def a_task_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def a_cherry_pick(workspace):
+            self.run_git(workspace, "cherry-pick", self.side_commit(workspace))
+
+        self.check_fails("it-no-worktree", [an_amend_of_the_commit_of_the_base, a_task_and_an_amend, a_cherry_pick])
+
+    def test_the_batch_grader_fails_an_amend_and_a_cherry_pick(self):
+        def one_task_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def two_tasks_and_an_amend(workspace):
+            self.task(workspace, 1)
+            self.task(workspace, 1)
+            self.amend(workspace)
+
+        def one_task_and_a_cherry_pick(workspace):
+            self.task(workspace, 1)
+            self.run_git(workspace, "cherry-pick", self.side_commit(workspace))
+
+        self.check_fails("ib-no-worktree", [one_task_and_an_amend, two_tasks_and_an_amend, one_task_and_a_cherry_pick])
+
     def test_the_task_grader_passes_only_for_one_commit_on_the_branch(self):
         def one_commit(workspace):
             self.task(workspace, 1)
