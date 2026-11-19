@@ -68,6 +68,12 @@
       "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
     },
     {
+      "file": "essentials/dev-essentials/evals/subagent-orchestration/so-ladder-start/graders/billing-fixed.md",
+      "rule": "sentence_over_limit",
+      "text": "?\\* ?total|1 ?- ?percent ?/ ?100|\\(100 ?- ?percent\\) ?/{1,2} ?100|\\(1 ?- ?percen…",
+      "reason": "Regex: the `pattern` value of a grader is a JavaScript regular expression, not prose. It lists each correct form of the discount fix."
+    },
+    {
       "file": "essentials/dev-essentials/evals/research-implement-review-report/rirr-retry-limit/graders/limit-lowered.md",
       "rule": "synonym_rotation",
       "text": "settings (config-settings)",

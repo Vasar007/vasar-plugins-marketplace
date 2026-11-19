@@ -4706,5 +4706,31 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertEqual(self.found("rirr-final-gate", "route-gate-question", reply), expected)
 
 
+class ModelLadderCaseTests(unittest.TestCase):
+    """The route grader of so-ladder-start counts only a dispatch at the start of the model ladder: Opus at medium effort."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.pattern = cases["so-ladder-start"].graders["route-ladder-start"][0]["input_match"]
+
+    def test_the_grader_needs_opus_and_medium_in_any_order(self):
+        calls = {
+            "opus at medium": (agent_call_input(subagent_type="general-purpose", model="opus", effort="medium",
+                                                prompt="Fix the failing test."), True),
+            "the effort first": (agent_call_input(effort="medium", subagent_type="general-purpose", model="opus",
+                                                  prompt="Fix the failing test."), True),
+            "sonnet at medium": (agent_call_input(model="sonnet", effort="medium", prompt="x"), False),
+            "opus at high": (agent_call_input(model="opus", effort="high", prompt="x"), False),
+            "no effort": (agent_call_input(model="opus", prompt="x"), False),
+            "no model": (agent_call_input(effort="medium", prompt="x"), False),
+            "the words only in the brief": (agent_call_input(model="sonnet", effort="high",
+                                                             prompt='Use "model": "opus" and "effort": "medium".'), False),
+        }
+        for name, (text, expected) in calls.items():
+            with self.subTest(call=name):
+                self.assertEqual(re.search(self.pattern, text) is not None, expected)
+
+
 if __name__ == "__main__":
     unittest.main()

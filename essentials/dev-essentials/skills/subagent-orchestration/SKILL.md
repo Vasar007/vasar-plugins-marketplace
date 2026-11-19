@@ -14,14 +14,16 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 
 | Model | When to use | Typical tasks |
 | --- | --- | --- |
-| **Sonnet** | Default. The executor for coding work, and a capable orchestrator. | General work. Writing and editing code. Execution of an approved plan in subagent sessions. The orchestration itself. |
+| **Opus** | Default, at `medium` effort: the start of the ladder below. Work that needs a decision that no plan or brief settles yet. | The implementation approach before coding. The plan for the fix of a review finding. The review of a change. A bug fix with no fix plan. |
+| **Sonnet** | Well-scoped work: an approved plan, a written fix plan, or the brief settles each decision. Also a capable orchestrator. | Execution of an approved plan in subagent sessions. A fix with a written fix plan. A draft from given facts. The orchestration itself. |
 | **Haiku** | Routine work with no thinking: read, extract, and apply mechanically. | Extraction of information from logs, tickets, or tasks. An explicit 1-2-3 edit list. Lookups. See "Haiku scope" in `references/model-selection.md`. |
-| **Opus** | Planning and judgment. Any task that needs a plan, or a design that someone thinks through. | The implementation approach before coding. The plan for the fix of a review finding. The review of a change. |
-| **Fable** | Exceptional cases only: heavy multi-step planning or research. | A complex plan. The review of a large change set or of a change set on the critical path. Use it only for a real need. |
+| **Fable** | The top of the ladder: a step that still falls short on Opus at `xhigh`. | A hard plan, fix, or design. |
 
-**The user's explicit choice outranks this matrix**. Use the model that the user names for a task, also against the matrix and against the model defaults of any skill. Leave a model that the user set for the session as it is. Never "correct" it back to a default.
+**The ladder: effort before model.** It moves each step that a test of Rule 1 sends to a subagent. A step falls short in two cases: its self-test still fails after one fix attempt, or its reviewer rejects the result. The self-test is the check that the brief names, for example the build or the tests. If a step falls short, run it again one effort level higher, up to `xhigh`. If it still falls short at `xhigh`, move it one model up at `high`: from Haiku to Sonnet, from Sonnet to Opus, or from Opus to Fable. After Fable at `xhigh`, stop, and report the step. Use `max` only in two cases: the user or a skill names it, or no larger model is available. A limit of tries that a skill names wins over the ladder. Say each move in one line: the step, the new model and effort, and what fell short.
 
-**Fable is never dispatched silently.** The matrix can make Fable eligible on the agent's own initiative, as opposed to the user naming it. In that case, ask the user before dispatching it, every time. Exception: a workflow outside the interactive mode of `dev-essentials:work-modes` does not ask. It uses Opus, and names the Fable-eligible step in its final report. A Fable default that the workflow itself documents is not the agent's own initiative.
+**The user's explicit choice outranks this matrix and its ladder**. Use the model that the user names for a task, also against the matrix and against the model defaults of any skill. Leave a model that the user set for the session as it is. Never "correct" it back to a default.
+
+**A move up to Fable is never silent.** Ask the user before each one. Exception: a workflow outside the interactive mode of `dev-essentials:work-modes` does not ask. It makes the move, and names the step and what fell short in its final report. A Fable default that the workflow itself documents is not a move up.
 
 The rest of this section is in `references/model-selection.md`. It covers how a model gets applied, the model of the orchestrating session, the plan → execute split, and the Haiku scope. Read it before the first dispatch that sets a `model`.
 

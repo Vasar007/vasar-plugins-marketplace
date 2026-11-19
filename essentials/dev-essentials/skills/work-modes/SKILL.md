@@ -57,7 +57,7 @@ In the full mode, stops 3 to 5 end the run with a report. A workflow can say to 
 - If the request names two modes, stop before the first step, and ask the user once which mode to use.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Outside the full mode, ask the user about every other critical decision.
 - In the full mode, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
-- Outside the interactive mode, do not ask before a Fable dispatch that neither the user nor the defaults of the workflow chose. Use Opus, and name the step in the final report.
+- Outside the interactive mode, do not ask before a move up to Fable by the ladder of `dev-essentials:subagent-orchestration`. Make the move, and name the step and what fell short in the final report.
 - When a workflow runs another workflow, it passes its `--mode` on, unless its own text names an exception.
 
 ## Old spellings

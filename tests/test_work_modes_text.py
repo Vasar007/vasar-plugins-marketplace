@@ -34,7 +34,7 @@ OLD_FLAG = re.compile(r"(?<![\w-])--(?:interactive|autonomous|merge)(?![\w-])")
 OLD_WORD = re.compile(r"`autonomous`")
 COMMON_BLOCK = ("These rules apply in every mode:", "removes stops. It adds no steps.",
                 "The user picks one with a flag: the default (no flag)", "If the request names two modes",
-                "do not ask before a Fable dispatch")
+                "do not ask before a move up to Fable")
 HARD_STOPS = (
     "1. Data loss. Never destroy git work that has no other copy: a branch with commits that no remote holds, or an uncommitted change. "
     "Never delete a file that the steps of the workflow do not name. Do one of these only on a request of the user in their own words. "
@@ -57,7 +57,8 @@ RULES = (
     "- In the full mode, make that decision yourself.",
     "Never weaken a test assertion to make code pass.",
     'List each decision in the final report under "Decisions for your review".',
-    "- Outside the interactive mode, do not ask before a Fable dispatch that neither the user nor the defaults of the workflow chose. Use Opus, and name the step in the final report.",
+    "- Outside the interactive mode, do not ask before a move up to Fable by the ladder of `dev-essentials:subagent-orchestration`. "
+    "Make the move, and name the step and what fell short in the final report.",
 )
 OLD_SPELLINGS = (
     "- `--interactive`, or the argument `interactive` of `process-pr-comments`: `--mode interactive`.",

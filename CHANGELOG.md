@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.1.0 in release [5.1.0] - 2026-11-19
+
+This release turns the model matrix of `subagent-orchestration` into a ladder. A dispatch with no better fit starts on Opus at `medium` effort. If a step falls short, the run first raises its effort, and only then moves the step to a larger model. Fable is the step after Opus at `xhigh`, not an exception. Well-scoped work still goes to Sonnet, and mechanical work to Haiku (issue #281).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-ladder-start`: a route case. The request sends one bug fix with no fix plan to one subagent. The route grader `route-ladder-start` shows a dispatch on Opus at `medium` effort (issue #281).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration`: Opus at `medium` effort is the default of the matrix. Sonnet takes well-scoped work: an approved plan, a written fix plan, or a brief settles each decision. The new ladder moves only the steps that go to subagents. A step falls short in two cases: its self-test still fails after one fix attempt, or its reviewer rejects the result. Then the run raises the effort one level, up to `xhigh`. After that, it moves the step one model up, at `high`. A limit of tries that a skill names wins over the ladder. A move up to Fable is never silent. In `references/model-selection.md`, a dispatch with no named effort starts at `medium`, and a review starts at `high` (issue #281).
+- `skills/work-modes`: outside the interactive mode, a workflow moves a step up to Fable by the ladder with no question. It names the move in the final report. Before, it used Opus (issue #281).
+- `skills/research-implement-review-report`, `commands/implement-task`, `skills/implement-batch`, and `skills/feature-pipeline`: in the partial and the full mode, the gate row for Fable follows the ladder. The first three lose the bullet "Fable is for exceptional cases only" (issue #281).
+
+### Changed in the repository
+
+- `tests/test_model_ladder_text.py`: a new test. A plugin file that keeps the old Fable rule fails it (issue #281).
+- `tests/test_eval_cases.py`: the new class `ModelLadderCaseTests` tests the grader `route-ladder-start` on right and wrong `Agent` calls (issue #281).
+- `tests/test_eval_scaffolds.py`, `tests/test_work_modes_text.py`, `tests/simple-english-baseline.json`, and `docs/evals.md`: the new case and the new sentence of `work-modes` (issue #281).
+
 ## dev-essentials 3.30.0 in release [4.28.0] - 2026-11-18
 
 Three workflows can now end with a merged pull request: `research-implement-review-report`, `implement-task`, and `implement-batch`. In the full mode, they push the branch, open a pull request, and merge it after the gate of `merge-pr`. In the other modes, each of them asks one question for these steps at its end. The steps live one time, in `skills/work-modes/references/finish.md` (issue #271).
@@ -2190,7 +2210,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.28.0...v5.1.0
 [4.28.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.27.0...v4.28.0
 [4.27.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.26.0...v4.27.0
 [4.26.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v4.25.3...v4.26.0

@@ -54,7 +54,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
 | Phase 4 step 3: a cleanup that needs a change of behavior | Stop that cleanup, and put the question in the report | Same | Keep the code, and list the skipped cleanup |
 | Phase 5: `save-context` cleanup of a file of an older session or a stale branch | Ask once, after the report | Same | Keep the files and the branches, and list them in the report |
 | Phase 6: push, pull request, and merge | Ask one question after the report | Same | No stop. A failed step ends the run with a report |
-| Fable on the own initiative of the agent | Use Opus, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
+| Fable on the own initiative of the agent | Move up by the model ladder, and name the step in the final report | Ask before each Fable dispatch | Same as partial |
 
 ## Subagent dispatch
 
@@ -64,7 +64,6 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 - It does not fetch a PR or an issue, or review a diff. Outside Phase 3, it does not edit product code. The Phase 2 subagents and the Phase 4 subagent do that work. In Phase 3, RIRR decides by its own rules which work runs in the main loop. Pass the context of the user verbatim (Rule 2).
 - Each brief asks for a short structured report: verdicts, `file:line` anchors, and the commands that ran with their real results. Never ask for pasted diffs, file dumps, or comment HTML.
 - Phase 2 names its models, and RIRR keeps its own. All follow "Model selection" in `dev-essentials:subagent-orchestration`.
-- Fable is for exceptional cases only. Never dispatch it silently on your own initiative. In the interactive mode, ask the user before each Fable dispatch, also where the model matrix allows Fable. In the other modes, follow "Autonomy".
 - A bounded dispatch (one reference to read, one simplify pass) does the work itself (Rule 7). Write into the brief: "Do this work yourself. Do not dispatch further subagents for it."
 
 ## Guardrails

@@ -1,6 +1,6 @@
 # Model Selection Details
 
-The section "Model selection" of `SKILL.md` holds the model matrix and its two rules. This file holds the rest of that section and the effort rules of Rule 5.
+The section "Model selection" of `SKILL.md` holds the model matrix and its rules. This file holds the rest of that section and the effort rules of Rule 5.
 
 ## How a model gets applied
 
@@ -33,7 +33,7 @@ Haiku is not only for one-step lookups. Prefer Haiku over Sonnet for a short seq
 
 ## Effort
 
-Pass `effort` on each dispatch of a general agent type such as `general-purpose`. Use the level that the user or a skill names. If no one names a level, pass the level that the task needs. For any other agent type, pass `effort` in two cases: the user or a skill names a level, or the session runs at a lower effort than the task needs. Two kinds of dispatch differ:
+Pass `effort` on each dispatch of a general agent type such as `general-purpose`. Use the level that the user or a skill names. If no one names a level, pass `medium`, the start of the ladder in `SKILL.md`. A review starts at `high`, because no self-test shows that it fell short. Mechanical work can use `low`. A model that does not support a level runs at the highest level below it. For any other agent type, pass `effort` in two cases: the user or a skill names a level, or the session runs at a lower effort than the task needs. Two kinds of dispatch differ:
 
 - An agent type whose file sets `effort`, for example `dev-essentials:test-runner`, needs no `effort` parameter. A parameter in the call wins over the file.
 - A fork takes no `effort` parameter.
