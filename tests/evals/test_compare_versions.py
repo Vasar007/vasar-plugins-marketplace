@@ -355,6 +355,14 @@ class RunTests(CompareCase):
         self.assertIn("--no-publish", command)
         self.assertEqual(command[-5:], ["--tag", "smoke", "triggers", "--allow-tools", "Write"])
 
+    def test_run_keeps_the_temporary_folders_of_both_sides_on_request(self):
+        self.run_main(*self.run_args())
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls], [0, 0])
+        shutil.rmtree(self.tmp / "out", ignore_errors=True)
+        code, out, err = self.run_main(*self.run_args("--keep-temp"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls[2:]], [1, 1])
+
     def test_concurrency_is_left_out_by_default(self):
         self.run_main(*self.run_args())
         self.assertNotIn("--concurrency", self.calls[0]["command"])
@@ -378,13 +386,14 @@ class RunTests(CompareCase):
         self.assertEqual((self.tmp / "out" / "head.json").read_text(encoding="utf-8"), "old result")
 
     def test_report_gives_the_commands_to_run_unclear_cases_again(self):
-        code, out, err = self.run_main(*self.run_args("--tag", "smoke"), runner=self.eval_with_one_worse_run)
+        code, out, err = self.run_main(*self.run_args("--keep-temp", "--tag", "smoke"),
+                                       runner=self.eval_with_one_worse_run)
         self.assertEqual(code, 0, err)
         folder = (self.tmp / "out").resolve().as_posix()
         self.assertIn("- off-by-one", out)
         self.assertRegex(out, r"run --plugin group/demo --base " + self.base_sha + r" --head [0-9a-f]{40} "
                               r"--model model-under-test-1 --judge-model judge-model-1 --case off-by-one --runs 4 "
-                              r"--out \S+out-more-1 .*--claude \S+ --tag smoke")
+                              r"--out \S+out-more-1 .*--claude \S+ --keep-temp --tag smoke")
         self.assertIn(f"compare --base {folder}/base.json {folder}-more-1/base.json "
                       f"--head {folder}/head.json {folder}-more-1/head.json", out)
 
@@ -393,6 +402,7 @@ class RunTests(CompareCase):
                                        runner=self.eval_with_one_worse_run)
         self.assertEqual(code, 0, err)
         self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--concurrency 2 --tag smoke")
+        self.assertNotIn("--keep-temp", out)
 
     def baseline_args(self, *extra):
         return ("baseline", "--repo", self.repo, "--plugin", "group/demo", "--commit", "HEAD",
