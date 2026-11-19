@@ -1,6 +1,6 @@
 ---
 type: tool_used
-tool: Skill
-input_match: '"skill"\s*:\s*"(?:dev-essentials:)?review-loop"'
+tool: Agent
+input_match: '"description"\s*:\s*"[^"]*[Rr]eview'
 min: 5
 ---
