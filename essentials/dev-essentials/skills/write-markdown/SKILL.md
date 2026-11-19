@@ -67,7 +67,7 @@ For a file over about 100 lines, add a contents list after the title.
 
 ## Frontmatter Scalar Quoting
 
-Wrap a frontmatter value (`description:`, `argument-hint:`, and others) in double quotes in two cases:
+Wrap a frontmatter value (`description:`, `argument-hint:`, and others) in double quotes in these cases:
 
 - The value starts with a YAML indicator character: `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@`, or backtick.
 - The value contains an unquoted colon followed by a space.

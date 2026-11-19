@@ -1,6 +1,6 @@
 # Checkpoint protocol
 
-The master agent reads this file at Step 0 of `SKILL.md`. It has the schema of `pipeline-state.json`, the notes for each field, and the validation of the file. It also has the rules for the updates during the run and the two resume checks.
+The master agent reads this file at Step 0 of `SKILL.md`. It has the schema of `pipeline-state.json`, the notes for each field, and the validation of the file. It also has the rules for the updates during the run and the resume checks.
 
 ## Contents
 
@@ -57,8 +57,8 @@ All state files of a task are in `{ARTIFACTS_DIR}/{TASK_ID}/`, for example `{ART
   - `"rendered"`: the stage wrote the HTML artifact (after 0 or 1 retries).
   - `"failed"`: both attempts failed.
   - `"skipped"`: the run skipped the stage, for example with `--skip=plan-artifact`.
-- `commitMode` is `"finalization"` by default. With `--commit-mode=per-step` at Step 0, it is `"per-step"`. Each checkpoint write keeps it, so that a resumed run uses the original choice. Two cases change it: a new `--commit-mode` on that invocation, or the mode-change check below (see also "Commit Cadence" in `SKILL.md`).
-- `startChanges` is `[]` in a new worktree. Else Step 0 writes the paths that `git status --porcelain` listed before the run (sub-step 6 of `references/setup.md`). A resume keeps the recorded list. Stage Launch passes it to the five commit-capable stages.
+- `commitMode` is `"finalization"` by default. With `--commit-mode=per-step` at Step 0, it is `"per-step"`. Each checkpoint write keeps it, so that a resumed run uses the original choice. These cases change it: a new `--commit-mode` on that invocation, or the mode-change check below (see also "Commit Cadence" in `SKILL.md`).
+- `startChanges` is `[]` in a new worktree. Else Step 0 writes the paths that `git status --porcelain` listed before the run (sub-step 6 of `references/setup.md`). A resume keeps the recorded list. Stage Launch passes it to the commit-capable stages.
 - `autoFixRound` is not in the schema above. The first fix round of Human Approve #2 sets it to `true`. A missing key means `false`.
 
 ## Validation of the state file
@@ -107,7 +107,7 @@ The check does not depend on `{COMMIT_MODE}`. It finds a `per-step` stage that s
 
 - Order: the check runs right after the load of `pipeline-state.json` (Step 0, sub-step 11). It runs before sub-step 12 resolves `{COMMIT_MODE}` and overwrites the recorded value. It uses only `stageStartSha` and `completed`, never `{COMMIT_MODE}`. So a resume cannot escape it with a new `--commit-mode` value.
 - With `--dry-run`, report the result in the announced plan, but do not stop. A dry run never touches the branch, so it has nothing to protect.
-- There are two allowed ways past this stop. Only the first one works with `--start-from` alone.
+- These are the allowed ways past this stop. Only the first one works with `--start-from` alone.
   1. Discard the extra commits. Reset HEAD to the recorded `stageStartSha` of the stage. Then resume with `--start-from=<stage>`, with the interrupted stage or a later one. That flag overrides the checkpoint resume point. HEAD now matches the recorded SHA, so the check passes.
   2. Keep the extra commits. `--start-from` alone changes neither `stageStartSha` nor `completed`, so the stop fires again on the next invocation. So first update the state by hand. Add the interrupted stage to `completed` in `pipeline-state.json`, or set its `stageStartSha` entry to the new HEAD. Then resume with `--start-from=<stage>`. If the interrupted stage is `finalization` and HEAD is its own commit, set `stageStartSha`, and do not add the stage to `completed`. A stage in `completed` skips the push and the PR.
 
@@ -117,7 +117,7 @@ The check does not depend on `{COMMIT_MODE}`. It finds a `per-step` stage that s
 
 This check covers the one gap that the interruption check cannot see. The interruption check compares HEAD with `stageStartSha`. But in `finalization` mode, stages only stage their changes and never commit, so HEAD does not move during them. Without this check, a resume that changes the mode from `per-step` to `finalization` keeps the earlier `per-step` commits on the branch. The new finalization run then adds one more commit at the end. That breaks the promise of one commit for the whole run ("Commit Cadence" in `SKILL.md`).
 
-If all three conditions below are true, stop and report before you overwrite `commitMode`.
+If all conditions below are true, stop and report before you overwrite `commitMode`.
 
 - The resolved `{COMMIT_MODE}` is `finalization`.
 - The recorded `commitMode`, before the overwrite of this resume, is `per-step`.
@@ -138,7 +138,7 @@ More rules for this check:
 
 - Order: the check runs after sub-step 12 reads the recorded `commitMode`, and strictly before sub-step 12 writes the new value to `pipeline-state.json`. If this stop fires, write nothing to `pipeline-state.json`.
 - With `--dry-run`, report the result in the announced plan, but do not stop, as for the interruption check.
-- There are two allowed ways past this stop:
+- These are the allowed ways past this stop:
   1. Resume with `--commit-mode=per-step`. The run keeps the original cadence and commits per step. `pipeline-state.json` needs no change.
   2. Reset the branch to the state before the `per-step` commits, and start a fresh run in `finalization` mode. Also remove the affected commit-capable stages from `completed`, with their `stageStartSha` entries. Or delete `pipeline-state.json` for a truly fresh run. A branch reset without this state change leaves `completed` and `commitMode` pointing at the discarded commits. The stop then fires again on the next invocation. If a run goes past the stop anyway, it skips the stages that the reset undid, and it makes an empty finalization commit.
 

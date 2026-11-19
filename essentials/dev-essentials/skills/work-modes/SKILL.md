@@ -1,16 +1,16 @@
 ---
 name: work-modes
-description: "Defines the three work modes of the gated workflows of this plugin: interactive, partial, and full. It holds the option that picks a mode, the rules for every mode, and the hard stops. The workflows load it."
+description: "Defines the work modes of the gated workflows of this plugin: interactive, partial, and full. It holds the option that picks a mode, the rules for every mode, and the hard stops. The workflows load it."
 user-invocable: false
 ---
 
 # Work Modes
 
-A gated workflow of this plugin loads this skill with the `Skill` tool before its first gate. A gate is a step where the run can stop and ask the user. This skill defines the option `--mode`, the three modes, the hard stops, and the rules for every mode. The gate table of each workflow says what each mode does at each of its gates. A workflow can keep a stop that this skill removes, in its gate table or in its text. It never removes a hard stop, except where the stop says so.
+A gated workflow of this plugin loads this skill with the `Skill` tool before its first gate. A gate is a step where the run can stop and ask the user. This skill defines the option `--mode`, the modes, the hard stops, and the rules for every mode. The gate table of each workflow says what each mode does at each of its gates. A workflow can keep a stop that this skill removes, in its gate table or in its text. It never removes a hard stop, except where the stop says so.
 
 The text of this skill stays in the context for the rest of the session. If it is no longer in your context, for example after a compaction, load it again before the next gate.
 
-## The three modes
+## The modes
 
 The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode full`. With no `--mode`, the mode is partial. The user can also name the mode in plain words in the request, for example "in the full mode". Only words that name the mode count. "Full pipeline", "no stops", and "autonomous" pick no mode. Another form of the option counts too, for example `--mode=full`.
 

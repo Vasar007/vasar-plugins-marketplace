@@ -37,7 +37,7 @@ These rules shorten wording in the substance tier. Each fact, source and uncerta
 ## Row rules
 
 - A requirement row is one short sentence. If the user declared the requirement word for word, keep it byte-identical. Otherwise it is in the substance tier, so keep its meaning.
-- An open-question row has three parts: the question in one sentence, why it blocks in one clause, and the default in one clause.
+- An open-question row has these parts: the question in one sentence, why it blocks in one clause, and the default in one clause.
 - A risk is one row.
 - A tool or technology choice keeps the chosen option and one row per rejected option.
 - Remove audit-log rows that restate findings from the body.

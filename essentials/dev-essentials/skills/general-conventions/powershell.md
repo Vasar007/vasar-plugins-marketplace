@@ -54,7 +54,7 @@ Every script must include comment-based help at the top:
 
 ## Cloud Provider Examples
 
-The two sections below are examples for AWS and Azure. For another cloud provider, follow the same rules with its own CLI: no embedded credentials, and JSON output.
+The sections below are examples for AWS and Azure. For another cloud provider, follow the same rules with its own CLI: no embedded credentials, and JSON output.
 
 ### AWS Conventions
 

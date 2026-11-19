@@ -2,13 +2,13 @@
 
 ## Contents
 
-- Two Logging Channels
+- Logging Channels
 - ILogger Patterns
 - ISessionLogRepository Patterns
 - Dual Logging Example
 - Sensitive Data in Logs
 
-## Two Logging Channels
+## Logging Channels
 
 | Channel                 | Audience              | Persistence                    | Purpose                             |
 |-------------------------|-----------------------|--------------------------------|-------------------------------------|

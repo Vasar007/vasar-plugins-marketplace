@@ -30,7 +30,7 @@ The notes folder is `${user_config.notes_dir}`. If that value still shows as a `
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
@@ -143,7 +143,7 @@ Make sure that the file follows the Markdown conventions: an H1 title, blank lin
 
 ### 5. Light cleanup of context files
 
-Unless `--no-cleanup` was passed, clean up the context and handoff files of this session. Skip this step in two cases. The first case: Step 4 wrote no file (the near-empty guardrail). The second case: another command follows these steps as one of its own steps, because that command still uses its plan and progress files. A calling command can ask for the cleanup in words.
+Unless `--no-cleanup` was passed, clean up the context and handoff files of this session. Skip this step in these cases. The first case: Step 4 wrote no file (the near-empty guardrail). The second case: another command follows these steps as one of its own steps, because that command still uses its plan and progress files. A calling command can ask for the cleanup in words.
 
 This is a light pass, not a full trim. To trim one file in depth, use `dev-essentials:trim-artifacts`.
 
@@ -201,13 +201,13 @@ and do not summarize the file back to me.
 
 Rules for the prompt:
 
-- **(a)** Name the path of the saved file. If the file is in the repo, give the path relative to the repo root. Then add a location line, so that the next session starts in the right copy and on the right branch, not in the repo root. Decide its two facts separately. If this session was not on the default branch, include the **branch name**. If this session ran in a worktree, include the **absolute path of the worktree**. Else, leave the path out. Use the label of the case that is true:
+- **(a)** Name the path of the saved file. If the file is in the repo, give the path relative to the repo root. Then add a location line, so that the next session starts in the right copy and on the right branch, not in the repo root. Decide each of its facts separately. If this session was not on the default branch, include the **branch name**. If this session ran in a worktree, include the **absolute path of the worktree**. Else, leave the path out. Use the label of the case that is true:
   - A worktree and a branch that is not the default: ``Worktree: `<absolute worktree path>`, branch `<branch name>`.``
   - A branch that is not the default, and no worktree: ``Branch: `<branch name>`.``
   - A worktree on the default branch: ``Worktree: `<absolute worktree path>`.``
   - Neither: omit the line.
 - **(b)** Always say "stop and wait for my instructions" explicitly.
-- **(c)** Forbid the two failure modes in words: to start work, and to restate or summarize the content of the file. A prompt that only says "restore context and wait" makes the next session summarize the file and propose a plan.
+- **(c)** Forbid these failure modes in words: to start work, and to restate or summarize the content of the file. A prompt that only says "restore context and wait" makes the next session summarize the file and propose a plan.
 - **(d)** The prompt holds only the lines of the template: the restore instruction with the path, the location line, the wait instruction, and the prohibitions. It has **no** findings, decisions, task lists, next steps, plans, or commands to run. The file holds these, or the user decides them.
 - **(e)** Hard cap: **6 lines**. If there is more to say, put it in the file, not in the prompt.
 

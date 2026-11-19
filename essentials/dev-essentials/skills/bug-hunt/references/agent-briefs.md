@@ -56,7 +56,7 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{RANGE}` | Finding range of a verifier part, for example `BH-01` to `BH-20` |
 | `{PART}`, `{PART_COUNT}` | Number of this part, and the number of parts |
 | `{LAST_PART}` | "yes" for the last verifier part, else "no" |
-| `{PLAIN_ENGLISH}` | One of the two plain-English blocks below |
+| `{PLAIN_ENGLISH}` | One of the plain-English blocks below |
 | `{RESUME_NOTE}` | The resume note below, or nothing |
 | `{REPAIR_NOTE}` | The repair note below with the defect list, or nothing |
 | `{CLEANUP_PATHS}` | Absolute paths that the cleanup helper deletes |

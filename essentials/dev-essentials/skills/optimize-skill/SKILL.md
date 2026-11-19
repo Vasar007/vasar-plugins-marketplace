@@ -17,7 +17,7 @@ This skill makes one skill shorter and clearer, and keeps what the skill does. T
 session is the orchestrator. It collects the facts, dispatches the agents, and decides the
 open items. The agents write the audit, apply it, and review it.
 
-Earlier runs forgot two rules most often. A cut must not drop behavior (rule 1). The
+Earlier runs forgot these rules most often. A cut must not drop behavior (rule 1). The
 orchestrator decides open items from the source of truth, not from the taste of the auditor
 (rule 3).
 
@@ -48,7 +48,7 @@ orchestrator decides open items from the source of truth, not from the taste of 
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
@@ -203,7 +203,7 @@ review report.
 ### Step 7. Final report
 
 Write one report in chat, in the language of the user's request. If the instructions of the
-user define an end-of-run report format, use it. Else use these three sections, in this order:
+user define an end-of-run report format, use it. Else use these sections, in this order:
 
 1. Blocked on me: the questions that wait for the user, and any failed fact test. If there are none, write "Nothing".
 2. Changed: the two commits with their files, the audit report, the review report, and the `SKILL.md` size before and after (words and characters). Say that the run did not push.

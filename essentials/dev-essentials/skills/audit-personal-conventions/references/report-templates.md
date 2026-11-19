@@ -4,7 +4,7 @@ Phase 4 of `SKILL.md` reads this file. Copy the template, replace the bracketed 
 
 ## Phase 4 triage template
 
-The "0. Disposition legend" table repeats the six-value enum of Phase 3 in `SKILL.md`. With it, the reader of the triage does not need `references/classification-framework.md` to decode a letter. If the enum changes, change the legend too.
+The "0. Disposition legend" table repeats the enum of Phase 3 in `SKILL.md`. With it, the reader of the triage does not need `references/classification-framework.md` to decode a letter. If the enum changes, change the legend too.
 
 ```markdown
 # Personal-convention audit — <date>

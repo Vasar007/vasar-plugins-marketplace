@@ -66,7 +66,7 @@ Before you write any test class, you **must read the matching example file** in 
 | Method null-argument tests, async lambdas, SUT names, helper order, argument matchers (for example, NSubstitute `Arg.Any<T>()`) or `default`, `ThrowIfNull()`, block bodies | [enforced-gates.md](examples/enforced-gates.md) |
 | Scenario or end-to-end integration test | [scenario-tests.md](examples/scenario-tests.md) |
 
-The seven gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. Two exceptions apply. If the mocking library is not NSubstitute, Gate 5 does not apply. Gate 1 applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests. See "Enforced gates" in the checklist below.
+The gates of [enforced-gates.md](examples/enforced-gates.md) apply to every test class, together with the matching example. If the mocking library is not NSubstitute, Gate 5 does not apply. Gate 1 applies only to a test class that calls the methods of the SUT directly. It never applies to controller tests through the HTTP client or to scenario tests. See "Enforced gates" in the checklist below.
 
 If no example matches your case, look for a similar test class in the test projects of the repository. They are usually under `tests/`, `src/Tests/`, `Sources/Tests/`, or `Tests/`. Follow the pattern of that class. Never guess the API of a base class. Read it first.
 

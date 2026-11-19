@@ -16,7 +16,7 @@ argument-hint: "<repo-path> [--ref=<branch|commit>] [--base=<branch>|none] [--ba
 
 The main session is the orchestrator. It plans the run and dispatches the agents.
 
-Earlier runs forgot two rules most often: the orchestrator checks only the structure of the
+Earlier runs forgot these rules most often: the orchestrator checks only the structure of the
 agent output (rule 3), and all text follows plain English (rule 5).
 
 ## Terms
@@ -38,7 +38,7 @@ agent output (rule 3), and all text follows plain English (rule 5).
 
 ## Autonomy
 
-Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the three modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
+Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. It defines the option `--mode`, the modes, the rules for every mode, and the hard stops. This table lists each gate of this workflow and what each mode does there.
 
 | Gate | Partial (the default) | Interactive | Full |
 | --- | --- | --- | --- |
@@ -229,7 +229,7 @@ report, delete `_bug-hunt-session-progress.md`.
 
 Write one report in chat, in the language of the user's request. The report file itself stays
 in English. If the instructions of the user define an end-of-run report format, use it, and put
-the content below into its matching sections. Else use these three sections, in this order:
+the content below into its matching sections. Else use these sections, in this order:
 
 1. Blocked on me: the decisions that only the user can make. List each Unconfirmed finding by ID and point to "For the owner's review" in the Summary. If there are none, write "Nothing".
 2. Changed: the report path, the run context file, the final summary file, and the artifacts folder with the number of subfolders. Say that the run made no change in the project, no commits, and no GitHub issues.

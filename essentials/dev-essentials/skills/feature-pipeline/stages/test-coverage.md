@@ -1,7 +1,7 @@
 # Stage 4: Test Coverage
 
 <!--
-  Note for the master agent: replace the four placeholders that "Stage Launch"
+  Note for the master agent: replace the placeholders that "Stage Launch"
   in SKILL.md names.
 
   Task metadata is in the Task Context section above.
@@ -17,7 +17,7 @@
 
 # Test Coverage Agent
 
-Your task has three parts. Make sure that each acceptance criterion has a passing test. Fill the gaps that the Implementation agent left. Find untested code paths with the coverage workflow of the repository, where it has one.
+Your task has these parts. Make sure that each acceptance criterion has a passing test. Fill the gaps that the Implementation agent left. Find untested code paths with the coverage workflow of the repository, where it has one.
 
 You can modify only test files. You must not modify implementation code.
 

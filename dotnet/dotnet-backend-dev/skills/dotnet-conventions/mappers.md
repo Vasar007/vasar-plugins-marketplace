@@ -65,7 +65,7 @@ public sealed partial class SessionMapper
 }
 ```
 
-Three core methods: `ToEntity`, `ToDomain`, `UpdateEntity`.
+Core methods: `ToEntity`, `ToDomain`, `UpdateEntity`.
 
 Repositories create the mapper in their constructor: `_mapper = new SessionMapper();`
 

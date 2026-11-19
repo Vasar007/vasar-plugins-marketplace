@@ -33,7 +33,7 @@ The facts below hold for mermaid 10.9.1 and its jison grammars. The STR rule of 
 
 ## Content-level failure modes (the page looks fine, nothing renders)
 
-The gotchas above are about the configuration: the wrong CDN bundle, the `startOnLoad` no-op, and the init order. A second class of failure is different. The configuration is correct (the right CDN, the right init, and the right script order), and the diagram still renders nothing. Two causes are known from practice. In both cases, a subagent looked only at the `<script>` tags and reported "looks correct".
+The gotchas above are about the configuration: the wrong CDN bundle, the `startOnLoad` no-op, and the init order. A second class of failure is different. The configuration is correct (the right CDN, the right init, and the right script order), and the diagram still renders nothing. These causes are known from practice. In each case, a subagent looked only at the `<script>` tags and reported "looks correct".
 
 - **Wrong or missing wrapper element**. `mermaid.run({ querySelector: '.mermaid' })` acts only on elements that match `.mermaid`. A Markdown-to-HTML transform often writes `<pre><code class="language-mermaid">…</code></pre>` instead of `<div class="mermaid">…</div>`. A generator that builds the artifact from Markdown content does the same. It can also leave the diagram source as plain `<p>` text. In each of these cases, `querySelector('.mermaid')` matches zero elements. Mermaid runs with no error and no message, and the page shows the raw diagram source or nothing.
 - **Entity-encoded diagram source**. The `<div class="mermaid">` wrapper can be correct, with double-encoded text inside it: `<br/>` becomes `&amp;lt;br/&amp;gt;`, `"` becomes `&amp;quot;`, and `-->` becomes `--&amp;gt;`. Mermaid decodes one level of entities (it reads `innerHTML` and runs `entityDecode`), so a single `&gt;` is fine. A double-encoded `&amp;gt;` reaches the parser as `&gt;` and fails. The `&gt;` that reaches the parser fails at the first edge with `Expecting 'LINK', ... got 'STR'`. A DOM inspector shows `--&amp;gt;` for such an arrow, not a clean `-->`. One encoded arrow can break a whole diagram. Then one root cause, repeated in each diagram, looks like several separate "syntax errors".
@@ -42,7 +42,7 @@ A fix pass that looks only at the `<script src>` tags and the `mermaid.initializ
 
 ### Required verification artifacts
 
-Before you finish an artifact with diagrams, produce item 1. If a diagram does not render, fix it and produce all three items. A claim that it is fixed is not enough.
+Before you finish an artifact with diagrams, produce item 1. If a diagram does not render, fix it and produce all items. A claim that it is fixed is not enough.
 
 1. **Grep counts for each file**. Run them on each HTML file with diagrams:
    - `<div class="mermaid">`: the count of open tags. Zero means that nothing renders, whatever the configuration.

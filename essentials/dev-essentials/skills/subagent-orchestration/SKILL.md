@@ -6,7 +6,7 @@ when_to_use: "Use it for 'orchestrate this', 'dispatch a subagent', or 'handle t
 
 # Subagent Orchestration
 
-Multi-stage tasks (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) depend on three choices of the main agent: what to delegate, what to do inline, and how to write each brief. This skill has seven rules for these choices. It also owns the model matrix for the dispatches, so the skill works without a personal `CLAUDE.md` file. The section "Run format agreement" defines the run format that a long orchestrated run states at the start.
+Multi-stage tasks (feature-pipeline, review-loop, audit-team, PR-comment processing, multi-commit fix stacks) depend on these choices of the main agent: what to delegate, what to do inline, and how to write each brief. This skill has rules for these choices. It also owns the model matrix for the dispatches, so the skill works without a personal `CLAUDE.md` file. The section "Run format agreement" defines the run format that a long orchestrated run states at the start.
 
 ## Model selection
 
@@ -19,7 +19,7 @@ Every dispatch carries a `model`, or uses an agent type whose file sets the mode
 | **Haiku** | Routine work with no thinking: read, extract, and apply mechanically. | Extraction of information from logs, tickets, or tasks. An explicit 1-2-3 edit list. Lookups. See "Haiku scope" in `references/model-selection.md`. |
 | **Fable** | The top of the ladder: a step that still falls short on Opus at `xhigh`, within the three moves of the ladder. | A hard plan, fix, or design. |
 
-**The ladder: effort before model.** A higher effort costs less than a larger model, so the run tries it first. The ladder moves each step that runs in a subagent, also a dispatch that a workflow skill names. A model and an effort that a skill names are the start of the ladder for that step. A step falls short in two cases. First, its self-test fails, the orchestrator resumes the subagent one time with the error lines, and the self-test fails again. Second, the reviewer of the step reports a finding on its result that blocks the merge: a severity of `High` or above, or a blocking issue. The self-test is the check that the brief names, for example the build or the tests. At each new effort or model, the step gets one resume again. A failure whose fix is out of the scope of the step is not a fall short. Examples are a missing tool, a network error, or a fix in unrelated code. Stop, and tell the user, as `dev-essentials:engineering-discipline` Rule 1 says. If a step falls short, run it again one effort level higher, up to `xhigh`. If it still falls short at `xhigh`, move it one model up at `high`: from Haiku to Sonnet, from Sonnet to Opus, or from Opus to Fable. The step already fell short, so the larger model starts above the default. The ladder ends after three moves of one step, or at Fable at `xhigh`. A move from `low` to `medium` is not one of the three. At the end of the ladder, stop, and report the step. The level `max` needs the word of the user or of a skill. A limit of tries that a skill names wins over the ladder. Say each move in one line: the step, the new model and effort, and what fell short.
+**The ladder: effort before model.** A higher effort costs less than a larger model, so the run tries it first. The ladder moves each step that runs in a subagent, also a dispatch that a workflow skill names. A model and an effort that a skill names are the start of the ladder for that step. A step falls short in these cases. First, its self-test fails, the orchestrator resumes the subagent one time with the error lines, and the self-test fails again. Second, the reviewer of the step reports a finding on its result that blocks the merge: a severity of `High` or above, or a blocking issue. The self-test is the check that the brief names, for example the build or the tests. At each new effort or model, the step gets one resume again. A failure whose fix is out of the scope of the step is not a fall short. Examples are a missing tool, a network error, or a fix in unrelated code. Stop, and tell the user, as `dev-essentials:engineering-discipline` Rule 1 says. If a step falls short, run it again one effort level higher, up to `xhigh`. If it still falls short at `xhigh`, move it one model up at `high`: from Haiku to Sonnet, from Sonnet to Opus, or from Opus to Fable. The step already fell short, so the larger model starts above the default. The ladder ends after three moves of one step, or at Fable at `xhigh`. A move from `low` to `medium` is not one of the three. At the end of the ladder, stop, and report the step. The level `max` needs the word of the user or of a skill. A limit of tries that a skill names wins over the ladder. Say each move in one line: the step, the new model and effort, and what fell short.
 
 **The user's explicit choice outranks this matrix and its ladder**. Use the model that the user names for a task, also against the matrix and against the model defaults of any skill. Leave a model that the user set for the session as it is. Never "correct" it back to a default.
 
@@ -37,7 +37,7 @@ Before you give work to a subagent, find the test that sends it there:
 4. Tool isolation. The work needs a different tool set, for example read-only tools.
 5. Else, do the work in the main loop.
 
-The tests name a kind of work, not a size, so they hold on any model. Two more reasons send work to a subagent. One is a step that needs a stronger model than the session runs (see "The model of the orchestrating session" in `references/model-selection.md`). The other is a high-volume read of an outside system (Rule 4). Never dispatch work only to reach a cheaper model.
+The tests name a kind of work, not a size, so they hold on any model. More reasons send work to a subagent. One is a step that needs a stronger model than the session runs (see "The model of the orchestrating session" in `references/model-selection.md`). Another is a high-volume read of an outside system (Rule 4). Never dispatch work only to reach a cheaper model.
 
 So the main loop does small lookups and the small tasks of a plan itself. Examples are a `Grep` and two `Read` calls that find a file or a value. Other examples are a one-line edit on a known path and a plan task that edits a few files that the session already read. A dispatch costs a brief, a cold start, and a report that can lose detail. If no test holds, a dispatch does not pay off.
 
@@ -89,14 +89,14 @@ Subagents run in the background by default. When a subagent completes, a task no
 
 Other cases:
 
-- **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. Rule 3 of `dev-essentials:dotnet-build-test` names the two exceptions: an explicit request of the user, and a long test run in a subagent. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
+- **Bash/PowerShell**: never set `run_in_background: true` on Bash or PowerShell for convenience. Long-running Bash and PowerShell commands stay in the foreground. Rule 3 of `dev-essentials:dotnet-build-test` names the exceptions: an explicit request of the user, and a long test run in a subagent. A command that runs absurdly long is a sign of a real problem, not a reason to send it to the background.
 - **`SendMessage` is not a dispatch.** Use it only to resume or correct a subagent that you dispatched for the same task (see Rule 5). For new work, make a fresh, unnamed `Agent` call.
 
 ## Rule 4 — Delegate high-volume external-system MCP work to subagents by default
 
 By default, dispatch high-volume MCP work on an outside system to a subagent, so that the context of the main agent stays clean. This covers the tools `mcp__plugin_github_github__*` and the tools of similar MCP servers for outside systems. It covers reads and writes with large payloads or with iteration.
 
-The main agent calls these MCP tools itself only in two cases:
+The main agent calls these MCP tools itself only in these cases:
 
 1. The user explicitly asked it to ("post the replies yourself", "create the issue directly", "do the push yourself"). Only such explicit words count. A "proceed" or a "continue" is not an explicit ask.
 2. The next subagent needs one surgical, low-volume call before it can start, for example the metadata of one PR that its prompt must hold. Even then, prefer to ask the subagent to fetch it.
@@ -117,7 +117,7 @@ For a worked example of a thread fetch in the main agent, see [references/worked
 
 ## Rule 5 — No named teammates or team coordination, and `SendMessage` only for the same task
 
-Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an interactive session, a named subagent starts as a teammate, not as a plain subagent. Claude Code does not ask first. A teammate is a separate, long-lived session in a team, with its own mailbox and idle notices. That is the wrong shape for "do this, report back, done." You do not need a name to reach the subagent later: a dispatch returns an agent ID (see the limits below for two exceptions), and `SendMessage` accepts that ID.
+Do not pass the `Agent` tool's `name` parameter. If agent teams are on in an interactive session, a named subagent starts as a teammate, not as a plain subagent. Claude Code does not ask first. A teammate is a separate, long-lived session in a team, with its own mailbox and idle notices. That is the wrong shape for "do this, report back, done." You do not need a name to reach the subagent later: a dispatch returns an agent ID (see the limits below for the exceptions), and `SendMessage` accepts that ID.
 
 Never use `team_name`. Never use `TaskCreate`, `TaskUpdate`, `TaskList`, or `TodoWrite` as a shared task list between subagents with `owner` or `blockedBy` ownership. Never make subagents send messages to each other. That is team coordination, not delegation, and it is out of scope here. You can use the task tools alone in the orchestrating session to track your own progress for the user.
 
@@ -138,7 +138,7 @@ Pass `effort` as `references/model-selection.md` § Effort says.
 
 Everything the subagent needs goes in `prompt`. The subagent starts in its own context window and does not see your conversation. So the brief must be fully self-contained (see "Brief quality matters more than brief count" below).
 
-Use `SendMessage` to your own subagent only for the same task, in two cases:
+Use `SendMessage` to your own subagent only for the same task, in these cases:
 
 - Resume: the subagent stopped before it delivered, for example on a usage limit, a crash, its `maxTurns` limit, or a `TaskStop`. Send a short resume note to its agent ID. It continues with its full history.
 - Correct: the subagent still runs, or its report is incomplete for the same task. An example is a report with open items that need an answer from the user. Send the correction or the answer to its agent ID.
@@ -168,7 +168,7 @@ Most files exist in BOTH. NEVER edit anything outside the CORRECT path. Every Re
 
 Every git call in the work of the subagent uses `git -C "<absolute-worktree-path>"`. Never use a bare `git` that relies on the inherited CWD.
 
-Two verification gates belong in every such brief:
+These verification gates belong in every such brief:
 
 - **Pre-flight** (the first action of the subagent): `git -C "<worktree>" rev-parse --abbrev-ref HEAD` prints the expected branch name. If it does not, stop. Also save the output of `git -C "<main-repo-root>" status --porcelain` for the Post-edit gate.
 - **Post-edit** (after each batch of edits): run `git -C "<main-repo-root>" status --porcelain -- <paths>`. `<paths>` are the files that the subagent edited, relative to the worktree root. The output must hold no entry that the Pre-flight output did not hold. This shows that no edit leaked into the main repo. Look only at these paths, because other agents can change other files of the main repo at the same time. If the worktree is the main repo root, skip this gate. If the gate fails, stop, and report the paths. Do not revert them, because another agent can own them.
@@ -208,7 +208,7 @@ A 10-line brief that prevents one wrong dispatch is worth more than three 3-line
 
 ## Trust but verify
 
-Check a subagent report in three tiers:
+Check a subagent report in these tiers:
 
 1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, fix it or dispatch a repair. Read the verbatim result lines that the subagent reports. Do not add a run after each report. Before a commit or a push, run the build and the tests one time in the main loop. That run is the check of all reports since the last run. Use one command whose output holds only the result lines and the errors, and keep its exit code (for .NET, the filters of `dev-essentials:dotnet-build-test`). If each command exits with code 0 and the result line shows zero failed tests, the run is green. Any other result is not green. Run the tests that the subagent ran. If it ran none, run the tests that cover the changed files. A green run of the main loop after the last edit counts. If the run is red, fix the cause or send the error lines back, and run again. Compare only the status, the error count, and the Failed, Passed, and Total counts with the report. Ignore the duration and the warning count, because they differ between runs. If a run can take longer than 10 minutes, dispatch `dev-essentials:test-runner`. Its brief gives the absolute worktree path, the commands, and the test filter or the words that the whole test suite runs. It also says that the run can take longer than 10 minutes. If its status is STOPPED, answer its question and dispatch it again, or ask the user. Also dispatch it for runs in several worktrees at the same time (test 2).
 2. Content, by an agent: a verifier or reviewer agent checks whether a finding, a cited line, or a claimed behavior is true. If the workflow has no such agent and the next step depends on the content, dispatch one. Do not redo its work. Every re-read stays in the main context for the rest of the run.
@@ -218,7 +218,7 @@ Do not accept "the failure was there before" as a reason to ignore a red build o
 
 ## Run format agreement
 
-A long orchestrated run can state its run format at the start. The run format has two parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate in the interactive mode, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
+A long orchestrated run can state its run format at the start. The run format has these parts: the check scope and the reporting rules. A skill that uses this section names its concrete checks and how the user agrees: at a gate in the interactive mode, or by not objecting. `dev-essentials:bug-hunt` and `dev-essentials:review-loop` use it.
 
 Check scope: the skill names its concrete checks for tiers 1 and 2 of `Trust but verify`. Tier 3 still applies.
 
@@ -234,11 +234,11 @@ Agreement:
 - State the run format once, at the start of the run. Do not add a new stop only for this.
 - In the interactive mode, the user agrees at the first gate that the skill already has, such as a plan sign-off or a triage acknowledgment. Else the user agrees by not objecting. If the user already asked for full autonomy, or the request already gives the same rules, the agreement is implicit. State the format and continue.
 - The user can change the format at any time. Follow the change.
-- When the format is agreed, the check scope replaces two things for this run only. The first is tiers 1 and 2 of the `Trust but verify` section above. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
+- When the format is agreed, the check scope replaces these things for this run only. The first is tiers 1 and 2 of the `Trust but verify` section above. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. Checks that the skill itself requires still run.
 
 ## Anti-patterns
 
-The rules above hold the other anti-patterns. Two more:
+The rules above hold the other anti-patterns. The list below adds more:
 
 - "Subagents cannot use MCP tools, so the main agent has to post." This is wrong. If the schemas are loaded, subagents can call MCP tools.
 - One independent task split across several redundant `Agent` dispatches, where a single dispatch does the job.

@@ -1,6 +1,6 @@
 # Fix Shipped Entity — The E-Disposition Path, End to End
 
-Three sanitized cases, each based on a real finding. Cases 1 and 2 end the same way: an edit to an already-shipped entity, and the source pruned. Neither case makes a new entity. Case 3 shows the mixed outcome that one wrapper file can produce after a diff of each section. The repo names and the rule content are fictional. No marketplace is named.
+Sanitized cases, each based on a real finding. Cases 1 and 2 end the same way: an edit to an already-shipped entity, and the source pruned. Neither case makes a new entity. Case 3 shows the mixed outcome that one wrapper file can produce after a diff of each section. The repo names and the rule content are fictional. No marketplace is named.
 
 ## Contents
 

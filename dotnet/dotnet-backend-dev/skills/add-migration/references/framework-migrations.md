@@ -12,7 +12,7 @@ Templates and steps for the framework migration system (`IDatabaseMigration` and
 
 ## Migration Types
 
-The Framework provides two migration interfaces:
+The Framework provides these migration interfaces:
 
 ### IDatabaseMigration
 
