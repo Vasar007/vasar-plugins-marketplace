@@ -19,12 +19,13 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: 13 new tests (issue #301). They cover these results:
+- `tests/test_failure_check.py`: 14 new tests (issue #301). They cover these results:
   - The same lint output at both commits gives `SAME-AT-PARENT`. So does the same output with other times, other root folders, or other blank lines.
   - Another hit, another first hit, a new hit in the middle, and a repeated hit line give `OTHER`. So does an error line at one commit only.
   - After an error line, the last 15 lines count. The lines between an error word on the first line and the last 15 lines do not count.
   - The place of a hit such as `prog.1:12:10` is not a clock time, and two bytes that are not UTF-8 stay different.
   - A run in a temporary export with no error line gives `OTHER`.
+  - Output with no line to compare gives `OTHER` with its own reason.
 - `tests/test_failure_check.py` and `tests/test_eval_cases.py`: the reason line of `ExportTests` and the sample of `FailureCheckExportGraderTests` hold the new reason text (issue #301).
 
 ## dev-essentials 4.4.2 and dotnet-backend-dev 1.8.3 in release [5.4.2] - 2026-11-19

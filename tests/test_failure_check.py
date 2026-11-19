@@ -429,7 +429,7 @@ class ExportTests(FailureCheckCase):
 
     SAME = ("REASON: the command fails at both commits with the same exit code, the same error lines, "
             "and the same last lines after the first error line. "
-            "With no error line, the lines of the output and their counts are the same.")
+            "With no error line, each line that is not blank and its count are the same.")
     FILES = (("target.txt", b"target text\nline two\n"), ("ignored.txt", b"not in an archive\n"),
              ("subst.txt", b"commit $Format:%H$\n"),
              (".gitattributes", b"ignored.txt export-ignore\nsubst.txt export-subst\n"),
@@ -812,9 +812,9 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.lint_verdict([hit, "Done in 0.31s"], [hit, "Done in 1.02s"]), "SAME-AT-PARENT")
 
     def test_new_lint_hit_between_the_first_and_the_last_lines_is_other(self):
-        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(30)]
-        new = "src/new.py:3:1: E302 expected 2 blank lines, found 1"
-        self.assertEqual(self.lint_verdict([*hits[:15], new, *hits[15:]], hits), "OTHER")
+        hits = [f"src/m{i:03}.py:1:1: F401 'os' imported but unused" for i in range(400)]
+        new = "src/m199a.py:3:1: E302 expected 2 blank lines, found 1"
+        self.assertEqual(self.lint_verdict([*hits[:200], new, *hits[200:]], hits), "OTHER")
 
     def test_other_lint_output_with_the_same_line_count_is_other(self):
         self.assertEqual(self.lint_verdict(["src/a.py:1:1: F401 'os' imported but unused"],
@@ -837,6 +837,15 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.lint_verdict([""], ["", "", ""]), "OTHER")
         self.assertEqual(self.lint_verdict(["", "  \t"], ["", "  \t"]), "OTHER")
         self.assertEqual(self.lint_verdict([hit, "", ""], ["", hit]), "SAME-AT-PARENT")
+
+    def test_output_with_no_line_to_compare_says_so(self):
+        fix = fc.Run("fix", "a" * 40, "x", "main worktree")
+        fix.code, fix.lines = 1, ["", "  "]
+        parent = fc.Run("parent", "b" * 40, "y", "temporary worktree")
+        parent.code, parent.lines = 1, ["", "  "]
+        token, reason = fc.verdict(False, fix, parent, set())
+        self.assertEqual(token, "OTHER")
+        self.assertIn("has no line to compare", reason)
 
     def test_error_line_at_only_one_commit_is_other(self):
         hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(15)]

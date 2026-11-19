@@ -4014,7 +4014,7 @@ class FailureCheckExportGraderTests(unittest.TestCase):
               "VERDICT: SAME-AT-PARENT\n"
               "REASON: the command fails at both commits with the same exit code, the same error lines, "
               "and the same last lines after the first error line. "
-              "With no error line, the lines of the output and their counts are the same.\n")
+              "With no error line, each line that is not blank and its count are the same.\n")
 
     @classmethod
     def setUpClass(cls):

@@ -25,8 +25,9 @@ commit. In an export, git finds no repository. So a command that reads git
 data, for example a build that reads the commit, fails or gives another result
 in an export. Then the verdict can be OTHER, or SAME-AT-PARENT if both runs
 fail in the same way because the git data is missing. If the command passes
-only in an export, the verdict is OTHER. If a run in an export prints no error
-line, the verdict is OTHER too, because the script cannot see a git error.
+only in an export, the verdict is OTHER. If both runs fail and a run in an
+export prints no error line, the verdict is OTHER too, because the script
+cannot see a git error.
 
 The command runs with `bash -c`, in the same folder relative to the work tree
 root as --cwd, and stops after --timeout seconds. The temporary worktrees and
@@ -73,6 +74,7 @@ error word is fail, traceback, or a word that ends with error or exception.
 If the command prints the same lines for two different failures, for example only a banner,
 the verdict is also SAME-AT-PARENT. A lint that prints one line for each file prints the same
 lines for a new problem in a file that already fails. Then the verdict is SAME-AT-PARENT too.
+In an export, such output with no error line gives OTHER.
 Each MADE or EXPORTED line has a REMOVED line after it. A MADE line with no REMOVED
 line names a worktree that is still there. Remove it with `git worktree remove --force`.
 An EXPORTED line with no REMOVED line names a plain folder that is still there. Delete it.
@@ -504,13 +506,16 @@ def verdict(clean, fix, parent, roots):
         return "OTHER", ("the command fails at both commits, and a temporary export has no git data. "
                          "No output line holds an error word, so the script cannot rule out missing git data.")
     signature = fix.signature(roots)
+    if not signature:
+        return "OTHER", ("the command fails at both commits, but the output at the fix commit has no line to "
+                         "compare. It holds no error line and no line that is not blank.")
     if signature and parent.code == fix.code and signature == parent.signature(roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
                                   "and the same last lines after the first error line. "
-                                  "With no error line, the lines of the output and their counts are the same.")
+                                  "With no error line, each line that is not blank and its count are the same.")
     return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
                      "or the last lines after the first error line differ. "
-                     "With no error line, the lines of the output or their counts differ.")
+                     "With no error line, the lines that are not blank or their counts differ.")
 
 
 def run_in_worktree(trees, side, sha, rel, args, bash):
