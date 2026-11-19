@@ -355,6 +355,14 @@ class RunTests(CompareCase):
         self.assertIn("--no-publish", command)
         self.assertEqual(command[-5:], ["--tag", "smoke", "triggers", "--allow-tools", "Write"])
 
+    def test_run_keeps_the_temporary_folders_of_both_sides_on_request(self):
+        self.run_main(*self.run_args())
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls], [0, 0])
+        shutil.rmtree(self.tmp / "out", ignore_errors=True)
+        code, out, err = self.run_main(*self.run_args("--keep-temp"))
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls[2:]], [1, 1])
+
     def test_concurrency_is_left_out_by_default(self):
         self.run_main(*self.run_args())
         self.assertNotIn("--concurrency", self.calls[0]["command"])
@@ -394,6 +402,7 @@ class RunTests(CompareCase):
                                        runner=self.eval_with_one_worse_run)
         self.assertEqual(code, 0, err)
         self.assertRegex(out, r"--case off-by-one --runs 4 --out \S+out-more-1 .*--concurrency 2 --tag smoke")
+        self.assertNotIn("--keep-temp", out)
 
     def baseline_args(self, *extra):
         return ("baseline", "--repo", self.repo, "--plugin", "group/demo", "--commit", "HEAD",
@@ -823,14 +832,6 @@ class DependencyTests(CompareCase):
         command = self.calls[1]["command"]
         self.assertEqual(command[command.index("--ablation") + 1], "with-without")
         self.assertIn("--keep-temp", command)
-
-    def test_run_keeps_the_temporary_folders_of_both_sides_on_request(self):
-        self.run_main(*self.run_args())
-        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls], [0, 0])
-        shutil.rmtree(self.tmp / "out", ignore_errors=True)
-        code, out, err = self.run_main(*self.run_args("--keep-temp"))
-        self.assertEqual(code, 0, out + err)
-        self.assertEqual([c["command"].count("--keep-temp") for c in self.calls[2:]], [1, 1])
 
     def test_baseline_with_an_unknown_ablation_is_refused(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
