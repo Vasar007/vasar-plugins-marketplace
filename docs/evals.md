@@ -53,6 +53,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `optimize-skill` | `dev-essentials` | 1 | WSL |
 | `merge-pr` | `dev-essentials` | 3 | WSL |
 | `git-worktree-management` | `dev-essentials` | 1 | WSL |
+| `engineering-discipline` | `dev-essentials` | 1 | WSL |
 | `write-tests` | `dotnet-backend-dev` | 3 | WSL |
 | `style-compare-openbsd` | `doc-styles` | 9 | WSL2 or Linux, because its hook needs `python3` |
 | `style-compare-se` | `doc-styles` | 9 | WSL2 or Linux, because its hooks need `python3` and `node` |

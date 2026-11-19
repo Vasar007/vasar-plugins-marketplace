@@ -1,6 +1,6 @@
 ---
 name: engineering-discipline
-description: "Seven rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, and finish the refactor direction of the user."
+description: "Eight rules against the urge to defer, dismiss, or decide alone. Own every red signal, and make no critical decision that the spec does not cover. Keep pipeline artifacts out of shipped text, and never silence a failure with try/catch. Claim nothing as verified without proof, report overblown code first, finish the refactor direction of the user, and write only useful tests."
 when_to_use: "Use it in any session that writes, reviews, or commits code. Examples: 'implement this spec', 'fix tests', or 'process PR comments'."
 ---
 
@@ -134,6 +134,26 @@ How to apply:
 - Under a refactor-only scope, do not touch cross-session or behavioral scenarios. Test changes are only mechanical swaps with identical assertions and counts, for example a new mock target after a call moved to a new collaborator. A spec elsewhere can ask for a semantic change to production code. Under this scope, roll that change back anyway, and report the conflict instead of a silent choice.
 - Make sure that every "green" claim on a WIP fix comes from a real, fresh build or test run. A stale IDE diagnostic or a stale binary can hide the exact regression that this rule guards against. See the false-green trap in `dev-essentials:dotnet-build-test` Rule 2.
 
+## Rule 8 — Write only useful tests
+
+A useful test fails for a bug or for a bad change of behavior in the code under test. A bad test cannot fail in this way, or it fails only where a useful test also fails. Write only useful tests, in every language.
+
+These tests are bad:
+
+- A test that only reads back a fixed value, such as a constant. Test the code that uses the value, because a wrong value fails that test too. If no code uses the value, it needs no test.
+- A test of code that the compiler or a framework writes, such as the constructor of a generated record type. A hand-written constructor can swap two values of one type, so a test of it is useful.
+- A test that a stand-in, such as a mock, returns the value that the test set up for it.
+- A test that copies a text or a value from a file and then compares it with the same file.
+
+One exception: a test can pin a contract value, which other systems, users, or stored data read. Examples are a wire format, a persisted value, an error code, a flag name, and the default of a configuration option. Only such a test catches a change that breaks those readers.
+
+Why: a bad test passes for working code and for broken code alike, so it costs run time and review time and catches nothing.
+
+How to apply:
+
+- Before you write a test, name the bug or the bad change that makes it fail. If you cannot name one, do not write the test.
+- In a review, report each bad test as a finding.
+
 ## How these rules relate
 
-All seven rules share one idea: the work is not done until what ships matches what was promised.
+All eight rules share one idea: the work is not done until what ships matches what was promised.

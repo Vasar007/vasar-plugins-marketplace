@@ -72,13 +72,13 @@ If no example matches your case, look for a similar test class in the test proje
 
 ## Useful Tests
 
-Each test must be able to fail for a bug or a bad change of behavior. If someone changes a fixed value, a test that only reads it back fails. The test of the method that uses the value fails then too. So do not write a test that only asserts one of these:
+Write only useful tests. A useful test fails for a bug or for a bad change of behavior in the code under test. Rule 8 of `dev-essentials:engineering-discipline` defines a useful test and a bad test for all languages. In .NET, do not write a test that only asserts one of these:
 
 - A constant, or a property that returns a fixed value, has its value. Test the method that uses the value. If no method uses it, it needs no test.
 - A positional record keeps the values of its primary constructor. The compiler writes that code.
 - A mock returns the value that the test set up for it.
 
-A test can pin a value that other systems or stored data read: a wire format, a persisted value, an error code, or the default of a configuration option.
+A test can still pin a value that other systems or stored data read. Examples are an error code and the default of a configuration option.
 
 ## Checklist
 

@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.3.0 and dotnet-backend-dev 1.8.2 in release [5.3.0] - 2026-11-19
+
+The terms "useful test" and "bad test" now have one general home: the new Rule 8 of the skill `engineering-discipline`. It names the classes of bad tests with no stack name, and the one exception for a contract value. The skill `create-tests` keeps its .NET examples and points at the rule (issue #294).
+
+### Added in dev-essentials
+
+- `skills/engineering-discipline`: Rule 8, "Write only useful tests". A useful test fails for a bug or for a bad change of behavior. The rule names four classes of bad tests, for example a test that only reads back a fixed value. A test can pin a contract value, which other systems, users, or stored data read. The description of the skill names the new rule (issue #294).
+- `evals/engineering-discipline/ed-useful-tests`: a new behavior case. The request loads `engineering-discipline` and asks for unit tests of one Python module with public constants and one function. Scored graders need tests of the function and of a guard, a passed test run, and an unchanged module. The scored grader `no-constant-test` fails a test file that asserts only the value of a constant (issue #294).
+
+### Changed in dotnet-backend-dev
+
+- `skills/create-tests`: the section "Useful Tests" starts with new sentences and points at Rule 8 of `dev-essentials:engineering-discipline` for the terms. It keeps its three .NET examples. Its last sentence keeps two examples of a contract value: an error code and the default of a configuration option (issue #294).
+- `skills/dotnet-conventions/testing.md`: the sentence on useful tests points at Rule 8 and at the .NET examples of `create-tests` (issue #294).
+
+### Changed in the repository
+
+- `tests/test_rule_references.py`: a new test. Each reference to a numbered rule of `engineering-discipline` in a plugin file must name an existing rule. The section "Useful Tests" of `create-tests` must point at the rule for useful tests (issue #294).
+- `tests/test_eval_cases.py`: the new class `UsefulTestsCaseGraderTests` tests the graders of the new case on samples (issue #294).
+- `docs/testing.md` and `docs/evals.md`: a link to Rule 8, and the new suite `engineering-discipline` with one case (issue #294).
+
 ## dev-essentials 4.2.0 in release [5.2.0] - 2026-11-19
 
 `implement-task` and `implement-batch` take the new option `--no-worktree`. With it, the run makes no git worktree and works in the current folder. Each of the two workflows also gets its first eval case that runs it from its start (issue #282).
@@ -2293,7 +2313,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.3.0...HEAD
+[5.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.2...v5.1.0
 [5.0.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.0.1...v5.0.2
