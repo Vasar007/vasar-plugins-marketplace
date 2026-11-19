@@ -30,7 +30,7 @@ Fix before merge by default. Examples: an N+1 query inside a loop over rows, or 
 
 ### Medium
 
-A quality issue. Examples: a pattern violation that is consistent across the codebase but wrong, such as manual string formatting where a helper exists. Also a small coverage gap on a path that is not critical. Also a cleanup that makes the code easier to read, with no change of behavior. A Medium is not deferred automatically by its label. Phase 4 judges it on its merits. A Medium still gets a fix in two cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
+A quality issue. Examples: a pattern violation that is consistent across the codebase but wrong, such as manual string formatting where a helper exists. Also a small coverage gap on a path that is not critical. Also a cleanup that makes the code easier to read, with no change of behavior. A Medium is not deferred automatically by its label. Phase 4 judges it on its merits. A Medium still gets a fix in these cases: it brings back a variant of the bug under repair, or it leaves the regression of the fix without test coverage.
 
 ### Low
 

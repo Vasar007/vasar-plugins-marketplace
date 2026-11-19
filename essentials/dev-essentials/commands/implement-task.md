@@ -110,7 +110,7 @@ Each brief contains:
 - The absolute worktree path, the base branch, the task text verbatim, and the context list verbatim, with each item marked as fetchable or free text.
 - **Read-only: do not edit, create, or delete any product file. Do not create, comment on, update, or vote on any PR, issue, or document. Write no file.**
 - Access (Rule 4): use the MCP or web-fetch tool of the host of the item. For GitHub, load `dev-essentials:github-mcp-conventions`. For a host without a fetch tool, stop that item, and name it in the report as not fetched. The orchestrator then asks the user. Never skip the item silently or fall back to raw REST calls. **Never fetch a free-text item.** Carry it through verbatim.
-- The report, in the final message only, with these groups:
+- The report, in the final message only, with these groups and a synthesis:
   - **Fetched references**, one section each: what it is, its author, its state (merged, active, or abandoned, and open or closed), and its intent in one paragraph. Then the files and types that it touched, with `file:line` anchors into the base branch, and the ones in the area of this task.
   - **Free-text notes**, each quoted verbatim, with no invented author, state, or files.
   - One synthesis over both groups. **The pattern established**: the shape of a consistent implementation, concrete enough to plan against. **Constraints and conflicts**: what limits the task or contradicts its text, and for a fetched reference, work in flight that can collide. **Explicitly out of scope**: what a fetched reference already does, which this task must not do again.

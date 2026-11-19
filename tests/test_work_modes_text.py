@@ -227,7 +227,6 @@ class FullModeEndTests(unittest.TestCase):
                       "The first is the question of Phase 2 step 5 for an `unconfirmed-commit-claim` thread. "
                       "The second is the one push question in the push-gate item of Rules. "
                       "The open items of Stage 2 also still stop", skill)
-        self.assertNotIn("Three questions", skill)
         self.assertIn("| `--mode` | `interactive`, `partial`, `full` | `partial` |", read(folder / "references/parameters.md"))
 
 

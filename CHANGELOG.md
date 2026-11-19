@@ -20,7 +20,7 @@ The text of the units no longer counts the items of a list. Each time an item jo
 
 ### Changed in dotnet-backend-dev
 
-- `skills/create-tests`, `skills/dotnet-conventions`, `skills/model-mapping`, `skills/add-migration`, and `skills/add-session-logging`: the count word of a list goes (issue #309).
+- `skills/create-tests`, `skills/dotnet-conventions`, `skills/model-mapping`, `skills/add-migration`, `skills/add-session-logging`, and `skills/handle-sensitive-data`: the count word of a list goes (issue #309).
 
 ### Changed in the repository
 

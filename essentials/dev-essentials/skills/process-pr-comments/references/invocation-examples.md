@@ -27,7 +27,7 @@ These examples show the parameters of `references/parameters.md` in use.
 # Bundle all fixes from this cycle under a single commit; push still needs your explicit go-ahead
 /process-pr-comments pr=42 owner=my-org repo=my-repo squash
 
-# The full mode: implement, decide, reply, create the new issues, push. The named questions still ask (a human still reviews and approves the PR before merge)
+# The full mode: implement, decide, reply, create the new issues, push. Some questions still ask (a human still reviews and approves the PR before merge)
 /process-pr-comments pr=42 owner=my-org repo=my-repo --mode full
 
 # Route one Medium/Large [ToFix] thread through research-implement-review-report instead of drafting it

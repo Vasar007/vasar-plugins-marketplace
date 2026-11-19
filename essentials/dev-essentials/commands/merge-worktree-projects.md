@@ -11,7 +11,7 @@ Claude Code keeps one project folder for each working folder. The project folder
 
 A git worktree has a different path than the main checkout of its repo, usually `<repo-root>/.claude/worktrees/<branch>/...` (see `dev-essentials:git-worktree-management`). So each worktree that you worked in gets its **own separate project folder**, although it belongs to the same repo. Over time, the sessions and the memory of one repo spread across these folders.
 
-This command merges those worktree folders back into the one main project folder. It does this for each project that `$ARGUMENTS` names. If `$ARGUMENTS` names no project, it does this for **every** project that has worktree folders. Then it deletes the empty worktree folders. The script `merge_projects.py` of this plugin does all file work by fixed rules. **By default, this is a dry-run report only**. Nothing is written or deleted before two things happen: `--apply` is passed, and the user explicitly approves the exact plan. See "Modes and safety gate" below.
+This command merges those worktree folders back into the one main project folder. It does this for each project that `$ARGUMENTS` names. If `$ARGUMENTS` names no project, it does this for **every** project that has worktree folders. Then it deletes the empty worktree folders. The script `merge_projects.py` of this plugin does all file work by fixed rules. **By default, this is a dry-run report only**. Nothing is written or deleted before these things happen: `--apply` is passed, and the user explicitly approves the exact plan. See "Modes and safety gate" below.
 
 ## What this touches
 
