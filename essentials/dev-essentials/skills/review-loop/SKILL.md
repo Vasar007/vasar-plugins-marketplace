@@ -259,13 +259,13 @@ After the fixer finishes, run the build and the tests of the repository one time
 
 Find the commands in this order, exactly:
 
-1. Read the `CLAUDE.md` of the repository. For a `branch`, `pr`, `commits`, or `diff` target, read the copy of the base: `git show <base ref>:CLAUDE.md`. A change can edit the commands that judge it. The base ref is `origin/<base>` for `branch` and `origin/<targetBranch>` for `pr`. It is `HEAD~N` for `commits`, and the left side of the range for `diff`. If the base has no `CLAUDE.md`, go to step 2. For another target, read the file in the worktree. If the file documents a build command or a test command, use it.
+1. Read the `CLAUDE.md` of the repository. For a `branch`, `pr`, `commits`, or `diff` target, read the copy of the base: `git show <base ref>:CLAUDE.md`. A change can edit the commands that judge it. The base ref is `origin/<base>` for `branch` and `origin/<targetBranch>` for `pr`. It is `HEAD~N` for `commits`, and the left side of the range for `diff`. If the base has no `CLAUDE.md`, go to step 2. For another target, read the file in the worktree. If the file documents a build command or a test command, use it. If it also documents a lint command, run that command after the tests. A failed lint is a failed Phase 6.
 2. If `CLAUDE.md` says nothing, detect a manifest in the repository. For every manifest type, use the same rule: **exactly one** file, use it. **None**, go to the next type. **Two or more**, **stop and ask the user** with the list of files before you continue.
    - `*.sln` (C# and .NET): with exactly one `.sln`, run `dotnet build <solution>` and `dotnet test <solution>`. With two or more, ask: "Multiple solutions found: `<list>`. Which solution does Phase 6 build and test?" Use the answer for both commands.
    - Other stacks (Node, Rust, Python, Go, and others): this skill has no detection rule of its own for them. If the language has a clear analogue of `.sln`, apply the same rule to it: `package.json`, `Cargo.toml`, `pyproject.toml` or `setup.py`, `go.mod`, and so on. Run the build and test commands from the folder of the chosen manifest, not from the repository root. Change into that folder, or use the matching option (`--prefix`, `--manifest-path`, or `-C`). **If the language or the command form for that folder is unclear, stop and ask the user for the build and test commands**. Do not guess, and do not fall back to a run from the repository root.
 3. If no manifest matches: **Stop and ask the user**: "What is the build command for this repo?" Record the answer, and continue.
 
-If the build or the tests fail:
+If the build, the tests, or the lint fail:
 
 - Report the failures honestly. Do not call them "pre-existing".
 - If the run uses `--no-verify-fix`, or the fix pass of this cycle changed no file, no fix of this cycle is on disk. Then the failure is in the existing code. Do not run the failure check. Do not fix the failure in this loop. End the loop with `stop-blocked`. In the Phase 9 summary, list the failure with its file and its error message.
@@ -278,7 +278,7 @@ Failure check (after the Phase 7 commit of this cycle). In this check, `<fix-com
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/failure_check.py" --fix-commit <fix-commit> --command "<failed command>" --ignore "<glob>"
 ```
 
-- `--command` is the build or test command that failed, without the output filter of Phase 6. If the test tool can run only the failing tests, give that command. The script runs it with bash.
+- `--command` is the build, test, or lint command that failed, without the output filter of Phase 6. If the test tool can run only the failing tests, give that command. The script runs it with bash.
 - Give one `--ignore` for each kind of file that this loop wrote in this run, as a glob relative to the repository root: the cycle reports and the summary (`<reviews folder>/<target-slug>-*`) and any progress file of the loop. Leave out a file outside the repository.
 - The script makes each temporary worktree in a folder outside the repository, and removes it in every case. It stops each run of the command after 280 seconds. So give the Bash call a `timeout` of 600000. If the failed Phase 6 run took longer than 4 minutes, run the script with the Bash option `run_in_background: true`. Then add `--timeout <seconds>` with the time limit of one run, and wait for the notification that the script ended.
 - A `MADE <path>` line with no `REMOVED <path>` line names a worktree that is still there. Remove it with `git worktree remove --force <path>`. An `EXPORTED <path>` line with no `REMOVED <path>` line names a plain folder that is still there: delete it by hand, because `git worktree remove` does not apply to it.
@@ -350,7 +350,7 @@ A `(blocking)` row, or a deferred Blocker, Critical, or High row, means that the
 | `references/audit-team-adapter.md` | Phase 2, only with `--reviewer audit-team`. |
 | `references/triage-matrix.md` | Phase 4: the severity scale, the action for each severity, and the `blocking` flag. |
 | `references/verify-fix-discipline.md` | Phase 5: the playbook of the fixer. Read it before the fix pass, and give its path to a fixer subagent. |
-| `scripts/failure_check.py` | Phase 6, only after a failed build or test run that follows a fix pass: the failure check. Run it with `--help` for all flags. |
+| `scripts/failure_check.py` | Phase 6, only after a failed build, test, or lint run that follows a fix pass: the failure check. Run it with `--help` for all flags. |
 | `examples/branch-review.md` | A full review of a feature branch, with both report formats filled in with real numbers. |
 | `examples/spec-review.md` | A review of a spec change document of any spec framework. The example uses an OpenSpec change as one case. It shows the `audit-team` adapter and the findings. |
 | `dev-essentials:engineering-discipline` | Rule 1 (own every red signal) drives the build and test run of Phase 6. Rule 2 (no critical decision alone) drives the REJECT of a signature change that the triage did not allow, in Phase 5. Rule 5 (no claim without proof) drives the primary-source rule of the reviewer and the fixer. |
