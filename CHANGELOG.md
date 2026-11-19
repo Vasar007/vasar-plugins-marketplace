@@ -19,7 +19,7 @@ This release fixes one grader that seven eval cases share. No skill text changes
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` gets two chained commands that must pass and one that must fail. The test of the known wrong verdicts gets the new one: the word `unittest` between a `git` and its `commit` (issue #293).
+- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` gets two chained commands that must pass and two runs that must fail. The test of the known wrong verdicts gets two forms of the new one. The word `unittest` is in an earlier `git` step or in the commit step (issue #293).
 - `docs/evals.md`: it names the new wrong verdict of `untested-commit` (issue #293).
 
 ## dev-essentials 4.4.0 in release [5.4.0] - 2026-11-19
