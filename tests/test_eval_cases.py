@@ -5085,5 +5085,88 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
                 self.assertRegex(message.strip(), r"""^(["'])[^"'\d{]*\1$""")
 
 
+class NoWorktreeReadGraderTests(unittest.TestCase):
+    """The route grader of it-no-worktree and ib-no-worktree: the run reads the rules of --no-worktree first (issue #290).
+
+    A run must read the file before it creates its branch and before it edits a file.
+    """
+
+    CASES = ("it-no-worktree", "ib-no-worktree")
+    PATH = "/plugins/dev-essentials/skills/work-modes/references/no-worktree.md"
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def found(self, case, text):
+        meta = self.cases[case].graders["route-no-worktree-read"][0]
+        self.assertEqual((meta["type"], meta["target"], meta.get("match"), meta.get("flags")), ("regex", "trace", None, None))
+        return re.search(meta["pattern"], text) is not None
+
+    def test_a_read_before_the_first_step_passes(self):
+        init = trace_record({"type": "system", "subtype": "init", "tools": ["Bash", "Edit", "Read", "TodoWrite", "Write"]})
+        todo = self.tool_use("TodoWrite", {"todos": [{"content": "Phase 1", "status": "in_progress"}]})
+        status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        cat = self.tool_use("Bash", {"command": f'P="{self.PATH}"; cat "$P"'})
+        # A right run read the file as `cd <folder> && cat no-worktree.md`, with the folder and the name apart.
+        folder = self.PATH.rsplit("/", 1)[0]
+        cd_cat = self.tool_use("Bash", {"command": f"cd {folder} && cat no-worktree.md; echo ====; cat finish.md"})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        edit = self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"})
+        # A line break after `branch ` is a backslash in the trace, but it starts no branch name.
+        wrapped = self.tool_use("Bash", {"command": 'git -C "/repo" branch \\\n  --show-current'})
+        trailing = self.tool_use("Bash", {"command": 'git -C "/repo" branch \ngit -C "/repo" status'})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertTrue(self.found(case, "\n".join([read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([wrapped, trailing, read, switch])))
+                self.assertTrue(self.found(case, "\n".join([init, todo, status, read, switch, edit])))
+                self.assertTrue(self.found(case, "\n".join([cat, switch])))
+                self.assertTrue(self.found(case, "\n".join([status, cd_cat, switch, edit])))
+
+    def test_a_read_after_the_branch_or_an_edit_fails(self):
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        steps = {"switch": self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'}),
+                 "checkout": self.tool_use("Bash", {"command": "git checkout -b eval/retry-limit"}),
+                 "edit": self.tool_use("Edit", {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}),
+                 "write": self.tool_use("Write", {"file_path": "/repo/notes/x.md", "content": "x"}),
+                 "switch -C": self.tool_use("Bash", {"command": 'git -C "/repo" switch -C eval/retry-limit'}),
+                 "switch --create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --create eval/retry-limit'}),
+                 "switch --force-create": self.tool_use("Bash", {"command": 'git -C "/repo" switch --force-create eval/retry-limit'}),
+                 "checkout -B": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -B eval/retry-limit'}),
+                 "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
+                 "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
+                 "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"})}
+        for case in self.CASES:
+            for name, step in steps.items():
+                with self.subTest(case=case, step=name):
+                    self.assertFalse(self.found(case, "\n".join([step, read])))
+
+    def test_only_the_main_loop_counts(self):
+        def sub(name, tool_input):
+            return trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "id": "toolu_2", "name": name, "input": tool_input}]}, "parent_tool_use_id": "toolu_1"})
+        read = self.tool_use("Read", {"file_path": self.PATH})
+        show = self.tool_use("Bash", {"command": 'git -C "/repo" branch --show-current'})
+        switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, "\n".join([sub("Read", {"file_path": self.PATH}), switch])))
+                self.assertTrue(self.found(case, "\n".join([sub("Edit", {"file_path": "/repo/a.py", "old_string": "a", "new_string": "b"}), read])))
+                self.assertTrue(self.found(case, "\n".join([show, read, switch])))
+
+    def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
+        # The text of the unit names the path too, so a tool result with that text must not pass the grader.
+        unit_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Read `{self.PATH}` before any other step."}]}})
+        other = self.tool_use("Read", {"file_path": self.PATH.replace("no-worktree", "finish")})
+        for case in self.CASES:
+            with self.subTest(case=case):
+                self.assertFalse(self.found(case, unit_text))
+                self.assertFalse(self.found(case, other))
+
+
 if __name__ == "__main__":
     unittest.main()
