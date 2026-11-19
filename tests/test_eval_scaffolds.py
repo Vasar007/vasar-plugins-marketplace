@@ -1579,6 +1579,8 @@ class ResumeReportTests(FixtureCase):
                "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
                "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
                "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1")}
+    # The number of review verdicts that the report of each case holds.
+    VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
 
     @classmethod
     def setUpClass(cls):
@@ -1600,6 +1602,17 @@ class ResumeReportTests(FixtureCase):
                 self.assertNotIn("HEAD_SHA", report)
                 # In the case of the moved head, a commit that no review saw is on top of the commit of the report.
                 self.assertEqual(head in report, commit == "HEAD")
+
+    def test_the_report_gives_each_verdict_and_the_tests_pass_at_the_head(self):
+        # A stop case must have no second reason to stop, and a merge case needs each fact of the resume.
+        for name, (path, _commit) in self.REPORTS.items():
+            with self.subTest(case=name):
+                workspace = self.scaffold(name)
+                report = (workspace / path).read_text(encoding="utf-8")
+                self.assertEqual(report.count("Verdict `stop-clean`."), self.VERDICTS[name])
+                done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                                      capture_output=True, text=True)
+                self.assertEqual(done.returncode, 0, done.stderr[-500:])
 
     def test_only_the_upstream_remote_is_on_github(self):
         workspace = self.scaffold("rirr-upstream-remote")

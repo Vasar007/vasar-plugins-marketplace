@@ -4596,14 +4596,30 @@ class RirrFinishCaseTests(unittest.TestCase):
                     self.assertEqual({key: value for key, value in parse_block(lines)["expect"].items() if key in self.REPOSITORY},
                                      self.REPOSITORY)
 
-    def test_the_question_grader_of_the_upstream_case_needs_a_question_mark(self):
+    def test_the_question_grader_of_the_upstream_case_needs_a_question_about_the_repository(self):
         replies = {"a question about the repository": ("The clone has the remote upstream on GitHub. Which repository gets the pull "
                                                        "request: example-org/users-app or the fork of origin?", True),
-                   "the question of the final gate with its answers": ("Push the branch? (yes / push and pull request only / no)", True),
+                   "the question of the final gate with its answers": ("Push the branch? (yes / push and pull request only / no)", False),
+                   "a question about the report": ("Stopped. Where is the report?", False),
                    "a report with no question": ("Pushed work/retry-limit and merged pull request 36.", False)}
         for name, (reply, expected) in replies.items():
             with self.subTest(reply=name):
                 self.assertEqual(self.found("rirr-upstream-remote", "route-question", reply), expected)
+
+    def test_the_skill_grader_names_the_workflow_of_the_case(self):
+        units = {"rirr-merge": "research-implement-review-report", "it-merge": "implement-task", "ib-merge": "implement-batch",
+                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report"}
+        for case, unit in units.items():
+            with self.subTest(case=case):
+                for other in sorted(set(units.values())):
+                    self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
+
+    def test_the_request_of_a_stop_case_names_no_stop(self):
+        # The only reason to stop must be the rule under test, not a word of the request.
+        for case in self.STOP_CASES:
+            with self.subTest(case=case):
+                self.assertIsNone(re.search(r"(?i)\b(?:push|merge|pull request|stop|pause|wait|do not|never)\b",
+                                            self.cases[case].prompt_body))
 
     def test_a_merge_call_fails_the_gate_case(self):
         case = "rirr-merge-gate"

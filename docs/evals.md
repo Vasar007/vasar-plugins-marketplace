@@ -58,7 +58,7 @@ A behavior suite is a set of eval cases that runs a workflow skill on a small pl
 | `style-compare-se` | `doc-styles` | 9 | WSL2 or Linux, because its hooks need `python3` and `node` |
 | `style-compare-both` | `doc-styles` | 3 | WSL2 or Linux, because its hooks need `python3` and `node` |
 
-The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, `--tag merge-pr`, `--tag write-tests`, `--tag audit-team`, `--tag optimize-skill`, and `--tag git-worktree-management` also run the trigger cases in `evals/triggers/` of their plugin. The tag `composers` selects only the behavior cases. The trigger cases of its skills carry the tags `compose-pr`, `compose-task`, and `create-documentation`.
+The count is the number of behavior cases. If a skill has trigger cases, the tag of its suite also selects them. So `--tag review-loop`, `--tag feature-pipeline`, `--tag merge-pr`, and `--tag write-tests` also run the trigger cases in `evals/triggers/` of their plugin. The tags `--tag audit-team`, `--tag optimize-skill`, `--tag git-worktree-management`, and `--tag implement-task` do the same. The tag `composers` selects only the behavior cases. The trigger cases of its skills carry the tags `compose-pr`, `compose-task`, and `create-documentation`.
 
 The sandbox of a run keeps `.git/worktrees` read-only ([#232](https://github.com/Vasar007/vasar-plugins-marketplace/issues/232)). So no eval case can make a git worktree. The case `gwm-create-blocked` tests the route and the report. Its run must call `worktree.py create`, and its final reply must say that the worktree was not made and why.
 
