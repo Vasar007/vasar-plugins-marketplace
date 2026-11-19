@@ -6,11 +6,8 @@ Read this file at the finish step of each run.
 
 ## When the steps run
 
-`dev-essentials:work-modes` says how to read an old spelling. Take the first bullet that fits the run:
-
-- In the full mode, do the steps with no question. The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.
-- The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no outward step. For both, do not look for the repository. With `--push`, do steps 1 to 3 with no question, and skip the question, step 4, and step 5. With no `--push`, do no step.
-- In every other run of the partial mode and of the interactive mode, the final gate comes after the final report. Show the verdict of each review loop of the run. Then ask one question: "Push the branch, open a pull request, and merge it after the gate of merge-pr? (yes / push and pull request only / no)". Do no step before the answer. With "push and pull request only", skip step 5. With "no", do no step.
+- In the full mode, do the steps with no question.
+- In the partial mode and in the interactive mode, the final gate comes after the final report. Show the verdict of each review loop of the run. Then ask one question: "Push the branch, open a pull request, and merge it after the gate of merge-pr? (yes / push and pull request only / no)". Do no step before the answer. With "push and pull request only", skip step 5. With "no", do no step.
 
 If the end of the run has another question, for example the cleanup question of `save-context`, ask both questions in one message.
 
@@ -25,7 +22,7 @@ An instruction of the user outranks the mode (hard stop 7 of `dev-essentials:wor
 
 Step 3 pushes to `origin`, so only the repository of `origin` holds the branch of the pull request. In a fork clone with no other remote, the pull request goes to the fork.
 
-If the request names no repository, and no remote of the clone is on `github.com`, ask no question. Do not do step 4 or step 5. Do steps 1 to 3 only for the old flag `--push`. The finish report says which steps did not run, and why. This holds in every mode.
+If the request names no repository, and no remote of the clone is on `github.com`, ask no question, and do no step. The finish report says which steps did not run, and why. This holds in every mode.
 
 These cases are hard stop 6 of `dev-essentials:work-modes`. Ask the user, and do no step before the answer:
 

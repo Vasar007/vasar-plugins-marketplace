@@ -12,7 +12,7 @@ The text of this skill stays in the context for the rest of the session. If it i
 
 ## The three modes
 
-The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode full`. With no `--mode`, the mode is partial. The user can also name the mode in plain words in the request, for example "in the full mode". Only words that name the mode count. "Full pipeline" and "no stops" pick no mode.
+The user picks the mode with `--mode interactive`, `--mode partial`, or `--mode full`. With no `--mode`, the mode is partial. The user can also name the mode in plain words in the request, for example "in the full mode". Only words that name the mode count. "Full pipeline" and "no stops" pick no mode. Another form of the option counts too, for example `--mode=full`.
 
 | Mode | What the user does | What the run does | Where the run ends |
 | --- | --- | --- | --- |
@@ -55,22 +55,11 @@ In the full mode, stops 3 to 5 end the run with a report. A workflow can say to 
 - At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.
 - A mode removes stops. It adds no steps, except the outward steps of the full mode in the list above. A step that runs only with a flag, such as `--commit-push`, still needs that flag, and the flag is the approval of that step.
 - If the request names two modes, stop before the first step, and ask the user once which mode to use.
+- If the request names an unknown mode, or a flag that the workflow does not define, ask the same question. Do no work before the answer. A guess never picks the full mode.
 - A critical decision is a public contract change, a new dependency, a choice between designs, or a weaker test assertion. If the approved plan grounds a critical decision in the task, the code, or the documentation, the plan covers it. Outside the full mode, ask the user about every other critical decision.
 - In the full mode, make that decision yourself. Choose the option that follows the plan and the existing code. If neither one supports an option, choose the smallest change that keeps the current behavior. Never weaken a test assertion to make code pass. List each decision in the final report under "Decisions for your review".
 - Outside the interactive mode, do not ask before a Fable dispatch that neither the user nor the defaults of the workflow chose. Use Opus, and name the step in the final report.
 - When a workflow runs another workflow, it passes its `--mode` on, unless its own text names an exception.
-
-## Old spellings
-
-Earlier versions of the workflows used other words. Read them this way, and say in the final report that the spelling is old:
-
-- `--interactive`, or the argument `interactive` of `process-pr-comments`: `--mode interactive`.
-- `--autonomous` with no `--merge`, or the argument `autonomous` of `process-pr-comments`: `--mode full`, with no approval of a merge. The run does not stop, and it does not merge. In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push and no pull request, as before.
-- `--autonomous --merge`: `--mode full`.
-- `--merge` with no `--autonomous`: `--mode partial`. The flag approves the merge after the final gate, as before.
-- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more. The run pushes after the final report with no question. With `--mode full` or `--autonomous --merge`, the run does all finish steps. With the old `--autonomous` and no `--merge`, it pushes with no stop and does nothing more.
-
-The words "autonomous" and "autonomously" in the prose of a request are not an old spelling, and they pick no mode.
 
 ## The final report
 

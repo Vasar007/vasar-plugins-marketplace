@@ -1,8 +1,8 @@
 """Tests for the text of the work modes: the skill work-modes and the gated units that point at it (issue #267).
 
-The skill work-modes is the one place that defines the option --mode, the three modes, the hard stops, and the
-old spellings. These tests pin its main sentences, the pointer and the gate table header of each gated unit, and
-the absence of the old mode flags and of the old copies of the common block in every other file.
+The skill work-modes is the one place that defines the option --mode, the three modes, and the hard stops. These
+tests pin its main sentences, the pointer and the gate table header of each gated unit, the absence of the old
+mode flags in every file, and the absence of the old copies of the common block in every other file.
 """
 import re
 import unittest
@@ -30,7 +30,7 @@ TABLE_UNITS = (
     "commands/save-context.md",
 )
 PPC = "skills/process-pr-comments/SKILL.md"
-OLD_FLAG = re.compile(r"(?<![\w-])--(?:interactive|autonomous|merge)(?![\w-])")
+OLD_FLAG = re.compile(r"(?<![\w-])--(?:interactive|autonomous|merge|push)(?![\w-])")
 OLD_WORD = re.compile(r"`autonomous`")
 COMMON_BLOCK = ("These rules apply in every mode:", "removes stops. It adds no steps.",
                 "The user picks one with a flag: the default (no flag)", "If the request names two modes",
@@ -53,23 +53,14 @@ RULES = (
     "- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.",
     "- A mode removes stops. It adds no steps, except the outward steps of the full mode in the list above. A step that runs only with a flag, such as `--commit-push`, still needs that flag, and the flag is the approval of that step.",
     "- If the request names two modes, stop before the first step, and ask the user once which mode to use.",
+    "- If the request names an unknown mode, or a flag that the workflow does not define, ask the same question. "
+    "Do no work before the answer. A guess never picks the full mode.",
     "Outside the full mode, ask the user about every other critical decision.",
     "- In the full mode, make that decision yourself.",
     "Never weaken a test assertion to make code pass.",
     'List each decision in the final report under "Decisions for your review".',
     "- Outside the interactive mode, do not ask before a Fable dispatch that neither the user nor the defaults of the workflow chose. Use Opus, and name the step in the final report.",
 )
-OLD_SPELLINGS = (
-    "- `--interactive`, or the argument `interactive` of `process-pr-comments`: `--mode interactive`.",
-    "- `--autonomous` with no `--merge`, or the argument `autonomous` of `process-pr-comments`: `--mode full`, "
-    "with no approval of a merge. The run does not stop, and it does not merge.",
-    "- `--autonomous --merge`: `--mode full`.",
-    "- `--merge` with no `--autonomous`: `--mode partial`. The flag approves the merge after the final gate, as before.",
-    'The words "autonomous" and "autonomously" in the prose of a request are not an old spelling, and they pick no mode.',
-)
-# Lines that keep an old flag on purpose, as (path, count). The body of git-worktree-management changes after the
-# task that rewrites its workflows merges, so that the two branches do not conflict. Remove the entry then.
-KNOWN_OLD_FLAGS = {}
 
 
 def read(path):
@@ -134,12 +125,6 @@ class WorkModesSkillTests(unittest.TestCase):
             with self.subTest(rule=rule):
                 self.assertIn(rule, rules)
 
-    def test_the_old_spellings_keep_their_behavior(self):
-        old = self.text[self.text.index("## Old spellings"):]
-        for line in OLD_SPELLINGS:
-            with self.subTest(line=line):
-                self.assertIn(line, old)
-
 
 class GatedUnitTests(unittest.TestCase):
     def test_each_gated_unit_points_at_the_skill_and_names_the_three_modes(self):
@@ -166,16 +151,17 @@ class GatedUnitTests(unittest.TestCase):
                 with self.subTest(file=path.relative_to(REPO).as_posix(), phrase=phrase):
                     self.assertNotIn(phrase, text)
 
-    def test_no_file_outside_work_modes_names_an_old_mode_flag(self):
-        for path in text_files():
-            rel = path.relative_to(REPO).as_posix()
-            with self.subTest(file=rel):
-                count = len(OLD_FLAG.findall(read(path))) + len(OLD_WORD.findall(read(path)))
-                self.assertEqual(count, KNOWN_OLD_FLAGS.get(rel, 0))
+    def test_no_file_names_an_old_mode_flag(self):
+        # No unit defines these flags any more. A text that passes one makes the run ask which mode to use.
+        for path in [*text_files(), WORK_MODES, FINISH]:
+            with self.subTest(file=path.relative_to(REPO).as_posix()):
+                text = read(path)
+                self.assertEqual(OLD_FLAG.findall(text) + OLD_WORD.findall(text), [])
 
     def test_the_old_flag_pattern_finds_the_flags_and_skips_other_options(self):
-        self.assertEqual(OLD_FLAG.findall("--interactive, --autonomous --merge."), ["--interactive", "--autonomous", "--merge"])
-        self.assertEqual(OLD_FLAG.findall("git diff --merge-base origin/main --no-merge x--merge"), [])
+        self.assertEqual(OLD_FLAG.findall("--interactive, --autonomous --merge --push."),
+                         ["--interactive", "--autonomous", "--merge", "--push"])
+        self.assertEqual(OLD_FLAG.findall("git diff --merge-base origin/main --no-merge x--merge --commit-push --push-option"), [])
 
 
 class UnitRuleTests(unittest.TestCase):
@@ -195,8 +181,7 @@ class UnitRuleTests(unittest.TestCase):
             "| Step 2 item 5: delete a file that this run did not create | Ask before Step 3, unless the user approved it before | Same | No stop |"),
         "skills/trim-artifacts/SKILL.md": ("| Step 5: deletion gate | Stop | Stop | Put the three lists into the final message, and continue |",),
         "skills/merge-pr/SKILL.md": (
-            "An old spelling that `dev-essentials:work-modes` reads as an approval of the merge counts too.",
-            "A yes of the user to a question of this session that names the merge is a request in their own words."),
+            "A yes of the user to a question of this session that names the merge is a request in their own words.",),
         "skills/process-pr-comments/references/tag-actions.md": (
             "In the full mode, create no issue, post no reply for this thread, and list the thread and the failed search in the cycle report.",),
         "skills/process-pr-comments/SKILL.md": (
@@ -294,29 +279,19 @@ class FinishStepTests(unittest.TestCase):
                 self.assertIn(sentence, self.text)
         # A clone with no GitHub remote is no hard stop: the run does no pull request and no merge, in every mode, and asks nothing.
         self.assertNotIn("- No source names a repository.", self.text)
-        self.assertIn("If the request names no repository, and no remote of the clone is on `github.com`, ask no question. "
-                      "Do not do step 4 or step 5. Do steps 1 to 3 only for the old flag `--push`. "
+        self.assertIn("If the request names no repository, and no remote of the clone is on `github.com`, ask no question, and do no step. "
                       "The finish report says which steps did not run, and why. This holds in every mode.", self.text)
 
     def test_a_run_that_never_pushes_skips_the_search_for_the_repository(self):
         self.assertIn("If the request forbids the push, do no step, and do not look for the repository.", self.text)
         self.assertIn("Where this file says not to look for the repository, skip this section. In the full mode, find the repository", self.text)
-        self.assertIn("The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no outward step. For both, "
-                      "do not look for the repository. With `--push`, do steps 1 to 3 with no question, "
-                      "and skip the question, step 4, and step 5. With no `--push`, do no step.", self.text)
 
     def test_each_run_matches_one_bullet_of_the_section_when_the_steps_run(self):
         when = self.text[self.text.index("## When the steps run"):self.text.index("## The repository")]
         bullets = [line for line in when.splitlines() if line.startswith("- ")]
-        self.assertEqual(len(bullets), 3)
-        self.assertIn("Take the first bullet that fits the run:", when)
-        self.assertEqual(bullets[0], "- In the full mode, do the steps with no question. "
-                                     "The old `--autonomous --merge` is the full mode here, and the old `--autonomous` with no `--merge` is not.")
-        self.assertTrue(bullets[1].startswith("- The old flag `--push` approves a push and nothing more. The old `--autonomous` with no `--merge` approves no"))
-        self.assertTrue(bullets[2].startswith("- In every other run of the partial mode and of the interactive mode, the final gate comes after "))
-        # The old spellings are named only where they pick a bullet. work-modes says how to read each one.
-        self.assertIn("`dev-essentials:work-modes` says how to read an old spelling.", when)
-        self.assertNotIn("--interactive", when)
+        self.assertEqual(len(bullets), 2)
+        self.assertEqual(bullets[0], "- In the full mode, do the steps with no question.")
+        self.assertTrue(bullets[1].startswith("- In the partial mode and in the interactive mode, the final gate comes after the final report."))
 
     def test_a_pull_request_body_that_asks_a_question_is_asked_again_in_the_full_mode(self):
         self.assertIn("3. If the agent returns a question or no body, and the mode is not full, ask the user (hard stop 6). "
@@ -347,7 +322,7 @@ class FinishStepTests(unittest.TestCase):
                          "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. "
                          "For a failed merge gate, name the failed item from the report of `merge-pr`.",
                          "Do not repair the cause, and do not do a step again.",
-                         "In the full mode, do the steps with no question.", "Take the first bullet that fits the run:"):
+                         "In the full mode, do the steps with no question."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
 
@@ -365,8 +340,6 @@ class FinishCallerTests(unittest.TestCase):
                 self.assertIn("the head commit at the end of the run", text)
                 self.assertNotIn("the head commit at the end of the review loop", text)
                 self.assertIn(f"goes straight to {step}, as \"Resume\" in its file `finish.md` says.", text)
-                # The old flag --push is an old spelling, so only work-modes names it.
-                self.assertNotIn("--push", text)
                 self.assertNotIn("Pushes only with", text)
         self.assertNotIn("This skill has no push step.", read(PLUGIN / "skills/research-implement-review-report/SKILL.md"))
 
@@ -385,17 +358,10 @@ class FinishCallerTests(unittest.TestCase):
             with self.subTest(unit=rel):
                 self.assertNotIn("references/finish.md", read(PLUGIN / rel))
 
-    def test_work_modes_names_the_finish_file_and_the_old_push_flag(self):
-        text = read(WORK_MODES)
-        for sentence in ("- `research-implement-review-report`, `implement-task`, and `implement-batch`: the merge of the pull request, "
-                         "after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill",
-                         "In `research-implement-review-report`, `implement-task`, and `implement-batch`, it also approves no push "
-                         "and no pull request, as before.",
-                         "- `--push` of `implement-task` and `implement-batch`: the approval of the push of the run, and nothing more.",
-                         "With `--mode full` or `--autonomous --merge`, the run does all finish steps. "
-                         "With the old `--autonomous` and no `--merge`, it pushes with no stop and does nothing more."):
-            with self.subTest(sentence=sentence):
-                self.assertIn(sentence, text)
+    def test_work_modes_names_the_finish_file(self):
+        self.assertIn("- `research-implement-review-report`, `implement-task`, and `implement-batch`: the merge of the pull request, "
+                      "after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill",
+                      read(WORK_MODES))
 
     def test_merge_pr_counts_the_yes_of_the_final_gate(self):
         merge = read(PLUGIN / "skills/merge-pr/SKILL.md")
