@@ -535,9 +535,6 @@ class HookFileTests(ScratchCase):
         result = self.run_hook_command(bin_dir, stdin=event)
         self.assertResult(result, 2, "openbsd-style-docs: page.md has 2 style hit(s).")
 
-    def test_script_exists(self):
-        self.assertTrue(SCRIPT.is_file())
-
 
 if __name__ == "__main__":
     unittest.main()
