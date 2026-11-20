@@ -49,6 +49,9 @@ class LintCase(ScratchCase):
 
 
 class GoldTests(LintCase):
+    def test_gold_readme_is_found(self):
+        self.assertIn("## DESCRIPTION", gold_readme())
+
     def test_gold_readme_has_no_hit(self):
         result = self.run_lint(gold_readme())
         self.assertResult(result, 0)
