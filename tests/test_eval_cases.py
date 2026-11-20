@@ -5266,12 +5266,12 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
 
 
 class NoWorktreeReadGraderTests(unittest.TestCase):
-    """The route grader of it-no-worktree and ib-no-worktree: the run reads the rules of --no-worktree first (issue #290).
+    """The route grader of the --no-worktree cases: the run reads the rules of --no-worktree first (issue #290).
 
     A run must read the file before it creates its branch and before it edits a file.
     """
 
-    CASES = ("it-no-worktree", "ib-no-worktree")
+    CASES = ("it-no-worktree", "ib-no-worktree", "it-no-worktree-dirty")
     PATH = "/plugins/dev-essentials/skills/work-modes/references/no-worktree.md"
     tool_use = staticmethod(PipelineMergeTests.tool_use)
 
@@ -5363,6 +5363,66 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
             with self.subTest(case=case):
                 self.assertFalse(self.found(case, unit_text))
                 self.assertFalse(self.found(case, other))
+
+
+class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
+    """The route graders of it-no-worktree-dirty: a run that stops at the changed file creates no branch and edits no file."""
+
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["it-no-worktree-dirty"]
+
+    def test_the_branch_grader_counts_each_command_that_creates_a_branch(self):
+        meta = self.case.graders["route-no-branch"][0]
+        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Bash", 0, 0))
+        pattern = re.compile(meta["input_match"])
+        commands = {
+            'git -C "/repo" switch -c eval/retry-limit': True,
+            'G="git -C /repo"; $G switch -c eval/retry-limit': True,
+            "git checkout -b eval/retry-limit": True,
+            'git -C "/repo" switch -qc eval/retry-limit': True,
+            'git -C "/repo" checkout -q -b eval/retry-limit': True,
+            'git -C "/repo" switch --create eval/retry-limit': True,
+            'git -C "/repo" branch "eval/retry-limit"': True,
+            'git -C "/repo" branch --force eval/retry-limit main': True,
+            'git -C "/repo" status --short\ngit -C "/repo" switch -c eval/retry-limit': True,
+            # The steps of a run that stops at the changed file create no branch.
+            'git -C "/repo" rev-parse --show-toplevel': False,
+            'git -C "/repo" status --porcelain --untracked-files=no': False,
+            'git -C "/repo" diff -- config/settings.py': False,
+            'git -C "/repo" branch --show-current': False,
+            'git -C "/repo" branch -a': False,
+            'git -C "/repo" switch main': False,
+            'git -C "/repo" symbolic-ref --quiet --short refs/remotes/origin/HEAD': False,
+        }
+        for command, found in commands.items():
+            with self.subTest(command=command):
+                self.assertEqual(pattern.search(bash_input(command)) is not None, found)
+
+    def test_the_edit_grader_finds_an_edit_or_a_write_of_any_loop(self):
+        meta = self.case.graders["route-no-edit"][0]
+        self.assertEqual((meta["type"], meta["target"], meta["match"], meta.get("flags")), ("regex", "trace", "not_contains", None))
+        pattern = re.compile(meta["pattern"])
+        init = trace_record({"type": "system", "subtype": "init", "tools": ["Bash", "Edit", "Read", "TodoWrite", "Write"]})
+        todo = self.tool_use("TodoWrite", {"todos": [{"content": "Phase 1", "status": "in_progress"}]})
+        status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
+        # A tool result can hold the text of a call. The trace escapes its quotes, so it is no call.
+        result = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": ' M config/settings.py\n{"name":"Edit"}'}]}})
+        stop = "\n".join([init, todo, status, result])
+        self.assertIsNone(pattern.search(stop))
+        edit = {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}
+        sub = trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": edit}]}, "parent_tool_use_id": "toolu_1"})
+        steps = {"an Edit": self.tool_use("Edit", edit),
+                 "a Write": self.tool_use("Write", {"file_path": "/repo/notes/Plans/retry-limit-plan.md", "content": "x"}),
+                 "a MultiEdit": self.tool_use("MultiEdit", {"file_path": "/repo/config/settings.py", "edits": [edit]}),
+                 "an Edit of a subagent": sub}
+        for name, step in steps.items():
+            with self.subTest(step=name):
+                self.assertIsNotNone(pattern.search("\n".join([stop, step])))
 
 
 if __name__ == "__main__":

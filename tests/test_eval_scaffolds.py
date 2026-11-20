@@ -79,7 +79,10 @@ EXPECTED_BRANCH = {
     "gwm-create-blocked": "main",
     "ib-no-worktree": "main",
     "it-no-worktree": "main",
+    "it-no-worktree-dirty": "main",
 }
+# The one tracked file that a scaffold leaves with a change and no commit. Each other scaffold leaves no change.
+CHANGED_FILES = {"it-no-worktree-dirty": "config/settings.py"}
 # The start content that a task needs. A scaffold that sets it too early or too late gives a no-op task.
 START_CONTENT = {
     "fp-e4-package-bump": ("Directory.Packages.props", '<PackageVersion Include="NUnit" Version="4.6.1" />'),
@@ -116,7 +119,8 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
                      "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
                      "ib-merge": ("no-run-commit",),
-                     "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",)}
+                     "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",),
+                     "it-no-worktree-dirty": ("no-run-commit",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
 DOTNET_PROBES = ("probe-dotnet-sandbox", "probe-test-fixture")
 FAILING_TEST = """namespace Billing.Domain.Tests;
@@ -482,7 +486,12 @@ class ScaffoldTests(FixtureCase):
         branch = self.git(repo, "rev-parse", "--abbrev-ref", "HEAD")[1]
         self.assertEqual(branch, EXPECTED_BRANCH.get(case.name, branch))
         self.assertNotEqual(branch, "HEAD", "the checkout is detached")
-        self.assertEqual(self.git(repo, "diff", "--quiet", "HEAD")[0], 0, "a tracked file has a change")
+        changed = CHANGED_FILES.get(case.name)
+        if changed is None:
+            self.assertEqual(self.git(repo, "diff", "--quiet", "HEAD")[0], 0, "a tracked file has a change")
+        else:
+            self.assertEqual(self.git(repo, "status", "--porcelain", "--untracked-files=no")[1], f"M {changed}",
+                             "the scaffold must leave one changed tracked file, with nothing staged")
         self.check_report_folders(case, workspace)
         self.check_commit_literals(case, repo)
 
@@ -2011,6 +2020,96 @@ class NoWorktreeBranchGraderTests(FixtureCase):
 
         self.check("ib-no-worktree", [two_tasks, two_tasks_and_a_final_commit, one_commit_for_both_tasks,
                                       four_commits_and_no_squash])
+
+
+class NoWorktreeDirtyGraderTests(FixtureCase):
+    """The scored graders of it-no-worktree-dirty on real git states. The run must stop before any work and keep the change of the user.
+
+    Each shape is what a run does after the scaffold. Each wrong shape must fail at least one grader.
+    """
+
+    CASE = "it-no-worktree-dirty"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def environment(self, skip_dotnet=True):
+        env = super().environment(skip_dotnet)
+        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/dev/null"})
+        return env
+
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
+        self.assertEqual(code, 0, output)
+        return output
+
+    def passes(self, grader, text):
+        """The verdict of a regex grader on the text, for the match modes contains and not_contains."""
+        options = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in options.get("flags", ""))
+        found = re.search(options["pattern"], text, flags) is not None
+        return not found if options.get("match") == "not_contains" else found
+
+    def file_passes(self, grader, workspace):
+        return self.passes(grader, (workspace / self.case.graders[grader][0]["target"]["path"]).read_text(encoding="utf-8"))
+
+    def scaffold(self, name):
+        workspace = self.workspace(name)
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def lower_the_limit(self, workspace):
+        path = workspace / CHANGED_FILES[self.CASE]
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("HTTP_RETRY_LIMIT = 5\n", text)
+        path.write_text(text.replace("HTTP_RETRY_LIMIT = 5\n", "HTTP_RETRY_LIMIT = 3\n"), encoding="utf-8")
+
+    def test_the_graders_pass_only_a_run_that_keeps_the_change_and_makes_no_commit(self):
+        def a_stop(workspace):
+            pass
+
+        def the_task_with_no_commit(workspace):
+            self.lower_the_limit(workspace)
+
+        def a_stash(workspace):
+            self.run_git(workspace, "stash", "-q")
+
+        def a_restore(workspace):
+            self.run_git(workspace, "checkout", "-q", "--", CHANGED_FILES[self.CASE])
+
+        def the_task_commit_with_the_change_of_the_user(workspace):
+            self.run_git(workspace, "switch", "-q", "-c", "eval/retry-limit")
+            self.lower_the_limit(workspace)
+            self.run_git(workspace, "commit", "-q", "-am", "Lower the HTTP retry limit to 3")
+
+        def a_commit_of_the_change_of_the_user(workspace):
+            self.run_git(workspace, "commit", "-q", "-am", "Keep the work of the user")
+
+        # The verdicts of changed-file-kept and no-run-commit.
+        shapes = {a_stop: (True, True), the_task_with_no_commit: (False, True), a_stash: (False, True),
+                  a_restore: (False, True), the_task_commit_with_the_change_of_the_user: (False, False),
+                  a_commit_of_the_change_of_the_user: (True, False)}
+        for shape, expected in shapes.items():
+            with self.subTest(shape=shape.__name__):
+                workspace = self.scaffold(shape.__name__)
+                shape(workspace)
+                self.assertEqual((self.file_passes("changed-file-kept", workspace), self.file_passes("no-run-commit", workspace)),
+                                 expected)
+
+    def test_the_reply_grader_needs_the_file_of_the_scaffold(self):
+        workspace = self.scaffold("reply")
+        changed = self.run_git(workspace, "status", "--porcelain", "--untracked-files=no").split()[-1]
+        self.assertEqual(changed, CHANGED_FILES[self.CASE])
+        replies = {
+            f"Stopped before any work. `{changed}` has a change with no commit. Commit or stash it, then run the command again.": True,
+            f"The file **{changed.split('/')[-1]}** has an uncommitted change.\n\nShall I wait until you commit or stash it?": True,
+            "Stopped before any work. A tracked file has a change with no commit. Commit or stash it first.": False,
+            "Stopped before any work. `config/timeouts.py` has a change with no commit.": False,
+        }
+        for reply, expected in replies.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.passes("names-changed-file", reply), expected)
 
 
 class OptimizeSkillFixtureTests(FixtureCase):

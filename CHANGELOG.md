@@ -9,6 +9,17 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Added in dev-essentials
+
+- `evals/implement-task/it-no-worktree-dirty`: a new case for the stop of `--no-worktree` on a change of the user. Its scaffold changes one tracked file of the clone and commits nothing. The run with `--mode full` must stop before any work and name the file. It must make no commit and keep the change. Before this case, no eval case planted a changed tracked file, so no run proved the stop (issue #329).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `NoWorktreeDirtyGraderTests` runs the scored graders of the new case on real git states. An edit of the file, a stash, a restore, and a commit each fail at least one grader. `ScaffoldTests` makes sure that the new scaffold leaves exactly one changed tracked file (issue #329).
+- `tests/test_eval_cases.py`: `NoWorktreeDirtyRouteGraderTests` tests the route graders of the new case. `NoWorktreeReadGraderTests` also covers the new case (issue #329).
+- `docs/evals.md`: the case count of the `implement-task` suite, and a paragraph on the new case (issue #329).
+- `tests/simple-english-baseline.json`: one entry for the file path in a grader of the new case (issue #329).
+
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
 If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317). The third one is the fix of `changelog_merge.py release` for a heading that `main` took first (issue #318).
