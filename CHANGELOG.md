@@ -12,7 +12,7 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `tools/release.py`: a new script for the maintainers, with two subcommands. `section` puts a release section right below `## [Unreleased]` of `CHANGELOG.md`. It moves the `[Unreleased]` link line, adds the link line of the release, and writes the new version into each `plugin.json`. `notes` writes the notes of a GitHub release from the release section. Before, a person or an agent did these steps by hand. The script stops and writes nothing on a second section or on a version that is not higher. It also stops on an `[Unreleased]` entry that the section lacks (issue #317).
-- `tests/test_release.py`: the tests of the new script. The job `test-windows` of `.github/workflows/tests.yml` runs them. `docs/tools.md` says how to run the script, and `docs/testing.md`, `docs/authoring.md`, and `README.md` name it (issue #317).
+- `tests/test_release.py`: the tests of the new script. The job `test-windows` of `.github/workflows/tests.yml` runs them. `docs/tools.md` says how to run the script. `docs/testing.md` names its tests, and `docs/authoring.md` and `README.md` name the release as a purpose of `tools/` (issue #317).
 
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 

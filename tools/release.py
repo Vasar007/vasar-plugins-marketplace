@@ -12,30 +12,32 @@ Subcommands:
            The [Unreleased] link line then compares from the new release, and the link line of the release
            comes right below it. Each --bump writes its version into the plugin.json of that plugin folder.
            If an entry is under [Unreleased], the section file must hold it already. The entry then leaves
-           [Unreleased]. Each file keeps its line ends: CRLF if it has CRLF, else LF. It stages nothing.
+           [Unreleased]. Each file keeps its line ends: CRLF if most of its lines end with CRLF, else LF.
+           It stages nothing.
   notes    Write the notes of a GitHub release to --output: "## What's changed", the --lead text, and the
            body of the section of --release in CHANGELOG.md at --ref. The file has LF line ends.
 
 The script refuses, and writes nothing, in each of these cases:
   - section: CHANGELOG.md has no "## [Unreleased]" heading, or more than one.
   - section: the section file does not start with a heading "## <plugin> <version> in release [X.Y.Z]",
-    or it has a second "## " line.
+    or it has a second "## " line or a link line "[label]: ...".
   - section: the heading names another release than --release, or other plugins or versions than --bump.
   - section: CHANGELOG.md has a heading or a link line of the release already.
-  - section: CHANGELOG.md has no single "[Unreleased]: .../compare/vX.Y.Z...HEAD" link line, or the link
-    does not start at the release of the newest release section.
+  - section: CHANGELOG.md has no single "[Unreleased]: .../compare/vX.Y.Z...HEAD" link line below the
+    release sections, or the link does not start at the release of the newest release section.
   - section: --release is not higher than the release of the newest release section.
   - section: an entry under [Unreleased] is not in the section file.
-  - section: a plugin folder has no .claude-plugin/plugin.json, the file has no single "version" line,
-    or the new version is not higher.
+  - section: a plugin folder has no .claude-plugin/plugin.json, the file is not JSON, its top-level
+    "version" is not X.Y.Z or is not on a line of its own, or the new version is not higher.
   - notes: CHANGELOG.md at --ref has no section of --release, or more than one.
 
 Output lines, one fact on each line: SECTION, ABSORBED, LINK, VERSION, NOTES, NOTE, and STOP. The last line is
 RESULT. A line shows at most 200 characters.
 
-Exit codes: 0 = done, 1 = the script failed with a Python traceback, for example on a file that it cannot
-write, 2 = usage error, or a setup error (no git, a ref or a file that cannot be read), 3 = refused (a STOP
-line). Nothing changes with exit code 2 or 3.
+Exit codes: 0 = done, 1 = a file of section cannot be written (the RESULT line gives the count of the
+written files) or the script failed with a Python traceback, 2 = usage error, or a setup error (no git, a
+ref or a file that cannot be read, or a notes file that cannot be written), 3 = refused (a STOP line).
+Nothing changes with exit code 2 or 3.
 
 Examples:
   python3 -I tools/release.py section --section-file section.md --release 5.4.4 \\
@@ -82,10 +84,10 @@ def as_tuple(version):
 
 
 def read_text(path):
-    """The text of a file with LF line ends, and True if the file has CRLF line ends."""
+    """The text of a file with LF line ends, and True if most of its lines end with CRLF."""
     try:
         raw = path.read_bytes()
-        return raw.decode("utf-8").replace("\r\n", LF), b"\r\n" in raw
+        return raw.decode("utf-8").replace("\r\n", LF), raw.count(b"\r\n") * 2 > raw.count(b"\n")
     except (OSError, ValueError) as error:
         raise Stop(f"cannot read {path}: {error}") from error
 
@@ -96,13 +98,16 @@ def encode(text, crlf):
 
 def section_lines(text, release, versions):
     """The lines of the section file with no blank line at either end, after the checks of its heading."""
-    lines = text.strip(LF).split(LF)
+    lines = text.lstrip("\ufeff").strip(LF).split(LF)
     match = HEADING.fullmatch(lines[0])
     if not match:
         raise Refused(f"the section file does not start with a heading '## <plugin> <version> in release [X.Y.Z]': {lines[0]}")
     extra = next((line for line in lines[1:] if line.startswith("## ")), None)
     if extra:
         raise Refused(f"the section file has a second '## ' line: {extra}")
+    link = next((line for line in lines if LINK_LINE.match(line)), None)
+    if link:
+        raise Refused(f"the section file has a link line: {link}")
     if match.group("release") != release:
         raise Refused(f"the heading names release {match.group('release')}, but --release is {release}")
     named = {m.group("name"): m.group("version") for m in PLUGIN_VERSION.finditer(match.group("plugins"))}
@@ -132,7 +137,7 @@ def new_links(lines, release, newest):
     """Point the [Unreleased] link line at the new release, and add the line of the new release below it."""
     found = [(i, m) for i, m in enumerate(LINK.fullmatch(line) for line in lines) if m]
     if len(found) != 1:
-        raise Refused(f"{len(found)} '[Unreleased]: .../compare/vX.Y.Z...HEAD' link lines, not 1")
+        raise Refused(f"{len(found)} '[Unreleased]: .../compare/vX.Y.Z...HEAD' link lines below the release sections, not 1")
     at, link = found[0]
     previous = link.group("previous")
     if previous != newest:
@@ -153,33 +158,36 @@ def new_changelog(text, section, release):
     start = found[0] + 1
     end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
     entries = unreleased_entries(lines[start:end])
-    missing = next((entry for entry in entries if not holds(section, entry)), None)
+    solid = [line for line in section if line.strip()]
+    missing = next((entry for entry in entries if not holds(solid, entry)), None)
     if missing:
         raise Refused(f"an entry under [Unreleased] is not in the section file. Put it into the section first: {missing[0]}")
+    newest = RELEASE_IN_HEADING.search(lines[end]) if end < len(lines) else None
+    below = new_links(lines[end:], release, newest.group("release") if newest else "no release")
     for entry in entries[:MAX_ABSORBED]:
         say("ABSORBED", entry[0])
     if len(entries) > MAX_ABSORBED:
         say("ABSORBED", f"... {len(entries) - MAX_ABSORBED} more entries")
-    newest = RELEASE_IN_HEADING.search(lines[end]) if end < len(lines) else None
-    lines = new_links(lines, release, newest.group("release") if newest else "no release")
-    return LF.join(lines[:start] + ["", *section, ""] + lines[end:])
+    return LF.join(lines[:start] + ["", *section, ""] + below)
 
 
 def new_manifest(path, text, version):
-    """The plugin.json text with the new version, and its plugin name and old version."""
-    found = list(VERSION_LINE.finditer(text))
-    if len(found) != 1:
-        raise Refused(f"{path} has {len(found)} '\"version\"' lines, not 1")
-    old = found[0].group("version")
-    if not VERSION.fullmatch(old) or as_tuple(version) <= as_tuple(old):
-        raise Refused(f"{path}: the version {version} is not higher than {old}")
-    match = found[0]
-    new = text[:match.start()] + match.group("head") + version + match.group("tail") + text[match.end():]
+    """The plugin.json text with the new top-level version, and its plugin name and old version."""
     try:
-        data = json.loads(new)
+        data = json.loads(text)
     except ValueError as error:
         raise Refused(f"{path} is not JSON: {error}") from error
-    return new, str(data.get("name")), old
+    old = data.get("version") if isinstance(data, dict) else None
+    if not isinstance(old, str) or not VERSION.fullmatch(old):
+        raise Refused(f"{path}: the top-level version is {old!r}, not X.Y.Z")
+    if as_tuple(version) <= as_tuple(old):
+        raise Refused(f"{path}: the version {version} is not higher than {old}")
+    news = [text[:match.start()] + match.group("head") + version + match.group("tail") + text[match.end():]
+            for match in VERSION_LINE.finditer(text)]
+    news = [new for new in news if json.loads(new) == dict(data, version=version)]
+    if len(news) != 1:
+        raise Refused(f"{path} has {len(news)} lines with the top-level '\"version\"' key, not 1")
+    return news[0], str(data.get("name")), old
 
 
 def run_section(args):
@@ -203,8 +211,13 @@ def run_section(args):
     for path, (content, fact) in manifests.items():
         say("VERSION", fact)
         files[path] = content
-    for path, content in files.items():
-        path.write_bytes(content)
+    for done, (path, content) in enumerate(files.items()):
+        try:
+            path.write_bytes(content)
+        except OSError as error:
+            say("RESULT", f"ERROR. {done} of {len(files)} files are written, {CHANGELOG} first. Cannot write {path}: {error}")
+            say("NOTE", "a written CHANGELOG.md makes a second run refuse. Put each written file back with git, remove the cause, then run again")
+            return 1
     say("NOTE", "nothing is staged. Read git diff, then stage the files")
     say("RESULT", f"DONE. {len(files)} files written")
     return 0
@@ -231,7 +244,10 @@ def run_notes(args):
                len(lines))
     body = LF.join(lines[start:end]).strip(LF)
     say("SECTION", lines[starts[0]])
-    args.output.write_bytes(f"## What's changed{LF}{LF}{args.lead}{LF}{LF}{body}{LF}".encode("utf-8"))
+    try:
+        args.output.write_bytes(f"## What's changed{LF}{LF}{args.lead}{LF}{LF}{body}{LF}".encode("utf-8"))
+    except OSError as error:
+        raise Stop(f"cannot write {args.output}: {error}") from error
     say("NOTES", f"{args.output}: {body.count(LF) + 1} lines of the section body")
     say("RESULT", "DONE. 1 file written")
     return 0
@@ -239,7 +255,7 @@ def run_notes(args):
 
 def parse_bump(value):
     folder, _, version = value.rpartition("=")
-    folder = folder.replace("\\", "/").strip("/")
+    folder = "/".join(part for part in folder.replace("\\", "/").split("/") if part not in ("", "."))
     if not folder or not VERSION.fullmatch(version):
         raise argparse.ArgumentTypeError(f"give FOLDER=X.Y.Z, not {value!r}")
     return folder, version
