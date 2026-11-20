@@ -11,20 +11,26 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
-If a fix commit changes a hit above the first error line or repeats an error line, `failure_check.py` of `review-loop` now gives `OTHER`. No skill text changes (issue #311).
+If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311).
 
 ### Fixed in dev-essentials
 
-- `skills/review-loop/scripts/failure_check.py`: with an error line in the output, each line above the first error line that names a place now counts too. A place is a file name with a line number, such as `src/a.py:3`. A `3:5` at the start of a word, a `(3,5)` after a name, and a code frame line such as `3 | x = 1` are places too. Before, such a line did not count. So a swapped hit above a summary such as `Found 1 error.` gave `SAME-AT-PARENT`. The same held for a hit above a file such as `src/errors.py`. Each line of the compare now has its count, so an error line that comes one more time gives `OTHER`. A root folder now counts only at the start of a path. Before, the rule also took the folder name before it, so a repository in `/app` made `src/app/util.py` and `tests/app/util.py` the same. A warning whose line number moved now gives `OTHER`, where it gave `SAME-AT-PARENT` before. The docstring and the reason text of `OTHER` name the new compare (issue #311).
+- `skills/review-loop/scripts/failure_check.py`: with an error line in the output, each line above the first error line that names a place now counts too. The numbers of such a place do not count. So a hit or a warning that moved to another line still gives `SAME-AT-PARENT`. A place is a file name with an extension and a line number, such as `src/a.py:3` or `A.java:[3,5]`. A name with no extension needs a `:` after the number, as in `Makefile:3:`. A `3:5` at the start of a word, a `(3,5)` after a name, and a code frame line such as `3 | x = 1` are places too. So are a Python line such as `File "a.py", line 3` and a line with only a file path, such as the file line of eslint stylish. Before, such a line did not count. So a swapped hit above a summary such as `Found 1 error.` gave `SAME-AT-PARENT`. The same held for a hit above a file such as `src/errors.py`, and for a hit that moved to another file. Each line of the compare now has its count, so an error line that comes one more time gives `OTHER`. A root folder now becomes a token only at the start of a path, where no character of a file name comes before it. Before, the rule also took the folder name before it, so a repository in `/app` made `src/app/util.py` and `tests/app/util.py` the same. An ISO time with a time zone and the time of a tqdm progress bar now become a token too. An incremental build in the clean main worktree can print fewer warnings than the build at the commit before. Then a warning line with a place gives `OTHER`, and the docstring says so. The docstring and the reason text of `OTHER` name the new compare (issue #311).
 
 ### Changed in the repository
 
-- `tests/test_failure_check.py`: 5 new tests (issue #311). Three of them hold the real output of ruff 0.17.6. They cover these results:
+- `tests/test_failure_check.py`: 20 new tests (issue #311). Three of them hold the real output of ruff 0.17.6. They cover these results:
   - A swapped hit above the only error word gives `OTHER`, in the concise and in the full output of ruff.
   - A swapped hit above a hit in `src/errors.py` gives `OTHER`.
-  - A moved hit above a summary with an error word gives `OTHER`. The samples are the grouped output of ruff, the stylish form of eslint, and a warning of a C# build.
+  - A swapped hit above a summary with an error word gives `OTHER`, in the stylish form of eslint.
+  - A moved hit above such a summary gives `SAME-AT-PARENT`. The samples are the grouped output of ruff, a warning of a C# build, and a place with a column.
+  - The same hit in another file gives `OTHER`, in the grouped output of ruff and in the Python form `File "a.py", line 2`.
+  - More forms of a place count: a place with color codes, a name with no extension, the Maven form, and the forms of a code frame. A line of test dots, a port, and a time are no places.
+  - A place between the first error line and the last lines counts, and the reason of `OTHER` names the lines with a place.
   - An error line that comes one more time gives `OTHER`.
-  - The root `/app` no longer takes the folder name before it. A root after `-I`, after `=`, after a quote, and in a Windows file URL still becomes a token.
+  - A run with an error line never matches a run with none. This holds also for an error word that is only in the root folder.
+  - The root `/app` no longer takes the folder name before it. A root after an option, a quote, `=`, `:`, `,`, `@`, or a backtick still becomes a token. So does a root in a file URL.
+  - The text before the temporary folder stays, and a long line with an option or a path takes less than 5 seconds.
 
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 

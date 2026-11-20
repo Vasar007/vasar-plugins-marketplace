@@ -901,25 +901,50 @@ class UnitTests(unittest.TestCase):
         fix, parent = ruff_concise(RUFF_SYS, RUFF_JSON), ruff_concise(RUFF_OS, RUFF_JSON)
         self.assertEqual(self.lint_verdict(fix, parent), "OTHER")
 
-    def test_moved_hit_above_a_summary_with_an_error_word_is_other(self):
-        def grouped(place):
-            return ["src\\a.py:", f"  {place} F401 [*] `os` imported but unused", "", "Found 1 error.",
-                    "[*] 1 fixable with `--fix`."]
-
+    def test_swapped_hit_above_a_summary_with_an_error_word_is_other(self):
         def stylish(hit):
             return ["/work/src/a.js", hit, "", "✖ 1 problem (0 errors, 1 warning)"]
 
         unused = "  3:5  warning  'x' is assigned a value but never used  no-unused-vars"
         console = "  7:1  warning  Unexpected console statement  no-console"
-        self.assertEqual(self.lint_verdict(grouped("2:8"), grouped("1:8")), "OTHER")
         self.assertEqual(self.lint_verdict(stylish(unused), stylish(console)), "OTHER")
+
+    def test_moved_hit_above_a_summary_with_an_error_word_is_same_at_parent(self):
+        def grouped(place):
+            return ["src\\a.py:", f"  {place} F401 [*] `os` imported but unused", "", "Found 1 error.",
+                    "[*] 1 fixable with `--fix`."]
+
+        self.assertEqual(self.lint_verdict(grouped("2:8"), grouped("1:8")), "SAME-AT-PARENT")
         warning = "a.cs({},13): warning CS0168: The variable 'x' is declared but never used"
         self.assertEqual(self.lint_verdict([warning.format(4), "Build FAILED."], [warning.format(3), "Build FAILED."]),
-                         "OTHER")
+                         "SAME-AT-PARENT")
+        self.assertEqual(self.lint_verdict(["src/a.py:4:9: note: x", "1 error"], ["src/a.py:3:5: note: x", "1 error"]),
+                         "SAME-AT-PARENT")
+
+    def test_same_hit_swapped_into_another_file_is_other(self):
+        def grouped(file):
+            return [f"src\\{file}:", "  1:8 F401 [*] `os` imported but unused", "", "Found 1 error.",
+                    "[*] 1 fixable with `--fix`."]
+
+        self.assertEqual(self.lint_verdict(grouped("b.py"), grouped("a.py")), "OTHER")
+        self.assertEqual(self.lint_verdict(grouped("v2\\a.py"), grouped("v3\\a.py")), "OTHER")
+        self.assertEqual(self.lint_verdict(grouped("a.py"), grouped("a.py")), "SAME-AT-PARENT")
+
+    def test_line_of_test_dots_is_not_a_path(self):
+        self.assertEqual(self.lint_verdict(["..F", "FAIL: test_x"], [".F", "FAIL: test_x"]), "SAME-AT-PARENT")
+
+    def test_time_above_the_error_line_is_not_a_place(self):
+        lines = {"tqdm": ("100%|##########| 10/10 [00:03<00:00,  3.21it/s]",
+                          "100%|##########| 10/10 [00:02<00:00,  4.02it/s]"),
+                 "isoformat": ("start 2026-11-20T10:31:05.123456+00:00", "start 2026-11-20T10:30:59.654321+00:00")}
+        for name, (fix, parent) in lines.items():
+            with self.subTest(name=name):
+                self.assertEqual(self.lint_verdict([fix, "error: x"], [parent, "error: x"]), "SAME-AT-PARENT")
 
     def test_error_line_that_comes_one_more_time_is_other(self):
         error = "error: the docs theme is missing."
         self.assertEqual(self.lint_verdict([error, error], [error]), "OTHER")
+        self.assertEqual(self.lint_verdict([error] * 3, [error] * 2), "OTHER")
 
     def test_root_counts_only_at_the_start_of_a_path(self):
         def mypy(path):
@@ -935,6 +960,92 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.lint_verdict(["Error at f (file:///C:/work/repo/x.mjs:4:31)"],
                                            ["Error at f (file:///C:/Temp/review-loop-fc-ab12/parent/x.mjs:4:31)"],
                                            windows), "SAME-AT-PARENT")
+
+    def test_swapped_file_of_a_python_syntax_error_is_other(self):
+        # The output of `python -m py_compile <path>` of Python 3.15.0.
+        def syntax_error(path, line):
+            return [f'  File "{path}", line {line}', "    x = = 1", "        ^", "SyntaxError: invalid syntax"]
+
+        self.assertEqual(self.lint_verdict(syntax_error("src/a.py", 2), syntax_error("src/b.py", 2)), "OTHER")
+        self.assertEqual(self.lint_verdict(syntax_error("src/a.py", 9), syntax_error("src/a.py", 2)), "SAME-AT-PARENT")
+
+    def test_root_after_a_character_that_is_not_of_a_file_name_is_a_token(self):
+        roots = ["/work/repo", "/tmp/review-loop-fc-ab12/parent"]
+        for form in ("error:{}/a.py:3", "error: PYTHONPATH={}/src:{}/lib", "error: ld -Wl,-rpath,{}/lib failed",
+                     "error: failed to parse manifest at `{}/Cargo.toml`", "error: cannot read @{}/args.rsp",
+                     "IOException: URL [file:{}/target/app.xml]"):
+            with self.subTest(form=form):
+                fix, parent = form.replace("{}", roots[0]), form.replace("{}", roots[1])
+                self.assertEqual(self.lint_verdict([fix], [parent], roots), "SAME-AT-PARENT")
+                self.assertEqual(self.lint_verdict([fix], [parent], roots[:1]), "SAME-AT-PARENT")
+        windows = fc.path_forms(PureWindowsPath("C:\\work\\repo"))
+        self.assertEqual(self.lint_verdict(["IOException: file:/C:/work/repo/a.xml"],
+                                           ["IOException: file:/C:/Temp/review-loop-fc-ab12/parent/a.xml"], windows),
+                         "SAME-AT-PARENT")
+
+    def test_text_before_the_temporary_folder_stays(self):
+        self.assertEqual(self.lint_verdict(["x.c:3:error:/tmp/review-loop-fc-ab12/fix/inc/a.h"],
+                                           ["y.c:9:error:/tmp/review-loop-fc-ab12/parent/inc/a.h"]), "OTHER")
+
+    def test_place_with_no_extension_and_place_of_maven_count(self):
+        for form in ("Makefile:3: warning: overriding recipe for target '{}'",
+                     "Gemfile:3:1: C: Style/{}: x", "[WARNING] /w/A.java:[3,5] {}"):
+            with self.subTest(form=form):
+                self.assertEqual(self.lint_verdict([form.format("a"), "1 error"], [form.format("b"), "1 error"]),
+                                 "OTHER")
+        for fix, parent in (("listening on localhost:54321", "connected to localhost:54321"),
+                            ("listening on 127.0.0.1:54321", "connected to 127.0.0.1:54321"),
+                            ('{"level":3,"msg":"a"}', '{"level":3,"msg":"b"}')):
+            with self.subTest(fix=fix):
+                self.assertEqual(self.lint_verdict([fix, "1 error"], [parent, "1 error"]), "SAME-AT-PARENT")
+
+    def test_run_with_an_error_word_only_in_its_root_never_matches_a_run_with_none(self):
+        roots = ["/work/errors/repo", "/tmp/review-loop-fc-ab12/parent"]
+        fix = ["new line from the fix", "cannot read /work/errors/repo/a.txt"]
+        parent = ["cannot read /tmp/review-loop-fc-ab12/parent/a.txt"]
+        self.assertEqual(self.lint_verdict(fix, parent, roots), "OTHER")
+
+    def test_run_with_an_error_line_never_matches_a_run_with_none(self):
+        roots = ["/work/errors/repo", "/tmp/review-loop-fc-ab12/parent"]
+        hit = "src/a.py:1:1: F401 'os' imported but unused"
+        self.assertEqual(self.lint_verdict(["Linting /work/errors/repo", hit],
+                                           ["Linting /tmp/review-loop-fc-ab12/parent", hit], roots), "OTHER")
+
+    def test_place_with_color_codes_counts(self):
+        def hit(message):
+            return [f"\x1b[1msrc/a.py\x1b[0m:\x1b[36m3\x1b[0m:5: {message}", "Found 1 error."]
+
+        self.assertEqual(self.lint_verdict(hit("unused variable"), hit("unused import")), "OTHER")
+
+    def test_place_between_the_first_error_line_and_the_last_lines_counts(self):
+        tail = [f"step {i}" for i in range(15)]
+        self.assertEqual(self.lint_verdict(["error: boom", "src/a.py:3: note: y", *tail],
+                                           ["error: boom", "src/a.py:3: note: x", *tail]), "OTHER")
+
+    def test_more_forms_of_a_place_count(self):
+        for form in ("a.cs(3,6,5,10): warning {}", "    3 |   int {};", "3  |     let {} = 5;",
+                     "SRC/A.PY:3: {}", "3:5  warning  {}"):
+            with self.subTest(form=form):
+                self.assertEqual(self.lint_verdict([form.format("x"), "1 error"], [form.format("y"), "1 error"]),
+                                 "OTHER")
+
+    def test_reason_of_other_names_the_lines_with_a_place(self):
+        fix = fc.Run("fix", "a" * 40, "x", "main worktree")
+        fix.code, fix.lines = 1, ["src/a.py:3: note: x", "1 error"]
+        parent = fc.Run("parent", "b" * 40, "y", "temporary worktree")
+        parent.code, parent.lines = 1, ["src/b.py:3: note: x", "1 error"]
+        token, reason = fc.verdict(False, fix, parent, set())
+        self.assertEqual(token, "OTHER")
+        self.assertIn("the lines that name a place", reason)
+
+    def test_signature_of_a_long_line_with_an_option_or_a_path_is_fast(self):
+        for lines in (["-a" + "a" * 100_000], ["error in -I" + "a-" * 50_000], ["-a" + "a" * 100_000, "error: x"],
+                      ["a/" * 50_000 + "a.py", "error: x"], ['File "' * 20_000, "error: x"]):
+            a = fc.Run("fix", "a" * 40, "x", "main")
+            a.lines = lines
+            start = time.monotonic()
+            a.signature({"/work/repo", "C:\\work\\repo"})
+            self.assertLess(time.monotonic() - start, 5, lines[0][:30])
 
     def test_same_lint_output_with_the_folder_of_each_run_is_same_at_parent(self):
         hit = "/src/a.py:1:1: F401 'os' imported but unused"
