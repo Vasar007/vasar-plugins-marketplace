@@ -9,8 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.4 in release [5.4.4] - 2026-11-20
+
+The route grader `route-no-worktree-read` of the two `--no-worktree` cases now sees a branch command with more options before the option that creates the branch. No skill text changes (issue #315). The release also takes in the first slice of the review of the unit tests (issue #316).
+
+### Fixed in dev-essentials
+
+- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read` sees more forms of a branch command. Another option can now come before the option that creates the branch, for example `git checkout -q -b` or `git switch -qc`. Two spaces before `-c`, `git branch -f`, and `git branch --force` count too. Before, a run that read the rules of `--no-worktree` after such a command passed the grader (issue #315).
+
 ### Changed in the repository
 
+- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` has twelve new runs that read the file too late. Ten of them use a new form. Two of them keep the name right after `-c` or `-b`. Two new samples show that `git branch -a`, `git switch --detach`, and `git switch main` create no branch (issue #315).
+- `docs/evals.md`: the paragraph of the two cases names the branch commands of the grader (issue #315).
 - `tests/test_work_modes_text.py`: one duplicate test is gone, `FinishCallerTests.test_merge_pr_counts_the_yes_of_the_final_gate`. It made the same assertion on the same file as the subtest for `merge-pr` of `UnitRuleTests.test_the_unit_rules_stay`. That subtest stays, because it guards the approval sentence of `merge-pr`. `PipelineMergeTests` of `tests/test_eval_cases.py` pins a longer text that holds the same sentence (issue #316).
 - `tests/test_openbsd_lint.py`: one test is gone, `HookFileTests.test_script_exists`. It failed only where stronger tests of the same module also fail: a missing script fails about 100 other tests (issue #316).
 - `tests/test_eval_front_matter.py`: `YamlScanTests.test_a_machine_without_pyyaml_fails_with_the_install_hint` now fails for a `require_yaml` that skips the test. Before, such a skip made the test skip too, so the suite passed (issue #316).
@@ -2426,7 +2436,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...HEAD
+[5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
