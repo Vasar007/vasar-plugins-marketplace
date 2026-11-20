@@ -1,8 +1,8 @@
 # Maintainer tools
 
-The folder `tools/` holds scripts for the maintainers of this repository. They help with the work around a pull request: a merge of `main` into an open branch, the results of eval runs, and the test runs and eval runs in WSL2. No plugin ships them. Claude Code copies only the folder of a plugin into the plugin cache, so no plugin cache gets a file outside the plugin folders. See [In-place and copied plugins](https://code.claude.com/docs/en/plugins/loading#in-place-and-copied-plugins).
+The folder `tools/` holds scripts for the maintainers of this repository. They help with the work around a pull request: a merge of `main` into an open branch, a release, the results of eval runs, and the test runs and eval runs in WSL2. No plugin ships them. Claude Code copies only the folder of a plugin into the plugin cache, so no plugin cache gets a file outside the plugin folders. See [In-place and copied plugins](https://code.claude.com/docs/en/plugins/loading#in-place-and-copied-plugins).
 
-Each Python script needs Python 3.7 or later and uses only the standard library. Run it with `python3 -I` from the repository root. Each shell script runs in Bash. With `--help`, each script that you start prints its usage text: its options, its exit codes, and the cases in which it refuses to run. The tests are in `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, and `tests/test_tools_wsl.py`.
+Each Python script needs Python 3.7 or later and uses only the standard library. Run it with `python3 -I` from the repository root. Each shell script runs in Bash. With `--help`, each script that you start prints its usage text: its options, its exit codes, and the cases in which it refuses to run. The tests are in `tests/test_changelog_merge.py`, `tests/test_eval_results.py`, `tests/test_release.py`, and `tests/test_tools_wsl.py`.
 
 ## Merge `main` into an open branch
 
@@ -72,3 +72,27 @@ bash tools/wsl/run-eval.sh /c/path/to/clone my-branch results/head baseline --pl
 The third argument is the result folder on Windows. It must be empty or new. The script adds `--out` and `--claude` itself. The runs must use the claude.ai plan, not API billing. So the script stops on a set `ANTHROPIC_API_KEY`, and on another sign-in than claude.ai. A lock lets only one run use the eval clone at a time. A run also waits until no unit suite and no other eval run is active, unless you give `--no-wait`. The eval clone is `~/.cache/marketplace-tools/eval-clone`, or the Linux path of `--clone`.
 
 To free space, delete the folders `bundles`, `out`, and `test-clones` of the tools folder, and each `simple-english-<tag>` folder of an old linter release. If no eval run is active, you can also delete `eval-clone`. The next run makes it again. Keep `nuget-private`, because it holds the NuGet packages of the unit suite. The section [Clean the temp folder](evals.md#clean-the-temp-folder) says how to clean the temp folder of the eval runs.
+
+## Make a release section and the release notes
+
+A pull request with a version bump adds a release section to `CHANGELOG.md` and writes the new versions into `plugin.json`. After the merge, the GitHub release gets its notes from that section. The script `tools/release.py` does both steps. It stages nothing.
+
+1. Write the whole release section into a file: the heading first, with the real numbers and the date of the day. If `## [Unreleased]` has entries, put them into that file too, under "Changed in the repository".
+2. In the clone of the branch, run the subcommand `section`. Give the release number, and give each plugin of the heading with its new version:
+
+   ```bash
+   python3 -I tools/release.py section --section-file section.md --release 5.4.4 --bump essentials/dev-essentials=4.4.4
+   ```
+
+3. Read `git diff`. Then stage the files and commit.
+4. After the merge, run `git fetch origin` and the subcommand `notes`. Give the lead sentence, for example the pull request and the issues that it closes:
+
+   ```bash
+   python3 -I tools/release.py notes --release 5.4.4 --lead "PR #320 closes issue #315." --output notes.md
+   ```
+
+5. Make the release on the merge commit: `gh release create v5.4.4 --target <full SHA of the merge commit> --title "v5.4.4 - <summary>" --notes-file notes.md`.
+
+The subcommand `section` puts the section right below `## [Unreleased]`. It points the `[Unreleased]` link line at the new release, and it adds the link line of the release below it. Each file gets the line ends of most of its lines. If the section file holds an entry of `## [Unreleased]` word for word, the entry leaves that block. Else the script stops. It also stops on a release that `CHANGELOG.md` has already, and on a version or a release that is not higher. A heading that names other plugins or versions than `--bump` stops it too. So does a link line such as `[label]: ...` in the section file. So does an `[Unreleased]` link line that does not start at the newest release section. If a file cannot be written, the script ends with exit code 1, and its `RESULT` line gives the count of the written files.
+
+The subcommand `notes` reads `CHANGELOG.md` at `--ref`, by default `origin/main`. If the CHANGELOG has no section of the release, or more than one, the script stops. A line that starts with `STOP` gives the reason of a stop, and the script then changes no file.
