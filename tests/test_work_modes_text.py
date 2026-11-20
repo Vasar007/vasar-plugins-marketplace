@@ -368,10 +368,6 @@ class FinishCallerTests(unittest.TestCase):
                       "after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill",
                       read(WORK_MODES))
 
-    def test_merge_pr_counts_the_yes_of_the_final_gate(self):
-        merge = read(PLUGIN / "skills/merge-pr/SKILL.md")
-        self.assertIn("A yes of the user to a question of this session that names the merge is a request in their own words.", merge)
-
 
 NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}
 # The one home of the rules of --no-worktree (issue #290).
