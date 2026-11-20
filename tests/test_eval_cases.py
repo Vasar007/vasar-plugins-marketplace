@@ -5319,17 +5319,19 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                  "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
                  "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
                  "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"}),
+                 "switch -c with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" switch -ceval/retry-limit'}),
+                 "checkout -b with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -beval/retry-limit'}),
                  # The pattern before issue #315 did not see the forms below.
                  "checkout -q -b": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -q -b eval/retry-limit'}),
                  "switch -qc": self.tool_use("Bash", {"command": 'git -C "/repo" switch -qc eval/retry-limit'}),
                  "branch -f": self.tool_use("Bash", {"command": 'git -C "/repo" branch -f eval/retry-limit main'}),
                  "two spaces before -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch  -c eval/retry-limit'}),
-                 "switch -c with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" switch -ceval/retry-limit'}),
-                 "checkout -b with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -beval/retry-limit'}),
                  "checkout -qb": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -qb eval/retry-limit'}),
                  "checkout --quiet -b": self.tool_use("Bash", {"command": 'git -C "/repo" checkout --quiet -b eval/retry-limit'}),
                  "switch --no-track -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch --no-track -c eval/retry-limit'}),
-                 "branch --force": self.tool_use("Bash", {"command": 'git -C "/repo" branch --force eval/retry-limit main'})}
+                 "branch --force": self.tool_use("Bash", {"command": 'git -C "/repo" branch --force eval/retry-limit main'}),
+                 "switch -q --no-track -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch -q --no-track -c eval/retry-limit'}),
+                 "switch -qfc": self.tool_use("Bash", {"command": 'git -C "/repo" switch -qfc eval/retry-limit'})}
         for case in self.CASES:
             for name, step in steps.items():
                 with self.subTest(case=case, step=name):

@@ -19,7 +19,7 @@ The route grader `route-no-worktree-read` of the two `--no-worktree` cases now s
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` has ten new runs that read the file too late, one for each new form. Two new samples show that `git branch -a`, `git switch --detach`, and `git switch main` create no branch (issue #315).
+- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` has twelve new runs that read the file too late. Ten of them use a new form. Two of them keep the name right after `-c` or `-b`. Two new samples show that `git branch -a`, `git switch --detach`, and `git switch main` create no branch (issue #315).
 - `docs/evals.md`: the paragraph of the two cases names the branch commands of the grader (issue #315).
 
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
