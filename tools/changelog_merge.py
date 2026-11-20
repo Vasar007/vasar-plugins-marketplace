@@ -235,13 +235,15 @@ def drop_known_bullets(section, known):
 
 
 def indented_lines(text):
-    """Map each "- " bullet of text to the set of indented lines below all its copies."""
+    """Map each "- " bullet of text to the set of indented lines below all its copies, also after a blank line."""
     found, below = {}, None
     for line in text.split(LF):
         if line.startswith("- "):
             below = found.setdefault(line, set())
         elif below is not None and line.startswith((" ", "\t")):
             below.add(line)
+        elif below is not None and line == "":
+            continue
         else:
             below = None
     return found

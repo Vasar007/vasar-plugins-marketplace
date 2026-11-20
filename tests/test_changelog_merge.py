@@ -303,6 +303,67 @@ class ReleaseTests(MergeCase):
         self.assertIn("STOP merge CHANGELOG.md by hand: --theirs has the bullet '- a long bullet " + "x" * 24 + "...' without "
                       "the indented line '  - a long child " + "y" * 23 + "...' of the branch\n", out)
 
+    def test_stop_line_for_a_long_bullet_with_a_line_after_a_blank_line_names_the_line_and_the_bullet(self):
+        bullet, child = "a long bullet " + "x" * 300, "  - a long child " + "y" * 300
+        main = main_release(bullet, "the change of main")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", bullet))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(f"- {bullet}\n", f"- {bullet}\n\n{child}\n")
+        clone = self.merge(branch, main=main)
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: a blank line is above the indented line '  - a long child " + "y" * 23
+                      + "...' of the bullet '- a long bullet " + "x" * 24 + "...' that --theirs has\n", out)
+
+    def test_dropped_bullet_with_a_line_that_main_has_after_a_blank_line_merges(self):
+        main = main_release("a test fix", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n\n  The second paragraph.\n")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix", "the change of the branch"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n  The second paragraph.\n")
+        clone = self.merge(branch, main=main)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - a test fix", out)
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_dropped_bullet_above_another_subsection_of_the_branch_merges(self):
+        main = main_release("a test fix", "the change of main")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "a test fix"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(
+            "- a test fix\n", "- a test fix\n\n### Fixed in the repository\n\n- a fix of the branch\n")
+        clone = self.merge(branch, main=main)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - a test fix", out)
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n\n### Fixed in the repository\n\n"
+                      "- a fix of the branch\n\n## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
+
+    def test_dropped_bullet_with_an_indented_line_that_the_merge_base_has_below_another_bullet_refuses(self):
+        old, line = "- the old change\n", "  - see docs/evals.md\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(old, old + line)
+        main = main_release("a test fix", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(old, old + line).replace(
+            "- the change of main\n", "- the change of main\n" + line)
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix", "the change of the branch"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(old, old + line).replace("- a test fix\n", "- a test fix\n" + line)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: --theirs has the bullet '- a test fix' without the indented line "
+                      "'  - see docs/evals.md' of the branch\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_absorbed_entry_with_an_indented_line_that_the_branch_has_below_another_bullet_refuses(self):
+        main = main_release("the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n- the old change\n  - see docs/evals.md\n\n")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the old change", "the change of the branch"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(
+            "- the change of the branch\n", "- the change of the branch\n  - see docs/evals.md\n")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased", code=3)
+        self.assertIn("both sides have the entry '- the old change' with other indented lines", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
         main[MANIFEST] = described("1.8.0", "A text of both sides.")
