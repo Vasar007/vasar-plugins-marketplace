@@ -41,7 +41,7 @@ else
     (cd "$clone" && python3 -m unittest discover -s tests -v) < /dev/null > "$log" 2>&1 || status=$?
 fi
 echo "FULL LOG: $log"
-grep -E '^(FAIL|ERROR):|\.\.\. skipped ' "$log" || true
+grep -E '^(FAIL|ERROR):|\.\.\. skipped |Retry of [^:]*: dotnet crashed' "$log" || true
 tail -n "$lines" "$log"
 rm -rf -- "$clone"
 exit "$status"
