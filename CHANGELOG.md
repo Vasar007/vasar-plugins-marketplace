@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
-If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261) and the new script `tools/release.py` (issue #317).
+If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317).
 
 ### Fixed in dev-essentials
 
