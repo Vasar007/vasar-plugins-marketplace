@@ -1888,6 +1888,7 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "a later test and commit": [self.TEST_RUN, edit, self.COMMIT, self.TEST_RUN, self.COMMIT],
             "a commit, then an edit and a second commit": [self.TEST_RUN, self.COMMIT, edit, self.COMMIT],
             "a commit on a new line of the command": [self.TEST_RUN, trace_bash('python3 -c "import app"\ngit commit -q -m x')],
+            "an escaped quote and a line end between them": [self.TEST_RUN, trace_result('He said "run it"\nOK'), self.COMMIT],
         }
         for name, records in runs.items():
             with self.subTest(run=name):
@@ -1901,6 +1902,7 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "an Edit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py"), self.COMMIT],
             "a MultiEdit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py", "MultiEdit"), self.COMMIT],
             "a Write of a .py file between them": [self.TEST_RUN, trace_write("app/b.py"), self.COMMIT],
+            "a NotebookEdit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py", "NotebookEdit"), self.COMMIT],
             "the word commit in a tool result": [self.TEST_RUN, trace_result("nothing to commit, use git add")],
         }
         for name, records in runs.items():
@@ -1923,6 +1925,9 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
                 self.TEST_RUN, trace_bash("sed -i 's/= 5/= 3/' config/settings.py && git diff && git commit -qam x")],
             "a word that starts with unittest between git and commit": [
                 self.TEST_RUN, edit, trace_bash("git -C /w/unittest_x commit -qam x")],
+            "an escaped quote between the edit and the commit": [edit, trace_result('He said "run it"\nOK'), self.COMMIT],
+            "a word that ends with unittest between the edit and the commit": [
+                self.TEST_RUN, edit, trace_bash("pip install xunittest-tools"), self.COMMIT],
         }
         good = {
             "test and commit": [self.TEST_RUN, self.COMMIT],
@@ -1948,6 +1953,16 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
         for name, records in {**bad, **good}.items():
             with self.subTest(run=name):
                 self.assertEqual(re.search(pattern, "\n".join(records)) is not None, name in bad)
+
+    def test_both_graders_end_the_match_at_the_first_fitting_commit(self):
+        """A lazy token ends at the first commit. A greedy token runs on to the last one, which costs many steps in Bun."""
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        for grader, start in (("tests-before-commit", self.TEST_RUN), ("untested-commit", trace_edit("app/a.py"))):
+            with self.subTest(grader=grader):
+                pattern = cases["so-two-fixes"].graders[grader][0]["pattern"]
+                head = "\n".join([start, self.COMMIT])
+                match = re.search(pattern, "\n".join([head, trace_result("x"), self.COMMIT]))
+                self.assertLessEqual(match.end(), len(head))
 
     def test_the_untested_commit_grader_keeps_its_known_limits(self):
         """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""

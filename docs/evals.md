@@ -111,16 +111,16 @@ The tool prints one line for each grader of each run, with four fields that a ta
 
 The tool does not know the arm of a run, and it does not read the `arm` key of a grader. It replays each grader on each run that you give, and each failed grader gives exit code 1. The replay is not `claude plugin eval`, so a later Claude Code version can grade in another way. Like the graded text, the replay lacks the calls of a subagent of a subagent.
 
-The replay runs a regex grader in Node.js, which uses the V8 engine. The `claude` binary of Claude Code 2.1.329 holds Bun 1.4.4, which uses the JavaScriptCore engine. JavaScriptCore can stop a long search after a fixed count of steps. It then reports no match, with no error. So for a large trace, the eval tool can fail a grader that the replay passes (issue #319):
+The replay runs a regex grader in Node.js, which uses the V8 engine. The `claude` binary of Claude Code 2.1.329 holds Bun 1.4.4, which uses the JavaScriptCore engine. In Bun 1.4.4, a long search can end with no match and no error. The kind of this limit is not known. So for a large trace, the eval tool can fail a grader that the replay passes (issue #319):
 
 - The run `xOOL0p` of `ib-no-worktree` scored 0.94, because the eval tool failed `tests-before-commit` on it. The replay passed it.
 - Its trace has 690,094 characters. The old token of the grader ran from the first test command to the end of the trace, 613,785 characters.
 - In Bun 1.4.4, the old pattern gave no match on that trace after about 400 ms. In Node.js, it matched in less than 10 ms.
 - On built traces in Bun 1.4.4, the old `tests-before-commit` stopped at about 490,000 characters between the test and the commit. The old `untested-commit` stopped at about 196,000 characters between the edit and the commit.
 
-A `not_contains` grader passes for no match. So a step limit can also pass a wrong run, and no result shows it. The old `untested-commit` did that on a built trace.
+A `not_contains` grader passes for no match. So this limit can also pass a wrong run, and no result shows it. The old `untested-commit` did that on a built trace.
 
-So a trace grader that spans a large text uses few steps for each character. In `tests-before-commit` and `untested-commit`, the token runs its lookahead only at a quote, and a run of other characters is one class term. In Bun 1.4.4, both graders matched a built trace with 2,000,000 characters between the two calls, in less than 0.4 seconds. No larger text was measured. A plain `[\s\S]*`, as in `route-tests-before-push`, matched 4,000,000 characters in 2 ms.
+So a trace grader that spans a large text uses few steps for each character. In `tests-before-commit` and `untested-commit`, the token runs its lookahead only at a quote, and a run of other characters is one class term. In Bun 1.4.4, both graders matched a built trace with 2,000,000 characters between the two calls, in less than 0.4 seconds. Each test command or `.py` edit before the first fitting end starts one more search, and the cost adds up. In Bun 1.4.4, both graders gave no match on a built trace of about 750,000 characters with 200 such starts. They also gave no match on about 2,020,000 characters with 50 starts. They matched on about 730,000 characters with 100 starts, and on about 2,010,000 with 40 starts. On the built filler, the new `untested-commit` gave no match from about 2,530,000 characters. The new `tests-before-commit` still matched at 4,000,000 characters. A plain `[\s\S]*`, as in `route-tests-before-push`, matched 4,000,000 characters in 2 ms.
 
 A replay is no full proof for a grader that spans a large text. To find the verdict of the eval tool, run the pattern in Bun 1.4.4 on the trace.
 
