@@ -426,6 +426,191 @@ class ReleaseTests(MergeCase):
         out = self.tool(clone, "release", "--bump", f"{DEV}=3.25.0", "--release", "4.22.2", code=3)
         self.assertIn("--theirs has the top section of the branch too", out)
 
+    def test_heading_that_main_took_after_the_merge_base_is_a_new_release(self):
+        # Two open branches took release 4.22.1 for now, and the other branch merged first.
+        mine = ("- the change of the branch:\n  - see docs/evals.md\n- the second change of the branch\n\n"
+                "  The second change also changes the docs.\n")
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the change of the branch\n", mine)
+        clone = self.merge(branch)
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        self.assertNotIn("DROPPED", out)
+        top = section("dev-essentials 3.24.2", "4.22.2", ["the change of the branch"]).replace("- the change of the branch\n", mine)
+        expected = (INTRO + top + section("dev-essentials 3.24.1", "4.22.1", ["the change of main"]) + OLD
+                    + links(("4.22.2", "4.22.1"), ("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), expected)
+        self.assertEqual(self.version(clone, DEV), "3.24.2")
+
+    def test_same_heading_and_an_empty_subsection_merges_in_full(self):
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("### Changed in the repository\n",
+                                                                "### Removed\n\n### Changed in the repository\n", 1)
+        clone = self.merge(branch)
+        self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        self.assertIn("## dev-essentials 3.24.2 in release [4.22.2] - 2026-11-17\n\nThe summary.\n\n### Removed\n\n"
+                      "### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_same_heading_and_the_indented_lines_of_main_below_other_bullets_merges(self):
+        # The section of main has the summary and the indented lines of the branch too. Each line of the branch stays one time.
+        details = ":\n  - see docs/evals.md\n\n  The change also changes the docs.\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n", "- the change of main" + details)
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the change of the branch\n", "- the change of the branch" + details)
+        clone = self.merge(branch, main=main)
+        self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        top = section("dev-essentials 3.24.2", "4.22.2", ["the change of the branch"]).replace("branch\n", "branch" + details)
+        expected = (INTRO + top + main["CHANGELOG.md"][len(INTRO):]).replace(
+            f"[Unreleased]: {URL}v4.22.1...HEAD\n", f"[Unreleased]: {URL}v4.22.2...HEAD\n[4.22.2]: {URL}v4.22.1...v4.22.2\n")
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), expected)
+
+    def test_section_that_main_has_in_full_refuses(self):
+        # After a squash merge of the same branch, main has the heading and each bullet of the branch.
+        clone = self.merge(branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
+        before = (self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json"))
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the change of main', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertEqual((self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json")), before)
+
+    def test_same_heading_and_one_shared_bullet_refuses(self):
+        # A branch that goes on after its own squash merge has the bullets of main and one more bullet.
+        clone = self.merge(branch_release("dev-essentials 3.24.1", bullets=["the change of the branch", "the change of main"],
+                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
+        before = (self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json"))
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the change of main', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertNotIn("DROPPED", out)
+        self.assertEqual((self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json")), before)
+
+    def test_same_heading_and_a_bullet_of_main_below_another_heading_refuses(self):
+        # The same text below another "### " heading can be the entry of another plugin.
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(
+            "- the change of the branch\n", "- the change of the branch\n\n### Fixed in the repository\n\n- the change of main\n")
+        clone = self.merge(branch)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the change of main', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_heading_and_a_shared_entry_with_a_paragraph_after_a_blank_line_refuses(self):
+        loose = "- the shared entry:\n\n  The shared entry also changes the docs.\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n", loose)
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the change of the branch\n",
+                                                                "- the change of the branch\n" + loose)
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the shared entry:', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_heading_and_an_unreleased_entry_that_both_sides_released_refuses(self):
+        # Both branches moved the entry of the merge base from [Unreleased] into their release section.
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- fix the parser\n\n")
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n", "- the change of main\n- fix the parser\n")
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of the branch", "fix the parser"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- fix the parser', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_heading_and_a_bullet_of_main_with_the_text_of_an_old_release_refuses(self):
+        # main added this bullet since the merge base. The old release has its text too.
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n",
+                                                            "- the change of main\n- the old change\n")
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of the branch", "the old change", "the change of main"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the old change', "
+                      "so merge CHANGELOG.md by hand", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_same_heading_and_a_bullet_with_the_text_of_an_old_release_is_a_new_entry(self):
+        # main did not add this bullet since the merge base, so it is an entry of the branch.
+        clone = self.merge(branch_release("dev-essentials 3.24.1", bullets=["the old change"],
+                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        self.assertNotIn("DROPPED", out)
+        self.assertIn("## dev-essentials 3.24.2 in release [4.22.2] - 2026-11-17\n\nThe summary.\n\n"
+                      "### Changed in the repository\n\n- the old change\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_section_with_another_date_that_main_has_in_full_refuses(self):
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("[4.22.1] - 2026-11-17", "[4.22.1] - 2026-11-18")
+        clone = self.merge(branch)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("DROPPED - the change of main", out)
+        self.assertIn("STOP the top section of the branch adds no '- ' bullet to --theirs, so the branch adds no release: "
+                      "## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-18", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_section_with_another_date_that_main_has_in_full_refuses_before_the_absorb(self):
+        # The [Unreleased] entries of main must not make a release of a branch that adds no bullet.
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a no-release change\n\n")
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("[4.22.1] - 2026-11-17", "[4.22.1] - 2026-11-18")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", "--absorb-unreleased", code=3)
+        self.assertIn("so the branch adds no release: ## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-18", out)
+        self.assertNotIn("ABSORBED", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_section_that_main_has_in_full_refuses_before_the_absorb(self):
+        # The [Unreleased] entries of main must not make a release of a branch that adds no bullet.
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a no-release change\n\n")
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        for extra in ((), ("--absorb-unreleased",)):
+            out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", *extra, code=3)
+            self.assertIn("both have the entry '- the change of main', so merge CHANGELOG.md by hand", out)
+            self.assertNotIn("ABSORBED", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_section_with_star_bullets_and_another_heading_merges(self):
+        branch = branch_release("dotnet-backend-dev 1.8.1")
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the change of the branch", "* the change of the branch")
+        clone = self.merge(branch)
+        self.tool(clone, *RELEASE)
+        self.assertIn("## dotnet-backend-dev 1.8.1 in release [4.22.2] - 2026-11-17\n\nThe summary.\n\n"
+                      "### Changed in the repository\n\n* the change of the branch\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_section_with_no_bullet_and_another_heading_merges(self):
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", bullets=[]))
+        self.tool(clone, *RELEASE)
+        self.assertIn("## dotnet-backend-dev 1.8.1 in release [4.22.2] - 2026-11-17\n\nThe summary.\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
     def test_keep_both_file_with_a_marker_line_outside_a_conflict_refuses(self):
         notes = "# Notes\n\n=======\n\nThe first line.\n"
         base = dict(BASE, **{"docs/notes.md": notes})
