@@ -9,6 +9,15 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Fixed in dev-essentials
+
+- `evals/*/*/graders/tests-before-commit.md` (nine cases) and `evals/*/*/graders/untested-commit.md` (seven cases): the token between the two calls now runs its lookahead only at a quote, and it stops at the first fitting commit. Each grader gives the same verdict as before, with far fewer steps. The `claude` binary holds Bun 1.4.4, whose engine stops a long search with no match. On a trace of 690,094 characters, the old `tests-before-commit` failed a right run of `ib-no-worktree` (issue #319). The old `untested-commit` passed a wrong run with about 196,000 characters between the edit and the commit (issue #328). In Bun 1.4.4, both new patterns match a built trace with 2,000,000 characters between the two calls.
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` now also reads the grader `tests-before-commit` of `it-no-worktree` and `ib-no-worktree`. A new sample has a test, a commit, an edit, and a second commit, and it must match. The unit tests run Python `re`, so no sample shows the step limit (issues #319 and #328).
+- `docs/evals.md`: the replay tool runs V8 and the eval tool runs JavaScriptCore. The new text gives the facts of the failed run and the limits that Bun 1.4.4 showed. It also names the risk for a `not_contains` grader (issues #319 and #328).
+
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
 If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317). The third one is the fix of `changelog_merge.py release` for a heading that `main` took first (issue #318).

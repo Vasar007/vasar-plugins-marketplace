@@ -111,6 +111,19 @@ The tool prints one line for each grader of each run, with four fields that a ta
 
 The tool does not know the arm of a run, and it does not read the `arm` key of a grader. It replays each grader on each run that you give, and each failed grader gives exit code 1. The replay is not `claude plugin eval`, so a later Claude Code version can grade in another way. Like the graded text, the replay lacks the calls of a subagent of a subagent.
 
+The replay runs a regex grader in Node.js, which uses the V8 engine. The `claude` binary of Claude Code 2.1.329 holds Bun 1.4.4, which uses the JavaScriptCore engine. JavaScriptCore can stop a long search after a fixed count of steps. It then reports no match, with no error. So for a large trace, the eval tool can fail a grader that the replay passes (issue #319):
+
+- The run `xOOL0p` of `ib-no-worktree` scored 0.94, because the eval tool failed `tests-before-commit` on it. The replay passed it.
+- Its trace has 690,094 characters. The old token of the grader ran from the first test command to the end of the trace, 613,785 characters.
+- In Bun 1.4.4, the old pattern gave no match on that trace after about 400 ms. In Node.js, it matched in less than 10 ms.
+- On built traces in Bun 1.4.4, the old `tests-before-commit` stopped at about 490,000 characters between the test and the commit. The old `untested-commit` stopped at about 196,000 characters between the edit and the commit.
+
+A `not_contains` grader passes for no match. So a step limit can also pass a wrong run, and no result shows it. The old `untested-commit` did that on a built trace.
+
+So a trace grader that spans a large text uses few steps for each character. In `tests-before-commit` and `untested-commit`, the token runs its lookahead only at a quote, and a run of other characters is one class term. In Bun 1.4.4, both graders matched a built trace with 2,000,000 characters between the two calls, in less than 0.4 seconds. No larger text was measured. A plain `[\s\S]*`, as in `route-tests-before-push`, matched 4,000,000 characters in 2 ms.
+
+A replay is no full proof for a grader that spans a large text. To find the verdict of the eval tool, run the pattern in Bun 1.4.4 on the trace.
+
 A mock of the type `agent` does not see a call that a fixed mock answered (Claude Code 2.1.325). In `cmp-issue-create`, a fixed mock answered the create call, and an agent mock answered the read-back call with another issue. So each run that read the issue back reported that the read-back did not match. A mock that reads back what an earlier call wrote gets a fixed fixture.
 
 No mock can give the SHA of a commit that the run makes. The merge gate of `merge-pr` compares the head SHA of the pull request with the local branch. So two cases test the merge of `feature-pipeline` in the full mode. The case `fp-e2-merge` starts after Step 9, and its scaffold makes the head commit. Its run must merge. The case `fp-e2-merge-gate` is a full run. Its mock gives the last commit of the scaffold as the head, so the pull request lacks the commit of the run. Its run must read the gate and must not merge. `ScaffoldTests` in `tests/test_eval_scaffolds.py` makes sure that the head SHA in `fixtures/pull/get.json` of each case is the last commit of its scaffold. The cases `rirr-merge` and `rirr-merge-gate` test the finish steps of `research-implement-review-report` in the same way. `rirr-merge` finishes an earlier run, and its scaffold makes the head commit. The cases `it-merge` and `ib-merge` do the same for `implement-task` and `implement-batch`. Two more resume cases must do no finish step. In `rirr-resume-moved-head`, a commit that no review saw moved the head of the branch after the report. In `rirr-upstream-remote`, the clone has an `upstream` remote on GitHub, so the run must ask which repository gets the pull request.
