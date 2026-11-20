@@ -824,13 +824,20 @@ class DotnetWarmTests(FixtureCase):
         return crashes.read_text(encoding="utf-8").strip() if crashes.exists() else "0"
 
     def test_a_scaffold_runs_one_more_time_after_one_clr_crash(self):
-        """Fails if the retry is gone, if it keeps the files of the crashed try, or if it runs more than one time."""
+        """Fails if the retry is gone, if it keeps the files of the crashed try, or if it runs more than one time.
+
+        Fails if the grep of unit-tests.sh does not match the retry line.
+        """
         env = self.warm_environment("run-1")
         env["FAKE_DOTNET_CRASHES"] = "1"
         lines, error = self.run_probe_scaffold(env)
         self.assertIsNone(error)
         self.assertEqual(self.crashes(), "1")
         self.assertIn("Retry of probe-dotnet-sandbox", lines)
+        runner = (REPO / "tools/wsl/linux/unit-tests-clone.sh").read_text(encoding="utf-8")
+        pattern = re.search(r"^grep -E '([^']*)' \"\$log\"", runner, re.MULTILINE).group(1)
+        shown = subprocess.run(["grep", "-E", pattern], input=lines, capture_output=True, text=True).stdout
+        self.assertIn("Retry of probe-dotnet-sandbox", shown, "unit-tests.sh does not print the retry line")
         self.assertEqual(self.log.read_text(encoding="utf-8").split(), ["start", "end"])
 
     def test_another_failure_of_a_scaffold_gets_no_retry(self):
