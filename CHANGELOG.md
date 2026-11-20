@@ -9,6 +9,8 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
+
 If a fix commit changes a hit above the first error line or repeats an error line, `failure_check.py` of `review-loop` now gives `OTHER`. No skill text changes (issue #311).
 
 ### Fixed in dev-essentials
@@ -2434,7 +2436,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...HEAD
+[5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.5
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.0...v5.4.1
