@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`: one duplicate test is gone, `FinishCallerTests.test_merge_pr_counts_the_yes_of_the_final_gate`. It made the same assertion on the same file as the subtest for `merge-pr` of `UnitRuleTests.test_the_unit_rules_stay`. That subtest stays, so the approval sentence of `merge-pr` keeps its guard. The review of each unit test below `tests/` found no other duplicate and no test that cannot fail for a bug. So the review merges 1 test and removes 0 tests (issue #316).
+
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
