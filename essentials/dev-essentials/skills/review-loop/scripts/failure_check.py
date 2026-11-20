@@ -128,8 +128,9 @@ PATH_START = NAME_START + r"(?:-{1,2}[A-Za-z][\w-]*|file:/{0,3})?"
 PLACE = re.compile(r"\.[A-Za-z]\w*:\[?\d+([:,]\d+)?\b|(?<![\w.:])\d+:\d+\b|\w\(\d+(,\d+){0,3}\)|^\s*\d+ +\|"
                    r"|File \"[^\"]*\", line \d+\b|(?<![\w.:/\\-])[A-Za-z_]\w*:\d+(:\d+)?:"
                    r"|^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$|^[^\s/\\:]+\.[A-Za-z]\w*:$")
-# A number of a place after a space, ":", "[", ",", or "(", but not a digit of a file name such as v2.py.
-PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![\w./\\])")
+# A number of a place: after a space, ":", "[", ",", or "(", and before a space, ":", "]", ",", ")", or the end.
+# A digit of a file name such as v2.py or 1-a.py stays.
+PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![^\s:\],)])")
 PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
 
 

@@ -920,6 +920,14 @@ class UnitTests(unittest.TestCase):
                          "SAME-AT-PARENT")
         self.assertEqual(self.lint_verdict(["src/a.py:4:9: note: x", "1 error"], ["src/a.py:3:5: note: x", "1 error"]),
                          "SAME-AT-PARENT")
+        self.assertEqual(self.lint_verdict(["a.py:4:9: E501 x", "1 error"], ["a.py:3:5: E501 x", "1 error"]),
+                         "SAME-AT-PARENT")
+        roots = ["/work/repo", "/tmp/review-loop-fc-ab12/parent"]
+        stylish = ["{}/src/a.js", "  {}  warning  'x' is assigned a value but never used  no-unused-vars", "",
+                   "x 1 problem (0 errors, 1 warning)"]
+        fix = [stylish[0].format(roots[0]), stylish[1].format("14:5"), *stylish[2:]]
+        parent = [stylish[0].format(roots[1]), stylish[1].format("3:5"), *stylish[2:]]
+        self.assertEqual(self.lint_verdict(fix, parent, roots), "SAME-AT-PARENT")
 
     def test_same_hit_swapped_into_another_file_is_other(self):
         def grouped(file):
@@ -937,6 +945,10 @@ class UnitTests(unittest.TestCase):
 
         self.assertEqual(self.lint_verdict(grouped("b.py"), grouped("a.py")), "OTHER")
         self.assertEqual(self.lint_verdict(grouped("a.py"), grouped("a.py")), "SAME-AT-PARENT")
+        for fix, parent in (("1-intro.py", "2-intro.py"), ("01-intro/main.py", "02-intro/main.py"),
+                            ("01-intro\\main.py", "02-intro\\main.py"), ("1+a.py", "2+a.py")):
+            with self.subTest(fix=fix):
+                self.assertEqual(self.lint_verdict(grouped(fix), grouped(parent)), "OTHER")
 
     def test_line_of_test_dots_is_not_a_path(self):
         self.assertEqual(self.lint_verdict(["..F", "FAIL: test_x"], [".F", "FAIL: test_x"]), "SAME-AT-PARENT")
