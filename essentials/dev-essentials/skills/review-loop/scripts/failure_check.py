@@ -74,8 +74,8 @@ an extension and a line number, for example src/a.py:3 or A.java:[3,5]. A name w
 extension needs a ":" after the number, as in Makefile:3: text. A 3:5 at the start of a word,
 a (3,5) after a name, and a line of a code frame such as "3 | x = 1" are places too. So is a
 line of Python such as File "a.py", line 3. So is a line with only a file path or a file name
-and a ":", with no space, such as the file line of eslint stylish or of grouped ruff. A digit of
-a file name stays.
+and a ":", with no space. Examples are the file line of eslint stylish and of grouped ruff. A
+digit of a file name stays.
 With no error line, the lines to compare are each line that is not blank. Each line counts
 with the number of times that it comes. A run with an error line never matches a run with none.
 Before the compare, a root folder at the start of a path becomes a token. So do each time,
@@ -130,7 +130,7 @@ PLACE = re.compile(r"^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$|^[^\s/\\:]+\.[A-Za-z]\w*
                    r"|\.[A-Za-z]\w*:\[?\d+([:,]\d+)?\b|(?<![\w.:])\d+:\d+\b|\w\(\d+(,\d+){0,3}\)|^\s*\d+ +\|"
                    r"|File \"[^\"]*\", line \d+\b|(?<![\w.:/\\-])[A-Za-z_]\w*:\d+(:\d+)?:")
 # A number of a place: after a space, ":", "[", ",", or "(", and before a space, ":", "]", ",", ")", or the end.
-# After a ")" or a "]", the same rule holds. So a digit of a file name such as v2.py, 1-a.py, or a(1).py stays.
+# After a ")" or a "]", the same rule holds. So in a file line, a digit of v2.py, 1-a.py, or a(1).py stays.
 PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![^\s:\],)])(?![)\]][^\s:,)\]])")
 PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
 
