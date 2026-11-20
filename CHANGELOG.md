@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+If a fix commit changes a hit above the first error line or repeats an error line, `failure_check.py` of `review-loop` now gives `OTHER`. No skill text changes (issue #311).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: with an error line in the output, each line above the first error line that names a place now counts too. A place is a file name with a line number, such as `src/a.py:3`. A `3:5` at the start of a word, a `(3,5)` after a name, and a code frame line such as `3 | x = 1` are places too. Before, such a line did not count. So a swapped hit above a summary such as `Found 1 error.` gave `SAME-AT-PARENT`. The same held for a hit above a file such as `src/errors.py`. Each line of the compare now has its count, so an error line that comes one more time gives `OTHER`. A root folder now counts only at the start of a path. Before, the rule also took the folder name before it, so a repository in `/app` made `src/app/util.py` and `tests/app/util.py` the same. A warning whose line number moved now gives `OTHER`, where it gave `SAME-AT-PARENT` before. The docstring and the reason text of `OTHER` name the new compare (issue #311).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: 5 new tests (issue #311). Three of them hold the real output of ruff 0.17.6. They cover these results:
+  - A swapped hit above the only error word gives `OTHER`, in the concise and in the full output of ruff.
+  - A swapped hit above a hit in `src/errors.py` gives `OTHER`.
+  - A moved hit above a summary with an error word gives `OTHER`. The samples are the grouped output of ruff, the stylish form of eslint, and a warning of a C# build.
+  - An error line that comes one more time gives `OTHER`.
+  - The root `/app` no longer takes the folder name before it. A root after `-I`, after `=`, after a quote, and in a Windows file URL still becomes a token.
+
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).

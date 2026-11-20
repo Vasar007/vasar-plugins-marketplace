@@ -45,6 +45,16 @@ class MoreTests(unittest.TestCase):
     def test_mul(self):
         self.assertEqual(2 * 2, 4)
 """
+# The hit lines of ruff 0.17.6 on Windows, as `ruff check --output-format concise` prints them.
+RUFF_OS = "src\\a.py:1:8: F401 [*] `os` imported but unused"
+RUFF_SYS = "src\\a.py:1:8: F401 [*] `sys` imported but unused"
+RUFF_JSON = "src\\errors.py:1:8: F401 [*] `json` imported but unused"
+
+
+def ruff_concise(*hits):
+    """The whole output of ruff with the given hit lines and its summary lines."""
+    noun = "error" if len(hits) == 1 else "errors"
+    return [*hits, f"Found {len(hits)} {noun}.", f"[*] {len(hits)} fixable with `--fix`."]
 
 
 class FailureCheckCase(ScratchCase):
@@ -876,6 +886,55 @@ class UnitTests(unittest.TestCase):
         self.assertNotEqual(signature("error: a"), signature("error: b"))
         self.assertEqual(signature("error: a", changed=5), signature("error: a"))
         self.assertNotEqual(signature("error: a", changed=6), signature("error: a"))
+
+    def test_swapped_hit_above_the_only_error_word_is_other(self):
+        def full(name):
+            return [f"F401 [*] `{name}` imported but unused", " --> src\\a.py:1:8", "  |", f"1 | import {name}",
+                    "  |        " + "^" * len(name), f"help: Remove unused import: `{name}`", "  |",
+                    f"  - import {name}", "  |", "", "Found 1 error.", "[*] 1 fixable with `--fix`."]
+
+        self.assertEqual(self.lint_verdict(ruff_concise(RUFF_SYS), ruff_concise(RUFF_OS)), "OTHER")
+        self.assertEqual(self.lint_verdict(full("sys"), full("os")), "OTHER")
+        self.assertEqual(self.lint_verdict(full("os"), full("os")), "SAME-AT-PARENT")
+
+    def test_swapped_hit_above_an_error_word_in_a_file_name_is_other(self):
+        fix, parent = ruff_concise(RUFF_SYS, RUFF_JSON), ruff_concise(RUFF_OS, RUFF_JSON)
+        self.assertEqual(self.lint_verdict(fix, parent), "OTHER")
+
+    def test_moved_hit_above_a_summary_with_an_error_word_is_other(self):
+        def grouped(place):
+            return ["src\\a.py:", f"  {place} F401 [*] `os` imported but unused", "", "Found 1 error.",
+                    "[*] 1 fixable with `--fix`."]
+
+        def stylish(hit):
+            return ["/work/src/a.js", hit, "", "✖ 1 problem (0 errors, 1 warning)"]
+
+        unused = "  3:5  warning  'x' is assigned a value but never used  no-unused-vars"
+        console = "  7:1  warning  Unexpected console statement  no-console"
+        self.assertEqual(self.lint_verdict(grouped("2:8"), grouped("1:8")), "OTHER")
+        self.assertEqual(self.lint_verdict(stylish(unused), stylish(console)), "OTHER")
+        warning = "a.cs({},13): warning CS0168: The variable 'x' is declared but never used"
+        self.assertEqual(self.lint_verdict([warning.format(4), "Build FAILED."], [warning.format(3), "Build FAILED."]),
+                         "OTHER")
+
+    def test_error_line_that_comes_one_more_time_is_other(self):
+        error = "error: the docs theme is missing."
+        self.assertEqual(self.lint_verdict([error, error], [error]), "OTHER")
+
+    def test_root_counts_only_at_the_start_of_a_path(self):
+        def mypy(path):
+            return [f'{path}:3: error: Name "x" is not defined  [name-defined]',
+                    "Found 1 error in 1 file (checked 2 source files)"]
+
+        self.assertEqual(self.lint_verdict(mypy("src/app/util.py"), mypy("tests/app/util.py"), ["/app"]), "OTHER")
+        for start in ("error in -I", "error in --out=", "error: no file '"):
+            with self.subTest(start=start):
+                parent = [start + "/tmp/review-loop-fc-ab12/parent/b.c"]
+                self.assertEqual(self.lint_verdict([start + "/app/b.c"], parent, ["/app"]), "SAME-AT-PARENT")
+        windows = fc.path_forms(PureWindowsPath("C:\\work\\repo"))
+        self.assertEqual(self.lint_verdict(["Error at f (file:///C:/work/repo/x.mjs:4:31)"],
+                                           ["Error at f (file:///C:/Temp/review-loop-fc-ab12/parent/x.mjs:4:31)"],
+                                           windows), "SAME-AT-PARENT")
 
     def test_same_lint_output_with_the_folder_of_each_run_is_same_at_parent(self):
         hit = "/src/a.py:1:1: F401 'os' imported but unused"
