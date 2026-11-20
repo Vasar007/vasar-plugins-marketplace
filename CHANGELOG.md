@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.6 in release [5.4.6] - 2026-11-20
+
+The trace graders `tests-before-commit` and `untested-commit` now take far fewer steps. So the regex engine of the eval tool no longer stops them on a large trace. No skill text changes (issues #319 and #328).
+
 ### Fixed in dev-essentials
 
 - `evals/*/*/graders/tests-before-commit.md` (nine cases) and `evals/*/*/graders/untested-commit.md` (seven cases): the token between the two calls now runs its lookahead only at a quote, and it stops at the first fitting commit. Each grader gives the same verdict as before, with far fewer steps. The `claude` binary holds Bun 1.4.4, whose engine stops a long search with no match. On a trace of 690,094 characters, the old `tests-before-commit` failed a right run of `ib-no-worktree` (issue #319). The old `untested-commit` passed a wrong run with about 196,000 characters between the edit and the commit (issue #328). In Bun 1.4.4, both new patterns match a built trace with 2,000,000 characters between the two calls.
@@ -2478,7 +2482,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...HEAD
+[5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
