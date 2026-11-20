@@ -9,6 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tools/changelog_merge.py`: the subcommand `release` now stops for a bullet that it leaves out with an indented line that `main` lacks below that bullet. This happens for a section of the branch with another heading than the top heading of `main`. Before, the script left out that line with the bullet. If the same line was below another bullet, no guard saw the loss, and the script ended with exit code 0. The new STOP line names the bullet and the line. The docstring and `docs/tools.md` name the new stop (issue #330).
+- `tests/test_changelog_merge.py`: 2 new tests (issue #330). One stops for the smallest pair of the loss. The other one drops a shared bullet with the same indented lines on both sides and merges. The test `test_indented_line_below_a_bullet_that_main_has_refuses` still stops, but with the STOP line of the new guard.
+
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
 If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317). The third one is the fix of `changelog_merge.py release` for a heading that `main` took first (issue #318).

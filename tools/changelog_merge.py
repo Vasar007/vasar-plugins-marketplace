@@ -38,6 +38,9 @@ The script refuses, and writes nothing, in each of these cases:
     than the merge base.
   - release: --theirs does not have that heading, and each "- " bullet of that section is new on
     --theirs.
+  - release: --theirs does not have that heading, and a "- " bullet of that section is new on
+    --theirs. An indented line below that bullet is below no copy of it on --theirs. The script
+    leaves out such a bullet with its indented lines. Without this stop, the result loses that line.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.
@@ -221,6 +224,33 @@ def drop_known_bullets(section, known):
     return re.sub(r"\n{3,}", LF + LF, text).strip(LF)
 
 
+def indented_lines(text):
+    """Map each "- " bullet of text to the set of indented lines below all its copies."""
+    found, below = {}, None
+    for line in text.split(LF):
+        if line.startswith("- "):
+            below = found.setdefault(line, set())
+        elif below is not None and line.startswith((" ", "\t")):
+            below.add(line)
+        else:
+            below = None
+    return found
+
+
+def lost_indented_line(section, known, theirs_text):
+    """The first (bullet, line) pair that drop_known_bullets takes out and --theirs lacks below that bullet, or None."""
+    theirs, bullet = indented_lines(theirs_text), None
+    # The same steps as drop_known_bullets, so this sees each indented line that the drop takes out.
+    for line in section.split(LF):
+        if line.startswith("- "):
+            bullet = line if line in known else None
+        elif not line.startswith((" ", "\t")):
+            bullet = None
+        elif bullet and line not in theirs.get(bullet, ()):
+            return bullet, line
+    return None
+
+
 def new_links(text, release):
     """Point the [Unreleased] link line at the new release, and add the line of the new release."""
     found = [m for m in (LINK.fullmatch(line) for line in text.split(LF)) if m]
@@ -319,6 +349,10 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
             raise Refused(f"the top section of the branch and --theirs both have the entry '{shared[0]}', so merge "
                           f"{CHANGELOG} by hand")
     else:
+        lost = lost_indented_line(body, known, theirs_text)
+        if lost:
+            raise Refused(f"--theirs has the bullet '{lost[0]}' without the indented line '{lost[1]}' of the branch, "
+                          f"so merge {CHANGELOG} by hand")
         body = drop_known_bullets(body, known)
         if not has_bullet(body) and has_bullet(section):
             raise Refused(f"the top section of the branch adds no '- ' bullet to --theirs, so the branch adds no release: {heading}")

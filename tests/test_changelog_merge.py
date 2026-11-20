@@ -54,6 +54,14 @@ MAIN_RELEASE = {
 }
 
 
+def main_release(*bullets):
+    """The files of MAIN_RELEASE with other bullets in its release section."""
+    files = dict(MAIN_RELEASE)
+    files["CHANGELOG.md"] = (INTRO + section("dev-essentials 3.24.1", "4.22.1", bullets) + OLD
+                             + links(("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+    return files
+
+
 def branch_release(plugins, bullets=("the change of the branch",), extra=None):
     """The files of a release branch that adds release 4.22.1 with the plugins of the heading."""
     files = {"docs/notes.md": "# Notes\n\nThe first line.\nThe line of the branch.\n",
@@ -160,9 +168,36 @@ class ReleaseTests(MergeCase):
         clone = self.merge(branch, main=main)
         before = self.text(clone, "CHANGELOG.md")
         out = self.tool(clone, *RELEASE, "--absorb-unreleased", code=3)
-        self.assertIn("the result loses a line that a side added since the merge base, so merge CHANGELOG.md by hand: "
-                      "  - see docs/evals.md", out)
+        self.assertIn("STOP --theirs has the bullet '- a test fix:' without the indented line '  - see docs/evals.md' "
+                      "of the branch, so merge CHANGELOG.md by hand", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_dropped_bullet_with_an_indented_line_that_main_has_below_another_bullet_refuses(self):
+        main = main_release("a test fix", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n", "- the change of main\n  - see docs/evals.md\n")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix", "the change of the branch"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n  - see docs/evals.md\n")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP --theirs has the bullet '- a test fix' without the indented line '  - see docs/evals.md' "
+                      "of the branch, so merge CHANGELOG.md by hand", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_dropped_bullet_with_the_indented_lines_of_main_merges(self):
+        entry = "- a test fix\n  - see docs/evals.md\n"
+        main = main_release("a test fix", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- a test fix\n", entry)
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix", "the change of the branch"))
+        own = "- the change of the branch\n  - see docs/tools.md\n"
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- a test fix\n", entry).replace(
+            "- the change of the branch\n", own)
+        clone = self.merge(branch, main=main)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - a test fix", out)
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertIn(f"### Changed in the repository\n\n{own}\n## dev-essentials 3.24.1", text)
+        self.assertEqual(text.count(entry), 1, text)
 
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
