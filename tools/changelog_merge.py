@@ -39,8 +39,10 @@ The script refuses, and writes nothing, in each of these cases:
   - release: --theirs does not have that heading, and each "- " bullet of that section is new on
     --theirs.
   - release: --theirs does not have that heading, and a "- " bullet of that section is new on
-    --theirs. An indented line below that bullet is below no copy of it on --theirs. The script
-    leaves out such a bullet with its indented lines. Without this stop, the result loses that line.
+    --theirs. An indented line below that bullet is below no copy of it on --theirs or on the merge
+    base. The script leaves out such a bullet with its indented lines. Without this stop, the result
+    loses that line. The script also stops for an indented line after a blank line below such a
+    bullet. Without this stop, that line moves below another bullet.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.
@@ -89,6 +91,7 @@ CONFLICT = re.compile(r"^<<<<<<< [^\n]*\n(?P<ours>.*?)(?:^\|\|\|\|\|\|\| [^\n]*\
 MARKER = re.compile(r"^(?:<<<<<<< |>>>>>>> |\|\|\|\|\|\|\| |=======$)", re.M)
 LINE_CHARS = 200
 MAX_DROPPED = 20
+STOP_CHARS = 40
 
 
 class Stop(Exception):
@@ -102,6 +105,11 @@ class Refused(Exception):
 def say(kind, text=""):
     line = f"{kind} {text}".rstrip()
     print(line if len(line) <= LINE_CHARS else f"{line[:LINE_CHARS]} ... {len(line) - LINE_CHARS} more characters")
+
+
+def short(text):
+    """The start of text, so that a STOP line with two texts stays below LINE_CHARS."""
+    return text if len(text) <= STOP_CHARS else f"{text[:STOP_CHARS]}..."
 
 
 def as_tuple(version):
@@ -181,11 +189,13 @@ def merge_block(target, extra, kind):
         while found and at < len(lines) and not lines[at].startswith("### "):
             at += 1
         present, new, keep = set(lines[start:at]), [], True
+        # A first line that is no "- " bullet is not in the map, so its indented line can be in any place of the subsection.
+        below = indented_lines(LF.join(line for line in lines[start:at] if line.strip()))
         for line in body:
             # An indented line belongs to the bullet above it, so it stays or goes with that bullet.
             if not line.startswith((" ", "\t")):
                 keep, bullet = line not in present, line
-            elif not keep and line not in present:
+            elif not keep and line not in below.get(bullet, present):
                 raise Refused(f"both sides have the entry '{bullet}' with other indented lines, so merge {CHANGELOG} by hand")
             if keep:
                 new.append(line)
@@ -237,17 +247,23 @@ def indented_lines(text):
     return found
 
 
-def lost_indented_line(section, known, theirs_text):
-    """The first (bullet, line) pair that drop_known_bullets takes out and --theirs lacks below that bullet, or None."""
-    theirs, bullet = indented_lines(theirs_text), None
+def lost_indented_line(section, known, theirs_text, base_text):
+    """The first (bullet, line, loose) that drop_known_bullets loses or moves, or None.
+
+    If --theirs or the merge base has an indented line below that bullet, that line passes.
+    loose is True for a line after a blank line. The drop leaves such a line below another bullet, so it never passes.
+    """
+    theirs, base, bullet, loose = indented_lines(theirs_text), indented_lines(base_text), None, False
     # The same steps as drop_known_bullets, so this sees each indented line that the drop takes out.
     for line in section.split(LF):
         if line.startswith("- "):
-            bullet = line if line in known else None
+            bullet, loose = (line if line in known else None), False
+        elif line == "":
+            loose = True
         elif not line.startswith((" ", "\t")):
             bullet = None
-        elif bullet and line not in theirs.get(bullet, ()):
-            return bullet, line
+        elif bullet and line.strip() and (loose or (line not in theirs.get(bullet, ()) and line not in base.get(bullet, ()))):
+            return bullet, line, loose
     return None
 
 
@@ -349,10 +365,14 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
             raise Refused(f"the top section of the branch and --theirs both have the entry '{shared[0]}', so merge "
                           f"{CHANGELOG} by hand")
     else:
-        lost = lost_indented_line(body, known, theirs_text)
+        lost = lost_indented_line(body, known, theirs_text, base_text)
         if lost:
-            raise Refused(f"--theirs has the bullet '{lost[0]}' without the indented line '{lost[1]}' of the branch, "
-                          f"so merge {CHANGELOG} by hand")
+            bullet, line = short(lost[0]), short(lost[1])
+            if lost[2]:
+                raise Refused(f"merge {CHANGELOG} by hand: a blank line is above the indented line '{line}' of the bullet "
+                              f"'{bullet}' that --theirs has")
+            raise Refused(f"merge {CHANGELOG} by hand: --theirs has the bullet '{bullet}' without the indented line "
+                          f"'{line}' of the branch")
         body = drop_known_bullets(body, known)
         if not has_bullet(body) and has_bullet(section):
             raise Refused(f"the top section of the branch adds no '- ' bullet to --theirs, so the branch adds no release: {heading}")
