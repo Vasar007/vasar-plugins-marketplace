@@ -60,17 +60,31 @@ of the script goes to stderr.
 The last two lines are the verdict and its reason:
   VERDICT: UNCOMMITTED     passes at the fix commit, so the main worktree causes the failure
   VERDICT: REGRESSION      fails at the fix commit and passes at the commit before it
-  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code, the same error
-                           lines, and the same last lines after the first error line.
-                           With no error line, each line that is not blank and its count are
-                           the same
+  VERDICT: SAME-AT-PARENT  fails at both commits with the same exit code and the same lines
+                           to compare, each with the same count
   VERDICT: OTHER           any other result, for example another error, a time-out, or a
                            command that cannot start
-Before the compare, each count of passed or skipped tests becomes a token. A count of failures
-or errors stays. The line of a single test also stays, for example a PASSED line of pytest -v
-or an ok line of unittest -v. So a new test can still give OTHER in three ways: its line is in
-the last lines, its line holds an error word, or no line of the output holds an error word. An
-error word is fail, traceback, or a word that ends with error or exception.
+An error word is fail, traceback, or a word that ends with error or exception. A line with an
+error word is an error line. With an error line, the lines to compare are each error line and
+the lines from the first error line on, but at most the last 15 lines. If a line above them
+names a place, its text counts too, with the line and column numbers of its first place left
+out. So a hit that moved to another line stays the same. So does a new hit with the same text
+at another line of the same file, after a fix removed the old hit. A place is a file name with
+an extension and a line number, for example src/a.py:3 or A.java:[3,5]. A name with no
+extension needs a ":" after the number, as in Makefile:3: text. A 3:5 at the start of a word,
+a (3,5) after a name, and a line of a code frame such as "3 | x = 1" are places too. So is a
+line of Python such as File "a.py", line 3. So is a line with only a file path or a file name
+and a ":", with no space. Examples are the file line of eslint stylish and of grouped ruff. A
+digit of a file name stays.
+With no error line, the lines to compare are each line that is not blank. Each line counts
+with the number of times that it comes. A run with an error line never matches a run with none.
+Before the compare, a root folder at the start of a path becomes a token. So do each time,
+address, and count of passed or skipped tests. A count of failures or errors stays. The line of
+a single test also stays, for example a PASSED line of pytest -v or an ok line of unittest -v.
+So a new test can still give OTHER: its line is in the last lines, it holds an error word or
+names a place, or no line of the output holds an error word.
+A build in the clean main worktree can skip the files that did not change. Then it prints fewer
+warnings than the build at the commit before. A warning line that names a place then gives OTHER.
 If the command prints the same lines for two different failures, for example only a banner,
 the verdict is also SAME-AT-PARENT. A lint that prints one line for each file prints the same
 lines for a new problem in a file that already fails. Then the verdict is SAME-AT-PARENT too.
@@ -107,7 +121,17 @@ import urllib.parse
 from pathlib import Path
 
 ERROR = re.compile(r"\b\w*?(errors?|exceptions?)\b|\b(fail(ed|ure|ures|s)?|traceback)\b", re.IGNORECASE)
-PATH_START = r"(?<![^\s'\"])[^\s'\"]*"
+# A path starts where no character of a file name comes before it.
+NAME_START = r"(?<![\w./\\~-])"
+# An option such as -I or the start of a file URL can come before a root.
+PATH_START = NAME_START + r"(?:-{1,2}[A-Za-z][\w-]*|file:/{0,3})?"
+# A line with only a file name comes first, so a name such as a(1).py: is not the place a(1).
+PLACE = re.compile(r"^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$|^[^\s/\\:]+\.[A-Za-z]\w*:$"
+                   r"|\.[A-Za-z]\w*:\[?\d+([:,]\d+)?\b|(?<![\w.:])\d+:\d+\b|\w\(\d+(,\d+){0,3}\)|^\s*\d+ +\|"
+                   r"|File \"[^\"]*\", line \d+\b|(?<![\w.:/\\-])[A-Za-z_]\w*:\d+(:\d+)?:")
+# A number of a place: after a space, ":", "[", ",", or "(", and before a space, ":", "]", ",", ")", or the end.
+# After a ")" or a "]", the same rule holds. So in a file line, a digit of v2.py, 1-a.py, or a(1).py stays.
+PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![^\s:\],)])(?![)\]][^\s:,)\]])")
 PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
 
 
@@ -118,8 +142,10 @@ def pytest_counts(match):
 
 NOISE = [
     (re.compile(r"\x1b\[[0-9;]*m"), ""),
-    (re.compile(PATH_START + r"review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
+    (re.compile(NAME_START + r"(?:file:/{0,3})?(?:[A-Za-z]:)?[\w./\\~-]*review-loop-fc-\w+[/\\](fix|parent)"), "<root>"),
     (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<addr>"),
+    (re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?"), "<time>"),
+    (re.compile(r"\[\d+:\d{2}<\d+:\d{2}, [^\]]*\]"), "[<time>]"),
     (re.compile(r"(?<![:.])\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
@@ -257,9 +283,11 @@ class Run:
         return not self.passed and not self.timed_out and self.start_error is None and self.code not in NOT_STARTED
 
     def signature(self, roots):
-        """The error lines and the last lines, with a token for each root folder, time, address, and count of tests.
+        """The lines to compare and their counts, with a token for each root folder, time, address, and count of tests.
 
-        With no error line, it takes each line that is not blank and its count, so a new lint hit changes it.
+        With an error line, it takes the error lines, the last lines from the first error line on, and each line
+        that names a place, such as src/a.py:3, with a token for the numbers of the place.
+        With no error line, it takes each line that is not blank.
         """
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
@@ -268,15 +296,16 @@ class Run:
         first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), None)
         start = 0 if first is None else max(first, len(self.lines) - TAIL_LINES)
         for i, line in enumerate(self.lines):
+            text = line
+            for pattern, token in rules:
+                text = pattern.sub(token, text)
             if i >= start or ERROR.search(line):
-                text = line
-                for pattern, token in rules:
-                    text = pattern.sub(token, text)
                 found[text.strip()] += 1
-        if first is not None:
-            return set(found)
-        # A pair never equals a line, so a run with no error line never matches a run with one.
-        return {(text, count) for text, count in found.items() if text}
+            elif PLACE.search(text):
+                # A fix commit often moves an old hit, so the numbers of its place do not count.
+                found[PLACE.sub(lambda match: PLACE_NUMBER.sub("<n>", match.group()), text, count=1).strip()] += 1
+        # The flag keeps a run with an error line apart from a run with none, also with the same lines.
+        return {(first is None, text, count) for text, count in found.items() if text}
 
     def report(self):
         if self.start_error:
@@ -513,9 +542,10 @@ def verdict(clean, fix, parent, roots):
         return "SAME-AT-PARENT", ("the command fails at both commits with the same exit code, the same error lines, "
                                   "and the same last lines after the first error line. "
                                   "With no error line, each line that is not blank and its count are the same.")
-    return "OTHER", ("the command fails at both commits, but the exit code, the error lines, "
-                     "or the last lines after the first error line differ. "
-                     "With no error line, the lines that are not blank or their counts differ.")
+    return "OTHER", ("the command fails at both commits, but the exit code or the lines to compare differ. "
+                     "With an error line, these are the error lines, the last lines after the first error line, "
+                     "and the lines that name a place. With no error line, these are the lines that are not blank. "
+                     "A line that comes another number of times also differs.")
 
 
 def run_in_worktree(trees, side, sha, rel, args, bash):

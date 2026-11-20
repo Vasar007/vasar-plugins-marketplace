@@ -9,8 +9,29 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
+
+If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317). The third one is the fix of `changelog_merge.py release` for a heading that `main` took first (issue #318).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: with an error line in the output, each line above the first error line that names a place now counts too. The line and column numbers of the first place of such a line do not count. So a hit or a warning that moved to another line still gives `SAME-AT-PARENT`. A place is a file name with an extension and a line number, such as `src/a.py:3` or `A.java:[3,5]`. A name with no extension needs a `:` after the number, as in `Makefile:3:`. A `3:5` at the start of a word, a `(3,5)` after a name, and a code frame line such as `3 | x = 1` are places too. So is a Python line such as `File "a.py", line 3`. So is a line with only a file path or a file name and a `:`, with no space in it. Examples are the file line of eslint stylish and of grouped ruff. A digit of a file name in such a line stays. Before, such a line did not count. So a swapped hit above a summary such as `Found 1 error.` gave `SAME-AT-PARENT`. The same held for a hit above a file such as `src/errors.py`, and for a hit that moved to another file. Each line of the compare now has its count, so an error line that comes one more time gives `OTHER`. A root folder now becomes a token only at the start of a path, where no character of a file name comes before it. Before, the rule also took the folder name before it, so a repository in `/app` made `src/app/util.py` and `tests/app/util.py` the same. An ISO time with a time zone and the time of a tqdm progress bar now become a token too. An incremental build in the clean main worktree can print fewer warnings than the build at the commit before. Then a warning line with a place gives `OTHER`, and the docstring says so. The docstring and the reason text of `OTHER` name the new compare (issue #311).
+
 ### Changed in the repository
 
+- `tests/test_failure_check.py`: 24 new tests (issue #311). Five of them hold the real output of ruff 0.17.6. They cover these results:
+  - A swapped hit above the only error word gives `OTHER`, in the concise and in the full output of ruff.
+  - A swapped hit above a hit in `src/errors.py` gives `OTHER`.
+  - A swapped hit above a summary with an error word gives `OTHER`, in the stylish form of eslint.
+  - A moved hit above such a summary gives `SAME-AT-PARENT`. The samples are the grouped output of ruff, a warning of a C# build, a place with a column, and the Maven form.
+  - The same hit in another file gives `OTHER`, in the grouped output of ruff and in the Python form `File "a.py", line 2`. This holds also for a file in the root folder, such as `a.py:`.
+  - A digit of a file name in a line with only a path stays. So `step-1-a.js` and `step-2-a.js` give `OTHER`. A number in the message or in the code of a line with a place stays too.
+  - More forms of a place count: a place with color codes, a name with no extension, the Maven form, and the forms of a code frame. A line of test dots, a port, and a time are no places.
+  - A place between the first error line and the last lines counts, and the reason of `OTHER` names the lines with a place.
+  - An error line that comes one more time gives `OTHER`.
+  - A run with an error line never matches a run with none. This holds also for an error word that is only in the root folder.
+  - The root `/app` no longer takes the folder name before it. A root after an option, a quote, `=`, `:`, `,`, `@`, or a backtick still becomes a token. So does a root in a file URL.
+  - The text before the temporary folder stays, and a long line with an option or a path takes less than 5 seconds.
 - `tests/test_eval_scaffolds.py`: after the rare crash of the .NET runtime, `DotnetProbeTests` runs the scaffold one more time in a new folder. The crash fails the scaffold with the text "Internal CLR error". The retry prints one line to stderr. Any other failure fails at once. A second crash fails too, and the error holds the output of both tries. Before, the crash failed the run of the whole suite. Four new tests in `DotnetWarmTests` use a fake `dotnet`. It crashes one time, fails in another way, aborts with no crash text, or crashes two times (issue #261).
 - `tools/wsl/linux/unit-tests-clone.sh`, `docs/tools.md`: the lines that `tools/wsl/unit-tests.sh` prints now include each retry line of a .NET scaffold, so a crash with a retry shows in the output. A new test in `UnitTestsTests` pins it (issue #261).
 - `tools/release.py`: a new script for the maintainers, with two subcommands. `section` puts a release section right below `## [Unreleased]` of `CHANGELOG.md`. It moves the `[Unreleased]` link line, adds the link line of the release, and writes the new version into each `plugin.json`. `notes` writes the notes of a GitHub release from the release section. Before, a person or an agent did these steps by hand. The script stops and writes nothing on a second section or on a version that is not higher. It also stops on an `[Unreleased]` entry that the section lacks (issue #317).
@@ -2448,7 +2469,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...HEAD
+[5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.1...v5.4.2
