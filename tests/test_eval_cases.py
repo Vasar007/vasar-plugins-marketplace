@@ -5388,6 +5388,8 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
             'git -C "/repo" branch "eval/retry-limit"': True,
             'git -C "/repo" branch --force eval/retry-limit main': True,
             'git -C "/repo" status --short\ngit -C "/repo" switch -c eval/retry-limit': True,
+            'cd /repo && git branch eval/retry-limit main': True,
+            'G="git -C /repo"; $G branch eval/retry-limit': True,
             # The steps of a run that stops at the changed file create no branch.
             'git -C "/repo" rev-parse --show-toplevel': False,
             'git -C "/repo" status --porcelain --untracked-files=no': False,
@@ -5396,6 +5398,10 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
             'git -C "/repo" branch -a': False,
             'git -C "/repo" switch main': False,
             'git -C "/repo" symbolic-ref --quiet --short refs/remotes/origin/HEAD': False,
+            # A redirect, a comment, or the text of an echo names no new branch.
+            'git -C "/repo" branch 2>/dev/null': False,
+            '# Look at the branch and the changed files first\ngit -C "/repo" status --short': False,
+            'echo "== branch state =="; git -C "/repo" status': False,
         }
         for command, found in commands.items():
             with self.subTest(command=command):
@@ -5419,6 +5425,7 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
         steps = {"an Edit": self.tool_use("Edit", edit),
                  "a Write": self.tool_use("Write", {"file_path": "/repo/notes/Plans/retry-limit-plan.md", "content": "x"}),
                  "a MultiEdit": self.tool_use("MultiEdit", {"file_path": "/repo/config/settings.py", "edits": [edit]}),
+                 "a NotebookEdit": self.tool_use("NotebookEdit", {"notebook_path": "/repo/notes/x.ipynb", "new_source": "x"}),
                  "an Edit of a subagent": sub}
         for name, step in steps.items():
             with self.subTest(step=name):
