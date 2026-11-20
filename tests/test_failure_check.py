@@ -930,6 +930,14 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.lint_verdict(grouped("v2\\a.py"), grouped("v3\\a.py")), "OTHER")
         self.assertEqual(self.lint_verdict(grouped("a.py"), grouped("a.py")), "SAME-AT-PARENT")
 
+    def test_same_hit_swapped_into_another_file_of_the_root_folder_is_other(self):
+        def grouped(file):
+            return [f"{file}:", "  1:8 F401 [*] `os` imported but unused", "", "Found 1 error.",
+                    "[*] 1 fixable with `--fix`."]
+
+        self.assertEqual(self.lint_verdict(grouped("b.py"), grouped("a.py")), "OTHER")
+        self.assertEqual(self.lint_verdict(grouped("a.py"), grouped("a.py")), "SAME-AT-PARENT")
+
     def test_line_of_test_dots_is_not_a_path(self):
         self.assertEqual(self.lint_verdict(["..F", "FAIL: test_x"], [".F", "FAIL: test_x"]), "SAME-AT-PARENT")
 
@@ -999,6 +1007,11 @@ class UnitTests(unittest.TestCase):
             with self.subTest(fix=fix):
                 self.assertEqual(self.lint_verdict([fix, "1 error"], [parent, "1 error"]), "SAME-AT-PARENT")
 
+    def test_moved_place_of_maven_is_same_at_parent(self):
+        form = "[WARNING] /w/A.java:[{}] unchecked call"
+        self.assertEqual(self.lint_verdict([form.format("4,7"), "1 error"], [form.format("3,5"), "1 error"]),
+                         "SAME-AT-PARENT")
+
     def test_run_with_an_error_word_only_in_its_root_never_matches_a_run_with_none(self):
         roots = ["/work/errors/repo", "/tmp/review-loop-fc-ab12/parent"]
         fix = ["new line from the fix", "cannot read /work/errors/repo/a.txt"]
@@ -1038,9 +1051,35 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(token, "OTHER")
         self.assertIn("the lines that name a place", reason)
 
+    def test_digit_of_a_file_name_in_a_line_with_only_a_path_stays(self):
+        def stylish(file):
+            return [file, "  3:5  warning  'x' is assigned a value but never used  no-unused-vars", "",
+                    "x 1 problem (0 errors, 1 warning)"]
+
+        for fix, parent in (("/w/src/step-1-a.js", "/w/src/step-2-a.js"), ("/w/src/2-a.js", "/w/src/3-a.js"),
+                            ("/w/src/a.2-b.js", "/w/src/a.3-b.js"), ("/w/src/a-2.js", "/w/src/a-3.js"),
+                            ("/w/a-2/x.js", "/w/a-3/x.js"), ("/w/src/2/a.js", "/w/src/3/a.js"),
+                            ("/w/src/a,2.js", "/w/src/a,3.js"), ("/w/src/a,2b.js", "/w/src/a,3b.js"),
+                            ("/w/src/a,2/x.js", "/w/src/a,3/x.js"), ("/w/a,2\\x.js", "/w/a,3\\x.js")):
+            with self.subTest(fix=fix):
+                self.assertEqual(self.lint_verdict(stylish(fix), stylish(parent)), "OTHER")
+        self.assertEqual(self.lint_verdict(stylish("/w/_posts/2024-01-15-a.js"), stylish("/w/_posts/2024-02-15-a.js")),
+                         "OTHER")
+        python = ['  File "src/step-{}-a.py", line 2', "    x = = 1", "SyntaxError: invalid syntax"]
+        self.assertEqual(self.lint_verdict([python[0].format(1), *python[1:]], [python[0].format(2), *python[1:]]),
+                         "OTHER")
+
+    def test_number_in_the_message_of_a_place_line_stays(self):
+        for fix, parent in (("src/a.py:3:1: W1 call f(1) is slow", "src/a.py:3:1: W1 call f(2) is slow"),
+                            ("src/a.py:3:1: W1 ratio 3:4", "src/a.py:3:1: W1 ratio 3:5"),
+                            ("3 |     let x = foo(1);", "3 |     let x = foo(2);")):
+            with self.subTest(fix=fix):
+                self.assertEqual(self.lint_verdict([fix, "1 error"], [parent, "1 error"]), "OTHER")
+
     def test_signature_of_a_long_line_with_an_option_or_a_path_is_fast(self):
         for lines in (["-a" + "a" * 100_000], ["error in -I" + "a-" * 50_000], ["-a" + "a" * 100_000, "error: x"],
-                      ["a/" * 50_000 + "a.py", "error: x"], ['File "' * 20_000, "error: x"]):
+                      ["a/" * 50_000 + "a.py", "error: x"], ['File "' * 20_000, "error: x"],
+                      ["a." + "a" * 100_000, "error: x"], ["a." * 50_000, "error: x"]):
             a = fc.Run("fix", "a" * 40, "x", "main")
             a.lines = lines
             start = time.monotonic()

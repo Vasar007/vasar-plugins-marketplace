@@ -67,12 +67,15 @@ The last two lines are the verdict and its reason:
 An error word is fail, traceback, or a word that ends with error or exception. A line with an
 error word is an error line. With an error line, the lines to compare are each error line and
 the lines from the first error line on, but at most the last 15 lines. If a line above them
-names a place, its text counts too, with the numbers of the place left out. So a hit that
-moved to another line stays the same. A place is a file name with an extension and a line
-number, for example src/a.py:3 or A.java:[3,5]. A name with no extension needs a ":" after
-the number, as in Makefile:3: text. A 3:5 at the start of a word, a (3,5) after a name, and a
-line of a code frame such as "3 | x = 1" are places too. So is a line of Python such as
-File "a.py", line 3, and a line with only a file path, such as the file line of eslint stylish.
+names a place, its text counts too, with the line and column numbers of its first place left
+out. So a hit that moved to another line stays the same. So does a new hit with the same text
+at another line of the same file, after a fix removed the old hit. A place is a file name with
+an extension and a line number, for example src/a.py:3 or A.java:[3,5]. A name with no
+extension needs a ":" after the number, as in Makefile:3: text. A 3:5 at the start of a word,
+a (3,5) after a name, and a line of a code frame such as "3 | x = 1" are places too. So is a
+line of Python such as File "a.py", line 3. So is a line with only a file path or a file name
+and a ":", such as the file line of eslint stylish or of grouped ruff. A digit of a file name
+stays.
 With no error line, the lines to compare are each line that is not blank. Each line counts
 with the number of times that it comes. A run with an error line never matches a run with none.
 Before the compare, a root folder at the start of a path becomes a token. So do each time,
@@ -124,9 +127,9 @@ NAME_START = r"(?<![\w./\\~-])"
 PATH_START = NAME_START + r"(?:-{1,2}[A-Za-z][\w-]*|file:/{0,3})?"
 PLACE = re.compile(r"\.[A-Za-z]\w*:\[?\d+([:,]\d+)?\b|(?<![\w.:])\d+:\d+\b|\w\(\d+(,\d+){0,3}\)|^\s*\d+ +\|"
                    r"|File \"[^\"]*\", line \d+\b|(?<![\w.:/\\-])[A-Za-z_]\w*:\d+(:\d+)?:"
-                   r"|^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$")
-# A number of a place, but not a digit of a file name such as v2.py or src/2024.
-PLACE_NUMBER = re.compile(r"(?<![\w./\\])\d+(?![\w./\\])")
+                   r"|^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$|^[^\s/\\:]+\.[A-Za-z]\w*:$")
+# A number of a place after a space, ":", "[", ",", or "(", but not a digit of a file name such as v2.py.
+PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![\w./\\])")
 PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
 
 
@@ -298,7 +301,7 @@ class Run:
                 found[text.strip()] += 1
             elif PLACE.search(text):
                 # A fix commit often moves an old hit, so the numbers of its place do not count.
-                found[PLACE.sub(lambda match: PLACE_NUMBER.sub("<n>", match.group()), text).strip()] += 1
+                found[PLACE.sub(lambda match: PLACE_NUMBER.sub("<n>", match.group()), text, count=1).strip()] += 1
         # The flag keeps a run with an error line apart from a run with none, also with the same lines.
         return {(first is None, text, count) for text, count in found.items() if text}
 
