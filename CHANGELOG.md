@@ -14,6 +14,34 @@ The other numbers in a heading are plugin versions.
 - `tools/changelog_merge.py`: the subcommand `release` now stops for a bullet that it leaves out with a new indented line. `main` and the merge base lack that line below that bullet. This happens for a section of the branch with another heading than the top heading of `main`. Before, the script left out that line with the bullet. If the same line was below another bullet, no guard saw the loss, and the script ended with exit code 0. The script also stops for an indented line after a blank line below such a bullet. Before, that line moved below another bullet. A line of only spaces below such a bullet gives no stop. If `main` has the same line after a blank line below its copy of the bullet, the script gives no stop. The subcommand `unreleased` and the option `--absorb-unreleased` now compare an indented line only with the lines below the same `-` bullet. Before, the same line below another bullet of the subsection hid the loss. An entry with another first line, such as a `*` bullet, still compares with the whole subsection. The new STOP line starts with `merge CHANGELOG.md by hand` and names the bullet and the line, each cut at 40 characters. The docstring and `docs/tools.md` name the new stops (issue #330).
 - `tests/test_changelog_merge.py`: 18 new tests (issue #330). Five tests stop. Four cover the smallest pair of the loss, a tab line below a second dropped bullet, and two lines after a blank line. The fifth covers a line that the merge base has below another bullet. Two tests merge a shared bullet: with the same indented lines, and with a line that `main` changed since the merge base. Two more merge with two copies on `main` and with a line of only spaces. Two more merge with a line that `main` has after a blank line, and with a dropped bullet above another subsection of the branch. A bullet of an old release keeps its new indented line. A bullet that the branch has twice reaches the count stop. Two tests read the STOP lines of a long bullet. For the subcommand `unreleased`, one test stops for an indented line below another bullet. Another one merges an entry with a `*` marker. For the option `--absorb-unreleased`, one test stops for an indented line below another bullet. The test `test_indented_line_below_a_bullet_that_main_has_refuses` still stops, but with the STOP line of the new guard.
 
+## dev-essentials 4.4.7 in release [5.4.7] - 2026-11-20
+
+A new eval case shows the stop of `--no-worktree` on a changed file of the user. No skill text changes (issue #329).
+
+### Added in dev-essentials
+
+- `evals/implement-task/it-no-worktree-dirty`: a new case for the stop of `--no-worktree` on a change of the user. Its scaffold changes one tracked file of the clone and commits nothing. The run with `--mode full` must stop before any work and name the file. It must make no commit and keep the change. Before this case, no eval case planted a changed tracked file, so no run proved the stop (issue #329).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `NoWorktreeDirtyGraderTests` runs the scored graders of the new case on real git states. An edit of the file, a stash, a restore, and a commit each fail at least one grader. `ScaffoldTests` makes sure that the new scaffold leaves exactly one changed tracked file (issue #329).
+- `tests/test_eval_cases.py`: `NoWorktreeDirtyRouteGraderTests` tests the route graders of the new case. `NoWorktreeReadGraderTests` also covers the new case (issue #329).
+- `docs/evals.md`: the case count of the `implement-task` suite, and a paragraph on the new case (issue #329).
+- `tests/simple-english-baseline.json`: one entry for the file path in a grader of the new case (issue #329).
+
+## dev-essentials 4.4.6 in release [5.4.6] - 2026-11-20
+
+The trace graders `tests-before-commit` and `untested-commit` now take far fewer steps. So in most measured cases, the regex engine of the eval tool stops them only on a much larger trace. With 200 to 250 test commands before the first fitting commit, the new `tests-before-commit` stopped at the same size as the old one. No skill text changes (issues #319 and #328).
+
+### Fixed in dev-essentials
+
+- `evals/*/*/graders/tests-before-commit.md` (nine cases) and `evals/*/*/graders/untested-commit.md` (seven cases): the token between the two calls now runs its lookahead only at a quote, and it stops at the first fitting commit. Each grader gives the same verdict as before, with far fewer steps. The `claude` binary holds Bun 1.4.4, whose engine stops a long search with no match. On a trace of 690,094 characters, the old `tests-before-commit` failed a right run of `ib-no-worktree` (issue #319). The old `untested-commit` gave no match on a built wrong trace, and so a pass (issue #328). That trace had about 196,000 characters between the edit and the commit. In Bun 1.4.4, both new patterns match a built trace with 2,000,000 characters between the two calls.
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` now also reads the grader `tests-before-commit` of `it-no-worktree` and `ib-no-worktree`. A new sample has a test, a commit, an edit, and a second commit, and it must match. Four more samples cover a backslash between the two calls, a `NotebookEdit` stop, and a word that ends with `unittest`. A new test pins the end of the match at the first fitting commit. The unit tests run Python `re`, so no sample shows the limit of Bun 1.4.4 (issues #319 and #328).
+- `docs/evals.md`: the replay tool runs V8, and the `claude` binary holds Bun 1.4.4, which runs JavaScriptCore. The new text gives the facts of the failed run and the limits that Bun 1.4.4 showed. It also names the risk for a `not_contains` grader (issues #319 and #328).
+
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
 
 If a fix commit swaps or adds a hit above the first error line, `failure_check.py` of `review-loop` now gives `OTHER`. The same holds for an error line that comes one more time. No skill text changes (issue #311). The release also takes in the retry of a .NET scaffold test after the rare CLR crash (issue #261). It also takes in the new script `tools/release.py` (issue #317). The third one is the fix of `changelog_merge.py release` for a heading that `main` took first (issue #318).
@@ -2474,7 +2502,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...HEAD
+[5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
+[5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3

@@ -1836,8 +1836,9 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
-TBC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
-             "rl-unbounded-query", "rirr-retry-limit")
+UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
+            "rl-unbounded-query", "rirr-retry-limit")
+TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
 
 
 def trace_bash(command):
@@ -1885,7 +1886,9 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "an edit before the test": [edit, self.TEST_RUN, trace_bash("git add -A"), self.COMMIT],
             "one shell command": [trace_bash("python3 -m unittest discover -s tests && git add a.py && git commit -m x")],
             "a later test and commit": [self.TEST_RUN, edit, self.COMMIT, self.TEST_RUN, self.COMMIT],
+            "a commit, then an edit and a second commit": [self.TEST_RUN, self.COMMIT, edit, self.COMMIT],
             "a commit on a new line of the command": [self.TEST_RUN, trace_bash('python3 -c "import app"\ngit commit -q -m x')],
+            "an escaped quote and a line end between them": [self.TEST_RUN, trace_result('He said "run it"\nOK'), self.COMMIT],
         }
         for name, records in runs.items():
             with self.subTest(run=name):
@@ -1899,6 +1902,7 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
             "an Edit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py"), self.COMMIT],
             "a MultiEdit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py", "MultiEdit"), self.COMMIT],
             "a Write of a .py file between them": [self.TEST_RUN, trace_write("app/b.py"), self.COMMIT],
+            "a NotebookEdit of a .py file between them": [self.TEST_RUN, trace_edit("app/a.py", "NotebookEdit"), self.COMMIT],
             "the word commit in a tool result": [self.TEST_RUN, trace_result("nothing to commit, use git add")],
         }
         for name, records in runs.items():
@@ -1921,6 +1925,9 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
                 self.TEST_RUN, trace_bash("sed -i 's/= 5/= 3/' config/settings.py && git diff && git commit -qam x")],
             "a word that starts with unittest between git and commit": [
                 self.TEST_RUN, edit, trace_bash("git -C /w/unittest_x commit -qam x")],
+            "an escaped quote between the edit and the commit": [edit, trace_result('He said "run it"\nOK'), self.COMMIT],
+            "a word that ends with unittest between the edit and the commit": [
+                self.TEST_RUN, edit, trace_bash("pip install xunittest-tools"), self.COMMIT],
         }
         good = {
             "test and commit": [self.TEST_RUN, self.COMMIT],
@@ -1946,6 +1953,16 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
         for name, records in {**bad, **good}.items():
             with self.subTest(run=name):
                 self.assertEqual(re.search(pattern, "\n".join(records)) is not None, name in bad)
+
+    def test_both_graders_end_the_match_at_the_first_fitting_commit(self):
+        """A lazy token ends at the first commit. A greedy token runs on to the last one, which costs many steps in Bun."""
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        for grader, start in (("tests-before-commit", self.TEST_RUN), ("untested-commit", trace_edit("app/a.py"))):
+            with self.subTest(grader=grader):
+                pattern = cases["so-two-fixes"].graders[grader][0]["pattern"]
+                head = "\n".join([start, self.COMMIT])
+                match = re.search(pattern, "\n".join([head, trace_result("x"), self.COMMIT]))
+                self.assertLessEqual(match.end(), len(head))
 
     def test_the_untested_commit_grader_keeps_its_known_limits(self):
         """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""
@@ -1990,9 +2007,9 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
 
     def test_every_case_has_the_same_untested_commit_grader(self):
         cases = {case.name: case for case in load_cases(FP_ROOT)}
-        graders = [cases[name].graders["untested-commit"][0] for name in TBC_CASES]
+        graders = [cases[name].graders["untested-commit"][0] for name in UC_CASES]
         self.assertEqual(len({grader["pattern"] for grader in graders}), 1)
-        for name, grader in zip(TBC_CASES, graders):
+        for name, grader in zip(UC_CASES, graders):
             with self.subTest(case=name):
                 self.assertEqual((grader.get("target"), grader.get("match")), ("trace", "not_contains"))
 
@@ -5266,12 +5283,12 @@ class UsefulTestsCaseGraderTests(unittest.TestCase):
 
 
 class NoWorktreeReadGraderTests(unittest.TestCase):
-    """The route grader of it-no-worktree and ib-no-worktree: the run reads the rules of --no-worktree first (issue #290).
+    """The route grader of the --no-worktree cases: the run reads the rules of --no-worktree first (issue #290).
 
     A run must read the file before it creates its branch and before it edits a file.
     """
 
-    CASES = ("it-no-worktree", "ib-no-worktree")
+    CASES = ("it-no-worktree", "ib-no-worktree", "it-no-worktree-dirty")
     PATH = "/plugins/dev-essentials/skills/work-modes/references/no-worktree.md"
     tool_use = staticmethod(PipelineMergeTests.tool_use)
 
@@ -5363,6 +5380,77 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
             with self.subTest(case=case):
                 self.assertFalse(self.found(case, unit_text))
                 self.assertFalse(self.found(case, other))
+
+
+class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
+    """The route graders of it-no-worktree-dirty: a run that stops at the changed file creates no branch and edits no file."""
+
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["it-no-worktree-dirty"]
+
+    def test_the_branch_grader_counts_each_command_that_creates_a_branch(self):
+        meta = self.case.graders["route-no-branch"][0]
+        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Bash", 0, 0))
+        pattern = re.compile(meta["input_match"])
+        commands = {
+            'git -C "/repo" switch -c eval/retry-limit': True,
+            'G="git -C /repo"; $G switch -c eval/retry-limit': True,
+            "git checkout -b eval/retry-limit": True,
+            'git -C "/repo" switch -qc eval/retry-limit': True,
+            'git -C "/repo" checkout -q -b eval/retry-limit': True,
+            'git -C "/repo" switch --create eval/retry-limit': True,
+            'git -C "/repo" branch "eval/retry-limit"': True,
+            'git -C "/repo" branch --force eval/retry-limit main': True,
+            'git -C "/repo" status --short\ngit -C "/repo" switch -c eval/retry-limit': True,
+            'cd /repo && git branch eval/retry-limit main': True,
+            'G="git -C /repo"; $G branch eval/retry-limit': True,
+            'if ! git rev-parse --verify -q eval/retry-limit; then git branch eval/retry-limit; fi': True,
+            'GIT_DIR=/repo/.git git branch eval/retry-limit': True,
+            'git status --short\ngit branch eval/retry-limit': True,
+            # The steps of a run that stops at the changed file create no branch.
+            'git -C "/repo" rev-parse --show-toplevel': False,
+            'git -C "/repo" status --porcelain --untracked-files=no': False,
+            'git -C "/repo" diff -- config/settings.py': False,
+            'git -C "/repo" branch --show-current': False,
+            'git -C "/repo" branch -a': False,
+            'git -C "/repo" switch main': False,
+            'git -C "/repo" symbolic-ref --quiet --short refs/remotes/origin/HEAD': False,
+            # A redirect, a comment, or the text of an echo names no new branch.
+            'git -C "/repo" branch 2>/dev/null': False,
+            '# Look at the branch and the changed files first\ngit -C "/repo" status --short': False,
+            'echo "== branch state =="; git -C "/repo" status': False,
+            'git -C "/repo" status --short  # "dirty" branch state': False,
+        }
+        for command, found in commands.items():
+            with self.subTest(command=command):
+                self.assertEqual(pattern.search(bash_input(command)) is not None, found)
+
+    def test_the_edit_grader_finds_an_edit_or_a_write_of_any_loop(self):
+        meta = self.case.graders["route-no-edit"][0]
+        self.assertEqual((meta["type"], meta["target"], meta["match"], meta.get("flags")), ("regex", "trace", "not_contains", None))
+        pattern = re.compile(meta["pattern"])
+        init = trace_record({"type": "system", "subtype": "init", "tools": ["Bash", "Edit", "Read", "TodoWrite", "Write"]})
+        todo = self.tool_use("TodoWrite", {"todos": [{"content": "Phase 1", "status": "in_progress"}]})
+        status = self.tool_use("Bash", {"command": 'git -C "/repo" status --porcelain --untracked-files=no'})
+        # A tool result can hold the text of a call. The trace escapes its quotes, so it is no call.
+        result = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": ' M config/settings.py\n{"name":"Edit"}'}]}})
+        stop = "\n".join([init, todo, status, result])
+        self.assertIsNone(pattern.search(stop))
+        edit = {"file_path": "/repo/config/settings.py", "old_string": "5", "new_string": "3"}
+        sub = trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": edit}]}, "parent_tool_use_id": "toolu_1"})
+        steps = {"an Edit": self.tool_use("Edit", edit),
+                 "a Write": self.tool_use("Write", {"file_path": "/repo/notes/Plans/retry-limit-plan.md", "content": "x"}),
+                 "a MultiEdit": self.tool_use("MultiEdit", {"file_path": "/repo/config/settings.py", "edits": [edit]}),
+                 "a NotebookEdit": self.tool_use("NotebookEdit", {"notebook_path": "/repo/notes/x.ipynb", "new_source": "x"}),
+                 "an Edit of a subagent": sub}
+        for name, step in steps.items():
+            with self.subTest(step=name):
+                self.assertIsNotNone(pattern.search("\n".join([stop, step])))
 
 
 if __name__ == "__main__":
