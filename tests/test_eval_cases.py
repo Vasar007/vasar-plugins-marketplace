@@ -5319,11 +5319,17 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                  "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
                  "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
                  "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"}),
-                 # Each form below has an option before or in the option that creates the branch (issue #315).
+                 # The pattern before issue #315 did not see the forms below.
                  "checkout -q -b": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -q -b eval/retry-limit'}),
                  "switch -qc": self.tool_use("Bash", {"command": 'git -C "/repo" switch -qc eval/retry-limit'}),
                  "branch -f": self.tool_use("Bash", {"command": 'git -C "/repo" branch -f eval/retry-limit main'}),
-                 "two spaces before -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch  -c eval/retry-limit'})}
+                 "two spaces before -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch  -c eval/retry-limit'}),
+                 "switch -c with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" switch -ceval/retry-limit'}),
+                 "checkout -b with the name attached": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -beval/retry-limit'}),
+                 "checkout -qb": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -qb eval/retry-limit'}),
+                 "checkout --quiet -b": self.tool_use("Bash", {"command": 'git -C "/repo" checkout --quiet -b eval/retry-limit'}),
+                 "switch --no-track -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch --no-track -c eval/retry-limit'}),
+                 "branch --force": self.tool_use("Bash", {"command": 'git -C "/repo" branch --force eval/retry-limit main'})}
         for case in self.CASES:
             for name, step in steps.items():
                 with self.subTest(case=case, step=name):
@@ -5344,6 +5350,7 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                 self.assertTrue(self.found(case, "\n".join([show, read, switch])))
                 # A list of the branches and a switch with no new branch create no branch.
                 self.assertTrue(self.found(case, "\n".join([listing, read, switch])))
+                self.assertTrue(self.found(case, "\n".join([self.tool_use("Bash", {"command": 'git -C "/repo" switch main && wc -c notes.txt'}), read, switch])))
 
     def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
         # The text of the unit names the path too, so a tool result with that text must not pass the grader.
