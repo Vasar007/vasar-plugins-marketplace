@@ -5390,6 +5390,9 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
             'git -C "/repo" status --short\ngit -C "/repo" switch -c eval/retry-limit': True,
             'cd /repo && git branch eval/retry-limit main': True,
             'G="git -C /repo"; $G branch eval/retry-limit': True,
+            'if ! git rev-parse --verify -q eval/retry-limit; then git branch eval/retry-limit; fi': True,
+            'GIT_DIR=/repo/.git git branch eval/retry-limit': True,
+            'git status --short\ngit branch eval/retry-limit': True,
             # The steps of a run that stops at the changed file create no branch.
             'git -C "/repo" rev-parse --show-toplevel': False,
             'git -C "/repo" status --porcelain --untracked-files=no': False,
@@ -5402,6 +5405,7 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
             'git -C "/repo" branch 2>/dev/null': False,
             '# Look at the branch and the changed files first\ngit -C "/repo" status --short': False,
             'echo "== branch state =="; git -C "/repo" status': False,
+            'git -C "/repo" status --short  # "dirty" branch state': False,
         }
         for command, found in commands.items():
             with self.subTest(command=command):

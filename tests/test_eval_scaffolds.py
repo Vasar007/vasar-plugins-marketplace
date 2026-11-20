@@ -2090,6 +2090,9 @@ class NoWorktreeDirtyGraderTests(FixtureCase):
             self.run_git(workspace, "checkout", "-q", "--orphan", "keep/user-change")
             self.run_git(workspace, "commit", "-q", "-am", "Keep the work of the user")
 
+        def an_amend_with_the_change_of_the_user(workspace):
+            self.run_git(workspace, "commit", "-q", "-a", "--amend", "--no-edit")
+
         def an_append(workspace):
             path = workspace / CHANGED_FILES[self.CASE]
             path.write_text(path.read_text(encoding="utf-8") + "HTTP_RETRY_LIMIT = 3\n", encoding="utf-8")
@@ -2103,6 +2106,7 @@ class NoWorktreeDirtyGraderTests(FixtureCase):
                   a_restore: (False, True), the_task_commit_with_the_change_of_the_user: (False, False),
                   a_commit_of_the_change_of_the_user: (True, False),
                   an_orphan_commit_of_the_change_of_the_user: (True, False),
+                  an_amend_with_the_change_of_the_user: (True, False),
                   an_append: (False, True), a_prepend: (False, True)}
         for shape, expected in shapes.items():
             with self.subTest(shape=shape.__name__):
