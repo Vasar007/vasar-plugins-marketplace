@@ -155,12 +155,13 @@ public static class BrokenProbe
 FAKE_DOTNET = """#!/usr/bin/env bash
 # A fake dotnet: a restore into the shared folder logs its start and its end, and prints FAKE_DOTNET_ERROR as dotnet does.
 # With FAKE_DOTNET_CRASHES=<n>, the first n calls crash as the .NET runtime of issue 261 does.
+# FAKE_DOTNET_CRASH_TEXT replaces the second line of the crash.
 if [ -n "${FAKE_DOTNET_CRASHES:-}" ]; then
     crashes=$(cat "$FAKE_DOTNET_LOG.crashes" 2>/dev/null || echo 0)
     if [ "$crashes" -lt "$FAKE_DOTNET_CRASHES" ]; then
         echo $((crashes + 1)) >"$FAKE_DOTNET_LOG.crashes"
         echo "Fatal error."
-        echo "Internal CLR error. (0x80131506)"
+        echo "${FAKE_DOTNET_CRASH_TEXT-Internal CLR error. (0x80131506)}"
         exit 134
     fi
 fi
@@ -452,7 +453,6 @@ class FixtureCase(ScratchCase):
             done = run([self.bash, script.as_posix()], env=env, cwd=workspace, timeout=DOTNET_SECONDS)
             output += f"\n--- second try ---\n{done.stdout}\n{done.stderr}"
         self.assertEqual(done.returncode, 0, f"bash {script.as_posix()} failed:\n{output}")
-        return done.stdout
 
     def run_snippet(self, cwd, libraries, snippet):
         """Source libraries from the _lib folder of a plugin, and run the snippet in the folder."""
@@ -820,7 +820,7 @@ class DotnetWarmTests(FixtureCase):
 
     def crashes(self):
         """The number of crashes of the fake dotnet, as text."""
-        crashes =self.log.with_name(self.log.name + ".crashes")
+        crashes = self.log.with_name(self.log.name + ".crashes")
         return crashes.read_text(encoding="utf-8").strip() if crashes.exists() else "0"
 
     def test_a_scaffold_runs_one_more_time_after_one_clr_crash(self):
@@ -840,6 +840,16 @@ class DotnetWarmTests(FixtureCase):
         self.assertIn("planted restore failure", error)
         self.assertNotIn("Retry of", lines)
         self.assertEqual(self.log.read_text(encoding="utf-8").split(), ["start", "end"])
+
+    def test_an_abort_with_no_clr_text_gets_no_retry(self):
+        """Fails if the retry acts on exit code 134 or on the text "Fatal error." alone."""
+        env = self.warm_environment("run-1")
+        env["FAKE_DOTNET_CRASHES"] = "1"
+        env["FAKE_DOTNET_CRASH_TEXT"] = "Aborted"
+        lines, error = self.run_probe_scaffold(env)
+        self.assertIsNotNone(error)
+        self.assertNotIn("Retry of", lines)
+        self.assertEqual(self.crashes(), "1")
 
     def test_a_second_clr_crash_fails_with_the_output_of_both_tries(self):
         """Fails if a second crash passes, or if the error loses the output of the first try."""

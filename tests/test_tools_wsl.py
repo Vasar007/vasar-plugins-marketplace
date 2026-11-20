@@ -231,6 +231,16 @@ class UnitTestsTests(WslCase):
         out = self.script("unit-tests.sh", "--linter-tag", "v9.9.9", "--no-private-mount", self.repo, "bad", code=1)
         self.assertIn("FAIL: test_bad", out)
 
+    def test_retry_of_a_dotnet_scaffold_shows_in_the_printed_lines(self):
+        self.git("checkout", "-q", "-b", "retry", "main")
+        retry_line = "Retry of probe-x: dotnet crashed with Internal CLR error (issue 261)."
+        self.commit("tests/test_retry.py", "import sys\nimport unittest\n\nclass R(unittest.TestCase):\n"
+                    f"    def test_retry(self):\n        print({retry_line!r}, file=sys.stderr)\n", "a test with a retry")
+        self.git("checkout", "-q", "main")
+        out = self.script("unit-tests.sh", "--linter-tag", "v9.9.9", "--no-private-mount", "--tail", "1", self.repo,
+                          "retry")
+        self.assertIn("Retry of probe-x: dotnet crashed", out)
+
     def test_private_mount(self):
         if subprocess.run(["unshare", "-r", "-m", "true"], capture_output=True).returncode != 0:
             self.skipTest("unshare -r -m is not allowed here")

@@ -61,7 +61,7 @@ To run the whole unit suite of a committed branch, run this in Git Bash:
 bash tools/wsl/unit-tests.sh /c/path/to/clone my-branch
 ```
 
-The script clones the branch into a new folder and runs `python3 -m unittest discover -s tests -v` there. It uses the newest release of the simple-english linter, or the release of `--linter-tag`. The run gets its own `/tmp/plugin-evals` through a private mount, so it does not touch the NuGet folder of an active eval run. The mount needs `unshare -r -m`. If Linux refuses it, the run fails. Then pass `--no-private-mount`, but only while no eval run is active. The exit code is the exit code of the suite.
+The script clones the branch into a new folder and runs `python3 -m unittest discover -s tests -v` there. It uses the newest release of the simple-english linter, or the release of `--linter-tag`. The run gets its own `/tmp/plugin-evals` through a private mount, so it does not touch the NuGet folder of an active eval run. The mount needs `unshare -r -m`. If Linux refuses it, the run fails. Then pass `--no-private-mount`, but only while no eval run is active. The exit code is the exit code of the suite. The script also prints each retry of a .NET scaffold after the CLR crash of issue 261.
 
 To run one command of `tests/evals/compare_versions.py`, run this in Git Bash:
 
