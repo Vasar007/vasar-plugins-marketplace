@@ -32,9 +32,12 @@ The script refuses, and writes nothing, in each of these cases:
   - The CHANGELOG of a side has no "## [Unreleased]" heading, or more than one.
   - release: the top section of the branch is not a release section, or both --theirs and the merge
     base have it.
-  - release: --theirs has the heading of the top section of the branch, and both sides have a "- "
-    bullet of that section. Then merge CHANGELOG.md by hand.
-  - release: --theirs does not have that heading, but it has each "- " bullet of that section.
+  - release: --theirs has the heading of the top section of the branch, and a "- "
+    bullet of that section is new on --theirs. Then merge CHANGELOG.md by hand. A bullet is new
+    on --theirs when the older sections of the branch lack it, or --theirs has it more often
+    than the merge base.
+  - release: --theirs does not have that heading, and each "- " bullet of that section is new on
+    --theirs.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.

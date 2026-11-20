@@ -442,6 +442,17 @@ class ReleaseTests(MergeCase):
         self.assertEqual(self.text(clone, "CHANGELOG.md"), expected)
         self.assertEqual(self.version(clone, DEV), "3.24.2")
 
+    def test_same_heading_and_an_empty_subsection_merges_in_full(self):
+        branch = branch_release("dev-essentials 3.24.1",
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("### Changed in the repository\n",
+                                                                "### Removed\n\n### Changed in the repository\n", 1)
+        clone = self.merge(branch)
+        self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        self.assertIn("## dev-essentials 3.24.2 in release [4.22.2] - 2026-11-17\n\nThe summary.\n\n### Removed\n\n"
+                      "### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
     def test_same_heading_and_the_indented_lines_of_main_below_other_bullets_merges(self):
         # The section of main has the summary and the indented lines of the branch too. Each line of the branch stays one time.
         details = ":\n  - see docs/evals.md\n\n  The change also changes the docs.\n"
@@ -555,6 +566,20 @@ class ReleaseTests(MergeCase):
         self.assertIn("DROPPED - the change of main", out)
         self.assertIn("STOP the top section of the branch adds no '- ' bullet to --theirs, so the branch adds no release: "
                       "## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-18", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_section_with_another_date_that_main_has_in_full_refuses_before_the_absorb(self):
+        # The [Unreleased] entries of main must not make a release of a branch that adds no bullet.
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- a no-release change\n\n")
+        branch = branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")})
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("[4.22.1] - 2026-11-17", "[4.22.1] - 2026-11-18")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", "--absorb-unreleased", code=3)
+        self.assertIn("so the branch adds no release: ## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-18", out)
+        self.assertNotIn("ABSORBED", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
     def test_section_that_main_has_in_full_refuses_before_the_absorb(self):
