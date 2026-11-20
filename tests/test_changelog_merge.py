@@ -364,6 +364,19 @@ class ReleaseTests(MergeCase):
         self.assertIn("both sides have the entry '- the old change' with other indented lines", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
+    def test_dropped_bullet_with_a_line_that_main_has_below_a_paragraph_after_a_blank_line_refuses(self):
+        main = main_release("a test fix", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
+            "- a test fix\n", "- a test fix\n\nA plain paragraph.\n\n  - see docs/evals.md\n\n")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("a test fix", "the change of the branch"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n  - see docs/evals.md\n")
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: --theirs has the bullet '- a test fix' without the indented line "
+                      "'  - see docs/evals.md' of the branch\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
         main[MANIFEST] = described("1.8.0", "A text of both sides.")
