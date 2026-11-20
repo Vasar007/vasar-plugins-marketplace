@@ -14,10 +14,11 @@ Subcommands:
               versions of --bump and the number of --release in its heading. A bullet that --theirs
               already has is left out. If --theirs has a heading with the same text but the merge
               base does not, another branch took the same numbers and merged first. The section of
-              the branch is still a new release. The link lines get the new release. Each --bump
-              writes its version into the plugin.json of that plugin. The other lines of that file
-              come from --theirs, or from the branch if only the branch changed them since the merge
-              base.
+              the branch is still a new release. Then a bullet that --theirs added since the merge
+              base is left out too, also with the text of an old release. The link lines get the
+              new release. Each --bump writes its version into the plugin.json of that plugin. The
+              other lines of that file come from --theirs, or from the branch if only the branch
+              changed them since the merge base.
               The script cannot bump a plugin that --theirs does not have: it ends with exit code 2.
   unreleased  The branch adds entries under "## [Unreleased]" and no release. The CHANGELOG of
               --theirs is the base. The entries that the branch added since the merge base go under its
@@ -32,7 +33,11 @@ The script refuses, and writes nothing, in each of these cases:
   - The CHANGELOG of a side has no "## [Unreleased]" heading, or more than one.
   - release: the top section of the branch is not a release section, or both --theirs and the merge
     base have it.
-  - release: --theirs has each bullet of the top section of the branch.
+  - release: --theirs has each "- " bullet of the top section of the branch.
+  - release: --theirs has the heading of the top section of the branch, and that section has no
+    "- " bullet.
+  - release: --theirs has the heading of the top section of the branch, and a bullet of both sides
+    has other indented lines.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.
@@ -192,6 +197,24 @@ def merge_block(target, extra, kind):
     return re.sub(r"\n{3,}", LF + LF, LF.join(lines)).strip(LF)
 
 
+def has_bullet(text):
+    return any(line.startswith("- ") for line in text.split(LF))
+
+
+def indented_lines(text):
+    """A map of each bullet line of the text to the set of the indented lines below it."""
+    found, bullet = {}, None
+    for line in text.split(LF):
+        if line.startswith("- "):
+            bullet = line
+            found.setdefault(bullet, set())
+        elif not line.startswith((" ", "\t")):
+            bullet = None
+        elif bullet is not None and line.strip():
+            found[bullet].add(line)
+    return found
+
+
 def drop_known_bullets(section, known):
     """Leave out each bullet of known with its indented lines, and then each "### " heading with no lines."""
     kept, dropped, skip = [], 0, False
@@ -290,8 +313,9 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     if not match:
         raise Refused(f"the top section of the branch is not a release section: {heading}")
     theirs_lines = set(theirs_text.split(LF))
+    same = heading in theirs_lines
     # Two open branches can take the same numbers. A heading that the merge base lacks is a new release of the branch.
-    if heading in theirs_lines and heading in base_text.split(LF):
+    if same and heading in base_text.split(LF):
         raise Refused(f"--theirs has the top section of the branch too, so the branch adds no release: {heading}")
     named = {m.group("name") for m in PLUGIN_VERSION.finditer(match.group("plugins"))}
     if named != set(versions):
@@ -299,9 +323,21 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     plugins = PLUGIN_VERSION.sub(lambda m: f"{m.group('name')} {versions[m.group('name')]}", match.group("plugins"))
     new_heading = f"## {plugins} in release [{release}]{match.group('tail')}"
     say("HEADING", new_heading)
-    body = drop_known_bullets(LF.join(section.split(LF)[1:]), theirs_lines - set(older.split(LF)))
-    if not any(line.startswith("- ") for line in body.split(LF)):
-        raise Refused(f"--theirs has each bullet of the top section of the branch, so the branch adds no release: {heading}")
+    known = theirs_lines - set(older.split(LF))
+    if same:
+        # A bullet that --theirs added since the merge base is known, also with the text of an old release.
+        known |= set(Counter(theirs_text.split(LF)) - Counter(base_text.split(LF)))
+        # A dropped bullet takes its indented lines with it, so --theirs must have each of them below that bullet.
+        theirs_entries = indented_lines(theirs_text)
+        for bullet, lines in indented_lines(section).items():
+            if bullet in known and not lines <= theirs_entries[bullet]:
+                raise Refused(f"both sides have the entry '{bullet}' with other indented lines, so merge {CHANGELOG} by hand")
+    body = drop_known_bullets(LF.join(section.split(LF)[1:]), known)
+    if not has_bullet(body) and (same or has_bullet(section)):
+        raise Refused(f"the top section of the branch adds no '- ' bullet to --theirs, so the branch adds no release: {heading}")
+    summary = [line for line in body.split(LF) if line.strip() and not line.startswith(("- ", " ", "\t", "#"))]
+    if same and summary and summary[0] in theirs_lines:
+        say("NOTE", f"--theirs has this summary line too. Write a new summary: {summary[0]}")
     head, theirs_block, theirs_rest = split_top(theirs_text, "--theirs")
     if theirs_block and not absorb:
         raise Refused("--theirs has entries under [Unreleased]. Only the next pull request to merge takes them "

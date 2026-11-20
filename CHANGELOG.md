@@ -11,8 +11,13 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tools/changelog_merge.py`: the subcommand `release` now merges a branch whose top heading has the same text as a new heading of `main`. For example, two open branches take the same release numbers, and one of them merges first. Before, the script stopped with exit code 3. Now it stops only for a heading that the merge base has too. It also stops for a section whose bullets `main` already has, for example after a squash merge of the same branch. The docstring and `docs/tools.md` name both stops (issue #318).
-- `tests/test_changelog_merge.py`: 2 new tests (issue #318). One merges a branch whose top heading `main` took after the merge base. The other one stops for a section that `main` has in full.
+- `tools/changelog_merge.py`: the subcommand `release` now merges a branch whose top heading has the same text as a new heading of `main`. For example, two open branches take the same release numbers, and one of them merges first. Before, the script stopped with exit code 3. Now it stops only for a heading that the merge base has too. With the same heading, the script leaves out each bullet that `main` added since the merge base. This holds for a bullet with the text of an old release too. With the same heading, the script also stops for a bullet that both sides have with other indented lines. It stops for a section with no bullet that starts with a dash too. It also stops for a section whose bullets `main` already has, for example after a squash merge of the same branch. That stop holds for each heading, so the script no longer writes a release section with no bullet for a heading with another date. After a squash merge and one more bullet, a NOTE line says that the summary repeats. The docstring and `docs/tools.md` name each stop and the next step (issue #318).
+- `tests/test_changelog_merge.py`: 13 new tests (issue #318). They cover these results:
+  - A branch whose top heading `main` took after the merge base merges. A bullet of `main` with the text of an old release is left out, and a bullet of the branch with that text stays.
+  - A section that `main` has in full stops. This holds for a heading with another date and for a run with `--absorb-unreleased`.
+  - A bullet that both sides have with other indented lines stops. The same bullet with the indented lines of `main` is left out.
+  - A section with star bullets or with no bullet merges for another heading. With the same heading, a section with no bullet stops.
+  - A squash merge and one more bullet gives a NOTE line about the summary.
 
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
