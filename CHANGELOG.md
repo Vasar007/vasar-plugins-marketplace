@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.7 in release [5.4.7] - 2026-11-20
+
+A new eval case shows the stop of `--no-worktree` on a changed file of the user. No skill text changes (issue #329).
+
 ### Added in dev-essentials
 
 - `evals/implement-task/it-no-worktree-dirty`: a new case for the stop of `--no-worktree` on a change of the user. Its scaffold changes one tracked file of the clone and commits nothing. The run with `--mode full` must stop before any work and name the file. It must make no commit and keep the change. Before this case, no eval case planted a changed tracked file, so no run proved the stop (issue #329).
@@ -2480,7 +2484,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...HEAD
+[5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.7
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.2...v5.4.3
