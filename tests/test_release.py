@@ -142,7 +142,7 @@ class SectionTests(SectionCase):
         self.tool(top, *RELEASE)
         before = self.files(top)
         out = self.tool(top, *RELEASE, code=3)
-        self.assertIn("STOP CHANGELOG.md has a heading or a link line of release 5.4.4 already\n", out)
+        self.assertIn("STOP CHANGELOG.md has a heading or a link line of release 5.4.4 already. If an earlier run ended with ERROR", out)
         self.assertEqual(self.files(top), before)
 
     def test_refusals_write_no_file(self):
@@ -199,6 +199,9 @@ class SectionTests(SectionCase):
             ("old version with a suffix",
              {"manifests": dict(MANIFESTS, **{DEV: manifest("dev-essentials", "4.4.3-rc1")})}, RELEASE,
              f"{path_of(DEV)}: the top-level version is '4.4.3-rc1', not X.Y.Z"),
+            ("duplicate top-level version key",
+             {"manifests": dict(MANIFESTS, **{DEV: '{\n  "name": "dev-essentials",\n  "version": "4.4.2",\n  "version": "4.4.3"\n}\n'})},
+             RELEASE, f"{path_of(DEV)} is not JSON: a key is there twice"),
             ("top-level version not on its own line",
              {"manifests": dict(MANIFESTS, **{DEV: '{"name": "dev-essentials", "version": "4.4.3"}\n'})}, RELEASE,
              f"{path_of(DEV)} has 0 lines with the top-level '\"version\"' key, not 1"),
@@ -255,11 +258,12 @@ class SectionTests(SectionCase):
         """Fails if an entry of two paragraphs, which the section holds word for word, makes the script refuse."""
         entry = "- the entry of a pull request with no release\n\n  Its second paragraph.\n"
         changelog = CHANGELOG.replace("## [Unreleased]\n\n", f"## [Unreleased]\n\n### Changed in the repository\n\n{entry}\n")
-        top = self.make(changelog=changelog, new=NEW + entry)
+        spaced = entry.replace("\n\n", "\n  \n")
+        top = self.make(changelog=changelog, new=NEW + spaced)
         self.tool(top, *RELEASE)
         text = self.text(top, "CHANGELOG.md")
         self.assertIn("## [Unreleased]\n\n## dev-essentials 4.4.4 in release [5.4.4]", text)
-        self.assertEqual(text.count(entry), 1)
+        self.assertEqual(text.count(spaced), 1)
 
     def test_refused_link_line_prints_no_absorbed_line(self):
         """Fails if the output names an entry as absorbed in a run that changes nothing."""
@@ -279,7 +283,50 @@ class SectionTests(SectionCase):
         out = self.tool(top, *RELEASE, code=1)
         self.assertIn("RESULT ERROR. 1 of 2 files are written, CHANGELOG.md first. Cannot write ", out)
         self.assertIn("NOTE a written CHANGELOG.md makes a second run refuse. Put each written file back with git", out)
+        self.assertTrue(out.splitlines()[-1].startswith("RESULT ERROR. "), out)
         self.assertNotIn("Traceback", out)
+
+    def test_nested_version_line_above_the_top_level_line_stays(self):
+        """Fails if the first "version" line gets the new version when it belongs to a nested object."""
+        text = '{\n  "name": "dev-essentials",\n  "engine": {\n    "version": "4.4.3"\n  },\n  "version": "4.4.3"\n}\n'
+        top = self.make(manifests=dict(MANIFESTS, **{DEV: text}))
+        self.tool(top, *RELEASE)
+        self.assertEqual(self.text(top, path_of(DEV)), text.replace('  "version": "4.4.3"\n}', '  "version": "4.4.4"\n}'))
+
+    def test_nested_version_value_with_an_escaped_quote_does_not_stop_the_bump(self):
+        """Fails if a nested "version" value with an escaped quote ends in a traceback, or gets the new version."""
+        text = '{\n  "name": "dev-essentials",\n  "engine": {\n    "version": "a\\"b"\n  },\n  "version": "4.4.3"\n}\n'
+        top = self.make(manifests=dict(MANIFESTS, **{DEV: text}))
+        self.tool(top, *RELEASE)
+        self.assertEqual(self.text(top, path_of(DEV)), text.replace('  "version": "4.4.3"\n}', '  "version": "4.4.4"\n}'))
+
+    def test_line_ends_of_most_lines_win(self):
+        """Fails if one LF line makes a CRLF file LF, or if a file with half CRLF lines gets CRLF."""
+        lines = (CHANGELOG + "\n").split("\n")
+        half = (len(lines) - 1) // 2
+        cases = [
+            ("one LF line in a CRLF file", CHANGELOG.replace("\n", "\r\n").replace("The intro.\r\n", "The intro.\n"),
+             WANT.replace("\n", "\r\n")),
+            ("half of the lines CRLF", "\r\n".join(lines[:half]) + "\r\n" + "\n".join(lines[half:]), WANT + "\n"),
+        ]
+        self.assertEqual((len(lines) - 1) % 2, 0)
+        for name, changelog, want in cases:
+            with self.subTest(name):
+                top = self.make(changelog=changelog)
+                self.tool(top, *RELEASE)
+                self.assertEqual(self.text(top, "CHANGELOG.md"), want)
+
+    def test_changelog_that_cannot_be_written_counts_no_written_file(self):
+        """Fails if the count of the RESULT line of a write failure is not the count of the written files."""
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            self.skipTest("root writes a read-only file")
+        top = self.make()
+        os.chmod(top / "CHANGELOG.md", stat.S_IREAD)
+        before = self.files(top)
+        out = self.tool(top, *RELEASE, code=1)
+        self.assertIn("RESULT ERROR. 0 of 2 files are written, CHANGELOG.md first. Cannot write ", out)
+        self.assertTrue(out.splitlines()[-1].startswith("RESULT ERROR. "), out)
+        self.assertEqual(self.files(top), before)
 
     def test_dependency_version_on_its_own_line_stays(self):
         """Fails if a "version" line of a dependency stops the bump, or gets the new version."""

@@ -27,8 +27,8 @@ The script refuses, and writes nothing, in each of these cases:
     release sections, or the link does not start at the release of the newest release section.
   - section: --release is not higher than the release of the newest release section.
   - section: an entry under [Unreleased] is not in the section file.
-  - section: a plugin folder has no .claude-plugin/plugin.json, the file is not JSON, its top-level
-    "version" is not X.Y.Z or is not on a line of its own, or the new version is not higher.
+  - section: a plugin folder has no .claude-plugin/plugin.json, the file is not JSON or has a key twice,
+    its top-level "version" is not X.Y.Z or is not on a line of its own, or the new version is not higher.
   - notes: CHANGELOG.md at --ref has no section of --release, or more than one.
 
 Output lines, one fact on each line: SECTION, ABSORBED, LINK, VERSION, NOTES, NOTE, and STOP. The last line is
@@ -171,10 +171,24 @@ def new_changelog(text, section, release):
     return LF.join(lines[:start] + ["", *section, ""] + below)
 
 
+def unique_keys(pairs):
+    keys = [key for key, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise ValueError(f"a key is there twice: {sorted(key for key in set(keys) if keys.count(key) > 1)}")
+    return dict(pairs)
+
+
+def loads(text):
+    try:
+        return json.loads(text, object_pairs_hook=unique_keys)
+    except ValueError:
+        return None
+
+
 def new_manifest(path, text, version):
     """The plugin.json text with the new top-level version, and its plugin name and old version."""
     try:
-        data = json.loads(text)
+        data = json.loads(text, object_pairs_hook=unique_keys)
     except ValueError as error:
         raise Refused(f"{path} is not JSON: {error}") from error
     old = data.get("version") if isinstance(data, dict) else None
@@ -184,7 +198,7 @@ def new_manifest(path, text, version):
         raise Refused(f"{path}: the version {version} is not higher than {old}")
     news = [text[:match.start()] + match.group("head") + version + match.group("tail") + text[match.end():]
             for match in VERSION_LINE.finditer(text)]
-    news = [new for new in news if json.loads(new) == dict(data, version=version)]
+    news = [new for new in news if loads(new) == dict(data, version=version)]
     if len(news) != 1:
         raise Refused(f"{path} has {len(news)} lines with the top-level '\"version\"' key, not 1")
     return news[0], str(data.get("name")), old
@@ -195,7 +209,7 @@ def run_section(args):
     changelog, changelog_crlf = read_text(top / CHANGELOG)
     # A second run for one release stops here, before the version check names a less clear reason.
     if any(line.startswith(("## ", f"[{args.release}]: ")) and f"[{args.release}]" in line for line in changelog.split(LF)):
-        raise Refused(f"{CHANGELOG} has a heading or a link line of release {args.release} already")
+        raise Refused(f"{CHANGELOG} has a heading or a link line of release {args.release} already. If an earlier run ended with ERROR, put the written files back with git first")
     manifests, versions = {}, {}
     for folder, version in args.bump:
         path = top / folder / MANIFEST
@@ -215,8 +229,8 @@ def run_section(args):
         try:
             path.write_bytes(content)
         except OSError as error:
+            say("NOTE", "a written CHANGELOG.md makes a second run refuse. Put each written file back with git, also the file that failed, because it can be cut short. Remove the cause, then run again")
             say("RESULT", f"ERROR. {done} of {len(files)} files are written, {CHANGELOG} first. Cannot write {path}: {error}")
-            say("NOTE", "a written CHANGELOG.md makes a second run refuse. Put each written file back with git, remove the cause, then run again")
             return 1
     say("NOTE", "nothing is staged. Read git diff, then stage the files")
     say("RESULT", f"DONE. {len(files)} files written")
