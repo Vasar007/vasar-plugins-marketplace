@@ -128,9 +128,15 @@ class YamlScanTests(ScratchCase):
         self.assertEqual(self.scan(), [])
 
     def test_a_machine_without_pyyaml_fails_with_the_install_hint(self):
-        with mock.patch(f"{__name__}.yaml", None), self.assertRaises(AssertionError) as caught:
-            require_yaml(self)
-        self.assertIn(NO_YAML, str(caught.exception))
+        with mock.patch(f"{__name__}.yaml", None):
+            try:
+                require_yaml(self)
+            except unittest.SkipTest:
+                self.fail("require_yaml skips the test. A skip hides the check.")
+            except AssertionError as caught:
+                self.assertIn(NO_YAML, str(caught))
+            else:
+                self.fail("require_yaml does not fail without PyYAML.")
 
 
 class RepositoryYamlTest(unittest.TestCase):
