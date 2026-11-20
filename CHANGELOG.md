@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: after the rare crash of the .NET runtime, `DotnetProbeTests` runs the scaffold one more time in a new folder. The crash fails the scaffold with the text "Internal CLR error". The retry prints one line to stderr. Any other failure fails at once, and so does a second crash, with the output of both tries. Before, the crash failed the run of the whole suite. Three new tests in `DotnetWarmTests` use a fake `dotnet` that crashes one time, fails in another way, or crashes two times (issue #261).
+
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).

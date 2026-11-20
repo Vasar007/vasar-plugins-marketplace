@@ -7,9 +7,11 @@ If bash or git is not found, the tests skip. In CI they fail.
 The tests of DotnetProbeTests run the .NET probe scaffolds with a real restore and build, and then run dotnet test.
 It needs the .NET SDK 10 or newer, the .NET 10 runtime, and network access for the first restore. As in a real run, the packages
 go to /tmp/plugin-evals/nuget, and the scaffold copies them into the NuGet folder of HOME.
+After the rare crash of the .NET runtime of issue 261 ("Internal CLR error"), the scaffold runs one more time.
 
 The tests of DotnetWarmTests run dotnet_warm with a fake dotnet on PATH and a cache folder of the test. They need flock (util-linux).
 """
+import io
 import json
 import os
 import re
@@ -18,6 +20,7 @@ import subprocess
 import sys
 import time
 import unittest
+from contextlib import redirect_stderr
 from types import SimpleNamespace
 
 from support import REPO, tool_missing
@@ -27,6 +30,8 @@ from testkit import ScratchCase, remove_tree, run
 SCAFFOLD_SECONDS = 120
 SQUASH_SCRIPT = REPO / "essentials/dev-essentials/scripts/squash_task.py"
 DOTNET_SECONDS = 900
+# The rare crash of the .NET runtime in WSL2 (issue 261): dotnet prints this text and stops with SIGABRT (exit code 134).
+CLR_CRASH_TEXT = "Internal CLR error"
 # The branch that a scaffold must leave checked out. A case that is not listed only needs a branch.
 EXPECTED_BRANCH = {
     "probe-git-sandbox": "main",
@@ -149,6 +154,16 @@ public static class BrokenProbe
 
 FAKE_DOTNET = """#!/usr/bin/env bash
 # A fake dotnet: a restore into the shared folder logs its start and its end, and prints FAKE_DOTNET_ERROR as dotnet does.
+# With FAKE_DOTNET_CRASHES=<n>, the first n calls crash as the .NET runtime of issue 261 does.
+if [ -n "${FAKE_DOTNET_CRASHES:-}" ]; then
+    crashes=$(cat "$FAKE_DOTNET_LOG.crashes" 2>/dev/null || echo 0)
+    if [ "$crashes" -lt "$FAKE_DOTNET_CRASHES" ]; then
+        echo $((crashes + 1)) >"$FAKE_DOTNET_LOG.crashes"
+        echo "Fatal error."
+        echo "Internal CLR error. (0x80131506)"
+        exit 134
+    fi
+fi
 case " $* " in
     *" --packages "*)
         if [ -e /dev/fd/9 ]; then echo lock-descriptor-open >>"$FAKE_DOTNET_LOG"; fi
@@ -422,6 +437,23 @@ class FixtureCase(ScratchCase):
         self.assertEqual(done.returncode, 0, f"bash {arguments} failed:\n{done.stdout}\n{done.stderr}")
         return done.stdout
 
+    def run_dotnet_scaffold(self, script, workspace, env=None):
+        """Run a .NET scaffold in the empty workspace. After the CLR crash of issue 261, run it one more time.
+
+        Any other failure, and a second crash, fail the test with the output of each try.
+        """
+        env = env or self.environment(skip_dotnet=False)
+        done = run([self.bash, script.as_posix()], env=env, cwd=workspace, timeout=DOTNET_SECONDS)
+        output = f"{done.stdout}\n{done.stderr}"
+        if done.returncode != 0 and CLR_CRASH_TEXT in output:
+            print(f"Retry of {script.parent.name}: dotnet crashed with {CLR_CRASH_TEXT} (issue 261).", file=sys.stderr)
+            remove_tree(workspace)
+            workspace.mkdir()
+            done = run([self.bash, script.as_posix()], env=env, cwd=workspace, timeout=DOTNET_SECONDS)
+            output += f"\n--- second try ---\n{done.stdout}\n{done.stderr}"
+        self.assertEqual(done.returncode, 0, f"bash {script.as_posix()} failed:\n{output}")
+        return done.stdout
+
     def run_snippet(self, cwd, libraries, snippet):
         """Source libraries from the _lib folder of a plugin, and run the snippet in the folder."""
         sources = "".join(f'source "{library.as_posix()}"\n' for library in libraries)
@@ -624,7 +656,7 @@ class DotnetProbeTests(FixtureCase):
         for name, script in probes.items():
             with self.subTest(case=name):
                 workspace = self.workspace(name)
-                self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
+                self.run_dotnet_scaffold(script, workspace)
                 self.assertFalse((workspace / ".test-runs").exists(), "the scaffold must not run the tests")
                 solution = next(workspace.glob("*.sln")).name
                 done = subprocess.run([dotnet, "test", solution, "--no-restore"], cwd=workspace,
@@ -640,7 +672,7 @@ class DotnetProbeTests(FixtureCase):
         dotnet = self.require_dotnet()
         script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
         workspace = self.workspace("probe-test-fixture")
-        self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
+        self.run_dotnet_scaffold(script, workspace)
         failing = workspace / "tests" / "Billing.Domain.Tests" / "FailingProbeTests.cs"
         failing.write_text(FAILING_TEST, encoding="utf-8")
         solution = next(workspace.glob("*.sln")).name
@@ -657,7 +689,7 @@ class DotnetProbeTests(FixtureCase):
         dotnet = self.require_dotnet()
         script = next(script for case, script in scaffold_cases() if case.name == "probe-test-fixture")
         workspace = self.workspace("probe-test-fixture")
-        self.run_bash([script.as_posix()], workspace, timeout=DOTNET_SECONDS, skip_dotnet=False)
+        self.run_dotnet_scaffold(script, workspace)
         last = workspace / ".test-runs" / "last.txt"
 
         def dotnet_run(command):
@@ -773,6 +805,51 @@ class DotnetWarmTests(FixtureCase):
                 env = self.warm_environment(f"home-{case.name}")
                 done = run([self.bash, script.as_posix()], env=env, cwd=self.workspace(case.name), timeout=SCAFFOLD_SECONDS)
                 self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+    def run_probe_scaffold(self, env):
+        """Run the scaffold of probe-dotnet-sandbox as DotnetProbeTests does, and return its stderr lines and its error."""
+        script = next(script for case, script in scaffold_cases() if case.name == "probe-dotnet-sandbox")
+        lines = io.StringIO()
+        error = None
+        with redirect_stderr(lines):
+            try:
+                self.run_dotnet_scaffold(script, self.workspace("probe-dotnet-sandbox"), env)
+            except AssertionError as caught:
+                error = str(caught)
+        return lines.getvalue(), error
+
+    def crashes(self):
+        """The number of crashes of the fake dotnet, as text."""
+        crashes =self.log.with_name(self.log.name + ".crashes")
+        return crashes.read_text(encoding="utf-8").strip() if crashes.exists() else "0"
+
+    def test_a_scaffold_runs_one_more_time_after_one_clr_crash(self):
+        """Fails if the retry is gone, if it keeps the files of the crashed try, or if it runs more than one time."""
+        env = self.warm_environment("run-1")
+        env["FAKE_DOTNET_CRASHES"] = "1"
+        lines, error = self.run_probe_scaffold(env)
+        self.assertIsNone(error)
+        self.assertEqual(self.crashes(), "1")
+        self.assertIn("Retry of probe-dotnet-sandbox", lines)
+        self.assertEqual(self.log.read_text(encoding="utf-8").split(), ["start", "end"])
+
+    def test_another_failure_of_a_scaffold_gets_no_retry(self):
+        """Fails if the retry also hides a real failure of the scaffold."""
+        lines, error = self.run_probe_scaffold(self.warm_environment("run-1", "error : planted restore failure"))
+        self.assertIsNotNone(error)
+        self.assertIn("planted restore failure", error)
+        self.assertNotIn("Retry of", lines)
+        self.assertEqual(self.log.read_text(encoding="utf-8").split(), ["start", "end"])
+
+    def test_a_second_clr_crash_fails_with_the_output_of_both_tries(self):
+        """Fails if a second crash passes, or if the error loses the output of the first try."""
+        env = self.warm_environment("run-1")
+        env["FAKE_DOTNET_CRASHES"] = "2"
+        lines, error = self.run_probe_scaffold(env)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.count(CLR_CRASH_TEXT), 2, error)
+        self.assertEqual(self.crashes(), "2")
+        self.assertEqual(lines.count("Retry of"), 1)
 
 
 class DotnetNodeReuseTests(FixtureCase):
