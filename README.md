@@ -69,7 +69,7 @@ Some skills push, and some say never to force-push or to pass `--no-verify`. The
 | [Rules for push, force push, and `--no-verify`](./docs/permissions.md) | The permission rules for the push rules of the skills. |
 | [Authoring reference](./docs/authoring.md) | The folders, the rules for `marketplace.json` and `plugin.json`, and the validator. |
 | [Testing](./docs/testing.md) | The test run and the CI workflow `.github/workflows/tests.yml`. |
-| [Maintainer tools](./docs/tools.md) | The scripts in `tools/` for a merge of `main`, the eval results, and the runs in WSL2. |
+| [Maintainer tools](./docs/tools.md) | The scripts in `tools/` for a merge of `main`, a release, the eval results, and the runs in WSL2. |
 | [Evals](./docs/evals.md) | The eval cases, the script `tests/evals/compare_versions.py`, and the behavior suites. |
 | [Official documentation](./docs/installing.md#official-documentation) | The official pages about plugins. |
 
