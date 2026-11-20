@@ -325,6 +325,7 @@ class SectionTests(SectionCase):
         before = self.files(top)
         out = self.tool(top, *RELEASE, code=1)
         self.assertIn("RESULT ERROR. 0 of 2 files are written, CHANGELOG.md first. Cannot write ", out)
+        self.assertIn("also the file that failed", out)
         self.assertTrue(out.splitlines()[-1].startswith("RESULT ERROR. "), out)
         self.assertEqual(self.files(top), before)
 

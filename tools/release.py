@@ -27,8 +27,9 @@ The script refuses, and writes nothing, in each of these cases:
     release sections, or the link does not start at the release of the newest release section.
   - section: --release is not higher than the release of the newest release section.
   - section: an entry under [Unreleased] is not in the section file.
-  - section: a plugin folder has no .claude-plugin/plugin.json, the file is not JSON or has a key twice,
-    its top-level "version" is not X.Y.Z or is not on a line of its own, or the new version is not higher.
+  - section: a plugin folder has no .claude-plugin/plugin.json, or the file is not JSON or has a key twice.
+  - section: the top-level "version" of a plugin.json is not X.Y.Z or is not on a line of its own.
+  - section: a --bump version is not higher than the version in its plugin.json.
   - notes: CHANGELOG.md at --ref has no section of --release, or more than one.
 
 Output lines, one fact on each line: SECTION, ABSORBED, LINK, VERSION, NOTES, NOTE, and STOP. The last line is
@@ -229,7 +230,7 @@ def run_section(args):
         try:
             path.write_bytes(content)
         except OSError as error:
-            say("NOTE", "a written CHANGELOG.md makes a second run refuse. Put each written file back with git, also the file that failed, because it can be cut short. Remove the cause, then run again")
+            say("NOTE", "a written CHANGELOG.md makes a second run refuse. Put each written file back with git, also the file that failed, because a failed write can cut it short. Remove the cause, then run again")
             say("RESULT", f"ERROR. {done} of {len(files)} files are written, {CHANGELOG} first. Cannot write {path}: {error}")
             return 1
     say("NOTE", "nothing is staged. Read git diff, then stage the files")
