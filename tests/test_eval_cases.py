@@ -5318,7 +5318,12 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                  "checkout -B": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -B eval/retry-limit'}),
                  "branch": self.tool_use("Bash", {"command": 'git -C "/repo" branch eval/retry-limit'}),
                  "branch with a quoted name": self.tool_use("Bash", {"command": 'git -C "/repo" branch "eval/retry-limit"'}),
-                 "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"})}
+                 "branch with a single-quoted name": self.tool_use("Bash", {"command": "git -C '/repo' branch 'eval/retry-limit'"}),
+                 # Each form below has an option before or in the option that creates the branch (issue #315).
+                 "checkout -q -b": self.tool_use("Bash", {"command": 'git -C "/repo" checkout -q -b eval/retry-limit'}),
+                 "switch -qc": self.tool_use("Bash", {"command": 'git -C "/repo" switch -qc eval/retry-limit'}),
+                 "branch -f": self.tool_use("Bash", {"command": 'git -C "/repo" branch -f eval/retry-limit main'}),
+                 "two spaces before -c": self.tool_use("Bash", {"command": 'git -C "/repo" switch  -c eval/retry-limit'})}
         for case in self.CASES:
             for name, step in steps.items():
                 with self.subTest(case=case, step=name):
@@ -5330,12 +5335,15 @@ class NoWorktreeReadGraderTests(unittest.TestCase):
                 {"type": "tool_use", "id": "toolu_2", "name": name, "input": tool_input}]}, "parent_tool_use_id": "toolu_1"})
         read = self.tool_use("Read", {"file_path": self.PATH})
         show = self.tool_use("Bash", {"command": 'git -C "/repo" branch --show-current'})
+        listing = self.tool_use("Bash", {"command": 'git -C "/repo" branch -a && git -C "/repo" switch --detach -q'})
         switch = self.tool_use("Bash", {"command": 'git -C "/repo" switch -c eval/retry-limit'})
         for case in self.CASES:
             with self.subTest(case=case):
                 self.assertFalse(self.found(case, "\n".join([sub("Read", {"file_path": self.PATH}), switch])))
                 self.assertTrue(self.found(case, "\n".join([sub("Edit", {"file_path": "/repo/a.py", "old_string": "a", "new_string": "b"}), read])))
                 self.assertTrue(self.found(case, "\n".join([show, read, switch])))
+                # A list of the branches and a switch with no new branch create no branch.
+                self.assertTrue(self.found(case, "\n".join([listing, read, switch])))
 
     def test_the_path_in_the_text_of_a_unit_or_another_file_fails(self):
         # The text of the unit names the path too, so a tool result with that text must not pass the grader.

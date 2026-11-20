@@ -9,6 +9,15 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Fixed in dev-essentials
+
+- `evals/implement-task/it-no-worktree` and `evals/implement-batch/ib-no-worktree`: the route grader `route-no-worktree-read` sees more forms of a branch command. Another option can now come before the option that creates the branch, for example `git checkout -q -b` or `git switch -qc`. Two spaces before `-c` and `git branch -f` count too. Before, a run that read the rules of `--no-worktree` after such a command passed the grader (issue #315).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: `NoWorktreeReadGraderTests` has four new runs that read the file too late, one for each new form. A new sample shows that `git branch -a` and `git switch --detach` create no branch (issue #315).
+- `docs/evals.md`: the paragraph of the two cases names the branch commands of the grader (issue #315).
+
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
