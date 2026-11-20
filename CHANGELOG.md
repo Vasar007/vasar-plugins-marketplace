@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 4.4.4 in release [5.4.4] - 2026-11-20
 
-The route grader `route-no-worktree-read` of the two `--no-worktree` cases now sees a branch command with more options before the option that creates the branch. No skill text changes (issue #315).
+The route grader `route-no-worktree-read` of the two `--no-worktree` cases now sees a branch command with more options before the option that creates the branch. No skill text changes (issue #315). The release also takes in the first slice of the review of the unit tests (issue #316).
 
 ### Fixed in dev-essentials
 
