@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.7 in release [5.4.7] - 2026-11-20
+
+A new eval case shows the stop of `--no-worktree` on a changed file of the user. No skill text changes (issue #329).
+
+### Added in dev-essentials
+
+- `evals/implement-task/it-no-worktree-dirty`: a new case for the stop of `--no-worktree` on a change of the user. Its scaffold changes one tracked file of the clone and commits nothing. The run with `--mode full` must stop before any work and name the file. It must make no commit and keep the change. Before this case, no eval case planted a changed tracked file, so no run proved the stop (issue #329).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `NoWorktreeDirtyGraderTests` runs the scored graders of the new case on real git states. An edit of the file, a stash, a restore, and a commit each fail at least one grader. `ScaffoldTests` makes sure that the new scaffold leaves exactly one changed tracked file (issue #329).
+- `tests/test_eval_cases.py`: `NoWorktreeDirtyRouteGraderTests` tests the route graders of the new case. `NoWorktreeReadGraderTests` also covers the new case (issue #329).
+- `docs/evals.md`: the case count of the `implement-task` suite, and a paragraph on the new case (issue #329).
+- `tests/simple-english-baseline.json`: one entry for the file path in a grader of the new case (issue #329).
+
 ## dev-essentials 4.4.6 in release [5.4.6] - 2026-11-20
 
 The trace graders `tests-before-commit` and `untested-commit` now take far fewer steps. So in most measured cases, the regex engine of the eval tool stops them only on a much larger trace. With 200 to 250 test commands before the first fitting commit, the new `tests-before-commit` stopped at the same size as the old one. No skill text changes (issues #319 and #328).
@@ -2482,7 +2497,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...HEAD
+[5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
 [5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.3...v5.4.4
