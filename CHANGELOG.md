@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 4.4.6 in release [5.4.6] - 2026-11-20
 
-The trace graders `tests-before-commit` and `untested-commit` now take far fewer steps. So the regex engine of the eval tool stops them only on a much larger trace. No skill text changes (issues #319 and #328).
+The trace graders `tests-before-commit` and `untested-commit` now take far fewer steps. So in most measured cases, the regex engine of the eval tool stops them only on a much larger trace. With 200 to 250 test commands before the first fitting commit, the new `tests-before-commit` stopped at the same size as the old one. No skill text changes (issues #319 and #328).
 
 ### Fixed in dev-essentials
 
@@ -19,7 +19,7 @@ The trace graders `tests-before-commit` and `untested-commit` now take far fewer
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` now also reads the grader `tests-before-commit` of `it-no-worktree` and `ib-no-worktree`. A new sample has a test, a commit, an edit, and a second commit, and it must match. Four more samples cover a backslash between the two calls, a `NotebookEdit` stop, and a word that ends with `unittest`. A new test pins the end of the match at the first fitting commit. The unit tests run Python `re`, so no sample shows the step limit (issues #319 and #328).
+- `tests/test_eval_cases.py`: `TestsBeforeCommitGraderTests` now also reads the grader `tests-before-commit` of `it-no-worktree` and `ib-no-worktree`. A new sample has a test, a commit, an edit, and a second commit, and it must match. Four more samples cover a backslash between the two calls, a `NotebookEdit` stop, and a word that ends with `unittest`. A new test pins the end of the match at the first fitting commit. The unit tests run Python `re`, so no sample shows the limit of Bun 1.4.4 (issues #319 and #328).
 - `docs/evals.md`: the replay tool runs V8, and the `claude` binary holds Bun 1.4.4, which runs JavaScriptCore. The new text gives the facts of the failed run and the limits that Bun 1.4.4 showed. It also names the risk for a `not_contains` grader (issues #319 and #328).
 
 ## dev-essentials 4.4.5 in release [5.4.5] - 2026-11-20
