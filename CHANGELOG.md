@@ -11,7 +11,10 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tests/test_work_modes_text.py`: one duplicate test is gone, `FinishCallerTests.test_merge_pr_counts_the_yes_of_the_final_gate`. It made the same assertion on the same file as the subtest for `merge-pr` of `UnitRuleTests.test_the_unit_rules_stay`. That subtest stays, so the approval sentence of `merge-pr` keeps its guard. The review of each unit test below `tests/` found no other duplicate and no test that cannot fail for a bug. So the review merges 1 test and removes 0 tests (issue #316).
+- `tests/test_work_modes_text.py`: one duplicate test is gone, `FinishCallerTests.test_merge_pr_counts_the_yes_of_the_final_gate`. It made the same assertion on the same file as the subtest for `merge-pr` of `UnitRuleTests.test_the_unit_rules_stay`. That subtest stays, because it guards the approval sentence of `merge-pr`. `PipelineMergeTests` of `tests/test_eval_cases.py` pins a longer text that holds the same sentence (issue #316).
+- `tests/test_openbsd_lint.py`: two tests are gone, `GoldTests.test_gold_readme_is_found` and `HookFileTests.test_script_exists`. Each one failed only where a stronger test of the same module also fails. A missing script fails about 100 other tests. A gold README with no `## DESCRIPTION` heading fails `GoldTests.test_gold_readme_is_in_style` (issue #316).
+- `tests/test_eval_front_matter.py`: `YamlScanTests.test_a_machine_without_pyyaml_fails_with_the_install_hint` now fails for a `require_yaml` that skips the test. Before, such a skip made the test skip too, so the suite passed (issue #316).
+- The review of the 1360 unit tests below `tests/` found no other exact duplicate and no test that cannot fail for a bug. It read each short test and each text module in full, and the other modules by class. So the suite has 1357 tests now (issue #316).
 
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 

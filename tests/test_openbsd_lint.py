@@ -49,9 +49,6 @@ class LintCase(ScratchCase):
 
 
 class GoldTests(LintCase):
-    def test_gold_readme_is_found(self):
-        self.assertIn("## DESCRIPTION", gold_readme())
-
     def test_gold_readme_has_no_hit(self):
         result = self.run_lint(gold_readme())
         self.assertResult(result, 0)
@@ -534,9 +531,6 @@ class HookFileTests(ScratchCase):
         event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Write", "tool_input": {"file_path": str(page)}})
         result = self.run_hook_command(bin_dir, stdin=event)
         self.assertResult(result, 2, "openbsd-style-docs: page.md has 2 style hit(s).")
-
-    def test_script_exists(self):
-        self.assertTrue(SCRIPT.is_file())
 
 
 if __name__ == "__main__":
