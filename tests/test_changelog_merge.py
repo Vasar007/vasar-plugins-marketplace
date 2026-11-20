@@ -426,6 +426,28 @@ class ReleaseTests(MergeCase):
         out = self.tool(clone, "release", "--bump", f"{DEV}=3.25.0", "--release", "4.22.2", code=3)
         self.assertIn("--theirs has the top section of the branch too", out)
 
+    def test_heading_that_main_took_after_the_merge_base_is_a_new_release(self):
+        # Two open branches took release 4.22.1 for now, and the other branch merged first.
+        clone = self.merge(branch_release("dev-essentials 3.24.1",
+                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2")
+        self.assertNotIn("DROPPED", out)
+        expected = (INTRO + section("dev-essentials 3.24.2", "4.22.2", ["the change of the branch"])
+                    + section("dev-essentials 3.24.1", "4.22.1", ["the change of main"]) + OLD
+                    + links(("4.22.2", "4.22.1"), ("4.22.1", "4.22.0"), ("4.22.0", "4.21.0")))
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), expected)
+        self.assertEqual(self.version(clone, DEV), "3.24.2")
+
+    def test_section_that_main_has_in_full_refuses(self):
+        # After a squash merge of the same branch, main has the heading and each bullet of the branch.
+        clone = self.merge(branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
+                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
+        before = (self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json"))
+        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
+        self.assertIn("STOP --theirs has each bullet of the top section of the branch, so the branch adds no release: "
+                      "## dev-essentials 3.24.1 in release [4.22.1] - 2026-11-17", out)
+        self.assertEqual((self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json")), before)
+
     def test_keep_both_file_with_a_marker_line_outside_a_conflict_refuses(self):
         notes = "# Notes\n\n=======\n\nThe first line.\n"
         base = dict(BASE, **{"docs/notes.md": notes})

@@ -12,9 +12,12 @@ Subcommands:
   release     The branch adds a release section right below "## [Unreleased]". The CHANGELOG of
               --theirs is the base. The release section of the branch goes on top of it, with the
               versions of --bump and the number of --release in its heading. A bullet that --theirs
-              already has is left out. The link lines get the new release. Each --bump writes its
-              version into the plugin.json of that plugin. The other lines of that file come from
-              --theirs, or from the branch if only the branch changed them since the merge base.
+              already has is left out. If --theirs has a heading with the same text but the merge
+              base does not, another branch took the same numbers and merged first. The section of
+              the branch is still a new release. The link lines get the new release. Each --bump
+              writes its version into the plugin.json of that plugin. The other lines of that file
+              come from --theirs, or from the branch if only the branch changed them since the merge
+              base.
               The script cannot bump a plugin that --theirs does not have: it ends with exit code 2.
   unreleased  The branch adds entries under "## [Unreleased]" and no release. The CHANGELOG of
               --theirs is the base. The entries that the branch added since the merge base go under its
@@ -27,7 +30,9 @@ folder of the repository.
 The script refuses, and writes nothing, in each of these cases:
   - No merge is in progress, or --theirs is not the commit that merges in.
   - The CHANGELOG of a side has no "## [Unreleased]" heading, or more than one.
-  - release: the top section of the branch is not a release section, or --theirs has it too.
+  - release: the top section of the branch is not a release section, or both --theirs and the merge
+    base have it.
+  - release: --theirs has each bullet of the top section of the branch.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.
@@ -274,7 +279,7 @@ def bump_manifests(repo, ours, theirs, base, bumps):
     return files, names
 
 
-def release_changelog(ours, theirs_text, release, versions, absorb):
+def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     """The new CHANGELOG text of the release subcommand, and the heading line of the branch."""
     _, ours_block, ours_rest = split_top(ours, "--ours")
     if ours_block:
@@ -285,7 +290,8 @@ def release_changelog(ours, theirs_text, release, versions, absorb):
     if not match:
         raise Refused(f"the top section of the branch is not a release section: {heading}")
     theirs_lines = set(theirs_text.split(LF))
-    if heading in theirs_lines:
+    # Two open branches can take the same numbers. A heading that the merge base lacks is a new release of the branch.
+    if heading in theirs_lines and heading in base_text.split(LF):
         raise Refused(f"--theirs has the top section of the branch too, so the branch adds no release: {heading}")
     named = {m.group("name") for m in PLUGIN_VERSION.finditer(match.group("plugins"))}
     if named != set(versions):
@@ -294,6 +300,8 @@ def release_changelog(ours, theirs_text, release, versions, absorb):
     new_heading = f"## {plugins} in release [{release}]{match.group('tail')}"
     say("HEADING", new_heading)
     body = drop_known_bullets(LF.join(section.split(LF)[1:]), theirs_lines - set(older.split(LF)))
+    if not any(line.startswith("- ") for line in body.split(LF)):
+        raise Refused(f"--theirs has each bullet of the top section of the branch, so the branch adds no release: {heading}")
     head, theirs_block, theirs_rest = split_top(theirs_text, "--theirs")
     if theirs_block and not absorb:
         raise Refused("--theirs has entries under [Unreleased]. Only the next pull request to merge takes them "
@@ -429,7 +437,7 @@ def execute(args):
     files = {}
     if args.command == "release":
         manifests, versions = bump_manifests(repo, args.ours, args.theirs, base_ref, args.bump)
-        text, old_heading, old_release = release_changelog(ours, theirs, args.release, versions,
+        text, old_heading, old_release = release_changelog(ours, theirs, base, args.release, versions,
                                                            args.absorb_unreleased)
         files.update(manifests)
 

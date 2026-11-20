@@ -9,6 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tools/changelog_merge.py`: the subcommand `release` now merges a branch whose top heading has the same text as a new heading of `main`. For example, two open branches take the same release numbers, and one of them merges first. Before, the script stopped with exit code 3. Now it stops only for a heading that the merge base has too. It also stops for a section whose bullets `main` already has, for example after a squash merge of the same branch. The docstring and `docs/tools.md` name both stops (issue #318).
+- `tests/test_changelog_merge.py`: 2 new tests (issue #318). One merges a branch whose top heading `main` took after the merge base. The other one stops for a section that `main` has in full.
+
 ## dev-essentials 4.4.3 in release [5.4.3] - 2026-11-20
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a lint that fails in the same way at both commits and prints no error word. No skill text changes (issue #301).
