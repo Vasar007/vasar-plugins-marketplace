@@ -946,7 +946,8 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.lint_verdict(grouped("b.py"), grouped("a.py")), "OTHER")
         self.assertEqual(self.lint_verdict(grouped("a.py"), grouped("a.py")), "SAME-AT-PARENT")
         for fix, parent in (("1-intro.py", "2-intro.py"), ("01-intro/main.py", "02-intro/main.py"),
-                            ("01-intro\\main.py", "02-intro\\main.py"), ("1+a.py", "2+a.py")):
+                            ("01-intro\\main.py", "02-intro\\main.py"), ("1+a.py", "2+a.py"),
+                            ("a(1).py", "a(2).py"), ("(1)/a.py", "(2)/a.py"), ("[1]/a.py", "[2]/a.py")):
             with self.subTest(fix=fix):
                 self.assertEqual(self.lint_verdict(grouped(fix), grouped(parent)), "OTHER")
 
