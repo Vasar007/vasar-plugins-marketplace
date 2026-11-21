@@ -73,7 +73,7 @@ Pending search.
 None yet.
 ```
 
-Write one `## Area N: <name>` section for each area. If the setup helper reported no limits,
+Write one `## Area N: <name>` section for each area. If the `snapshot` command printed no `LIMIT:` line,
 write "None found" for `{LIMITS}`. `{BASE_SOURCE}` is "the local branch" or "a fresh clone
 from the remote". If the base is `none`, write the line as "- Base branch: none. The user
 chose no base comparison.". `{EXPERIMENTS}` says whether agents built, tested, and ran code

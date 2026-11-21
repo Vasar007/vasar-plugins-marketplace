@@ -2200,6 +2200,110 @@ def bash_input(command):
     return json.dumps({"command": command, "description": "Run it"}, separators=(",", ":"), ensure_ascii=False)
 
 
+class BugHuntFlowGraderTests(unittest.TestCase):
+    """The graders of bh-flow: the route graders read the calls of the scripts, and the scored graders read the files."""
+
+    # The planted bug, the known bug, or the decoy of each file. A hunter that fixes it fails the grader.
+    KEPT = {
+        "invoice-kept": ("billing/invoice.py", "    return int(total)\n", "    return round(total, 2)\n"),
+        "cache-kept": ("inventory/cache.py", "    key = sku\n", "    key = (sku, warehouse)\n"),
+        "retry-kept": ("notify/retry.py", "            if max_retries and attempt >= max_retries:\n",
+                       "            if attempt >= max_retries:\n"),
+        "email-kept": ("notify/email.py", '    return "Order " + order_id\n', '    return f"Order {order_id}"\n'),
+        "stock-kept": ("inventory/stock.py", "    return units // case_size\n", "    return -(-units // case_size)\n"),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["bh-flow"]
+        cls.script = (FP_ROOT / "evals" / "_lib" / "shop-fixture.sh").read_text(encoding="utf-8")
+        cls.checks = (FP_ROOT / "skills" / "bug-hunt" / "references" / "structure-checks.md").read_text(encoding="utf-8")
+
+    def counts(self, grader, command):
+        return re.search(self.case.graders[grader][0]["input_match"], bash_input(command)) is not None
+
+    def passes(self, grader, text):
+        return re.search(self.case.graders[grader][0]["pattern"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-snapshot-script", "route-delete-temp"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        for name in routes:
+            meta = self.case.graders[name][0]
+            self.assertEqual((meta["type"], meta["tool"], meta.get("min", 1), "max" in meta), ("tool_used", "Bash", 1, False))
+
+    def test_the_snapshot_grader_counts_a_call_of_the_command_and_not_a_mention(self):
+        runs = {
+            'python3 -I "$C" snapshot --repo "$P" --ref-sha abc --scratch "$S" --base-from none': True,
+            'python3 -I ${C} snapshot --repo /w/project --ref-sha abc --scratch /w/scratch --base-from none': True,
+            'python3 -I "$CHECK" snapshot --repo "$P"': True,
+            'python3 -I "/p/skills/bug-hunt/scripts/check_report.py" snapshot --repo /w/project': True,
+            "python3 -I /p/scripts/check_report.py snapshot --repo /w/project": True,
+            'C="/p/check_report.py"\npython3 -I "$C" snapshot --repo /w/project': True,
+            'git -C "/w/project" archive --format=tar abc | tar -x -C "/w/scratch/snapshot-ref"': False,
+            'python3 -I "$C" setup --report-dir "$D" --scratch "$S" --base no': False,
+            "echo the snapshot is ready": False,
+            'C="/p/scripts/check_report.py"\nls "$S/snapshot-ref"': False,
+            "ls /w/scratch/snapshot-ref": False,
+        }
+        for command, expected in runs.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.counts("route-snapshot-script", command), expected)
+
+    def test_the_delete_grader_counts_only_a_call_with_apply(self):
+        call = 'python3 -I "$C" delete-temp --report-dir "$D" --scratch "$S" --repo "$P"'
+        runs = {
+            call + " --apply": True,
+            call + ' --pid 4242="Sat Nov 21 10:00:00 2026" --apply': True,
+            'python3 -I "$C" delete-temp --report-dir "$D" \\\n  --scratch "$S" --repo "$P" \\\n  --apply': True,
+            "python3 -I /p/scripts/check_report.py delete-temp --report-dir /w/reports --scratch /w/scratch --repo /w/p --apply": True,
+            call: False,
+            call + "\necho --apply": False,
+            call + "; echo --apply": False,
+            call + " | tee out.txt && echo --apply": False,
+            'rm -rf "/w/scratch" --apply': False,
+            "python3 -I \"$C\" cleanup --report-dir \"$D\" --scratch \"$S\"": False,
+        }
+        for command, expected in runs.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.counts("route-delete-temp", command), expected)
+
+    def test_the_route_graders_count_the_commands_of_the_skill(self):
+        commands = re.findall(r"`(python3 -I \"\$C\" (?:snapshot|delete-temp) [^`]+)`", self.checks)
+        self.assertEqual(len(commands), 2, commands)
+        snapshot, delete = commands
+        self.assertTrue(self.counts("route-snapshot-script", snapshot))
+        self.assertFalse(self.counts("route-delete-temp", delete))
+        self.assertTrue(self.counts("route-delete-temp", delete + " --apply"))
+
+    def test_the_report_grader_needs_the_count_line_and_the_review_subsection(self):
+        final = ("# Bug hunt report: project\n\n## Summary\n\nFindings: 2. Confirmed: 2. Unconfirmed (needs owner review): 0. "
+                 "Rejected: 0. Duplicate: 0.\n\n| ID | Title |\n\n### For the owner's review\n\nNone.\n\n## Known issues")
+        self.assertTrue(self.passes("report-final", final))
+        self.assertTrue(self.passes("report-final", "## Summary\n\nFindings: 0.\n\n### For the owner's review\n\nNone.\n"))
+        for name, changed in {
+            "the skeleton of step 2": "## Summary\n\nPending verification.\n\n## Known issues",
+            "a run that stops after the last verifier": final.replace("### For the owner's review\n\nNone.\n\n", ""),
+            "a review subsection before the count line": "### For the owner's review\n\nNone.\n\nFindings: 2.\n",
+        }.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("report-final", changed))
+
+    def test_each_kept_grader_passes_its_file_of_the_scaffold_and_fails_an_edit(self):
+        for grader, (path, old, new) in self.KEPT.items():
+            meta = self.case.graders[grader][0]
+            self.assertEqual((meta["type"], meta.get("match", "contains"), meta["target"]),
+                             ("regex", "contains", {"source": "file", "path": f"project/{path}"}))
+            text = self.script.split(f"fixture_write {path} <<'SHOP_EOF'\n", 1)[1].split("SHOP_EOF\n", 1)[0]
+            self.assertIn(old, text)
+            self.assertTrue(self.passes(grader, text))
+            for name, changed in {"a fix": text.replace(old, new, 1), "a line at the end": text + "# note\n",
+                                  "a line at the start": "# note\n" + text, "an empty file": ""}.items():
+                with self.subTest(grader=grader, run=name):
+                    self.assertFalse(self.passes(grader, changed))
+
+
 class RoutePlainDotnetGraderTests(unittest.TestCase):
     """The graders route-plain-dotnet count a dotnet build or dotnet test command with no -m:1 at the start of a command."""
 

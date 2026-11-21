@@ -58,7 +58,7 @@ agents. If a `CLAUDE.md` file conflicts with rule 1 or rule 2, rules 1 and 2 win
 
 - Do not edit, build, test, or run anything in the project folder. Do not create files there. The report folder is the only exception (see the report-folder point).
 - Against the live repository, always use `git -C "<repo>"`. Run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, and `show`. Also `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
-- Do not run a plain `git status`, because it can write the index. Do not run `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. Never fetch into the live repository. For a newer base, the setup helper clones it into the scratch folder.
+- Do not run a plain `git status`, because it can write the index. Do not run `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. Never fetch into the live repository. For a newer base, the `snapshot` command clones it into the scratch folder.
 - In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. If the report folder is inside the project, this point holds.
 - The commands in this skill need a POSIX shell and Python 3. On Windows, run them with the Bash tool (Git Bash), not with PowerShell. If `python3` is not available, stop the run at step 0 and report this under "Blocked on me".
 
@@ -120,7 +120,7 @@ The run format is the check scope in rule 3 plus the reporting rules below. The 
 meta-plan states it, and the table in "Autonomy" says what accepts it. After the run format is accepted, rule 3
 replaces tiers 1 and 2 of the section `Trust but verify` of
 `dev-essentials:subagent-orchestration` for this run only. It also replaces any user instruction to test every subagent
-claim. Tier 3 still applies to the deletions of step 6: re-read the path list before the cleanup helper runs. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
+claim. Tier 3 still applies to the deletions of step 6: read the dry run of `delete-temp` before you run it with `--apply`. For the findings in the final report, the verifier and auditor verdicts are enough, and rule 3 still applies. The section "Run format agreement" of that skill has the shared rule.
 
 - Between steps, write at most one status line to chat for each step, for example "Step 3: area 2 of 5 done, 4 findings." All results go into the report.
 - In chat, ask only questions that block the run.
@@ -132,12 +132,12 @@ claim. Tier 3 still applies to the deletions of step 6: re-read the path list be
 | Step | Role | `subagent_type` | Model | Effort | Count |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Scoping helper | `general-purpose` | `sonnet` | session default | 1 |
-| 1 | Setup helper | `general-purpose` | `haiku` | session default | 1 |
 | 1 | Known-issues collector | `general-purpose` | `sonnet` | session default | 1 |
 | 3 | Hunter | `dev-essentials:bug-hunter` | hunter model | hunter effort | 1 for each area, one after the other |
 | 4 | Verifier | `dev-essentials:bug-verifier` | verifier model | verifier effort | 1 for each part, one after the other |
 | 5 | Auditor | `dev-essentials:bug-report-auditor` | auditor model | auditor effort | 1 |
-| 6 | Cleanup helper | `general-purpose` | `haiku` | session default | 1 |
+
+Step 1 and step 6 dispatch no helper. The orchestrator runs the commands `snapshot` and `delete-temp` of `scripts/check_report.py` itself. Each of these steps has one right result, and a script gets it each time.
 
 The folder of this skill is `${CLAUDE_SKILL_DIR}`. In the reference files, `{SKILL_DIR}` stands for this folder.
 
@@ -167,19 +167,21 @@ Read [references/inputs-and-meta-plan.md](references/inputs-and-meta-plan.md), a
 
 ### Step 1. Isolation
 
-Dispatch the setup helper and the known-issues collector in the same message, so that they
-run in parallel. The setup helper exports the snapshots into the scratch folder. The collector
-writes the known-issues digest to `<scratch>/known-issues.md`.
+Run the `snapshot` command of [references/structure-checks.md](references/structure-checks.md).
+It exports the snapshots into the scratch folder. Run it before any other write into the
+scratch folder, because it refuses a folder that holds files of another source. Act on its exit
+code as that file says. Then dispatch the known-issues collector. It writes the known-issues
+digest to `<scratch>/known-issues.md`.
 
-Then run the structure check for step 1. For a remote base, record the commit SHA that the
-setup helper reports. Record the limits that it reports, such as submodules or Git LFS files
-that the snapshots do not hold. They go into the Scope section.
+Then run the structure check for step 1. For a remote base, record the commit SHA of the
+`SNAPSHOT: base` line. Record each `LIMIT:` line, such as submodules or Git LFS files that the
+snapshots do not hold. They go into the Scope section.
 
 ### Step 2. Report skeleton
 
 Write the report file from the skeleton in
 [references/report-skeleton.md](references/report-skeleton.md). Fill the Scope section from the
-meta-plan and the setup reply. Write one section for each area, in the approved order. Leave
+meta-plan and the `snapshot` output. Write one section for each area, in the approved order. Leave
 the placeholders in the other sections. The agents replace them. Then write the run context
 file from the template in the same file. If the user chose to reuse the run context file of
 an earlier round, update that file for this run instead. Then run the structure check for step 2.
@@ -215,14 +217,15 @@ at the end of the Summary. Then run the structure check for step 5.
 First, delete the scheduled jobs of the run: run `CronList`, and run `CronDelete` for each job
 ID that the session progress file records.
 
-Dispatch the cleanup helper. Give it the process IDs and start times that the session progress file records from the WARN
-lines of the structure checks. Give it the exact list of paths to delete:
-
-- The scratch folder, with the snapshots, the digest, the tools folder, and every work folder.
-- Every `_bug-hunt-progress-*.md` file in the report folder.
-
-Keep the report file, the run context file, and the `bug-hunt-artifacts` folder. Then run the
-structure check for step 6. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. As the last action before the final
+Run the `delete-temp` command of [references/structure-checks.md](references/structure-checks.md)
+without `--apply`. Pass each process ID and start time that the session progress file records
+from the WARN lines of the structure checks. Its dry run must name only the scratch folder and
+the `_bug-hunt-progress-*.md` files of the report folder. Then run the same command with
+`--apply`. It keeps the report file, the run context file, the `bug-hunt-artifacts` folder, and
+`_bug-hunt-session-progress.md`, and it runs the structure check for step 6 itself. Act on its
+exit code as that file says. Never delete a temporary file by hand, and never run the command
+with another path. The script finds its own targets, and its guards protect the project and the
+report. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. As the last action before the final
 report, delete `_bug-hunt-session-progress.md`.
 
 ### Step 7. Final report

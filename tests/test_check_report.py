@@ -123,7 +123,129 @@ class ValidReportTests(CheckReportCase):
 
     def test_changed_severity_with_was_form_is_legal(self):
         text = edit(fixture("final.md"), "- Severity: High\n", "- Severity: Medium (was High)\n")
+        text = edit(text, "| Area 1 | High | High |", "| Area 1 | Medium | High |")
         self.assertPasses(self.check_text(text))
+
+    def test_final_report_passes_with_snapshots_that_hold_each_location(self):
+        ref, base = self.tmp / "snapshot-ref", self.tmp / "snapshot-base"
+        for root, path, lines in ((ref, "src/orders/export.ext", 142), (ref, "src/invoices/total.ext", 10),
+                                  (ref, "src/invoices/retry.ext", 5), (base, "src/orders/export.ext", 139)):
+            (root / path).parent.mkdir(parents=True, exist_ok=True)
+            (root / path).write_text("x\n" * lines, encoding="utf-8")
+        self.write(fixture("final.md"))
+        self.assertPasses(self.check(2, "final", "--snapshot", ref, "--base-snapshot", base))
+        (base / "src/orders/export.ext").write_text("x\n" * 138, encoding="utf-8")
+        self.assertDefect(self.check(2, "final", "--snapshot", ref, "--base-snapshot", base),
+                          "BH-01: Also on base line 139 is past the end of src/orders/export.ext (138 lines)")
+
+
+class ReferenceAndRowTests(CheckReportCase):
+    """The tests of report that a verifier and the auditor used to make by hand: rows, references, and locations."""
+
+    def snapshot(self, files):
+        root = self.tmp / "snapshot-ref"
+        for path, lines in files.items():
+            (root / path).parent.mkdir(parents=True, exist_ok=True)
+            (root / path).write_text("x\n" * lines, encoding="utf-8")
+        return root
+
+    def test_a_row_that_differs_from_its_entry_gives_one_defect(self):
+        for label, old, new in (("Severity", "| Area 1 | High | High |", "| Area 1 | Low | High |"),
+                                ("Confidence", "| Area 1 | High | High |", "| Area 1 | High | Low |"),
+                                ("Verdict", "| High | High | Confirmed | Yes |", "| High | High | Rejected | Yes |"),
+                                ("Also on base", "| Confirmed | Yes |", "| Confirmed | No |")):
+            with self.subTest(label=label):
+                code, lines = self.check_text(edit(fixture("final.md"), old, new))
+                self.assertEqual([x for x in lines if x.startswith("DEFECT: ")],
+                                 [x for x in lines if x.startswith(f"DEFECT: BH-01: Summary {label} ")])
+                self.assertDefect((code, lines), f"BH-01: Summary {label} ")
+
+    def test_a_row_with_the_new_value_of_a_changed_entry_passes(self):
+        text = edit(fixture("final.md"), "- Confidence: Low\n", "- Confidence: Medium (was Low)\n")
+        self.assertDefect(self.check_text(text), "BH-02: Summary Confidence 'Low' differs")
+        self.assertPasses(self.check_text(edit(text, "| Medium | Low | Unconfirmed", "| Medium | Medium | Unconfirmed")))
+
+    def test_a_row_whose_area_differs_from_the_section_passes(self):
+        self.assertPasses(self.check_text(edit(fixture("final.md"), "| Area 1 | High |", "| Area 2 | High |")))
+
+    def test_a_duplicate_must_name_an_earlier_entry(self):
+        text = edit(fixture("final.md"), "- Verdict: Unconfirmed (needs owner review)\n", "- Verdict: Duplicate of BH-03\n")
+        text = edit(text, "Rejected: 1. Duplicate: 0.", "Rejected: 1. Duplicate: 1.")
+        text = edit(text, "Unconfirmed (needs owner review): 1.", "Unconfirmed (needs owner review): 0.")
+        text = edit(text, "| Unconfirmed (needs owner review) | No |", "| Duplicate of BH-03 | No |")
+        self.assertDefect(self.check_text(text), "BH-02: Duplicate of BH-03 must name an earlier entry")
+        itself = text.replace("Duplicate of BH-03", "Duplicate of BH-02")
+        self.assertDefect(self.check_text(itself), "BH-02: Duplicate of BH-02 must name an earlier entry")
+        earlier = text.replace("Duplicate of BH-03", "Duplicate of BH-01")
+        self.assertPasses(self.check_text(earlier))
+
+    def test_a_reference_to_a_known_issue_must_name_one_of_the_report(self):
+        text = edit(fixture("final.md"), "### New details for known issues\n\nNone.\n\n### BH-02",
+                    "### New details for known issues\n\n- New details for N-02: the same loop.\n\n### BH-02")
+        self.assertDefect(self.check_text(text), "N-02 is not in the Known issues section")
+        known = edit(text, "- #12: Slow export.", "- N-02: Slow import. Source: NOTES.md.\n- #12: Slow export.")
+        self.assertPasses(self.check_text(known))
+
+    def test_a_github_reference_must_be_in_the_digest(self):
+        text = edit(fixture("final.md"), "### New details for known issues\n\nNone.\n\n### BH-02",
+                    "### New details for known issues\n\n- New details for #12: one more case.\n\n### BH-02")
+        code, lines = self.check_text(text)
+        self.assertEqual(code, 0, lines)
+        self.assertTrue(any(x.startswith("WARN: no known-issues digest") for x in lines), lines)
+        self.scratch.mkdir()
+        (self.scratch / "known-issues.md").write_text("# Known-issues digest\n\n- #7: Old bug.\n", encoding="utf-8")
+        self.assertDefect(self.check_text(text), "#12 is not in the known-issues digest")
+        (self.scratch / "known-issues.md").write_text("# Known-issues digest\n\n- #12: Slow export.\n", encoding="utf-8")
+        self.assertPasses(self.check_text(text))
+
+    def test_an_entry_id_counts_only_outside_code(self):
+        text = edit(fixture("final.md"), "Fix idea: Loop to `count`.", "Fix idea: Loop to `count`, as `BH-09` says.")
+        self.assertPasses(self.check_text(text))
+        self.assertDefect(self.check_text(text.replace("as `BH-09` says", "as BH-09 says")),
+                          "the report names BH-09, but no entry has this ID")
+
+    def test_a_location_must_name_a_file_and_a_line_of_the_snapshot(self):
+        self.write(fixture("final.md"))
+        root = self.snapshot({"src/orders/export.ext": 141, "src/invoices/retry.ext": 5})
+        code, lines = self.check(2, "final", "--snapshot", root)
+        self.assertDefect((code, lines), "BH-01: Location line 142 is past the end of src/orders/export.ext (141 lines)")
+        self.assertDefect((code, lines), "BH-02: Location names a file that the snapshot does not hold: src/invoices/total.ext")
+        self.assertEqual(len([x for x in lines if x.startswith("DEFECT: ")]), 2, lines)
+        text = edit(fixture("final.md"), "- Location: `src/invoices/retry.ext:5`", "- Location: `src/invoices/retry.ext:4-6`")
+        self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                          "BH-03: Location line 6 is past the end of src/invoices/retry.ext (5 lines)")
+
+    def test_a_location_out_of_the_snapshot_is_a_defect_and_is_not_read(self):
+        root = self.snapshot({"src/orders/export.ext": 142, "src/invoices/total.ext": 10, "src/invoices/retry.ext": 5})
+        (self.tmp / "outside.ext").write_text("x\n" * 500, encoding="utf-8")
+        text = edit(fixture("final.md"), "- Location: `src/orders/export.ext:142`", "- Location: `../outside.ext:142`")
+        with mock.patch.object(cr, "read", wraps=cr.read) as reads:
+            self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                              "BH-01: Location path leaves the snapshot: ../outside.ext")
+        self.assertNotIn("outside.ext", " ".join(str(call.args[0]) for call in reads.call_args_list))
+
+    def test_the_appendix_with_entries_must_not_say_none_yet(self):
+        text = edit(fixture("final.md"), "## Appendix: rejected findings\n\n", "## Appendix: rejected findings\n\nNone yet.\n\n")
+        self.assertDefect(self.check_text(text), "the appendix holds entries and still says 'None yet.'")
+        self.assertPasses(self.check_text(text, 2, "summary"))
+
+    def test_at_most_one_hundred_defect_lines_and_a_count_line(self):
+        entry = ("### BH-{n:02d}: Entry {n}\n\n- Severity: High\n- Confidence: High\n- Category: Other: x\n"
+                 "- Location: `a.ext:1`\n- Also on base: No (new in the analyzed commit)\n- Verdict: Confirmed\n\n"
+                 "Problem: x.\n\nFailure scenario: x.\n\nEvidence: x.\n\nFix idea: x.\n\nVerification: x.\n\n")
+        rows = "".join(f"| BH-{n:02d} | Entry {n} | Area 1 | Low | High | Confirmed | No |\n" for n in range(1, 151))
+        text = (f"# Bug hunt report: p\n\n## Scope\n\nx\n\n## Summary\n\nFindings: 150. Confirmed: 150. "
+                "Unconfirmed (needs owner review): 0. Rejected: 0. Duplicate: 0.\n\n"
+                "| ID | Title | Area | Severity | Confidence | Verdict | Also on base |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+                f"{rows}\n### For the owner's review\n\nNone.\n\n## Known issues that this report does not repeat\n\nNone.\n\n"
+                "## Area 1: All\n\n### New details for known issues\n\nNone.\n\n"
+                + "".join(entry.format(n=n) for n in range(1, 151))
+                + "### Notes for other areas\n\nNone.\n\n## Appendix: rejected findings\n\nNone yet.\n")
+        code, lines = self.check_text(text, 1, "final")
+        defects = [x for x in lines if x.startswith("DEFECT: ")]
+        self.assertEqual(code, 1)
+        self.assertEqual(len(defects), 101, defects[-3:])
+        self.assertEqual(defects[-1], "DEFECT: 50 more defects. Fix the defects above, then run the check again")
 
 
 class StructureDefectTests(CheckReportCase):

@@ -5,7 +5,7 @@ The orchestrator reads this file at step 0 and follows "Step 0 procedure". After
 ## Step 0 procedure
 
 1. Resolve the inputs from the arguments and the defaults. Do not guess the report folder. Take the GitHub repository as the Inputs table says. This is the documented exception in `dev-essentials:github-mcp-conventions` Rule 1. Find out whether the report folder exists. If it is missing, ask. Else list the files in it that start with `bug-hunt` or `_bug-hunt`.
-2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder.
+2. Pick the scratch folder. If the environment gives a session scratchpad directory, use it with a `bug-hunt` subfolder. Else, create a new folder in the system temp folder, for example `bug-hunt-<YYYYMMDD-HHMM>`. The scratch folder must not be inside the project or the report folder. It must be missing or empty, because the `snapshot` command of step 1 refuses a folder with files of another source.
 3. Dispatch the scoping helper. It proposes the areas from the tree of the analyzed commit.
 4. Look for `simple-english:simple-english` in the list of available skills.
 5. Write the meta-plan in chat, with every part that "Parts of the meta-plan" lists.
