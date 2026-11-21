@@ -1,5 +1,5 @@
 ---
-description: A full trim pass on 12 notes files. The pass must cut two planted passages, delete the approved session log and its emptied folder, and fix the index line that cites the log. The decision blocks, the ids, and the uncertainty markers must stay. The backup must stay in the run folder.
+description: A full trim pass on 12 notes files. The pass must cut two planted passages, delete the approved session log and its emptied folder, and fix the index line that cites the log. The decision blocks, the ids, the uncertainty markers, and each other notes file must stay. The backup must stay in the run folder.
 tags: [trim-artifacts, route]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite, TaskCreate, TaskList, TaskUpdate]
 max_turns: 200
