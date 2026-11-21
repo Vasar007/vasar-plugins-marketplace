@@ -13,6 +13,7 @@ import contextlib
 import io
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -21,11 +22,12 @@ from pathlib import Path
 from unittest import mock
 
 from support import REPO, load_module, tool_missing
-from testkit import ScratchCase, run
+from testkit import ScratchCase, git_init, run
 
 SCRIPT = REPO / "essentials/dev-essentials/skills/bug-hunt/scripts/check_report.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "bug-hunt"
 cr = load_module("check_report", SCRIPT)
+REAL_PROCESS_SCAN = cr.list_processes
 
 
 def fixture(name):
@@ -465,6 +467,422 @@ class CommandLineTests(unittest.TestCase):
                                      "--areas-done", "0", "--stage", "search")
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("DEFECT: first line is not", result.stdout)
+
+
+class GitCase(CheckReportCase):
+    """A test case with a git repository in self.repo. The repository has no commit yet."""
+
+    def setUp(self):
+        super().setUp()
+        self.repo = git_init(self.tmp / "repo")
+        self.git(self.repo, "config", "core.autocrlf", "false")
+
+    def git(self, repo, *args):
+        return run(["git", "-C", repo, *args], check=True).stdout.strip()
+
+    def commit(self, files, links=(), message="change"):
+        """Write and commit files, a dict of name to bytes. Each link (name, target) goes in with no file on disk."""
+        for name, data in files.items():
+            path = self.repo / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        if files:
+            self.git(self.repo, "add", "--", *files)
+        for name, target in links:
+            blob = run(["git", "-C", self.repo, "hash-object", "-w", "--stdin"], stdin=target, check=True).stdout.strip()
+            self.git(self.repo, "update-index", "--add", "--cacheinfo", f"120000,{blob},{name}")
+        self.git(self.repo, "commit", "-q", "-m", message)
+        return self.git(self.repo, "rev-parse", "HEAD")
+
+    def assertRefused(self, result, text):
+        code, lines = result
+        self.assertEqual(code, 2, "\n".join(lines))
+        self.assertTrue(any(line.startswith("REFUSED: ") and text in line for line in lines),
+                        f"no REFUSED line with {text!r}:\n" + "\n".join(lines))
+
+
+class SnapshotTests(GitCase):
+    FILES = {"README.md": b"# Shop\n", "src/orders/export.py": b"rows = []\r\n", "data/logo.bin": b"\x00\x01\xff"}
+
+    def snapshot(self, sha, *extra, scratch=None):
+        return self.run_main("snapshot", "--repo", self.repo, "--ref-sha", sha, "--scratch", scratch or self.scratch,
+                             *(extra or ("--base-from", "none")))
+
+    def test_ref_snapshot_holds_each_tracked_file_with_its_bytes(self):
+        sha = self.commit(self.FILES)
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        for name, data in self.FILES.items():
+            self.assertEqual((self.scratch / "snapshot-ref" / name).read_bytes(), data, name)
+        self.assertTrue((self.scratch / "work").is_dir() and (self.scratch / "tools").is_dir())
+        self.assertIn(f"SNAPSHOT: ref {self.scratch / 'snapshot-ref'} files=3 git=3", lines)
+        self.assertIn("SNAPSHOT: base none (no base comparison)", lines)
+
+    def test_snapshot_reads_no_work_tree_file_and_keeps_the_index(self):
+        sha = self.commit(self.FILES)
+        (self.repo / "README.md").write_bytes(b"# Changed\n")
+        (self.repo / "untracked.txt").write_bytes(b"new\n")
+        status = self.git(self.repo, "status", "--porcelain")
+        index = os.stat(self.repo / ".git" / "index").st_mtime_ns
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual((self.scratch / "snapshot-ref" / "README.md").read_bytes(), b"# Shop\n")
+        self.assertFalse((self.scratch / "snapshot-ref" / "untracked.txt").exists())
+        self.assertEqual(os.stat(self.repo / ".git" / "index").st_mtime_ns, index)
+        self.assertEqual(self.git(self.repo, "status", "--porcelain"), status)
+
+    def test_local_base_with_the_same_sha_makes_no_base_snapshot(self):
+        sha = self.commit(self.FILES)
+        code, lines = self.snapshot(sha, "--base-from", "local", "--base-sha", sha)
+        self.assertEqual(code, 0, lines)
+        self.assertFalse((self.scratch / "snapshot-base").exists())
+        self.assertIn("SNAPSHOT: base none (the analyzed commit is the base)", lines)
+
+    def test_local_base_with_another_sha_exports_that_commit(self):
+        base = self.commit(self.FILES)
+        ref = self.commit({"README.md": b"# Shop 2\n"})
+        code, lines = self.snapshot(ref, "--base-from", "local", "--base-sha", base)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual((self.scratch / "snapshot-ref" / "README.md").read_bytes(), b"# Shop 2\n")
+        self.assertEqual((self.scratch / "snapshot-base" / "README.md").read_bytes(), b"# Shop\n")
+        self.assertIn(f"SNAPSHOT: base {self.scratch / 'snapshot-base'} sha={base} files=3 git=3", lines)
+
+    def remote(self):
+        """Commit the files, make a branch release with one more commit, and a bare copy. Return its URL and SHAs."""
+        ref = self.commit(self.FILES)
+        self.git(self.repo, "switch", "-q", "-c", "release")
+        head = self.commit({"README.md": b"# Release\n"})
+        self.git(self.repo, "switch", "-q", "-")
+        run(["git", "clone", "-q", "--bare", self.repo, self.tmp / "origin.git"], check=True)
+        return (self.tmp / "origin.git").as_uri(), ref, head
+
+    def test_remote_base_with_a_relative_scratch_folder_lands_in_that_folder(self):
+        url, ref, head = self.remote()
+        here = os.getcwd()
+        self.addCleanup(os.chdir, here)
+        os.chdir(self.tmp)
+        code, lines = self.snapshot(ref, "--base-from", "remote", "--base-branch", "release", "--base-url", url,
+                                    scratch="scratch")
+        self.assertEqual(code, 0, lines)
+        self.assertTrue((self.scratch / "snapshot-base" / "README.md").is_file(), lines)
+
+    def test_remote_base_clones_the_branch_and_prints_its_head(self):
+        url, ref, head = self.remote()
+        code, lines = self.snapshot(ref, "--base-from", "remote", "--base-branch", "release", "--base-url", url)
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"SNAPSHOT: base {self.scratch / 'snapshot-base'} sha={head} files=3 git=3", lines)
+        # A clone writes the line ends of core.autocrlf, as a checkout does.
+        self.assertEqual((self.scratch / "snapshot-base" / "README.md").read_text(encoding="utf-8"), "# Release\n")
+
+    def test_scratch_folder_inside_or_around_the_repository_is_refused(self):
+        sha = self.commit(self.FILES)
+        for scratch in (self.repo / "scratch", self.tmp):
+            with self.subTest(scratch=scratch):
+                before = sorted(self.tmp.rglob("*"))
+                self.assertRefused(self.snapshot(sha, scratch=scratch), "the repository folder")
+                self.assertEqual(sorted(self.tmp.rglob("*")), before)
+
+    def test_snapshot_folder_that_is_not_empty_is_refused(self):
+        sha = self.commit(self.FILES)
+        for name in ("snapshot-ref", "snapshot-base"):
+            with self.subTest(name=name):
+                (self.scratch / name).mkdir(parents=True)
+                (self.scratch / name / "old.txt").write_text("old")
+                self.assertRefused(self.snapshot(sha), f"{name} exists and is not an empty folder")
+                self.assertEqual(sorted(p.name for p in self.scratch.iterdir()), [name])
+                shutil.rmtree(self.scratch)
+
+    def test_missing_or_short_values_are_refused(self):
+        sha = self.commit(self.FILES)
+        cases = ((("--base-from", "local"), "--base-from local needs --base-sha"),
+                 (("--base-from", "remote", "--base-branch", "main"), "--base-from remote needs --base-branch and"),
+                 (("--base-from", "local", "--base-sha", sha[:12]), "--base-sha is not a full commit SHA"))
+        for extra, text in cases:
+            with self.subTest(text=text):
+                self.assertRefused(self.snapshot(sha, *extra), text)
+                self.assertFalse(self.scratch.exists())
+
+    def test_submodules_export_ignore_and_lfs_give_limit_lines(self):
+        sha = self.commit({**self.FILES, ".gitmodules": b'[submodule "lib"]\n\tpath = lib\n\turl = ../lib\n',
+                           ".gitattributes": b"docs/** export-ignore\n*.psd filter=lfs diff=lfs merge=lfs -text\n",
+                           "docs/guide.md": b"# Guide\n"})
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        limits = [line for line in lines if line.startswith("LIMIT: ref snapshot: ")]
+        for word in ("submodules", "export-ignore", "filter=lfs"):
+            self.assertEqual(len([line for line in limits if word in line]), 1, lines)
+        self.assertFalse((self.scratch / "snapshot-ref" / "docs" / "guide.md").exists())
+        self.assertTrue(any(line.startswith("WARN: the ref snapshot has 5 files, and git lists 6") for line in lines),
+                        lines)
+
+    def test_link_to_an_absolute_path_gives_a_limit_line_and_the_rest_lands(self):
+        outside = self.tmp / "outside.txt"
+        outside.write_text("secret")
+        sha = self.commit(self.FILES, links=[("abs", str(outside))])
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        self.assertTrue(any(line.startswith("LIMIT: ref snapshot: abs is not in the snapshot") for line in lines),
+                        lines)
+        self.assertFalse(os.path.lexists(self.scratch / "snapshot-ref" / "abs"))
+        self.assertEqual((self.scratch / "snapshot-ref" / "src/orders/export.py").read_bytes(), b"rows = []\r\n")
+
+    def test_commit_that_does_not_exist_gives_exit_1_and_the_git_error(self):
+        self.commit(self.FILES)
+        code, lines = self.snapshot("0" * 40)
+        self.assertEqual(code, 1, lines)
+        self.assertTrue(any(line.startswith("ERROR: git rev-parse --verify ") and "fatal:" in line
+                            for line in lines), lines)
+        self.assertFalse(self.scratch.exists())
+
+    def test_output_has_at_most_40_lines(self):
+        outside = str(self.tmp / "outside.txt")
+        sha = self.commit(self.FILES, links=[(f"link{i:02d}", outside) for i in range(60)])
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(len(lines), 40, lines)
+        self.assertEqual(lines[-1], "... 24 more lines")
+        self.assertTrue(lines[0].startswith("SNAPSHOT: ref "), lines)
+
+
+class DeleteTempTests(GitCase):
+    """delete-temp on a scratch folder with the layout of a run, and a report folder with the files of a run."""
+
+    KEPT = ("bug-hunt-report.md", "bug-hunt-context.md", "bug-hunt-artifacts/BH-01/repro.md",
+            "_bug-hunt-session-progress.md", "notes.md")
+    PROGRESS = ("_bug-hunt-progress-orders.md", "_bug-hunt-progress-audit.md")
+
+    def setUp(self):
+        super().setUp()
+        self.commit({"README.md": b"# Shop\n"})
+        for name in ("snapshot-ref/README.md", "snapshot-base/README.md", "work/hunter-1/log.txt", "tools/x.txt",
+                     "known-issues.md"):
+            path = self.scratch / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("x")
+        for name in self.KEPT + self.PROGRESS:
+            path = self.report_dir / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("x")
+
+    def delete(self, *extra, scratch=None, repo=None, report_dir=None):
+        return self.run_main("delete-temp", "--report-dir", report_dir or self.report_dir,
+                             "--scratch", scratch or self.scratch, "--repo", repo or self.repo, *extra)
+
+    def tree(self, folder=None):
+        """Each path below folder, without a walk into a link."""
+        found = []
+        for top, dirs, files in os.walk(folder or self.tmp):
+            found += [os.path.join(top, name) for name in dirs + files]
+        return sorted(found)
+
+    def link(self, path, target, folder=False):
+        try:
+            Path(path).symlink_to(target, target_is_directory=folder)
+        except OSError as error:
+            self.skipTest(f"no right to make a link: {error}")
+
+    def test_without_apply_nothing_changes(self):
+        before = self.tree()
+        code, lines = self.delete()
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(self.tree(), before)
+        expected = [f"WOULD DELETE: {path}" for path in [self.scratch] + sorted(
+            self.report_dir / name for name in self.PROGRESS)]
+        self.assertEqual(lines, expected)
+
+    def test_apply_deletes_the_scratch_folder_with_read_only_files(self):
+        objects = self.scratch / "snapshot-base" / ".git" / "objects" / "ab"
+        objects.mkdir(parents=True)
+        (objects / "cdef").write_text("blob")
+        os.chmod(objects / "cdef", stat.S_IREAD)
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(self.scratch.exists())
+        self.assertIn(f"DELETED: {self.scratch}", lines)
+
+    def test_apply_keeps_the_report_files_and_deletes_only_progress_files(self):
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        for name in self.KEPT:
+            self.assertTrue((self.report_dir / name).is_file(), name)
+        for name in self.PROGRESS:
+            self.assertFalse((self.report_dir / name).exists(), name)
+
+    def test_apply_gives_exit_1_when_the_cleanup_check_finds_a_left_file(self):
+        (self.report_dir / "_bug-hunt-hunter-2.md").write_text("x")
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 1, lines)
+        self.assertIn("DEFECT: progress file left: _bug-hunt-hunter-2.md", lines)
+
+    def test_scratch_folder_in_the_repository_is_refused(self):
+        inside = self.repo / "scratch"
+        shutil.copytree(self.scratch, inside)
+        before = self.tree()
+        self.assertRefused(self.delete("--apply", scratch=inside), "is inside the repository folder")
+        self.assertEqual(self.tree(), before)
+
+    def test_scratch_folder_and_report_folder_that_meet_are_refused(self):
+        for report_dir, text in ((self.scratch / "work" / "reports", "holds the report folder"),
+                                 (self.scratch, "is the report folder"),
+                                 (self.report_dir, "is inside the report folder")):
+            with self.subTest(text=text):
+                scratch = self.report_dir / "scratch" if text.endswith("inside the report folder") else self.scratch
+                scratch.mkdir(exist_ok=True)
+                report_dir.mkdir(exist_ok=True)
+                before = self.tree()
+                self.assertRefused(self.delete("--apply", scratch=scratch, report_dir=report_dir), text)
+                self.assertEqual(self.tree(), before)
+
+    def test_home_folder_and_temp_root_are_refused(self):
+        home = self.scratch / "work" / "user"
+        home.mkdir()
+        cases = (({"HOME": str(self.scratch), "USERPROFILE": str(self.scratch)}, None, "is the home folder"),
+                 ({"HOME": str(home), "USERPROFILE": str(home)}, None, "holds the home folder"),
+                 ({}, str(self.scratch), "is the temp root"))
+        for env, temp, text in cases:
+            with self.subTest(text=text):
+                before = self.tree()
+                with mock.patch.dict(os.environ, env), \
+                        mock.patch.object(cr.tempfile, "gettempdir", return_value=temp or tempfile.gettempdir()):
+                    self.assertRefused(self.delete("--apply"), text)
+                self.assertEqual(self.tree(), before)
+
+    def test_drive_root_is_refused(self):
+        root = Path(self.tmp.anchor)
+        self.assertRefused(self.delete(scratch=root), "is a drive root or a mount point")
+
+    def test_scratch_folder_that_is_a_link_is_refused(self):
+        link = self.tmp / "scratch-link"
+        self.link(link, self.scratch, folder=True)
+        before = self.tree()
+        self.assertRefused(self.delete("--apply", scratch=link), "is a link or a junction")
+        self.assertEqual(self.tree(), before)
+
+    def test_link_inside_the_scratch_folder_goes_and_its_target_stays(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "keep.txt").write_text("keep")
+        self.link(self.scratch / "work" / "file-link", outside / "keep.txt")
+        self.link(self.scratch / "work" / "folder-link", outside, folder=True)
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(os.path.lexists(self.scratch))
+        self.assertEqual((outside / "keep.txt").read_text(), "keep")
+
+    @unittest.skipUnless(os.name == "nt", "a junction exists only on Windows")
+    def test_junction_as_the_scratch_folder_or_inside_it(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "keep.txt").write_text("keep")
+        junction = self.tmp / "scratch-junction"
+        run(["cmd", "/c", "mklink", "/J", junction, self.scratch], check=True)
+        before = self.tree()
+        self.assertRefused(self.delete("--apply", scratch=junction), "is a link or a junction")
+        self.assertEqual(self.tree(), before)
+        os.rmdir(junction)
+        run(["cmd", "/c", "mklink", "/J", self.scratch / "work" / "linked", outside], check=True)
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(os.path.lexists(self.scratch))
+        self.assertEqual((outside / "keep.txt").read_text(), "keep")
+
+    def test_scratch_folder_in_another_worktree_of_the_repository_is_refused(self):
+        linked = self.tmp / "linked"
+        self.git(self.repo, "worktree", "add", "-q", "-b", "side", linked)
+        bare = self.tmp / "bare.git"
+        run(["git", "clone", "-q", "--bare", self.repo, bare], check=True)
+        cases = ((linked / "scratch", self.repo, "the repository folder"),
+                 (self.repo / "scratch", linked, "the repository folder"),
+                 (bare / "scratch", bare, "the repository folder"))
+        for scratch, repo, text in cases:
+            with self.subTest(scratch=scratch.relative_to(self.tmp), repo=repo.name):
+                shutil.copytree(self.scratch, scratch)
+                before = self.tree()
+                self.assertRefused(self.delete("--apply", scratch=scratch, repo=repo), text)
+                self.assertEqual(self.tree(), before)
+
+    def test_worktree_inside_the_scratch_folder_is_refused(self):
+        other = git_init(self.tmp / "other")
+        run(["git", "-C", other, "commit", "-q", "--allow-empty", "-m", "start"], check=True)
+        for source, text in ((other, "is a worktree or a repository whose git folder is outside"),
+                             (self.repo, "holds the repository folder")):
+            with self.subTest(source=source.name):
+                inner = self.scratch / "work" / f"wt-{source.name}"
+                self.git(source, "worktree", "add", "-q", "--detach", inner)
+                (inner / "draft.txt").write_text("work in progress")
+                self.assertRefused(self.delete("--apply"), text)
+                self.assertEqual((inner / "draft.txt").read_text(), "work in progress")
+                self.git(source, "worktree", "remove", "--force", inner)
+
+    def test_clone_that_the_run_made_inside_the_scratch_folder_is_deleted(self):
+        clone = self.scratch / "tools" / "lib"
+        run(["git", "clone", "-q", self.repo, clone], check=True)
+        self.git(clone, "worktree", "add", "-q", "--detach", self.scratch / "work" / "lib-wt")
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(self.scratch.exists())
+
+    def test_folder_with_entries_that_a_run_does_not_make_is_refused(self):
+        other = git_init(self.tmp / "other")
+        bare = self.tmp / "bare.git"
+        run(["git", "init", "-q", "--bare", bare], check=True)
+        (self.scratch / "src").mkdir()
+        for scratch, name in ((self.scratch, "src"), (self.repo, ".git"), (bare, "HEAD")):
+            with self.subTest(name=name):
+                before = self.tree()
+                self.assertRefused(self.delete("--apply", scratch=scratch, repo=other),
+                                   f"holds entries that a bug hunt does not make: {name}")
+                self.assertEqual(self.tree(), before)
+
+    def test_process_with_the_scratch_folder_and_its_start_time_stops(self):
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", str(self.scratch)],
+                                 cwd=self.scratch / "work")
+        self.addCleanup(child.wait, 30)
+        self.addCleanup(child.kill)
+        records = REAL_PROCESS_SCAN()
+        if records is None:
+            tool_missing(self, "the process list command (PowerShell or ps) is not available")
+        started = next(started for pid, _, started, _ in records if pid == child.pid)
+        result = run([sys.executable, "-I", SCRIPT, "delete-temp", "--report-dir", self.report_dir,
+                      "--scratch", self.scratch, "--repo", self.repo, "--pid", f"{child.pid}={started}", "--apply"],
+                     timeout=180)
+        self.assertResult(result, 0, f"STOPPED: pid={child.pid}", f"DELETED: {self.scratch}")
+        self.assertIsNotNone(child.wait(30))
+
+    def test_process_with_another_start_time_does_not_stop(self):
+        record = (4242, 1, "Wed Oct 15 09:00:00 2026", f"python3 serve.py {self.scratch}")
+        with mock.patch.object(cr, "list_processes", return_value=[record]), mock.patch.object(cr, "stop") as stop:
+            code, lines = self.delete("--apply", "--pid", "4242=Wed Oct 15 09:30:00 2026")
+        self.assertEqual(code, 0, lines)
+        stop.assert_not_called()
+        self.assertTrue(any(line.startswith("NOT STOPPED: pid=4242: it started at") for line in lines), lines)
+
+    def test_process_that_does_not_name_the_scratch_folder_or_runs_the_script_does_not_stop(self):
+        started = "Wed Oct 15 09:00:00 2026"
+        cases = (((4242, 1, started, "python3 serve.py /srv/app"), "does not name the scratch folder"),
+                 ((os.getpid(), 1, started, f"python3 check_report.py {self.scratch}"), "runs this script"))
+        for record, text in cases:
+            with self.subTest(text=text):
+                with mock.patch.object(cr, "list_processes", return_value=[record]), \
+                        mock.patch.object(cr, "stop") as stop:
+                    code, lines = self.delete("--pid", f"{record[0]}={started}")
+                self.assertEqual(code, 0, lines)
+                stop.assert_not_called()
+                self.assertTrue(any(line.startswith("NOT STOPPED: ") and text in line for line in lines), lines)
+
+    def test_missing_scratch_folder_gives_not_found_and_exit_0(self):
+        shutil.rmtree(self.scratch)
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"NOT FOUND: {self.scratch}", lines)
+
+    def test_output_has_at_most_40_lines(self):
+        for i in range(50):
+            (self.report_dir / f"_bug-hunt-progress-area-{i:02d}.md").write_text("x")
+        code, lines = self.delete()
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(len(lines), 40, lines)
+        self.assertEqual(lines[-1], "... 14 more lines")
 
 
 if __name__ == "__main__":
