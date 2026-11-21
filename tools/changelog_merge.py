@@ -58,7 +58,8 @@ The script refuses, and writes nothing, in each of these cases:
   - A line that the branch added to CHANGELOG.md is not in the result.
   - The result has a line of CHANGELOG.md more often or less often than the two sides keep it, for example
     a line that a side removed or changed since the merge base.
-  - Both sides have an entry with the same first line under one heading, but with other indented lines or table rows.
+  - Both sides have an entry with the same first line under one heading, but with other indented lines
+    or table rows.
   - A --keep-both file has no conflict, or a conflict marker stays after the step.
 
 Output lines, one fact on each line: MODE, OURS, THEIRS, BASE, HEADING, DROPPED, ABSORBED, ADDED, LINK,
@@ -208,12 +209,14 @@ def merge_block(target, extra, kind):
         while found and at < len(lines) and not lines[at].startswith("### "):
             at += 1
         present, new, keep, bullet = set(lines[start:at]), [], True, None
+        first = next((line for line in lines[start:at] if line.strip()), None)
         # A first line that is no "- " bullet is not in the map, so its indented line can be in any place of the subsection.
         below = indented_lines(LF.join(line for line in lines[start:at] if line.strip()))
         for line in body:
             # A line of CONTINUED or a blank line belongs to the line above it. A first line of CONTINUED is the key of its entry.
             if line and (bullet is None or not line.startswith(CONTINUED)):
-                keep, bullet = line not in present, line
+                # An entry with no bullet above it can only be the first entry of the target, so only its first line matches.
+                keep, bullet = (line != first if line.startswith(CONTINUED) else line not in present), line
             elif not keep and line and line not in below.get(bullet, present):
                 raise Refused(f"both sides have the entry '{bullet}' with other indented lines or table rows, so merge {CHANGELOG} by hand")
             if keep:

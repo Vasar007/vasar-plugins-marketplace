@@ -1135,6 +1135,36 @@ class UnreleasedTests(MergeCase):
         self.tool(clone, "unreleased")
         self.assertEqual(self.text(clone, "CHANGELOG.md"), main["CHANGELOG.md"])
 
+    def test_indented_line_with_no_bullet_above_it_that_an_entry_of_main_has_stays(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n- an entry of main\n  - see docs/testing.md\n\n")
+        clone = self.merge(self.branch("### Changed in the repository\n\n  - see docs/testing.md\n\n"), main=main)
+        self.tool(clone, "unreleased")
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertEqual(text.count("  - see docs/testing.md\n"), 2, text)
+
+    def test_table_with_no_bullet_above_it_that_an_entry_of_main_has_stays(self):
+        table = "| Key | Value |\n| --- | --- |\n| `x` | `y` |\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(
+            TOP, TOP + "### Changed in the repository\n\n- an entry of main\n" + table + "\n")
+        clone = self.merge(self.branch("### Changed in the repository\n\n" + table + "\n"), main=main)
+        self.tool(clone, "unreleased")
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertEqual(text.count(table), 2, text)
+
+    def test_entry_of_both_sides_with_another_table_row_refuses(self):
+        block = "### Changed in the repository\n\n" + TABLE + "\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + block.replace("`b`", "`c`"))
+        clone = self.merge(self.branch(block), main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, "unreleased", code=3)
+        self.assertIn("STOP both sides have the entry '- the entry with a table' with other indented lines or table rows, "
+                      "so merge CHANGELOG.md by hand\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_bullet_after_a_blank_line_below_an_entry_of_the_base_is_no_refusal(self):
         block = "### Changed in the repository\n\n- an entry of the base\n\n"
         base = dict(BASE)
