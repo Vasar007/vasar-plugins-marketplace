@@ -2177,6 +2177,108 @@ class NoWorktreeDirtyGraderTests(FixtureCase):
                 self.assertEqual(self.passes("names-changed-file", reply), expected)
 
 
+class BugHuntFlowGraderTests(FixtureCase):
+    """The scored graders of bh-flow on real end states. The snapshot and delete-temp commands run as a right run runs them.
+
+    A file_exists grader sees only the paths that the run created, so each shape lists the files before the run first.
+    """
+
+    CASE = "bh-flow"
+    SCRIPT = REPO / "essentials/dev-essentials/skills/bug-hunt/scripts/check_report.py"
+    SCORED = ("report-final", "scratch-removed", "temp-files-removed", "context-kept", "project-unchanged",
+              "invoice-kept", "cache-kept", "retry-kept", "email-kept", "stock-kept")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def files(self, workspace):
+        return {path.relative_to(workspace).as_posix() for path in workspace.rglob("*") if path.is_file()}
+
+    def run_skill_command(self, command, workspace):
+        """Run a command line of the skill in bash, with python3 as the Python of the tests."""
+        env = dict(self.environment(), PY=sys.executable.replace("\\", "/"), C=self.SCRIPT.as_posix(),
+                   P=(workspace / "project").as_posix(), S=(workspace / "scratch").as_posix(),
+                   D=(workspace / "reports").as_posix())
+        done = run([self.bash, "-c", f'python3() {{ "$PY" "$@"; }}\n{command}'], env=env, cwd=workspace, timeout=120)
+        self.assertEqual(done.returncode, 0, f"{command} failed:\n{done.stdout}\n{done.stderr}")
+
+    def right_run(self, workspace):
+        """The files that a right run leaves: the snapshot first, the report, and the delete of step 6.
+
+        The commands come from the text of structure-checks.md, so a wrong option name in the text fails the test.
+        """
+        _, sha = self.git(workspace / "project", "rev-parse", "HEAD")
+        text = (REPO / "essentials/dev-essentials/skills/bug-hunt/references/structure-checks.md").read_text(encoding="utf-8")
+        snapshot, delete = re.findall(r"`(python3 -I \"\$C\" (?:snapshot|delete-temp) [^`]+)`", text)
+        self.run_skill_command(snapshot.replace("<full SHA>", sha).replace("<local|remote|none>", "none"), workspace)
+        (workspace / "scratch" / "known-issues.md").write_text("# Known-issues digest\n\n- N-01: build_subject\n", encoding="utf-8")
+        reports = workspace / "reports"
+        (reports / "bug-hunt-report.md").write_text(
+            "# Bug hunt report: project\n\n## Summary\n\nFindings: 0.\n\n### For the owner's review\n\nNone.\n", encoding="utf-8")
+        (reports / "bug-hunt-context.md").write_text("# Run context\n", encoding="utf-8")
+        for name in ("_bug-hunt-session-progress.md", "_bug-hunt-progress-area-1.md"):
+            (reports / name).write_text("STATUS: done\n", encoding="utf-8")
+        self.run_skill_command(delete, workspace)
+        self.run_skill_command(delete + " --apply", workspace)
+        (reports / "_bug-hunt-session-progress.md").unlink()
+
+    def verdicts(self, workspace, before):
+        created = sorted(self.files(workspace) - before)
+        result = {}
+        for name in self.SCORED:
+            meta = self.case.graders[name][0]
+            if meta["type"] == "file_exists":
+                glob = re.escape(meta["path"]).replace(r"\*\*", ".*").replace(r"\*", "[^/]*")
+                hit = any(re.fullmatch(glob, path) for path in created)
+                result[name] = hit == meta["exists"]
+            else:
+                path = workspace / meta["target"]["path"]
+                result[name] = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8")) is not None
+        return result
+
+    def test_a_right_run_passes_each_scored_grader_and_each_wrong_run_fails_its_grader(self):
+        def edit(path, old, new):
+            text = path.read_text(encoding="utf-8")
+            self.assertIn(old, text)
+            path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+        def leave_a_work_file(workspace):
+            (workspace / "scratch" / "work").mkdir(parents=True)
+            (workspace / "scratch" / "work" / "left.txt").write_text("x\n", encoding="utf-8")
+
+        def add_a_deep_file(workspace):
+            (workspace / "project" / "billing" / "__pycache__").mkdir(parents=True, exist_ok=True)
+            (workspace / "project" / "billing" / "__pycache__" / "invoice.pyc").write_text("x\n", encoding="utf-8")
+
+        shapes = {
+            "a right run": (lambda w: None, None),
+            "the scratch folder stays": (leave_a_work_file, "scratch-removed"),
+            "a progress file stays": (lambda w: (w / "reports" / "_bug-hunt-progress-area-1.md").write_text("x\n"),
+                                      "temp-files-removed"),
+            "the session progress file stays": (lambda w: (w / "reports" / "_bug-hunt-session-progress.md").write_text("x\n"),
+                                                "temp-files-removed"),
+            "the delete takes the run context file": (lambda w: (w / "reports" / "bug-hunt-context.md").unlink(), "context-kept"),
+            "the run stops before step 5": (lambda w: edit(w / "reports" / "bug-hunt-report.md", "### For the owner's review\n", ""),
+                                            "report-final"),
+            "a new file in the project": (lambda w: (w / "project" / "fix.py").write_text("x\n"), "project-unchanged"),
+            "a new file deep in the project": (add_a_deep_file, "project-unchanged"),
+            "a fix of a planted bug": (lambda w: edit(w / "project" / "billing" / "invoice.py", "return int(total)",
+                                                      "return round(total, 2)"), "invoice-kept"),
+            "a deleted file of the project": (lambda w: (w / "project" / "inventory" / "stock.py").unlink(), "stock-kept"),
+        }
+        for name, (shape, failed) in shapes.items():
+            with self.subTest(shape=name):
+                workspace = self.workspace(name.replace(" ", "-"))
+                self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+                before = self.files(workspace)
+                self.right_run(workspace)
+                shape(workspace)
+                verdicts = self.verdicts(workspace, before)
+                self.assertEqual(sorted(grader for grader, passed in verdicts.items() if not passed),
+                                 [failed] if failed else [])
+
+
 class OptimizeSkillFixtureTests(FixtureCase):
     """The fixture of os-review-fixes holds the seeded issues and the lost rule. Its file graders fail on the fixture
     where they must, pass on a right run with two commits, and fail on a lost rule, a third commit, and a push."""

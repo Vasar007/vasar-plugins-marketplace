@@ -11,12 +11,10 @@ progress-file rules in their agent files. Their briefs hold only the values for 
 - Placeholders
 - Shared blocks
 - Scoping helper (step 0, general-purpose)
-- Setup helper (step 1, general-purpose)
 - Known-issues collector (step 1, general-purpose)
 - Hunter (step 3, dev-essentials:bug-hunter)
 - Verifier (step 4, dev-essentials:bug-verifier)
 - Auditor (step 5, dev-essentials:bug-report-auditor)
-- Cleanup helper (step 6, general-purpose)
 
 In the collector brief, `<crash-safety block>` stands for the shared block below. Paste it
 in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
@@ -31,8 +29,6 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{GITHUB}` | `owner/repo`, or "none" |
 | `{REF}`, `{REF_SHA}` | Analyzed branch or commit, and its full SHA |
 | `{BASE}`, `{BASE_SHA}` | Base branch name without the remote prefix (for example `main`, not `origin/main`), and its full SHA |
-| `{BASE_FROM}` | `local`, `remote`, or `none` |
-| `{BASE_URL}` | Clone URL of the repository for a remote base. If the user accepted `{GITHUB}`, use `https://github.com/{GITHUB}.git`. Else use the URL from `git remote get-url origin`. "none" for a local base. |
 | `{SCRATCH}` | Absolute path of the scratch folder |
 | `{SNAP_REF}` | `{SCRATCH}/snapshot-ref` |
 | `{SNAP_BASE}` | `{SCRATCH}/snapshot-base`, or "none: the analyzed commit is the base", or "none: no base comparison" |
@@ -41,7 +37,6 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{RUN_CONTEXT}` | Absolute path of `bug-hunt-context.md` in `{REPORT_DIR}` |
 | `{CHECK_CMD}` | The full structure check command for this agent from `references/structure-checks.md`, with `--allow` and the name of its progress file |
 | `{OPEN_NOTES}` | The output lines of the `open-notes` command for the areas of this verifier part, or "none" |
-| `{PID_LIST}` | Process IDs with their start times (`pid=` and `started=`) from the WARN lines that the session progress file records, or "none" |
 | `{DIGEST}` | `{SCRATCH}/known-issues.md` |
 | `{REPORT_DIR}` | Absolute path of the report folder |
 | `{REPORT_PATH}` | Absolute path of the report file |
@@ -59,7 +54,6 @@ in full. If `{RESUME_NOTE}` or `{REPAIR_NOTE}` is empty, leave it out.
 | `{PLAIN_ENGLISH}` | One of the plain-English blocks below |
 | `{RESUME_NOTE}` | The resume note below, or nothing |
 | `{REPAIR_NOTE}` | The repair note below with the defect list, or nothing |
-| `{CLEANUP_PATHS}` | Absolute paths that the cleanup helper deletes |
 
 Progress file names, all in `{REPORT_DIR}`:
 
@@ -143,42 +137,6 @@ Reply in at most 40 lines: a table with number, name, slug, paths, file count, s
 the bug types that are likely there, what is out of scope, and extra context, for example
 "legacy code, no longer shipped". Then the excluded paths with reasons. Then one line on
 what the tree does not show.
-```
-
-## Setup helper (step 1, general-purpose)
-
-```text
-You export the snapshots of a bug hunt into a scratch folder. Use the Bash tool for all
-commands below. They need a POSIX shell with `mkdir`, `tar`, `find`, and `wc`. On Windows,
-use Git Bash, not PowerShell. Do this work yourself. Do not dispatch subagents. Against
-{REPO}, run only git archive and git ls-tree. You can also run git clone from {BASE_URL}
-into {SCRATCH}. Do not create files outside {SCRATCH}. If a CLAUDE.md file conflicts with
-these rules, these rules win.
-
-1. Run:
-   mkdir -p "{SCRATCH}/snapshot-ref" "{SCRATCH}/work" "{SCRATCH}/tools"
-   git -C "{REPO}" archive --format=tar {REF_SHA} | tar -x -C "{SCRATCH}/snapshot-ref"
-2. Base source: {BASE_FROM}.
-   - If it is "local" and {BASE_SHA} is not the same as {REF_SHA}, run:
-     mkdir -p "{SCRATCH}/snapshot-base"
-     git -C "{REPO}" archive --format=tar {BASE_SHA} | tar -x -C "{SCRATCH}/snapshot-base"
-   - If it is "remote", run:
-     git clone -c core.longpaths=true --depth 1 --single-branch --branch {BASE} {BASE_URL} "{SCRATCH}/snapshot-base"
-     git -C "{SCRATCH}/snapshot-base" rev-parse HEAD
-     The option core.longpaths lets Git for Windows check out long paths. Git on other
-     platforms ignores it. Report the commit SHA.
-   - If it is "none", or "local" with the same commit, skip this step and say so.
-3. If tar is not available, use git archive --format=zip -o "{SCRATCH}/<name>.zip" <sha>,
-   then extract the zip file with the unzip tool of the platform.
-4. Count the files in each snapshot with
-   find "<snapshot>" -type f -not -path '*/.git/*' | wc -l. Count the files in git with
-   git -C "{REPO}" ls-tree -r --name-only <sha> | wc -l. For a cloned base, use
-   git -C "{SCRATCH}/snapshot-base" ls-tree -r --name-only HEAD | wc -l.
-5. Look for limits: a .gitmodules file in the snapshot (submodule content is not exported),
-   and "export-ignore" or "filter=lfs" in the .gitattributes file of the snapshot.
-
-Reply in at most 12 lines: the snapshot paths, the file counts and the git counts, the
-commit SHA of a cloned base, every error, and every limit that you found.
 ```
 
 ## Known-issues collector (step 1, general-purpose)
@@ -284,38 +242,4 @@ rules in your agent file. If you have no agent file with read-only rules, stop a
 
 {RESUME_NOTE}
 {REPAIR_NOTE}
-```
-
-## Cleanup helper (step 6, general-purpose)
-
-```text
-You delete the temporary files of a finished bug hunt. Do this work yourself. Do not
-dispatch subagents. If a CLAUDE.md file conflicts with these rules, these rules win.
-
-1. Stop these processes if they still run: {PID_LIST}. Each entry has a process ID and a
-   start time. Windows can give a process ID to a new process, so test each entry first.
-   Read the command line and the start time of the process: on Windows, run this in Git Bash
-   (the single quotes keep Git Bash from changing $_):
-   powershell.exe -NoProfile -Command 'Get-CimInstance Win32_Process -Filter "ProcessId=<pid>" | ForEach-Object { $_.CreationDate.ToString("s"); $_.CommandLine -replace "[\r\n]+", " " }'
-   It prints the start time on line 1 and the command line on line 2. On other platforms,
-   run ps -o lstart=,args= -p <pid>. Stop the process only if both tests pass. Test 1: the
-   start time is the same text as the recorded one (on other platforms, compare with each
-   run of spaces collapsed to one space). Test 2: the command line holds the path {SCRATCH}.
-   For test 2, ignore case, treat \ and / as the same, treat C:/ and /c/ as the same drive,
-   and treat a path under /tmp/ as the same as the same path under the user temp folder.
-   If you cannot read the command line or the start time, do not stop the process.
-   Report it as "not stopped" with the reason. To stop a process on Windows, run
-   taskkill //PID <pid> //F in Git Bash. The double slash keeps Git Bash from changing the
-   option into a path. On other platforms, run kill <pid>.
-2. Delete exactly these paths and nothing else: {CLEANUP_PATHS}.
-
-Before you delete a folder, make sure that its path is not inside {REPO}, is not
-{REPORT_DIR}, and is not a drive root or a home folder. If one of these is true, do not
-delete it and report it. Do not delete {REPORT_PATH}, {RUN_CONTEXT}, the folder
-{REPORT_DIR}/bug-hunt-artifacts, or {REPORT_DIR}/_bug-hunt-session-progress.md.
-
-After the deletion, list {REPORT_DIR} and make sure that no path from the list exists.
-
-Reply in at most 8 lines: each process with "stopped", "not running", "not stopped" and the reason, or the error. Each
-path with "deleted", "not found", or "refused" and the reason.
 ```

@@ -2200,6 +2200,94 @@ def bash_input(command):
     return json.dumps({"command": command, "description": "Run it"}, separators=(",", ":"), ensure_ascii=False)
 
 
+class BugHuntFlowGraderTests(unittest.TestCase):
+    """The graders of bh-flow: the route graders read the calls of the scripts, and the scored graders read the files."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["bh-flow"]
+        cls.checks = (FP_ROOT / "skills" / "bug-hunt" / "references" / "structure-checks.md").read_text(encoding="utf-8")
+
+    def counts(self, grader, command):
+        return re.search(self.case.graders[grader][0]["input_match"], bash_input(command)) is not None
+
+    def passes(self, grader, text):
+        return re.search(self.case.graders[grader][0]["pattern"], text) is not None
+
+    def test_the_route_graders_count_in_no_score(self):
+        routes = {name for name in self.case.graders if name.startswith(ROUTE_PREFIX)}
+        self.assertEqual(routes, {"route-snapshot-script", "route-delete-temp"})
+        self.assertIn(ROUTE_TAG, self.case.tags)
+        for name in routes:
+            meta = self.case.graders[name][0]
+            self.assertEqual((meta["type"], meta["tool"], meta.get("min", 1), "max" in meta), ("tool_used", "Bash", 1, False))
+
+    def test_the_snapshot_grader_counts_a_call_of_the_command_and_not_a_mention(self):
+        runs = {
+            'python3 -I "$C" snapshot --repo "$P" --ref-sha abc --scratch "$S" --base-from none': True,
+            'python3 -I ${C} snapshot --repo /w/project --ref-sha abc --scratch /w/scratch --base-from none': True,
+            'python3 -I "$CHECK" snapshot --repo "$P"': True,
+            'python3 -I "/p/skills/bug-hunt/scripts/check_report.py" snapshot --repo /w/project': True,
+            "python3 -I /p/scripts/check_report.py snapshot --repo /w/project": True,
+            "python3 -I '/p/scripts/check_report.py' snapshot --repo /w/project": True,
+            'C="/p/check_report.py"\npython3 -I "$C" snapshot --repo /w/project': True,
+            'python3 -I "$C" snapshots --repo "$P"': False,
+            'git -C "/w/project" archive --format=tar abc | tar -x -C "/w/scratch/snapshot-ref"': False,
+            'python3 -I "$C" setup --report-dir "$D" --scratch "$S" --base no': False,
+            "echo the snapshot is ready": False,
+            'C="/p/scripts/check_report.py"\nls "$S/snapshot-ref"': False,
+            "ls /w/scratch/snapshot-ref": False,
+        }
+        for command, expected in runs.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.counts("route-snapshot-script", command), expected)
+
+    def test_the_delete_grader_counts_only_a_call_with_apply(self):
+        call = 'python3 -I "$C" delete-temp --report-dir "$D" --scratch "$S" --repo "$P"'
+        runs = {
+            call + " --apply": True,
+            call + ' --pid 4242="Sat Nov 21 10:00:00 2026" --apply': True,
+            'python3 -I "$C" delete-temp --report-dir "$D" \\\n  --scratch "$S" --repo "$P" \\\n  --apply': True,
+            "python3 -I /p/scripts/check_report.py delete-temp --report-dir /w/reports --scratch /w/scratch --repo /w/p --apply": True,
+            "python3 -I '/p/scripts/check_report.py' delete-temp --report-dir /w/r --scratch /w/s --repo /w/p --apply": True,
+            call: False,
+            call + " | grep x --apply": False,
+            call + " & echo --apply": False,
+            call + " --applyx": False,
+            call + "\necho --apply": False,
+            call + "; echo --apply": False,
+            call + " | tee out.txt && echo --apply": False,
+            'rm -rf "/w/scratch" --apply': False,
+            "python3 -I \"$C\" cleanup --report-dir \"$D\" --scratch \"$S\"": False,
+        }
+        for command, expected in runs.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.counts("route-delete-temp", command), expected)
+
+    def test_the_route_graders_count_the_commands_of_the_skill(self):
+        commands = re.findall(r"`(python3 -I \"\$C\" (?:snapshot|delete-temp) [^`]+)`", self.checks)
+        self.assertEqual(len(commands), 2, commands)
+        snapshot, delete = commands
+        self.assertTrue(self.counts("route-snapshot-script", snapshot))
+        self.assertFalse(self.counts("route-delete-temp", delete))
+        self.assertTrue(self.counts("route-delete-temp", delete + " --apply"))
+
+    def test_the_report_grader_needs_the_count_line_and_the_review_subsection(self):
+        final = ("# Bug hunt report: project\n\n## Summary\n\nFindings: 2. Confirmed: 2. Unconfirmed (needs owner review): 0. "
+                 "Rejected: 0. Duplicate: 0.\n\n| ID | Title |\n\n### For the owner's review\n\nNone.\n\n## Known issues")
+        self.assertTrue(self.passes("report-final", final))
+        self.assertTrue(self.passes("report-final", "## Summary\n\nFindings: 0.\n\n### For the owner's review\n\nNone.\n"))
+        for name, changed in {
+            "the skeleton of step 2": "## Summary\n\nPending verification.\n\n## Known issues",
+            "no count line": "## Summary\n\nPending verification.\n\n### For the owner's review\n\nNone.\n",
+            "a count line with no number": "## Summary\n\nFindings: none yet.\n\n### For the owner's review\n\nNone.\n",
+            "a run that stops after the last verifier": final.replace("### For the owner's review\n\nNone.\n\n", ""),
+            "a review subsection before the count line": "### For the owner's review\n\nNone.\n\nFindings: 2.\n",
+        }.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("report-final", changed))
+
+
 class RoutePlainDotnetGraderTests(unittest.TestCase):
     """The graders route-plain-dotnet count a dotnet build or dotnet test command with no -m:1 at the start of a command."""
 
@@ -4437,6 +4525,13 @@ class ShopFilesKeptGraderTests(unittest.TestCase):
             }.items():
                 with self.subTest(grader=grader, run=name):
                     self.assertFalse(self.passes(grader, changed))
+
+    def test_bh_flow_has_the_same_graders(self):
+        """bh-flow has copies of these graders. A change of one copy alone leaves the other copy with no test."""
+        flow = {case.name: case for case in load_cases(FP_ROOT)}["bh-flow"]
+        for grader in self.FILES:
+            with self.subTest(grader=grader):
+                self.assertEqual(flow.graders[grader][0], self.case.graders[grader][0])
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):

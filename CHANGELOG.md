@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.1 in release [6.1.1] - 2026-11-21
+
+The skill `bug-hunt` runs the commands `snapshot` and `delete-temp` of its helper script in steps 1 and 6, in place of two helper agents. The subcommand `report` makes more of the structure tests of a report. A new cheap eval case, `bh-flow`, measures the flow of a run (issue #345).
+
+### Added in dev-essentials
+
+- `evals/bug-hunt/bh-flow`: a new cheap case for the flow of a bug hunt. It has one area, and its hunter, verifier, and auditor are Sonnet at medium effort. Its scored graders read the final report, the delete of the scratch folder and of each progress file, the run context file, and the project. Five of them compare a whole file of the project with the file of the scaffold. So an edit or a delete of one of these five files fails the run. Its route graders count a Bash call of `check_report.py snapshot` and of `delete-temp` with `--apply`. No grader reads recall (issue #345).
+
+### Changed in dev-essentials
+
+- `skills/bug-hunt`: step 1 runs the command `snapshot` of `check_report.py` in place of the setup helper, and step 6 runs `delete-temp` in place of the cleanup helper. Step 1 runs `snapshot` before the collector writes the digest, because the command refuses a scratch folder with files of another source. Step 6 reads the dry run first and then runs the command with `--apply`. `references/structure-checks.md` names each command, its options, and the action for each exit code in one place. A refusal of `delete-temp` goes to the user, and the run never deletes by hand or with another path. After a failed delete whose cause is gone, the run tries one more time. After a failed cleanup, the session progress file stays. Step 6 also deletes each old scratch folder that `snapshot` refused during a resume. The skill names Python 3.12 or later. The briefs of the setup helper and of the cleanup helper leave `references/agent-briefs.md`. The resume steps run the commands again (issue #345).
+- `skills/bug-hunt/scripts/check_report.py`: the subcommand `report` makes more of the tests that the verifiers and the auditor made by hand. At the stages `summary` and `final`, each row of the Summary table must match its entry. The severity, the confidence, the verdict, and the "Also on base" answer must be the same. A cell that is not a value of the format, such as `N/A`, gives no defect. Each `Duplicate of BH-NN` must name an earlier entry. Each `BH-NN` of a verdict, of a `Result:` note, or of a "New details for" line must name an entry. So must each `BH-NN` of the list "For the owner's review". A `BH-NN` in other prose gives no defect, because it can name an entry of an older report. Each `N-NN` of a `Duplicate of` verdict or of a "New details for" line must be in the Known issues section. Each `#NN` of these places must be in the digest. With the new options `--snapshot` and `--base-snapshot`, each location must name a file and a line of the snapshot. A path out of the snapshot, also through a link, is a defect, and the script does not read it. A line 0 and a range that ends before it starts are defects too. An option value that names no folder stops the command with exit code 2. At the stage `final`, an appendix with entries must not say "None yet.". The command prints at most 100 DEFECT lines and then one line with the count of the rest (issue #345).
+
+### Changed in the repository
+
+- `tests/test_check_report.py`: `ReferenceAndRowTests` covers the new tests of `report`: a row that differs from its entry, a row with the new value of a changed entry, and a row of another area. It also covers a duplicate of a later entry and a reference to a missing known issue. A `#NN` reference with and without the digest has tests too. So do an entry ID of another report in prose and an entry ID in each place of the format. Other tests cover a location past the end of its file, a missing file, and a wrong line part. An absolute path, a drive path, and a link out of the snapshot have tests too. So do a path with a space or with `\`. More tests cover a cell that is not a value of the format and a row with no last `|`. Two more cover "None yet." in an appendix with entries and the limit of 100 DEFECT lines. One test covers a snapshot option that names no folder. `ValidReportTests` runs the fixture report with both snapshot options (issue #345).
+- `tests/test_eval_cases.py`: `BugHuntFlowGraderTests` tests the route graders of `bh-flow` with right calls, a call through a shell variable, a dry run, and other commands. It also tests the report grader. A new test of `ShopFilesKeptGraderTests` holds the graders that compare a file of the project equal to the graders of `bh-planted-bugs` (issue #345).
+- `tests/test_eval_scaffolds.py`: `BugHuntFlowGraderTests` runs the command lines of `snapshot` and `delete-temp` from `references/structure-checks.md` on the scaffold of `bh-flow`. Each wrong end state fails its scored grader (issue #345).
+- `docs/evals.md`: the case count of the `bug-hunt` suite, and a paragraph on the new case and the limits of its graders (issue #345).
+- `tests/simple-english-baseline.json`: seven entries for the regex patterns of the graders of the new case (issue #345).
+
 ## dev-essentials 5.1.0 in release [6.1.0] - 2026-11-21
 
 The helper script of the skill `bug-hunt` gets two subcommands. `snapshot` exports the analyzed commit and its base into the scratch folder of a run. `delete-temp` stops the leftover processes of a run and deletes its scratch folder, with guards that refuse before any change. No skill text calls them yet (issue #339).
@@ -2587,7 +2608,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...HEAD
+[6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
 [5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
