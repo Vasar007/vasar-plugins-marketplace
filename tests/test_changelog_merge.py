@@ -403,6 +403,19 @@ class ReleaseTests(MergeCase):
         self.assertIn("### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1", text)
         self.assertEqual(text.count(entry), 1, text)
 
+    def test_dropped_bullet_with_another_table_row_than_main_refuses(self):
+        tight = TABLE.replace("table\n\n|", "table\n|")
+        main = main_release("the entry with a table", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the entry with a table\n", tight.replace("`b`", "`c`"))
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the entry with a table"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the entry with a table\n", tight)
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: --theirs has the bullet '- the entry with a table' without the "
+                      "table row '| `a` | `b` |' of the branch\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
         main[MANIFEST] = described("1.8.0", "A text of both sides.")
@@ -1113,6 +1126,14 @@ class UnreleasedTests(MergeCase):
         self.tool(clone, "unreleased")
         self.assertIn(TOP + "### Changed in the repository\n\n" + other + TABLE + "\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
+
+    def test_table_with_no_bullet_above_it_that_both_sides_added_stays_one_time(self):
+        block = "### Changed in the repository\n\n| Key | Value |\n| --- | --- |\n| `x` | `y` |\n\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + block)
+        clone = self.merge(self.branch(block), main=main)
+        self.tool(clone, "unreleased")
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), main["CHANGELOG.md"])
 
     def test_bullet_after_a_blank_line_below_an_entry_of_the_base_is_no_refusal(self):
         block = "### Changed in the repository\n\n- an entry of the base\n\n"
