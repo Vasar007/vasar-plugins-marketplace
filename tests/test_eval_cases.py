@@ -2240,7 +2240,9 @@ class BugHuntFlowGraderTests(unittest.TestCase):
             'python3 -I "$CHECK" snapshot --repo "$P"': True,
             'python3 -I "/p/skills/bug-hunt/scripts/check_report.py" snapshot --repo /w/project': True,
             "python3 -I /p/scripts/check_report.py snapshot --repo /w/project": True,
+            "python3 -I '/p/scripts/check_report.py' snapshot --repo /w/project": True,
             'C="/p/check_report.py"\npython3 -I "$C" snapshot --repo /w/project': True,
+            'python3 -I "$C" snapshots --repo "$P"': False,
             'git -C "/w/project" archive --format=tar abc | tar -x -C "/w/scratch/snapshot-ref"': False,
             'python3 -I "$C" setup --report-dir "$D" --scratch "$S" --base no': False,
             "echo the snapshot is ready": False,
@@ -2258,7 +2260,11 @@ class BugHuntFlowGraderTests(unittest.TestCase):
             call + ' --pid 4242="Sat Nov 21 10:00:00 2026" --apply': True,
             'python3 -I "$C" delete-temp --report-dir "$D" \\\n  --scratch "$S" --repo "$P" \\\n  --apply': True,
             "python3 -I /p/scripts/check_report.py delete-temp --report-dir /w/reports --scratch /w/scratch --repo /w/p --apply": True,
+            "python3 -I '/p/scripts/check_report.py' delete-temp --report-dir /w/r --scratch /w/s --repo /w/p --apply": True,
             call: False,
+            call + " | grep x --apply": False,
+            call + " & echo --apply": False,
+            call + " --applyx": False,
             call + "\necho --apply": False,
             call + "; echo --apply": False,
             call + " | tee out.txt && echo --apply": False,
@@ -2284,6 +2290,8 @@ class BugHuntFlowGraderTests(unittest.TestCase):
         self.assertTrue(self.passes("report-final", "## Summary\n\nFindings: 0.\n\n### For the owner's review\n\nNone.\n"))
         for name, changed in {
             "the skeleton of step 2": "## Summary\n\nPending verification.\n\n## Known issues",
+            "no count line": "## Summary\n\nPending verification.\n\n### For the owner's review\n\nNone.\n",
+            "a count line with no number": "## Summary\n\nFindings: none yet.\n\n### For the owner's review\n\nNone.\n",
             "a run that stops after the last verifier": final.replace("### For the owner's review\n\nNone.\n\n", ""),
             "a review subsection before the count line": "### For the owner's review\n\nNone.\n\nFindings: 2.\n",
         }.items():

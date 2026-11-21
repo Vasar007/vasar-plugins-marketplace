@@ -42,6 +42,27 @@ def edit(text, old, new):
     return text.replace(old, new, 1)
 
 
+SNAPSHOT_FILES = {"src/orders/export.ext": 142, "src/invoices/total.ext": 10, "src/invoices/retry.ext": 5}
+DETAILS = "### New details for known issues\n\nNone.\n\n### BH-02"
+LOCATION_LINE = "- Location: `src/orders/export.ext:142`"
+
+
+def wrong_rows(count, wrong):
+    """A final report with count entries. The first wrong rows have a severity that differs from the entry."""
+    entry = ("### BH-{n:02d}: Entry {n}\n\n- Severity: High\n- Confidence: High\n- Category: Other: x\n"
+             "- Location: `a.ext:1`\n- Also on base: No (new in the analyzed commit)\n- Verdict: Confirmed\n\n"
+             "Problem: x.\n\nFailure scenario: x.\n\nEvidence: x.\n\nFix idea: x.\n\nVerification: x.\n\n")
+    rows = "".join(f"| BH-{n:02d} | Entry {n} | Area 1 | {'Low' if n <= wrong else 'High'} | High | Confirmed | No |\n"
+                   for n in range(1, count + 1))
+    return (f"# Bug hunt report: p\n\n## Scope\n\nx\n\n## Summary\n\nFindings: {count}. Confirmed: {count}. "
+            "Unconfirmed (needs owner review): 0. Rejected: 0. Duplicate: 0.\n\n"
+            "| ID | Title | Area | Severity | Confidence | Verdict | Also on base |\n| --- | --- | --- | --- | --- | --- | --- |\n"
+            f"{rows}\n### For the owner's review\n\nNone.\n\n## Known issues that this report does not repeat\n\nNone.\n\n"
+            "## Area 1: All\n\n### New details for known issues\n\nNone.\n\n"
+            + "".join(entry.format(n=n) for n in range(1, count + 1))
+            + "### Notes for other areas\n\nNone.\n\n## Appendix: rejected findings\n\nNone yet.\n")
+
+
 class CheckReportCase(ScratchCase):
     def setUp(self):
         super().setUp()
@@ -142,12 +163,33 @@ class ValidReportTests(CheckReportCase):
 class ReferenceAndRowTests(CheckReportCase):
     """The tests of report that a verifier and the auditor used to make by hand: rows, references, and locations."""
 
-    def snapshot(self, files):
-        root = self.tmp / "snapshot-ref"
+    def snapshot(self, files, name="snapshot-ref"):
+        root = self.tmp / name
         for path, lines in files.items():
             (root / path).parent.mkdir(parents=True, exist_ok=True)
             (root / path).write_text("x\n" * lines, encoding="utf-8")
         return root
+
+    def defects(self, result):
+        return [x for x in result[1] if x.startswith("DEFECT: ")]
+
+    def duplicate_of(self, ref):
+        text = edit(fixture("final.md"), "- Verdict: Unconfirmed (needs owner review)\n", f"- Verdict: Duplicate of {ref}\n")
+        text = edit(text, "Rejected: 1. Duplicate: 0.", "Rejected: 1. Duplicate: 1.")
+        text = edit(text, "Unconfirmed (needs owner review): 1.", "Unconfirmed (needs owner review): 0.")
+        return edit(text, "| Unconfirmed (needs owner review) | No |", f"| Duplicate of {ref} | No |")
+
+    def test_a_snapshot_option_that_names_no_folder_is_a_usage_error(self):
+        self.write(fixture("final.md"))
+        (self.tmp / "a-file").write_text("x\n", encoding="utf-8")
+        for option in ("--snapshot", "--base-snapshot"):
+            for value in (self.tmp / "no-such-folder", self.tmp / "a-file", ""):
+                with self.subTest(option=option, value=str(value)):
+                    err = io.StringIO()
+                    with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+                        self.check(2, "final", option, value)
+                    self.assertEqual(stop.exception.code, 2)
+                    self.assertIn(f"argument {option}: not a folder", err.getvalue())
 
     def test_a_row_that_differs_from_its_entry_gives_one_defect(self):
         for label, old, new in (("Severity", "| Area 1 | High | High |", "| Area 1 | Low | High |"),
@@ -164,6 +206,34 @@ class ReferenceAndRowTests(CheckReportCase):
         text = edit(fixture("final.md"), "- Confidence: Low\n", "- Confidence: Medium (was Low)\n")
         self.assertDefect(self.check_text(text), "BH-02: Summary Confidence 'Low' differs")
         self.assertPasses(self.check_text(edit(text, "| Medium | Low | Unconfirmed", "| Medium | Medium | Unconfirmed")))
+
+    def test_a_row_with_the_old_value_passes(self):
+        text = edit(fixture("final.md"), "- Severity: High\n", "- Severity: Medium (was High)\n")
+        self.assertPasses(self.check_text(edit(text, "| Area 1 | High | High |", "| Area 1 | Medium (was High) | High |")))
+        self.assertDefect(self.check_text(edit(text, "| Area 1 | High | High |", "| Area 1 | Low (was High) | High |")),
+                          "BH-01: Summary Severity 'Low (was High)' differs")
+
+    def test_a_table_with_no_base_column_does_not_stop_the_command(self):
+        text = fixture("final.md").replace(" | Also on base |\n", " |\n").replace("| --- | --- |\n", "| --- |\n")
+        for cell in ("Yes", "No"):
+            text = text.replace(f" | {cell} |\n", " |\n")
+        self.assertNotIn("| Yes |", text)
+        self.assertPasses(self.check_text(text))
+
+    def test_a_cell_that_is_not_a_value_of_the_format_passes(self):
+        text = edit(fixture("final.md"), "- Also on base: Yes, `src/orders/export.ext:139`",
+                    "- Also on base: Not applicable (the analyzed commit is the base)")
+        for cell in ("Not applicable", "N/A", "-", "yes"):
+            with self.subTest(cell=cell):
+                self.assertPasses(self.check_text(edit(text, "| Confirmed | Yes |", f"| Confirmed | {cell} |")))
+        self.assertPasses(self.check_text(edit(fixture("final.md"), "| Unconfirmed (needs owner review) |", "| Unconfirmed |")))
+        self.assertDefect(self.check_text(edit(text, "| Confirmed | Yes |", "| Confirmed | No |")),
+                          "BH-01: Summary Also on base 'No' differs")
+
+    def test_a_row_with_no_last_pipe_is_read_to_its_last_cell(self):
+        self.assertDefect(self.check_text(edit(fixture("final.md"), "| Confirmed | Yes |", "| Confirmed | No")),
+                          "BH-01: Summary Also on base 'No' differs")
+        self.assertPasses(self.check_text(edit(fixture("final.md"), "| Confirmed | Yes |", "| Confirmed | Yes")))
 
     def test_a_row_whose_area_differs_from_the_section_passes(self):
         self.assertPasses(self.check_text(edit(fixture("final.md"), "| Area 1 | High |", "| Area 2 | High |")))
@@ -198,11 +268,42 @@ class ReferenceAndRowTests(CheckReportCase):
         (self.scratch / "known-issues.md").write_text("# Known-issues digest\n\n- #12: Slow export.\n", encoding="utf-8")
         self.assertPasses(self.check_text(text))
 
-    def test_an_entry_id_counts_only_outside_code(self):
-        text = edit(fixture("final.md"), "Fix idea: Loop to `count`.", "Fix idea: Loop to `count`, as `BH-09` says.")
+    def test_a_duplicate_of_a_known_issue_must_name_one_that_exists(self):
+        text = self.duplicate_of("N-02")
+        self.assertDefect(self.check_text(text), "BH-02: N-02 is not in the Known issues section")
+        longer = edit(text, "- #12: Slow export.", "- N-020: Slow import. Source: NOTES.md.\n- #12: Slow export.")
+        self.assertDefect(self.check_text(longer), "BH-02: N-02 is not in the Known issues section")
+        self.assertPasses(self.check_text(edit(text, "- #12: Slow export.", "- N-02: Slow import. Source: NOTES.md.\n- #12: Slow export.")))
+        issue = self.duplicate_of("#12")
+        self.scratch.mkdir()
+        (self.scratch / "known-issues.md").write_text("- #120: Other bug.\n- owner/repo#12: Other repository.\n", encoding="utf-8")
+        self.assertDefect(self.check_text(issue), "BH-02: #12 is not in the known-issues digest")
+        (self.scratch / "known-issues.md").write_text("- #12 (open): Slow export.\n", encoding="utf-8")
+        self.assertPasses(self.check_text(issue))
+
+    def test_a_missing_digest_gives_one_warn_line(self):
+        text = edit(fixture("final.md"), DETAILS, DETAILS.replace("None.", "- New details for #12: a.\n- New details for #13: b."))
+        code, lines = self.check_text(text)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(len([x for x in lines if x.startswith("WARN: no known-issues digest")]), 1, lines)
+
+    def test_one_defect_line_for_a_reference_that_comes_more_than_once(self):
+        text = edit(fixture("final.md"), DETAILS, DETAILS.replace("None.", "- New details for N-09: a.\n- New details for N-09: b."))
+        self.assertEqual(self.defects(self.check_text(text)), ["DEFECT: N-09 is not in the Known issues section"])
+
+    def test_an_entry_id_of_another_report_in_prose_passes(self):
+        text = edit(fixture("final.md"), "- #12: Slow export.",
+                    "- N-01: Wrong tax (BH-17 of the report of May). Source: notes file `old.md`.\n- #12: Slow export.")
+        text = edit(text, "- Analyzed code:", "- Round 2. Round 1 found BH-01 to BH-23.\n- Analyzed code:")
         self.assertPasses(self.check_text(text))
-        self.assertDefect(self.check_text(text.replace("as `BH-09` says", "as BH-09 says")),
+
+    def test_an_entry_id_in_a_place_of_the_format_must_name_an_entry(self):
+        self.assertDefect(self.check_text(edit(fixture("final.md"), "Result: BH-02.", "Result: BH-09.")),
                           "the report names BH-09, but no entry has this ID")
+        self.assertPasses(self.check_text(edit(fixture("final.md"), "Result: BH-02.", "Result: `BH-09`.")))
+        self.assertDefect(self.check_text(edit(fixture("final.md"), "- BH-02: decide", "- BH-08: decide")),
+                          "the report names BH-08, but no entry has this ID")
+        self.assertDefect(self.check_text(self.duplicate_of("BH-07")), "the report names BH-07, but no entry has this ID")
 
     def test_a_location_must_name_a_file_and_a_line_of_the_snapshot(self):
         self.write(fixture("final.md"))
@@ -216,36 +317,107 @@ class ReferenceAndRowTests(CheckReportCase):
                           "BH-03: Location line 6 is past the end of src/invoices/retry.ext (5 lines)")
 
     def test_a_location_out_of_the_snapshot_is_a_defect_and_is_not_read(self):
-        root = self.snapshot({"src/orders/export.ext": 142, "src/invoices/total.ext": 10, "src/invoices/retry.ext": 5})
+        root = self.snapshot(SNAPSHOT_FILES)
         (self.tmp / "outside.ext").write_text("x\n" * 500, encoding="utf-8")
-        text = edit(fixture("final.md"), "- Location: `src/orders/export.ext:142`", "- Location: `../outside.ext:142`")
-        with mock.patch.object(cr, "read", wraps=cr.read) as reads:
-            self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
-                              "BH-01: Location path leaves the snapshot: ../outside.ext")
-        self.assertNotIn("outside.ext", " ".join(str(call.args[0]) for call in reads.call_args_list))
+        for path in ("../outside.ext", str(self.tmp / "outside.ext"), "/outside.ext", "\\outside.ext", "C:\\outside.ext",
+                     "C:/outside.ext", "C:outside.ext", "//host/share/outside.ext"):
+            with self.subTest(path=path), mock.patch.object(cr, "read", wraps=cr.read) as reads:
+                text = edit(fixture("final.md"), LOCATION_LINE, f"- Location: `{path}:142`")
+                self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                                  f"BH-01: Location path leaves the snapshot: {path}")
+                self.assertNotIn("outside.ext", " ".join(str(call.args[0]) for call in reads.call_args_list))
+
+    def test_a_link_out_of_the_snapshot_is_a_defect_and_is_not_read(self):
+        root = self.snapshot(SNAPSHOT_FILES)
+        (self.tmp / "outside.ext").write_text("x\n" * 7, encoding="utf-8")
+        try:
+            os.symlink(self.tmp / "outside.ext", root / "link.ext")
+            os.symlink(self.tmp, root / "folder-link", target_is_directory=True)
+            os.symlink(root / "src/invoices/retry.ext", root / "inside-link.ext")
+        except OSError as error:
+            self.skipTest(f"no right to make a link: {error}")
+        for path in ("link.ext", "folder-link/outside.ext"):
+            with self.subTest(path=path), mock.patch.object(cr, "read", wraps=cr.read) as reads:
+                text = edit(fixture("final.md"), LOCATION_LINE, f"- Location: `{path}:99`")
+                self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                                  f"BH-01: Location path leaves the snapshot through a link: {path}")
+                self.assertNotIn("outside.ext", " ".join(str(call.args[0]) for call in reads.call_args_list))
+        text = edit(fixture("final.md"), LOCATION_LINE, "- Location: `inside-link.ext:5`")
+        self.assertPasses(self.check_text(text, 2, "final", "--snapshot", root))
+
+    def test_a_path_with_a_space_is_read(self):
+        root = self.snapshot(dict(SNAPSHOT_FILES, **{"src/my folder/a b.ext": 5}))
+        text = edit(fixture("final.md"), LOCATION_LINE, "- Location: `src/my folder/a b.ext:5`")
+        self.assertPasses(self.check_text(text, 2, "final", "--snapshot", root))
+        text = edit(fixture("final.md"), LOCATION_LINE, "- Location: `src/my folder/a b.ext:6`")
+        self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                          "BH-01: Location line 6 is past the end of src/my folder/a b.ext (5 lines)")
+
+    def test_a_path_with_backslashes_gives_the_same_result_on_each_system(self):
+        root = self.snapshot(SNAPSHOT_FILES)
+        text = edit(fixture("final.md"), LOCATION_LINE, "- Location: `src\\orders\\export.ext:142`")
+        self.assertPasses(self.check_text(text, 2, "final", "--snapshot", root))
+        text = edit(fixture("final.md"), LOCATION_LINE, "- Location: `src\\orders\\export.ext:143`")
+        self.assertDefect(self.check_text(text, 2, "final", "--snapshot", root),
+                          "BH-01: Location line 143 is past the end of src\\orders\\export.ext (142 lines)")
+
+    def test_a_line_part_that_is_not_a_line_or_a_range_is_a_defect(self):
+        root = self.snapshot(SNAPSHOT_FILES)
+        for part in ("0", "9-3", "142:7"):
+            with self.subTest(part=part):
+                text = edit(fixture("final.md"), LOCATION_LINE, f"- Location: `src/orders/export.ext:{part}`")
+                result = self.check_text(text, 2, "final", "--snapshot", root)
+                self.assertDefect(result, f"BH-01: Location is not in the form path:line or path:line-line: src/orders/export.ext:{part}")
+                self.assertEqual(len(self.defects(result)), 1, result[1])
+
+    def test_a_last_line_with_no_line_end_counts(self):
+        root = self.snapshot(SNAPSHOT_FILES)
+        self.write(fixture("final.md"))
+        (root / "src/invoices/retry.ext").write_bytes(b"x\r\n" * 4 + b"x")
+        self.assertPasses(self.check(2, "final", "--snapshot", root))
+        (root / "src/invoices/retry.ext").write_bytes(b"x\r\n" * 4)
+        self.assertDefect(self.check(2, "final", "--snapshot", root),
+                          "BH-03: Location line 5 is past the end of src/invoices/retry.ext (4 lines)")
+        (root / "src/invoices/retry.ext").write_bytes(b"")
+        self.assertDefect(self.check(2, "final", "--snapshot", root),
+                          "BH-03: Location line 5 is past the end of src/invoices/retry.ext (0 lines)")
+
+    def test_a_base_answer_other_than_yes_is_not_read(self):
+        ref, base = self.snapshot(SNAPSHOT_FILES), self.snapshot({"src/orders/export.ext": 139}, "snapshot-base")
+        text = edit(fixture("final.md"), "- Also on base: No (new in the analyzed commit)",
+                    "- Also on base: Not compared (`src/invoices/total.ext:10` is new)")
+        text = edit(text, "| Unconfirmed (needs owner review) | No |", "| Unconfirmed (needs owner review) | Not compared |")
+        self.assertPasses(self.check_text(text, 2, "final", "--snapshot", ref, "--base-snapshot", base))
 
     def test_the_appendix_with_entries_must_not_say_none_yet(self):
         text = edit(fixture("final.md"), "## Appendix: rejected findings\n\n", "## Appendix: rejected findings\n\nNone yet.\n\n")
         self.assertDefect(self.check_text(text), "the appendix holds entries and still says 'None yet.'")
         self.assertPasses(self.check_text(text, 2, "summary"))
 
+    def test_none_yet_in_a_code_block_of_a_rejected_entry_passes(self):
+        text = edit(fixture("final.md"), "Evidence: `retry.ext:5` loops on failure.",
+                    "Evidence: the notes file says:\n\n```text\nNone yet.\n```")
+        self.assertPasses(self.check_text(text))
+        text = edit(fixture("final.md"), "## Appendix: rejected findings\n\n", "## Appendix: rejected findings\n\nNone yet. \n\n")
+        self.assertDefect(self.check_text(text), "the appendix holds entries and still says 'None yet.'")
+
     def test_at_most_one_hundred_defect_lines_and_a_count_line(self):
-        entry = ("### BH-{n:02d}: Entry {n}\n\n- Severity: High\n- Confidence: High\n- Category: Other: x\n"
-                 "- Location: `a.ext:1`\n- Also on base: No (new in the analyzed commit)\n- Verdict: Confirmed\n\n"
-                 "Problem: x.\n\nFailure scenario: x.\n\nEvidence: x.\n\nFix idea: x.\n\nVerification: x.\n\n")
-        rows = "".join(f"| BH-{n:02d} | Entry {n} | Area 1 | Low | High | Confirmed | No |\n" for n in range(1, 151))
-        text = (f"# Bug hunt report: p\n\n## Scope\n\nx\n\n## Summary\n\nFindings: 150. Confirmed: 150. "
-                "Unconfirmed (needs owner review): 0. Rejected: 0. Duplicate: 0.\n\n"
-                "| ID | Title | Area | Severity | Confidence | Verdict | Also on base |\n| --- | --- | --- | --- | --- | --- | --- |\n"
-                f"{rows}\n### For the owner's review\n\nNone.\n\n## Known issues that this report does not repeat\n\nNone.\n\n"
-                "## Area 1: All\n\n### New details for known issues\n\nNone.\n\n"
-                + "".join(entry.format(n=n) for n in range(1, 151))
-                + "### Notes for other areas\n\nNone.\n\n## Appendix: rejected findings\n\nNone yet.\n")
-        code, lines = self.check_text(text, 1, "final")
+        code, lines = self.check_text(wrong_rows(150, 150), 1, "final")
         defects = [x for x in lines if x.startswith("DEFECT: ")]
         self.assertEqual(code, 1)
         self.assertEqual(len(defects), 101, defects[-3:])
-        self.assertEqual(defects[-1], "DEFECT: 50 more defects. Fix the defects above, then run the check again")
+        self.assertEqual(defects[-1], "DEFECT: more defects that this output does not show: 50. "
+                                      "Fix the defects above, then run the check again")
+
+    def test_exactly_one_hundred_defects_give_no_count_line(self):
+        result = self.check_text(wrong_rows(100, 100), 1, "final")
+        self.assertEqual(result[0], 1)
+        self.assertEqual(len(self.defects(result)), 100)
+        self.assertTrue(self.defects(result)[-1].startswith("DEFECT: BH-100: Summary Severity"), self.defects(result)[-1])
+        defects = self.defects(self.check_text(wrong_rows(101, 101), 1, "final"))
+        self.assertEqual(len(defects), 101)
+        self.assertEqual(defects[-1], "DEFECT: more defects that this output does not show: 1. "
+                                      "Fix the defects above, then run the check again")
 
 
 class StructureDefectTests(CheckReportCase):

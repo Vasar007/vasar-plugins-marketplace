@@ -60,7 +60,7 @@ agents. If a `CLAUDE.md` file conflicts with rule 1 or rule 2, rules 1 and 2 win
 - Against the live repository, always use `git -C "<repo>"`. Run only these git commands: `rev-parse`, `remote get-url`, `ls-tree`, `log`, and `show`. Also `diff` between two revisions, `blame`, `archive` with output into the scratch folder, and `--no-optional-locks status`. The orchestrator follows this list too, also at cleanup.
 - Do not run a plain `git status`, because it can write the index. Do not run `fetch`, `pull`, `checkout`, `switch`, `stash`, `reset`, `commit`, or any other command that writes. Never fetch into the live repository. For a newer base, the `snapshot` command clones it into the scratch folder.
 - In the report folder, create only new files whose names start with `bug-hunt` or `_bug-hunt`, and the `bug-hunt-artifacts` folder. Do not change or delete any file that existed before the run. If the report folder is inside the project, this point holds.
-- The commands in this skill need a POSIX shell and Python 3. On Windows, run them with the Bash tool (Git Bash), not with PowerShell. If `python3` is not available, stop the run at step 0 and report this under "Blocked on me".
+- The commands in this skill need a POSIX shell and Python 3.12 or later. On Windows, run them with the Bash tool (Git Bash), not with PowerShell. If `python3` is not available, stop the run at step 0 and report this under "Blocked on me".
 
 ### 2. No GitHub writes
 
@@ -224,9 +224,10 @@ the `_bug-hunt-progress-*.md` files of the report folder. Then run the same comm
 `--apply`. It keeps the report file, the run context file, the `bug-hunt-artifacts` folder, and
 `_bug-hunt-session-progress.md`, and it runs the structure check for step 6 itself. Act on its
 exit code as that file says. Never delete a temporary file by hand, and never run the command
-with another path. The script finds its own targets, and its guards protect the project and the
-report. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. As the last action before the final
-report, delete `_bug-hunt-session-progress.md`.
+with a path that the session progress file does not record. The script finds its own targets, and its guards protect the project and the
+report. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. If each `delete-temp --apply` call ended
+with exit code 0, delete `_bug-hunt-session-progress.md` as the last action before the final report.
+Else keep it, so that a later session can finish step 6.
 
 ### Step 7. Final report
 
