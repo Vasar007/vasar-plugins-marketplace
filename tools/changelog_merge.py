@@ -378,7 +378,7 @@ def changed_old_section(older, base_text, theirs_text):
     for key in [*before, *(key for key in mine if key not in before)]:
         if mine.get(key) != before.get(key) and mine.get(key) != after.get(key):
             raise Refused(f"merge {CHANGELOG} by hand: the branch changed the old release '{key[0]}', and --theirs "
-                          "has another text of it")
+                          "does not have the same text of it")
 
 
 def old_sections(text):
