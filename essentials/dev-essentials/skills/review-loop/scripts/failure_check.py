@@ -157,7 +157,7 @@ NOISE = [
     (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
     (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
     (re.compile(r"^  (total|succeeded|skipped): \d+$"), r"\1: <n>"),
-    # The counts of a test assembly of Microsoft.Testing.Platform: [+passed/xfailed/?skipped].
+    # The counts of a test assembly of Microsoft.Testing.Platform: [+<passed>/x<failed>/?<skipped>].
     (re.compile(r"\[\+\d+/x(\d+)/\?\d+\]"), r"[+<n>/x\1/?<n>]"),
 ]
 NOT_STARTED = (126, 127)

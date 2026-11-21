@@ -49,7 +49,7 @@ class MoreTests(unittest.TestCase):
 RUFF_OS = "src\\a.py:1:8: F401 [*] `os` imported but unused"
 RUFF_SYS = "src\\a.py:1:8: F401 [*] `sys` imported but unused"
 RUFF_JSON = "src\\errors.py:1:8: F401 [*] `json` imported but unused"
-# The line of a test assembly and the last line of `dotnet test` on Microsoft.Testing.Platform: +passed/xfailed/?skipped.
+# The line of a test assembly and the last line of `dotnet test` on Microsoft.Testing.Platform: [+<passed>/x<failed>/?<skipped>].
 MTP_ASSEMBLY = "C:\\w\\bin\\Debug\\net11.0\\Probe.dll (net11.0|x64) failed with 1 error(s) [+{}/x{}/?{}] (233ms)"
 MTP_END = ("Test run completed with non-success exit code: 2. At least one test failed. "
            "See: https://aka.ms/testingplatform/exitcodes")
@@ -1411,6 +1411,7 @@ class TestCountTests(unittest.TestCase):
 
         self.assertSame(run(2, 0, 3), run(1, 0, 2))
         self.assertSame(run(12, 10, 23), run(11, 11, 23))
+        self.assertSame(["failed Add (29ms)", MTP_ASSEMBLY.format(2, 10, 0)], ["failed Add (29ms)", MTP_ASSEMBLY.format(1, 10, 0)])
 
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
