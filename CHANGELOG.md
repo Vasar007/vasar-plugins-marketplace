@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.1 in release [6.1.1] - 2026-11-21
+
+The skill `bug-hunt` runs the commands `snapshot` and `delete-temp` of its helper script in steps 1 and 6, in place of two helper agents. The subcommand `report` makes more of the structure tests of a report. A new cheap eval case, `bh-flow`, measures the flow of a run (issue #345).
+
 ### Added in dev-essentials
 
 - `evals/bug-hunt/bh-flow`: a new cheap case for the flow of a bug hunt. It has one area, and its hunter, verifier, and auditor are Sonnet at medium effort. Its scored graders read the final report, the delete of the scratch folder and of each progress file, the run context file, and the project. Five of them compare a whole file of the project with the file of the scaffold. So an edit or a delete of one of these five files fails the run. Its route graders count a Bash call of `check_report.py snapshot` and of `delete-temp` with `--apply`. No grader reads recall (issue #345).
@@ -2604,7 +2608,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...HEAD
+[6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
 [5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
