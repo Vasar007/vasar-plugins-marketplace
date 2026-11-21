@@ -9,6 +9,14 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the counts of passed and skipped tests in the line of a test assembly of Microsoft.Testing.Platform now become a token, as in `[+<n>/x1/?<n>]`. The count of failed tests stays. `dotnet test` on that platform prints the line, for example `Probe.dll (net11.0|x64) failed with 1 error(s) [+1/x1/?0] (233ms)`. Before, a fix commit that added a test and kept the same failure gave `OTHER` in place of `SAME-AT-PARENT`. A real run of MSTest 4.2.3 with the .NET SDK 11.0.100 showed it (issue #348).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the samples of Microsoft.Testing.Platform hold the line of a test assembly and the last line of a real run of `dotnet test` with MSTest 4.2.3. A new count of passed or skipped tests in that line gives the same signature. A new count of failed tests gives another one (issue #348).
+
 ## dev-essentials 5.1.1 in release [6.1.1] - 2026-11-21
 
 The skill `bug-hunt` runs the commands `snapshot` and `delete-temp` of its helper script in steps 1 and 6, in place of two helper agents. The subcommand `report` makes more of the structure tests of a report. A new cheap eval case, `bh-flow`, measures the flow of a run (issue #345).
