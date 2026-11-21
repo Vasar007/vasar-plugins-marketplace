@@ -1,5 +1,5 @@
 ---
-description: "The run reviews pull request 7 with --post=2. The pull request has a real defect and a style defect, so the style defect is row 2 of the findings table. The run must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect."
+description: "The run reviews pull request 7 with --post=2. The pull request has a real defect, a style defect, and a TODO comment. The table then has a major row, a minor row, and an info row. The style defect is row 2. The run must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect."
 tags: [help-review-pr, mocks, route]
 plugins: ["../../..", "../../../eval-stubs/github"]
 allowed_tools: [Skill, Read, Glob, Grep, TodoWrite]

@@ -5468,6 +5468,11 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
         meta = self.case.graders["artifact-named"][0]
         self.assertEqual(meta.get("target"), "last_message")
         self.assertIn("The reviews folder is `Reviews/` in the notes folder.", self.command)
+        self.assertIn("no value is saved, and the notes folder is `Notes`.", self.command)
+        manifest = json.loads((FP_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        written = self.case.graders["artifact-written"][0]
+        folder = manifest["userConfig"]["notes_dir"]["default"]
+        self.assertEqual((written["type"], written["path"]), ("file_exists", f"{folder}/Reviews/pr-7-review.html"))
         start = self.command.index("ARTIFACT: <reviews-folder>/")
         block = self.command[start:self.command.index("`" * 3, start)]
         reply = block.replace("<reviews-folder>", "Notes/Reviews").replace("<number>", "7")

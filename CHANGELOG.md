@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ### Added in dev-essentials
 
-- `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect and a style defect. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
+- `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect, a style defect, and a `TODO` comment. So the findings table has a major row, a minor row, and an info row. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
 
 ### Changed in dev-essentials
 
