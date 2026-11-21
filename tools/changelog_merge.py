@@ -12,8 +12,10 @@ Subcommands:
   release     The branch adds a release section right below "## [Unreleased]". The CHANGELOG of
               --theirs is the base. The release section of the branch goes on top of it, with the
               versions of --bump and the number of --release in its heading. A bullet that --theirs
-              already has is left out. If --theirs has a heading with the same text but the merge
-              base does not, another branch took the same numbers and merged first. The section of
+              already has is left out. An older section of the branch can have the text of that bullet.
+              Then the script leaves it out only for an [Unreleased] entry of the merge base that
+              --theirs released. If --theirs has a heading with the same text but the merge base does
+              not, another branch took the same numbers and merged first. The section of
               the branch is still a new release, and it goes on top in full, with no line left out.
               The link lines get the new release. Each --bump writes its version into the
               plugin.json of that plugin. The other lines of that file come from --theirs, or from
@@ -392,6 +394,11 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
             raise Refused(f"the top section of the branch and --theirs both have the entry '{shared[0]}', so merge "
                           f"{CHANGELOG} by hand")
     else:
+        # An entry of the merge base that --theirs moved from [Unreleased] into a release is known, also with an old text.
+        _, unreleased, released = split_top(theirs_text, "--theirs")
+        old = Counter(older.split(LF))
+        moved = Counter(base_text.split(LF)) - old - Counter(unreleased.split(LF))
+        known |= set(moved) & set(Counter(released.split(LF)) - old)
         lost = lost_indented_line(body, known, theirs_text, base_text)
         if lost:
             bullet, line = short(lost[0]), short(lost[1])

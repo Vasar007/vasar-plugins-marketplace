@@ -904,6 +904,62 @@ class ReleaseTests(MergeCase):
         self.assertIn("### Changed in the repository\n\n- the old change\n- the change of the branch\n\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
 
+    def test_entry_that_both_sides_released_with_the_text_of_an_old_section_merges(self):
+        # The entry of the merge base has the text of an old section too (issue #307).
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- the old change\n\n")
+        main = main_release("the change of main", "the old change")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change"))
+        clone = self.merge(branch, main=main, base=base)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - the old change", out)
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1 in release [4.22.1] - "
+                      "2026-11-17\n\nThe summary.\n\n### Changed in the repository\n\n- the change of main\n- the old change\n", text)
+        self.assertEqual(text.count("- the old change\n"), 2, text)
+
+    def test_entry_that_both_sides_released_with_the_text_of_an_old_section_and_a_new_table_refuses(self):
+        entry = "### Changed in the repository\n\n- the old change\n\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + entry)
+        main = main_release("the change of main", "the old change")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(
+            "- the old change\n\n## dev-essentials 3.24.0", "- the old change\n| Key | Value |\n| --- | --- |\n\n## dev-essentials 3.24.0")
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: --theirs has the bullet '- the old change' without the table row "
+                      "'| Key | Value |' of the branch\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_entry_of_the_merge_base_that_main_removed_with_the_text_of_two_old_sections_refuses(self):
+        older = OLD + section("dev-essentials 3.23.0", "4.21.0", ["the old change"])
+        base, main = dict(BASE), dict(MAIN_RELEASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- the old change\n\n")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change"))
+        for files in (base, main, branch):
+            files["CHANGELOG.md"] = files["CHANGELOG.md"].replace(OLD, older)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- the old change\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_entry_of_the_merge_base_that_main_keeps_under_unreleased_stays_with_a_twin_that_main_released(self):
+        entry = "### Changed in the repository\n\n- the old change\n\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + entry)
+        main = main_release("the change of main", "the old change")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + entry)
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1", bullets=("the old change",)), main=main, base=base)
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased")
+        self.assertNotIn("DROPPED", out)
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertIn("### Changed in the repository\n\n- the old change\n\n## dev-essentials 3.24.1", text)
+        self.assertEqual(text.count("- the old change\n"), 3, text)
+
     def test_file_that_cannot_be_written_fails_with_code_1(self):
         if hasattr(os, "geteuid") and os.geteuid() == 0:
             self.skipTest("root writes a read-only file")
