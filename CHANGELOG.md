@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.3 in release [6.1.3] - 2026-11-21
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a test run on Microsoft.Testing.Platform that takes 1 second or more at one commit only. No skill text changes (issue #351).
+
 ### Fixed in dev-essentials
 
 - `skills/review-loop/scripts/failure_check.py`: a time with more than one unit, such as `1s 318ms`, now becomes one token, as `683ms` does. `dotnet test` on Microsoft.Testing.Platform prints the line `duration: 1s 318ms` in its summary. The run at the commit before the fix builds in a new worktree, so it often takes more than 1 second. Before, that line gave `OTHER` in place of `SAME-AT-PARENT` for the same failure. Real runs of xunit.v3 4.0.3 and NUnit 5.0.0 with the .NET SDK 11.0.100 showed it (issue #351).
@@ -2628,7 +2632,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...HEAD
+[6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
