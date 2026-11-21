@@ -59,10 +59,9 @@ remote that does not answer, snapshot waits with no output. No guard can see
 a repository outside S that borrows objects from a repository in S (git clone
 --shared or --reference). The delete breaks that repository. An empty folder
 passes the content guards, so delete-temp deletes any empty folder that passes
-the place guards. On Windows, a
-network path such as //host/share gets past the guards of the report folder,
-the home folder, the temp root, and REPO. The marker rule still refuses a
-folder that snapshot did not make.
+the place guards. On Windows, a network path such as //host/share gets past
+the guards of the report folder, the home folder, the temp root, and REPO.
+The marker rule still refuses a folder that snapshot did not make.
 
 The output of snapshot and delete-temp has at most 40 lines, and the last one
 gives the count of the lines that it leaves out. The exit code still holds
