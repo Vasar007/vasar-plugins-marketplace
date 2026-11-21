@@ -2203,20 +2203,9 @@ def bash_input(command):
 class BugHuntFlowGraderTests(unittest.TestCase):
     """The graders of bh-flow: the route graders read the calls of the scripts, and the scored graders read the files."""
 
-    # The planted bug, the known bug, or the decoy of each file. A hunter that fixes it fails the grader.
-    KEPT = {
-        "invoice-kept": ("billing/invoice.py", "    return int(total)\n", "    return round(total, 2)\n"),
-        "cache-kept": ("inventory/cache.py", "    key = sku\n", "    key = (sku, warehouse)\n"),
-        "retry-kept": ("notify/retry.py", "            if max_retries and attempt >= max_retries:\n",
-                       "            if attempt >= max_retries:\n"),
-        "email-kept": ("notify/email.py", '    return "Order " + order_id\n', '    return f"Order {order_id}"\n'),
-        "stock-kept": ("inventory/stock.py", "    return units // case_size\n", "    return -(-units // case_size)\n"),
-    }
-
     @classmethod
     def setUpClass(cls):
         cls.case = {case.name: case for case in load_cases(FP_ROOT)}["bh-flow"]
-        cls.script = (FP_ROOT / "evals" / "_lib" / "shop-fixture.sh").read_text(encoding="utf-8")
         cls.checks = (FP_ROOT / "skills" / "bug-hunt" / "references" / "structure-checks.md").read_text(encoding="utf-8")
 
     def counts(self, grader, command):
@@ -2297,19 +2286,6 @@ class BugHuntFlowGraderTests(unittest.TestCase):
         }.items():
             with self.subTest(run=name):
                 self.assertFalse(self.passes("report-final", changed))
-
-    def test_each_kept_grader_passes_its_file_of_the_scaffold_and_fails_an_edit(self):
-        for grader, (path, old, new) in self.KEPT.items():
-            meta = self.case.graders[grader][0]
-            self.assertEqual((meta["type"], meta.get("match", "contains"), meta["target"]),
-                             ("regex", "contains", {"source": "file", "path": f"project/{path}"}))
-            text = self.script.split(f"fixture_write {path} <<'SHOP_EOF'\n", 1)[1].split("SHOP_EOF\n", 1)[0]
-            self.assertIn(old, text)
-            self.assertTrue(self.passes(grader, text))
-            for name, changed in {"a fix": text.replace(old, new, 1), "a line at the end": text + "# note\n",
-                                  "a line at the start": "# note\n" + text, "an empty file": ""}.items():
-                with self.subTest(grader=grader, run=name):
-                    self.assertFalse(self.passes(grader, changed))
 
 
 class RoutePlainDotnetGraderTests(unittest.TestCase):
@@ -4549,6 +4525,13 @@ class ShopFilesKeptGraderTests(unittest.TestCase):
             }.items():
                 with self.subTest(grader=grader, run=name):
                     self.assertFalse(self.passes(grader, changed))
+
+    def test_bh_flow_has_the_same_graders(self):
+        """bh-flow has copies of these graders. A change of one copy alone leaves the other copy with no test."""
+        flow = {case.name: case for case in load_cases(FP_ROOT)}["bh-flow"]
+        for grader in self.FILES:
+            with self.subTest(grader=grader):
+                self.assertEqual(flow.graders[grader][0], self.case.graders[grader][0])
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):
