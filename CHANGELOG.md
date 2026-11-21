@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.0.0 in release [6.0.0] - 2026-11-21
+
+The agents `task-composer` and `docs-composer` and the command `audit-openspec` leave, because no unit used them. `audit-plan` now also audits an OpenSpec change. The option `--mode` of `help-review-pr` is now `--post`, so its name no longer clashes with the work modes. A new eval case proves the post of one finding (issue #337).
+
 ### Added in dev-essentials
 
 - `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect, a style defect, and a `TODO` comment. So the findings table has a major row, a minor row, and an info row. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
@@ -2569,7 +2573,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
 [5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
 [5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
