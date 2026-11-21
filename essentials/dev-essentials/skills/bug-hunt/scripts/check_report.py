@@ -57,7 +57,9 @@ root, and each folder of REPO and its worktrees.
 Known limits. git archive has no time limit. So in a partial clone with a
 remote that does not answer, snapshot waits with no output. No guard can see
 a repository outside S that borrows objects from a repository in S (git clone
---shared or --reference). The delete breaks that repository. On Windows, a
+--shared or --reference). The delete breaks that repository. An empty folder
+passes the content guards, so delete-temp deletes any empty folder that passes
+the place guards. On Windows, a
 network path such as //host/share gets past the guards of the report folder,
 the home folder, the temp root, and REPO. The marker rule still refuses a
 folder that snapshot did not make.
@@ -717,6 +719,11 @@ def export(repo, sha, dest, side, out):
         except (tarfile.TarError, OSError) as error:
             failed = error
         finally:
+            if failed is None:
+                # tarfile stops at the first end block. git still writes the rest of its last record.
+                with contextlib.suppress(OSError):
+                    while proc.stdout.read(65536):
+                        pass
             proc.stdout.close()
             code = proc.wait()
         errors.seek(0)
@@ -1023,7 +1030,8 @@ def delete_tree(path, base=None):
                 return
             except OSError as again:
                 error = again
-        name = show(os.path.relpath(target, base or str(path)))
+        relative = os.path.relpath(target, base or str(path))
+        name = "the folder itself" if relative == "." else show(relative)
         errors.append(f"{name}: {error if isinstance(error, BaseException) else error[1]}")
 
     def remove():
@@ -1049,17 +1057,31 @@ def delete_tree(path, base=None):
 
 def delete_run_folder(path):
     """Delete the scratch folder with its marker last, so that a run after a failed delete still passes the guards."""
-    errors = []
-    for name in sorted(os.listdir(path)):
-        if name != SCRATCH_MARKER:
+    def delete_entries():
+        errors = []
+        for name in sorted(os.listdir(path)):
+            if name != SCRATCH_MARKER:
+                full = os.path.join(path, name)
+                if os.path.isdir(full) and not is_link(full):
+                    errors += delete_tree(full, base=path)
+                else:
+                    try:
+                        os.unlink(full)
+                    except OSError as error:
+                        errors.append(f"{show(name)}: {error}")
+        return errors
+
+    errors = delete_entries()
+    if errors:
+        # The retry of delete_tree for the top level: a scratch folder with no write right, or a read-only file of Windows.
+        with contextlib.suppress(OSError):
+            os.chmod(path, stat.S_IRWXU)
+        for name in os.listdir(path):
             full = os.path.join(path, name)
-            if os.path.isdir(full) and not is_link(full):
-                errors += delete_tree(full, base=path)
-            else:
-                try:
-                    os.unlink(full)
-                except OSError as error:
-                    errors.append(f"{show(name)}: {error}")
+            if os.name == "nt" and os.path.isfile(full) and not is_link(full):
+                with contextlib.suppress(OSError):
+                    os.chmod(full, stat.S_IWRITE)
+        errors = delete_entries()
     return errors or delete_tree(path)
 
 

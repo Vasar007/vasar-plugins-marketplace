@@ -572,6 +572,12 @@ class SnapshotTests(GitCase):
         self.assertEqual(code, 0, lines)
         self.assertEqual(outside.read_text(), "keep this text")
 
+    def test_archive_whose_end_block_ends_a_record_is_read_to_its_end(self):
+        sha = self.commit({"a.txt": b"x" * 8000})
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"SNAPSHOT: ref {self.scratch / 'snapshot-ref'} files=1 git=1", lines)
+
     def test_commit_with_no_files_gives_an_empty_snapshot(self):
         self.git(self.repo, "commit", "-q", "--allow-empty", "-m", "empty")
         code, lines = self.snapshot(self.git(self.repo, "rev-parse", "HEAD"))
@@ -961,6 +967,35 @@ class DeleteTempTests(GitCase):
         self.assertEqual(len(failed), 1, lines)
         self.assertIn(f"{os.path.join('work', 'hunter-1', 'log.txt')}: denied", failed[0])
 
+    def test_failed_line_names_the_folder_itself_in_words(self):
+        folder = self.tmp / "empty"
+        folder.mkdir()
+        real_rmdir = os.rmdir
+
+        def rmdir(path, *args, **kwargs):
+            if os.path.abspath(path) == str(folder):
+                raise PermissionError("denied")
+            return real_rmdir(path, *args, **kwargs)
+
+        with mock.patch.object(cr.os, "rmdir", rmdir):
+            self.assertEqual(cr.delete_tree(folder), ["the folder itself: denied"])
+
+    def test_read_only_file_at_the_top_is_deleted(self):
+        path = self.scratch / "known-issues.md"
+        os.chmod(path, stat.S_IREAD)
+        self.addCleanup(lambda: path.exists() and os.chmod(path, stat.S_IWRITE | stat.S_IREAD))
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"DELETED: {self.scratch}", lines)
+
+    @unittest.skipIf(os.name == "nt", "a folder with no write right keeps no file on Windows")
+    def test_scratch_folder_with_no_write_right_is_deleted(self):
+        self.addCleanup(lambda: self.scratch.exists() and os.chmod(self.scratch, stat.S_IRWXU))
+        os.chmod(self.scratch, stat.S_IRUSR | stat.S_IXUSR)
+        code, lines = self.delete_without_dac_rights("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"DELETED: {self.scratch}", lines)
+
     def delete_without_dac_rights(self, *extra):
         """Run delete-temp in a child process. As root, capsh drops the rights that ignore the folder modes."""
         prefix = []
@@ -969,7 +1004,9 @@ class DeleteTempTests(GitCase):
             if not capsh:
                 self.skipTest("root ignores folder rights")
             prefix = [capsh, "--drop=cap_dac_override,cap_dac_read_search", "--", "-c", 'exec "$0" "$@"']
-        result = run(prefix + [sys.executable, "-I", SCRIPT, "delete-temp", "--report-dir", self.report_dir,
+        # A copy in the temp folder, because root with no DAC rights cannot pass a closed home folder of the clone.
+        script = shutil.copy(SCRIPT, self.tmp / "check_report.py")
+        result = run(prefix + [sys.executable, "-I", script, "delete-temp", "--report-dir", self.report_dir,
                                "--scratch", self.scratch, "--repo", self.repo, *extra], timeout=120)
         return result.returncode, (result.stdout + result.stderr).splitlines()
 
