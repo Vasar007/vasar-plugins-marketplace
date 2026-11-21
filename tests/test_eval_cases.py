@@ -1718,6 +1718,65 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 self.assertNotRegex(trace_form((FP_STAGES / stage).read_text(encoding="utf-8")), pattern)
 
 
+class BreakingChangeTestGraderTests(unittest.TestCase):
+    """The grader test-unchanged of fp-e5-breaking-change fails each run that edits, skips, or ignores the test that the cache breaks.
+
+    A test with [Ignore] does not fail a run, so the run marker writes Passed for it.
+    """
+
+    TEST_FILE = "tests/Inventory.Tests/StockServiceTests.cs"
+    METHOD = "    [Test]\n    public void Restock_ThenGetQuantity_ReturnsNewAmount()\n"
+    NEW_TEST = ("    [Test]\n    public void GetQuantity_SameSkuTwice_QueriesOnce()\n    {\n"
+                "        Assert.That(1, Is.EqualTo(1));\n    }\n\n")
+    # Each edit replaces one text of the fixture file. True: the grader passes the edited file.
+    EDITS = {
+        "a new test before the test": (METHOD, NEW_TEST + METHOD, True),
+        "a new test at the end": ("    }\n}\n", "    }\n\n" + NEW_TEST.rstrip("\n") + "\n}\n", True),
+        "CRLF line ends": ("\n", "\r\n", True),
+        "an Ignore attribute before Test": (METHOD, '    [Ignore("Blocked by implementation bug: stale cache")]\n' + METHOD, False),
+        "an Ignore attribute after Test": ("    [Test]\n    public void Restock_Then",
+                                           '    [Test]\n    [Ignore("stale cache")]\n    public void Restock_Then', False),
+        "Ignore in the Test attribute": ("    [Test]\n    public void Restock_Then", '    [Test, Ignore("stale cache")]\n    public void Restock_Then', False),
+        "an Explicit attribute": (METHOD, "    [Explicit]\n" + METHOD, False),
+        "no Test attribute": (METHOD, METHOD.replace("    [Test]\n", ""), False),
+        "an Ignore attribute on the class": ("[TestFixture]\n", '[TestFixture]\n[Ignore("stale cache")]\n', False),
+        "Ignore in the TestFixture attribute": ("[TestFixture]\n", '[TestFixture, Ignore("stale cache")]\n', False),
+        "an Ignore attribute above the class": ("[TestFixture]\n", '[Ignore("stale cache")]\n[TestFixture]\n', False),
+        "an Explicit attribute above the class": ("[TestFixture]\n", "[Explicit]\n[TestFixture]\n", False),
+        "no read before the restock": ('        var before = service.GetQuantity("ab-1");\n', "", False),
+        "a new service before the second read": ('        var after = service.GetQuantity("ab-1");',
+                                                 '        var after = new StockService(new FakeSqlRunner()).GetQuantity("ab-1");', False),
+        "another expected value": ("Assert.That(before, Is.EqualTo(0));", "Assert.That(before, Is.EqualTo(5));", False),
+        "an Ignore call in the test": ("    {\n        var service = new StockService(new FakeSqlRunner());\n        var before",
+                                       '    {\n        Assert.Ignore("stale cache");\n        var service = new StockService(new FakeSqlRunner());\n        var before', False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["fp-e5-breaking-change"]
+        cls.meta = case.graders["test-unchanged"][0]
+        fixture = (FP_ROOT / "evals" / "_lib" / "inventory-fixture.sh").read_text(encoding="utf-8")
+        found = re.search(rf"fixture_write {re.escape(cls.TEST_FILE)} <<'DOTNET_EOF'\n(.*?)^DOTNET_EOF$", fixture, re.S | re.M)
+        cls.text = found.group(1) if found else None
+
+    def passes(self, text):
+        return re.search(self.meta["pattern"], text) is not None
+
+    def test_the_grader_reads_the_test_file_and_needs_a_match(self):
+        self.assertEqual((self.meta["type"], self.meta.get("match", "contains"), self.meta["target"]),
+                         ("regex", "contains", {"source": "file", "path": self.TEST_FILE}))
+
+    def test_the_grader_passes_the_test_file_of_the_fixture(self):
+        self.assertIsNotNone(self.text, "The fixture must write the test file with a DOTNET_EOF heredoc.")
+        self.assertTrue(self.passes(self.text))
+
+    def test_the_grader_fails_each_edit_of_the_test_and_passes_a_new_test(self):
+        for name, (old, new, passes) in self.EDITS.items():
+            with self.subTest(edit=name):
+                self.assertIn(old, self.text)
+                self.assertEqual(self.passes(self.text.replace(old, new)), passes)
+
+
 OBSD_ROOT = REPO / "essentials" / "doc-styles"
 OBSD_PROBE = OBSD_ROOT / "evals" / "probes" / "probe-obsd-lint-hook"
 OBSD_LINT = OBSD_ROOT / "skills" / "openbsd-style-docs" / "scripts" / "openbsd_lint.py"
@@ -4319,6 +4378,65 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor.replace("import os\n", "", 1)))
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor + '__all__ = ["os", "page_label"]\n'))
         self.assertFalse(self.passes(self.lint, "vendor-kept", "# os\n" + vendor))
+
+
+class ShopFilesKeptGraderTests(unittest.TestCase):
+    """The content graders of bh-planted-bugs fail a run that edits a file of the project.
+
+    The grader project-unchanged sees only the files that the run created, not an edit of a file of the scaffold.
+    """
+
+    FILES = {
+        "invoice-kept": "billing/invoice.py",
+        "cache-kept": "inventory/cache.py",
+        "retry-kept": "notify/retry.py",
+        "email-kept": "notify/email.py",
+        "stock-kept": "inventory/stock.py",
+    }
+    # A fix of the planted bug or of the known bug, or a change of the decoy.
+    FIXES = {
+        "invoice-kept": ("    return int(total)\n", "    return round(total, 2)\n"),
+        "cache-kept": ("    key = sku\n", "    key = (sku, warehouse)\n"),
+        "retry-kept": ("            if max_retries and attempt >= max_retries:\n", "            if attempt >= max_retries:\n"),
+        "email-kept": ('    return "Order " + order_id\n', '    return f"Order {order_id}"\n'),
+        "stock-kept": ("    return units // case_size\n", "    return -(-units // case_size)\n"),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["bh-planted-bugs"]
+        cls.script = (FP_ROOT / "evals" / "_lib" / "shop-fixture.sh").read_text(encoding="utf-8")
+
+    def scaffold_text(self, path):
+        return self.script.split(f"fixture_write {path} <<'SHOP_EOF'\n", 1)[1].split("SHOP_EOF\n", 1)[0]
+
+    def passes(self, grader, text):
+        return re.search(self.case.graders[grader][0]["pattern"], text) is not None
+
+    def test_each_grader_reads_its_file_of_the_project(self):
+        for grader, path in self.FILES.items():
+            with self.subTest(grader=grader):
+                meta = self.case.graders[grader][0]
+                self.assertEqual((meta["type"], meta.get("match", "contains"), meta.get("flags", ""), meta["target"]),
+                                 ("regex", "contains", "", {"source": "file", "path": f"project/{path}"}))
+
+    def test_each_grader_passes_the_file_of_the_scaffold(self):
+        for grader, path in self.FILES.items():
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, self.scaffold_text(path)))
+
+    def test_each_grader_fails_an_edit_of_its_file(self):
+        for grader, (old, new) in self.FIXES.items():
+            text = self.scaffold_text(self.FILES[grader])
+            self.assertIn(old, text)
+            for name, changed in {
+                "a fix": text.replace(old, new, 1),
+                "a line at the end": text + "# note\n",
+                "a line at the start": "# note\n" + text,
+                "an empty file": "",
+            }.items():
+                with self.subTest(grader=grader, run=name):
+                    self.assertFalse(self.passes(grader, changed))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):

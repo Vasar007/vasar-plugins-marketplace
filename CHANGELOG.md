@@ -47,6 +47,24 @@ The other numbers in a heading are plugin versions.
 - `docs/evals.md`: a row for the new suite `help-review-pr`, and a paragraph on the new case (issue #337).
 - `docs/workflows.md` and `README.md`: they name `--post` in place of the `--mode` of `help-review-pr` (issue #337).
 
+## dev-essentials 4.4.9 in release [5.4.9] - 2026-11-21
+
+Three eval cases get graders that fail a wrong run: `ta-full-pass`, `bh-planted-bugs`, and `fp-e5-breaking-change`. A review of the 97 behavior cases by the rule of useful tests found them. No skill text changes (issues #336 and #338).
+
+### Fixed in dev-essentials
+
+- `evals/trim-artifacts/ta-full-pass`: the new scored grader `other-files-kept` reads the listing of the run. Each notes file that the user did not approve for deletion must still be in the folder `notes/`. Before, no scored grader read 7 of these 11 files. So a run that deleted one of them, or merged it into another file, passed each scored grader. The prompt approves only the deletion of the session log (issue #336).
+- `evals/bug-hunt/bh-planted-bugs`: five new scored graders compare a whole file of the project with the file of the scaffold. They read `billing/invoice.py`, `inventory/cache.py`, `notify/retry.py`, `notify/email.py`, and `inventory/stock.py`. The grader `project-unchanged` is a `file_exists` grader, and it sees only the files that the run created. So before, a run that fixed a planted bug in place passed each grader of the case (issue #338).
+- `evals/feature-pipeline/fp-e5-breaking-change`: the grader `test-unchanged` now reads the whole test that the new cache breaks. It also reads the `[Test]` attribute of the test, the header of its class, and the namespace line above the class. Before, it read only the last assertion of the test. So a run that put `[Ignore]` on the test, or that removed its first read, passed each grader of the case. A test with `[Ignore]` does not fail the test run, so `tests-passed` passed too. For a bug of the code, the stage `test-coverage` marks its own new test with `[Ignore]`. A run can do the same to the old test (issue #338).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `TrimFullPassTests` deletes each kept notes file after a right trim, with each form of the backup. It also renames each kept file to `<name>.orig`. Each deletion and each rename must fail the new grader `other-files-kept` (issue #336).
+- `tests/test_eval_cases.py`: `ShopFilesKeptGraderTests` tests the new graders of `bh-planted-bugs`. Each one passes the file of the scaffold. A fix of the bug in the file, or a change of the decoy, fails it. A new first or last line fails it too, and so does an empty file (issue #338).
+- `docs/evals.md`: a `file_exists` grader does not see an edit of a file of the scaffold. So `bh-planted-bugs` reads the content of five files of its project. The file also names the limits of the grader `test-unchanged` of `fp-e5-breaking-change` (issue #338).
+- `tests/simple-english-baseline.json`: six entries for the code text in the patterns of the new graders (issue #338).
+- `tests/test_eval_cases.py`: `BreakingChangeTestGraderTests` runs the grader `test-unchanged` of `fp-e5-breaking-change` on the test file of the fixture and on 16 edits of it. Each of the 13 edits that skips, ignores, or changes the test fails the grader. A new test before or after it passes, and so do CRLF line ends (issue #338).
+
 ## dev-essentials 4.4.8 in release [5.4.8] - 2026-11-21
 
 The scored grader `no-run-commit` of five resume cases now fails an orphan commit and an amend that keeps the subject of a fixture commit. No skill text changes (issue #335). The release also takes in the guard of `changelog_merge.py release` against a silent loss of an indented line (issue #330).
@@ -2551,7 +2569,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...HEAD
+[5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
 [5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
 [5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
