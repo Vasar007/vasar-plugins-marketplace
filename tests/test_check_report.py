@@ -978,7 +978,10 @@ class DeleteTempTests(GitCase):
             return real_rmdir(path, *args, **kwargs)
 
         with mock.patch.object(cr.os, "rmdir", rmdir):
-            self.assertEqual(cr.delete_tree(folder), ["the folder itself: denied"])
+            errors = cr.delete_tree(folder)
+        # shutil of POSIX adds the path to the error, so only the name part is fixed.
+        self.assertEqual(len(errors), 1, errors)
+        self.assertTrue(errors[0].startswith("the folder itself: "), errors)
 
     def test_read_only_file_at_the_top_is_deleted(self):
         path = self.scratch / "known-issues.md"
