@@ -9,6 +9,48 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.0.0 in release [6.0.0] - 2026-11-21
+
+The agents `task-composer` and `docs-composer` and the command `audit-openspec` leave, because no unit used them. `audit-plan` now also audits an OpenSpec change. The option `--mode` of `help-review-pr` is now `--post`, so its name no longer clashes with the work modes. A new eval case proves the post of one finding (issue #337).
+
+### Added in dev-essentials
+
+- `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect, a style defect, and a `TODO` comment. So the findings table has a major row, a minor row, and an info row. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
+
+### Changed in dev-essentials
+
+- `commands/help-review-pr.md`: the option `--mode=html-only|post-all|post-<N>|post-<N>-<M>` is now `--post=all|<N>|<N>-<M>`. With no `--post`, the run writes only the HTML artifact. The old name was the name of the option of the work modes, which picks where a workflow stops (issue #337).
+- `commands/audit-plan.md`: the command now also audits an OpenSpec change. It takes the folder of the change below `openspec/changes/`, or only the name of the change. The description names the OpenSpec change folder (issue #337).
+- `skills/work-modes/SKILL.md`: the note on the `--mode` of `help-review-pr` goes, because that option no longer exists (issue #337).
+- `evals/triggers/audit-plan-openspec-fires` and `evals/triggers/audit-plan-fires`: the new names of the cases `audit-openspec-fires` and `audit-openspec-near-miss`. Each one must start `audit-plan`. The graders on `audit-openspec` go, and so does the grader that kept `audit-plan` at zero calls (issue #337).
+- `evals/triggers/compose-task-fires`, `compose-task-draft-fires`, and `create-documentation-guide-fires`: the descriptions name no removed agent. `compose-task-fires` and `create-documentation-guide-fires` no longer list the `Agent` tool (issue #337).
+
+### Removed in dev-essentials
+
+- The agents `task-composer` and `docs-composer`. No unit of the marketplace dispatched them. The skills `compose-task` and `create-documentation` do the same work in the session, or in a subagent that loads the skill (issue #337).
+- The command `audit-openspec`. It differed from `audit-plan` only in its folder rule, and `audit-plan` now has that rule (issue #337).
+- The graders `task-composer-not-fired` of `compose-task-fires` and `docs-composer-not-fired` of `create-documentation-guide-fires`. Also `route-task-composer-not-fired` of `cmp-task-draft` and `cmp-issue-create`, and `route-docs-composer-not-fired` of `cmp-guide-draft`. With no agent of that name, these graders cannot fail (issue #337).
+
+### Breaking changes in dev-essentials
+
+- Write the new name in place of the old one. The command `help-review-pr` no longer defines `--mode`. Phase 6 runs only with `--post`, so the text gives an old value such as `--mode=post-all` no meaning (issue #337).
+
+| Old name | New name |
+| --- | --- |
+| The agent `dev-essentials:task-composer` | The skill `dev-essentials:compose-task`, in the session or in a `general-purpose` agent that loads it |
+| The agent `dev-essentials:docs-composer` | The skill `dev-essentials:create-documentation`, in the session or in a `general-purpose` agent that loads it |
+| `/dev-essentials:audit-openspec <change>` | `/dev-essentials:audit-plan openspec/changes/<change>` |
+| `/dev-essentials:help-review-pr <url> --mode=html-only` | `/dev-essentials:help-review-pr <url>` |
+| `--mode=post-all` of `help-review-pr` | `--post=all` |
+| `--mode=post-<N>` of `help-review-pr` | `--post=<N>` |
+| `--mode=post-<N>-<M>` of `help-review-pr` | `--post=<N>-<M>` |
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the tests of the removed graders go. `HelpReviewPrPostGraderTests` tests the graders of the new case on right and wrong runs. A post of row 1, a post of rows 1 and 2, and an edit of the reviewed code each fail a grader (issue #337).
+- `docs/evals.md`: a row for the new suite `help-review-pr`, and a paragraph on the new case (issue #337).
+- `docs/workflows.md` and `README.md`: they name `--post` in place of the `--mode` of `help-review-pr` (issue #337).
+
 ## dev-essentials 4.4.9 in release [5.4.9] - 2026-11-21
 
 Three eval cases get graders that fail a wrong run: `ta-full-pass`, `bh-planted-bugs`, and `fp-e5-breaking-change`. A review of the 97 behavior cases by the rule of useful tests found them. No skill text changes (issues #336 and #338).
@@ -2531,7 +2573,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
 [5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
 [5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
