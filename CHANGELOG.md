@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.0 in release [6.1.0] - 2026-11-21
+
+The helper script of the skill `bug-hunt` gets two subcommands. `snapshot` exports the analyzed commit and its base into the scratch folder of a run. `delete-temp` stops the leftover processes of a run and deletes its scratch folder, with guards that refuse before any change. No skill text calls them yet (issue #339).
+
 ### Added in dev-essentials
 
 - `skills/bug-hunt/scripts/check_report.py`: the new subcommand `snapshot` exports the analyzed commit into the scratch folder with `git archive`. It reads the archive with the `data` filter of `tarfile`, so no file lands outside the snapshot, and no `tar` program is needed. The command reads the archive to its end. So git does not fail on a full last record. A local base gets its own export, and a remote base gets a shallow clone of its branch. Each snapshot holds the bytes of the commit, whatever `core.autocrlf` says. The output gives the file counts, the SHA of the base, and each limit. The limits are submodules, `export-ignore`, `filter=lfs`, and each link that the filter leaves out. A link that the system cannot make and a second name that differs only by case also give a limit line. The command writes the marker file `.bug-hunt-scratch` into the scratch folder. It refuses a scratch folder that is not empty and has no marker. A folder with the marker and an entry that a run does not make gets a refusal too. A marker that exists stays as it is. A commit with no files gives an empty snapshot. It also refuses a scratch folder that is, holds, or is inside a folder of the repository. A snapshot folder that is not empty gets a refusal too. The command shares the guards of the place of the scratch folder with `delete-temp` (issue #339).
@@ -2583,7 +2587,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...HEAD
+[6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
 [5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
 [5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
