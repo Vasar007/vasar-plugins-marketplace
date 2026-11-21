@@ -1417,7 +1417,9 @@ class TestCountTests(unittest.TestCase):
         # The parent run of xunit.v3 4.0.3 on the testing platform builds in a new worktree and takes over 1 s.
         failure = ["failed Probe.CalcTests.Add (22ms)", "Test run summary: Failed!", "  failed: 1"]
         self.assertSame([*failure, "  duration: 683ms", MTP_END], [*failure, "  duration: 1s 318ms", MTP_END])
-        self.assertSame([*failure, "  duration: 1m 2s 5ms", MTP_END], [*failure, "  duration: 59s 990ms", MTP_END])
+        self.assertSame([*failure, "  duration: 1m 02s 005ms", MTP_END], [*failure, "  duration: 59s 990ms", MTP_END])
+        assembly = MTP_ASSEMBLY.format(0, 1, 0)
+        self.assertSame([*failure, assembly], [*failure, assembly.replace("(233ms)", "(1s 318ms)")])
 
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])

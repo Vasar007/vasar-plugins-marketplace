@@ -79,7 +79,8 @@ digit of a file name stays.
 With no error line, the lines to compare are each line that is not blank. Each line counts
 with the number of times that it comes. A run with an error line never matches a run with none.
 Before the compare, a root folder at the start of a path becomes a token. So do each time,
-address, and count of passed or skipped tests. A count of failures or errors stays. The line of
+address, and count of passed or skipped tests. A time with more than one unit, such as
+1s 318ms, is one time. A count of failures or errors stays. The line of
 a single test also stays, for example a PASSED line of pytest -v or an ok line of unittest -v.
 So a new test can still give OTHER: its line is in the last lines, it holds an error word or
 names a place, or no line of the output holds an error word.
