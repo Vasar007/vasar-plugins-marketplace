@@ -28,18 +28,20 @@ auditor).
 
 snapshot exports the commit SHA of REPO into S/snapshot-ref with git archive,
 and makes S/work and S/tools. It writes the marker file S/.bug-hunt-scratch,
-which delete-temp needs. S must be missing, empty, or hold the marker. The
-base goes into S/snapshot-base: an export of --base-sha for local, a shallow
-clone of --base-branch from --base-url for remote, and nothing for none or
-for a local base with the same SHA. Each snapshot holds the bytes of the
-commit, whatever core.autocrlf says. Against REPO, it runs only git
-rev-parse, ls-tree, show, and archive. Output lines: SNAPSHOT (a snapshot and
-its counts), LIMIT (content that a snapshot does not hold), WARN, and ERROR.
-Exit codes: 0 = done, 1 = a git command or the extraction failed, 2 = usage
-error or REFUSED, and nothing was created.
+which delete-temp needs. S must be missing, empty, or hold the marker and
+only the names of a run. The base goes into S/snapshot-base: an export of
+--base-sha for local, a shallow clone of --base-branch from --base-url for
+remote, and nothing for none or for a local base with the same SHA. Each
+snapshot holds the bytes of the commit, whatever core.autocrlf says. Against
+REPO, it runs only git rev-parse, ls-tree, show, and archive. Output lines:
+SNAPSHOT (a snapshot and its counts), LIMIT (content that a snapshot does not
+hold), WARN, and ERROR. Exit codes: 0 = done, 1 = a git command or the
+extraction failed, 2 = usage error or REFUSED, and nothing was created.
 
 delete-temp deletes the folder S and each regular file D/_bug-hunt-progress-*.md.
-S must be an absolute path and hold the marker file of snapshot. First it
+S must be an absolute path and hold the marker file of snapshot. An empty S
+with no marker also passes, because it holds nothing to lose. The delete
+removes the marker last, so a later run can finish a failed delete. First it
 stops each --pid process whose start time and command line match. Then it
 waits up to 5 seconds for the end of each process. Without --apply, it
 prints WOULD STOP and WOULD DELETE lines and changes nothing. Each guard
@@ -51,6 +53,14 @@ the plan is ready, 1 = a delete failed or the cleanup check gives a DEFECT,
 snapshot and delete-temp share the guards of the place of S. They refuse a
 link or a junction, a drive root, a mount point, the home folder, the temp
 root, and each folder of REPO and its worktrees.
+
+Known limits. git archive has no time limit. So in a partial clone with a
+remote that does not answer, snapshot waits with no output. No guard can see
+a repository outside S that borrows objects from a repository in S (git clone
+--shared or --reference). The delete breaks that repository. On Windows, a
+network path such as //host/share gets past the guards of the report folder,
+the home folder, the temp root, and REPO. The marker rule still refuses a
+folder that snapshot did not make.
 
 The output of snapshot and delete-temp has at most 40 lines, and the last one
 gives the count of the lines that it leaves out. The exit code still holds
@@ -96,7 +106,8 @@ GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never", "LC_ALL": "C"
 # The line ends of the commit, on each system. A .gitattributes rule of the commit still applies.
 PLAIN_LINE_ENDS = ("-c", "core.autocrlf=false", "-c", "core.eol=lf")
 GIT_SECONDS = 300
-# Below the limit of 10 minutes of the Bash tool, so the caller still gets the ERROR line.
+# Below the limit of 10 minutes of the Bash tool. On POSIX, a clone that hangs stops here with an ERROR line.
+# On Windows, a git helper keeps the pipes open, so the Bash tool ends the call first, with no ERROR line.
 CLONE_SECONDS = 540
 STOP_SECONDS = 5
 
@@ -531,7 +542,8 @@ def is_link(path):
 def git(cwd, *args, timeout=GIT_SECONDS):
     """Run git with no input and no prompt. Return the exit code, stdout, and the last 5 lines of stderr.
 
-    A run that takes longer than timeout seconds stops, and gives the exit code 124.
+    After timeout seconds, git stops, and the call gives the exit code 124. On Windows, a git helper that still
+    runs, such as git-remote-https, keeps the pipes open. Then the call returns only after the end of the helper.
     """
     try:
         done = subprocess.run(["git", "-C", str(cwd), *args], stdin=subprocess.DEVNULL, capture_output=True,
@@ -673,6 +685,9 @@ def can_link(folder):
 
 def export(repo, sha, dest, side, out):
     """Extract git archive of sha into dest. Each member goes through the data filter of tarfile. Return True if it worked."""
+    code, text, _ = git(repo, "ls-tree", "-r", "-z", "--name-only", sha)
+    if code == 0 and not text.strip("\0"):
+        return True  # tarfile cannot read the archive of a commit with no files.
     with tempfile.TemporaryFile() as errors:
         try:
             proc = subprocess.Popen(["git", "-C", str(repo), *PLAIN_LINE_ENDS, "archive", "--format=tar", sha],
@@ -733,6 +748,10 @@ def make_snapshots(a, out):
         if names and SCRATCH_MARKER not in names:
             reasons.append(f"the scratch folder {show(scratch)} is not empty and has no {SCRATCH_MARKER} file. "
                            "Use a new scratch folder")
+        extra = [name for name in sorted(names) if name not in SCRATCH_NAMES]
+        if extra and SCRATCH_MARKER in names:
+            reasons.append(f"the scratch folder holds entries that a bug hunt does not make: "
+                           f"{', '.join(show(name) for name in extra[:5])}. Use a new scratch folder")
         if os.path.lexists(marker) and not stat.S_ISREG(os.lstat(str(marker)).st_mode):
             reasons.append(f"{show(marker)} is not a regular file")
         for name in ("snapshot-ref", "snapshot-base"):
@@ -750,7 +769,10 @@ def make_snapshots(a, out):
             out.add(f"ERROR: git rev-parse --verify {sha}: {err}")
             return 1
     scratch.mkdir(parents=True, exist_ok=True)
-    marker.write_text("made by check_report.py snapshot\n", encoding="utf-8")
+    if not os.path.lexists(marker):
+        # An exclusive create: a marker that is a hard link keeps the text of its other name.
+        with open(marker, "x", encoding="utf-8") as file:
+            file.write("made by check_report.py snapshot\n")
     for name in ("snapshot-ref", "work", "tools"):
         (scratch / name).mkdir(parents=True, exist_ok=True)
     ref = scratch / "snapshot-ref"
@@ -786,11 +808,11 @@ def homes():
     return [path for path in dict.fromkeys(found) if path and path != "~"]
 
 
-def mount_points():
-    """The mount points that /proc/self/mountinfo of Linux lists, or an empty list on another system."""
+def mount_points(table="/proc/self/mountinfo"):
+    """The mount points that the mount table of Linux lists, or an empty list on another system."""
     try:
-        with open("/proc/self/mountinfo", encoding="utf-8", errors="surrogateescape") as table:
-            lines = table.read().splitlines()
+        with open(table, encoding="utf-8", errors="surrogateescape") as file:
+            lines = file.read().splitlines()
     except OSError:
         return []
     # Field 5 is the mount point. The file writes a space, a tab, a line break, and a backslash as \NNN.
@@ -839,14 +861,14 @@ def git_folder(dotgit):
 
 def git_folder_reasons(folder, scratch):
     """The reasons to refuse a git folder in the scratch folder whose work tree or a linked worktree is outside it."""
-    try:
-        config = (folder / "config").read_text(encoding="utf-8", errors="surrogateescape")
-    except OSError:
-        config = ""
-    worktree = re.search(r"^\s*worktree\s*=\s*(.+?)\s*$", config, re.M | re.I)
+    config = str(folder / "config")
+    # git reads the quotes and the escapes of the file. A value with # or ; has quotes.
+    _, worktree, _ = git(".", "config", "--file", config, "--get", "core.worktree")
+    _, bare, _ = git(".", "config", "--file", config, "--bool", "--get", "core.bare")
+    worktree = worktree.rstrip("\r\n")
     if worktree:
-        trees = [Path(os.path.normpath(os.path.join(str(folder), worktree.group(1))))]
-    elif re.search(r"^\s*bare\s*=\s*true\s*$", config, re.M | re.I):
+        trees = [Path(os.path.normpath(os.path.join(str(folder), worktree)))]
+    elif bare.strip() == "true":
         trees = []
     elif folder.name == ".git":
         trees = [folder.parent]
@@ -866,15 +888,18 @@ def git_folder_reasons(folder, scratch):
 def content_reasons(scratch):
     """The reasons to refuse what a scratch folder holds: names that a run does not make, or git data outside it."""
     try:
-        extra = [name for name in sorted(os.listdir(str(scratch))) if name not in SCRATCH_NAMES]
+        names = sorted(os.listdir(str(scratch)))
     except OSError as error:
         return [f"the script cannot list the scratch folder {show(scratch)}: {error}"]
+    extra = [name for name in names if name not in SCRATCH_NAMES]
     reasons = []
     if extra:
         more = f" and {len(extra) - 5} more" if len(extra) > 5 else ""
         reasons.append(f"the scratch folder holds entries that a bug hunt does not make: "
                        f"{', '.join(show(name) for name in extra[:5])}{more}. It can be the wrong folder")
     marker = scratch / SCRATCH_MARKER
+    if not names:
+        return reasons  # An empty folder holds nothing to lose. A delete that failed at its last step leaves one.
     if not os.path.lexists(marker) or not stat.S_ISREG(os.lstat(str(marker)).st_mode):
         # The snapshot command did not make this folder, so a walk of a large wrong folder has no use.
         reasons.append(f"the scratch folder has no {SCRATCH_MARKER} file, so the snapshot command did not make it. "
@@ -983,8 +1008,11 @@ def stop(pid, out):
             f"NOT STOPPED: pid={pid}: it still runs {STOP_SECONDS} seconds after the stop signal")
 
 
-def delete_tree(path):
-    """Delete a folder, and return the errors. A link inside goes as a link. A read-only file of Windows becomes writable first."""
+def delete_tree(path, base=None):
+    """Delete a folder, and return the errors. A link inside goes as a link. A read-only file of Windows becomes writable first.
+
+    Each error names its path relative to base, or to path without base, so the reason stays in a short line.
+    """
     errors = []
 
     def retry(function, target, error):
@@ -995,7 +1023,8 @@ def delete_tree(path):
                 return
             except OSError as again:
                 error = again
-        errors.append(f"{show(target)}: {error if isinstance(error, BaseException) else error[1]}")
+        name = show(os.path.relpath(target, base or str(path)))
+        errors.append(f"{name}: {error if isinstance(error, BaseException) else error[1]}")
 
     def remove():
         errors.clear()
@@ -1016,6 +1045,22 @@ def delete_tree(path):
                         os.chmod(os.path.join(top, name), stat.S_IRWXU)
         remove()
     return errors
+
+
+def delete_run_folder(path):
+    """Delete the scratch folder with its marker last, so that a run after a failed delete still passes the guards."""
+    errors = []
+    for name in sorted(os.listdir(path)):
+        if name != SCRATCH_MARKER:
+            full = os.path.join(path, name)
+            if os.path.isdir(full) and not is_link(full):
+                errors += delete_tree(full, base=path)
+            else:
+                try:
+                    os.unlink(full)
+                except OSError as error:
+                    errors.append(f"{show(name)}: {error}")
+    return errors or delete_tree(path)
 
 
 def delete_targets(a, out):
@@ -1053,7 +1098,7 @@ def delete_targets(a, out):
         failed = True
         out.add(f"FAILED: {show(scratch)}: the path changed after the guards, so the script deleted nothing in it")
     else:
-        errors = delete_tree(target)
+        errors = delete_run_folder(target)
         failed = os.path.lexists(scratch)
         if failed:
             more = f" (and {len(errors) - 1} more errors)" if len(errors) > 1 else ""
@@ -1129,7 +1174,8 @@ def main():
     n.add_argument("--repo", required=True, type=folder_value, help="the repository. The command only reads it")
     n.add_argument("--ref-sha", required=True, help="the full SHA of the analyzed commit")
     n.add_argument("--scratch", required=True, type=folder_value,
-                   help="the scratch folder, outside the repository: missing, empty, or with the marker file")
+                   help="the scratch folder, outside the repository: missing, empty, or with the marker file "
+                        "and only the names of a run")
     n.add_argument("--base-from", choices=("local", "remote", "none"), required=True,
                    help="the source of the base: a commit of the repository, a branch of a remote, or no base")
     n.add_argument("--base-sha", help="the full SHA of the base commit, for --base-from local")
@@ -1141,7 +1187,8 @@ def main():
         "2 = usage error or REFUSED, and nothing changed."))
     t.add_argument("--report-dir", required=True, type=folder_value, help="the report folder. The report stays")
     t.add_argument("--scratch", required=True, type=folder_value,
-                   help=f"the scratch folder to delete: an absolute path that holds the marker file {SCRATCH_MARKER}")
+                   help=f"the scratch folder to delete: an absolute path that holds the marker file {SCRATCH_MARKER}, "
+                        "or an empty folder")
     t.add_argument("--repo", required=True, type=folder_value,
                    help="the repository. A scratch folder that meets one of its folders is refused")
     t.add_argument("--pid", type=pid_value, action="append", default=[], metavar="PID=STARTED",

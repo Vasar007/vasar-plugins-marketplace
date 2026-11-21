@@ -534,6 +534,60 @@ class SnapshotTests(GitCase):
         self.assertRefused(self.snapshot(sha), f"is not empty and has no {MARKER} file")
         self.assertEqual(sorted(self.tmp.rglob("*")), before)
 
+    def test_folder_with_the_marker_and_another_entry_is_refused(self):
+        sha = self.commit(self.FILES)
+        self.scratch.mkdir()
+        (self.scratch / MARKER).write_text("x")
+        (self.scratch / "src").mkdir()
+        before = sorted(self.tmp.rglob("*"))
+        self.assertRefused(self.snapshot(sha), "entries that a bug hunt does not make: src")
+        self.assertEqual(sorted(self.tmp.rglob("*")), before)
+
+    def test_marker_that_is_a_link_or_a_folder_is_refused(self):
+        sha = self.commit(self.FILES)
+        outside = self.tmp / "outside.txt"
+        outside.write_text("keep")
+        for form in ("folder", "link"):
+            with self.subTest(form=form):
+                self.scratch.mkdir()
+                if form == "folder":
+                    (self.scratch / MARKER).mkdir()
+                else:
+                    self.link(self.scratch / MARKER, outside)
+                self.assertRefused(self.snapshot(sha), "is not a regular file")
+                self.assertEqual(outside.read_text(), "keep")
+                self.assertEqual(os.listdir(self.scratch), [MARKER])
+                shutil.rmtree(self.scratch)
+
+    def test_marker_that_is_a_hard_link_keeps_the_text_of_its_other_name(self):
+        sha = self.commit(self.FILES)
+        outside = self.tmp / "outside.txt"
+        outside.write_text("keep this text")
+        self.scratch.mkdir()
+        try:
+            os.link(outside, self.scratch / MARKER)
+        except OSError as error:
+            self.skipTest(f"this file system has no hard links: {error}")
+        code, lines = self.snapshot(sha)
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(outside.read_text(), "keep this text")
+
+    def test_commit_with_no_files_gives_an_empty_snapshot(self):
+        self.git(self.repo, "commit", "-q", "--allow-empty", "-m", "empty")
+        code, lines = self.snapshot(self.git(self.repo, "rev-parse", "HEAD"))
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"SNAPSHOT: ref {self.scratch / 'snapshot-ref'} files=0 git=0", lines)
+
+    def test_failed_snapshot_leaves_a_folder_that_delete_temp_removes(self):
+        sha = self.commit(self.FILES)
+        code, lines = self.snapshot(sha, "--base-from", "remote", "--base-branch", "main",
+                                    "--base-url", (self.tmp / "missing.git").as_uri())
+        self.assertEqual(code, 1, lines)
+        code, lines = self.run_main("delete-temp", "--report-dir", self.report_dir, "--scratch", self.scratch,
+                                    "--repo", self.repo, "--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(os.path.lexists(self.scratch))
+
     def test_home_folder_and_temp_root_are_refused(self):
         sha = self.commit(self.FILES)
         cases = (({"HOME": str(self.scratch), "USERPROFILE": str(self.scratch)}, None, "is the home folder"),
@@ -855,15 +909,71 @@ class DeleteTempTests(GitCase):
                 raise PermissionError("denied")
             return real_unlink(path, *args, **kwargs)
 
-        with mock.patch.object(cr, "delete_tree", return_value=["work: denied"]), \
-                mock.patch.object(Path, "unlink", unlink):
+        def delete_tree(path, *args, **kwargs):
+            return ["work: denied"] if os.path.basename(path) == "work" else []
+
+        with mock.patch.object(cr, "delete_tree", delete_tree), mock.patch.object(Path, "unlink", unlink):
             code, lines = self.delete("--apply")
         self.assertEqual(code, 1, lines)
         self.assertIn(f"FAILED: {self.scratch}: work: denied", lines)
         self.assertIn(f"FAILED: {self.report_dir / self.PROGRESS[0]}: denied", lines)
         self.assertTrue(self.scratch.is_dir())
 
-    @unittest.skipIf(os.name == "nt" or os.geteuid() == 0, "only a POSIX user that is not root keeps such files")
+    def test_delete_that_fails_keeps_the_marker_and_a_second_run_finishes(self):
+        real_delete_tree = cr.delete_tree
+
+        def delete_tree(path, *args, **kwargs):
+            if os.path.basename(path) == "work":
+                return ["work: denied"]
+            return real_delete_tree(path, *args, **kwargs)
+
+        with mock.patch.object(cr, "delete_tree", delete_tree):
+            code, lines = self.delete("--apply")
+        self.assertEqual(code, 1, lines)
+        self.assertTrue((self.scratch / MARKER).is_file(), lines)
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"DELETED: {self.scratch}", lines)
+        self.assertFalse(os.path.lexists(self.scratch))
+
+    def test_empty_folder_without_the_marker_is_deleted(self):
+        shutil.rmtree(self.scratch)
+        self.scratch.mkdir()
+        code, lines = self.delete("--apply")
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f"DELETED: {self.scratch}", lines)
+        self.assertFalse(os.path.lexists(self.scratch))
+
+    def test_failed_line_names_the_path_inside_the_scratch_folder_and_the_reason(self):
+        scratch = self.tmp / ("s" * 130)
+        self.layout(scratch)
+        real_unlink = os.unlink
+
+        def unlink(path, *args, **kwargs):
+            if os.path.basename(path) == "log.txt":
+                raise PermissionError("denied")
+            return real_unlink(path, *args, **kwargs)
+
+        with mock.patch.object(cr.os, "unlink", unlink):
+            code, lines = self.delete("--apply", scratch=scratch)
+        self.assertEqual(code, 1, lines)
+        failed = [line for line in lines if line.startswith(f"FAILED: {scratch}: ")]
+        self.assertEqual(len(failed), 1, lines)
+        self.assertIn(f"{os.path.join('work', 'hunter-1', 'log.txt')}: denied", failed[0])
+
+    def delete_without_dac_rights(self, *extra):
+        """Run delete-temp in a child process. As root, capsh drops the rights that ignore the folder modes."""
+        prefix = []
+        if os.geteuid() == 0:
+            capsh = shutil.which("capsh")
+            if not capsh:
+                self.skipTest("root ignores folder rights")
+            prefix = [capsh, "--drop=cap_dac_override,cap_dac_read_search", "--", "-c", 'exec "$0" "$@"']
+        result = run(prefix + [sys.executable, "-I", SCRIPT, "delete-temp", "--report-dir", self.report_dir,
+                               "--scratch", self.scratch, "--repo", self.repo, *extra], timeout=120)
+        return result.returncode, (result.stdout + result.stderr).splitlines()
+
+    @unittest.skipIf(os.name == "nt", "a folder with no write right keeps no file on Windows")
     def test_apply_deletes_a_folder_with_no_write_right(self):
         cache = self.scratch / "work" / "hunter-1" / "mod" / "pkg@v1.0.0"
         cache.mkdir(parents=True)
@@ -877,7 +987,7 @@ class DeleteTempTests(GitCase):
         self.addCleanup(restore)
         for path in (cache, cache.parent):
             os.chmod(path, stat.S_IRUSR | stat.S_IXUSR)
-        code, lines = self.delete("--apply")
+        code, lines = self.delete_without_dac_rights("--apply")
         self.assertEqual(code, 0, lines)
         self.assertFalse(self.scratch.exists())
 
@@ -995,6 +1105,10 @@ class DeleteTempTests(GitCase):
                 with mock.patch.object(cr, "mount_points", return_value=[os.path.realpath(point)]):
                     self.assertRefused(self.delete("--apply"), "is or holds the mount point")
                 self.assertEqual(self.tree(), before)
+        with mock.patch.object(cr, "mount_points", return_value=[os.path.realpath(self.scratch) + "-2"]):
+            code, lines = self.delete()
+        self.assertEqual(code, 0, lines)
+        self.assertFalse(any(line.startswith("REFUSED") for line in lines), lines)
 
     def test_scratch_path_that_is_a_file_is_refused(self):
         shutil.rmtree(self.scratch)
@@ -1002,13 +1116,13 @@ class DeleteTempTests(GitCase):
         self.assertRefused(self.delete("--apply"), "is not a folder")
         self.assertEqual(self.scratch.read_text(), "a file")
 
-    @unittest.skipIf(os.name == "nt" or os.geteuid() == 0, "only a POSIX user that is not root loses the read right")
+    @unittest.skipIf(os.name == "nt", "a folder with no read right exists only on POSIX")
     def test_folder_that_the_walk_cannot_read_is_refused(self):
         closed = self.scratch / "work" / "closed"
         closed.mkdir()
         os.chmod(closed, 0)
         self.addCleanup(os.chmod, closed, stat.S_IRWXU)
-        self.assertRefused(self.delete("--apply"), "cannot read the folder")
+        self.assertRefused(self.delete_without_dac_rights("--apply"), "cannot read the folder")
         self.assertTrue(closed.is_dir())
 
     def test_folder_without_the_marker_is_refused(self):
@@ -1023,6 +1137,22 @@ class DeleteTempTests(GitCase):
                 before = self.tree()
                 self.assertRefused(self.delete("--apply", scratch=scratch), f"has no {MARKER} file")
                 self.assertEqual(self.tree(), before)
+
+    def test_marker_that_is_a_link_or_a_folder_is_refused(self):
+        outside = self.tmp / "outside.txt"
+        outside.write_text("keep")
+        marker = self.scratch / MARKER
+        marker.unlink()
+        marker.mkdir()
+        before = self.tree()
+        self.assertRefused(self.delete("--apply"), f"has no {MARKER} file")
+        self.assertEqual(self.tree(), before)
+        marker.rmdir()
+        self.link(marker, outside)
+        before = self.tree()
+        self.assertRefused(self.delete("--apply"), f"has no {MARKER} file")
+        self.assertEqual(self.tree(), before)
+        self.assertEqual(outside.read_text(), "keep")
 
     def test_scratch_folder_that_is_a_link_is_refused(self):
         link = self.tmp / "scratch-link"
@@ -1100,9 +1230,21 @@ class DeleteTempTests(GitCase):
         clone = self.scratch / "tools" / "lib"
         run(["git", "clone", "-q", self.repo, clone], check=True)
         self.git(clone, "worktree", "add", "-q", "--detach", self.scratch / "work" / "lib-wt")
+        run(["git", "clone", "-q", "--bare", self.repo, self.scratch / "tools" / "lib.git"], check=True)
         code, lines = self.delete("--apply")
         self.assertEqual(code, 0, lines)
         self.assertFalse(self.scratch.exists())
+
+    def test_git_folder_whose_core_worktree_has_quotes_is_refused(self):
+        outside = self.tmp / "user#fix"
+        outside.mkdir()
+        lib = self.scratch / "tools" / "lib" / ".git"
+        lib.parent.mkdir()
+        run(["git", f"--git-dir={lib}", f"--work-tree={outside}", "init", "-q"], check=True)
+        self.assertIn('"', (lib / "config").read_text(encoding="utf-8"))
+        before = self.tree()
+        self.assertRefused(self.delete("--apply"), "has the worktree")
+        self.assertEqual(self.tree(), before)
 
     def test_git_folder_with_a_worktree_outside_the_scratch_folder_is_refused(self):
         def clone_in_tools(scratch, outside):
@@ -1157,7 +1299,8 @@ class DeleteTempTests(GitCase):
         result = run([sys.executable, "-I", SCRIPT, "delete-temp", "--report-dir", self.report_dir,
                       "--scratch", self.scratch, "--repo", self.repo, "--pid", f"{child.pid}={started}", "--apply"],
                      timeout=180)
-        self.assertResult(result, 0, f"STOPPED: pid={child.pid}", f"DELETED: {self.scratch}")
+        self.assertResult(result, 0, f"DELETED: {self.scratch}")
+        self.assertIn(f"STOPPED: pid={child.pid}", result.stdout.splitlines())
         self.assertIsNotNone(child.wait(30))
 
     def test_process_with_another_start_time_does_not_stop(self):
@@ -1267,6 +1410,13 @@ class OutputTests(unittest.TestCase):
             out.flush()
         self.assertLess(len(buffer.getvalue()), 400)
         self.assertTrue(buffer.getvalue().endswith("... 4707 more characters\n"), buffer.getvalue()[-60:])
+
+    def test_mount_table_gives_field_5_with_its_escapes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            table = Path(tmp) / "mountinfo"
+            table.write_text("22 1 8:1 / / rw - ext4 /dev/sda rw\n"
+                             "36 22 8:1 /src /srv/run/m\\040nt rw shared:1 - ext4 /dev/sda rw\n", encoding="utf-8")
+            self.assertEqual(cr.mount_points(str(table)), ["/", "/srv/run/m nt"])
 
     def test_name_with_a_line_break_stays_on_one_line(self):
         self.assertEqual(cr.show("a\nb"), '"a\\nb"')
