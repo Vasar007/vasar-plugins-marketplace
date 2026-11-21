@@ -1703,14 +1703,20 @@ class TrimFullPassTests(FixtureCase):
                 (workspace / "trim-backup").mkdir()
                 shutil.move(str(workspace / "notes-copy"), str(workspace / "trim-backup" / "notes"))
             for path in kept:
-                with self.subTest(backup=backup, path=path):
-                    file = workspace / path
-                    text = file.read_bytes()
-                    file.unlink()
-                    self.listing(workspace)
-                    passed = self.passes(workspace, "other-files-kept")
-                    file.write_bytes(text)
-                    self.assertFalse(passed)
+                for change in ("delete", "rename"):
+                    with self.subTest(backup=backup, path=path, change=change):
+                        file = workspace / path
+                        renamed = file.with_name(file.name + ".orig")
+                        text = file.read_bytes()
+                        if change == "rename":
+                            file.rename(renamed)
+                        else:
+                            file.unlink()
+                        self.listing(workspace)
+                        passed = self.passes(workspace, "other-files-kept")
+                        renamed.unlink(missing_ok=True)
+                        file.write_bytes(text)
+                        self.assertFalse(passed)
             self.listing(workspace)
             self.assertTrue(self.passes(workspace, "other-files-kept"), backup)
 

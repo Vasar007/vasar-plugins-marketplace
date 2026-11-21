@@ -1741,6 +1741,8 @@ class BreakingChangeTestGraderTests(unittest.TestCase):
         "no Test attribute": (METHOD, METHOD.replace("    [Test]\n", ""), False),
         "an Ignore attribute on the class": ("[TestFixture]\n", '[TestFixture]\n[Ignore("stale cache")]\n', False),
         "Ignore in the TestFixture attribute": ("[TestFixture]\n", '[TestFixture, Ignore("stale cache")]\n', False),
+        "an Ignore attribute above the class": ("[TestFixture]\n", '[Ignore("stale cache")]\n[TestFixture]\n', False),
+        "an Explicit attribute above the class": ("[TestFixture]\n", "[Explicit]\n[TestFixture]\n", False),
         "no read before the restock": ('        var before = service.GetQuantity("ab-1");\n', "", False),
         "a new service before the second read": ('        var after = service.GetQuantity("ab-1");',
                                                  '        var after = new StockService(new FakeSqlRunner()).GetQuantity("ab-1");', False),
@@ -4432,7 +4434,9 @@ class ShopFilesKeptGraderTests(unittest.TestCase):
     def test_each_grader_reads_its_file_of_the_project(self):
         for grader, path in self.FILES.items():
             with self.subTest(grader=grader):
-                self.assertEqual(self.case.graders[grader][0]["target"], {"source": "file", "path": f"project/{path}"})
+                meta = self.case.graders[grader][0]
+                self.assertEqual((meta["type"], meta.get("match", "contains"), meta.get("flags", ""), meta["target"]),
+                                 ("regex", "contains", "", {"source": "file", "path": f"project/{path}"}))
 
     def test_each_grader_passes_the_file_of_the_scaffold(self):
         for grader, path in self.FILES.items():
