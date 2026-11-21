@@ -29,7 +29,7 @@ The other numbers in a heading are plugin versions.
 
 ### Breaking changes in dev-essentials
 
-- Write the new name in place of the old one. The command `help-review-pr` no longer defines `--mode`, so a run with an old `--mode=post-all` can post no comment. Its final reply then lists no posted comment (issue #337).
+- Write the new name in place of the old one. The command `help-review-pr` no longer defines `--mode`. Phase 6 runs only with `--post`, so the text gives an old value such as `--mode=post-all` no meaning (issue #337).
 
 | Old name | New name |
 | --- | --- |

@@ -194,6 +194,7 @@ Posts (single-PR shape only):
 - `<pr-url> --post=all` → the artifact, then a PR review comment for every finding.
 - `<pr-url> --post=<N>` → a post of finding number `N` only (1-based, as in the findings table of the artifact).
 - `<pr-url> --post=<N>-<M>` → a post of findings `N` to `M`.
+- `<pr-url> --post` with no value, or with a value outside these forms → only the HTML artifact. The final reply names the forms of `--post`.
 
 Multi-PR shape:
 

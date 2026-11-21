@@ -5467,6 +5467,7 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
     def test_the_artifact_grader_reads_the_output_line_of_the_command(self):
         meta = self.case.graders["artifact-named"][0]
         self.assertEqual(meta.get("target"), "last_message")
+        self.assertIn("The reviews folder is `Reviews/` in the notes folder.", self.command)
         start = self.command.index("ARTIFACT: <reviews-folder>/")
         block = self.command[start:self.command.index("`" * 3, start)]
         reply = block.replace("<reviews-folder>", "Notes/Reviews").replace("<number>", "7")
@@ -5504,6 +5505,7 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("no-code-edit", "\n".join([review, step])))
 
     def test_the_post_graders_need_one_comment_on_the_finding_of_row_two(self):
+        self.assertIn("`--post=2`", self.case.prompt_body)
         reads = [self.call("pull_request_read", {"method": "get", **self.PULL}),
                  self.call("pull_request_read", {"method": "get_review_comments", **self.PULL, "perPage": 30})]
         submit = self.review("submit_pending", event="COMMENT", body="One finding: src/pager.py drops the last item.")
@@ -5514,6 +5516,8 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
             "a post of row 1": ([self.review("create"), self.comment("src/pager.py", 27), submit], (True, False)),
             "a post of rows 1 and 2": ([self.review("create"), self.comment("src/pager.py", 27),
                                         self.comment("src/ranges.py", 14), submit], (False, True)),
+            "a post of rows 2 to 3": ([self.review("create"), self.comment("src/ranges.py", 14),
+                                       self.comment("src/pager.py", 25), submit], (False, True)),
             "row 2 only in the body of the review": ([self.review("create"), self.review(
                 "submit_pending", event="COMMENT", body="Use an f-string in src/ranges.py.")], (False, False)),
         }
