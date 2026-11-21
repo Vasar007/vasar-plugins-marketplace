@@ -79,7 +79,8 @@ digit of a file name stays.
 With no error line, the lines to compare are each line that is not blank. Each line counts
 with the number of times that it comes. A run with an error line never matches a run with none.
 Before the compare, a root folder at the start of a path becomes a token. So do each time,
-address, and count of passed or skipped tests. A count of failures or errors stays. The line of
+address, and count of passed or skipped tests. A time with more than one unit, such as
+1s 318ms, is one time. A count of failures or errors stays. The line of
 a single test also stays, for example a PASSED line of pytest -v or an ok line of unittest -v.
 So a new test can still give OTHER: its line is in the last lines, it holds an error word or
 names a place, or no line of the output holds an error word.
@@ -148,6 +149,8 @@ NOISE = [
     (re.compile(r"\[\d+:\d{2}<\d+:\d{2}, [^\]]*\]"), "[<time>]"),
     (re.compile(r"(?<![:.])\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
+    # A time with more than one unit, such as 1s 318ms, is one token, as 683ms is.
+    (re.compile(r"<time>(?: <time>)+"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
     # The count rules come after the time rules, because some of them look for the token <time>.
     (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),
@@ -157,6 +160,8 @@ NOISE = [
     (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
     (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
     (re.compile(r"^  (total|succeeded|skipped): \d+$"), r"\1: <n>"),
+    # The counts of a test assembly of Microsoft.Testing.Platform: [+<passed>/x<failed>/?<skipped>].
+    (re.compile(r"\[\+\d+/x(\d+)/\?\d+\]"), r"[+<n>/x\1/?<n>]"),
 ]
 NOT_STARTED = (126, 127)
 CHANGED_LINES = 20

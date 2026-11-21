@@ -49,6 +49,10 @@ class MoreTests(unittest.TestCase):
 RUFF_OS = "src\\a.py:1:8: F401 [*] `os` imported but unused"
 RUFF_SYS = "src\\a.py:1:8: F401 [*] `sys` imported but unused"
 RUFF_JSON = "src\\errors.py:1:8: F401 [*] `json` imported but unused"
+# The line of a test assembly and the last line of `dotnet test` on Microsoft.Testing.Platform: [+<passed>/x<failed>/?<skipped>].
+MTP_ASSEMBLY = "C:\\w\\bin\\Debug\\net11.0\\Probe.dll (net11.0|x64) failed with 1 error(s) [+{}/x{}/?{}] (233ms)"
+MTP_END = ("Test run completed with non-success exit code: 2. At least one test failed. "
+           "See: https://aka.ms/testingplatform/exitcodes")
 
 
 def ruff_concise(*hits):
@@ -1399,11 +1403,23 @@ class TestCountTests(unittest.TestCase):
         )
 
     def test_counts_of_the_testing_platform_do_not_count(self):
-        failure = ["failed Add_ReturnsSum (41ms)", "Test run summary: Failed!"]
-        self.assertSame([*failure, "  total: 3", "  failed: 1", "  succeeded: 2", "  skipped: 0", "  duration: 635ms"],
-                        [*failure, "  total: 2", "  failed: 1", "  succeeded: 1", "  skipped: 0", "  duration: 672ms"])
-        self.assertSame([*failure, "  total: 13", "  succeeded: 12", "  skipped: 10"],
-                        [*failure, "  total: 12", "  succeeded: 11", "  skipped: 11"])
+        # The lines of `dotnet test` of the .NET SDK 11.0.100 on Windows, with MSTest 4.2.3 on the testing platform.
+        def run(passed, skipped, total):
+            return ["failed Add (29ms)", MTP_ASSEMBLY.format(passed, 1, skipped), "Test run summary: Failed!",
+                    f"  total: {total}", "  failed: 1", f"  succeeded: {passed}", f"  skipped: {skipped}",
+                    "  duration: 612ms", MTP_END]
+
+        self.assertSame(run(2, 0, 3), run(1, 0, 2))
+        self.assertSame(run(12, 10, 23), run(11, 11, 23))
+        self.assertSame(["failed Add (29ms)", MTP_ASSEMBLY.format(2, 10, 0)], ["failed Add (29ms)", MTP_ASSEMBLY.format(1, 10, 0)])
+
+    def test_duration_with_two_units_does_not_count(self):
+        # The parent run of xunit.v3 4.0.3 on the testing platform builds in a new worktree and takes over 1 s.
+        failure = ["failed Probe.CalcTests.Add (22ms)", "Test run summary: Failed!", "  failed: 1"]
+        self.assertSame([*failure, "  duration: 683ms", MTP_END], [*failure, "  duration: 1s 318ms", MTP_END])
+        self.assertSame([*failure, "  duration: 1m 02s 005ms", MTP_END], [*failure, "  duration: 59s 990ms", MTP_END])
+        assembly = MTP_ASSEMBLY.format(0, 1, 0)
+        self.assertSame([*failure, assembly], [*failure, assembly.replace("(233ms)", "(1s 318ms)")])
 
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
@@ -1412,6 +1428,7 @@ class TestCountTests(unittest.TestCase):
         self.assertDiffer(["Failed!  - Failed:     2, Passed:     1, Skipped:     0, Total:     3, Duration: 1 s"],
                           ["Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 1 s"])
         self.assertDiffer(["Test run summary: Failed!", "  failed: 2"], ["Test run summary: Failed!", "  failed: 1"])
+        self.assertDiffer(["failed Add (29ms)", MTP_ASSEMBLY.format(1, 2, 0)], ["failed Add (29ms)", MTP_ASSEMBLY.format(1, 1, 0)])
 
     def test_number_outside_a_count_line_still_counts(self):
         for fix_line, parent_line in (("AssertionError: 3 passed != 2", "AssertionError: 2 passed != 2"),

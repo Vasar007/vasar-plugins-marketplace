@@ -14,6 +14,30 @@ The other numbers in a heading are plugin versions.
 - `tools/changelog_merge.py`: a table row below a bullet now belongs to that entry, like an indented line. The subcommand `unreleased` and the option `--absorb-unreleased` keep a blank line right above an indented line or a table row of an entry. Before, both lost that blank line with exit code 0. So a table moved into the text of the bullet above it. `unreleased` also dropped a table row of the branch that a table of `main` had under the same heading. An example is the separator row. The subcommand `release` now leaves out the table rows of a bullet that `main` already has, together with that bullet. Before, the rows stayed below the bullet above it, and the table was in the result two times. For a table row after a blank line below such a bullet, `release` stops with a `merge CHANGELOG.md by hand:` line. An entry can also be indented lines or table rows right below a `###` heading, with no bullet above them. The first line of such an entry matches only the first line under that heading on the other side. The docstring and `docs/tools.md` name the new rules (issue #343).
 - `tests/test_changelog_merge.py`: 12 new tests (issue #343). For `unreleased`, one test keeps the blank line above a table and above an indented line. Another one keeps a row of a table of the branch that a table of `main` also has. A third one adds a bullet after a blank line below an entry of the merge base, with no stop. For `--absorb-unreleased`, one test keeps the blank line above a table. For `release`, one test stops for a table after a blank line below a dropped bullet. Another one leaves out a dropped bullet together with its table rows. A third one stops for a dropped bullet whose table has another row on `main`. Five more tests are for `unreleased`. One keeps one copy of a table with no bullet above it that both sides added. Another one keeps an indented line with no bullet above it that an entry of `main` also has. A third one keeps a table with no bullet above it that an entry of `main` also has. A fourth one stops for an entry of both sides with another table row. A fifth one keeps one copy of a table with no bullet above it that both sides added. There, `main` has a line of spaces below the heading.
 
+## dev-essentials 5.1.3 in release [6.1.3] - 2026-11-21
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a test run on Microsoft.Testing.Platform that takes from 1 second up to 1 hour at one commit only. No skill text changes (issue #351).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: a time with more than one unit, such as `1s 318ms`, now becomes one token, as `683ms` does. `dotnet test` on Microsoft.Testing.Platform prints the line `duration: 1s 318ms` in its summary. The run at the commit before the fix builds in a new worktree, so it often takes more than 1 second. Before, that line gave `OTHER` in place of `SAME-AT-PARENT` for the same failure. Real runs of xunit.v3 4.0.3 and NUnit 5.0.0 with the .NET SDK 11.0.100 showed it. The help text of the script now names the rule (issue #351).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: a new test with the real summary lines of `dotnet test` on Microsoft.Testing.Platform. A time with two units and a time with one unit give the same signature (issue #351).
+
+## dev-essentials 5.1.2 in release [6.1.2] - 2026-11-21
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a test run on Microsoft.Testing.Platform that keeps its failure after a new test. No skill text changes (issue #348).
+
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: the counts of passed and skipped tests in the line of a test assembly of Microsoft.Testing.Platform now become a token, as in `[+<n>/x1/?<n>]`. The count of failed tests stays. `dotnet test` on that platform prints the line, for example `Probe.dll (net11.0|x64) failed with 1 error(s) [+1/x1/?0] (233ms)`. Before, a fix commit that added a test and kept the same failure gave `OTHER` in place of `SAME-AT-PARENT`. A real run of MSTest 4.2.3 with the .NET SDK 11.0.100 showed it (issue #348).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: the samples of Microsoft.Testing.Platform hold the line of a test assembly and the last line of a real run of `dotnet test` with MSTest 4.2.3. A new count of passed or skipped tests in that line gives the same signature. A new count of failed tests gives another one (issue #348).
+
 ## dev-essentials 5.1.1 in release [6.1.1] - 2026-11-21
 
 The skill `bug-hunt` runs the commands `snapshot` and `delete-temp` of its helper script in steps 1 and 6, in place of two helper agents. The subcommand `report` makes more of the structure tests of a report. A new cheap eval case, `bh-flow`, measures the flow of a run (issue #345).
@@ -2613,7 +2637,9 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...HEAD
+[6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
+[6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
