@@ -246,6 +246,48 @@
       "rule": "em_dash",
       "text": "-",
       "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the decoy file. The scaffold writes that file, and an edit of the file fails the grader. The `-` is the minus sign of `on_hand - reserved` in that file."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/cache-kept.md",
+      "rule": "sentence_over_limit",
+      "text": "The loader reads it from the database\\.\"\"\"\\n key = sku\\n if key not in _ca…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the file of the planted cache bug. The scaffold writes that file, and an edit of the file fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/cache-kept.md",
+      "rule": "trailing_condition",
+      "text": "The loader reads it from the database\\.\"\"\"\\n key = sku\\n if key not in _ca…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the file of the planted cache bug. The scaffold writes that file, and an edit of the file fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/invoice-kept.md",
+      "rule": "sentence_over_limit",
+      "text": "'^\"\"\"Invoice totals\\.\"\"\"\\n\\n\\ndef line_total\\(price, quantity\\):\\n \"\"\"Return …",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the file of the planted billing bug. The scaffold writes that file, and an edit of the file fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/retry-kept.md",
+      "rule": "sentence_over_limit",
+      "text": "Retry after a ConnectionError, at most max_retries times\\.\"\"\"\\n attempt = 0\\n…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the file of the planted retry bug. The scaffold writes that file, and an edit of the file fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/retry-kept.md",
+      "rule": "trailing_condition",
+      "text": "Retry after a ConnectionError, at most max_retries times\\.\"\"\"\\n attempt = 0\\n…",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the file of the planted retry bug. The scaffold writes that file, and an edit of the file fails the grader."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/stock-kept.md",
+      "rule": "em_dash",
+      "text": "-",
+      "reason": "Regex: the `pattern` value of a grader is a regular expression, not prose. It holds the whole text of the decoy file. The scaffold writes that file, and an edit of the file fails the grader. The `-` is the minus sign of `on_hand - reserved` in that file."
+    },
+    {
+      "file": "essentials/dev-essentials/evals/bug-hunt/bh-flow/graders/route-delete-temp.md",
+      "rule": "semicolon",
+      "text": ";",
+      "reason": "Regex: the `input_match` value of a grader is a regular expression, not prose. The `;` is in the class `[^;&|]`, the shell signs that end a command before its `--apply`."
     }
   ]
 }

@@ -14,6 +14,7 @@ Commands:
   setup       --report-dir D --scratch S --base yes|no [--allow NAME]
   report      --report R --scratch S --areas-done K --stage STAGE
               [--verified-to N] [--base yes|no] [--allow NAME]
+              [--snapshot S/snapshot-ref] [--base-snapshot S/snapshot-base]
   next-id     --report R
   open-notes  --report R
   cleanup     --report-dir D --scratch S
@@ -98,6 +99,9 @@ COUNTS = re.compile(
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_LINES = 40
 LINE_CHARS = 300
+# The report check prints at most this many DEFECT lines, so that a broken report does not flood the Bash tool.
+MAX_DEFECTS = 100
+LOCATION = re.compile(r"`([^`]+?):(\d+)(?:-(\d+))?`")
 FULL_SHA = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 PROGRESS_GLOB = "_bug-hunt-progress-*.md"
 # The entries that a run makes at the top of the scratch folder. delete-temp refuses a folder with others.
@@ -121,7 +125,8 @@ class Refused(Exception):
 
 def defect(text):
     problems.append(text)
-    print("DEFECT: " + text)
+    if len(problems) <= MAX_DEFECTS:
+        print("DEFECT: " + text)
 
 
 def read(path):
@@ -316,6 +321,104 @@ def open_notes(secs):
     return notes
 
 
+def first_value(value):
+    """The value of a field or a cell without its old value: 'Medium (was High)' gives 'Medium'."""
+    return value.split(" (was ", 1)[0].strip()
+
+
+def summary_values(summary, fields, base):
+    """Each row of the Summary table has the severity, confidence, verdict, and base answer of its entry.
+
+    A cell that is not a value of the format, such as N/A, gives no DEFECT. Only another value of the format gives one.
+    """
+    columns = [(3, "Severity", first_value, rf"^({SEVERITY})$"), (4, "Confidence", first_value, rf"^({CONFIDENCE})$"),
+               (5, "Verdict", first_value, VERDICT.pattern)]
+    if base:
+        # Only the first word: the entry says "Yes, `path:line`", and the row says "Yes".
+        columns.append((6, "Also on base", lambda value: (re.findall(r"[A-Za-z]+", value) or [""])[0], r"^(Yes|No|Not)$"))
+    for line in summary.split("\n"):
+        cells = [cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:]]
+        # A row can end with no last |, so only an empty last piece goes.
+        if cells and not cells[-1]:
+            cells.pop()
+        found = re.match(r"^BH-(\d+)$", cells[0]) if cells else None
+        if not found or int(found.group(1)) not in fields:
+            continue
+        num, labels = int(found.group(1)), fields[int(found.group(1))]
+        for index, label, key, legal in columns:
+            if index >= len(cells) or label not in labels:
+                continue
+            cell = key(cells[index])
+            if re.match(legal, cell) and cell != key(labels[label]):
+                defect(f"BH-{num:02d}: Summary {label} '{cells[index]}' differs from the entry '{labels[label]}'")
+
+
+def references(secs, fields, by_name, digest):
+    """Each reference to an entry or a known issue names one that exists.
+
+    An entry ID counts only where the format puts one, because prose can name an entry of an older report.
+    """
+    plain = [re.sub(r"`[^`\n]*`", "", line) for _, body in secs for _, line, fence in body if not fence]
+    known = body_text(by_name.get(KNOWN, []))
+    named = [(num, m.group(1)) for num, labels in fields.items()
+             for m in [re.match(r"^Duplicate of (BH-\d+|N-\d+|#\d+)$", labels.get("Verdict", ""))] if m]
+    for num, ref in named:
+        if ref.startswith("BH-") and int(ref[3:]) >= num:
+            defect(f"BH-{num:02d}: Duplicate of {ref} must name an earlier entry")
+    ids = {int(ref[3:]) for _, ref in named if ref.startswith("BH-")}
+    ids |= {int(x) for line in plain for tail in re.findall(r"\bResult: (.*)$", line)
+            for x in re.findall(r"\bBH-(\d+)\b", tail)}
+    ids |= {int(x) for line in plain for x in re.findall(r"\bNew details for BH-(\d+)\b", line)}
+    review = False
+    for _, line, fence in by_name.get("Summary", []):
+        if not fence and line.startswith("### "):
+            review = line.strip() == "### For the owner's review"
+        elif review and not fence:
+            ids |= {int(x) for x in re.findall(r"^- BH-(\d+)\b", re.sub(r"`[^`\n]*`", "", line))}
+    for ref in sorted(ids - set(fields)):
+        defect(f"the report names BH-{ref:02d}, but no entry has this ID")
+    named += [(None, ref) for line in plain for ref in re.findall(r"\bNew details for (N-\d+|#\d+)\b", line)]
+    named = list(dict.fromkeys(named))
+    digest_text = read(digest) if digest.is_file() else None
+    warned = False
+    for num, ref in named:
+        where = f"BH-{num:02d}: " if num else ""
+        if ref.startswith("N-") and not re.search(rf"(?<![\w-]){ref}\b", known):
+            defect(f"{where}{ref} is not in the Known issues section")
+        if ref.startswith("#"):
+            if digest_text is None:
+                if not warned:
+                    print(f"WARN: no known-issues digest at {digest}, so the check of #NN references did not run")
+                warned = True
+            elif not re.search(rf"(?<![\w#]){ref}\b", digest_text):
+                defect(f"{where}{ref} is not in the known-issues digest")
+
+
+def locations(bid, label, value, root):
+    """Each path:line of the field names a file of the snapshot and a line inside it. A path out of it is never read."""
+    for path, start, end in LOCATION.findall(value):
+        path = path.strip()
+        parts = path.replace("\\", "/").split("/")
+        if path.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:", path) or ".." in parts:
+            defect(f"{bid}: {label} path leaves the snapshot: {path}")
+            continue
+        if re.search(r":\d+$", path) or int(start) < 1 or int(end or start) < int(start):
+            form = f"{path}:{start}" + (f"-{end}" if end else "")
+            defect(f"{bid}: {label} is not in the form path:line or path:line-line: {form}")
+            continue
+        file = Path(root) / path.replace("\\", "/")
+        if not file.resolve().is_relative_to(Path(root).resolve()):
+            defect(f"{bid}: {label} path leaves the snapshot through a link: {path}")
+            continue
+        if not file.is_file():
+            defect(f"{bid}: {label} names a file that the snapshot does not hold: {path}")
+            continue
+        text = read(file)
+        count = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
+        if int(end or start) > count:
+            defect(f"{bid}: {label} line {end or start} is past the end of {path} ({count} lines)")
+
+
 def check_report(a):
     r = Path(a.report)
     if not r.is_file():
@@ -369,7 +472,7 @@ def check_report(a):
     if a.base == "yes":
         required.insert(4, "Also on base")
     counts = {"Confirmed": 0, "Unconfirmed": 0, "Rejected": 0, "Duplicate": 0, "Pending": 0}
-    titles = {}
+    titles, fields = {}, {}
     for num, title, sec, lines, raw in found:
         bid = f"BH-{raw}"
         titles[num] = title
@@ -380,6 +483,7 @@ def check_report(a):
             m = LABEL.match(line)
             if m:
                 labels.setdefault(m.group(1), line[m.end():].strip())
+        fields[num] = labels
         need = required + (["Verification"] if num <= verified_to else [])
         for lab in need:
             if lab not in labels:
@@ -430,7 +534,17 @@ def check_report(a):
         for x, title in rows:
             if int(x) in titles and title.strip().replace("\\|", "|") != titles[int(x)]:
                 defect(f"BH-{x}: Summary title differs from the heading")
+        summary_values(summary, fields, a.base == "yes")
+    references(secs, fields, by_name, Path(a.scratch) / "known-issues.md")
+    for num, labels in sorted(fields.items()):
+        if a.snapshot:
+            locations(f"BH-{num:02d}", "Location", labels.get("Location", ""), a.snapshot)
+        if a.base_snapshot and labels.get("Also on base", "").startswith("Yes"):
+            locations(f"BH-{num:02d}", "Also on base", labels["Also on base"], a.base_snapshot)
     if a.stage == "final":
+        appendix = [line.strip() for _, line, fence in by_name.get(APPENDIX, []) if not fence]
+        if any(e[2] == APPENDIX for e in found) and "None yet." in appendix:
+            defect("the appendix holds entries and still says 'None yet.'")
         if not re.search(r"^### For the owner's review$", summary, re.M):
             defect("Summary has no 'For the owner's review' subsection")
         plain = re.sub(r"`[^`\n]*`", "", "\n".join(line for line, fence in fenced(text) if not fence))
@@ -1143,6 +1257,13 @@ def delete_targets(a, out):
     return 1 if failed or left else 0
 
 
+def snapshot_value(text):
+    """An argparse type: a snapshot folder that exists. Else each location gets a DEFECT line with a wrong cause."""
+    if not text.strip() or not Path(text).is_dir():
+        raise argparse.ArgumentTypeError(f"not a folder: {text!r}")
+    return text
+
+
 def folder_value(text):
     """An argparse type: a path that is not empty. An empty path means the current folder to pathlib."""
     if not text.strip():
@@ -1183,6 +1304,10 @@ def main():
     r.add_argument("--verified-to", type=int, default=0)
     r.add_argument("--base", choices=("yes", "no"), default="yes")
     r.add_argument("--allow", action="append", default=[])
+    r.add_argument("--snapshot", type=snapshot_value,
+                   help="the ref snapshot: each Location must name a file and a line of it")
+    r.add_argument("--base-snapshot", type=snapshot_value,
+                   help="the base snapshot: each 'Also on base: Yes' location must name a file and a line of it")
     for name in ("next-id", "open-notes"):
         sub.add_parser(name).add_argument("--report", required=True)
     c = sub.add_parser("cleanup")
@@ -1246,6 +1371,9 @@ def main():
         if Path(a.scratch).exists():
             defect(f"scratch folder still exists: {a.scratch}")
         progress_files(a.report_dir, [])
+    if len(problems) > MAX_DEFECTS:
+        print(f"DEFECT: more defects that this output does not show: {len(problems) - MAX_DEFECTS}. "
+              "Fix the defects above, then run the check again")
     return 1 if problems else 0
 
 
