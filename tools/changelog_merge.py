@@ -11,10 +11,13 @@ It needs Python 3.7 or later and git, and it uses only the standard library.
 Subcommands:
   release     The branch adds a release section right below "## [Unreleased]". The CHANGELOG of
               --theirs is the base. The release section of the branch goes on top of it, with the
-              versions of --bump and the number of --release in its heading. A bullet that --theirs
-              already has is left out. If --theirs has a heading with the same text but the merge
-              base does not, another branch took the same numbers and merged first. The section of
-              the branch is still a new release, and it goes on top in full, with no line left out.
+              versions of --bump and the number of --release in its heading. The older sections come
+              from --theirs. A bullet that --theirs already has is left out. An older section of the
+              branch can have the text of that bullet. Then the script leaves it out only for an
+              [Unreleased] entry of the merge base that --theirs released. If --theirs has a heading
+              with the same text but the merge base does not, another branch took the same numbers
+              and merged first. The section of the branch is still a new release, and it goes on top
+              in full, with no line left out.
               The link lines get the new release. Each --bump writes its version into the
               plugin.json of that plugin. The other lines of that file come from --theirs, or from
               the branch if only the branch changed them since the merge base.
@@ -39,12 +42,19 @@ The script refuses, and writes nothing, in each of these cases:
   - The CHANGELOG of a side has no "## [Unreleased]" heading, or more than one.
   - release: the top section of the branch is not a release section, or both --theirs and the merge
     base have it.
+  - release: the branch changed an older section since the merge base, and --theirs does not have
+    the same text of that section. The result takes the older sections from --theirs, so it loses
+    that change. A section of the branch that the merge base does not have counts too, for example
+    a renamed heading. If --theirs made the change of the branch and one more change in that
+    section, the script stops too. It compares whole sections, so it cannot tell that right merge
+    from a loss. Two older sections with the same heading compare in their order.
   - release: --theirs has the heading of the top section of the branch, and a "- "
     bullet of that section is new on --theirs. Then merge CHANGELOG.md by hand. A bullet is new
     on --theirs when the older sections of the branch lack it, or --theirs has it more often
     than the merge base.
   - release: --theirs does not have that heading, and each "- " bullet of that section is new on
-    --theirs.
+    --theirs. In this case and the next one, an [Unreleased] entry of the merge base that the
+    script leaves out is new on --theirs too.
   - release: --theirs does not have that heading, and a "- " bullet of that section is new on
     --theirs. An indented line or a table row below that bullet is below no copy of it on --theirs or
     on the merge base. The script leaves out such a bullet with its indented lines and table rows.
@@ -361,6 +371,28 @@ def bump_manifests(repo, ours, theirs, base, bumps):
     return files, names
 
 
+def changed_old_section(older, base_text, theirs_text):
+    """Refuse when the branch changed an old release and --theirs does not have the same text of that release."""
+    mine, before, after = (old_sections(text) for text in (older, split_top(base_text, "the merge base")[2],
+                                                             split_top(theirs_text, "--theirs")[2]))
+    for key in [*before, *(key for key in mine if key not in before)]:
+        if mine.get(key) != before.get(key) and mine.get(key) != after.get(key):
+            raise Refused(f"merge {CHANGELOG} by hand: the branch changed the old release '{key[0]}', and --theirs "
+                          "does not have the same text of it")
+
+
+def old_sections(text):
+    """Map each "## " heading of text and its count of earlier copies to its lines, without the link lines."""
+    parts, key = {}, None
+    for line in text.split(LF):
+        if line.startswith("## "):
+            key = (line, sum(heading == line for heading, _ in parts))
+            parts[key] = []
+        elif key and not re.match(r"\[[^\]]+\]: ", line):
+            parts[key].append(line)
+    return {key: LF.join(lines).strip(LF) for key, lines in parts.items()}
+
+
 def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     """The new CHANGELOG text of the release subcommand, and the heading line of the branch."""
     _, ours_block, ours_rest = split_top(ours, "--ours")
@@ -383,6 +415,7 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     new_heading = f"## {plugins} in release [{release}]{match.group('tail')}"
     say("HEADING", new_heading)
     body = LF.join(section.split(LF)[1:]).strip(LF)
+    changed_old_section(older, base_text, theirs_text)
     known = theirs_lines - set(older.split(LF))
     if same:
         # The section goes on top in full. A bullet that --theirs added since the merge base is an entry of both sides.
@@ -392,6 +425,12 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
             raise Refused(f"the top section of the branch and --theirs both have the entry '{shared[0]}', so merge "
                           f"{CHANGELOG} by hand")
     else:
+        # An entry of the merge base that --theirs moved from [Unreleased] into a release is known, also with an old text.
+        _, unreleased, released = split_top(theirs_text, "--theirs")
+        _, base_unreleased, base_released = split_top(base_text, "the merge base")
+        base_old = Counter(base_released.split(LF))
+        moved = Counter(base_unreleased.split(LF)) - Counter(unreleased.split(LF))
+        known |= set(moved) & set(Counter(released.split(LF)) - base_old)
         lost = lost_indented_line(body, known, theirs_text, base_text)
         if lost:
             bullet, line = short(lost[0]), short(lost[1])
