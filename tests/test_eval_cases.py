@@ -5228,8 +5228,15 @@ class RirrFinishCaseTests(unittest.TestCase):
                  "\tcommit (initial): fixture: add the users app": False,
                  "\tcheckout: moving from main to work/retry-limit": False,
                  "\tcommit: Lower the retry limit": True,
-                 "\tcommit (amend): fixture: amended": False,
+                 # A subject that starts like the fixture prefix still counts.
+                 "\tcommit: fix the retry limit": True,
+                 # An amend with --no-edit keeps the subject of the fixture commit, but the run made it.
+                 "\tcommit (amend): fixture: amended": True,
                  "\tcommit (amend): Lower the retry limit": True,
+                 "\tcommit (merge): Merge branch 'main' into work/retry-limit": True,
+                 "\tcommit (cherry-pick): Lower the retry limit": True,
+                 "\tcherry-pick: Lower the retry limit": True,
+                 "\tmerge work/retry-limit: Merge made by the 'ort' strategy.": True,
                  "\trevert: Revert \"fixture: x\"": True}
         for line, expected in lines.items():
             for case in [*self.MERGE_CASES, *self.STOP_CASES]:
