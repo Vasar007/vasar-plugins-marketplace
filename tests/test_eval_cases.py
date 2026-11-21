@@ -1718,6 +1718,63 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 self.assertNotRegex(trace_form((FP_STAGES / stage).read_text(encoding="utf-8")), pattern)
 
 
+class BreakingChangeTestGraderTests(unittest.TestCase):
+    """The grader test-unchanged of fp-e5-breaking-change fails each run that edits, skips, or ignores the test that the cache breaks.
+
+    A test with [Ignore] does not fail a run, so the run marker writes Passed for it.
+    """
+
+    TEST_FILE = "tests/Inventory.Tests/StockServiceTests.cs"
+    METHOD = "    [Test]\n    public void Restock_ThenGetQuantity_ReturnsNewAmount()\n"
+    NEW_TEST = ("    [Test]\n    public void GetQuantity_SameSkuTwice_QueriesOnce()\n    {\n"
+                "        Assert.That(1, Is.EqualTo(1));\n    }\n\n")
+    # Each edit replaces one text of the fixture file. True: the grader passes the edited file.
+    EDITS = {
+        "a new test before the test": (METHOD, NEW_TEST + METHOD, True),
+        "a new test at the end": ("    }\n}\n", "    }\n\n" + NEW_TEST.rstrip("\n") + "\n}\n", True),
+        "CRLF line ends": ("\n", "\r\n", True),
+        "an Ignore attribute before Test": (METHOD, '    [Ignore("Blocked by implementation bug: stale cache")]\n' + METHOD, False),
+        "an Ignore attribute after Test": ("    [Test]\n    public void Restock_Then",
+                                           '    [Test]\n    [Ignore("stale cache")]\n    public void Restock_Then', False),
+        "Ignore in the Test attribute": ("    [Test]\n    public void Restock_Then", '    [Test, Ignore("stale cache")]\n    public void Restock_Then', False),
+        "an Explicit attribute": (METHOD, "    [Explicit]\n" + METHOD, False),
+        "no Test attribute": (METHOD, METHOD.replace("    [Test]\n", ""), False),
+        "an Ignore attribute on the class": ("[TestFixture]\n", '[TestFixture]\n[Ignore("stale cache")]\n', False),
+        "Ignore in the TestFixture attribute": ("[TestFixture]\n", '[TestFixture, Ignore("stale cache")]\n', False),
+        "no read before the restock": ('        var before = service.GetQuantity("ab-1");\n', "", False),
+        "a new service before the second read": ('        var after = service.GetQuantity("ab-1");',
+                                                 '        var after = new StockService(new FakeSqlRunner()).GetQuantity("ab-1");', False),
+        "another expected value": ("Assert.That(before, Is.EqualTo(0));", "Assert.That(before, Is.EqualTo(5));", False),
+        "an Ignore call in the test": ("    {\n        var service = new StockService(new FakeSqlRunner());\n        var before",
+                                       '    {\n        Assert.Ignore("stale cache");\n        var service = new StockService(new FakeSqlRunner());\n        var before', False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["fp-e5-breaking-change"]
+        cls.meta = case.graders["test-unchanged"][0]
+        fixture = (FP_ROOT / "evals" / "_lib" / "inventory-fixture.sh").read_text(encoding="utf-8")
+        found = re.search(rf"fixture_write {re.escape(cls.TEST_FILE)} <<'DOTNET_EOF'\n(.*?)^DOTNET_EOF$", fixture, re.S | re.M)
+        cls.text = found.group(1) if found else None
+
+    def passes(self, text):
+        return re.search(self.meta["pattern"], text) is not None
+
+    def test_the_grader_reads_the_test_file_and_needs_a_match(self):
+        self.assertEqual((self.meta["type"], self.meta.get("match", "contains"), self.meta["target"]),
+                         ("regex", "contains", {"source": "file", "path": self.TEST_FILE}))
+
+    def test_the_grader_passes_the_test_file_of_the_fixture(self):
+        self.assertIsNotNone(self.text, "The fixture must write the test file with a DOTNET_EOF heredoc.")
+        self.assertTrue(self.passes(self.text))
+
+    def test_the_grader_fails_each_edit_of_the_test_and_passes_a_new_test(self):
+        for name, (old, new, passes) in self.EDITS.items():
+            with self.subTest(edit=name):
+                self.assertIn(old, self.text)
+                self.assertEqual(self.passes(self.text.replace(old, new)), passes)
+
+
 OBSD_ROOT = REPO / "essentials" / "doc-styles"
 OBSD_PROBE = OBSD_ROOT / "evals" / "probes" / "probe-obsd-lint-hook"
 OBSD_LINT = OBSD_ROOT / "skills" / "openbsd-style-docs" / "scripts" / "openbsd_lint.py"
