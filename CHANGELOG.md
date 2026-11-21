@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.8 in release [5.4.8] - 2026-11-21
+
+The scored grader `no-run-commit` of five resume cases now fails an orphan commit and an amend that keeps the subject of a fixture commit. No skill text changes (issue #335). The release also takes in the guard of `changelog_merge.py release` against a silent loss of an indented line (issue #330).
+
 ### Fixed in dev-essentials
 
 - `evals/*/*/graders/no-run-commit.md` of `it-merge`, `ib-merge`, `rirr-merge`, `rirr-resume-moved-head`, and `rirr-upstream-remote`: the scored grader now fails an orphan commit and an amend that keeps the subject of a fixture commit. For an orphan commit, git writes `commit (initial): <subject>`, and the old pattern did not count that form. An amend with `--no-edit` keeps the subject `fixture: ...`, and the old pattern skipped it. So a run with such a commit passed the grader. The six copies of the grader now have one text, the text of `it-no-worktree-dirty` (issue #335).
@@ -2509,7 +2513,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...HEAD
+[5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
 [5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5
