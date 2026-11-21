@@ -960,6 +960,68 @@ class ReleaseTests(MergeCase):
         self.assertIn("### Changed in the repository\n\n- the old change\n\n## dev-essentials 3.24.1", text)
         self.assertEqual(text.count("- the old change\n"), 3, text)
 
+    def test_bullet_that_the_branch_moved_out_of_an_old_section_refuses(self):
+        older = OLD + section("dev-essentials 3.23.0", "4.21.0", ["the old change", "another old change"])
+        moved = OLD + section("dev-essentials 3.23.0", "4.21.0", ["another old change"])
+        base, main = dict(BASE), main_release("the change of main")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change"))
+        for files in (base, main):
+            files["CHANGELOG.md"] = files["CHANGELOG.md"].replace(OLD, older)
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(OLD, moved)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- the old change\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_bullet_that_the_branch_moved_out_of_its_only_old_section_refuses(self):
+        older = OLD + section("dev-essentials 3.23.0", "4.21.0", ["a moved change", "another old change"])
+        moved = OLD + section("dev-essentials 3.23.0", "4.21.0", ["another old change"])
+        base, main = dict(BASE), main_release("the change of main")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "a moved change"))
+        for files in (base, main):
+            files["CHANGELOG.md"] = files["CHANGELOG.md"].replace(OLD, older)
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(OLD, moved)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- a moved change\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_entry_that_both_sides_released_next_to_a_bullet_that_the_branch_moved_out_of_an_old_section_refuses(self):
+        older = OLD + section("dev-essentials 3.23.0", "4.21.0", ["the old change", "another old change"])
+        moved = OLD + section("dev-essentials 3.23.0", "4.21.0", ["another old change"])
+        base, main = dict(BASE), main_release("the change of main", "the old change")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change", "the old change"))
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- the old change\n\n")
+        for files in (base, main):
+            files["CHANGELOG.md"] = files["CHANGELOG.md"].replace(OLD, older)
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(OLD, moved)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP the result has a line that a side removed or changed since the merge base, so merge CHANGELOG.md by hand: "
+                      "- the old change\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_entry_that_both_sides_released_with_a_copy_that_the_branch_added_to_an_old_section_refuses(self):
+        older = OLD + section("dev-essentials 3.23.0", "4.21.0", ["another old change"])
+        added = OLD + section("dev-essentials 3.23.0", "4.21.0", ["another old change", "the old change"])
+        base, main = dict(BASE), main_release("the change of main", "the old change")
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the old change"))
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n- the old change\n\n")
+        for files in (base, main):
+            files["CHANGELOG.md"] = files["CHANGELOG.md"].replace(OLD, older)
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace(OLD, added)
+        clone = self.merge(branch, main=main, base=base)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP the result loses a line that a side added since the merge base, so merge CHANGELOG.md by hand: "
+                      "- the old change\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
     def test_file_that_cannot_be_written_fails_with_code_1(self):
         if hasattr(os, "geteuid") and os.geteuid() == 0:
             self.skipTest("root writes a read-only file")

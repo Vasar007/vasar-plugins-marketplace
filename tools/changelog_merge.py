@@ -14,7 +14,8 @@ Subcommands:
               versions of --bump and the number of --release in its heading. A bullet that --theirs
               already has is left out. An older section of the branch can have the text of that bullet.
               Then the script leaves it out only for an [Unreleased] entry of the merge base that
-              --theirs released. If --theirs has a heading with the same text but the merge base does
+              --theirs released. It never leaves out a bullet whose text the branch removed from an
+              older section. If --theirs has a heading with the same text but the merge base does
               not, another branch took the same numbers and merged first. The section of
               the branch is still a new release, and it goes on top in full, with no line left out.
               The link lines get the new release. Each --bump writes its version into the
@@ -46,7 +47,9 @@ The script refuses, and writes nothing, in each of these cases:
     on --theirs when the older sections of the branch lack it, or --theirs has it more often
     than the merge base.
   - release: --theirs does not have that heading, and each "- " bullet of that section is new on
-    --theirs.
+    --theirs. In this case and the next one, an [Unreleased] entry of the merge base that the
+    script leaves out is new on --theirs too. A bullet whose text the branch removed from an older
+    section is not new on --theirs there.
   - release: --theirs does not have that heading, and a "- " bullet of that section is new on
     --theirs. An indented line or a table row below that bullet is below no copy of it on --theirs or
     on the merge base. The script leaves out such a bullet with its indented lines and table rows.
@@ -396,9 +399,12 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
     else:
         # An entry of the merge base that --theirs moved from [Unreleased] into a release is known, also with an old text.
         _, unreleased, released = split_top(theirs_text, "--theirs")
-        old = Counter(older.split(LF))
-        moved = Counter(base_text.split(LF)) - old - Counter(unreleased.split(LF))
-        known |= set(moved) & set(Counter(released.split(LF)) - old)
+        _, base_unreleased, base_released = split_top(base_text, "the merge base")
+        old, base_old = Counter(older.split(LF)), Counter(base_released.split(LF))
+        moved = Counter(base_unreleased.split(LF)) - Counter(unreleased.split(LF))
+        known |= set(moved) & set(Counter(released.split(LF)) - base_old)
+        # A bullet that the branch moved out of an older section stays, so that the count guard stops for the move.
+        known = {line for line in known if old[line] >= base_old[line]}
         lost = lost_indented_line(body, known, theirs_text, base_text)
         if lost:
             bullet, line = short(lost[0]), short(lost[1])
