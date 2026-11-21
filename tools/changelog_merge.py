@@ -23,6 +23,10 @@ Subcommands:
               --theirs is the base. The entries that the branch added since the merge base go under its
               [Unreleased] heading.
 
+An entry is a "- " bullet with the lines below it that are indented or that start with "|", the rows
+of a table. A blank line right above such a line belongs to the entry too, so unreleased and
+--absorb-unreleased keep it.
+
 With --keep-both FILE, the script also keeps both sides of each conflict in FILE: first the side of
 --theirs, then the side of --ours. Give one --keep-both for each file. FILE is a path from the top
 folder of the repository.
@@ -39,10 +43,11 @@ The script refuses, and writes nothing, in each of these cases:
   - release: --theirs does not have that heading, and each "- " bullet of that section is new on
     --theirs.
   - release: --theirs does not have that heading, and a "- " bullet of that section is new on
-    --theirs. An indented line below that bullet is below no copy of it on --theirs or on the merge
-    base. The script leaves out such a bullet with its indented lines. Without this stop, the result
-    loses that line. The script also stops for an indented line after a blank line below such a
-    bullet. Without this stop, that line moves below another bullet.
+    --theirs. An indented line or a table row below that bullet is below no copy of it on --theirs or
+    on the merge base. The script leaves out such a bullet with its indented lines and table rows.
+    Without this stop, the result loses that line. The script also stops for an indented line or a
+    table row after a blank line below such a bullet. Without this stop, that line moves below
+    another bullet.
   - release: the plugins of --bump are not the plugins of the heading of that section.
   - release: a version of --bump is not higher than the version on --theirs, or --release is not
     higher than the release of the [Unreleased] link line of --theirs.
@@ -92,6 +97,8 @@ MARKER = re.compile(r"^(?:<<<<<<< |>>>>>>> |\|\|\|\|\|\|\| |=======$)", re.M)
 LINE_CHARS = 200
 MAX_DROPPED = 20
 STOP_CHARS = 40
+# A line with one of these starts belongs to the entry above it: an indented line, or a table row.
+CONTINUED = (" ", "\t", "|")
 
 
 class Stop(Exception):
@@ -156,7 +163,10 @@ def first_section(rest):
 
 
 def subsections(block):
-    """Split a block into (heading, lines) parts by its "### " lines. Lines before the first heading refuse."""
+    """Split a block into (heading, lines) parts by its "### " lines. Lines before the first heading refuse.
+
+    A blank line stays only inside an entry: below a line of the part and right above a line of CONTINUED.
+    """
     parts = []
     for line in block.split(LF):
         if line.startswith("### "):
@@ -165,15 +175,24 @@ def subsections(block):
             parts[-1][1].append(line)
         elif line.strip():
             raise Refused(f"a line is not below a '### ' heading: {line}")
-    return [(heading, [line for line in body if line.strip()]) for heading, body in parts]
+    result = []
+    for heading, body in parts:
+        lines = []
+        for line, after in zip(body, body[1:] + [""]):
+            if line.strip():
+                lines.append(line)
+            elif lines and after.strip() and after.startswith(CONTINUED):
+                lines.append("")
+        result.append((heading, lines))
+    return result
 
 
 def entries(block):
-    """The (heading, entry) pairs of a block. An entry is a bullet with the indented lines below it."""
+    """The (heading, entry) pairs of a block. An entry is a bullet with the lines of CONTINUED below it."""
     pairs = []
     for heading, body in subsections(block):
         for line in body:
-            if line.startswith((" ", "\t")) and pairs and pairs[-1][0] == heading:
+            if (not line or line.startswith(CONTINUED)) and pairs and pairs[-1][0] == heading:
                 pairs[-1] = (heading, pairs[-1][1] + LF + line)
             else:
                 pairs.append((heading, line))
@@ -192,10 +211,10 @@ def merge_block(target, extra, kind):
         # A first line that is no "- " bullet is not in the map, so its indented line can be in any place of the subsection.
         below = indented_lines(LF.join(line for line in lines[start:at] if line.strip()))
         for line in body:
-            # An indented line belongs to the bullet above it, so it stays or goes with that bullet.
-            if not line.startswith((" ", "\t")):
+            # A line of CONTINUED or a blank line belongs to the bullet above it, so it stays or goes with that bullet.
+            if line and not line.startswith(CONTINUED):
                 keep, bullet = line not in present, line
-            elif not keep and line not in below.get(bullet, present):
+            elif not keep and line and line not in below.get(bullet, present):
                 raise Refused(f"both sides have the entry '{bullet}' with other indented lines, so merge {CHANGELOG} by hand")
             if keep:
                 new.append(line)
@@ -215,7 +234,7 @@ def has_bullet(text):
 
 
 def drop_known_bullets(section, known):
-    """Leave out each bullet of known with its indented lines, and then each "### " heading with no lines."""
+    """Leave out each bullet of known with its lines of CONTINUED, and then each "### " heading with no lines."""
     kept, dropped, skip = [], 0, False
     for line in section.split(LF):
         if line.startswith("- "):
@@ -224,7 +243,7 @@ def drop_known_bullets(section, known):
                 dropped += 1
                 if dropped <= MAX_DROPPED:
                     say("DROPPED", line)
-        elif not line.startswith((" ", "\t")):
+        elif not line.startswith(CONTINUED):
             skip = False
         if not skip:
             kept.append(line)
@@ -235,12 +254,12 @@ def drop_known_bullets(section, known):
 
 
 def indented_lines(text):
-    """Map each "- " bullet of text to the set of indented lines below all its copies, also after a blank line."""
+    """Map each "- " bullet of text to the set of lines of CONTINUED below all its copies, also after a blank line."""
     found, below = {}, None
     for line in text.split(LF):
         if line.startswith("- "):
             below = found.setdefault(line, set())
-        elif below is not None and line.startswith((" ", "\t")):
+        elif below is not None and line.startswith(CONTINUED):
             below.add(line)
         elif below is not None and line == "":
             continue
@@ -262,7 +281,7 @@ def lost_indented_line(section, known, theirs_text, base_text):
             bullet, loose = (line if line in known else None), False
         elif line == "":
             loose = True
-        elif not line.startswith((" ", "\t")):
+        elif not line.startswith(CONTINUED):
             bullet = None
         elif bullet and line.strip() and (loose or (line not in theirs.get(bullet, ()) and line not in base.get(bullet, ()))):
             return bullet, line, loose
@@ -370,10 +389,11 @@ def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
         lost = lost_indented_line(body, known, theirs_text, base_text)
         if lost:
             bullet, line = short(lost[0]), short(lost[1])
+            kind = "table row" if line.startswith("|") else "indented line"
             if lost[2]:
-                raise Refused(f"merge {CHANGELOG} by hand: a blank line is above the indented line '{line}' of the bullet "
+                raise Refused(f"merge {CHANGELOG} by hand: a blank line is above the {kind} '{line}' of the bullet "
                               f"'{bullet}' that --theirs has")
-            raise Refused(f"merge {CHANGELOG} by hand: --theirs has the bullet '{bullet}' without the indented line "
+            raise Refused(f"merge {CHANGELOG} by hand: --theirs has the bullet '{bullet}' without the {kind} "
                           f"'{line}' of the branch")
         body = drop_known_bullets(body, known)
         if not has_bullet(body) and has_bullet(section):

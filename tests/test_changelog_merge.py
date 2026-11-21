@@ -74,6 +74,7 @@ def branch_release(plugins, bullets=("the change of the branch",), extra=None):
 MANIFEST = f"{DOTNET}/.claude-plugin/plugin.json"
 RELEASE = ("release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.22.2")
 TOP = "## [Unreleased]\n\n"
+TABLE = "- the entry with a table\n\n| Old name | New name |\n| --- | --- |\n| `a` | `b` |\n"
 
 
 def described(version, description):
@@ -377,6 +378,31 @@ class ReleaseTests(MergeCase):
                       "'  - see docs/evals.md' of the branch\n", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
+    def test_dropped_bullet_with_a_table_after_a_blank_line_refuses(self):
+        main = main_release("the entry with a table", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the entry with a table\n", TABLE)
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the entry with a table"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the entry with a table\n", TABLE)
+        clone = self.merge(branch, main=main)
+        before = self.text(clone, "CHANGELOG.md")
+        out = self.tool(clone, *RELEASE, code=3)
+        self.assertIn("STOP merge CHANGELOG.md by hand: a blank line is above the table row '| Old name | New name |' of the "
+                      "bullet '- the entry with a table' that --theirs has\n", out)
+        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
+
+    def test_dropped_bullet_with_the_table_rows_of_main_right_below_it_merges(self):
+        entry = TABLE.replace("table\n\n|", "table\n|")
+        main = main_release("the entry with a table", "the change of main")
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the entry with a table\n", entry)
+        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "the entry with a table"))
+        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- the entry with a table\n", entry)
+        clone = self.merge(branch, main=main)
+        out = self.tool(clone, *RELEASE)
+        self.assertIn("DROPPED - the entry with a table", out)
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n\n## dev-essentials 3.24.1", text)
+        self.assertEqual(text.count(entry), 1, text)
+
     def test_same_change_of_plugin_json_on_both_sides_is_no_conflict(self):
         main = dict(MAIN_RELEASE)
         main[MANIFEST] = described("1.8.0", "A text of both sides.")
@@ -568,6 +594,15 @@ class ReleaseTests(MergeCase):
         clone = self.merge(branch, main=main, base=base)
         self.tool(clone, *RELEASE, "--absorb-unreleased")
         self.assertIn("### Changed in the repository\n\n- the change of the branch\n" + nested + "\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_absorbed_entry_keeps_the_blank_line_above_its_table(self):
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n" + TABLE + "\n")
+        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"), main=main)
+        out = self.tool(clone, *RELEASE, "--absorb-unreleased")
+        self.assertIn("ABSORBED - the entry with a table", out)
+        self.assertIn("### Changed in the repository\n\n- the change of the branch\n" + TABLE + "\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
 
     def test_no_merge_in_progress_refuses_and_keeps_a_local_edit(self):
@@ -1062,6 +1097,34 @@ class UnreleasedTests(MergeCase):
         self.tool(clone, "unreleased")
         self.assertIn(TOP + "### Changed in the repository\n\n- a test fix\n\n## dev-essentials 3.24.1",
                       self.text(clone, "CHANGELOG.md"))
+
+    def test_entries_of_the_branch_keep_the_blank_line_above_a_table_and_above_an_indented_line(self):
+        entries = TABLE + "- a loose entry\n\n  The second paragraph.\n"
+        clone = self.merge(self.branch("### Changed in the repository\n\n" + entries + "\n"))
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n" + entries + "\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_table_of_the_branch_keeps_a_row_that_a_table_of_main_has(self):
+        other = "- an entry of main\n\n| Key | Value |\n| --- | --- |\n| `x` | `y` |\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n\n" + other + "\n")
+        clone = self.merge(self.branch("### Changed in the repository\n\n" + TABLE + "\n"), main=main)
+        self.tool(clone, "unreleased")
+        self.assertIn(TOP + "### Changed in the repository\n\n" + other + TABLE + "\n## dev-essentials 3.24.1",
+                      self.text(clone, "CHANGELOG.md"))
+
+    def test_bullet_after_a_blank_line_below_an_entry_of_the_base_is_no_refusal(self):
+        block = "### Changed in the repository\n\n- an entry of the base\n\n"
+        base = dict(BASE)
+        base["CHANGELOG.md"] = base["CHANGELOG.md"].replace(TOP, TOP + block)
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + block)
+        branch = {"CHANGELOG.md": base["CHANGELOG.md"].replace("- an entry of the base\n", "- an entry of the base\n\n- a test fix\n")}
+        clone = self.merge(branch, main=main, base=base)
+        self.tool(clone, "unreleased")
+        text = self.text(clone, "CHANGELOG.md")
+        self.assertEqual((text.count("- an entry of the base\n"), text.count("- a test fix\n")), (1, 1), text)
 
     def test_line_that_the_branch_removed_from_a_release_refuses(self):
         base = dict(BASE)

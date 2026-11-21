@@ -9,6 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `tools/changelog_merge.py`: a table row below a bullet now belongs to that entry, like an indented line. The subcommand `unreleased` and the option `--absorb-unreleased` keep a blank line right above an indented line or a table row of an entry. Before, both lost that blank line with exit code 0. So a table moved into the text of the bullet above it. `unreleased` also dropped a table row of the branch that a table of `main` had under the same heading. An example is the separator row. The subcommand `release` now leaves out the table rows of a bullet that `main` already has, together with that bullet. Before, the rows stayed below the bullet above it, and the table was in the result two times. For a table row after a blank line below such a bullet, `release` stops with a `merge CHANGELOG.md by hand:` line. The docstring and `docs/tools.md` name the new rules (issue #343).
+- `tests/test_changelog_merge.py`: 6 new tests (issue #343). For `unreleased`, one test keeps the blank line above a table and above an indented line. Another one keeps a row of a table of the branch that a table of `main` also has. A third one adds a bullet after a blank line below an entry of the merge base, with no stop. For `--absorb-unreleased`, one test keeps the blank line above a table. For `release`, one test stops for a table after a blank line below a dropped bullet. Another one leaves out a dropped bullet together with its table rows.
+
 ## dev-essentials 5.1.1 in release [6.1.1] - 2026-11-21
 
 The skill `bug-hunt` runs the commands `snapshot` and `delete-temp` of its helper script in steps 1 and 6, in place of two helper agents. The subcommand `report` makes more of the structure tests of a report. A new cheap eval case, `bh-flow`, measures the flow of a run (issue #345).
