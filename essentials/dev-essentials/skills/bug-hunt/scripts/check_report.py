@@ -368,6 +368,7 @@ def references(secs, fields, by_name, digest):
     ids = {int(ref[3:]) for _, ref in named if ref.startswith("BH-")}
     ids |= {int(x) for line in plain for tail in re.findall(r"\bResult: (.*)$", line)
             for x in re.findall(r"\bBH-(\d+)\b", tail)}
+    ids |= {int(x) for line in plain for x in re.findall(r"\bNew details for BH-(\d+)\b", line)}
     review = False
     for _, line, fence in by_name.get("Summary", []):
         if not fence and line.startswith("### "):

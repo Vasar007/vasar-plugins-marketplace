@@ -304,6 +304,8 @@ class ReferenceAndRowTests(CheckReportCase):
         self.assertDefect(self.check_text(edit(fixture("final.md"), "- BH-02: decide", "- BH-08: decide")),
                           "the report names BH-08, but no entry has this ID")
         self.assertDefect(self.check_text(self.duplicate_of("BH-07")), "the report names BH-07, but no entry has this ID")
+        details = edit(fixture("final.md"), "### New details for known issues\n\nNone.", "### New details for known issues\n\n- New details for BH-09: x.")
+        self.assertDefect(self.check_text(details), "the report names BH-09, but no entry has this ID")
 
     def test_a_location_must_name_a_file_and_a_line_of_the_snapshot(self):
         self.write(fixture("final.md"))

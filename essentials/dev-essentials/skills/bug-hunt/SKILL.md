@@ -225,7 +225,7 @@ the `_bug-hunt-progress-*.md` files of the report folder. Then run the same comm
 `_bug-hunt-session-progress.md`, and it runs the structure check for step 6 itself. Act on its
 exit code as that file says. Never delete a temporary file by hand, and never run the command
 with a path that the session progress file does not record. The script finds its own targets, and its guards protect the project and the
-report. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. If each `delete-temp --apply` call ended
+report. Run `git -C "<repo>" --no-optional-locks status --porcelain` again, compare it with the output from step 0, and report only the lines that differ. Skip the report folder files that the run made. Another session can cause the rest. If the last `delete-temp --apply` call for each scratch folder ended
 with exit code 0, delete `_bug-hunt-session-progress.md` as the last action before the final report.
 Else keep it, so that a later session can finish step 6.
 

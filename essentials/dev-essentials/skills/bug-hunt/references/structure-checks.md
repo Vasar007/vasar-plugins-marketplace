@@ -76,7 +76,7 @@ More commands:
 - Rejected entries are in the appendix, and only they are. Each Unconfirmed entry has the lines "Not covered:", "Where I looked:", and "To decide:".
 - At the stages `summary` and `final`: the Summary count line matches the entries, and the table has one row for each ID, in ID order, with the title of the heading.
 - At the stages `summary` and `final`: each row has the severity, confidence, verdict, and "Also on base" answer of its entry. The area column can differ.
-- Each `Duplicate of BH-NN` names an earlier entry. Each `BH-NN` of a verdict, of a `Result:` note, and of the list "For the owner's review" names an entry. Each `N-NN` of a `Duplicate of` verdict or of a "New details for" line is in the Known issues section. Each `#NN` of these places is in the digest.
+- Each `Duplicate of BH-NN` names an earlier entry. Each `BH-NN` of a verdict, of a `Result:` note, or of a "New details for" line names an entry. So does each `BH-NN` of the list "For the owner's review". Each `N-NN` of a `Duplicate of` verdict or of a "New details for" line is in the Known issues section. Each `#NN` of these places is in the digest.
 - With `--snapshot`: each location names a file of the snapshot and a line inside it. A path out of the snapshot is a defect, and the script does not read it.
 - At the stage `final`: the subsection "For the owner's review" exists, no placeholder is left, and no open note is left. An appendix with entries has no "None yet." line.
 - The command prints at most 100 DEFECT lines and then one line with the count of the rest.
