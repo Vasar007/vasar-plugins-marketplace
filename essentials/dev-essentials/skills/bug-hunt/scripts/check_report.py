@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structure checks for a bug hunt report. Uses only the standard library.
+"""Structure checks and the snapshot and cleanup steps of a bug hunt. Uses only the standard library.
 
 The checks test the form of the report and the files around it. They do not
 judge whether a finding is true. Each problem prints one line:
@@ -27,27 +27,37 @@ for BH-20), summary (after the last verifier part), or final (after the
 auditor).
 
 snapshot exports the commit SHA of REPO into S/snapshot-ref with git archive,
-and makes S/work and S/tools. The base goes into S/snapshot-base: an export of
---base-sha for local, a shallow clone of --base-branch from --base-url for
-remote, and nothing for none or for a local base with the same SHA. Against
-REPO, it runs only git rev-parse, ls-tree, show, and archive. Output lines:
-SNAPSHOT (a snapshot and its counts), LIMIT (content that a snapshot does not
-hold), WARN, and ERROR. Exit codes: 0 = done, 1 = a git command or the
-extraction failed, 2 = usage error or REFUSED, and nothing was created.
+and makes S/work and S/tools. It writes the marker file S/.bug-hunt-scratch,
+which delete-temp needs. S must be missing, empty, or hold the marker. The
+base goes into S/snapshot-base: an export of --base-sha for local, a shallow
+clone of --base-branch from --base-url for remote, and nothing for none or
+for a local base with the same SHA. Each snapshot holds the bytes of the
+commit, whatever core.autocrlf says. Against REPO, it runs only git
+rev-parse, ls-tree, show, and archive. Output lines: SNAPSHOT (a snapshot and
+its counts), LIMIT (content that a snapshot does not hold), WARN, and ERROR.
+Exit codes: 0 = done, 1 = a git command or the extraction failed, 2 = usage
+error or REFUSED, and nothing was created.
 
 delete-temp deletes the folder S and each regular file D/_bug-hunt-progress-*.md.
-First it stops each --pid process whose start time and command line match.
-Without --apply, it prints WOULD STOP and WOULD DELETE lines and changes
-nothing. Each guard refuses the whole run before any change: a REFUSED line
-names the reason. With --apply, it runs the cleanup check at the end. Exit
-codes: 0 = done or the plan is ready, 1 = a delete failed or the cleanup
-check gives a DEFECT, 2 = usage error or REFUSED, and nothing changed.
+S must be an absolute path and hold the marker file of snapshot. First it
+stops each --pid process whose start time and command line match. Then it
+waits up to 5 seconds for the end of each process. Without --apply, it
+prints WOULD STOP and WOULD DELETE lines and changes nothing. Each guard
+refuses the whole run before any change: a REFUSED line names the reason.
+With --apply, it runs the cleanup check at the end. Exit codes: 0 = done or
+the plan is ready, 1 = a delete failed or the cleanup check gives a DEFECT,
+2 = usage error or REFUSED, and nothing changed.
+
+snapshot and delete-temp share the guards of the place of S. They refuse a
+link or a junction, a drive root, a mount point, the home folder, the temp
+root, and each folder of REPO and its worktrees.
 
 The output of snapshot and delete-temp has at most 40 lines, and the last one
 gives the count of the lines that it leaves out. The exit code still holds
 the whole result.
 """
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -58,6 +68,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 from pathlib import Path
 
 SESSION_FILE = "_bug-hunt-session-progress.md"
@@ -79,8 +90,15 @@ LINE_CHARS = 300
 FULL_SHA = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 PROGRESS_GLOB = "_bug-hunt-progress-*.md"
 # The entries that a run makes at the top of the scratch folder. delete-temp refuses a folder with others.
-SCRATCH_NAMES = ("snapshot-ref", "snapshot-base", "work", "tools", "known-issues.md")
+SCRATCH_MARKER = ".bug-hunt-scratch"
+SCRATCH_NAMES = ("snapshot-ref", "snapshot-base", "work", "tools", "known-issues.md", SCRATCH_MARKER)
 GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never", "LC_ALL": "C", "LANGUAGE": "C"}
+# The line ends of the commit, on each system. A .gitattributes rule of the commit still applies.
+PLAIN_LINE_ENDS = ("-c", "core.autocrlf=false", "-c", "core.eol=lf")
+GIT_SECONDS = 300
+# Below the limit of 10 minutes of the Bash tool, so the caller still gets the ERROR line.
+CLONE_SECONDS = 540
+STOP_SECONDS = 5
 
 problems = []
 
@@ -157,9 +175,15 @@ def leftovers(scratch):
         low = cmdline.lower()
         if pid in own or "check_report.py" in low:
             continue
-        if any(f in low for f in forms):
+        if names_folder(cmdline, forms):
             print(f"WARN: process uses the scratch folder: pid={pid} started={started} "
                   f"command={cmdline.strip()[:200]}")
+
+
+def names_folder(cmdline, forms):
+    """True if the command line holds a path form, and the path name ends there: /tmp/run is not in /tmp/run-2."""
+    low = cmdline.lower()
+    return any(re.search(re.escape(form) + r"(?=$|[\\/\s\"'])", low) for form in forms)
 
 
 def own_chain(records):
@@ -504,11 +528,16 @@ def is_link(path):
     return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == junction
 
 
-def git(cwd, *args):
-    """Run git with no input and no prompt. Return the exit code, stdout, and the last 5 lines of stderr."""
+def git(cwd, *args, timeout=GIT_SECONDS):
+    """Run git with no input and no prompt. Return the exit code, stdout, and the last 5 lines of stderr.
+
+    A run that takes longer than timeout seconds stops, and gives the exit code 124.
+    """
     try:
         done = subprocess.run(["git", "-C", str(cwd), *args], stdin=subprocess.DEVNULL, capture_output=True,
-                              env=dict(os.environ, **GIT_ENV))
+                              env=dict(os.environ, **GIT_ENV), timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return 124, "", f"no result after {timeout} seconds"
     except OSError as error:
         return 127, "", str(error)
     err = done.stderr.decode("utf-8", "replace").strip().splitlines()
@@ -534,18 +563,25 @@ def repo_paths(repo):
         paths.append(Path(out.strip()))
     if common.name == ".git":
         paths.append(common.parent)  # The main worktree.
-    worktrees = common / "worktrees"
     try:
-        for entry in sorted(worktrees.iterdir()) if worktrees.is_dir() else []:
-            gitdir = entry / "gitdir"
-            if gitdir.is_file():
-                target = gitdir.read_text(encoding="utf-8", errors="surrogateescape").strip()
-                if target:
-                    # The file names the .git file of the worktree. A relative path starts at the folder of the file.
-                    paths.append(Path(os.path.join(str(entry), target)).parent)
+        paths += linked_worktrees(common)
     except OSError as error:
-        raise Refused(f"the script cannot read the worktree list in {show(worktrees)}: {error}")
+        raise Refused(f"the script cannot read the worktree list in {show(common / 'worktrees')}: {error}")
     return paths
+
+
+def linked_worktrees(common):
+    """The folder of each linked worktree that the git folder common lists. Raise OSError if it cannot read the list."""
+    found = []
+    worktrees = Path(common) / "worktrees"
+    for entry in sorted(worktrees.iterdir()) if worktrees.is_dir() else []:
+        gitdir = entry / "gitdir"
+        if gitdir.is_file():
+            target = gitdir.read_text(encoding="utf-8", errors="surrogateescape").strip()
+            if target:
+                # The file names the .git file of the worktree. A relative path starts at the folder of the file.
+                found.append(Path(os.path.normpath(os.path.join(str(entry), target))).parent)
+    return found
 
 
 def repo_reasons(scratch, repo):
@@ -584,7 +620,7 @@ def count_files(folder):
     return count
 
 
-def report_snapshot(side, folder, cwd, sha, out, extra=""):
+def report_snapshot(side, folder, cwd, sha, out, extra="", clone=False):
     """Print the SNAPSHOT line, a WARN line for a count that differs from git, and the LIMIT lines. Return False on a git error."""
     names = tracked(cwd, sha, side, out)
     if names is None:
@@ -593,7 +629,8 @@ def report_snapshot(side, folder, cwd, sha, out, extra=""):
     out.add(f"SNAPSHOT: {side} {show(folder)}{extra} files={files} git={len(names)}")
     if files != len(names):
         out.add(f"WARN: the {side} snapshot has {files} files, and git lists {len(names)}. An export-ignore rule, "
-                "a submodule, or a link that the snapshot left out can explain it")
+                "a submodule, or a link that the snapshot left out can explain it. So can file names that differ "
+                "only by case, on a file system that ignores case")
     if ".gitmodules" in names:
         out.add(f"LIMIT: {side} snapshot: the commit has submodules (.gitmodules). The snapshot holds no submodule "
                 "content")
@@ -610,7 +647,11 @@ def report_snapshot(side, folder, cwd, sha, out, extra=""):
             if words and not words[0].startswith("#"):
                 for key in found:
                     found[key] += key in words[1:]
-    if found["export-ignore"]:
+    if found["export-ignore"] and clone:
+        out.add(f"LIMIT: {side} snapshot: export-ignore in .gitattributes ({found['export-ignore']} patterns). The "
+                "base is a clone and holds the files that they match. A git archive export, such as the ref snapshot, "
+                "leaves them out")
+    elif found["export-ignore"]:
         out.add(f"LIMIT: {side} snapshot: export-ignore in .gitattributes ({found['export-ignore']} patterns). "
                 "git archive leaves out the files that they match")
     if found["filter=lfs"]:
@@ -619,19 +660,41 @@ def report_snapshot(side, folder, cwd, sha, out, extra=""):
     return True
 
 
+def can_link(folder):
+    """True if this process can make a symbolic link in folder. Windows needs a right for it."""
+    probe = os.path.join(str(folder), ".bug-hunt-link-probe")
+    try:
+        os.symlink("target", probe)
+    except (OSError, NotImplementedError):
+        return False
+    os.unlink(probe)
+    return True
+
+
 def export(repo, sha, dest, side, out):
     """Extract git archive of sha into dest. Each member goes through the data filter of tarfile. Return True if it worked."""
     with tempfile.TemporaryFile() as errors:
         try:
-            proc = subprocess.Popen(["git", "-C", str(repo), "archive", "--format=tar", sha], stdin=subprocess.DEVNULL,
-                                    stdout=subprocess.PIPE, stderr=errors, env=dict(os.environ, **GIT_ENV))
+            proc = subprocess.Popen(["git", "-C", str(repo), *PLAIN_LINE_ENDS, "archive", "--format=tar", sha],
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=errors,
+                                    env=dict(os.environ, **GIT_ENV))
         except OSError as error:
             out.add(f"ERROR: git archive of the {side} commit {sha}: {error}")
             return False
         failed = None
+        links = can_link(dest)
         try:
             with tarfile.open(fileobj=proc.stdout, mode="r|") as tar:
                 for member in tar:
+                    if member.issym() and not links:
+                        # Else tarfile copies the target of the link, and the copy seeks back in the stream.
+                        out.add(f"LIMIT: {side} snapshot: {show(member.name)} is not in the snapshot: this system "
+                                "cannot make a symbolic link here")
+                        continue
+                    if not member.isdir() and os.path.lexists(os.path.join(str(dest), member.name)):
+                        out.add(f"LIMIT: {side} snapshot: {show(member.name)} is not in the snapshot: another path "
+                                "of the commit has the same name on this file system")
+                        continue
                     try:
                         tar.extract(member, str(dest), filter="data")
                     except tarfile.FilterError as error:
@@ -663,13 +726,19 @@ def make_snapshots(a, out):
         reasons.append("--base-from local needs --base-sha")
     if a.base_from == "remote" and not (a.base_branch and a.base_url):
         reasons.append("--base-from remote needs --base-branch and --base-url")
-    if os.path.lexists(scratch) and not scratch.is_dir():
-        reasons.append(f"the scratch folder {show(scratch)} is not a folder")
-    reasons += repo_reasons(scratch, a.repo)
-    for name in ("snapshot-ref", "snapshot-base"):
-        folder = scratch / name
-        if os.path.lexists(folder) and (is_link(folder) or not folder.is_dir() or any(folder.iterdir())):
-            reasons.append(f"{show(folder)} exists and is not an empty folder. Use a new scratch folder")
+    reasons += place_reasons(scratch) + repo_reasons(scratch, a.repo)
+    marker = scratch / SCRATCH_MARKER
+    if not reasons and scratch.is_dir():
+        names = os.listdir(str(scratch))
+        if names and SCRATCH_MARKER not in names:
+            reasons.append(f"the scratch folder {show(scratch)} is not empty and has no {SCRATCH_MARKER} file. "
+                           "Use a new scratch folder")
+        if os.path.lexists(marker) and not stat.S_ISREG(os.lstat(str(marker)).st_mode):
+            reasons.append(f"{show(marker)} is not a regular file")
+        for name in ("snapshot-ref", "snapshot-base"):
+            folder = scratch / name
+            if os.path.lexists(folder) and (is_link(folder) or not folder.is_dir() or any(folder.iterdir())):
+                reasons.append(f"{show(folder)} exists and is not an empty folder. Use a new scratch folder")
     if reasons:
         raise Refused(*reasons)
     ref_sha = a.ref_sha.lower()
@@ -680,6 +749,8 @@ def make_snapshots(a, out):
         if code != 0:
             out.add(f"ERROR: git rev-parse --verify {sha}: {err}")
             return 1
+    scratch.mkdir(parents=True, exist_ok=True)
+    marker.write_text("made by check_report.py snapshot\n", encoding="utf-8")
     for name in ("snapshot-ref", "work", "tools"):
         (scratch / name).mkdir(parents=True, exist_ok=True)
     ref = scratch / "snapshot-ref"
@@ -692,8 +763,9 @@ def make_snapshots(a, out):
         return 0 if done and report_snapshot("base", base, a.repo, base_sha, out, f" sha={base_sha}") else 1
     if a.base_from == "remote":
         # The clone runs in the current folder, so a relative URL means what it means to the caller.
-        code, _, err = git(".", "clone", "-c", "core.longpaths=true", "--depth", "1", "--single-branch",
-                           f"--branch={a.base_branch}", "--", a.base_url, os.path.abspath(str(base)))
+        code, _, err = git(".", "clone", "-c", "core.longpaths=true", *PLAIN_LINE_ENDS, "--depth", "1",
+                           "--single-branch", f"--branch={a.base_branch}", "--", a.base_url,
+                           os.path.abspath(str(base)), timeout=CLONE_SECONDS)
         if code != 0:
             out.add(f"ERROR: git clone of the base branch {show(a.base_branch)}: {err}")
             return 1
@@ -702,7 +774,7 @@ def make_snapshots(a, out):
             out.add(f"ERROR: git rev-parse HEAD in the cloned base: {err}")
             return 1
         sha = sha.strip()
-        return 0 if report_snapshot("base", base, base, sha, out, f" sha={sha}") else 1
+        return 0 if report_snapshot("base", base, base, sha, out, f" sha={sha}", clone=True) else 1
     reason = "the analyzed commit is the base" if a.base_from == "local" else "no base comparison"
     out.add(f"SNAPSHOT: base none ({reason})")
     return 0
@@ -714,19 +786,40 @@ def homes():
     return [path for path in dict.fromkeys(found) if path and path != "~"]
 
 
-def place_reasons(scratch, report_dir):
-    """The reasons to refuse the place of a scratch folder: a link, a root, home, temp, or the report folder."""
+def mount_points():
+    """The mount points that /proc/self/mountinfo of Linux lists, or an empty list on another system."""
+    try:
+        with open("/proc/self/mountinfo", encoding="utf-8", errors="surrogateescape") as table:
+            lines = table.read().splitlines()
+    except OSError:
+        return []
+    # Field 5 is the mount point. The file writes a space, a tab, a line break, and a backslash as \NNN.
+    return [re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), line.split(" ")[4])
+            for line in lines if len(line.split(" ")) > 4]
+
+
+def place_reasons(scratch, report_dir=None):
+    """The reasons to refuse the place of a scratch folder: a link, a root, a mount, home, temp, or the report folder."""
     reasons = []
+    if report_dir is not None and not report_dir.is_dir():
+        reasons.append(f"the report folder {show(report_dir)} is not a folder")
     if is_link(scratch):
         reasons.append(f"the scratch folder {show(scratch)} is a link or a junction. Give the real folder")
     elif os.path.lexists(scratch) and not scratch.is_dir():
         reasons.append(f"the scratch folder {show(scratch)} is not a folder")
-    found = relation(scratch, report_dir)
+    found = relation(scratch, report_dir) if report_dir is not None else None
     if found:
         reasons.append(f"the scratch folder {found} the report folder {show(report_dir)}")
     resolved = Path(os.path.realpath(str(scratch)))
     if resolved.parent == resolved or os.path.ismount(str(resolved)):
         reasons.append(f"the scratch folder {show(scratch)} is a drive root or a mount point")
+    # os.path.ismount does not see a bind mount of the same file system, but the mount table lists it.
+    mine = real(scratch)
+    points = [point for point in mount_points()
+              if os.path.normcase(point) == mine or os.path.normcase(point).startswith(mine.rstrip(os.sep) + os.sep)]
+    if points:
+        more = f" and {len(points) - 1} more" if len(points) > 1 else ""
+        reasons.append(f"the scratch folder is or holds the mount point {show(points[0])}{more}")
     for name, folder in [("home folder", home) for home in homes()] + [("temp root", tempfile.gettempdir())]:
         found = relation(scratch, folder)
         if found in ("is", "holds"):
@@ -744,6 +837,32 @@ def git_folder(dotgit):
     return Path(os.path.join(str(dotgit.parent), found.group(1))) if found else None
 
 
+def git_folder_reasons(folder, scratch):
+    """The reasons to refuse a git folder in the scratch folder whose work tree or a linked worktree is outside it."""
+    try:
+        config = (folder / "config").read_text(encoding="utf-8", errors="surrogateescape")
+    except OSError:
+        config = ""
+    worktree = re.search(r"^\s*worktree\s*=\s*(.+?)\s*$", config, re.M | re.I)
+    if worktree:
+        trees = [Path(os.path.normpath(os.path.join(str(folder), worktree.group(1))))]
+    elif re.search(r"^\s*bare\s*=\s*true\s*$", config, re.M | re.I):
+        trees = []
+    elif folder.name == ".git":
+        trees = [folder.parent]
+    else:
+        trees = [None]  # For example a git init --separate-git-dir: the work tree is not written down.
+    try:
+        trees += linked_worktrees(folder)
+    except OSError as error:
+        return [f"the script cannot read the worktree list of the git folder {show(folder)}: {error}"]
+    return [f"the git folder {show(folder)} has its work tree outside the scratch folder, or no known work tree. "
+            "The delete loses its commits. Move it out first" if tree is None else
+            f"the git folder {show(folder)} has the worktree {show(tree)} outside the scratch folder. The delete "
+            "loses its commits. Move it out first"
+            for tree in trees if tree is None or relation(tree, scratch) != "is inside"]
+
+
 def content_reasons(scratch):
     """The reasons to refuse what a scratch folder holds: names that a run does not make, or git data outside it."""
     try:
@@ -755,6 +874,12 @@ def content_reasons(scratch):
         more = f" and {len(extra) - 5} more" if len(extra) > 5 else ""
         reasons.append(f"the scratch folder holds entries that a bug hunt does not make: "
                        f"{', '.join(show(name) for name in extra[:5])}{more}. It can be the wrong folder")
+    marker = scratch / SCRATCH_MARKER
+    if not os.path.lexists(marker) or not stat.S_ISREG(os.lstat(str(marker)).st_mode):
+        # The snapshot command did not make this folder, so a walk of a large wrong folder has no use.
+        reasons.append(f"the scratch folder has no {SCRATCH_MARKER} file, so the snapshot command did not make it. "
+                       "It can be the wrong folder")
+        return reasons
     unread = []
     for top, dirs, files in os.walk(str(scratch), onerror=lambda error: unread.append(error.filename)):
         dotgit = Path(top) / ".git"
@@ -763,6 +888,8 @@ def content_reasons(scratch):
             if target is None or relation(target, scratch) != "is inside":
                 reasons.append(f"the folder {show(top)} is a worktree or a repository whose git folder is outside the "
                                "scratch folder. The delete loses its changes. Move it out first")
+        if os.path.isfile(os.path.join(top, "HEAD")) and "objects" in dirs:
+            reasons += git_folder_reasons(Path(top), scratch)
         # os.walk follows a Windows junction, so skip each link and each junction here.
         dirs[:] = [name for name in dirs if not is_link(os.path.join(top, name))]
     for folder in unread:
@@ -788,7 +915,7 @@ def processes_to_stop(a, out):
             out.add(f"NOT STOPPED: pid={pid}: the script cannot list the processes")
         return []
     own = own_chain(records)
-    forms = path_forms(a.scratch) | path_forms(os.path.realpath(a.scratch))
+    forms = path_forms(os.path.abspath(a.scratch)) | path_forms(os.path.realpath(a.scratch))
     found = {pid: (started, cmdline) for pid, _, started, cmdline in records}
     stops = []
     for pid, started in a.pid:
@@ -799,15 +926,36 @@ def processes_to_stop(a, out):
         elif found[pid][0].split() != started.split():
             out.add(f"NOT STOPPED: pid={pid}: it started at {show(found[pid][0])}, not at {show(started)}. "
                     "Another process has this ID now")
-        elif not any(form in found[pid][1].lower() for form in forms):
+        elif not names_folder(found[pid][1], forms):
             out.add(f"NOT STOPPED: pid={pid}: its command line does not name the scratch folder")
         else:
             stops.append(pid)
     return stops
 
 
+def ended(pid):
+    """True if the process is gone, or is a zombie that waits for its parent."""
+    if os.name == "nt":
+        import ctypes
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.restype = ctypes.c_void_p
+        handle = kernel.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE: the right to wait for the end.
+        if not handle:
+            return ctypes.get_last_error() == 87  # ERROR_INVALID_PARAMETER: no process has this ID.
+        try:
+            return kernel.WaitForSingleObject(ctypes.c_void_p(handle), 0) == 0
+        finally:
+            kernel.CloseHandle(ctypes.c_void_p(handle))
+    try:
+        done = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], stdin=subprocess.DEVNULL, capture_output=True,
+                              text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return done.returncode != 0 or done.stdout.strip().startswith("Z")
+
+
 def stop(pid, out):
-    """Stop one process: SIGTERM on POSIX, taskkill /F on Windows."""
+    """Stop one process with taskkill /F on Windows or SIGTERM on POSIX. Then wait up to STOP_SECONDS for its end."""
     if os.name == "nt":
         try:
             done = subprocess.run(["taskkill", "/PID", str(pid), "/F"], stdin=subprocess.DEVNULL, capture_output=True,
@@ -815,18 +963,24 @@ def stop(pid, out):
         except (OSError, subprocess.SubprocessError) as error:
             out.add(f"NOT STOPPED: pid={pid}: {error}")
             return
-        lines = (done.stdout + done.stderr).strip().splitlines()
-        out.add(f"STOPPED: pid={pid}" if done.returncode == 0 else
-                f"NOT STOPPED: pid={pid}: taskkill: {lines[-1] if lines else done.returncode}")
-        return
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except ProcessLookupError:
-        out.add(f"NOT RUNNING: pid={pid}")
-    except OSError as error:
-        out.add(f"NOT STOPPED: pid={pid}: {error}")
+        if done.returncode != 0:
+            lines = (done.stdout + done.stderr).strip().splitlines()
+            out.add(f"NOT STOPPED: pid={pid}: taskkill: {lines[-1] if lines else done.returncode}")
+            return
     else:
-        out.add(f"STOPPED: pid={pid}")
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            out.add(f"NOT RUNNING: pid={pid}")
+            return
+        except OSError as error:
+            out.add(f"NOT STOPPED: pid={pid}: {error}")
+            return
+    deadline = time.monotonic() + STOP_SECONDS
+    while not ended(pid) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    out.add(f"STOPPED: pid={pid}" if ended(pid) else
+            f"NOT STOPPED: pid={pid}: it still runs {STOP_SECONDS} seconds after the stop signal")
 
 
 def delete_tree(path):
@@ -843,16 +997,33 @@ def delete_tree(path):
                 error = again
         errors.append(f"{show(target)}: {error if isinstance(error, BaseException) else error[1]}")
 
-    if sys.version_info >= (3, 12):
-        shutil.rmtree(str(path), onexc=retry)
-    else:
-        shutil.rmtree(str(path), onerror=retry)
+    def remove():
+        errors.clear()
+        if sys.version_info >= (3, 12):
+            shutil.rmtree(str(path), onexc=retry)
+        else:
+            shutil.rmtree(str(path), onerror=retry)
+
+    remove()
+    if errors and os.name != "nt" and not is_link(path):
+        # On POSIX, a folder with no write right keeps its files. The module cache of Go has such folders.
+        with contextlib.suppress(OSError):
+            os.chmod(str(path), stat.S_IRWXU)
+        for top, dirs, _ in os.walk(str(path)):
+            for name in dirs:
+                if not is_link(os.path.join(top, name)):
+                    with contextlib.suppress(OSError):
+                        os.chmod(os.path.join(top, name), stat.S_IRWXU)
+        remove()
     return errors
 
 
 def delete_targets(a, out):
     """The subcommand delete-temp. Return the exit code, or raise Refused before anything changes."""
+    if not Path(a.scratch).is_absolute():
+        raise Refused(f"the scratch folder must be an absolute path: {show(a.scratch)}")
     scratch, report_dir = Path(a.scratch), Path(a.report_dir)
+    target = os.path.realpath(str(scratch))  # The guards test this path, and the delete takes it and no other.
     reasons = place_reasons(scratch, report_dir) + repo_reasons(scratch, a.repo)
     if not reasons and scratch.is_dir():
         reasons += content_reasons(scratch)  # Only for a safe place: a walk of a home folder takes long.
@@ -878,8 +1049,11 @@ def delete_targets(a, out):
     failed = False
     if not os.path.lexists(scratch):
         out.add(f"NOT FOUND: {show(scratch)}")
+    elif is_link(scratch) or os.path.realpath(str(scratch)) != target:
+        failed = True
+        out.add(f"FAILED: {show(scratch)}: the path changed after the guards, so the script deleted nothing in it")
     else:
-        errors = delete_tree(os.path.realpath(str(scratch)))
+        errors = delete_tree(target)
         failed = os.path.lexists(scratch)
         if failed:
             more = f" (and {len(errors) - 1} more errors)" if len(errors) > 1 else ""
@@ -903,6 +1077,13 @@ def delete_targets(a, out):
     return 1 if failed or left else 0
 
 
+def folder_value(text):
+    """An argparse type: a path that is not empty. An empty path means the current folder to pathlib."""
+    if not text.strip():
+        raise argparse.ArgumentTypeError("the path is empty")
+    return text
+
+
 def run_guarded(command, a):
     """Run snapshot or delete-temp, print the output, and return the exit code."""
     out = Output()
@@ -913,6 +1094,9 @@ def run_guarded(command, a):
             out.add(f"REFUSED: {reason}")
         out.add("REFUSED: nothing changed")
         code = 2
+    except OSError as error:
+        out.add(f"ERROR: {type(error).__name__}: {error}")
+        code = 1
     out.flush()
     return code
 
@@ -938,24 +1122,35 @@ def main():
     c = sub.add_parser("cleanup")
     c.add_argument("--report-dir", required=True)
     c.add_argument("--scratch", required=True)
-    n = sub.add_parser("snapshot")
-    n.add_argument("--repo", required=True)
-    n.add_argument("--ref-sha", required=True)
-    n.add_argument("--scratch", required=True)
-    n.add_argument("--base-from", choices=("local", "remote", "none"), required=True)
-    n.add_argument("--base-sha")
-    n.add_argument("--base-branch")
-    n.add_argument("--base-url")
-    t = sub.add_parser("delete-temp")
-    t.add_argument("--report-dir", required=True)
-    t.add_argument("--scratch", required=True)
-    t.add_argument("--repo", required=True)
-    t.add_argument("--pid", type=pid_value, action="append", default=[], metavar="PID=STARTED")
+    n = sub.add_parser("snapshot", allow_abbrev=False, description=(
+        "Export the analyzed commit, and its base, into the scratch folder, and write the marker file "
+        f"{SCRATCH_MARKER} there. Exit codes: 0 = done, 1 = a git command or the extraction failed, "
+        "2 = usage error or REFUSED, and nothing was created."))
+    n.add_argument("--repo", required=True, type=folder_value, help="the repository. The command only reads it")
+    n.add_argument("--ref-sha", required=True, help="the full SHA of the analyzed commit")
+    n.add_argument("--scratch", required=True, type=folder_value,
+                   help="the scratch folder, outside the repository: missing, empty, or with the marker file")
+    n.add_argument("--base-from", choices=("local", "remote", "none"), required=True,
+                   help="the source of the base: a commit of the repository, a branch of a remote, or no base")
+    n.add_argument("--base-sha", help="the full SHA of the base commit, for --base-from local")
+    n.add_argument("--base-branch", help="the branch to clone, for --base-from remote")
+    n.add_argument("--base-url", help="the URL to clone from, for --base-from remote")
+    t = sub.add_parser("delete-temp", allow_abbrev=False, description=(
+        "Stop the --pid processes, and delete the scratch folder and each file _bug-hunt-progress-*.md of the "
+        "report folder. Exit codes: 0 = done, or the plan is ready, 1 = a delete failed or a file is left, "
+        "2 = usage error or REFUSED, and nothing changed."))
+    t.add_argument("--report-dir", required=True, type=folder_value, help="the report folder. The report stays")
+    t.add_argument("--scratch", required=True, type=folder_value,
+                   help=f"the scratch folder to delete: an absolute path that holds the marker file {SCRATCH_MARKER}")
+    t.add_argument("--repo", required=True, type=folder_value,
+                   help="the repository. A scratch folder that meets one of its folders is refused")
+    t.add_argument("--pid", type=pid_value, action="append", default=[], metavar="PID=STARTED",
+                   help="a process to stop first, with the start time that its WARN line gave. Repeat the option")
     t.add_argument("--apply", action="store_true", help="stop and delete. Without it, nothing changes")
     a = p.parse_args()
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):  # A path with a character that the console code page lacks.
-            stream.reconfigure(errors="backslashreplace")
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
     if a.cmd == "snapshot":
         return run_guarded(make_snapshots, a)
