@@ -148,6 +148,8 @@ NOISE = [
     (re.compile(r"\[\d+:\d{2}<\d+:\d{2}, [^\]]*\]"), "[<time>]"),
     (re.compile(r"(?<![:.])\b\d{1,2}:\d{2}:\d{2}(\.\d+)?\b"), "<time>"),
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
+    # A time with more than one unit, such as 1s 318ms, is one token, as 683ms is.
+    (re.compile(r"<time>(?: <time>)+"), "<time>"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
     # The count rules come after the time rules, because some of them look for the token <time>.
     (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),

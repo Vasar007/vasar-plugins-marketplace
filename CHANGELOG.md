@@ -9,6 +9,14 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Fixed in dev-essentials
+
+- `skills/review-loop/scripts/failure_check.py`: a time with more than one unit, such as `1s 318ms`, now becomes one token, as `683ms` does. `dotnet test` on Microsoft.Testing.Platform prints the line `duration: 1s 318ms` in its summary. The run at the commit before the fix builds in a new worktree, so it often takes more than 1 second. Before, that line gave `OTHER` in place of `SAME-AT-PARENT` for the same failure. Real runs of xunit.v3 4.0.3 and NUnit 5.0.0 with the .NET SDK 11.0.100 showed it (issue #351).
+
+### Changed in the repository
+
+- `tests/test_failure_check.py`: a new test with the real summary lines of `dotnet test` on Microsoft.Testing.Platform. A time with two units and a time with one unit give the same signature (issue #351).
+
 ## dev-essentials 5.1.2 in release [6.1.2] - 2026-11-21
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a test run on Microsoft.Testing.Platform that keeps its failure after a new test. No skill text changes (issue #348).
