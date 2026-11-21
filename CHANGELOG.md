@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 4.4.9 in release [5.4.9] - 2026-11-21
+
+Three eval cases get graders that fail a wrong run: `ta-full-pass`, `bh-planted-bugs`, and `fp-e5-breaking-change`. A review of the 97 behavior cases by the rule of useful tests found them. No skill text changes (issues #336 and #338).
+
 ### Fixed in dev-essentials
 
 - `evals/trim-artifacts/ta-full-pass`: the new scored grader `other-files-kept` reads the listing of the run. Each notes file that the user did not approve for deletion must still be in the folder `notes/`. Before, no scored grader read 7 of these 11 files. So a run that deleted one of them, or merged it into another file, passed each scored grader. The prompt approves only the deletion of the session log (issue #336).
@@ -2527,7 +2531,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...HEAD
+[5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
 [5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
 [5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
