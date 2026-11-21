@@ -16,10 +16,84 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in the repository
 
-- `tools/changelog_merge.py`: the subcommand `release` now stops for a bullet that it leaves out with a new indented line. `main` and the merge base lack that line below that bullet. This happens for a section of the branch with another heading than the top heading of `main`. Before, the script left out that line with the bullet. If the same line was below another bullet, no guard saw the loss, and the script ended with exit code 0. The script also stops for an indented line after a blank line below such a bullet. Before, that line moved below another bullet. A line of only spaces below such a bullet gives no stop. The branch can have the line right below the bullet, and `main` can have it after a blank line below its copy of the bullet. Then the script gives no stop. The subcommand `unreleased` and the option `--absorb-unreleased` now compare an indented line only with the lines below the same `-` bullet. Before, the same line below another bullet of the subsection hid the loss. An entry with another first line, such as a `*` bullet, still compares with the whole subsection. The new STOP line starts with `merge CHANGELOG.md by hand` and names the bullet and the line, each cut at 40 characters. The docstring and `docs/tools.md` name the new stops (issue #330).
-- `tests/test_changelog_merge.py`: 19 new tests (issue #330). Six tests stop. Four cover the smallest pair of the loss, a tab line below a second dropped bullet, and two lines after a blank line. The fifth covers a line that the merge base has below another bullet. The sixth covers a line that `main` has below a paragraph after a blank line. Two tests merge a shared bullet: with the same indented lines, and with a line that `main` changed since the merge base. Two more merge with two copies on `main` and with a line of only spaces. Two more merge with a line that `main` has after a blank line, and with a dropped bullet above another subsection of the branch. A bullet of an old release keeps its new indented line. A bullet that the branch has twice reaches the count stop. Two tests read the STOP lines of a long bullet. For the subcommand `unreleased`, one test stops for an indented line below another bullet. Another one merges an entry with a `*` marker. For the option `--absorb-unreleased`, one test stops for an indented line below another bullet. The test `test_indented_line_below_a_bullet_that_main_has_refuses` still stops, but with the STOP line of the new guard.
 - `tests/test_check_report.py`: 80 new tests for `snapshot` and `delete-temp` (issue #339). `SnapshotTests` covers the bytes of each file, the live work tree, and each base source, also with a relative scratch folder. It also covers the marker file, the refusals, the limit lines, a missing commit, and the limit of 40 output lines. Other tests cover a link that the system cannot make, names that differ only by case, and the line ends of `core.autocrlf`. `DeleteTempTests` covers the dry run, a read-only file, a folder with no write right, the files that stay, and each guard. It also covers links, a junction on Windows, worktrees, clones, and git folders in the scratch folder. A path that changes after the guards and a delete that fails have tests too. Other tests cover a second run after a failed delete and an empty folder. A marker that is a link, a folder, or a hard link has tests too. A quoted `core.worktree` value, a commit with no files, and a fake mount table have tests too. As root, three tests drop the folder rights with `capsh`. The process tests cover the start time, the whole path, the process chain of the script, and a process that ignores SIGTERM. One test stops a real process. `OutputTests` covers the cut of a long line, a name with a line break, and a git timeout.
 - `docs/testing.md`: the Windows paths that the tests of `snapshot` and `delete-temp` reach (issue #339).
+
+## dev-essentials 5.0.0 in release [6.0.0] - 2026-11-21
+
+The agents `task-composer` and `docs-composer` and the command `audit-openspec` leave, because no unit used them. `audit-plan` now also audits an OpenSpec change. The option `--mode` of `help-review-pr` is now `--post`, so its name no longer clashes with the work modes. A new eval case proves the post of one finding (issue #337).
+
+### Added in dev-essentials
+
+- `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect, a style defect, and a `TODO` comment. So the findings table has a major row, a minor row, and an info row. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
+
+### Changed in dev-essentials
+
+- `commands/help-review-pr.md`: the option `--mode=html-only|post-all|post-<N>|post-<N>-<M>` is now `--post=all|<N>|<N>-<M>`. With no `--post`, the run writes only the HTML artifact. The old name was the name of the option of the work modes, which picks where a workflow stops (issue #337).
+- `commands/audit-plan.md`: the command now also audits an OpenSpec change. It takes the folder of the change below `openspec/changes/`, or only the name of the change. The description names the OpenSpec change folder (issue #337).
+- `skills/work-modes/SKILL.md`: the note on the `--mode` of `help-review-pr` goes, because that option no longer exists (issue #337).
+- `evals/triggers/audit-plan-openspec-fires` and `evals/triggers/audit-plan-fires`: the new names of the cases `audit-openspec-fires` and `audit-openspec-near-miss`. Each one must start `audit-plan`. The graders on `audit-openspec` go, and so does the grader that kept `audit-plan` at zero calls (issue #337).
+- `evals/triggers/compose-task-fires`, `compose-task-draft-fires`, and `create-documentation-guide-fires`: the descriptions name no removed agent. `compose-task-fires` and `create-documentation-guide-fires` no longer list the `Agent` tool (issue #337).
+
+### Removed in dev-essentials
+
+- The agents `task-composer` and `docs-composer`. No unit of the marketplace dispatched them. The skills `compose-task` and `create-documentation` do the same work in the session, or in a subagent that loads the skill (issue #337).
+- The command `audit-openspec`. It differed from `audit-plan` only in its folder rule, and `audit-plan` now has that rule (issue #337).
+- The graders `task-composer-not-fired` of `compose-task-fires` and `docs-composer-not-fired` of `create-documentation-guide-fires`. Also `route-task-composer-not-fired` of `cmp-task-draft` and `cmp-issue-create`, and `route-docs-composer-not-fired` of `cmp-guide-draft`. With no agent of that name, these graders cannot fail (issue #337).
+
+### Breaking changes in dev-essentials
+
+- Write the new name in place of the old one. The command `help-review-pr` no longer defines `--mode`. Phase 6 runs only with `--post`, so the text gives an old value such as `--mode=post-all` no meaning (issue #337).
+
+| Old name | New name |
+| --- | --- |
+| The agent `dev-essentials:task-composer` | The skill `dev-essentials:compose-task`, in the session or in a `general-purpose` agent that loads it |
+| The agent `dev-essentials:docs-composer` | The skill `dev-essentials:create-documentation`, in the session or in a `general-purpose` agent that loads it |
+| `/dev-essentials:audit-openspec <change>` | `/dev-essentials:audit-plan openspec/changes/<change>` |
+| `/dev-essentials:help-review-pr <url> --mode=html-only` | `/dev-essentials:help-review-pr <url>` |
+| `--mode=post-all` of `help-review-pr` | `--post=all` |
+| `--mode=post-<N>` of `help-review-pr` | `--post=<N>` |
+| `--mode=post-<N>-<M>` of `help-review-pr` | `--post=<N>-<M>` |
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: the tests of the removed graders go. `HelpReviewPrPostGraderTests` tests the graders of the new case on right and wrong runs. A post of row 1, a post of rows 1 and 2, and an edit of the reviewed code each fail a grader (issue #337).
+- `docs/evals.md`: a row for the new suite `help-review-pr`, and a paragraph on the new case (issue #337).
+- `docs/workflows.md` and `README.md`: they name `--post` in place of the `--mode` of `help-review-pr` (issue #337).
+
+## dev-essentials 4.4.9 in release [5.4.9] - 2026-11-21
+
+Three eval cases get graders that fail a wrong run: `ta-full-pass`, `bh-planted-bugs`, and `fp-e5-breaking-change`. A review of the 97 behavior cases by the rule of useful tests found them. No skill text changes (issues #336 and #338).
+
+### Fixed in dev-essentials
+
+- `evals/trim-artifacts/ta-full-pass`: the new scored grader `other-files-kept` reads the listing of the run. Each notes file that the user did not approve for deletion must still be in the folder `notes/`. Before, no scored grader read 7 of these 11 files. So a run that deleted one of them, or merged it into another file, passed each scored grader. The prompt approves only the deletion of the session log (issue #336).
+- `evals/bug-hunt/bh-planted-bugs`: five new scored graders compare a whole file of the project with the file of the scaffold. They read `billing/invoice.py`, `inventory/cache.py`, `notify/retry.py`, `notify/email.py`, and `inventory/stock.py`. The grader `project-unchanged` is a `file_exists` grader, and it sees only the files that the run created. So before, a run that fixed a planted bug in place passed each grader of the case (issue #338).
+- `evals/feature-pipeline/fp-e5-breaking-change`: the grader `test-unchanged` now reads the whole test that the new cache breaks. It also reads the `[Test]` attribute of the test, the header of its class, and the namespace line above the class. Before, it read only the last assertion of the test. So a run that put `[Ignore]` on the test, or that removed its first read, passed each grader of the case. A test with `[Ignore]` does not fail the test run, so `tests-passed` passed too. For a bug of the code, the stage `test-coverage` marks its own new test with `[Ignore]`. A run can do the same to the old test (issue #338).
+
+### Changed in the repository
+
+- `tests/test_eval_scaffolds.py`: `TrimFullPassTests` deletes each kept notes file after a right trim, with each form of the backup. It also renames each kept file to `<name>.orig`. Each deletion and each rename must fail the new grader `other-files-kept` (issue #336).
+- `tests/test_eval_cases.py`: `ShopFilesKeptGraderTests` tests the new graders of `bh-planted-bugs`. Each one passes the file of the scaffold. A fix of the bug in the file, or a change of the decoy, fails it. A new first or last line fails it too, and so does an empty file (issue #338).
+- `docs/evals.md`: a `file_exists` grader does not see an edit of a file of the scaffold. So `bh-planted-bugs` reads the content of five files of its project. The file also names the limits of the grader `test-unchanged` of `fp-e5-breaking-change` (issue #338).
+- `tests/simple-english-baseline.json`: six entries for the code text in the patterns of the new graders (issue #338).
+- `tests/test_eval_cases.py`: `BreakingChangeTestGraderTests` runs the grader `test-unchanged` of `fp-e5-breaking-change` on the test file of the fixture and on 16 edits of it. Each of the 13 edits that skips, ignores, or changes the test fails the grader. A new test before or after it passes, and so do CRLF line ends (issue #338).
+
+## dev-essentials 4.4.8 in release [5.4.8] - 2026-11-21
+
+The scored grader `no-run-commit` of five resume cases now fails an orphan commit and an amend that keeps the subject of a fixture commit. No skill text changes (issue #335). The release also takes in the guard of `changelog_merge.py release` against a silent loss of an indented line (issue #330).
+
+### Fixed in dev-essentials
+
+- `evals/*/*/graders/no-run-commit.md` of `it-merge`, `ib-merge`, `rirr-merge`, `rirr-resume-moved-head`, and `rirr-upstream-remote`: the scored grader now fails an orphan commit and an amend that keeps the subject of a fixture commit. For an orphan commit, git writes `commit (initial): <subject>`, and the old pattern did not count that form. An amend with `--no-edit` keeps the subject `fixture: ...`, and the old pattern skipped it. So a run with such a commit passed the grader. The six copies of the grader now have one text, the text of `it-no-worktree-dirty` (issue #335).
+
+### Changed in the repository
+
+- `tools/changelog_merge.py`: the subcommand `release` now stops for a bullet that it leaves out with a new indented line. `main` and the merge base lack that line below that bullet. This happens for a section of the branch with another heading than the top heading of `main`. Before, the script left out that line with the bullet. If the same line was below another bullet, no guard saw the loss, and the script ended with exit code 0. The script also stops for an indented line after a blank line below such a bullet. Before, that line moved below another bullet. A line of only spaces below such a bullet gives no stop. The branch can have the line right below the bullet, and `main` can have it after a blank line below its copy of the bullet. Then the script gives no stop. The subcommand `unreleased` and the option `--absorb-unreleased` now compare an indented line only with the lines below the same `-` bullet. Before, the same line below another bullet of the subsection hid the loss. An entry with another first line, such as a `*` bullet, still compares with the whole subsection. The new STOP line starts with `merge CHANGELOG.md by hand` and names the bullet and the line, each cut at 40 characters. The docstring and `docs/tools.md` name the new stops (issue #330).
+- `tests/test_changelog_merge.py`: 19 new tests (issue #330). Six tests stop. Four cover the smallest pair of the loss, a tab line below a second dropped bullet, and two lines after a blank line. The fifth covers a line that the merge base has below another bullet. The sixth covers a line that `main` has below a paragraph after a blank line. Two tests merge a shared bullet: with the same indented lines, and with a line that `main` changed since the merge base. Two more merge with two copies on `main` and with a line of only spaces. Two more merge with a line that `main` has after a blank line, and with a dropped bullet above another subsection of the branch. A bullet of an old release keeps its new indented line. A bullet that the branch has twice reaches the count stop. Two tests read the STOP lines of a long bullet. For the subcommand `unreleased`, one test stops for an indented line below another bullet. Another one merges an entry with a `*` marker. For the option `--absorb-unreleased`, one test stops for an indented line below another bullet. The test `test_indented_line_below_a_bullet_that_main_has_refuses` still stops, but with the STOP line of the new guard.
+- `tests/test_eval_scaffolds.py`: a new test of `CommitGraderTests` runs `no-run-commit` of the five cases on real git states. An orphan commit and an amend of the fixture commit with `--no-edit` must each fail the grader (issue #335).
+- `tests/test_eval_cases.py`: in `RirrFinishCaseTests`, the sample `commit (amend): fixture: amended` now counts as a commit of the run. Before, the sample expected a pass, so it pinned the gap. A new sample `commit: fix the retry limit` must count too. Its subject starts like the fixture prefix, so a lookahead that skips more than `fixture:` fails it. Four new samples cover the merge and cherry-pick forms (issue #335).
+- `docs/evals.md`: two known limits of `route-no-worktree-read`. A harmless call with a `branch` word before the read, such as `git branch 2>/dev/null`, can make it fail a right run. In Bun 1.4.4, it gives no match with 350,000 characters before the read, and it matches with 300,000 (issue #335).
 
 ## dev-essentials 4.4.7 in release [5.4.7] - 2026-11-20
 
@@ -2509,7 +2583,10 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
+[5.4.9]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.8...v5.4.9
+[5.4.8]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.7...v5.4.8
 [5.4.7]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.6...v5.4.7
 [5.4.6]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.4...v5.4.5

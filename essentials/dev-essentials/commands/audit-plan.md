@@ -1,13 +1,14 @@
 ---
-description: Audit a design plan file or folder before implementation.
+description: Audit a design plan file, a plan folder, or an OpenSpec change folder before implementation.
 ---
 
-Audit a design plan (file or folder) for issues, ambiguities, and missing context before implementation.
+Audit a design plan (a file, a folder, or an OpenSpec change folder) for issues, ambiguities, and missing context before implementation.
 
 **Arguments**: $ARGUMENTS
 
 - Format: `<path-to-plan>`
 - Path to a plan file (`.md`) or folder containing design documents.
+- Or an OpenSpec change: its folder below `openspec/changes/`, or only the name of the change. For a name, the path is `openspec/changes/<name>/`.
 - If no arguments, use the **AskUserQuestion tool** to ask for the path.
 
 ## Steps
@@ -15,6 +16,8 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
 1. **Read all documents**
 
    Read every `.md` file at the given path. If the path is a folder, also read the `.md` files in its subfolders.
+
+   An OpenSpec change folder holds `proposal.md`, `design.md`, `tasks.md`, and the delta specs of the change. Read each of them and each other `.md` file of the folder.
 
 2. **Deep analysis**
 
@@ -31,6 +34,7 @@ Audit a design plan (file or folder) for issues, ambiguities, and missing contex
    - Do documents agree with each other?
    - Do naming conventions match the existing codebase?
    - Are task dependencies correctly ordered?
+   - For an OpenSpec change: does the design match the scope of the proposal, and do the tasks match the design?
 
    **Clarity:**
    - Can an AI agent implement each task without asking questions?

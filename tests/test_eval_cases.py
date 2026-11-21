@@ -1718,6 +1718,65 @@ class FeaturePipelineGraderTests(unittest.TestCase):
                 self.assertNotRegex(trace_form((FP_STAGES / stage).read_text(encoding="utf-8")), pattern)
 
 
+class BreakingChangeTestGraderTests(unittest.TestCase):
+    """The grader test-unchanged of fp-e5-breaking-change fails each run that edits, skips, or ignores the test that the cache breaks.
+
+    A test with [Ignore] does not fail a run, so the run marker writes Passed for it.
+    """
+
+    TEST_FILE = "tests/Inventory.Tests/StockServiceTests.cs"
+    METHOD = "    [Test]\n    public void Restock_ThenGetQuantity_ReturnsNewAmount()\n"
+    NEW_TEST = ("    [Test]\n    public void GetQuantity_SameSkuTwice_QueriesOnce()\n    {\n"
+                "        Assert.That(1, Is.EqualTo(1));\n    }\n\n")
+    # Each edit replaces one text of the fixture file. True: the grader passes the edited file.
+    EDITS = {
+        "a new test before the test": (METHOD, NEW_TEST + METHOD, True),
+        "a new test at the end": ("    }\n}\n", "    }\n\n" + NEW_TEST.rstrip("\n") + "\n}\n", True),
+        "CRLF line ends": ("\n", "\r\n", True),
+        "an Ignore attribute before Test": (METHOD, '    [Ignore("Blocked by implementation bug: stale cache")]\n' + METHOD, False),
+        "an Ignore attribute after Test": ("    [Test]\n    public void Restock_Then",
+                                           '    [Test]\n    [Ignore("stale cache")]\n    public void Restock_Then', False),
+        "Ignore in the Test attribute": ("    [Test]\n    public void Restock_Then", '    [Test, Ignore("stale cache")]\n    public void Restock_Then', False),
+        "an Explicit attribute": (METHOD, "    [Explicit]\n" + METHOD, False),
+        "no Test attribute": (METHOD, METHOD.replace("    [Test]\n", ""), False),
+        "an Ignore attribute on the class": ("[TestFixture]\n", '[TestFixture]\n[Ignore("stale cache")]\n', False),
+        "Ignore in the TestFixture attribute": ("[TestFixture]\n", '[TestFixture, Ignore("stale cache")]\n', False),
+        "an Ignore attribute above the class": ("[TestFixture]\n", '[Ignore("stale cache")]\n[TestFixture]\n', False),
+        "an Explicit attribute above the class": ("[TestFixture]\n", "[Explicit]\n[TestFixture]\n", False),
+        "no read before the restock": ('        var before = service.GetQuantity("ab-1");\n', "", False),
+        "a new service before the second read": ('        var after = service.GetQuantity("ab-1");',
+                                                 '        var after = new StockService(new FakeSqlRunner()).GetQuantity("ab-1");', False),
+        "another expected value": ("Assert.That(before, Is.EqualTo(0));", "Assert.That(before, Is.EqualTo(5));", False),
+        "an Ignore call in the test": ("    {\n        var service = new StockService(new FakeSqlRunner());\n        var before",
+                                       '    {\n        Assert.Ignore("stale cache");\n        var service = new StockService(new FakeSqlRunner());\n        var before', False),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["fp-e5-breaking-change"]
+        cls.meta = case.graders["test-unchanged"][0]
+        fixture = (FP_ROOT / "evals" / "_lib" / "inventory-fixture.sh").read_text(encoding="utf-8")
+        found = re.search(rf"fixture_write {re.escape(cls.TEST_FILE)} <<'DOTNET_EOF'\n(.*?)^DOTNET_EOF$", fixture, re.S | re.M)
+        cls.text = found.group(1) if found else None
+
+    def passes(self, text):
+        return re.search(self.meta["pattern"], text) is not None
+
+    def test_the_grader_reads_the_test_file_and_needs_a_match(self):
+        self.assertEqual((self.meta["type"], self.meta.get("match", "contains"), self.meta["target"]),
+                         ("regex", "contains", {"source": "file", "path": self.TEST_FILE}))
+
+    def test_the_grader_passes_the_test_file_of_the_fixture(self):
+        self.assertIsNotNone(self.text, "The fixture must write the test file with a DOTNET_EOF heredoc.")
+        self.assertTrue(self.passes(self.text))
+
+    def test_the_grader_fails_each_edit_of_the_test_and_passes_a_new_test(self):
+        for name, (old, new, passes) in self.EDITS.items():
+            with self.subTest(edit=name):
+                self.assertIn(old, self.text)
+                self.assertEqual(self.passes(self.text.replace(old, new)), passes)
+
+
 OBSD_ROOT = REPO / "essentials" / "doc-styles"
 OBSD_PROBE = OBSD_ROOT / "evals" / "probes" / "probe-obsd-lint-hook"
 OBSD_LINT = OBSD_ROOT / "skills" / "openbsd-style-docs" / "scripts" / "openbsd_lint.py"
@@ -3452,24 +3511,10 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
                 self.assertIn(phrase, response[0].lower())
                 self.assertIn(phrase, prompt)
 
-    def test_the_case_keeps_the_agent_tool_and_lists_no_write_tool(self):
+    def test_the_case_lists_no_write_tool(self):
         tools = self.case.field("allowed_tools")
         self.assertIn("Skill", tools)
-        self.assertIn("Agent", tools, "The grader task-composer-not-fired needs a run that can start the wrapper agent. By the docs, a case that lists no Agent gets no Agent tool.")
         self.assertEqual(self.WRITE_TOOLS & set(tools), set())
-
-    def test_the_wrapper_grader_counts_in_the_score(self):
-        graders = self.case.graders
-        self.assertEqual([name for name in graders if name.startswith(ROUTE_PREFIX)], [])
-        meta = graders["task-composer-not-fired"][0]
-        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"], meta["arm"]),
-                         ("tool_used", "Agent", 0, 0, "both"))
-        pattern = re.compile(meta["input_match"])
-        for subagent_type, found in (("dev-essentials:task-composer", True), ("task-composer", True),
-                                     ("general-purpose", False), ("dev-essentials:task-composer-old", False),
-                                     ("my-task-composer", False)):
-            with self.subTest(subagent_type=subagent_type):
-                self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
 
     def test_the_fires_grader_counts_the_skill(self):
         meta = self.case.graders["fires"][0]
@@ -3482,7 +3527,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
 
 
 class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
-    """The trigger case compose-task-draft-fires sends the plain request, and has no grader on the wrapper agent."""
+    """The trigger case compose-task-draft-fires sends the plain request with no phrase of a mode."""
 
     CASE = "compose-task-draft-fires"
 
@@ -3504,10 +3549,9 @@ class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertNotIn(phrase, prompt)
 
-    def test_the_case_lists_no_agent_tool_and_no_write_tool(self):
+    def test_the_case_lists_no_write_tool(self):
         tools = set(self.case.field("allowed_tools"))
         self.assertIn("Skill", tools)
-        self.assertNotIn("Agent", tools)
         self.assertEqual(ComposeTaskFiresCaseTests.WRITE_TOOLS & tools, set())
 
     def test_the_graders_are_the_graders_of_the_sibling_case_on_the_skills(self):
@@ -3772,9 +3816,6 @@ class ComposerGraderTests(unittest.TestCase):
     def test_route_graders_find_no_composer_agent(self):
         graders = {
             "cmp-pr-from-diff": ("route-pr-composer-not-fired", "pr-composer"),
-            "cmp-task-draft": ("route-task-composer-not-fired", "task-composer"),
-            "cmp-issue-create": ("route-task-composer-not-fired", "task-composer"),
-            "cmp-guide-draft": ("route-docs-composer-not-fired", "docs-composer"),
         }
         for case, (name, agent) in graders.items():
             with self.subTest(case=case):
@@ -4337,6 +4378,65 @@ class BaseRulesAndLintGraderTests(unittest.TestCase):
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor.replace("import os\n", "", 1)))
         self.assertFalse(self.passes(self.lint, "vendor-kept", vendor + '__all__ = ["os", "page_label"]\n'))
         self.assertFalse(self.passes(self.lint, "vendor-kept", "# os\n" + vendor))
+
+
+class ShopFilesKeptGraderTests(unittest.TestCase):
+    """The content graders of bh-planted-bugs fail a run that edits a file of the project.
+
+    The grader project-unchanged sees only the files that the run created, not an edit of a file of the scaffold.
+    """
+
+    FILES = {
+        "invoice-kept": "billing/invoice.py",
+        "cache-kept": "inventory/cache.py",
+        "retry-kept": "notify/retry.py",
+        "email-kept": "notify/email.py",
+        "stock-kept": "inventory/stock.py",
+    }
+    # A fix of the planted bug or of the known bug, or a change of the decoy.
+    FIXES = {
+        "invoice-kept": ("    return int(total)\n", "    return round(total, 2)\n"),
+        "cache-kept": ("    key = sku\n", "    key = (sku, warehouse)\n"),
+        "retry-kept": ("            if max_retries and attempt >= max_retries:\n", "            if attempt >= max_retries:\n"),
+        "email-kept": ('    return "Order " + order_id\n', '    return f"Order {order_id}"\n'),
+        "stock-kept": ("    return units // case_size\n", "    return -(-units // case_size)\n"),
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["bh-planted-bugs"]
+        cls.script = (FP_ROOT / "evals" / "_lib" / "shop-fixture.sh").read_text(encoding="utf-8")
+
+    def scaffold_text(self, path):
+        return self.script.split(f"fixture_write {path} <<'SHOP_EOF'\n", 1)[1].split("SHOP_EOF\n", 1)[0]
+
+    def passes(self, grader, text):
+        return re.search(self.case.graders[grader][0]["pattern"], text) is not None
+
+    def test_each_grader_reads_its_file_of_the_project(self):
+        for grader, path in self.FILES.items():
+            with self.subTest(grader=grader):
+                meta = self.case.graders[grader][0]
+                self.assertEqual((meta["type"], meta.get("match", "contains"), meta.get("flags", ""), meta["target"]),
+                                 ("regex", "contains", "", {"source": "file", "path": f"project/{path}"}))
+
+    def test_each_grader_passes_the_file_of_the_scaffold(self):
+        for grader, path in self.FILES.items():
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, self.scaffold_text(path)))
+
+    def test_each_grader_fails_an_edit_of_its_file(self):
+        for grader, (old, new) in self.FIXES.items():
+            text = self.scaffold_text(self.FILES[grader])
+            self.assertIn(old, text)
+            for name, changed in {
+                "a fix": text.replace(old, new, 1),
+                "a line at the end": text + "# note\n",
+                "a line at the start": "# note\n" + text,
+                "an empty file": "",
+            }.items():
+                with self.subTest(grader=grader, run=name):
+                    self.assertFalse(self.passes(grader, changed))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):
@@ -5110,8 +5210,15 @@ class RirrFinishCaseTests(unittest.TestCase):
                  "\tcommit (initial): fixture: add the users app": False,
                  "\tcheckout: moving from main to work/retry-limit": False,
                  "\tcommit: Lower the retry limit": True,
-                 "\tcommit (amend): fixture: amended": False,
+                 # A subject that starts like the fixture prefix still counts.
+                 "\tcommit: fix the retry limit": True,
+                 # An amend with --no-edit keeps the subject of the fixture commit, but the run made it.
+                 "\tcommit (amend): fixture: amended": True,
                  "\tcommit (amend): Lower the retry limit": True,
+                 "\tcommit (merge): Merge branch 'main' into work/retry-limit": True,
+                 "\tcommit (cherry-pick): Lower the retry limit": True,
+                 "\tcherry-pick: Lower the retry limit": True,
+                 "\tmerge work/retry-limit: Merge made by the 'ort' strategy.": True,
                  "\trevert: Revert \"fixture: x\"": True}
         for line, expected in lines.items():
             for case in [*self.MERGE_CASES, *self.STOP_CASES]:
@@ -5451,6 +5558,104 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
         for name, step in steps.items():
             with self.subTest(step=name):
                 self.assertIsNotNone(pattern.search("\n".join([stop, step])))
+
+
+class HelpReviewPrPostGraderTests(unittest.TestCase):
+    """The graders of hrp-post-one: the run writes the artifact, edits no code, and posts only the finding of row 2."""
+
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+    call = staticmethod(MockCallsGraderTests.call)
+    PULL = {"owner": "example-org", "repo": "pager", "pullNumber": 7}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["hrp-post-one"]
+        cls.command = (FP_ROOT / "commands" / "help-review-pr.md").read_text(encoding="utf-8")
+
+    def passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        found = sum(1 for _ in re.finditer(meta["pattern"], text))
+        match = meta.get("match", "contains")
+        if match == "not_contains":
+            return found == 0
+        if match.startswith("count:"):
+            return found == int(match[len("count:"):])
+        return found > 0
+
+    def comment(self, path, line):
+        return self.call("add_comment_to_pending_review", {**self.PULL, "path": path, "line": line, "subjectType": "LINE",
+                                                           "body": "**[Optional]** Use an f-string."}, '{"status": "ok"}')
+
+    def review(self, method, **fields):
+        return self.call("pull_request_review_write", {"method": method, **self.PULL, **fields}, '{"status": "ok"}')
+
+    def test_the_artifact_grader_reads_the_output_line_of_the_command(self):
+        meta = self.case.graders["artifact-named"][0]
+        self.assertEqual(meta.get("target"), "last_message")
+        self.assertIn("The reviews folder is `Reviews/` in the notes folder.", self.command)
+        self.assertIn("no value is saved, and the notes folder is `Notes`.", self.command)
+        manifest = json.loads((FP_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        written = self.case.graders["artifact-written"][0]
+        folder = manifest["userConfig"]["notes_dir"]["default"]
+        self.assertEqual((written["type"], written["path"]), ("file_exists", f"{folder}/Reviews/pr-7-review.html"))
+        start = self.command.index("ARTIFACT: <reviews-folder>/")
+        block = self.command[start:self.command.index("`" * 3, start)]
+        reply = block.replace("<reviews-folder>", "Notes/Reviews").replace("<number>", "7")
+        replies = {
+            "the output block of the command": (reply, True),
+            "an absolute path": ("ARTIFACT: /work/Notes/Reviews/pr-7-review.html\n2 findings", True),
+            "another pull request": (reply.replace("pr-7-review", "pr-17-review"), False),
+            "another folder": (reply.replace("Notes/Reviews/", "Notes/"), False),
+            "no artifact line": ("I reviewed PR 7 and posted finding 2.", False),
+        }
+        for name, (text, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(self.passes("artifact-named", text), expected)
+
+    def test_the_edit_grader_finds_an_edit_of_the_reviewed_code(self):
+        meta = self.case.graders["no-code-edit"][0]
+        self.assertEqual((meta["target"], meta["match"]), ("trace", "not_contains"))
+        review = "\n".join([
+            self.tool_use("Bash", {"command": "git diff origin/main...origin/pull/7/head -- src/pager.py"}),
+            self.tool_use("Read", {"file_path": "/work/src/pager.py"}),
+            self.tool_use("Write", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "content": "<p>src/pager.py</p>"}),
+            self.tool_use("Edit", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "old_string": "a", "new_string": "b"}),
+        ])
+        self.assertTrue(self.passes("no-code-edit", review))
+        edit = {"file_path": "/work/src/pager.py", "old_string": "size - 1", "new_string": "size"}
+        sub = trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": edit}]}, "parent_tool_use_id": "toolu_1"})
+        steps = {"an Edit": self.tool_use("Edit", edit),
+                 "an Edit with replace_all first": self.tool_use("Edit", {"replace_all": False, **edit}),
+                 "a Write of a test": self.tool_use("Write", {"file_path": "/work/tests/test_pager.py", "content": "x"}),
+                 "a MultiEdit": self.tool_use("MultiEdit", {"file_path": "/work/src/ranges.py", "edits": [edit]}),
+                 "an Edit of a subagent": sub}
+        for name, step in steps.items():
+            with self.subTest(step=name):
+                self.assertFalse(self.passes("no-code-edit", "\n".join([review, step])))
+
+    def test_the_post_graders_need_one_comment_on_the_finding_of_row_two(self):
+        self.assertIn("`--post=2`", self.case.prompt_body)
+        reads = [self.call("pull_request_read", {"method": "get", **self.PULL}),
+                 self.call("pull_request_read", {"method": "get_review_comments", **self.PULL, "perPage": 30})]
+        submit = self.review("submit_pending", event="COMMENT", body="One finding: src/pager.py drops the last item.")
+        runs = {
+            "a post of row 2": ([self.review("create"), self.comment("src/ranges.py", 14), submit], (True, True)),
+            "a path with ./": ([self.review("create"), self.comment("./src/ranges.py", 14), submit], (True, True)),
+            "no post": ([], (False, False)),
+            "a post of row 1": ([self.review("create"), self.comment("src/pager.py", 27), submit], (True, False)),
+            "a post of rows 1 and 2": ([self.review("create"), self.comment("src/pager.py", 27),
+                                        self.comment("src/ranges.py", 14), submit], (False, True)),
+            "a post of rows 2 to 3": ([self.review("create"), self.comment("src/ranges.py", 14),
+                                       self.comment("src/pager.py", 25), submit], (False, True)),
+            "row 2 only in the body of the review": ([self.review("create"), self.review(
+                "submit_pending", event="COMMENT", body="Use an f-string in src/ranges.py.")], (False, False)),
+        }
+        for name, (calls, (one, row_two)) in runs.items():
+            text = "\n".join(reads + calls)
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-one-comment", text), one)
+                self.assertEqual(self.passes("route-row-two", text), row_two)
 
 
 if __name__ == "__main__":

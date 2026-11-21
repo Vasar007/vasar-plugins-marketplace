@@ -1218,6 +1218,22 @@ class CommitGraderTests(FixtureCase):
                 with self.subTest(case=name, grader=grader):
                     self.assertTrue(self.passes(name, workspace, grader))
 
+    def test_the_run_commit_grader_of_the_resume_cases_fails_an_orphan_commit_and_an_amend(self):
+        """An orphan commit writes "commit (initial):", and an amend with --no-edit keeps the subject of the fixture commit.
+
+        The test above passes each fresh scaffold, so each shape here fails only for the commit of the run.
+        """
+        def an_orphan_commit(workspace):
+            self.run_git(workspace, "checkout", "-q", "--orphan", "keep/run")
+            self.run_git(workspace, "commit", "-q", "-m", "Keep the work of the run")
+
+        def an_amend_of_the_fixture_commit_with_no_edit(workspace):
+            self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
+
+        for name in ("it-merge", "ib-merge", "rirr-merge", "rirr-resume-moved-head", "rirr-upstream-remote"):
+            self.check_shapes(name, {an_orphan_commit: False, an_amend_of_the_fixture_commit_with_no_edit: False},
+                              "no-run-commit")
+
     def test_the_branch_grader_fails_on_each_move_of_the_branch(self):
         path = ["src/pager.py"]
 
@@ -1592,7 +1608,8 @@ class CommitGraderTests(FixtureCase):
 
 class TrimFullPassTests(FixtureCase):
     """The file graders of ta-full-pass fail on the planted notes and pass on a right trim. They also fail on a lost
-    decision, a lost id, a lost marker, a kept log, and a missing backup."""
+    decision, a lost id, a lost marker, a kept log, a deleted file that the user did not approve, and a missing
+    backup."""
 
     CASE = "ta-full-pass"
     LOG = "notes/archive/session-log-2026-10.md"
@@ -1657,7 +1674,7 @@ class TrimFullPassTests(FixtureCase):
             with self.subTest(grader=name):
                 self.assertFalse(verdicts[name], "the grader passes before the trim")
         for name in ("decisions-kept", "req-ids-kept", "question-ids-kept", "markers-kept", "index-kept",
-                     "listing-written"):
+                     "listing-written", "other-files-kept"):
             with self.subTest(grader=name):
                 self.assertTrue(verdicts[name], "the grader fails on the planted notes")
 
@@ -1691,6 +1708,33 @@ class TrimFullPassTests(FixtureCase):
                 self.edit(workspace, path, old, new)
                 self.assertFalse(self.passes(workspace, name))
                 remove_tree(workspace)
+
+    def test_a_deleted_file_that_the_user_did_not_approve_fails(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        kept = sorted(p.relative_to(workspace).as_posix() for p in (workspace / "notes").rglob("*.md"))
+        for backup in ("the files", "the notes folder"):
+            if backup == "the notes folder":
+                shutil.move(str(workspace / "trim-backup"), str(workspace / "notes-copy"))
+                (workspace / "trim-backup").mkdir()
+                shutil.move(str(workspace / "notes-copy"), str(workspace / "trim-backup" / "notes"))
+            for path in kept:
+                for change in ("delete", "rename"):
+                    with self.subTest(backup=backup, path=path, change=change):
+                        file = workspace / path
+                        renamed = file.with_name(file.name + ".orig")
+                        text = file.read_bytes()
+                        if change == "rename":
+                            file.rename(renamed)
+                        else:
+                            file.unlink()
+                        self.listing(workspace)
+                        passed = self.passes(workspace, "other-files-kept")
+                        renamed.unlink(missing_ok=True)
+                        file.write_bytes(text)
+                        self.assertFalse(passed)
+            self.listing(workspace)
+            self.assertTrue(self.passes(workspace, "other-files-kept"), backup)
 
     def test_a_crlf_decision_file_still_passes(self):
         workspace = self.scaffold()
