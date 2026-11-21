@@ -26,6 +26,9 @@ Subcommands:
 An entry is a "- " bullet with the lines below it that are indented or that start with "|", the rows
 of a table. A blank line right above such a line belongs to the entry too, so unreleased and
 --absorb-unreleased keep it.
+An entry can also be indented lines or table rows right below a "### " heading, with no bullet
+above them. The first line of such an entry matches only the first line under that heading on the
+other side.
 
 With --keep-both FILE, the script also keeps both sides of each conflict in FILE: first the side of
 --theirs, then the side of --ours. Give one --keep-both for each file. FILE is a path from the top

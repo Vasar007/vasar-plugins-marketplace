@@ -1165,6 +1165,14 @@ class UnreleasedTests(MergeCase):
                       "so merge CHANGELOG.md by hand\n", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
 
+    def test_table_with_no_bullet_below_a_line_of_spaces_that_both_sides_added_stays_one_time(self):
+        table = "| Key | Value |\n| --- | --- |\n| `x` | `y` |\n"
+        main = dict(MAIN_RELEASE)
+        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace(TOP, TOP + "### Changed in the repository\n   \n" + table + "\n")
+        clone = self.merge(self.branch("### Changed in the repository\n\n" + table + "\n"), main=main)
+        self.tool(clone, "unreleased")
+        self.assertEqual(self.text(clone, "CHANGELOG.md").count(table), 1)
+
     def test_bullet_after_a_blank_line_below_an_entry_of_the_base_is_no_refusal(self):
         block = "### Changed in the repository\n\n- an entry of the base\n\n"
         base = dict(BASE)
