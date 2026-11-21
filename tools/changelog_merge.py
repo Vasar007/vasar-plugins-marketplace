@@ -47,7 +47,7 @@ The script refuses, and writes nothing, in each of these cases:
     that change. A section of the branch that the merge base does not have counts too, for example
     a renamed heading. If --theirs made the change of the branch and one more change in that
     section, the script stops too. It compares whole sections, so it cannot tell that right merge
-    from a loss.
+    from a loss. Two older sections with the same heading compare in their order.
   - release: --theirs has the heading of the top section of the branch, and a "- "
     bullet of that section is new on --theirs. Then merge CHANGELOG.md by hand. A bullet is new
     on --theirs when the older sections of the branch lack it, or --theirs has it more often
@@ -375,22 +375,22 @@ def changed_old_section(older, base_text, theirs_text):
     """Refuse when the branch changed an old release and --theirs does not have the same text of that release."""
     mine, before, after = (old_sections(text) for text in (older, split_top(base_text, "the merge base")[2],
                                                              split_top(theirs_text, "--theirs")[2]))
-    for heading in [*before, *(heading for heading in mine if heading not in before)]:
-        if mine.get(heading) != before.get(heading) and mine.get(heading) != after.get(heading):
-            raise Refused(f"the branch changed the old release '{heading}', and --theirs does not have that change, "
-                          f"so merge {CHANGELOG} by hand")
+    for key in [*before, *(key for key in mine if key not in before)]:
+        if mine.get(key) != before.get(key) and mine.get(key) != after.get(key):
+            raise Refused(f"merge {CHANGELOG} by hand: the branch changed the old release '{key[0]}', and --theirs "
+                          "has another text of it")
 
 
 def old_sections(text):
-    """Map each "## " heading of text to its lines, without the link lines."""
-    parts, heading = {}, None
+    """Map each "## " heading of text and its count of earlier copies to its lines, without the link lines."""
+    parts, key = {}, None
     for line in text.split(LF):
         if line.startswith("## "):
-            heading = line
-            parts[heading] = []
-        elif heading and not re.match(r"\[[^\]]+\]: ", line):
-            parts[heading].append(line)
-    return {heading: LF.join(lines).strip(LF) for heading, lines in parts.items()}
+            key = (line, sum(heading == line for heading, _ in parts))
+            parts[key] = []
+        elif key and not re.match(r"\[[^\]]+\]: ", line):
+            parts[key].append(line)
+    return {key: LF.join(lines).strip(LF) for key, lines in parts.items()}
 
 
 def release_changelog(ours, theirs_text, base_text, release, versions, absorb):
