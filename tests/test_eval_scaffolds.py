@@ -1592,7 +1592,8 @@ class CommitGraderTests(FixtureCase):
 
 class TrimFullPassTests(FixtureCase):
     """The file graders of ta-full-pass fail on the planted notes and pass on a right trim. They also fail on a lost
-    decision, a lost id, a lost marker, a kept log, and a missing backup."""
+    decision, a lost id, a lost marker, a kept log, a deleted file that the user did not approve, and a missing
+    backup."""
 
     CASE = "ta-full-pass"
     LOG = "notes/archive/session-log-2026-10.md"
@@ -1657,7 +1658,7 @@ class TrimFullPassTests(FixtureCase):
             with self.subTest(grader=name):
                 self.assertFalse(verdicts[name], "the grader passes before the trim")
         for name in ("decisions-kept", "req-ids-kept", "question-ids-kept", "markers-kept", "index-kept",
-                     "listing-written"):
+                     "listing-written", "other-files-kept"):
             with self.subTest(grader=name):
                 self.assertTrue(verdicts[name], "the grader fails on the planted notes")
 
@@ -1691,6 +1692,27 @@ class TrimFullPassTests(FixtureCase):
                 self.edit(workspace, path, old, new)
                 self.assertFalse(self.passes(workspace, name))
                 remove_tree(workspace)
+
+    def test_a_deleted_file_that_the_user_did_not_approve_fails(self):
+        workspace = self.scaffold()
+        self.trim(workspace)
+        kept = sorted(p.relative_to(workspace).as_posix() for p in (workspace / "notes").rglob("*.md"))
+        for backup in ("the files", "the notes folder"):
+            if backup == "the notes folder":
+                shutil.move(str(workspace / "trim-backup"), str(workspace / "notes-copy"))
+                (workspace / "trim-backup").mkdir()
+                shutil.move(str(workspace / "notes-copy"), str(workspace / "trim-backup" / "notes"))
+            for path in kept:
+                with self.subTest(backup=backup, path=path):
+                    file = workspace / path
+                    text = file.read_bytes()
+                    file.unlink()
+                    self.listing(workspace)
+                    passed = self.passes(workspace, "other-files-kept")
+                    file.write_bytes(text)
+                    self.assertFalse(passed)
+            self.listing(workspace)
+            self.assertTrue(self.passes(workspace, "other-files-kept"), backup)
 
     def test_a_crlf_decision_file_still_passes(self):
         workspace = self.scaffold()
