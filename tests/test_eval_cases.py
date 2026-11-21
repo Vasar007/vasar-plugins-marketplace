@@ -5110,7 +5110,10 @@ class RirrFinishCaseTests(unittest.TestCase):
                  "\tcommit (initial): fixture: add the users app": False,
                  "\tcheckout: moving from main to work/retry-limit": False,
                  "\tcommit: Lower the retry limit": True,
-                 "\tcommit (amend): fixture: amended": False,
+                 # A subject that starts like the fixture prefix still counts.
+                 "\tcommit: fix the retry limit": True,
+                 # An amend with --no-edit keeps the subject of the fixture commit, but the run made it.
+                 "\tcommit (amend): fixture: amended": True,
                  "\tcommit (amend): Lower the retry limit": True,
                  "\trevert: Revert \"fixture: x\"": True}
         for line, expected in lines.items():

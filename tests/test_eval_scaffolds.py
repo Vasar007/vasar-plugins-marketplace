@@ -1218,6 +1218,22 @@ class CommitGraderTests(FixtureCase):
                 with self.subTest(case=name, grader=grader):
                     self.assertTrue(self.passes(name, workspace, grader))
 
+    def test_the_run_commit_grader_of_the_resume_cases_fails_an_orphan_commit_and_an_amend(self):
+        """An orphan commit writes "commit (initial):", and an amend with --no-edit keeps the subject of the fixture commit.
+
+        The test above passes each fresh scaffold, so each shape here fails only for the commit of the run.
+        """
+        def an_orphan_commit(workspace):
+            self.run_git(workspace, "checkout", "-q", "--orphan", "keep/run")
+            self.run_git(workspace, "commit", "-q", "-m", "Keep the work of the run")
+
+        def an_amend_of_the_fixture_commit_with_no_edit(workspace):
+            self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
+
+        for name in ("it-merge", "ib-merge", "rirr-merge", "rirr-resume-moved-head", "rirr-upstream-remote"):
+            self.check_shapes(name, {an_orphan_commit: False, an_amend_of_the_fixture_commit_with_no_edit: False},
+                              "no-run-commit")
+
     def test_the_branch_grader_fails_on_each_move_of_the_branch(self):
         path = ["src/pager.py"]
 
