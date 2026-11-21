@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.2 in release [6.1.2] - 2026-11-21
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for a test run on Microsoft.Testing.Platform that keeps its failure after a new test. No skill text changes (issue #348).
+
 ### Fixed in dev-essentials
 
 - `skills/review-loop/scripts/failure_check.py`: the counts of passed and skipped tests in the line of a test assembly of Microsoft.Testing.Platform now become a token, as in `[+<n>/x1/?<n>]`. The count of failed tests stays. `dotnet test` on that platform prints the line, for example `Probe.dll (net11.0|x64) failed with 1 error(s) [+1/x1/?0] (233ms)`. Before, a fix commit that added a test and kept the same failure gave `OTHER` in place of `SAME-AT-PARENT`. A real run of MSTest 4.2.3 with the .NET SDK 11.0.100 showed it (issue #348).
@@ -2616,7 +2620,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...HEAD
+[6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v5.4.9...v6.0.0
