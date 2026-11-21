@@ -5115,6 +5115,10 @@ class RirrFinishCaseTests(unittest.TestCase):
                  # An amend with --no-edit keeps the subject of the fixture commit, but the run made it.
                  "\tcommit (amend): fixture: amended": True,
                  "\tcommit (amend): Lower the retry limit": True,
+                 "\tcommit (merge): Merge branch 'main' into work/retry-limit": True,
+                 "\tcommit (cherry-pick): Lower the retry limit": True,
+                 "\tcherry-pick: Lower the retry limit": True,
+                 "\tmerge work/retry-limit: Merge made by the 'ort' strategy.": True,
                  "\trevert: Revert \"fixture: x\"": True}
         for line, expected in lines.items():
             for case in [*self.MERGE_CASES, *self.STOP_CASES]:
