@@ -4,7 +4,7 @@ This page covers the work modes of the workflows of this marketplace, and the ch
 
 ## Work modes
 
-Each gated workflow of `dev-essentials` takes the option `--mode`. It has the values below. The `--mode` of `help-review-pr` picks its posts, and it is not a work mode.
+Each gated workflow of `dev-essentials` takes the option `--mode`. It has the values below.
 
 - `--mode interactive`: the workflow stops at each of its gates, and you approve each step.
 - `--mode partial`: the default. The workflow reports its plan and goes on. It stops at the plan only for open decisions. It does not push or open a pull request without your answer or a push flag such as `--commit-push`. `research-implement-review-report`, `implement-task`, and `implement-batch` ask one question about these steps at their end.

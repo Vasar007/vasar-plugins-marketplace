@@ -1,6 +1,6 @@
 ---
 description: "Review a GitHub PR and report on it, with no code edits: evaluate the diff against the repo conventions, render an HTML review artifact, and optionally post the findings as PR review comments."
-argument-hint: "<pr-url> [--mode=html-only|post-all|post-<N>|post-<N>-<M>] [--orchestrate] | --multi <url1> <url2> ... [--orchestrate]"
+argument-hint: "<pr-url> [--post=all|<N>|<N>-<M>] [--orchestrate] | --multi <url1> <url2> ... [--orchestrate]"
 ---
 
 Review the GitHub pull request: $ARGUMENTS
@@ -68,7 +68,7 @@ The categories below are **examples, not a full list**. Adapt them to the conven
 - **Documentation and Markdown**: for a diff that changes skill, command, or agent Markdown, the rules of `dev-essentials:write-markdown`, for example the quoting of frontmatter scalars.
 - **Exception and user-facing messages**: if the repo keeps its user-facing strings in one place, messages come from resources, not from inline string literals.
 
-Report every finding with a severity. Sort the findings table of the artifact by severity, so that the reader and `--mode=post-<N>-<M>` start with the most severe ones.
+Report every finding with a severity. Sort the findings table of the artifact by severity, so that the reader and `--post=<N>-<M>` start with the most severe ones.
 
 ## Phase 5 — Produce the HTML artifact
 
@@ -94,11 +94,11 @@ Read that reference file directly. This command does not copy its subagent promp
 
 Before Role 1, run Phase 2 and the `git fetch` of Phase 3 in the main agent, but do not read the diff. Then give `group_diff.py` the range `origin/<baseRefName>...origin/pull/<number>/head`.
 
-The one difference: the synthesis does not feed a fixer. It feeds Phase 5 (the HTML artifact). If `--mode` asks for posts, it also feeds Phase 6 (the post of **new** findings as PR review comments).
+The one difference: the synthesis does not feed a fixer. It feeds Phase 5 (the HTML artifact). With `--post`, it also feeds Phase 6 (the post of **new** findings as PR review comments).
 
 # Phase 6 — Post findings as new PR review comments (only when explicitly requested)
 
-This phase runs only with `--mode=post-all`, `--mode=post-<N>`, or `--mode=post-<N>-<M>`. The default (`--mode=html-only`) stops after Phase 5.
+This phase runs only with `--post=all`, `--post=<N>`, or `--post=<N>-<M>`. With no `--post`, the run stops after Phase 5.
 
 ## Before posting — check for existing duplicate threads
 
@@ -183,24 +183,23 @@ Each subagent reports back in under 200 words: what the PR does, the finding cou
 
 `$ARGUMENTS` has one of these top-level shapes:
 
-- `<pr-url> [--mode=<mode>] [--orchestrate]`: a review of one PR. `<pr-url>` is the first positional argument.
+- `<pr-url> [--post=<findings>] [--orchestrate]`: a review of one PR. `<pr-url>` is the first positional argument.
 - `--multi <url1> <url2> ... [--orchestrate]`: a review of several PRs (Phase 7). `--multi` takes the place of `<pr-url>` as the first argument. It takes the list of URLs after it, separated by spaces. This shape has no separate single-PR URL at the start.
 
-The `--orchestrate` flag can come at any position after the URL (single-PR shape), or after the last `--multi` URL (multi-PR shape). It works with any mode.
+The `--orchestrate` flag can come at any position after the URL (single-PR shape), or after the last `--multi` URL (multi-PR shape). It works with and without `--post`.
 
-Modes (single-PR shape only):
+Posts (single-PR shape only):
 
 - `<pr-url>` alone → only the HTML artifact (Phases 1 to 5).
-- `<pr-url> --mode=html-only` → the same, stated explicitly.
-- `<pr-url> --mode=post-all` → the artifact, then a PR review comment for every finding.
-- `<pr-url> --mode=post-<N>` → a post of finding number `N` only (1-based, as in the findings table of the artifact).
-- `<pr-url> --mode=post-<N>-<M>` → a post of findings `N` to `M`.
+- `<pr-url> --post=all` → the artifact, then a PR review comment for every finding.
+- `<pr-url> --post=<N>` → a post of finding number `N` only (1-based, as in the findings table of the artifact).
+- `<pr-url> --post=<N>-<M>` → a post of findings `N` to `M`.
 
 Multi-PR shape:
 
 - `--multi <url1> <url2> ...` → parallel review subagents (Phase 7).
 
-`--orchestrate` in the single-PR shape (for example `<pr-url> --mode=post-all --orchestrate`): Phases 1, 5, and 6 stay inline, and Phases 2 to 4 go to subagents, as **Orchestrator mode** says. In the multi-PR shape, Phase 7 passes the flag on, and each subagent applies the single-PR rule to its own PR. See **Mode selection** for the PR sizes where the flag helps.
+`--orchestrate` in the single-PR shape (for example `<pr-url> --post=all --orchestrate`): Phases 1, 5, and 6 stay inline, and Phases 2 to 4 go to subagents, as **Orchestrator mode** says. In the multi-PR shape, Phase 7 passes the flag on, and each subagent applies the single-PR rule to its own PR. See **Mode selection** for the PR sizes where the flag helps.
 
 # Output
 

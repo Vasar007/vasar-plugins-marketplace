@@ -1,0 +1,18 @@
+{
+  "number": 7,
+  "title": "Add page_slice and page_label",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "html_url": "https://github.com/example-org/pager/pull/7",
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "feature/page-tools",
+    "sha": "5cbc75ebfb16911f53adaf9ed5d4f4c47931201a"
+  },
+  "user": {
+    "login": "example-author"
+  }
+}

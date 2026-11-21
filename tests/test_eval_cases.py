@@ -3452,24 +3452,10 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
                 self.assertIn(phrase, response[0].lower())
                 self.assertIn(phrase, prompt)
 
-    def test_the_case_keeps_the_agent_tool_and_lists_no_write_tool(self):
+    def test_the_case_lists_no_write_tool(self):
         tools = self.case.field("allowed_tools")
         self.assertIn("Skill", tools)
-        self.assertIn("Agent", tools, "The grader task-composer-not-fired needs a run that can start the wrapper agent. By the docs, a case that lists no Agent gets no Agent tool.")
         self.assertEqual(self.WRITE_TOOLS & set(tools), set())
-
-    def test_the_wrapper_grader_counts_in_the_score(self):
-        graders = self.case.graders
-        self.assertEqual([name for name in graders if name.startswith(ROUTE_PREFIX)], [])
-        meta = graders["task-composer-not-fired"][0]
-        self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"], meta["arm"]),
-                         ("tool_used", "Agent", 0, 0, "both"))
-        pattern = re.compile(meta["input_match"])
-        for subagent_type, found in (("dev-essentials:task-composer", True), ("task-composer", True),
-                                     ("general-purpose", False), ("dev-essentials:task-composer-old", False),
-                                     ("my-task-composer", False)):
-            with self.subTest(subagent_type=subagent_type):
-                self.assertEqual(pattern.search(agent_input(subagent_type)) is not None, found)
 
     def test_the_fires_grader_counts_the_skill(self):
         meta = self.case.graders["fires"][0]
@@ -3482,7 +3468,7 @@ class ComposeTaskFiresCaseTests(unittest.TestCase):
 
 
 class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
-    """The trigger case compose-task-draft-fires sends the plain request, and has no grader on the wrapper agent."""
+    """The trigger case compose-task-draft-fires sends the plain request with no phrase of a mode."""
 
     CASE = "compose-task-draft-fires"
 
@@ -3504,10 +3490,9 @@ class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertNotIn(phrase, prompt)
 
-    def test_the_case_lists_no_agent_tool_and_no_write_tool(self):
+    def test_the_case_lists_no_write_tool(self):
         tools = set(self.case.field("allowed_tools"))
         self.assertIn("Skill", tools)
-        self.assertNotIn("Agent", tools)
         self.assertEqual(ComposeTaskFiresCaseTests.WRITE_TOOLS & tools, set())
 
     def test_the_graders_are_the_graders_of_the_sibling_case_on_the_skills(self):
@@ -3772,9 +3757,6 @@ class ComposerGraderTests(unittest.TestCase):
     def test_route_graders_find_no_composer_agent(self):
         graders = {
             "cmp-pr-from-diff": ("route-pr-composer-not-fired", "pr-composer"),
-            "cmp-task-draft": ("route-task-composer-not-fired", "task-composer"),
-            "cmp-issue-create": ("route-task-composer-not-fired", "task-composer"),
-            "cmp-guide-draft": ("route-docs-composer-not-fired", "docs-composer"),
         }
         for case, (name, agent) in graders.items():
             with self.subTest(case=case):
@@ -5451,6 +5433,95 @@ class NoWorktreeDirtyRouteGraderTests(unittest.TestCase):
         for name, step in steps.items():
             with self.subTest(step=name):
                 self.assertIsNotNone(pattern.search("\n".join([stop, step])))
+
+
+class HelpReviewPrPostGraderTests(unittest.TestCase):
+    """The graders of hrp-post-one: the run writes the artifact, edits no code, and posts only the finding of row 2."""
+
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+    call = staticmethod(MockCallsGraderTests.call)
+    PULL = {"owner": "example-org", "repo": "pager", "pullNumber": 7}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["hrp-post-one"]
+        cls.command = (FP_ROOT / "commands" / "help-review-pr.md").read_text(encoding="utf-8")
+
+    def passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        found = sum(1 for _ in re.finditer(meta["pattern"], text))
+        match = meta.get("match", "contains")
+        if match == "not_contains":
+            return found == 0
+        if match.startswith("count:"):
+            return found == int(match[len("count:"):])
+        return found > 0
+
+    def comment(self, path, line):
+        return self.call("add_comment_to_pending_review", {**self.PULL, "path": path, "line": line, "subjectType": "LINE",
+                                                           "body": "**[Optional]** Use an f-string."}, '{"status": "ok"}')
+
+    def review(self, method, **fields):
+        return self.call("pull_request_review_write", {"method": method, **self.PULL, **fields}, '{"status": "ok"}')
+
+    def test_the_artifact_grader_reads_the_output_line_of_the_command(self):
+        meta = self.case.graders["artifact-named"][0]
+        self.assertEqual(meta.get("target"), "last_message")
+        start = self.command.index("ARTIFACT: <reviews-folder>/")
+        block = self.command[start:self.command.index("`" * 3, start)]
+        reply = block.replace("<reviews-folder>", "Notes/Reviews").replace("<number>", "7")
+        replies = {
+            "the output block of the command": (reply, True),
+            "an absolute path": ("ARTIFACT: /work/Notes/Reviews/pr-7-review.html\n2 findings", True),
+            "another pull request": (reply.replace("pr-7-review", "pr-17-review"), False),
+            "another folder": (reply.replace("Notes/Reviews/", "Notes/"), False),
+            "no artifact line": ("I reviewed PR 7 and posted finding 2.", False),
+        }
+        for name, (text, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(self.passes("artifact-named", text), expected)
+
+    def test_the_edit_grader_finds_an_edit_of_the_reviewed_code(self):
+        meta = self.case.graders["no-code-edit"][0]
+        self.assertEqual((meta["target"], meta["match"]), ("trace", "not_contains"))
+        review = "\n".join([
+            self.tool_use("Bash", {"command": "git diff origin/main...origin/pull/7/head -- src/pager.py"}),
+            self.tool_use("Read", {"file_path": "/work/src/pager.py"}),
+            self.tool_use("Write", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "content": "<p>src/pager.py</p>"}),
+            self.tool_use("Edit", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "old_string": "a", "new_string": "b"}),
+        ])
+        self.assertTrue(self.passes("no-code-edit", review))
+        edit = {"file_path": "/work/src/pager.py", "old_string": "size - 1", "new_string": "size"}
+        sub = trace_record({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": edit}]}, "parent_tool_use_id": "toolu_1"})
+        steps = {"an Edit": self.tool_use("Edit", edit),
+                 "an Edit with replace_all first": self.tool_use("Edit", {"replace_all": False, **edit}),
+                 "a Write of a test": self.tool_use("Write", {"file_path": "/work/tests/test_pager.py", "content": "x"}),
+                 "a MultiEdit": self.tool_use("MultiEdit", {"file_path": "/work/src/ranges.py", "edits": [edit]}),
+                 "an Edit of a subagent": sub}
+        for name, step in steps.items():
+            with self.subTest(step=name):
+                self.assertFalse(self.passes("no-code-edit", "\n".join([review, step])))
+
+    def test_the_post_graders_need_one_comment_on_the_finding_of_row_two(self):
+        reads = [self.call("pull_request_read", {"method": "get", **self.PULL}),
+                 self.call("pull_request_read", {"method": "get_review_comments", **self.PULL, "perPage": 30})]
+        submit = self.review("submit_pending", event="COMMENT", body="One finding: src/pager.py drops the last item.")
+        runs = {
+            "a post of row 2": ([self.review("create"), self.comment("src/ranges.py", 14), submit], (True, True)),
+            "a path with ./": ([self.review("create"), self.comment("./src/ranges.py", 14), submit], (True, True)),
+            "no post": ([], (False, False)),
+            "a post of row 1": ([self.review("create"), self.comment("src/pager.py", 27), submit], (True, False)),
+            "a post of rows 1 and 2": ([self.review("create"), self.comment("src/pager.py", 27),
+                                        self.comment("src/ranges.py", 14), submit], (False, True)),
+            "row 2 only in the body of the review": ([self.review("create"), self.review(
+                "submit_pending", event="COMMENT", body="Use an f-string in src/ranges.py.")], (False, False)),
+        }
+        for name, (calls, (one, row_two)) in runs.items():
+            text = "\n".join(reads + calls)
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-one-comment", text), one)
+                self.assertEqual(self.passes("route-row-two", text), row_two)
 
 
 if __name__ == "__main__":

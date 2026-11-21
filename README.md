@@ -32,7 +32,7 @@ After the install, type one of these first. None of them pushes or deletes. A st
 
 | Plugin | First step | Result |
 |---|---|---|
-| `dev-essentials` | `/dev-essentials:help-review-pr <pull request URL>` | Run it in a clone of the repository of the pull request. Claude reviews the pull request and writes an HTML report. It edits no code and posts no comment unless you pass a `--mode` that posts. |
+| `dev-essentials` | `/dev-essentials:help-review-pr <pull request URL>` | Run it in a clone of the repository of the pull request. Claude reviews the pull request and writes an HTML report. It edits no code and posts no comment unless you pass `--post`. |
 | `doc-styles` | "Review this document against the OpenBSD style." | Claude reports each difference from the style. |
 | `dotnet-backend-dev` | "Review this controller against the .NET backend conventions." | Claude loads the hub of conventions and compares the controller. |
 | `kb` | `/kb:setup` | Claude scans the setup, changes nothing, and lists each missing piece. It shows each change and waits for your yes. |

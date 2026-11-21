@@ -9,10 +9,45 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Added in dev-essentials
+
+- `evals/help-review-pr/hrp-post-one`: a new case for the option `--post` of `help-review-pr`. The pull request of its scaffold has a real defect and a style defect. The run with `--post=2` must write the HTML artifact and edit no code. It must post one review comment, and that comment must be the style defect of row 2. Before this case, no eval case ran `help-review-pr` (issue #337).
+
+### Changed in dev-essentials
+
+- `commands/help-review-pr.md`: the option `--mode=html-only|post-all|post-<N>|post-<N>-<M>` is now `--post=all|<N>|<N>-<M>`. With no `--post`, the run writes only the HTML artifact. The old name was the name of the option of the work modes, which picks where a workflow stops (issue #337).
+- `commands/audit-plan.md`: the command now also audits an OpenSpec change. It takes the folder of the change below `openspec/changes/`, or only the name of the change. The description names the OpenSpec change folder (issue #337).
+- `skills/work-modes/SKILL.md`: the note on the `--mode` of `help-review-pr` goes, because that option no longer exists (issue #337).
+- `evals/triggers/audit-plan-openspec-fires` and `evals/triggers/audit-plan-fires`: the new names of the cases `audit-openspec-fires` and `audit-openspec-near-miss`. Each one must start `audit-plan`. The graders on `audit-openspec` go, and so does the grader that kept `audit-plan` at zero calls (issue #337).
+- `evals/triggers/compose-task-fires`, `compose-task-draft-fires`, and `create-documentation-guide-fires`: the descriptions name no removed agent. `compose-task-fires` and `create-documentation-guide-fires` no longer list the `Agent` tool (issue #337).
+
+### Removed in dev-essentials
+
+- The agents `task-composer` and `docs-composer`. No unit of the marketplace dispatched them. The skills `compose-task` and `create-documentation` do the same work in the session, or in a subagent that loads the skill (issue #337).
+- The command `audit-openspec`. It differed from `audit-plan` only in its folder rule, and `audit-plan` now has that rule (issue #337).
+- The graders `task-composer-not-fired` of `compose-task-fires` and `docs-composer-not-fired` of `create-documentation-guide-fires`. Also `route-task-composer-not-fired` of `cmp-task-draft` and `cmp-issue-create`, and `route-docs-composer-not-fired` of `cmp-guide-draft`. With no agent of that name, these graders cannot fail (issue #337).
+
+### Breaking changes in dev-essentials
+
+- Write the new name in place of the old one. The command `help-review-pr` no longer defines `--mode`, so a run with an old `--mode=post-all` can post no comment. Its final reply then lists no posted comment (issue #337).
+
+| Old name | New name |
+| --- | --- |
+| The agent `dev-essentials:task-composer` | The skill `dev-essentials:compose-task`, in the session or in a `general-purpose` agent that loads it |
+| The agent `dev-essentials:docs-composer` | The skill `dev-essentials:create-documentation`, in the session or in a `general-purpose` agent that loads it |
+| `/dev-essentials:audit-openspec <change>` | `/dev-essentials:audit-plan openspec/changes/<change>` |
+| `/dev-essentials:help-review-pr <url> --mode=html-only` | `/dev-essentials:help-review-pr <url>` |
+| `--mode=post-all` of `help-review-pr` | `--post=all` |
+| `--mode=post-<N>` of `help-review-pr` | `--post=<N>` |
+| `--mode=post-<N>-<M>` of `help-review-pr` | `--post=<N>-<M>` |
+
 ### Changed in the repository
 
 - `tools/changelog_merge.py`: the subcommand `release` now stops for a bullet that it leaves out with a new indented line. `main` and the merge base lack that line below that bullet. This happens for a section of the branch with another heading than the top heading of `main`. Before, the script left out that line with the bullet. If the same line was below another bullet, no guard saw the loss, and the script ended with exit code 0. The script also stops for an indented line after a blank line below such a bullet. Before, that line moved below another bullet. A line of only spaces below such a bullet gives no stop. The branch can have the line right below the bullet, and `main` can have it after a blank line below its copy of the bullet. Then the script gives no stop. The subcommand `unreleased` and the option `--absorb-unreleased` now compare an indented line only with the lines below the same `-` bullet. Before, the same line below another bullet of the subsection hid the loss. An entry with another first line, such as a `*` bullet, still compares with the whole subsection. The new STOP line starts with `merge CHANGELOG.md by hand` and names the bullet and the line, each cut at 40 characters. The docstring and `docs/tools.md` name the new stops (issue #330).
 - `tests/test_changelog_merge.py`: 19 new tests (issue #330). Six tests stop. Four cover the smallest pair of the loss, a tab line below a second dropped bullet, and two lines after a blank line. The fifth covers a line that the merge base has below another bullet. The sixth covers a line that `main` has below a paragraph after a blank line. Two tests merge a shared bullet: with the same indented lines, and with a line that `main` changed since the merge base. Two more merge with two copies on `main` and with a line of only spaces. Two more merge with a line that `main` has after a blank line, and with a dropped bullet above another subsection of the branch. A bullet of an old release keeps its new indented line. A bullet that the branch has twice reaches the count stop. Two tests read the STOP lines of a long bullet. For the subcommand `unreleased`, one test stops for an indented line below another bullet. Another one merges an entry with a `*` marker. For the option `--absorb-unreleased`, one test stops for an indented line below another bullet. The test `test_indented_line_below_a_bullet_that_main_has_refuses` still stops, but with the STOP line of the new guard.
+- `tests/test_eval_cases.py`: the tests of the removed graders go. `HelpReviewPrPostGraderTests` tests the graders of the new case on right and wrong runs. A post of row 1, a post of rows 1 and 2, and an edit of the reviewed code each fail a grader (issue #337).
+- `docs/evals.md`: a row for the new suite `help-review-pr`, and a paragraph on the new case (issue #337).
+- `docs/workflows.md` and `README.md`: they name `--post` in place of the `--mode` of `help-review-pr` (issue #337).
 
 ## dev-essentials 4.4.7 in release [5.4.7] - 2026-11-20
 

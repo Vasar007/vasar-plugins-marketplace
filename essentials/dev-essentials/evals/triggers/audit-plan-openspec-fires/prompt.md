@@ -1,6 +1,6 @@
 ---
-description: If the user asks for an audit of an OpenSpec change, the audit-openspec command starts.
-tags: [triggers, audit-openspec]
+description: If the user asks for an audit of an OpenSpec change, the audit-plan command starts.
+tags: [triggers, audit-plan]
 allowed_tools: [Skill, Read, Glob, Grep]
 ---
 
