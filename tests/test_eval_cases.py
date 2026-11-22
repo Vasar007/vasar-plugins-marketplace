@@ -2024,7 +2024,7 @@ class TestsBeforeCommitGraderTests(unittest.TestCase):
                 self.assertLessEqual(match.end(), len(head))
 
     def test_the_untested_commit_grader_keeps_its_known_limits(self):
-        """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""
+        """Each subtest is a known wrong verdict. A pattern change that fixes one also changes this list."""
         cases = {case.name: case for case in load_cases(FP_ROOT)}
         pattern = cases["so-two-fixes"].graders["untested-commit"][0]["pattern"]
         runs = {
@@ -2358,7 +2358,7 @@ class RoutePlainDotnetGraderTests(unittest.TestCase):
         })
 
     def test_the_grader_keeps_its_known_limits(self):
-        """docs/evals.md names these wrong verdicts. A pattern change that fixes one also changes the docs."""
+        """Each subtest is a known wrong verdict. A pattern change that fixes one also changes this list."""
         self.check({
             "a plain call is missed: bash -c": ('bash -c "dotnet build Inventory.sln"', False),
             "a plain call is missed: another word before it": ("nice dotnet build Inventory.sln", False),
