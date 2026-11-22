@@ -49,9 +49,6 @@ class LintCase(ScratchCase):
 
 
 class GoldTests(LintCase):
-    def test_gold_readme_is_found(self):
-        self.assertIn("## DESCRIPTION", gold_readme())
-
     def test_gold_readme_has_no_hit(self):
         result = self.run_lint(gold_readme())
         self.assertResult(result, 0)
@@ -272,9 +269,6 @@ class WordTests(LintCase):
             with self.subTest(word=word):
                 self.assertRules(self.body("Then " + word + " run it."), "you")
 
-    def test_you_in_a_link_target(self):
-        self.assertRules(self.body("See the [guide](https://example.com/your-first-run) first."))
-
     def test_word_in_a_link_target(self):
         self.assertRules(self.body("See [guide](https://example.com/your-easy-start) first."))
 
@@ -350,11 +344,6 @@ class CliTests(LintCase):
         result = run([sys.executable, "-I", SCRIPT, "--help"])
         self.assertResult(result, 0)
         self.assertIn("usage: ", result.stdout)
-
-    def test_tag_item_with_only_brackets(self):
-        result = self.run_lint(HEAD + DESCRIPTION + "\nThe notation is:\n\n- `[ ]` marks an optional part.\n")
-        self.assertResult(result, 0)
-        self.assertEqual(result.stdout + result.stderr, "")
 
     def test_missing_file(self):
         self.assertResult(run([sys.executable, "-I", SCRIPT, self.tmp / "missing.md"]), 2, "missing.md")

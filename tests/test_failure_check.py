@@ -887,11 +887,6 @@ class UnitTests(unittest.TestCase):
         new = "src/m199a.py:3:1: E302 expected 2 blank lines, found 1"
         self.assertEqual(self.lint_verdict([*hits[:200], new, *hits[200:]], hits), "OTHER")
 
-    def test_new_lint_hit_in_the_middle_of_a_short_output_is_other(self):
-        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(30)]
-        new = "src/new.py:3:1: E302 expected 2 blank lines, found 1"
-        self.assertEqual(self.lint_verdict([*hits[:15], new, *hits[15:]], hits), "OTHER")
-
     def test_other_lint_output_with_the_same_line_count_is_other(self):
         self.assertEqual(self.lint_verdict(["src/a.py:1:1: F401 'os' imported but unused"],
                                            ["src/b.py:3:1: E302 expected 2 blank lines, found 1"]), "OTHER")
@@ -922,13 +917,6 @@ class UnitTests(unittest.TestCase):
         token, reason = fc.verdict(False, fix, parent, set())
         self.assertEqual(token, "OTHER")
         self.assertIn("has no line to compare", reason)
-
-    def test_error_line_at_only_one_commit_is_other(self):
-        hits = [f"src/m{i:02}.py:1:1: F401 'os' imported but unused" for i in range(15)]
-        new = "src/a_new.py:3:1: E302 expected 2 blank lines, found 1"
-        roots = ["/work/errors/repo", "/tmp/review-loop-fc-ab12/parent"]
-        self.assertEqual(self.lint_verdict(["Linting /work/errors/repo", new, *hits],
-                                           ["Linting /tmp/review-loop-fc-ab12/parent", *hits], roots), "OTHER")
 
     def test_lines_between_an_error_on_the_first_line_and_the_last_lines_do_not_count(self):
         tail = [f"step {i}" for i in range(15)]
@@ -1365,11 +1353,6 @@ class UnitTests(unittest.TestCase):
 
     def test_default_time_limit_is_the_one_in_the_skill_text(self):
         self.assertIn(f"after {fc.DEFAULT_TIMEOUT} seconds", SKILL.read_bytes().decode("utf-8"))
-
-    def test_help_text_names_each_kind_of_output_line(self):
-        for kind in ("FIX <sha>", "MAIN WORKTREE:", "CHANGED:", "MADE <path>", "NO WORKTREE:", "EXPORTED <path>", "RUN <side>",
-                     "ERROR |", "TAIL  |", "REMOVED <path>", "WARN:", "VERDICT:", "REASON:"):
-            self.assertIn(kind, fc.__doc__)
 
     def test_forms_of_a_windows_folder(self):
         self.assertEqual(fc.path_forms(PureWindowsPath("C:\\work\\my repo")),

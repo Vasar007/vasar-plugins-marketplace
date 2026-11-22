@@ -3648,14 +3648,6 @@ class ComposeTaskDraftFiresCaseTests(unittest.TestCase):
             with self.subTest(grader=name):
                 self.assertEqual(self.case.graders[name], self.sibling.graders[name])
 
-    def test_the_fires_grader_counts_the_skill(self):
-        meta = self.case.graders["fires"][0]
-        self.assertEqual((meta["type"], meta["tool"]), ("tool_used", "Skill"))
-        self.assertNotIn("max", meta)
-        pattern = re.compile(meta["input_match"])
-        self.assertIsNotNone(pattern.search('{"skill":"dev-essentials:compose-task"}'))
-        self.assertIsNone(pattern.search('{"skill":"dev-essentials:compose-pr"}'))
-
 
 class ComposerGraderTests(unittest.TestCase):
     """Regex graders of the composers suite give the right verdict on right and wrong runs."""

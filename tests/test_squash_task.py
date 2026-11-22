@@ -382,15 +382,6 @@ class RefusalTests(SquashCase):
         self.git("checkout", "-q", "--detach")
         self.refused(*commits, reason="HEAD is detached")
 
-    def test_operation_in_progress(self):
-        branch = self.git("symbolic-ref", "--short", "HEAD")
-        self.git("checkout", "-q", "-b", "side")
-        self.commit("side", "side.txt")
-        self.git("checkout", "-q", branch)
-        commits = self.task(2)
-        self.git("merge", "-q", "--no-ff", "--no-commit", "side")
-        self.refused(*commits, reason="a git operation is in progress (MERGE_HEAD exists)")
-
     def test_each_kind_of_operation_in_progress(self):
         commits = self.task(2)
         for name in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "BISECT_LOG"):

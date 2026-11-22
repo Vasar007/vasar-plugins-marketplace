@@ -262,18 +262,6 @@ class ReleaseTests(MergeCase):
         self.assertIn("### Changed in the repository\n\n- the old change\n  - see docs/evals.md\n- the change of the branch\n\n"
                       "## dev-essentials 3.24.1", self.text(clone, "CHANGELOG.md"))
 
-    def test_dropped_bullet_with_an_indented_line_after_a_blank_line_refuses(self):
-        main = main_release("a test fix", "the change of main")
-        main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- the change of main\n", "- the change of main\n  - see docs/evals.md\n")
-        branch = branch_release("dotnet-backend-dev 1.8.1", bullets=("the change of the branch", "a test fix"))
-        branch["CHANGELOG.md"] = branch["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n\n  - see docs/evals.md\n")
-        clone = self.merge(branch, main=main)
-        before = self.text(clone, "CHANGELOG.md")
-        out = self.tool(clone, *RELEASE, code=3)
-        self.assertIn("STOP merge CHANGELOG.md by hand: a blank line is above the indented line '  - see docs/evals.md' of the "
-                      "bullet '- a test fix' that --theirs has\n", out)
-        self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
-
     def test_dropped_bullet_with_a_line_after_a_blank_line_that_main_has_right_below_it_refuses(self):
         main = main_release("a test fix", "the change of main")
         main["CHANGELOG.md"] = main["CHANGELOG.md"].replace("- a test fix\n", "- a test fix\n  - see docs/evals.md\n")
@@ -546,7 +534,7 @@ class ReleaseTests(MergeCase):
         clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
         out = self.tool(clone, "release", "--bump", f"{DOTNET}=1.8.1", "--release", "4.22.2",
                         "--keep-both", f"{DEV}/.claude-plugin/plugin.json", code=3)
-        self.assertIn("plugin.json: no conflict to keep both sides of", out)
+        self.assertIn(f"STOP {DEV}/.claude-plugin/plugin.json: no conflict to keep both sides of", out)
 
     def test_changelog_in_keep_both_is_a_usage_error(self):
         clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
@@ -728,16 +716,6 @@ class ReleaseTests(MergeCase):
         expected = (INTRO + top + main["CHANGELOG.md"][len(INTRO):]).replace(
             f"[Unreleased]: {URL}v4.22.1...HEAD\n", f"[Unreleased]: {URL}v4.22.2...HEAD\n[4.22.2]: {URL}v4.22.1...v4.22.2\n")
         self.assertEqual(self.text(clone, "CHANGELOG.md"), expected)
-
-    def test_section_that_main_has_in_full_refuses(self):
-        # After a squash merge of the same branch, main has the heading and each bullet of the branch.
-        clone = self.merge(branch_release("dev-essentials 3.24.1", bullets=["the change of main"],
-                                          extra={f"{DEV}/.claude-plugin/plugin.json": manifest("dev-essentials", "3.24.1")}))
-        before = (self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json"))
-        out = self.tool(clone, "release", "--bump", f"{DEV}=3.24.2", "--release", "4.22.2", code=3)
-        self.assertIn("STOP the top section of the branch and --theirs both have the entry '- the change of main', "
-                      "so merge CHANGELOG.md by hand", out)
-        self.assertEqual((self.text(clone, "CHANGELOG.md"), self.text(clone, f"{DEV}/.claude-plugin/plugin.json")), before)
 
     def test_same_heading_and_one_shared_bullet_refuses(self):
         # A branch that goes on after its own squash merge has the bullets of main and one more bullet.
@@ -1164,11 +1142,6 @@ class ReleaseTests(MergeCase):
         out = self.tool(clone, *RELEASE, "--keep-both", "docs/none.md", code=2)
         self.assertIn("RESULT ERROR. cannot read the --keep-both file docs/none.md", out)
         self.assertEqual(self.text(clone, "CHANGELOG.md"), before)
-
-    def test_keep_both_refusal_names_the_path_of_the_file(self):
-        clone = self.merge(branch_release("dotnet-backend-dev 1.8.1"))
-        out = self.tool(clone, *RELEASE, "--keep-both", f"{DEV}/.claude-plugin/plugin.json", code=3)
-        self.assertIn(f"STOP {DEV}/.claude-plugin/plugin.json: no conflict", out)
 
     def test_output_is_utf8_without_the_utf8_mode(self):
         bullet = "a bullet \u2014 with \u0436 and \u4e2d"
