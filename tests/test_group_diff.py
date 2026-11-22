@@ -123,12 +123,6 @@ class GroupingTests(GroupDiffCase):
         self.commit()
         self.assertEqual(list(self.areas()), ["src/a/big.py", "src/b/"])
 
-    def test_folder_over_800_lines_splits_by_next_level(self):
-        self.write("src/api/a.py", lines=500)
-        self.write("src/db/b.py", lines=500)
-        self.commit()
-        self.assertEqual(list(self.areas()), ["src/api/", "src/db/"])
-
     def test_split_goes_down_while_an_area_is_too_large(self):
         for i in range(11):
             self.write(f"pkg/core/deep/f{i}.py")

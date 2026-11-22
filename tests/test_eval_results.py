@@ -160,6 +160,7 @@ class TraceTests(EvalResultsCase):
         self.assertIn("[assistant] CALL mcp__plugin_github_github__issue_read", out)
         self.assertIn("[assistant sub] CALL mcp__plugin_github_github__issue_write", out)
         self.assertIn("[line 16] NOT JSON, skipped", out)
+        self.assertIn("[user sub] RESULT label not found\n", out)
 
     def test_limit_and_max_lines_cut_the_output(self):
         out = self.tool("trace", TRACE, "--limit", "10", "--max-lines", "2")
@@ -181,9 +182,6 @@ class TraceTests(EvalResultsCase):
                           event([{"type": "tool_result", "content": "r" * 30}], role="user", parentToolUseId="toolu_1"))
         out = self.tool("trace", path, "--limit", "20")
         self.assertEqual(out, "[user] a plain text\n[user sub] RESULT rrrrrrrrrr ... 20 more characters\n")
-
-    def test_tool_result_of_the_fixture_prints(self):
-        self.assertIn("[user sub] RESULT label not found\n", self.tool("trace", TRACE))
 
     def test_help_prints_the_exit_codes(self):
         self.assertResult(run([sys.executable, "-I", SCRIPT, "--help"]), 0, "Exit codes:", "over the cap")

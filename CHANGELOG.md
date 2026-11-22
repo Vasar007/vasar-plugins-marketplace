@@ -9,6 +9,18 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.6 in release [6.2.3] - 2026-11-22
+
+A second review of each unit test and each eval case kept only the useful ones. The suite loses 14 tests and one eval case, and it fails for the same bugs as before. No skill text changes (issue #361).
+
+### Removed in dev-essentials
+
+- `evals/create-html-artifact/cha-12-findings`: the eval case is gone. Its request was the first 12 lines of the request of `cha-30-findings`, and both cases had the same scored graders. In 10 stored run pairs, both cases gave the same result. `cha-30-findings` now has the tag `smoke` (issue #361).
+
+### Changed in the repository
+
+- Tests: 12 unit tests are gone, and 2 pairs of tests are one test each (issue #361). For each removed test but one, mutants showed that a named other test fails for the same bugs. The other test, `UnitTests.test_help_text_names_each_kind_of_output_line`, reads only the help text, so no bug of the code makes it fail. The tests are in `test_eval_cases.py` (1), `test_eval_results.py` (1 merge), `test_changelog_merge.py` (2, and 1 merge), `test_failure_check.py` (3), `test_check_report.py` (1), `test_group_diff.py` (1), `test_squash_task.py` (1), and `test_openbsd_lint.py` (3). One of them, `GoldTests.test_gold_readme_is_found`, came back in an earlier review, because a heading with two spaces failed only that test. Such a heading is in style for the linter, so that failure was a false alarm.
+
 ## dev-essentials 5.1.5 in release [6.2.2] - 2026-11-22
 
 `failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for the same failure of Jest, Vitest, and pytest-xdist. No skill text changes (issue #358).
@@ -2682,7 +2694,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...HEAD
+[6.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...v6.2.3
 [6.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...v6.2.2
 [6.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...v6.2.1
 [6.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...v6.2.0

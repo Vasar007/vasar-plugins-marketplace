@@ -142,11 +142,6 @@ class ValidReportTests(CheckReportCase):
         self.assertDefect(self.check_text(text, 2, "final", "--base", "yes"),
                           "BH-01: missing field 'Also on base'")
 
-    def test_changed_severity_with_was_form_is_legal(self):
-        text = edit(fixture("final.md"), "- Severity: High\n", "- Severity: Medium (was High)\n")
-        text = edit(text, "| Area 1 | High | High |", "| Area 1 | Medium | High |")
-        self.assertPasses(self.check_text(text))
-
     def test_final_report_passes_with_snapshots_that_hold_each_location(self):
         ref, base = self.tmp / "snapshot-ref", self.tmp / "snapshot-base"
         for root, path, lines in ((ref, "src/orders/export.ext", 142), (ref, "src/invoices/total.ext", 10),
