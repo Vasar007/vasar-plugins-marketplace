@@ -117,6 +117,37 @@ python3 tests/evals/compare_versions.py baseline --plugin essentials/dev-essenti
 - `--allow-tools` grants the tools, because a run asks for no permission and grants no shell tool by default.
 - If the shell does not find `claude`, pass its path with `--claude`.
 
+## Run the main cases on a new model
+
+When a new model comes out, [`CLAUDE.md`](../CLAUDE.md) asks for this run. The run shows which units start for the wrong request or fail on that model. It compares no two commits, so it needs no base.
+
+The main cases are:
+
+- Each trigger case of each plugin, with the tag `triggers`.
+- One case of each main workflow: `rl-off-by-one`, `rirr-retry-limit`, `ppc-autonomous-push`, `fp-e2-fork-pr`, `it-no-worktree`, `ib-no-worktree`, and `bh-flow`.
+
+Run each case one time with `baseline`. Pass the new model as `--model`, and the judge of the stored results as `--judge-model`:
+
+```bash
+python3 tests/evals/compare_versions.py baseline --plugin <plugin folder> --commit main --model <new model id> --judge-model <model id> --scaffold --keep-temp --runs 1 --case <case> --out <folder>
+```
+
+- A workflow case also needs `--allow-tools Bash Write Edit`.
+- Use one command for each run. `--max-cost-usd` is tested only before a run starts. So test the spend before each command with `python3 -I tools/eval_results.py spend`.
+- Two plugins can have a trigger case with the same name. So name each `--out` folder by the plugin and the case.
+- A case that scores 1.00 is done. Give a case with a lower score one more run.
+- If a case fails two times, run it one time with the old agent model at the same Claude Code version. If that run fails too, the case is stale, and the model is not the cause.
+- Before a verdict on a failed grader of a long run, replay it. See [Replay graders on kept runs](eval-cases.md#replay-graders-on-kept-runs).
+
+The first model run was in November 2026. Its agent was a model of the Fable family, and its judge was a model of the Sonnet family. Each case scored 1.00.
+
+| Part | Runs | Cost (USD) | Time of the runs |
+| --- | --- | --- | --- |
+| The trigger cases | 52 | 23.33 | About 17 minutes |
+| The workflow cases | 7 | 19.37 | About 27 minutes |
+
+A trigger run cost 0.21 to 1.35 USD. A workflow run cost 1.42 to 4.36 USD and took 73 to 431 seconds. Three of the workflow cases also ran with an agent of the Opus family at the same commit. Those runs cost about half as much, and each one took as long or longer.
+
 ## Probes
 
 The probes are cheap cases that test the run environment, not a skill. They are in `evals/probes/` of each plugin, with the tag `probe`. Before the first paid suite run on a new machine, run them with the same command and `--tag probe`.
