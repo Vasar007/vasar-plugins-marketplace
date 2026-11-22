@@ -1,6 +1,6 @@
 ---
 description: A report of 30 review findings as an HTML file. The file must hold every finding, and no finding that was not in the list. It must use no external stylesheet. The final message must end with an ARTIFACT line.
-tags: [create-html-artifact, route]
+tags: [create-html-artifact, route, smoke]
 allowed_tools: [Skill, Read, Glob, Grep]
 max_turns: 40
 timeout_seconds: 900
