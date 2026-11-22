@@ -66,24 +66,33 @@ The last two lines are the verdict and its reason:
                            command that cannot start
 An error word is fail, traceback, or a word that ends with error or exception. A line with an
 error word is an error line. With an error line, the lines to compare are each error line and
-the lines from the first error line on, but at most the last 15 lines. If a line above them
-names a place, its text counts too, with the line and column numbers of its first place left
-out. So a hit that moved to another line stays the same. So does a new hit with the same text
-at another line of the same file, after a fix removed the old hit. A place is a file name with
-an extension and a line number, for example src/a.py:3 or A.java:[3,5]. A name with no
-extension needs a ":" after the number, as in Makefile:3: text. A 3:5 at the start of a word,
-a (3,5) after a name, and a line of a code frame such as "3 | x = 1" are places too. So is a
-line of Python such as File "a.py", line 3. So is a line with only a file path or a file name
-and a ":", with no space. Examples are the file line of eslint stylish and of grouped ruff. A
-digit of a file name stays.
+the lines from the first error line on, but at most the last 15 lines that are not blank. If a
+line above them names a place, its text counts too, with the line and column numbers of its
+first place left out. So a hit that moved to another line stays the same. So does a new hit
+with the same text at another line of the same file, after a fix removed the old hit. A place
+is a file name with an extension and a line number, for example src/a.py:3 or A.java:[3,5]. A
+name with no extension needs a ":" after the number, as in Makefile:3: text. A 3:5 at the
+start of a word, a (3,5) after a name, and a line of a code frame such as "3 | x = 1" are places
+too. So is a line of Python such as File "a.py", line 3. So is a line with only a file path or
+a file name and a ":", with no space. Examples are the file line of eslint stylish and of
+grouped ruff. A digit of a file name stays.
 With no error line, the lines to compare are each line that is not blank. Each line counts
 with the number of times that it comes. A run with an error line never matches a run with none.
 Before the compare, a root folder at the start of a path becomes a token. So do each time,
-address, and count of passed or skipped tests. A time with more than one unit, such as
-1s 318ms, is one time. A count of failures or errors stays. The line of
-a single test also stays, for example a PASSED line of pytest -v or an ok line of unittest -v.
-So a new test can still give OTHER: its line is in the last lines, it holds an error word or
-names a place, or no line of the output holds an error word.
+address, worker of pytest-xdist such as [gw1], and count of passed or skipped tests. A time
+with more than one unit, such as 1s 318ms, is one time. The estimate after the time of Jest
+and the parts of the duration of Vitest do not count. A count of failures or errors stays.
+The line of a single test also stays, for example a PASSED line of pytest -v or an ok line of
+unittest -v. So a new test can still give OTHER: its line is in the last lines, it holds an
+error word or names a place, or no line of the output holds an error word.
+A coverage table, for example of pytest-cov, keeps its numbers. So a fix commit that changes
+covered code gives OTHER, also for the same failure.
+A temporary worktree holds only the files of the commit. If the command needs a tool that the
+project keeps in an ignored folder, such as node_modules, the run there fails in another way.
+With a clean main worktree, the verdict is then OTHER. With a main worktree that is not clean,
+both runs are in a temporary worktree and fail in the same way. Then the verdict can be
+SAME-AT-PARENT for a failure that the fix commit brought. The TAIL lines then show the error of
+the missing tool.
 A build in the clean main worktree can skip the files that did not change. Then it prints fewer
 warnings than the build at the commit before. A warning line that names a place then gives OTHER.
 If the command prints the same lines for two different failures, for example only a banner,
@@ -134,11 +143,23 @@ PLACE = re.compile(r"^\S*[/\\][^\s/\\]*\.[A-Za-z]\w*:?$|^[^\s/\\:]+\.[A-Za-z]\w*
 # After a ")" or a "]", the same rule holds. So in a file line, a digit of v2.py, 1-a.py, or a(1).py stays.
 PLACE_NUMBER = re.compile(r"(?<![^\s:\[,(])\d+(?![^\s:\],)])(?![)\]][^\s:,)\]])")
 PYTEST_COUNT = re.compile(r"\b\d+ ((subtests )?(passed|skipped)|deselected|xfailed|xpassed)\b")
+TEST_COUNT = re.compile(r"\b\d+ (passed|skipped|todo|total|tests?)\b|\(\d+\)$")
 
 
 def pytest_counts(match):
     """The summary line of pytest, with a token for each count of passed, skipped, deselected, xfailed, and xpassed tests."""
     return PYTEST_COUNT.sub(r"<n> \1", match.group())
+
+
+def test_counts(match):
+    """A count line of Jest or Vitest, with a token for each count that is not a count of failures."""
+    def token(count):
+        word = count.group(1)
+        if word is None:
+            return "(<n>)"
+        return "<n> tests" if word.startswith("test") else f"<n> {word}"
+
+    return TEST_COUNT.sub(token, match.group())
 
 
 NOISE = [
@@ -151,6 +172,12 @@ NOISE = [
     (re.compile(r"\b\d+(\.\d+)?\s?(ms|s|sec|secs|seconds|m|min)\b"), "<time>"),
     # A time with more than one unit, such as 1s 318ms, is one token, as 683ms is.
     (re.compile(r"<time>(?: <time>)+"), "<time>"),
+    # Jest adds an estimate to its time when it knows the time of an earlier run in the same folder.
+    (re.compile(r"(?<=<time>), estimated <time>"), ""),
+    # Vitest adds the parts of its duration in percent, in another order in each run.
+    (re.compile(r"^(\s*Duration\s+<time>) \(.*\)$"), r"\1"),
+    # The worker of pytest-xdist that runs a test can change from run to run.
+    (re.compile(r"\[gw\d+\]"), "[gw<n>]"),
     (re.compile(r"\bduration_ms:?\s+\d+(\.\d+)?"), "duration_ms <time>"),
     # The count rules come after the time rules, because some of them look for the token <time>.
     (re.compile(r"\bRan \d+ tests? in <time>"), "Ran <n> tests in <time>"),
@@ -160,6 +187,10 @@ NOISE = [
     (re.compile(r"\[\s*\d{1,3}%\]$"), "[<n>%]"),
     (re.compile(r"\b(Passed|Skipped|Total):\s+\d+(?=, (Skipped|Total|Duration):)"), r"\1: <n>"),
     (re.compile(r"^  (total|succeeded|skipped): \d+$"), r"\1: <n>"),
+    # The summary lines of Jest and Vitest, and the file line of Vitest, such as (3 tests | 1 failed).
+    (re.compile(r"^(Tests|Test Suites):\s.*"), test_counts),
+    (re.compile(r"^\s*(Test Files|Tests)  .*\(\d+\)$"), test_counts),
+    (re.compile(r"\(\d+ tests? \|[^)]*\)"), test_counts),
     # The counts of a test assembly of Microsoft.Testing.Platform: [+<passed>/x<failed>/?<skipped>].
     (re.compile(r"\[\+\d+/x(\d+)/\?\d+\]"), r"[+<n>/x\1/?<n>]"),
 ]
@@ -290,20 +321,26 @@ class Run:
     def signature(self, roots):
         """The lines to compare and their counts, with a token for each root folder, time, address, and count of tests.
 
-        With an error line, it takes the error lines, the last lines from the first error line on, and each line
-        that names a place, such as src/a.py:3, with a token for the numbers of the place.
+        With an error line, it takes the error lines, the last lines that are not blank from the first error line on,
+        and each line that names a place, such as src/a.py:3, with a token for the numbers of the place.
         With no error line, it takes each line that is not blank.
         """
         # The longest root comes first, because one root can be the start of another root.
         ordered = sorted(roots, key=lambda root: (-len(root), root))
         rules = [(re.compile(PATH_START + re.escape(root)), "<root>") for root in ordered] + NOISE
         found = collections.Counter()
-        first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), None)
-        start = 0 if first is None else max(first, len(self.lines) - TAIL_LINES)
-        for i, line in enumerate(self.lines):
+        texts = []
+        for line in self.lines:
             text = line
             for pattern, token in rules:
                 text = pattern.sub(token, text)
+            texts.append(text)
+        first = next((i for i, line in enumerate(self.lines) if ERROR.search(line)), None)
+        # A blank line does not count, so one more blank line in one run does not move the last lines.
+        filled = [i for i, text in enumerate(texts) if text.strip()]
+        last = filled[-TAIL_LINES] if len(filled) >= TAIL_LINES else 0
+        start = 0 if first is None else max(first, last)
+        for i, (line, text) in enumerate(zip(self.lines, texts)):
             if i >= start or ERROR.search(line):
                 found[text.strip()] += 1
             elif PLACE.search(text):
