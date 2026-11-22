@@ -19,7 +19,7 @@ A second review of each unit test and each eval case kept only the useful ones. 
 
 ### Changed in the repository
 
-- Tests: 12 unit tests are gone, and 2 pairs of tests are one test each (issue #361). For each removed test, mutants of the code under test showed that a named other test fails for the same bugs. The tests are in `test_eval_cases.py` (1), `test_eval_results.py` (1 merge), `test_changelog_merge.py` (2, and 1 merge), `test_failure_check.py` (3), `test_check_report.py` (1), `test_group_diff.py` (1), `test_squash_task.py` (1), and `test_openbsd_lint.py` (3). One of them, `GoldTests.test_gold_readme_is_found`, came back in an earlier review, because a heading with two spaces failed only that test. Such a heading is in style for the linter, so that failure was a false alarm.
+- Tests: 12 unit tests are gone, and 2 pairs of tests are one test each (issue #361). For each removed test but one, mutants showed that a named other test fails for the same bugs. The other test, `UnitTests.test_help_text_names_each_kind_of_output_line`, reads only the help text, so no bug of the code makes it fail. The tests are in `test_eval_cases.py` (1), `test_eval_results.py` (1 merge), `test_changelog_merge.py` (2, and 1 merge), `test_failure_check.py` (3), `test_check_report.py` (1), `test_group_diff.py` (1), `test_squash_task.py` (1), and `test_openbsd_lint.py` (3). One of them, `GoldTests.test_gold_readme_is_found`, came back in an earlier review, because a heading with two spaces failed only that test. Such a heading is in style for the linter, so that failure was a false alarm.
 
 ## dev-essentials 5.1.5 in release [6.2.2] - 2026-11-22
 
