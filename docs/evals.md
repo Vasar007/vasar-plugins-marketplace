@@ -126,17 +126,18 @@ The main cases are:
 - Each trigger case of each plugin, with the tag `triggers`.
 - One case of each main workflow: `rl-off-by-one`, `rirr-retry-limit`, `ppc-autonomous-push`, `fp-e2-fork-pr`, `it-no-worktree`, `ib-no-worktree`, and `bh-flow`.
 
-Run each case one time with `baseline`. Pass the new model as `--model`, and the judge of the stored results as `--judge-model`:
+Run each case one time with `baseline`. For a new eval agent or a new main model of sessions, pass the new model as `--model`. For a new judge, pass it as `--judge-model`. Give the other option the model of the last run:
 
 ```bash
-python3 tests/evals/compare_versions.py baseline --plugin <plugin folder> --commit main --model <new model id> --judge-model <model id> --scaffold --keep-temp --runs 1 --case <case> --out <folder>
+python3 tests/evals/compare_versions.py baseline --plugin <plugin folder> --commit main --model <agent model id> --judge-model <judge model id> --scaffold --keep-temp --runs 1 --case <case> --out <folder>
 ```
 
 - A workflow case also needs `--allow-tools Bash Write Edit`.
-- Use one command for each run. `--max-cost-usd` is tested only before a run starts. So test the spend before each command with `python3 -I tools/eval_results.py spend`.
+- A trigger case of `doc-styles` also needs `--extra-dep dev-essentials`. See [Dependencies and stand-ins](#dependencies-and-stand-ins).
+- Use one command for each run. `--max-cost-usd` is tested only before a run starts. So before each command, sum the spend with `python3 -I tools/eval_results.py spend --cap <USD> <folder>/*/baseline.json`.
 - Two plugins can have a trigger case with the same name. So name each `--out` folder by the plugin and the case.
 - A case that scores 1.00 is done. Give a case with a lower score one more run.
-- If a case fails two times, run it one time with the old agent model at the same Claude Code version. If that run fails too, the case is stale, and the model is not the cause.
+- If a case fails two times, run it one time with the old model at the same Claude Code version. If that run fails too, the case is stale, and the model is not the cause.
 - Before a verdict on a failed grader of a long run, replay it. See [Replay graders on kept runs](eval-cases.md#replay-graders-on-kept-runs).
 
 The first model run was in November 2026. Its agent was a model of the Fable family, and its judge was a model of the Sonnet family. Each case scored 1.00.
