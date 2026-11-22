@@ -124,10 +124,12 @@ class LauncherTests(BashCase):
         self.assertEqual(done.stdout.strip(), "chosen")
 
     def test_paths_with_spaces(self):
-        project = self.tmp / "my proj"
-        self.make_clone(project / "K B")
-        done = self.launch("subagent-start", self.tmp, stdin="y", KB_DIR=str(project / "K B"))
-        self.assertEqual(done.stdout.strip(), "subagent-start:y")
+        clone = self.make_clone(self.tmp / "my proj" / "K B")
+        # On Windows, str gives the C:\... form, and as_posix gives the C:/... form that /kb:setup writes.
+        for kb_dir in sorted({str(clone), clone.as_posix()}):
+            with self.subTest(kb_dir=kb_dir):
+                done = self.launch("subagent-start", self.tmp, stdin="y", KB_DIR=kb_dir)
+                self.assertEqual(done.stdout.strip(), "subagent-start:y")
 
     def test_missing_hook_script_exits_0_and_prints_one_line_at_session_start_only(self):
         clone = self.make_clone(self.tmp / "clone")
@@ -146,6 +148,12 @@ class LauncherTests(BashCase):
         (self.tmp / "empty").mkdir()
         done = self.launch("session-start", self.tmp, KB_DIR=str(self.tmp / "empty"))
         self.assertEqual(done.stdout.splitlines(), [NO_CLONE_LINE])
+
+    def test_kb_dir_with_no_clone_runs_no_script_of_a_clone_in_the_project_folder(self):
+        project = self.make_clone(self.tmp / "project")
+        done = self.launch("subagent-start", project, stdin="x", KB_DIR=str(self.tmp / "moved"),
+                           CLAUDE_PROJECT_DIR=str(project))
+        self.assertEqual((done.returncode, done.stdout), (0, ""))
 
 
 class HooksFileTests(unittest.TestCase):
