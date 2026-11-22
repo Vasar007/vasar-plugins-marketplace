@@ -324,6 +324,22 @@ class VerdictTests(FailureCheckCase):
         self.assertEqual(self.verdict(out), "OTHER")
         self.assertIn("REASON: the command did not run to an end at the commit before the fix commit.", out)
 
+    def test_tool_in_an_ignored_folder_is_other_only_from_a_clean_main_worktree(self):
+        self.write(".gitignore", "tool/\n")
+        self.commit("parent")
+        self.write("sub/value.txt", "bad\n")
+        fix = self.commit("fix")
+        self.write("tool/marker.txt", "tool\n")
+        command = "cat ../tool/marker.txt > /dev/null || exit 1; " + CHECK
+        out = self.check(fix, command)
+        self.assertIn("MAIN WORKTREE: clean", out)
+        self.assertEqual(self.verdict(out), "OTHER")
+        # With one more file, both runs are in a temporary worktree with no tool. The fix commit brought the failure.
+        self.write("notes.txt", "note\n")
+        out = self.check(fix, command)
+        self.assertIn("MAIN WORKTREE: not clean", out)
+        self.assertEqual(self.verdict(out), "SAME-AT-PARENT")
+
 
 class IgnoreAndLimitTests(FailureCheckCase):
     def test_ignored_files_of_the_loop_do_not_count(self):
@@ -1465,6 +1481,9 @@ class TestCountTests(unittest.TestCase):
     def test_counts_of_jest_do_not_count(self):
         self.assertSame(jest_run(passed=3, total=4), jest_run(passed=2, total=3))
         self.assertSame(jest_run(files=(2, 3)), jest_run(files=(1, 2)))
+        # A suite with skipped and todo tests. This line is from the source of Jest, not from a real run.
+        self.assertSame(["FAIL a.test.js", "Tests:       1 failed, 2 skipped, 3 todo, 4 passed, 10 total"],
+                        ["FAIL a.test.js", "Tests:       1 failed, 1 skipped, 1 todo, 2 passed, 5 total"])
 
     def test_estimate_of_jest_does_not_count(self):
         # The run in the main worktree knows the time of the run before it. The run in a new worktree does not.
@@ -1480,6 +1499,9 @@ class TestCountTests(unittest.TestCase):
         # A file with one test has the line (1 test | 1 failed).
         self.assertSame([" ❯ test/a.test.js (2 tests | 1 failed) 5ms"],
                         [" ❯ test/a.test.js (1 test | 1 failed) 5ms"])
+        # A suite with skipped and todo tests. This line is from the source of Vitest, not from a real run.
+        self.assertSame(["FAIL a.test.js", "      Tests  1 failed | 4 passed | 2 skipped | 3 todo (10)"],
+                        ["FAIL a.test.js", "      Tests  1 failed | 2 passed | 1 skipped | 1 todo (5)"])
 
     def test_parts_of_the_duration_of_vitest_do_not_count(self):
         fix = "   Duration  150ms (import 45%, worker 20%, transform 17%, tests 17%, environment 1%)"
@@ -1496,6 +1518,8 @@ class TestCountTests(unittest.TestCase):
                     "=" * 24 + " 1 failed, 40 passed in 1.00s " + "=" * 25]
 
         self.assertSame(run(2), run(0))
+        # With -n auto on a PC with more than 10 cores, a worker has two digits.
+        self.assertSame(run(12), run(0))
 
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
@@ -1521,6 +1545,9 @@ class TestCountTests(unittest.TestCase):
                                       ("error: total: 3", "error: total: 2"),
                                       ("error: Passed: 3", "error: Passed: 2"),
                                       ("error at [ 50%] of the file", "error at [ 75%] of the file"),
+                                      ("AssertionError: Tests: 3 passed, 4 total", "AssertionError: Tests: 2 passed, 3 total"),
+                                      ("AssertionError: Tests  1 failed | 3 passed (4)",
+                                       "AssertionError: Tests  1 failed | 2 passed (3)"),
                                       ("AssertionError: 'FAILED (skipped=3)'", "AssertionError: 'FAILED (skipped=2)'")):
             with self.subTest(line=fix_line):
                 self.assertDiffer(["FAIL: test_x", fix_line], ["FAIL: test_x", parent_line])

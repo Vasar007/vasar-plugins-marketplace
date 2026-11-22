@@ -89,7 +89,10 @@ A coverage table, for example of pytest-cov, keeps its numbers. So a fix commit 
 covered code gives OTHER, also for the same failure.
 A temporary worktree holds only the files of the commit. If the command needs a tool that the
 project keeps in an ignored folder, such as node_modules, the run there fails in another way.
-Then the verdict is OTHER.
+With a clean main worktree, the verdict is then OTHER. With a main worktree that is not clean,
+both runs are in a temporary worktree and fail in the same way. Then the verdict can be
+SAME-AT-PARENT for a failure that the fix commit brought. The TAIL lines then show the error of
+the missing tool.
 A build in the clean main worktree can skip the files that did not change. Then it prints fewer
 warnings than the build at the commit before. A warning line that names a place then gives OTHER.
 If the command prints the same lines for two different failures, for example only a banner,
