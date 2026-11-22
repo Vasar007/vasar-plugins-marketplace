@@ -1,47 +1,81 @@
 # Testing
 
-The folder `tests/` holds the tests of this repository. It is outside every plugin folder, so Claude Code does not copy it into the plugin cache. The tests need Python 3, Git, and Claude Code (the `claude` command). The markdownlint test also needs Node.js 22 or later, because it runs `markdownlint-cli` through `npx`. Under WSL2, install Node.js in Linux. If the clone is in the Linux file system, the `npx` of a Windows install runs markdownlint in `C:\Windows`. This happens because `cmd.exe` cannot use a folder of the Linux file system as its current folder. So markdownlint finds no file. The test then skips. If the environment variable `CI` is `true`, the test fails. The YAML test of the eval cases also needs the Python package PyYAML. The step `Install PyYAML` of `.github/workflows/tests.yml` names the version.
+This page is for a contributor who changes this marketplace. It tells you how to run the tests, what they cover, and what CI runs. The tests are in `tests/`, outside every plugin folder, so no plugin cache gets them.
 
-To run all tests, run this command from the repository root:
+## Run the tests
+
+Run all tests from the repository root:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-The command runs these parts:
+To run one test module, run it from the folder `tests`:
 
-- The tests of `merge_projects.py` (command `merge-worktree-projects`).
-- The tests of `check_report.py` (skill `bug-hunt`), `trim_report.py` (skill `trim-artifacts`), `failure_check.py` and `group_diff.py` (skill `review-loop`), and `openbsd_lint.py` (skill `openbsd-style-docs`).
-- The tests of `squash_task.py` (skills `implement-batch` and `research-implement-review-report`).
-- The tests of `worktree.py` (skill `git-worktree-management`).
-- The tests of the maintainer tools in `tools/`: `changelog_merge.py`, `eval_results.py`, `release.py`, and the WSL2 runners of `tools/wsl/`. The tests of the WSL2 runners use a stand-in `wsl.exe` and need Linux. See [Maintainer tools](tools.md).
-- The simple-english linter on every tracked `.md` file of the repository. A hit fails the test, unless `tests/simple-english-baseline.json` lists it. Each entry of that file gives the reason for the exception. A baseline entry without a hit also fails the test. The `excluded` key of that file lists folders that the test skips as a whole, each with a reason. An `excluded` folder with no tracked `.md` file also fails the test.
-- markdownlint on every tracked `.md` file of the repository. The rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
-- `claude plugin validate --strict` on the marketplace and on each plugin.
-- A budget for the always-on cost of each plugin, from `claude plugin details`. The always-on cost is the number of tokens that the names and descriptions of the skills, agents, and commands add to every session. The budgets are in `tests/test_plugin_cli.py`. Each budget is the most always-on tokens that `claude plugin details` can show in a signed-in session.
-- The tests of the scripts of the `kb` plugin in `tests/test_kb_plugin.py`: the hook launcher, the setup check, and the hook entries. They need Bash and Git.
-- A search of the plugin files for lines that ask the model to write out its reasoning. Such a line can make a model refuse the task.
-- A search of the `README.md` files and the files in `docs/` for counts of hooks, skills, agents, and commands. Such a count goes stale.
-- The tests of `tests/evals/compare_versions.py`. They use the result file in `tests/evals/fixtures/` and call no model.
-- The tests of `tests/evals/replay_graders.mjs`. They replay graders on the run in `tests/evals/fixtures/replay-run/` and call no model. They need Node.js 22 or later. If `node` is not found, they skip. In CI, they fail. One test also reads each grader file with PyYAML. If PyYAML is not installed, that test fails.
-- The static checks of every eval case in `tests/test_eval_cases.py`. They read the cases and call no model.
-- The YAML test of the eval cases in `tests/test_eval_front_matter.py`. It parses the YAML of each `prompt.md`, `case.yaml`, and grader file of every plugin with PyYAML. `claude plugin eval` does not load a case with YAML that does not parse. If PyYAML is not installed, the test fails. It does not skip.
-- The scaffold tests in `tests/test_eval_scaffolds.py`. They run each `scaffold.sh` of the eval cases in a temporary folder. They need Bash and Git. One test also builds a .NET solution, so it needs the .NET SDK 10 or newer and the .NET 10 runtime. If a tool is missing, the test skips. In CI, it fails.
-- A version check for each plugin with a changed file. The `version` in its `plugin.json` must be higher than on the base branch.
+```bash
+cd tests
+python3 -m unittest -v test_worktree
+```
+
+The whole suite passes only on Linux. On Windows, run it in WSL2 with `tools/wsl/unit-tests.sh`. See [Maintainer tools](tools.md#run-the-unit-suite-and-eval-runs-in-wsl2).
 
 The two linters read only the files that git tracks. If you add a new `.md` file, run `git add` on it before you run the tests.
 
-The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This is the root of a clone of SimpleEnglish. Then it looks in the plugin cache. If no linter is found, the test skips. The baseline is for simple-english 2.1.1, so another version can report other hits.
+## Requirements
 
-The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. They also remove the known environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. So these tests need no sign-in, and they do not load your installed plugins. If the `claude` command is not found, these tests skip.
+All tests need Python 3, Git, and Claude Code (the `claude` command). Some tests need more tools. If such a tool is missing, the test skips on your machine and fails in CI.
 
-With no sign-in, `claude plugin details` cannot count the tokens with the API. It shows an estimate instead: the number of characters divided by 4. A signed-in session shows the API count, which is higher. So the budget test multiplies the estimate by `SIGNED_IN_RATIO` before it compares the result with the budget. A new default model can count more tokens for the same text. The ratio also depends on the kind of text, because code and paths need more tokens for each character. The factor 1.5 was measured only on the current budgets, so a much smaller new budget needs a new measurement. In these cases, compare the output of `claude plugin details <plugin>` in a signed-in session with the estimate of the test, and raise `SIGNED_IN_RATIO`.
+| Tool | Tests that need it |
+| --- | --- |
+| Node.js 22 or later | markdownlint, which runs `markdownlint-cli` through `npx`, and the tests of `tests/evals/replay_graders.mjs` |
+| Bash | The tests of the `kb` scripts and the scaffold tests of the eval cases |
+| .NET SDK 10 or newer, with the .NET 10 runtime | One scaffold test that builds a .NET solution |
+| The simple-english linter | The prose lint of each `.md` file |
+| PyYAML | The YAML test of the eval cases. It fails, and does not skip, with no PyYAML. The step `Install PyYAML` of `.github/workflows/tests.yml` names the version |
 
-The version check compares the work tree with the merge base of `HEAD` and a base branch. In a CI run for a pull request, the base branch is the target branch of the pull request. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. A CI run for a push to `main` skips the check, because the pull request already ran it.
+Under WSL2, install Node.js in Linux. The `npx` of a Windows install cannot run in a folder of the Linux file system, so the markdownlint test skips.
 
-The workflow `.github/workflows/tests.yml` runs the same command on each pull request and on each push to `main`. A new push to a pull request cancels the earlier run of that pull request. A run for a push to `main` is never cancelled while it runs. A newer push to `main` can replace a run that still waits in the queue. In CI, a missing linter or a missing `claude` command fails the run. CI installs the latest Claude Code with npm. CI also installs the .NET SDK 10 for the scaffold tests. CI also installs PyYAML for the YAML test of the eval cases. CI also fetches the full history of the repository, so that the version check finds the merge base. CI uses the latest release of SimpleEnglish, so the linter version does not fall behind. If a new linter version makes the lint test fail, treat it as a blocker. Open an issue and fix it at once.
+## What the suite covers
 
-A second job, `test-windows`, runs on `windows-latest` in Git Bash with Python 3.13. It runs the tests of the plugin scripts and of the test helpers: `test_backup_move`, `test_merge_projects`, `test_failure_check`, `test_group_diff`, `test_squash_task`, `test_worktree`, `test_check_report`, `test_trim_report`, `test_openbsd_lint`, `test_kb_plugin`, `test_testkit`, and `test_support`. It also runs the tests of the maintainer tools: `test_changelog_merge`, `test_eval_results`, and `test_release`. These tests reach four Windows paths. Two are the PowerShell process scan of `check_report.py` and the Git Bash branch of the setup check of `kb`. The other two are the lint hook of `doc-styles` and the retry for read-only files in `tests/testkit.py`. The tests of `failure_check.py` reach five more. One is the lookup of the bash of Git for Windows. Another is the stop of the script by a signal. The third is the stop of the command with `taskkill` and the job object. The fourth is an export of a commit with links and CRLF line ends, as Git for Windows writes it. The fifth is the retry for a read-only file in the delete of the temporary folder. The tests of the subcommands `snapshot` and `delete-temp` of `check_report.py` reach five more. Two are a pair of file names that differ only by case, and a junction as the scratch folder and inside it. The third is a read-only file in the delete. The fourth is the stop of a process with `taskkill` and the wait for its end. The fifth is UTF-8 output with another code page. The tests of `merge_projects.py` reach two more: a junction as a link, and a file that another process holds open. The tests of `worktree.py` reach two more: the paths that git prints with `/` on Windows, and a link out of the worktree folder. The tests of `squash_task.py` reach two more: a commit hook that Git for Windows runs, and a repository path with a space and a letter outside ASCII. The tests of the subcommand `apply` of `trim_report.py` reach two more: a junction on the path of a file, and a name that differs only by case. The tests of `changelog_merge.py` reach one more: a work tree with CRLF line ends. The tests of `release.py` reach one more: a file with CRLF line ends next to a file with LF line ends. The job needs no linter, no Claude Code, no .NET, and no Node.js. To keep the job short, it runs no other test. If you add a test module for a plugin script, add it to the job and to this paragraph. To run the same tests on Windows, run `python -m unittest test_backup_move test_merge_projects test_failure_check test_group_diff test_squash_task test_worktree test_check_report test_trim_report test_openbsd_lint test_kb_plugin test_changelog_merge test_eval_results test_release test_testkit test_support` in Git Bash from `tests/`.
+| Group | Test modules | A test fails for |
+| --- | --- | --- |
+| Plugin scripts | `test_<script>.py` for each script of a plugin, and `test_kb_plugin.py` | A wrong result of a script that a skill, a command, or a hook runs |
+| Maintainer tools | `test_changelog_merge.py`, `test_eval_results.py`, `test_release.py`, and `test_tools_wsl.py` | A wrong result of a script in `tools/` |
+| Lint of the text | `test_simple_english.py`, `test_markdownlint.py`, `test_readme_counts.py`, `test_prompt_phrases.py` | A lint hit, a count of units in the docs, or a request to show the reasoning |
+| Rules in the units | `test_work_modes_*.py`, `test_review_loop_text.py`, `test_model_ladder_text.py`, and `test_rule_references.py` | A rule that leaves a unit, or a reference to a rule that does not exist |
+| Manifests and versions | `test_plugin_cli.py`, `test_claude_ai_sync.py`, `test_version_bump.py` | A failed `claude plugin validate --strict`, a cost over budget, a key that the sync drops, or no new version |
+| Eval cases | `test_eval_*.py` and the tests in `tests/evals/` | A case that does not load, a scaffold that fails, or a grader with a wrong verdict on a known run |
+| Test helpers | `test_testkit.py` and `test_support.py` | A wrong result of a helper of the tests |
+
+No eval test calls a model. [Eval cases and graders](eval-cases.md) says more about the eval tests.
+
+## The linters
+
+The simple-english test first looks for the linter in the folder that the variable `SIMPLE_ENGLISH_DIR` names. This folder is the root of a clone of SimpleEnglish. Then the test looks in the plugin cache. If it finds no linter, it skips.
+
+A lint hit fails the test, unless `tests/simple-english-baseline.json` lists it with a reason. The `excluded` key of that file lists the folders that the test skips, each with a reason. A baseline entry with no hit fails the test, and so does an `excluded` folder with no tracked `.md` file. The baseline is for simple-english 2.1.1, so another linter version can report other hits.
+
+The markdownlint rules are in `.markdownlint.jsonc`. Each rule that the file turns off has a comment with the reason.
+
+## The tests of the plugin commands
+
+The tests of `claude plugin validate` and `claude plugin details` give each call an empty, temporary configuration folder. They also remove the environment variables that sign Claude Code in, for example `CLAUDE_CODE_OAUTH_TOKEN`. So they need no sign-in, and they do not load your installed plugins.
+
+The budget test keeps the always-on cost of each plugin below its budget in `tests/test_plugin_cli.py`. The always-on cost is the tokens that the names and the descriptions of the skills, agents, and commands add to every session. With no sign-in, `claude plugin details` shows an estimate: the characters divided by 4. A signed-in session shows a higher count from the API. So the test multiplies the estimate by `SIGNED_IN_RATIO` (1.5, measured on the present budgets).
+
+A new default model or a much smaller budget can need a new ratio. Then compare the output of `claude plugin details <plugin>` in a signed-in session with the estimate of the test, and raise `SIGNED_IN_RATIO`.
+
+## The version bump test
+
+Each plugin with a changed file must have a higher `version` in its `plugin.json` than on the base branch. The test compares the work tree with the merge base of `HEAD` and the base branch. In CI for a pull request, the base branch is the target branch. On your machine, it is `origin/main`, or the branch that the variable `VERSION_BUMP_BASE` names. CI skips the test for a push to `main`, because the pull request ran it.
+
+## CI
+
+The workflow `.github/workflows/tests.yml` runs on each pull request and on each push to `main`. A new push to a pull request cancels the earlier run of that pull request. A run for a push to `main` is never cancelled while it runs.
+
+The job `test` runs the whole suite on Linux. It installs the latest Claude Code, the .NET SDK 10, PyYAML, and the latest release of SimpleEnglish. It also fetches the full history, so that the version bump test finds the merge base. A new linter release can make the lint test fail. Treat that as a blocker: open an issue and fix it at once in its own pull request.
+
+The job `test-windows` runs the tests of the plugin scripts, the maintainer tools, and the test helpers in Git Bash on Windows. These scripts have Windows paths: Git Bash, PowerShell, junctions, CRLF line ends, read-only files, and the stop of a process with `taskkill`. The job needs no linter, no Claude Code, no .NET, and no Node.js. The step "Run the tests of the plugin scripts and the maintainer tools" lists the modules. To run the same tests on Windows, run the command of that step in Git Bash from `tests/`. If you add a test module for a plugin script or a tool, add it to that step.
 
 ## Useful tests
 
