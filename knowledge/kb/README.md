@@ -33,13 +33,11 @@ After you add the marketplace, run:
 
 - Bash. On Windows, use Git Bash.
 - A local clone of the KB repository. It must hold the file `_claude/RULES.md`.
+- The environment variable `KB_DIR` with the full path of that clone. `/kb:setup` writes it into the `env` block of `~/.claude/settings.json`.
 
-The launcher looks for the clone in this order:
+The launcher runs scripts only from the clone that `KB_DIR` names. It never looks for a clone in the project folder of the session. So a clone of another repository with `_claude/RULES.md` runs no script. A session inside the KB clone gets `KB_DIR` from `~/.claude/settings.json`, as every other session does.
 
-1. The folder in the environment variable `KB_DIR`.
-2. The project folder of the session, or one of its child folders.
-
-If the launcher finds no clone, the `SessionStart` hook prints one line and every other hook exits with code 0. So a session without a KB clone is not broken.
+If `KB_DIR` is not set, is not a full path, or names a folder with no `_claude/RULES.md`, the launcher finds no clone. Then the `SessionStart` hook prints one line, and every other hook exits with code 0. So a session without a KB clone is not broken.
 
 ## Setup
 
