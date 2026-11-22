@@ -104,7 +104,7 @@ dotnet_write_solution() {
 # dotnet_write_run_marker <folder>
 # The marker writes Started at setup, and Passed or Failed at teardown, to .test-runs/last.txt in the repo root.
 # The target MarkTestOutcomeStale in Directory.Build.props writes Stale there before a compile of changed code.
-# A grader reads the file, also when the tests ran in a subagent. docs/evals.md lists the limits of the marker.
+# A grader reads the file, also when the tests ran in a subagent. docs/eval-cases.md lists the limits of the marker.
 dotnet_write_run_marker() {
     fixture_write "$1/RunMarker.cs" <<'DOTNET_EOF'
 using NUnit.Framework;

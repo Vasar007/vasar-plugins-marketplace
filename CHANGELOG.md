@@ -9,6 +9,19 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.4 in release [6.2.1] - 2026-11-22
+
+The docs pages are shorter and easier to read. The eval docs are now two pages: one runs the cases, and one says how to write them. No skill text changes (issue #355).
+
+### Changed in dev-essentials
+
+- `evals/_lib/dotnet-fixture.sh`: the comment of `dotnet_write_run_marker` now points at `docs/eval-cases.md`, the new home of the limits of the test marker (issue #355).
+
+### Changed in the repository
+
+- Docs: the pages of `docs/` and the README are shorter and easier to read (issue #355). `docs/evals.md` now says how to run the evals. The new page `docs/eval-cases.md` says how to write a case and a grader, and it names the known limits of the graders. `docs/testing.md` has a table of the test groups in place of a list of the modules and the Windows paths. `docs/tools.md` points at the `--help` text of each script for its stops. `docs/authoring.md` and `docs/workflows.md` have lists and tables in place of long paragraphs. Step 3 of the unit workflow in `CLAUDE.md` points at the new page.
+- `tests/test_eval_cases.py`: two docstrings now name the test as the list of the known wrong verdicts of a grader, in place of `docs/evals.md` (issue #355).
+
 ## kb 0.3.0 in release [6.2.0] - 2026-11-22
 
 The hooks of `kb` now run scripts only from the KB clone that `KB_DIR` names. A clone of another repository can no longer run its own scripts from a KB hook. A session with no `KB_DIR` needs one run of `/kb:setup` (issue #129). The release also takes in two fixes of `tools/changelog_merge.py` that had no release (issues #307 and #343).
@@ -2657,7 +2670,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...HEAD
+[6.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...v6.2.1
 [6.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...v6.2.0
 [6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
