@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.3.0 in release [6.2.0] - 2026-11-22
+
+The hooks of `kb` now run scripts only from the KB clone that `KB_DIR` names. A clone of another repository can no longer run its own scripts in a session. A session with no `KB_DIR` needs one run of `/kb:setup` (issue #129). The release also takes in two fixes of `tools/changelog_merge.py` that had no release (issues #307 and #343).
+
 ### Fixed in kb
 
 - `scripts/kb-hook.sh`: the launcher runs hook scripts only from the clone that `KB_DIR` names. `KB_DIR` must be a full path to a folder with `_claude/RULES.md`. Before, with no such `KB_DIR`, the launcher looked for `_claude/RULES.md` in the project folder and in each child folder. Then it ran the hook scripts of the first folder that it found. So a clone of another repository ran its own scripts at each hook of the session (issue #129).
@@ -2653,7 +2657,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...HEAD
+[6.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...v6.2.0
 [6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.0...v6.1.1
