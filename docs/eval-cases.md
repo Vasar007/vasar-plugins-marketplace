@@ -111,7 +111,7 @@ A `file_exists` grader sees only the files that the run created. It does not see
 
 The `claude` binary runs the regex graders in Bun 1.4.4, which uses the JavaScriptCore engine. In Bun, a long search can end with no match and no error. Then a grader fails a right run, and a `not_contains` grader passes a wrong run. No result shows it ([#319](https://github.com/Vasar007/vasar-plugins-marketplace/issues/319)).
 
-So a trace grader that spans a large text uses few steps for each character. A plain `[\s\S]*` costs the least: it matched 4,000,000 characters in 2 ms. In `tests-before-commit` and `untested-commit`, the token runs its lookahead only at a quote, and a run of other characters is one class term. Each extra start of the search adds to the cost. The old forms of these graders gave no match from about 200,000 to 490,000 characters.
+So a trace grader that spans a large text uses few steps for each character. A plain `[\s\S]*` costs the least. In `tests-before-commit` and `untested-commit`, the token runs its lookahead only at a quote, and a run of other characters is one class term.
 
 ### Replay graders on kept runs
 
@@ -131,13 +131,18 @@ The replay runs in Node.js, which uses the V8 engine. So a replay is no full pro
 
 ## Known limits of the graders
 
-Some graders read shell commands with a regex, so a rare form gets a wrong verdict. The test class of each grader pins its known wrong verdicts. A pattern change that fixes one also changes its test. Each class below is in `tests/test_eval_cases.py`, unless the bullet names `tests/test_eval_scaffolds.py`.
+Some graders read shell commands with a regex, so a rare command form gets a wrong verdict. The test class of each grader lists its known wrong verdicts. If a pattern change fixes one, change that list too. The classes are in `tests/test_eval_cases.py`, unless a line names another file.
 
-- `route-no-worktree-read` of `it-no-worktree`, `ib-no-worktree`, and `it-no-worktree-dirty` (`NoWorktreeReadGraderTests`). It passes only for a run that reads `references/no-worktree.md` of `work-modes` before its first branch command and its first Edit or Write. A read by a subagent does not count. A harmless `branch` word before the read, such as `echo "== branch state =="`, fails a right run. In Bun 1.4.4, it gives no match with more than about 300,000 characters before the read.
-- `one-commit` and `one-commit-per-task` of `it-no-worktree` and `ib-no-worktree` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`). They follow the reflog of the branch from its start to its tip. An amend, a merge, a cherry-pick, or a rebase ends the chain and fails the run. `one-commit-per-task` passes 2 or 3 commits, so it cannot tell a task with two commits from a final review commit.
-- `route-no-branch` of `it-no-worktree-dirty` (`NoWorktreeDirtyRouteGraderTests`). It does not read shell quotes. So a comment or an `echo` text with `; git branch <name>` counts as a branch, and a `-C` value with an inner quote can hide one.
-- `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`). They do not read shell quotes, so a text such as `echo "$C" snapshot` counts as a call.
-- `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`). It does not read shell quotes or heredocs. So it misses some plain calls, such as `bash -c "dotnet build"` or `nice dotnet build`. It also counts some text, such as a heredoc line that starts with `dotnet build`.
-- `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). It does not read shell quotes. So it misses an edit with `xargs sed -i`, `find -exec sed -i`, `sed -Ei`, or a path in a variable. The word `unittest` in an earlier `git` step counts as a test run. Four tries at a better pattern each brought a new wrong verdict, so the grader stays as it is ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
-- `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`). It does not see a `[SetUp]` method that calls `Assert.Ignore`. It also does not see a filter in the test command, or a move of the test.
-- `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`). It fails an Edit, a MultiEdit, or a Write of a `.py` file below `src/` or `tests/`. It does not see a change through Bash.
+These graders do not read shell quotes or heredocs. So a quoted text can count as a command, and a wrapped command can stay hidden:
+
+- `route-no-branch` of `it-no-worktree-dirty` (`NoWorktreeDirtyRouteGraderTests`).
+- `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`).
+- `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`).
+- `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). Four tries at a better pattern each failed, so it stays ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
+
+These graders have other known limits:
+
+- `route-no-worktree-read` (`NoWorktreeReadGraderTests`): a harmless `branch` word before the read fails a right run. In Bun 1.4.4, a read after about 300,000 characters gives no match.
+- `one-commit` and `one-commit-per-task` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`): an amend, a merge, a cherry-pick, or a rebase fails the run. `one-commit-per-task` cannot tell a task with two commits from a final review commit.
+- `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`): it does not see `Assert.Ignore` in a `[SetUp]` method, a filter in the test command, or a moved test.
+- `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.

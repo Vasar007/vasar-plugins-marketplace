@@ -11,7 +11,7 @@ An eval case is a prompt and its graders. A grader is a pass or fail test of a r
 | Compare a base commit with a head commit | `python3 tests/evals/compare_versions.py run` |
 | Record the scores of one commit | `python3 tests/evals/compare_versions.py baseline` |
 | Compare result files that you already have | `python3 tests/evals/compare_versions.py compare --base <files> --head <files>` |
-| Run the trigger cases of a plugin with no dependencies | `claude plugin eval <plugin folder> --tag triggers` |
+| Run the trigger cases of `dev-essentials` | `claude plugin eval essentials/dev-essentials --tag triggers` |
 
 Use the compare script for every plugin with dependencies and for every case that uses a stand-in plugin. The section [Dependencies and stand-ins](#dependencies-and-stand-ins) says why.
 
@@ -55,7 +55,7 @@ Do not commit a result file. It holds local temporary paths.
 
 The trigger cases are in `evals/triggers/` of each plugin, with the tag `triggers`. A trigger case tests that the right unit starts for its words. A near-miss case tests that a unit does not start for the words of a neighbor unit. The trigger cases grant no shell tool, so they also run on native Windows.
 
-To run the trigger cases of a plugin with no dependencies, run this from the repository root:
+To run the trigger cases of `dev-essentials`, run this from the repository root:
 
 ```bash
 claude plugin eval essentials/dev-essentials --ablation none --trust-plugin --no-publish --model <model id> --judge-model <model id> --tag triggers
