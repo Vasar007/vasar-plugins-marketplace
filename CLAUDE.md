@@ -49,4 +49,4 @@ A unit is a skill, an agent, or a command. Every new unit goes through this work
 7. Review the change with `dev-essentials:review-loop`.
 8. Ship it. For a new plugin, register it in `.claude-plugin/marketplace.json` and in the matrix of `README.md`. Then add the CHANGELOG entry, and bump the version of each changed plugin.
 
-A large change to an existing unit goes through steps 3 to 7. When a new model comes out, run the suites of the main units again.
+A large change to an existing unit goes through steps 3 to 7. When a new model comes out, run the suites of the main units again. A new model counts in two cases. In the first case, the eval agent or the judge moves to it. In the second case, the owner starts to use it as the main model of sessions. For the cases and the steps of that run, see [Run the main cases on a new model](./docs/evals.md#run-the-main-cases-on-a-new-model).

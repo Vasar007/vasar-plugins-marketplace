@@ -9,6 +9,11 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+### Changed in the repository
+
+- `CLAUDE.md`: the model rule now says which new model starts a new run of the main eval cases. A new model counts in two cases: the eval agent or the judge moves to it, or the owner starts to use it as the main model of sessions (issue #362).
+- `docs/evals.md`: the new section "Run the main cases on a new model" lists the main cases and gives the command for one run. It also gives the cost and the time of the first model run, with an agent of the Fable family: 59 runs, each at 1.00, for 42.70 USD (issue #362).
+
 ## dev-essentials 5.1.6 in release [6.2.3] - 2026-11-22
 
 A second review of each unit test and each eval case kept only the useful ones. The suite loses 14 tests and one eval case, and it fails for the same bugs as before. No skill text changes (issue #361).
