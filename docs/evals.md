@@ -129,12 +129,12 @@ The main cases are:
 Run each case one time with `baseline`. For a new eval agent or a new main model of sessions, pass the new model as `--model`. For a new judge, pass it as `--judge-model`. Give the other option the model of the last run:
 
 ```bash
-python3 tests/evals/compare_versions.py baseline --plugin <plugin folder> --commit main --model <agent model id> --judge-model <judge model id> --scaffold --keep-temp --runs 1 --case <case> --out <folder>
+python3 tests/evals/compare_versions.py baseline --plugin <plugin folder> --commit main --model <agent model id> --judge-model <judge model id> --scaffold --keep-temp --runs 1 --case <case> --out <results folder>/<plugin>-<case>
 ```
 
 - A workflow case also needs `--allow-tools Bash Write Edit`.
 - A trigger case of `doc-styles` also needs `--extra-dep dev-essentials`. See [Dependencies and stand-ins](#dependencies-and-stand-ins).
-- Use one command for each run. `--max-cost-usd` is tested only before a run starts. So before each command, sum the spend with `python3 -I tools/eval_results.py spend --cap <USD> <folder>/*/baseline.json`.
+- Use one command for each run. `--max-cost-usd` is tested only before a run starts. So before each command, sum the spend with `python3 -I tools/eval_results.py spend --cap <USD> <results folder>/*/baseline.json`.
 - Two plugins can have a trigger case with the same name. So name each `--out` folder by the plugin and the case.
 - A case that scores 1.00 is done. Give a case with a lower score one more run.
 - If a case fails two times, run it one time with the old model at the same Claude Code version. If that run fails too, the case is stale, and the model is not the cause.
