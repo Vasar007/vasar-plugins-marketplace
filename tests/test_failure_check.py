@@ -53,6 +53,47 @@ RUFF_JSON = "src\\errors.py:1:8: F401 [*] `json` imported but unused"
 MTP_ASSEMBLY = "C:\\w\\bin\\Debug\\net11.0\\Probe.dll (net11.0|x64) failed with 1 error(s) [+{}/x{}/?{}] (233ms)"
 MTP_END = ("Test run completed with non-success exit code: 2. At least one test failed. "
            "See: https://aka.ms/testingplatform/exitcodes")
+# The lines of `npx jest` 30.5.2 on Windows from the first error line to the stack line, with the colors of its code.
+JEST_FAILURE = [
+    "FAIL test/calc.test.js",
+    "  \u25cf add",
+    "",
+    "    expect(received).toBe(expected) // Object.is equality",
+    "",
+    "    Expected: 2",
+    "    Received: 3",
+    "",
+    "    \x1b[0m \x1b[90m 2 |\x1b[39m",
+    "     \x1b[90m 3 |\x1b[39m test(\x1b[32m'add'\x1b[39m\x1b[33m,\x1b[39m () \x1b[33m=>\x1b[39m {",
+    "    \x1b[31m\x1b[1m>\x1b[22m\x1b[39m\x1b[90m 4 |\x1b[39m   expect(add(\x1b[35m1\x1b[39m\x1b[33m,\x1b[39m "
+    "\x1b[35m1\x1b[39m))\x1b[33m.\x1b[39mtoBe(\x1b[35m2\x1b[39m)\x1b[33m;\x1b[39m",
+    "     \x1b[90m   |\x1b[39m                     \x1b[31m\x1b[1m^\x1b[22m\x1b[39m",
+    "     \x1b[90m 5 |\x1b[39m })\x1b[33m;\x1b[39m",
+    "     \x1b[90m 6 |\x1b[39m",
+    "     \x1b[90m 7 |\x1b[39m test(\x1b[32m'sub'\x1b[39m\x1b[33m,\x1b[39m () \x1b[33m=>\x1b[39m {\x1b[0m",
+    "",
+    "      at Object.toBe (test/calc.test.js:4:21)",
+]
+
+
+def jest_run(passed=2, total=3, files=(1, 2), time="Time:        0.892 s", blank_lines=1):
+    """The whole output of `npx jest` 30.5.2 for one failed test, as Phase 6 runs it on Windows."""
+    return [*JEST_FAILURE, *[""] * blank_lines, "Test Suites: 1 failed, {} passed, {} total".format(*files),
+            f"Tests:       1 failed, {passed} passed, {total} total", "Snapshots:   0 total", time,
+            "Ran all test suites."]
+
+
+def vitest_run(in_file=2, passed=2, total=3, files=(1, 2),
+               duration="   Duration  171ms (transform 42%, import 35%, worker 13%, tests 10%)"):
+    """The whole output of `npx vitest run` 5.1.1 for one failed test, as Phase 6 runs it on Windows."""
+    return ["", " RUN  v5.1.1 C:/w/probe", "", f" \u276f test/calc.test.js ({in_file} tests | 1 failed) 5ms",
+            "   \u00d7 add 4ms", "", "\u23af" * 7 + " Failed Tests 1 " + "\u23af" * 7, "",
+            " FAIL  test/calc.test.js > add", "AssertionError: expected 3 to be 2 // Object.is equality", "",
+            "- Expected", "+ Received", "", "- 2", "+ 3", "", " \u276f test/calc.test.js:5:21", "      3|",
+            "      4| test('add', () => {", "      5|   expect(add(1, 1)).toBe(2);", "       |                     ^",
+            "      6| });", "      7|", "", "\u23af" * 24 + "[1/1]\u23af", "", "",
+            " Test Files  1 failed | {} passed ({})".format(*files),
+            f"      Tests  1 failed | {passed} passed ({total})", "   Start at  10:01:17", duration, ""]
 
 
 def ruff_concise(*hits):
@@ -1340,7 +1381,7 @@ class UnitTests(unittest.TestCase):
 
 
 class TestCountTests(unittest.TestCase):
-    """The count lines of unittest, pytest, and dotnet test, as each runner prints them (issue #230)."""
+    """The count lines and the run noise of unittest, pytest, dotnet test, Jest, and Vitest, as each runner prints them."""
 
     def signatures(self, fix_lines, parent_lines):
         fix = fc.Run("fix", "a" * 40, "x", "main")
@@ -1421,6 +1462,41 @@ class TestCountTests(unittest.TestCase):
         assembly = MTP_ASSEMBLY.format(0, 1, 0)
         self.assertSame([*failure, assembly], [*failure, assembly.replace("(233ms)", "(1s 318ms)")])
 
+    def test_counts_of_jest_do_not_count(self):
+        self.assertSame(jest_run(passed=3, total=4), jest_run(passed=2, total=3))
+        self.assertSame(jest_run(files=(2, 3)), jest_run(files=(1, 2)))
+
+    def test_estimate_of_jest_does_not_count(self):
+        # The run in the main worktree knows the time of the run before it. The run in a new worktree does not.
+        self.assertSame(jest_run(time="Time:        0.362 s, estimated 1 s"), jest_run(time="Time:        0.892 s"))
+
+    def test_one_more_blank_line_does_not_move_the_last_lines(self):
+        # A second run of Jest in the same folder prints one more blank line above its summary.
+        self.assertSame(jest_run(blank_lines=2), jest_run(blank_lines=1))
+
+    def test_counts_of_vitest_do_not_count(self):
+        self.assertSame(vitest_run(in_file=3, passed=3, total=4), vitest_run(in_file=2, passed=2, total=3))
+        self.assertSame(vitest_run(files=(2, 3)), vitest_run(files=(1, 2)))
+        # A file with one test has the line (1 test | 1 failed).
+        self.assertSame([" ❯ test/a.test.js (2 tests | 1 failed) 5ms"],
+                        [" ❯ test/a.test.js (1 test | 1 failed) 5ms"])
+
+    def test_parts_of_the_duration_of_vitest_do_not_count(self):
+        fix = "   Duration  150ms (import 45%, worker 20%, transform 17%, tests 17%, environment 1%)"
+        self.assertSame(vitest_run(duration=fix), vitest_run())
+
+    def test_worker_of_pytest_xdist_does_not_count(self):
+        # The lines of pytest-xdist 3.8.0 with -n 4. The worker of the failed test changes from run to run.
+        def run(worker):
+            return ["=" * 34 + " FAILURES " + "=" * 35, "_" * 32 + " test_zz_fail " + "_" * 33,
+                    f"[gw{worker}] win32 -- Python 3.15.0 C:\\w\\.venv\\Scripts\\python.exe", "",
+                    "    def test_zz_fail():", ">       assert 1 == 2", "E       assert 1 == 2", "",
+                    "tests\\test_zz.py:2: AssertionError", "=" * 27 + " short test summary info " + "=" * 27,
+                    "FAILED tests/test_zz.py::test_zz_fail - assert 1 == 2",
+                    "=" * 24 + " 1 failed, 40 passed in 1.00s " + "=" * 25]
+
+        self.assertSame(run(2), run(0))
+
     def test_count_of_failures_still_counts(self):
         self.assertDiffer(["FAIL: test_add", "FAILED (failures=2)"], ["FAIL: test_add", "FAILED (failures=1)"])
         self.assertDiffer(["2 failed, 1 passed in 0.12s"], ["1 failed, 1 passed in 0.12s"])
@@ -1429,6 +1505,12 @@ class TestCountTests(unittest.TestCase):
                           ["Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 1 s"])
         self.assertDiffer(["Test run summary: Failed!", "  failed: 2"], ["Test run summary: Failed!", "  failed: 1"])
         self.assertDiffer(["failed Add (29ms)", MTP_ASSEMBLY.format(1, 2, 0)], ["failed Add (29ms)", MTP_ASSEMBLY.format(1, 1, 0)])
+        self.assertDiffer(["FAIL a.test.js", "Tests:       2 failed, 1 passed, 3 total"],
+                          ["FAIL a.test.js", "Tests:       1 failed, 2 passed, 3 total"])
+        self.assertDiffer(["FAIL a.test.js", "      Tests  2 failed | 1 passed (3)"],
+                          ["FAIL a.test.js", "      Tests  1 failed | 2 passed (3)"])
+        self.assertDiffer([" ❯ test/calc.test.js (3 tests | 2 failed) 5ms"],
+                          [" ❯ test/calc.test.js (3 tests | 1 failed) 5ms"])
 
     def test_number_outside_a_count_line_still_counts(self):
         for fix_line, parent_line in (("AssertionError: 3 passed != 2", "AssertionError: 2 passed != 2"),
