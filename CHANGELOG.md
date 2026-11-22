@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.5 in release [6.2.2] - 2026-11-22
+
+`failure_check.py` of `review-loop` now gives `SAME-AT-PARENT` for the same failure of Jest, Vitest, and pytest-xdist. No skill text changes (issue #358).
+
 ### Fixed in dev-essentials
 
 - `skills/review-loop/scripts/failure_check.py`: more run noise now becomes a token or does not count. The counts of passed tests and the totals in the summary lines of Jest and Vitest become tokens. So does the count of tests in the file line of Vitest, such as `(3 tests | 1 failed)`. The estimate after the time of Jest and the parts of the duration of Vitest do not count. Nor does the worker of pytest-xdist, such as `[gw2]`. The last 15 lines of a run now hold only lines that are not blank. A second run of Jest in the same folder prints one more blank line, and before, that line moved the last lines. Before, each of these gave `OTHER` in place of `SAME-AT-PARENT`. Real runs of Jest 30.5.2, Vitest 5.1.1, and pytest-xdist 3.8.0 on Windows showed it. The help text names the new rules and two limits: a coverage table, and a tool in an ignored folder such as `node_modules`. For that tool, it names the verdict of a clean main worktree and of one that is not clean (issue #358).
@@ -2678,7 +2682,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...HEAD
+[6.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...v6.2.2
 [6.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...v6.2.1
 [6.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...v6.2.0
 [6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
