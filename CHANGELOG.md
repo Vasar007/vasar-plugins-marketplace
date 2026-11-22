@@ -9,6 +9,10 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 5.1.4 in release [6.2.1] - 2026-11-22
+
+The docs pages are shorter and easier to read. The eval docs are now two pages: one runs the cases, and one says how to write them. No skill text changes (issue #355).
+
 ### Changed in dev-essentials
 
 - `evals/_lib/dotnet-fixture.sh`: the comment of `dotnet_write_run_marker` now points at `docs/eval-cases.md`, the new home of the limits of the test marker (issue #355).
@@ -2666,7 +2670,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...HEAD
+[6.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...v6.2.1
 [6.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.3...v6.2.0
 [6.1.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.1.1...v6.1.2
