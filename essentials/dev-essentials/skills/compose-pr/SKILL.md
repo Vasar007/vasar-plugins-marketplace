@@ -23,7 +23,7 @@ The input can also name a base branch, and a spec, a plan, or a design document 
 
 ## Workflow
 
-All paths below are relative to the root of the repository (`git rev-parse --show-toplevel`).
+All paths below are relative to the root of the repository (`git rev-parse --show-toplevel`). The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 ### 1. Analyze Git Changes
 
@@ -129,8 +129,6 @@ Writing rules:
 For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
 
 ### 6. Save PR Description
-
-The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 - Save the description as `PRs/PR-<branch>.md` in the notes folder. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the folder `PRs/` does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
 - The file must be valid Markdown with the `.md` extension.
