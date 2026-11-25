@@ -6,6 +6,7 @@ source "$lib/git-fixture.sh"
 source "$lib/py-fixture.sh"
 
 make_pager_repo
+fixture_notes_folder
 git checkout -q -b user/tasks/12-customer-index
 fixture_write src/store.py <<'CASE_EOF'
 """A small order store on SQLite."""
@@ -58,14 +59,14 @@ class OrdersCountTests(unittest.TestCase):
         self.assertEqual(store.orders_count(db, "bob"), 0)
 CASE_EOF
 fixture_commit "add the customer index and the order count"
-fixture_write Notes/scratch.md <<'CASE_EOF'
+fixture_write notes/scratch.md <<'CASE_EOF'
 # Scratch
 
 EXPLAIN QUERY PLAN shows a full scan of orders before the index.
 CASE_EOF
 fixture_commit "add a scratch note"
 fixture_publish user/tasks/12-customer-index
-fixture_write Notes/Plans/12-customer-index-plan.md <<'CASE_EOF'
+fixture_write notes/Plans/12-customer-index-plan.md <<'CASE_EOF'
 # Plan for issue 12: index on customer
 
 Reason: the monthly invoice report reads the orders of each customer, and the report job times out for the biggest customers.
@@ -74,7 +75,7 @@ Reason: the monthly invoice report reads the orders of each customer, and the re
 2. Add the order count of a customer, for the invoice header.
 3. Cache the invoice header.
 CASE_EOF
-fixture_write Notes/Plans/34-export-retry-plan.md <<'CASE_EOF'
+fixture_write notes/Plans/34-export-retry-plan.md <<'CASE_EOF'
 # Plan for issue 34: retry for the export job
 
 Reason: the nightly export fails on short network errors.

@@ -18,7 +18,7 @@ Every invocation operates in one of these modes:
 
 | Mode | Side effects | Output |
 |------|--------------|--------|
-| **`draft`** (DEFAULT) | writes `Notes/Tasks/<file>.md` | tells user the file path |
+| **`draft`** (DEFAULT) | writes `Tasks/<file>.md` in the notes folder | tells user the file path |
 | **`response`** | none | the markdown text itself, in chat |
 | **`create`** | creates and verifies a real GitHub issue | real issue number + URL from API response |
 
@@ -58,7 +58,9 @@ Then these sections:
 
 Both modes produce the same Markdown content, in the form of "Task Documentation Structure". Only the destination differs.
 
-**`mode: draft` output:** Write the content to `Notes/Tasks/task-{feature-name}.md`, with a kebab-case file name. All paths are relative to the root of the repository. If the folder does not exist, create it. Confirm with the file path and a brief preview of the structure.
+**`mode: draft` output:** Write the content to `Tasks/task-{feature-name}.md` in the notes folder, with a kebab-case file name. If the folder does not exist, create it. Confirm with the file path and a brief preview of the structure.
+
+The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **`mode: response` output:** Return the Markdown content directly in the chat response. Write no file. Confirm with a one-line note that no file was created, for example "Here is the description (no file written):".
 
@@ -98,5 +100,5 @@ The order export currently uses synchronous polling which blocks request threads
 
 ## Response Style
 
-- Confirm actions: "Created `Notes/Tasks/task-foo.md`", "Here is the description (no file written):" (for `mode: response`), "Created GitHub issue #12345 (verified): `<html_url>`".
+- Confirm actions: "Created `<notes folder>/Tasks/task-foo.md`", "Here is the description (no file written):" (for `mode: response`), "Created GitHub issue #12345 (verified): `<html_url>`".
 - Ask for clarification only for a missing required input: `owner/repo` in `create` mode. In the main session, ask the user. In a subagent, put the question in your final reply, so that the caller asks the user.

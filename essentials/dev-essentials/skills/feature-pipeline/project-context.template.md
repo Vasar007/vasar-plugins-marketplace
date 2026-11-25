@@ -60,4 +60,4 @@ Optional. Without this section, the pipeline runs every task as a plain request 
 ## Artifacts Directory
 
 <!-- Optional. Repo-relative folder for the intermediate files of the pipeline (requirements.md, spec.md, review.md, and others). The default is `tasks`. -->
-- <for example `Notes/Tasks`, or leave empty>
+- <for example `.pipeline`, or leave empty>

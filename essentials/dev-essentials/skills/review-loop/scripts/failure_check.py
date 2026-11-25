@@ -111,7 +111,7 @@ Exit codes: 0 = a verdict is printed, 1 = the script failed with a Python traceb
 
 Example:
   python3 -I failure_check.py --fix-commit 1a2b3c4 --command "python3 -m unittest" \\
-      --cwd /path/to/repo --ignore "Notes/Reviews/my-branch-*"
+      --cwd /path/to/repo --ignore "notes/Reviews/my-branch-*"
 """
 import argparse
 import collections

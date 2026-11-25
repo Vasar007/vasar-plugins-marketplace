@@ -6,13 +6,14 @@ source "$lib/git-fixture.sh"
 source "$lib/py-fixture.sh"
 
 make_pager_repo
+fixture_notes_folder
 add_paging_branch
 fixture_publish feature/paging 42:feature/paging
-printf 'Notes/\n' >> .git/info/exclude
+printf 'notes/\n' >> .git/info/exclude
 
 # The hand-off file of the build session, as /dev-essentials:save-context wrote it in the study of issue #184.
 # Its "Key Decisions" table holds the decision that the review comment asks to reverse. The file stays untracked.
-fixture_write Notes/Results/paging-research.md <<'HANDOFF_EOF'
+fixture_write notes/Results/paging-research.md <<'HANDOFF_EOF'
 # Paging of the Report Module — Research
 
 ## Overview
@@ -64,7 +65,7 @@ Date: 2026-11-16
 7. Phase 6 runs `python3 -m unittest discover -s tests` after every fix pass. A red run belongs to this session.
 8. The rule for a size of zero or less (decision 1) goes into the fixer brief.
 9. One commit for each round. No push. Two rounds that both change code end with `stop-max-rounds`.
-10. Reports go to `Notes/Reviews/`. `Notes/` is not in `.gitignore`, so stage explicit paths only.
+10. Reports go to `notes/Reviews/`. `notes/` is not in `.gitignore`, so stage explicit paths only.
 
 ## Key Decisions
 

@@ -4,12 +4,12 @@ Step 5 of `SKILL.md` points here. Each example follows the structure and the len
 
 ## Example Output (Small Change)
 
-**With a spec or a plan (here an OpenSpec change):**
+**With a spec or a plan (here a change of the spec framework):**
 
 ```markdown
 ## What
 
-Implements the OpenSpec change `order-discount-limits`. A discount can no longer exceed the order total.
+Implements the spec change `order-discount-limits`. A discount can no longer exceed the order total.
 
 ## Why
 

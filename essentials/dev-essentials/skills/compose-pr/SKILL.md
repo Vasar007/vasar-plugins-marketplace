@@ -43,7 +43,7 @@ git diff --name-status <base>...HEAD
 git log <base>...HEAD --oneline
 ```
 
-Ignore ephemeral artifacts in the diff: drafts of the spec framework (for example, `openspec/` of OpenSpec), notes folders (`Notes/`), and any other scratch folder of the repository. Describe only the changes to code and configuration, for example source folders, test folders, pipelines, Dockerfiles, and helm charts. Step 2 can read these artifacts for the reason of the change. They are still not components of the PR.
+Ignore ephemeral artifacts in the diff. Examples are the drafts of the spec framework, a notes folder inside the repository (`${CLAUDE_PLUGIN_ROOT}/references/notes-root.md`), and any other scratch folder. Describe only the changes to code and configuration, for example source folders, test folders, pipelines, Dockerfiles, and helm charts. Step 2 can read these artifacts for the reason of the change. They are still not components of the PR.
 
 ### 2. Find the Spec or Plan of the Branch
 
@@ -64,8 +64,8 @@ An artifact belongs to this branch in one of these cases:
 Look for artifacts in this order. Use each one that belongs to this branch:
 
 1. **The input**: each path and each issue text that the input gives.
-2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. With OpenSpec, run `openspec list`. Read the files of each active change in `openspec/changes/<name>/` that belongs to this branch, for example `proposal.md`, `design.md`, and `tasks.md`. If exactly one active change exists, treat it as belonging to this branch, even if no rule above matches it. Without a matching rule, this is a guess. Name the change as a guess in your final reply. A guess ranks below each artifact that belongs to this branch by a rule. If such an artifact exists, do not use the guess in the PR description. Do not take the intent or the reason from it, and do not name it in the PR. If several exist, use only the ones that belong by the rules above. Ignore `openspec/changes/archive/`.
-3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Notes/Plans/`, `Notes/Tasks/<id>/`, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
+2. **The spec framework**: if the project uses a spec framework, read each of its active changes that belongs to this branch. Read all of its files, for example its proposal, its design, and its tasks. If exactly one active change exists, treat it as belonging to this branch, even if no rule above matches it. Without a matching rule, this is a guess. Name the change as a guess in your final reply. A guess ranks below each artifact that belongs to this branch by a rule. If such an artifact exists, do not use the guess in the PR description. Do not take the intent or the reason from it, and do not name it in the PR. If several exist, use only the ones that belong by the rules above. Ignore the archived changes.
+3. **Plan and design files**: Markdown files in the plan folders and the notes folders of the repository. Examples are `Plans/` and `Tasks/<id>/` in the notes folder, `plans/`, `docs/plans/`, `.claude/plans/`, and `docs/design/`. These folders are often ignored by git, so list them with `find`, not only with `git diff`. If a file belongs to this branch, read it. Ignore the other files.
 4. **Decision records**: architecture decision record (ADR) files that the branch diff adds or changes. Examples are `doc/adr/`, `docs/adr/`, and `docs/decisions/`. If the repository has an `.adr-dir` file, it names the folder.
 
 Do not fetch an issue or a task from a remote system. If the input does not hold the text of an issue, the issue is not an artifact. If you found an issue number, but the input has no text for it, name the number in your final reply. If the input gives a closing line, keep it, and put it where step 5 says. Do not add another closing keyword, for example one from a commit message.
@@ -130,7 +130,9 @@ For example outputs of a small and a larger change, read [references/examples.md
 
 ### 6. Save PR Description
 
-- Save the description as `Notes/PRs/PR-<branch>.md`. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the `Notes/PRs/` folder does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
+The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
+
+- Save the description as `PRs/PR-<branch>.md` in the notes folder. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the folder `PRs/` does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
 - The file must be valid Markdown with the `.md` extension.
 - This skill writes the text only. It does not open, push, or edit the PR.
 - Tell the user the file path, and show the PR description for a quick review.

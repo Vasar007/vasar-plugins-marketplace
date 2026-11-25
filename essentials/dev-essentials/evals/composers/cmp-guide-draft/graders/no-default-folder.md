@@ -1,5 +1,5 @@
 ---
 type: file_exists
-path: 'Notes/Docs/**'
+path: 'notes/Docs/**'
 exists: false
 ---

@@ -14,7 +14,7 @@ Sanitized cases, each based on a real finding. Cases 1 and 2 end the same way: a
 
 ### The source
 
-`<claude-root>/projects/<project>/memory/dotnet-http-clients.md`, `type: reference`, contains:
+A section of `<claude-root>/CLAUDE.md`, the global CLAUDE.md, contains:
 
 ```markdown
 ## Stopgap until dev-essentials:example-external-client is updated
@@ -28,7 +28,7 @@ is fixed, remember to drop the `using` when copying its pattern.
 
 ### Phase 3 classification
 
-- **Corroboration**: a single source (this one memory file). That alone does not usually clear the bar for C/D. But here the disposition does not depend on corroboration at all.
+- **Corroboration**: a single source (this one section of the global CLAUDE.md). That alone does not usually clear the bar for C/D. But here the disposition does not depend on corroboration at all.
 - **Marker phrase**: "Stopgap until `dev-essentials:example-external-client` is updated" is the near-certain E marker that Step 4 of `references/classification-framework.md` names.
 - **Test of the self-label before the run accepts it**: read the current worked example of the shipped skill. It still shows the `HttpClient` inside a `using` block. The described defect is still there, so the disposition stays **E-fix-shipped**. It is not F-stale. F-stale applies only to a defect that an unrelated change already fixed in the shipped skill.
 - **Why not C (promote as new)**: the content is not a new, independent rule. It corrects something that the shipped skill already teaches wrong. A new entity leaves the wrong example in the shipped skill, and that example still teaches the bug to every future reader of the skill.
@@ -37,15 +37,12 @@ is fixed, remember to drop the `using` when copying its pattern.
 
 An edit to the `SKILL.md` of `dev-essentials:example-external-client`. The edit removes the `using` block around the injected `HttpClient` from the worked example. It adds one sentence: clients that `IHttpClientFactory` injects are long-lived, and the caller must not dispose them. The run creates no new entity.
 
-Phase 9a prunes `<claude-root>/projects/<project>/memory/dotnet-http-clients.md`. The file is fully promoted, because the correction of the shipped skill now holds all of its content:
+Phase 9b reports that the section can become a pointer, because the correction of the shipped skill now holds all of its content. With `--update-global-claude-md`, Phase 9b asks, and then it puts a pointer bullet in place of the section. The bullet has the form of 9c.5 in `../../promote-conventions/references/cleanup-and-provenance.md`, with its one-line gist:
 
 ```markdown
----
-type: reference
----
+## Cross-project rules — migrated to marketplace skills
 
-Migrated to `dev-essentials:example-external-client` on 2026-08-20 (v2.1.0). See the
-marketplace entity for current content; this file is intentionally left as a pointer only.
+- **Injected HttpClient** (never dispose a client that IHttpClientFactory injects) -> `dev-essentials:example-external-client`
 ```
 
 ---

@@ -146,7 +146,7 @@ class AuditTeamCountTextTests(unittest.TestCase):
     def test_the_spec_example_passes_the_fixed_count(self):
         example = read("examples/spec-review.md")
         self.assertIn("gets the fixed value `5` of the adapter", example)
-        self.assertIn("`/audit-team openspec/changes/add-tenant-quotas/proposal.md 5 opus`", example)
+        self.assertIn("`/audit-team specs/changes/add-tenant-quotas/proposal.md 5 opus`", example)
         self.assertNotIn("the default of `/audit-team`", example)
 
     def test_the_command_keeps_the_team_route_for_an_explicit_count(self):

@@ -8,7 +8,6 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 ## Division of labor in this command family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
-- `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
 - `dev-essentials:research-implement-review-report` (RIRR) works one task: research, a plan, the implementation, a review loop, and a report.
 - `dev-essentials:implement-task` wraps RIRR for one task. It adds a sweep of extra context first and a `/simplify` commit at the end.
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
@@ -16,7 +15,7 @@ argument-hint: <issue reference or task description> [--base=<branch>] [--worktr
 
 This command owns only the order of the phases, the worktree, the context sweep (Phase 2), and the `/simplify` commit (Phase 4). It also owns the finish steps (Phase 6). Do not reimplement RIRR, `/simplify`, or `dev-essentials:git-worktree-management`.
 
-The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+The configured branch prefix is `${user_config.branch_prefix}`. If the value still shows as a `${...}` placeholder, no value is saved, and the configured branch prefix is empty. The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **Arguments**: $ARGUMENTS
 
@@ -37,7 +36,7 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | `--refs=<url\|id\|text>` | none | Extra context, repeatable, added to the references in the prose. A value is **a URL or an ID** (a PR, an issue, a document, or a wiki page). Or it is **plain free text** with nothing to fetch. The way that a value reads decides its kind, not a tag. Read-only (see Phase 2). |
 | `--commit-mode=<per-phase\|single>` | `single` | Passed verbatim to the `--commit-mode` of RIRR. RIRR defaults to `per-phase`. This command defaults to `single`, because the goal is one task commit plus one simplify commit. Both modes work (see Phase 4). |
 | `--rounds=<N>` | `2` | Review-loop cycles. Passed verbatim to the `--rounds` of RIRR. |
-| `--notes-dir=<path>` | the notes folder | The root inside the worktree for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. A convention in the `CLAUDE.md` of the repo wins. |
+| `--notes-dir=<path>` | the notes folder | The folder for the files of this run: `Research/` (Phase 2 context document), `Plans/`, and `Results/`. |
 | `--no-simplify` | off | Skip Phase 4. Use it only for a run in which the user does not want the pass. |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
@@ -72,7 +71,7 @@ Read `dev-essentials:subagent-orchestration` before the first dispatch. Its rule
 
 - **Context is context, never a target.** Never change, comment on, or vote on a fetched reference. The task does not fix what a fetched reference left undone, unless the user asks.
 - **Own every red signal** from each build or test run in this session. This includes Phase 4 (`dev-essentials:engineering-discipline` Rule 1). Never call one "pre-existing", and do not search the history to find out whether it predates `RUN_BASE_SHA`.
-- **The files of this run live under `<--notes-dir>`** inside the worktree, never at the root of the repo. Never reference them from shipped code, docs, or commit messages (`dev-essentials:engineering-discipline` Rule 3).
+- **The files of this run live under `<--notes-dir>`**, never at the root of the repo. Never reference them from shipped code, docs, or commit messages (`dev-essentials:engineering-discipline` Rule 3).
 
 ## Progress tracking for the user
 
@@ -126,7 +125,7 @@ Invoke `dev-essentials:research-implement-review-report`. Its Phases 0 to 3 run 
 - `--base=<Phase 0 base branch>`, the branch name, and the absolute worktree path, with this instruction: **its Phase 0 is only a verification step**. The worktree and the branch exist, so it must not create or derive a branch or a worktree.
 - With `--no-worktree`, the files of the user from Phase 1, and the rule that no task writes, stages, or deletes one of them.
 - `--commit-mode=<resolved>`, `--rounds=<N>`, and the `--mode` of this run.
-- `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. The `Plans/` and `Results/` folders that RIRR keeps in the notes folder move under it. This is a convention of the repo, and Phase 1 and Phase 4 of RIRR allow it.
+- `<--notes-dir>` as the artifact root, in words, because RIRR has no such flag. The `Plans/` and `Results/` folders that RIRR keeps in the notes folder move under it. For RIRR, it is the notes folder that the request names (item 1 of `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md`).
 - `--context=<--notes-dir>/Research/<slug>-context.md`, **only for a document that Phase 2 wrote**. Never pass a path that does not exist. Also pass each `--context` of the user. The Phase 2 document never replaces it. Require this: pass the findings of the document verbatim into every brief of its Phase 1 and into the "Findings" section of the plan.
 - **A hard stop: finish Phase 3 (the review loop) and, in `single` mode, the squash. Then stop and return control. Do not start Phase 4 (Report).** Phase 4 of this command runs between the two, and the squash must not take in its commit.
 

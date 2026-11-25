@@ -1,6 +1,6 @@
 ---
 name: audit-personal-conventions
-description: "Audit personal Claude Code conventions (memory files, global and project CLAUDE.md files, and personal commands, agents, and skills). It classifies each rule and shows a triage of the rules that belong in a marketplace plugin. It changes no file."
+description: "Audit personal Claude Code conventions (memory indexes, the rules of a KB clone, global and project CLAUDE.md files, and personal commands, agents, and skills). It classifies each rule and shows a triage of the rules that belong in a marketplace plugin. It changes no file."
 when_to_use: "Use it for 'audit my memory', 'promote my memory to skills', or 'which of my rules belong in the marketplace'. Do not use it to turn one named rule into a skill."
 ---
 
@@ -22,7 +22,7 @@ Resolve the Claude config root from the `CLAUDE_CONFIG_DIR` environment variable
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--scope=<tokens>` | `all` | Tokens, combined with commas: `memory`, `global-claude-md`, `project-claude-md`, `claude-md` (alias for both CLAUDE.md tokens), `personal-entities` (personal global `commands/`, `agents/`, `skills/`), and `all`. If `all` comes with another token, warn and use `all`. If a token is unknown, stop and list the valid tokens. |
+| `--scope=<tokens>` | `all` | Tokens, combined with commas: `memory`, `kb`, `global-claude-md`, `project-claude-md`, `claude-md`, `personal-entities`, and `all`. `memory` is the `MEMORY.md` index of each project, and `kb` is the rules of a KB clone. `claude-md` is an alias for both CLAUDE.md tokens. `personal-entities` is the personal global `commands/`, `agents/`, and `skills/`. If `all` comes with another token, warn and use `all`. If a token is unknown, stop and list the valid tokens. |
 | `--projects=auto\|none\|<list>` | `auto` | `auto` takes every directory under the projects folder of the config root (see Phase 0). It decodes each encoded name by probing candidate paths, collapses worktree siblings into their one real parent repo, and reports the collapse count. `none` means global sources only. A list accepts project names, decoded paths, or encoded directory names. If an entry does not resolve, stop. |
 | `--exclude-projects=<list>` | empty | Remove these projects from the `auto` set. |
 | `--marketplace=<path>` | auto-detect | The root of the target marketplace repo, which receives the promoted entities. It can be a different marketplace than the one that ships this skill. If the current working tree contains `.claude-plugin/marketplace.json`, auto-detect uses it. Else, stop and ask. |
@@ -96,11 +96,11 @@ Follow `references/source-inventory.md`, which you read in Phase 0:
 
 ### Phase 2 — Extract atomic rules
 
-Write one record for each RULE, not for each file. One CLAUDE.md or memory file often mixes categories, so a classification per file gets the mixed cases wrong. Each record has these fields:
+Write one record for each RULE, not for each file. One CLAUDE.md file or rule file often mixes categories, so a classification per file gets the mixed cases wrong. Each record has these fields:
 
 - A normalized one-line statement of the rule.
 - A `source: <path>:<line>` citation. The Phase 10 report of `promote-conventions` uses the same format for the numbered review findings. With it, an authoring commit can trace a generalized rule back to its origin.
-- The source class: memory, global CLAUDE.md, project CLAUDE.md, or personal entity.
+- The source class: memory index, KB rule, global CLAUDE.md, project CLAUDE.md, or personal entity.
 - Each inheritance or scope qualifier from Phase 1, for example a nested CLAUDE.md that narrows or negates a parent rule.
 
 ### Phase 3 — Classify, cluster, corroborate

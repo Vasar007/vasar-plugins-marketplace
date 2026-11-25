@@ -31,7 +31,7 @@ Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match
 
 ## Step 1 — Corroborate first
 
-Before you classify a rule, group it with every other extracted rule that states an equivalent point, from any source type and any project. Count the **independent sources** in the cluster. Independent means distinct files, not distinct lines in one file. One exception covers collapsed git-worktree siblings. Their memory files hold the memory of one repository, accumulated again. They count once for the whole family, not once per file (see `references/source-inventory.md`, worktree-sibling collapse).
+Before you classify a rule, group it with every other extracted rule that states an equivalent point, from any source type and any project. Count the **independent sources** in the cluster. Independent means distinct files, not distinct lines in one file. One exception covers collapsed git-worktree siblings. Their memory indexes hold the memory of one repository, accumulated again. They count once for the whole family, not once per file (see `references/source-inventory.md`, worktree-sibling collapse).
 
 - **3 or more independent sources that state an equivalent rule are a strong promote signal**. Corroboration this wide is unlikely to be the local habit of one person.
 - If the external-authority test of Step 3 clearly applies, a single-source rule can still be promoted (C/D). Corroboration is the strongest signal, not the only one.
@@ -66,7 +66,7 @@ The answer decides between B and C:
 
 **E-fix-shipped never produces a new entity.** The fix always lands as an edit to the files of the existing shipped entity. Then Phase 9 prunes the source that reported the problem. It uses 9a, 9b, 9c, or 9d, by the source type. The corrected shipped entity now holds the content of that source.
 
-The near-certain marker for E is text like **"stopgap until `<plugin>:<entity>` is updated"**. Some memory files and wrapper personal entities call themselves a temporary workaround for a known defect in a shipped entity. Such a file identifies itself as E. Do not accept the self-label or the stated delta as it stands. Read the current content of the shipped entity, and find out whether the defect is still there. Sometimes an unrelated change already fixed it. In that case, the disposition is F-stale (prune, nothing to fix), not E.
+The near-certain marker for E is text like **"stopgap until `<plugin>:<entity>` is updated"**. Some rule files and wrapper personal entities call themselves a temporary workaround for a known defect in a shipped entity. Such a file identifies itself as E. Do not accept the self-label or the stated delta as it stands. Read the current content of the shipped entity, and find out whether the defect is still there. Sometimes an unrelated change already fixed it. In that case, the disposition is F-stale (prune, nothing to fix), not E.
 
 The second common path to E is the wrapper-entity landmine (`references/source-inventory.md`, landmine 12). A personal command, agent, or skill states a delta against the shipped entity that it wraps. The diff against the current content of the base entity shows that the delta is a correction. The base entity states something wrong, for example a wrong field name or an outdated command flag. It is not a real personal addition.
 
@@ -78,7 +78,7 @@ Classify each wrapper divergence with the rules of Steps 3 and 4, the same as ev
 
 ## Step 5 — `type:` frontmatter is never a category signal
 
-The `type:` frontmatter field of a memory file **predicts nothing about the disposition, in either direction**, whatever its shape (see landmine 1 in `references/source-inventory.md`). Always read the content. Two real findings in opposite directions anchor this rule (see calibration cases 3 and 4 below):
+The `type:` frontmatter field of a rule file **predicts nothing about the disposition, in either direction**, whatever its shape (see landmine 1 in `references/source-inventory.md`). Always read the content. Two real findings in opposite directions anchor this rule (see calibration cases 3 and 4 below):
 
 - A file with the self-label `type: reference` was pure A-local trivia.
 - A file with the self-label `type: project` was a clean D-scoped framework gotcha.

@@ -1,27 +1,25 @@
 ---
 description: Save session context, findings, and progress to a research file for future sessions, then clean up finished context files
-argument-hint: "[name-or-path] [--change <name>] [--plan <path>] [--compact] [--no-cleanup] [--continuation-prompt] [--mode interactive|partial|full]"
+argument-hint: "[name-or-path] [--plan <path>] [--compact] [--no-cleanup] [--continuation-prompt] [--mode interactive|partial|full]"
 ---
 
 Save the current session's context, research findings, decisions, and progress to a Markdown file so future sessions can pick up where this one left off.
 
-The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **Arguments**: $ARGUMENTS
 
 - Format: `[name-or-path] [options]`
 - Examples:
   - *(no args)*: detect the context source and the file name from the conversation (see Step 1)
-  - `add-order-discounts`: save as `Notes/Results/add-order-discounts-research.md`
-  - `Notes/Results/my-investigation.md`: save to an explicit path
-  - `--change add-order-discounts`: use the context of an OpenSpec change, and save as `Notes/Results/add-order-discounts-research.md`
-  - `--plan Notes/Results/my-plan.md`: use the context of a plan file, and save as `Notes/Results/my-plan-research.md`
+  - `add-order-discounts`: save as `Results/add-order-discounts-research.md` in the notes folder
+  - `docs/investigation.md`: save to an explicit path
+  - `--plan plans/my-plan.md`: use the context of a plan file, and save as `Results/my-plan-research.md` in the notes folder
 
 **Options:**
 
 | Flag                       | Description                                                         |
 |----------------------------|---------------------------------------------------------------------|
-| `--change <name>`          | Pull context from an OpenSpec change (reads its artifacts)          |
 | `--plan <path>`            | Pull context from a plan/task file                                  |
 | `--compact`                | When updating an existing file, aggressively compact old content    |
 | `--no-cleanup`             | Skip Step 5's light cleanup of context files (runs by default)      |
@@ -44,17 +42,16 @@ In the full mode, do not destroy git work that has no other copy. Examples: `git
 
 ### 1. Determine output path and context source
 
-Find the context source. Without `--change` or `--plan`, look at the conversation:
+Find the context source. Without `--plan`, look at the conversation:
 
-- If an OpenSpec change was discussed, treat the run as `--change <name>`.
 - If a plan file was discussed, treat the run as `--plan <path>`.
 - Else, treat it as a generic session.
 
-Find the output path. The value of `--change` or `--plan` names the context source. It is never the output path.
+Find the output path. The value of `--plan` names the context source. It is never the output path.
 
 - If a name (not a path) is given, write to `Results/<name>-research.md` in the notes folder.
 - If a path is given, write to that path.
-- If no name or path is given, use the context source. For a change, write to `Results/<change-name>-research.md` in the notes folder. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Results/my-plan-research.md` in the notes folder.
+- If no name or path is given, use the context source. For a plan file, use its file name without `.md`: `my-plan.md` becomes `Results/my-plan-research.md` in the notes folder.
 - If nothing is given and nothing can be inferred: outside the interactive mode, name the file after the main topic of the session, as a short kebab-case slug, and say so in Step 6. In the interactive mode, use **AskUserQuestion** to ask:
   > "What name do you want for this research file? (for example, `investigate-bug-123` or `refactor-auth`)"
 
@@ -69,13 +66,6 @@ Collect the following from the current conversation. Skip sections that have no 
 - **Issues found**: the problems, bugs, and inconsistencies found.
 - **What's next**: the remaining work, the open questions, and the suggested next steps.
 
-**If `--change <name>`** (OpenSpec context), also gather:
-
-- Change name, branch, date
-- Link to openspec change directory
-- Which artifacts exist and their status (`openspec status --change "<name>"`)
-- The GitHub issue and Projects references that the conversation mentions (`#123`, a project item, or a URL)
-
 **If `--plan <path>`** (plan context), also gather:
 
 - Plan file path and current progress (N/M tasks complete)
@@ -83,6 +73,7 @@ Collect the following from the current conversation. Skip sections that have no 
 
 **Also gather, where the session has them:**
 
+- **Issue references**: the GitHub issue and Projects references that the conversation mentions (`#123`, a project item, or a URL).
 - **Key file paths**: the important files that were read, changed, or named for future work. Group them by category: core, tests, configuration, docs.
 - **Codebase patterns**: the patterns or conventions found that a future session needs to know.
 
@@ -109,7 +100,7 @@ Use this structure (skip empty sections):
 ## Overview
 
 <Brief 1-2 sentence description of what this research covers>
-<Change/plan reference if applicable>
+<Plan reference if applicable>
 Branch: `<current branch>`
 Date: <today>
 
@@ -147,7 +138,7 @@ Unless `--no-cleanup` was passed, clean up the context and handoff files of this
 
 This is a light pass, not a full trim. To trim one file in depth, use `dev-essentials:trim-artifacts`.
 
-1. List the files in the notes folder that holds the saved file (for example `Notes/`), with their dates. Find the links to them in the saved file and in the other notes files. If the project has agent memory files, find the links there too.
+1. List the files in the notes folder that holds the saved file, with their dates. Find the links to them in the saved file and in the other notes files.
 2. Put each file into one group:
    - Move to the backup (the default of this step, so it needs no new stop): finished work of this session. For example: a plan or draft whose result landed in a merged PR or a published release, and a draft replaced by a chosen version. Also a review report whose fixes landed, and a `_`-prefixed progress file whose task is done.
    - Trim: a file that open work still needs. Remove the parts that are done or no longer true. Keep the rest.
@@ -156,18 +147,19 @@ This is a light pass, not a full trim. To trim one file in depth, use `dev-essen
 3. Move the files of the group "Move to the backup" with the script `backup_move.py` of this plugin. The script moves each file to a backup folder outside the workspace and keeps its path relative to the workspace. It never deletes a file, so a wrong "finished" call loses nothing. First run it without `--apply`. It prints the plan and the `BACKUP` folder. Then run it with `--apply` and that folder:
 
    ```bash
-   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<repo root>" <file> ...
-   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<repo root>" --backup "<BACKUP folder>" --apply <file> ...
+   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<workspace>" <file> ...
+   python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/backup_move.py" --workspace "<workspace>" --backup "<BACKUP folder>" --apply <file> ...
    ```
 
-   If the plan has a `REFUSE` line, the script moves no file. Keep each refused file, and list it with its reason in Step 6. Then run the script again without the refused files. The script needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash).
+   For a notes folder inside the repository, `<workspace>` is the repository root. For a notes folder outside the repository, it is the notes folder. If the plan has a `REFUSE` line, the script moves no file. Keep each refused file, and list it with its reason in Step 6. Then run the script again without the refused files. The script needs Python 3 and git. On Windows, run it in the Bash tool (Git Bash).
 4. In the saved file and in the trimmed files, update facts that are no longer true. Examples: an old commit SHA, an old version, or a "this session" frame from an earlier date.
 5. Fix each link to a moved file. Remove the link, or point it to the file that now holds the fact.
 
 Safety rules:
 
+- The rules of a KB clone own its task folder (item 3 of `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md`). So for a notes folder in a KB clone, move no file in this step, and say so in Step 6. The trims and the link fixes still run.
 - Never delete a notes file in this step. The backup folder keeps each moved file until the user deletes it.
-- Move only files that git does not track. The script refuses a tracked file. Before you trim a file, run `git ls-files -- <path>`. If it prints the path, do not change the file in this step.
+- Move only files that git does not track. The script refuses a tracked file. Before you trim a file inside a git work tree, run `git ls-files -- <path>` in that work tree. If it prints the path, do not change the file in this step.
 - If you are not sure that the work of a file is finished, keep the file and list it in Step 6.
 - Do not move a file from an older session, and do not delete a branch, without the user's yes or the full mode.
 - For a stale branch, delete only the local branch, with `git branch -d`. If the remote branch still exists, list it for the user. Do not delete it. If `git branch -d` refuses the branch, list it for the user. Use `git branch -D` only after the user's yes, with a warning that commits that are not merged get lost. In the full mode, use it only after both checks of the squash-merge exception in "Autonomy" pass. If either check fails, or the pull request state cannot be read, do not delete the branch. List it for the user in Step 6. List any other refused branch for the user.

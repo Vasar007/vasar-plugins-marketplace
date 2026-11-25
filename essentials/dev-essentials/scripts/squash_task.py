@@ -51,7 +51,7 @@ A message that starts with "-" goes after "=", for example --message="-x".
 
 Examples:
   python3 -I squash_task.py --base 1a2b3c4 --commit 5d6e7f8 --commit 9a8b7c6 --message "Task 1: add the option"
-  python3 -I squash_task.py --repo /path/to/worktree --plan-dir Notes/Plans --base 1a2b3c4 \\
+  python3 -I squash_task.py --repo /path/to/worktree --plan-dir notes/Plans --base 1a2b3c4 \\
       --commit 5d6e7f8 --commit 9a8b7c6 --message "Task 1: add the option" --apply
 """
 import argparse

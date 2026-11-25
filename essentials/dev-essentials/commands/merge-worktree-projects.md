@@ -84,6 +84,8 @@ Give these facts for each main project, from the output of the script:
 
 Say clearly whether this was a **dry run** (nothing changed, see "Modes and safety gate") or an **applied** run (the run executed the approved plan). Keep the report short. It is a routine maintenance report.
 
+The script moves the memory files as data. No skill or command of this plugin reads a memory topic file as a rule. So add one line to the report: keep each rule in a `CLAUDE.md` file, or in the KB clone of the user. Item 3 of `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` finds a KB clone.
+
 ## Hard rules
 
 - Never write or delete anything without both of these: `--apply`, and an explicit "yes" at the approval of "Modes and safety gate". The default is always a dry run.

@@ -1,6 +1,6 @@
 ---
 name: research-implement-review-report
-description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. Needs no spec change (unlike opsx-implement), and does not stop before the review (unlike implement).
+description: Research, plan, implement, review-loop, and report for one task, end-to-end in one session. Needs no spec change, and does not stop before the review (unlike implement).
 argument-hint: <task description, plan file path, or issue reference> [--base=<branch>] [--branch-prefix=<prefix>] [--commit-mode=per-phase|single] [--rounds=N] [--context=<path>...] [--skip-research] [--mode interactive|partial|full]
 ---
 
@@ -9,13 +9,12 @@ argument-hint: <task description, plan file path, or issue reference> [--base=<b
 ## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
-- `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
 - `dev-essentials:research-implement-review-report` (RIRR) works one task: research, a plan, the implementation, a review loop, and a report.
 - `dev-essentials:implement-task` wraps RIRR for one task. It adds a sweep of extra context first and a `/simplify` commit at the end.
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. Subagents run its stages from the requirements to the reviews, the session pushes and opens the PR, and it has its own approval gates.
 
-The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+The configured branch prefix is `${user_config.branch_prefix}`. Set it with `/plugin configure` (see `plugin.json`). If the value still shows as a `${...}` placeholder, no value is saved, and the configured branch prefix is empty. The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **Arguments**: $ARGUMENTS
 
@@ -105,7 +104,7 @@ With `--skip-research`, skip this phase.
 
 If $ARGUMENTS is a plan file, run only step 1 (load the context), and use that plan file as the plan of this run. Skip steps 2 and 3, and do not save a new plan in step 4. Still apply the sign-off and the open-decision bullets of step 4 to that plan file, then start Phase 2.
 
-1. Resolve each `--context=<path>` (the flag is repeatable). Without one, derive a context file as `dev-essentials:implement` does: from a plan-file argument, or from the auto-memory folder as a last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every brief of this phase.
+1. Resolve each `--context=<path>` (the flag is repeatable). Without one, find the context as Step 2 of `dev-essentials:implement` says: the research file of a plan-file argument, or the rules of a KB clone as the last fallback. Read all of them in the orchestrating session before any dispatch. Pass their findings verbatim into every brief of this phase.
 2. Find the facts by the tests of Rule 1 of `dev-essentials:subagent-orchestration`. For a small task, look them up in the main loop. For questions that are independent and that each read many files, dispatch fact gatherers in parallel. Give each one narrow question, in one message (Rule 3). The research works from the real code, not from assumptions. The research finds out what already exists, which files are involved, which patterns the code around it uses, and what is unclear or open. For example: one question on the production code path, one on the test coverage, and one on the callers of a method that the task changes. Each brief holds the question, the absolute worktree path, and the scope. It also holds the context of the user verbatim and each rule of the project `CLAUDE.md` that matters. A question that needs judgment goes whole to a researcher, not to a fact gatherer. Examples: an ambiguous change of behavior, a permission, a public contract, or a choice between designs. The researcher gets the same brief, and returns its findings with `path:line` evidence.
 3. When the facts of step 2 are in, dispatch a planner. Paste each report, or the facts that the main loop found, verbatim into its brief. The planner reads only the lines that a critical decision of the plan depends on, and does no new broad research. If it needs a location that no report holds, it can dispatch `dev-essentials:code-locator` for it. It turns the research into a concrete plan: ordered tasks or phases, and for each task the exact paths, the anchors (`path:line` and method names), and the key signatures. The plan also lists the open decisions. An open decision is a critical decision that the task, the code, and the documentation do not settle. Examples: an ambiguous change of behavior, or a change of a public contract. Also anything that the current spec or plan does not cover (`dev-essentials:engineering-discipline` Rule 2).
 4. Save the plan to the location that the `CLAUDE.md` of the repo documents. Else save it to `Plans/<slug>-plan.md` in the notes folder. This is the plan sign-off gate:

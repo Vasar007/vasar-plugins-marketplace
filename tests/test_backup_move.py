@@ -123,12 +123,14 @@ class UsageTests(BackupMoveCase):
         result = self.run_script("--workspace", self.ws, "--backup", self.tmp, "a.md")
         self.assertResult(result, 2, "must not contain each other")
 
-    def test_workspace_outside_git_is_a_usage_error(self):
+    def test_workspace_outside_git_moves_the_file(self):
         plain = self.tmp / "plain"
         plain.mkdir()
         (plain / "a.md").write_text("x\n", encoding="utf-8")
-        result = self.run_script("--workspace", plain, "--backup", self.backup, "a.md")
-        self.assertResult(result, 2, "git ls-files failed")
+        result = self.run_script("--workspace", plain, "--backup", self.backup, "--apply", "a.md")
+        self.assertResult(result, 0, "MOVED a.md", "RESULT: MOVED 1")
+        self.assertTrue((self.backup / "a.md").is_file())
+        self.assertFalse((plain / "a.md").exists())
 
 
 if __name__ == "__main__":

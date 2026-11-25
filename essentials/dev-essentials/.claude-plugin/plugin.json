@@ -1,6 +1,6 @@
 {
   "name": "dev-essentials",
-  "version": "5.1.6",
+  "version": "6.0.0",
   "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order.",
   "author": {
     "name": "Vasily Vasilyev",
@@ -14,12 +14,6 @@
       "title": "Branch prefix",
       "description": "The first segment of the task branches that the implement workflows create, for example jdoe. Leave it empty to use the branch-naming rule of a CLAUDE.md file.",
       "default": ""
-    },
-    "notes_dir": {
-      "type": "string",
-      "title": "Notes folder",
-      "description": "The folder, relative to the repository root, for plans, reports, and progress files. A location that the CLAUDE.md of the repository names wins.",
-      "default": "Notes"
     }
   }
 }
