@@ -50,7 +50,6 @@ has_path_rule() {
   has_rule "$1" "$2" && return 0
   [ "$os" = windows ] && has_rule "$1" "${2//"$kb_fwd"/"$kb_alt"}"
 }
-# Older versions printed these rules with a relative path, which matches the script of that path in every project.
 # Only these files of the clone tell a session which command to run.
 first_relative_call() {
   [ -n "$kb_named" ] || return 0
@@ -61,6 +60,7 @@ first_relative_call() {
     fi
   done
 }
+# Older versions printed these rules with a relative path, which matches the script of that path in every project.
 for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
   if has_rule "$allow" "$rule"; then
     call="${rule#Bash(}"
