@@ -11,11 +11,12 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.1.0 in release [7.1.0] - 2026-11-26
 
-When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365).
+When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365). Each workflow that opens a pull request now sets its assignee, the labels of its issue, and its Project (issue #366).
 
 ### Added in dev-essentials
 
 - `evals/merge-pr/mp-checks-403`: the MCP read of the check runs fails with a `403` error. The run must read the check runs with `gh` and name that call and its reason in the report. It must make no other `gh` call, and it must not merge (issue #365).
+- `skills/github-mcp-conventions/references/pull-request-fields.md`: the steps that set the fields of a new pull request. The assignee is the author of the pull request. The pull request gets the labels of its issue that its repository has. If the repository has one Project, the pull request goes into it. The MCP tools set the assignee and the labels, and `gh` is the fallback. The run reads the pull request before the update, so that it keeps the old labels and the old assignees. It reads the pull request again after the update, so that it sees a change that GitHub dropped. If the session has the MCP tool `projects_write`, the Project goes through it. Else it goes through `gh`. The report names each field that the run did not set (issue #366).
 
 ### Changed in dev-essentials
 
@@ -24,10 +25,18 @@ When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` no
 - `skills/subagent-orchestration/SKILL.md`: Rule 4 points at the two cases of Rule 5 of `github-mcp-conventions` (issue #365).
 - `commands/help-review-pr.md`, `commands/save-context.md`, `agents/bug-hunter.md`, and `agents/bug-verifier.md`: the text follows the new Rule 5 (issue #365).
 - `evals/merge-pr/mp-green-merge`: the new grader `no-gh-for-the-pr` fails a run that reads the pull request or merges with `gh` while the MCP tools work (issue #365).
+- `skills/github-mcp-conventions/SKILL.md`: a new section points at the steps for the fields of a new pull request (issue #366).
+- `skills/work-modes/references/finish.md`: a field of the new pull request that the run cannot set is no failed step. The run goes on to the merge (issue #366).
+- The eval case `rirr-merge`: the task of the earlier run is issue 58 with two labels. New mocks and graders make sure that the run sets the assignee and both labels on the pull request with `issue_write`. The cases `rirr-merge-gate`, `it-merge`, and `ib-merge` get a mock of `issue_write` (issue #366).
+
+### Fixed in dev-essentials
+
+- A new pull request got no assignee and no labels. Each workflow that opens a pull request now sets its fields. These workflows are the finish steps of `work-modes`, Step 6 of `feature-pipeline`, and the PR step of `promote-conventions`. A field that the run cannot set does not stop the run (issue #366).
 
 ### Changed in the repository
 
 - Tests: the new `tests/test_gh_fallback_text.py` makes sure that Rule 5 keeps each part of the rule, and that no unit keeps the old ban. `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py` cover the new case and the new grader (issue #365).
+- Tests: the new class `PullRequestFieldTests` in `tests/test_work_modes_text.py` makes sure that each unit that opens a pull request points at the field steps. `tests/test_eval_cases.py` covers the new graders and mocks of `rirr-merge` (issue #366).
 - `docs/testing.md`: the table of the test groups names the new module (issue #365).
 
 ## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26

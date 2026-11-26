@@ -16,5 +16,7 @@
   },
   "user": {
     "login": "eval-user"
-  }
+  },
+  "labels": ["bug", "http"],
+  "assignees": ["eval-user"]
 }

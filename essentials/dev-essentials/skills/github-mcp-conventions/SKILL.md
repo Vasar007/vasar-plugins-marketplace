@@ -150,6 +150,10 @@ This recipe needs `origin` to be the base repository of the PR. If the fetch fai
 
 This is not a new pattern. The `target=pr <id>` resolution of `dev-essentials:review-loop` already fetches and diffs this way. Treat it as the precedent, and do not invent a new way at each call site.
 
+## The fields of a new pull request
+
+After you open a pull request on GitHub, set its assignee, its labels, and its Project. The steps are in `references/pull-request-fields.md`.
+
 ## Thread anchors and `html_url`
 
 To reference a PR comment in chat output or in a reply, use the `html_url` field of the comment from `pull_request_read`. It is the stable browser URL of the thread. Format: `https://github.com/<owner>/<repo>/pull/<id>#discussion_r<comment-id>`.

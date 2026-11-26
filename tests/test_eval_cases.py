@@ -5126,11 +5126,13 @@ class RirrFinishCaseTests(unittest.TestCase):
     NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34}
     # The resume cases that must merge, one for each workflow of finish.md.
     MERGE_CASES = ("rirr-merge", "it-merge", "ib-merge")
+    # The field graders of rirr-merge, the one case whose task is a GitHub issue with labels (issue #366).
+    FIELD_GRADERS = ["route-assignee-set", "route-fields-on-pr", "route-issue-read", "route-label-bug", "route-label-http"]
     # The resume cases that must do no finish step, with the number of their mocked pull request.
     STOP_CASES = {"rirr-resume-moved-head": 35, "rirr-upstream-remote": 36}
     REPOSITORY = {"owner": "example-org", "repo": "users-app"}
     # A scored grader must be one that the base side can pass. A grader that only the finish steps can pass is a route grader.
-    SCORED = {"rirr-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+    SCORED = {"rirr-merge": ["main-not-pushed", "no-force-push", "no-gh-pr-edit", "no-run-commit"],
               "rirr-merge-gate": ["committed", "limit-lowered", "main-not-pushed", "not-merged"],
               "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
               "it-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
@@ -5167,14 +5169,25 @@ class RirrFinishCaseTests(unittest.TestCase):
         return {**self.REPOSITORY, "pullNumber": self.NUMBERS[case]}
 
     def pr(self, case):
+        number = self.NUMBERS[case]
         return self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": self.BRANCHES[case],
-                                                 "title": "Lower the HTTP retry limit to 3"}, f'{{"number": {self.NUMBERS[case]}}}')
+                                                 "title": "Lower the HTTP retry limit to 3"},
+                         f'{{"id": "28475600{number}", "url": "https://github.com/example-org/users-app/pull/{number}"}}')
+
+    def issue_labels(self, number=58):
+        return self.call("issue_read", {**self.REPOSITORY, "method": "get_labels", "issue_number": number},
+                         '{"labels": [{"name": "bug"}, {"name": "http"}], "totalCount": 2}')
 
     def read(self, case, method):
         return self.call("pull_request_read", {"method": method, **self.pull(case)})
 
     def merge(self, case, method="squash"):
         return self.call("merge_pull_request", {**self.pull(case), "merge_method": method}, '{"merged": true}')
+
+    def fields(self, number=31, assignees=("eval-user",), labels=("bug", "http")):
+        return self.call("issue_write", {**self.REPOSITORY, "method": "update", "issue_number": number,
+                                         "assignees": list(assignees), "labels": list(labels)},
+                         f'{{"id": "28475610{number}", "url": "https://github.com/example-org/users-app/pull/{number}"}}')
 
     def gate_reads(self, case):
         return [self.read(case, method) for method in ("get", "get_check_runs", "get_status", "get_reviews")]
@@ -5196,12 +5209,81 @@ class RirrFinishCaseTests(unittest.TestCase):
     def test_a_right_finish_run_passes_each_mock_calls_grader_of_the_merge_case(self):
         for case in self.MERGE_CASES:
             names = sorted(name for name, (meta, _body) in self.cases[case].graders.items() if meta.get("target") == "mock_calls")
-            self.assertEqual(names, ["route-checks-read", "route-merged", "route-pr-created", "route-read-before-merge",
-                                     "route-squash-method"])
-            calls = [self.pr(case)] + self.gate_reads(case) + [self.merge(case)]
+            expected = ["route-checks-read", "route-merged", "route-pr-created", "route-read-before-merge", "route-squash-method"]
+            if case == "rirr-merge":
+                expected = sorted(expected + self.FIELD_GRADERS)
+            self.assertEqual(names, expected)
+            calls = [self.pr(case)] + ([self.issue_labels(), self.fields()] if case == "rirr-merge" else []) + self.gate_reads(case) + [self.merge(case)]
             for name in names:
                 with self.subTest(case=case, grader=name):
                     self.assertTrue(self.passes(case, name, calls))
+
+    def test_the_field_graders_of_rirr_merge_fail_each_wrong_run(self):
+        case = "rirr-merge"
+        right = [self.pr(case), self.issue_labels(), self.fields()]
+        for grader in self.FIELD_GRADERS:
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(case, grader, right))
+        # A mocked tool takes the number as a string too, so a right run that sends "31" or "58" passes.
+        self.assertTrue(self.passes(case, "route-fields-on-pr", [self.pr(case), self.fields(number="31")]))
+        self.assertTrue(self.passes(case, "route-issue-read", [self.pr(case), self.issue_labels(number="58")]))
+        wrong = {"no field call": (self.FIELD_GRADERS, [self.pr(case)]),
+                 "no assignee": (["route-assignee-set"], [self.pr(case), self.issue_labels(), self.fields(assignees=())]),
+                 "one label of the issue only": (["route-label-http"], [self.pr(case), self.issue_labels(), self.fields(labels=("bug",))]),
+                 "the fields set on the issue": (["route-fields-on-pr"], [self.pr(case), self.issue_labels(), self.fields(number=58)]),
+                 "no read of the issue": (["route-issue-read"], [self.pr(case), self.fields()]),
+                 "a read of the pull request instead of the issue": (["route-issue-read"], [self.pr(case), self.read(case, "get"), self.fields()]),
+                 "a read of another issue": (["route-issue-read"], [self.pr(case), self.issue_labels(number=5), self.fields()])}
+        for name, (graders, calls) in wrong.items():
+            for grader in graders:
+                with self.subTest(run=name, grader=grader):
+                    self.assertFalse(self.passes(case, grader, calls))
+
+    def test_the_grader_route_fields_read_takes_a_read_call_and_a_shell_command(self):
+        path = "/plugins/dev-essentials/skills/github-mcp-conventions/references/pull-request-fields.md"
+        skill_text = trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "toolu_1", "content": f"Else read `{path}`, and do its steps."}]}})
+        meta = self.meta("rirr-merge", "route-fields-read")
+        self.assertEqual((meta["type"], meta["target"], meta.get("match")), ("regex", "trace", None))
+        self.assertTrue(self.found("rirr-merge", "route-fields-read", self.tool_use("Read", {"file_path": path})))
+        self.assertTrue(self.found("rirr-merge", "route-fields-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
+        self.assertFalse(self.found("rirr-merge", "route-fields-read", skill_text))
+        self.assertFalse(self.found("rirr-merge", "route-fields-read", self.tool_use("Read", {"file_path": path.replace("fields", "other")})))
+
+    def test_the_grader_route_project_reported_takes_a_report_about_the_project(self):
+        meta = self.meta("rirr-merge", "route-project-reported")
+        # JavaScript refuses an inline flag such as (?i), so the case of the letters goes in the key flags.
+        self.assertEqual((meta["target"], meta.get("flags")), ("last_message", "i"))
+        self.assertIsNone(re.search(r"\(\?[a-zA-Z]+[:)]", meta["pattern"]))
+        reports = {"Project: not set, gh failed with a network error": True,
+                   "The Project is Unknown: the token lacks the scope": True,
+                   "I was unable to add the pull request to the project": True,
+                   "The Project step failed.": True,
+                   "- Project: could not read the Projects of the repository (no network).": True,
+                   "- Project: gh error (no network), so the run did not add the pull request.": True,
+                   "- Project: not set. The gh command failed with a network error.": True,
+                   "The project tests pass.": False,
+                   "- The repository has no Project.": False,
+                   "The assignee and both labels are set.": False,
+                   # The copied sentence of step 2 is not a report of a failed field, even next to the word Project.
+                   "- The repository has no Project. This is not a field that the run failed to set.": False,
+                   # Known miss that the grader accepts: a period between the word Project and the reason.
+                   "- Project: none added. The gh call failed (no network).": False,
+                   # Known false match that the grader accepts: a word of the list and the word project in one sentence.
+                   "I did not change any other project file": True}
+        for report, expected in reports.items():
+            with self.subTest(report=report):
+                self.assertEqual(self.found("rirr-merge", "route-project-reported", report), expected)
+
+    def test_the_grader_no_gh_pr_edit_counts_gh_pr_edit_and_gh_issue_edit(self):
+        commands = {"gh pr edit 31 --repo example-org/users-app --add-assignee @me --add-label bug,http": True,
+                    "cd /w && gh pr edit 31 --add-project Roadmap": True,
+                    "gh issue edit 31 --repo example-org/users-app --add-label bug": True,
+                    "gh repo view example-org/users-app --json projectsV2": False,
+                    "git push -u origin work/retry-limit": False}
+        for command, expected in commands.items():
+            with self.subTest(command=command):
+                self.assertEqual(self.found("rirr-merge", "no-gh-pr-edit", f'{{"command":"{command}"}}'), expected)
 
     def test_each_wrong_run_fails_its_grader_of_the_merge_case(self):
         for case in self.MERGE_CASES:
@@ -5300,10 +5382,21 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertEqual(parse_block(lines)["expect"], {**self.REPOSITORY, "base": "main", "head": branch})
                 created = json.loads(self.mock_file(case, "fixtures", f"pull-{self.NUMBERS[case]}.json").read_text(encoding="utf-8"))
                 self.assertEqual(body.strip(), f"{{{{file:fixtures/pull-{self.NUMBERS[case]}.json}}}}")
-                self.assertEqual(created["number"], self.NUMBERS[case])
+                # The create tool gives {"id", "url"}, and the id is not the number of the pull request.
+                self.assertEqual(sorted(created), ["id", "url"])
+                self.assertEqual(created["url"], f"https://github.com/example-org/users-app/pull/{self.NUMBERS[case]}")
+                self.assertNotEqual(created["id"], str(self.NUMBERS[case]))
                 for mock in ("pull_request_read.md", "merge_pull_request.md", "list_pull_requests.md"):
                     lines, _body = split_frontmatter(self.mock_file(case, mock).read_text(encoding="utf-8"))
                     self.assertEqual(parse_block(lines)["expect"], self.REPOSITORY)
+                # With no mock file, the session has no such tool, and the run takes the gh fallback in a sandbox with no network.
+                lines, _body = split_frontmatter(self.mock_file(case, "issue_write.md").read_text(encoding="utf-8"))
+                self.assertEqual(parse_block(lines)["expect"], {**self.REPOSITORY, "method": "update"})
+                # The read after the update must show the fields, so that a right run names no field as not set.
+                # The run takes the assignee from user.login of the read of the pull request, so the fixture must give it.
+                self.assertEqual(self.pull_fixture(case, "get")["user"]["login"], "eval-user")
+                self.assertEqual(self.pull_fixture(case, "get")["assignees"], ["eval-user"])
+                self.assertEqual(self.pull_fixture(case, "get").get("labels", []), ["bug", "http"] if case == "rirr-merge" else [])
                 pull = self.pull_fixture(case, "get")
                 self.assertEqual((pull["number"], pull["state"], pull["draft"], pull["merged"], pull["mergeable_state"]),
                                  (self.NUMBERS[case], "open", False, False, "clean"))

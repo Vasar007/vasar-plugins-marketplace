@@ -35,6 +35,7 @@ fixture_write notes/Results/retry-limit-report.md <<'REPORT_EOF'
 - **Head commit**: HEAD_SHA
 - **Worktree**: none, the main work tree
 - **Plan**: notes/Plans/retry-limit-plan.md
+- **Task**: GitHub issue #58 of example-org/users-app
 
 ## What Was Done
 
