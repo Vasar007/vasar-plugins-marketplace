@@ -463,6 +463,15 @@ class CheckScriptTests(BashCase):
                 self.assertFalse(any("/_claude/tools/" in line or "git -C" in line for line in missing), missing)
                 self.assertEqual(len([line for line in missing if line.startswith("MISSING: allow rules: ")]), 1, missing)
 
+    def test_the_full_kb_dir_of_the_environment_wins_over_a_relative_kb_dir_in_the_settings(self):
+        home, _, gitconfig = self.complete_home()
+        self.stub("crontab", 'echo "kb-sync.sh"')
+        named = self.make_clone_with_hooks_path(self.tmp / "named")
+        allow, ask = rules(named.as_posix())
+        self.settings_with(home, "KB", allow, ask)
+        missing = self.missing_lines(self.run_complete(home, named, gitconfig))
+        self.assertEqual([line for line in missing if "allow rule" in line or "ask rule" in line], [], missing)
+
     def test_windows_branch_names_the_windows_path_in_the_path_rules(self):
         home, clone, gitconfig = self.complete_home(additional_dir=self.WIN_KB)
         self.stub("crontab", 'echo "kb-sync.sh"')

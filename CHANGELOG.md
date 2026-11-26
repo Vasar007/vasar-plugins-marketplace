@@ -11,21 +11,21 @@ The other numbers in a heading are plugin versions.
 
 ## kb 0.4.0 in release [7.2.0] - 2026-11-26
 
-The allow rules of `/kb:setup` for `kb-search.sh`, `ste-check.py`, and `md-check.py` now hold the full path of the KB clone. Before, they had a relative path, so they also matched a script with the same path in another project. Run `/kb:setup` again. It adds the new rules, and it asks you to remove the old rules with the relative path (issue #356).
+The allow rules of `/kb:setup` for `kb-search.sh`, `ste-check.py`, and `md-check.py` now hold the full path of the KB clone. Before, they had a relative path, so they also matched a script with the same path in another project. Run `/kb:setup` again. It adds the new rules. Until the rules of the KB clone call the scripts with the full path, keep the old rules with the relative path. Then remove them (issue #356).
 
 ### Fixed in kb
 
-- `skills/setup/check.sh`: it prints the allow rules for `kb-search.sh`, `ste-check.py`, and `md-check.py` with the full path of the clone, for example `Bash(bash <KB root>/_claude/tools/kb-search.sh *)`. The `git -C <KB root>` rules have the same form. Before, each of these rules had a relative path, such as `Bash(bash _claude/tools/kb-search.sh *)`. A Bash rule matches the command text and has no anchor to a folder. So the old rule also let the script `_claude/tools/kb-search.sh` of another project run with no prompt. With no KB clone, `check.sh` prints none of these rules now (issue #356).
+- `skills/setup/check.sh`: it prints the allow rules for `kb-search.sh`, `ste-check.py`, and `md-check.py` with the full path of the clone, for example `Bash(bash <KB root>/_claude/tools/kb-search.sh *)`. The `git -C <KB root>` rules already had this form. Before, the three script rules had a relative path, such as `Bash(bash _claude/tools/kb-search.sh *)`. A Bash rule matches the command text and has no anchor to a folder. So the old rule also let the script `_claude/tools/kb-search.sh` of another project run with no prompt. With no KB clone, `check.sh` prints none of these rules now (issue #356).
 
 ### Changed in kb
 
-- `skills/setup/check.sh` and `skills/setup/SKILL.md`: for each old rule with a relative path in `permissions.allow`, `check.sh` prints a `STALE:` line. The skill shows the change that removes the rule and waits for the owner's yes. The setup is done only with no `MISSING:` line and no `STALE:` line (issue #356).
+- `skills/setup/check.sh` and `skills/setup/SKILL.md`: for each old rule with a relative path in `permissions.allow`, `check.sh` prints a `STALE:` line. If the rules of the KB clone call the scripts with the full path, the skill shows the change that removes the rule. It waits for the owner's yes. Else the old rule stays. The setup is done only with no `MISSING:` line and no `STALE:` line (issue #356).
 - `skills/setup/check.sh`: it prints the path rules only for the clone that `KB_DIR` names. For another clone, it prints one `MISSING:` line that asks you to set `KB_DIR`. A space or a `*` in the clone path changes what a Bash rule matches. So it prints one `MISSING:` line and no script rule for a path with any other character than these: ASCII letters, digits, and `. _ / : ~ -` (issue #356).
 - `README.md`: the setup section names the new form of the rules, the `STALE:` lines, the `KB_DIR` rule, and the limit on the clone path (issue #356).
 
 ### Changed in the repository
 
-- `tests/test_kb_plugin.py`: the tests of `check.sh` expect the full path of the clone in the three script rules, also on Windows. Five new tests cover three cases of the `STALE:` lines: an old rule in `permissions.allow`, an old rule only in `ask` or `deny`, and an old rule with no clone. The other two tests cover a clone path with a space or a `*`. They also cover a clone that only the project folder gives (issue #356).
+- `tests/test_kb_plugin.py`: the tests of `check.sh` expect the full path of the clone in the three script rules, also on Windows. Six new tests cover these cases. Three tests cover the `STALE:` lines: an old rule in `permissions.allow`, an old rule only in `ask` or `deny`, and an old rule with no clone. One test covers a clone path with a space or a `*`. One test covers a clone that only the project folder or a relative `KB_DIR` gives. One test covers a full `KB_DIR` in the environment next to a relative `KB_DIR` in `settings.json` (issue #356).
 
 ## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26
 

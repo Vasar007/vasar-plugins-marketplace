@@ -81,7 +81,7 @@ if [ -n "$kb_named" ]; then
     missing "ask rule: $rule is not in permissions.ask in $settings."
   fi
 elif [ -n "$kb" ]; then
-  missing "allow rules: the clone $kb_fwd is not the clone that KB_DIR names, so no path rule is printed for it. Set KB_DIR to the KB clone, then run the setup again."
+  missing "allow rules: the clone $kb_fwd is not the clone that KB_DIR names, so no path rule is printed for it. Set KB_DIR to the full path of the KB clone, then run the setup again."
 fi
 dirs="$(tr -d '\r\n' 2>/dev/null < "$settings" | grep -o '"additionalDirectories" *: *\[[^]]*\]' | sed 's#\\\\#/#g')"
 if [ "$os" = windows ] && [ -n "$kb" ] && ! printf '%s' "$dirs" | grep -qiF "\"$kb_fwd\""; then
