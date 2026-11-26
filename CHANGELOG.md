@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.1.0 in release [7.1.0] - 2026-11-26
+## dev-essentials 6.1.0 in release [7.2.0] - 2026-11-26
 
 When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365). Each workflow that opens a pull request now sets its assignee, the labels of its issue, and its Project (issue #366). Hard stop 1 of `work-modes` lets a run remove its own scratch with no question (issue #367). The archive of `feature-pipeline` now goes to the notes folder, not to `~/.claude/task-logs/` (issue #369).
 
@@ -48,6 +48,24 @@ When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` no
 - Tests: `tests/test_work_modes_text.py` makes sure that hard stop 1 keeps the exception for scratch and its limits, and that the final report names "Leftovers". `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py` test the graders of `wm-scratch-probe` (issue #367).
 - `docs/workflows.md`: the section "Where the notes go" says where `feature-pipeline` archives its files (issue #369).
 - Tests: `tests/test_rule_references.py` makes sure that no file of `dev-essentials` names a path such as `~/.claude/<name>/`, other than the files of Claude Code. It does not find a Windows path or a path that code builds. `tests/test_eval_cases.py` pins the archive grader of `fp-e2-merge` and the deferred items of `merge-pr` (issue #369).
+
+## kb 0.4.0 in release [7.1.0] - 2026-11-26
+
+The allow rules of `/kb:setup` for `kb-search.sh`, `ste-check.py`, and `md-check.py` now hold the full path of the KB clone. Before, they had a relative path, so they also matched a script with the same path in another project. Run `/kb:setup` again. It adds the new rules. Until the rules of the KB clone call the scripts with the full path, keep the old rules with the relative path. Then remove them (issue #356).
+
+### Fixed in kb
+
+- `skills/setup/check.sh`: it prints the allow rules for `kb-search.sh`, `ste-check.py`, and `md-check.py` with the full path of the clone, for example `Bash(bash <KB root>/_claude/tools/kb-search.sh *)`. The `git -C <KB root>` rules already had this form. Before, the three script rules had a relative path, such as `Bash(bash _claude/tools/kb-search.sh *)`. A Bash rule matches the command text and has no anchor to a folder. So the old rule also let the script `_claude/tools/kb-search.sh` of another project run with no prompt. With no KB clone, `check.sh` prints none of these rules now (issue #356).
+
+### Changed in kb
+
+- `skills/setup/check.sh` and `skills/setup/SKILL.md`: for each old rule with a relative path in `permissions.allow`, `check.sh` prints a `STALE:` line. If the rules of the KB clone call the scripts with the full path, the skill shows the change that removes the rule. It waits for the owner's yes. Else the old rule stays. The setup is done only with no `MISSING:` line and no `STALE:` line (issue #356).
+- `skills/setup/check.sh`: it prints the path rules only for the clone that `KB_DIR` names. For another clone, it prints one `MISSING:` line that asks you to set `KB_DIR`. A space or a `*` in the clone path changes what a Bash rule matches. So it prints one `MISSING:` line and no script rule for a path with any other character than these: ASCII letters, digits, and `. _ / : ~ -` (issue #356).
+- `README.md`: the setup section names the new form of the rules, the `STALE:` lines, the `KB_DIR` rule, and the limit on the clone path (issue #356).
+
+### Changed in the repository
+
+- `tests/test_kb_plugin.py`: the tests of `check.sh` expect the full path of the clone in the three script rules, also on Windows. Six new tests cover these cases. Three tests cover the `STALE:` lines: an old rule in `permissions.allow`, an old rule only in `ask` or `deny`, and an old rule with no clone. One test covers a clone path with a space or a `*`. One test covers a clone that only the project folder or a relative `KB_DIR` gives. One test covers a full `KB_DIR` in the environment next to a relative `KB_DIR` in `settings.json` (issue #356).
 
 ## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26
 
@@ -2786,7 +2804,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...HEAD
+[7.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...v7.2.0
 [7.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.1.0
 [7.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...v7.0.0
 [6.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...v6.2.3
