@@ -9,7 +9,7 @@ Find the notes folder before the first read or write in it, and use the same fol
 Take the first item of this list that gives a folder:
 
 1. The request. The user can name a folder for the notes, the plans, or the reports of the task. The user names it in words or with an option, for example `--notes-dir` of `implement-task`.
-2. The `CLAUDE.md` file of the repository. It can name a folder for notes, plans, or reports.
+2. The `CLAUDE.md` file of the repository. It can name a folder for notes. A folder that it names for one kind of file only, for example plans or reports, holds that kind only. The other files take the next items of this list.
 3. A KB clone. A knowledge base (KB) clone is a local git clone of a set of notes about many repositories. The test for a KB clone has two parts: the variable `KB_DIR` holds a full path, and that folder holds `_claude/RULES.md`. This command prints the folder of the clone, or nothing:
 
    ```bash
@@ -27,4 +27,4 @@ Take the first item of this list that gives a folder:
 - Write a notes file with the `Write` tool. The tool makes the folders of the path, so you need no `mkdir` command.
 - Never commit a notes file. If the notes folder is inside the repository and git does not ignore it, stage explicit paths only.
 - The folders of items 3 and 4 are outside the repository. So no commit can take their files, and the removal of a worktree keeps them.
-- Claude Code asks before a write outside the working folders of the session. To allow the writes to the fallback folder, the user can add `~/claude-notes` to the working folders, for example with `/add-dir`.
+- Claude Code asks before a write outside the working folders of the session. To allow the writes to the fallback folder, the user can add `~/claude-notes` to the working folders, for example with `/add-dir`. A background subagent cannot answer that prompt. So the user adds the folder before a workflow starts, with `/add-dir` or with `permissions.additionalDirectories` in the configuration file.

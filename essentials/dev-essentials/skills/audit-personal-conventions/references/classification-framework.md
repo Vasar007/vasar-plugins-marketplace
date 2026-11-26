@@ -115,7 +115,7 @@ Sanitized and generalized versions of real findings. The repo and product names 
 
 ### Case 1 — Corroboration wins
 
-A rule ("write all commit messages and code comments in English regardless of the chat language") appeared, in independent words, in five sources: the global CLAUDE.md, the CLAUDE.md files of three different repos, and one memory file. Classified **C-universal** on corroboration alone. Read alone, one instance of this rule can look like ordinary house style, not like something worth a shared entity.
+A rule ("write all commit messages and code comments in English regardless of the chat language") appeared, in independent words, in five sources: the global CLAUDE.md, the CLAUDE.md files of three different repos, and one rule file. Classified **C-universal** on corroboration alone. Read alone, one instance of this rule can look like ordinary house style, not like something worth a shared entity.
 
 ### Case 2 — Classify per rule, not per section
 
@@ -129,15 +129,15 @@ The first audit of this section read point 1 as ordinary **B-taste**: a preferen
 
 ### Case 3 — `type: reference` that was pure A-local trivia
 
-A memory file with the self-label `type: reference` documented which git branch names map to which internal release-tag scheme of one specific repository. The "reference" label suggests generally useful lookup content. But the content was specific to the branch and tag history of that one repo. Classified **A-local**. The `type:` field predicted nothing.
+A rule file with the self-label `type: reference` documented which git branch names map to which internal release-tag scheme of one specific repository. The "reference" label suggests generally useful lookup content. But the content was specific to the branch and tag history of that one repo. Classified **A-local**. The `type:` field predicted nothing.
 
 ### Case 4 — `type: project` that was a clean D-scoped gotcha
 
-Another memory file had the self-label `type: project`, a label that suggests project-specific scope. It documented a real workaround for an ORM that behaves wrong against a specific NoSQL provider. The gotcha recurs for anyone who uses that ORM with that provider, in any repo, not only in the repo where it first came up. Classified **D-scoped** (scope: that ORM against that provider). The `type:` field again predicted nothing, this time in the opposite direction from Case 3.
+Another rule file had the self-label `type: project`, a label that suggests project-specific scope. It documented a real workaround for an ORM that behaves wrong against a specific NoSQL provider. The gotcha recurs for anyone who uses that ORM with that provider, in any repo, not only in the repo where it first came up. Classified **D-scoped** (scope: that ORM against that provider). The `type:` field again predicted nothing, this time in the opposite direction from Case 3.
 
 ### Case 5 — Two `E` cases found two different ways
 
-- A memory file with the self-label "stopgap until `<plugin>:<some-shipped-skill>` is updated" documented a defect. The worked example of the shipped skill used a wrong code pattern for a specific API call. Classified **E-fix-shipped**. The run corrected the example of the shipped skill, and then pruned the memory file. The file did not become its own entity.
+- A rule file with the self-label "stopgap until `<plugin>:<some-shipped-skill>` is updated" documented a defect. The worked example of the shipped skill used a wrong code pattern for a specific API call. Classified **E-fix-shipped**. The run corrected the example of the shipped skill, and then pruned the rule file. The file did not become its own entity.
 - A wrapper personal command stated a delta against the shipped entity that it wraps. Only the diff of the wrapper body against the current content of the base entity found the problem. A read of the wrapper alone did not. The delta corrected a wrong field name that the instructions of the base entity told the reader to use. Classified **E-fix-shipped** for the same reason: the correction belongs in the base entity, not in a new entity derived from the wrapper.
 
 ### Case 6 — Reconcile drift, don't pick a copy

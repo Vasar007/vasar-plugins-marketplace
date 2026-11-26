@@ -20,7 +20,7 @@ Follow this style:
 
 When the user requests a guide on a topic:
 
-1. Create a Markdown file in `Docs/` of the notes folder. If the folder does not exist, create it. If the repository uses a different drafts folder, for example `docs/drafts/`, use that folder instead. The notes folder is the folder that `references/notes-root.md` at the root of this plugin gives. From the base folder of this skill, its path is `../../references/notes-root.md`.
+1. Create a Markdown file in `Docs/` of the notes folder. If the repository uses a different drafts folder, for example `docs/drafts/`, use that folder instead. The notes folder is the folder that `references/notes-root.md` at the root of this plugin gives. From the base folder of this skill, its path is `../../references/notes-root.md`.
 2. Use kebab-case for the filename: `topic-name.md`.
 3. Write the content in the style of "Documentation Style" above.
 

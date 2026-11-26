@@ -58,7 +58,7 @@ Then these sections:
 
 Both modes produce the same Markdown content, in the form of "Task Documentation Structure". Only the destination differs.
 
-**`mode: draft` output:** Write the content to `Tasks/task-{feature-name}.md` in the notes folder, with a kebab-case file name. If the folder does not exist, create it. Confirm with the file path and a brief preview of the structure.
+**`mode: draft` output:** Write the content to `Tasks/task-{feature-name}.md` in the notes folder, with a kebab-case file name. Confirm with the file path and a brief preview of the structure.
 
 The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 

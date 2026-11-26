@@ -15,7 +15,7 @@ The skills and commands of `dev-essentials` now keep their notes in one notes fo
 
 ### Added in dev-essentials
 
-- `references/notes-root.md`: the rule that finds the notes folder of a task. The first item that gives a folder wins: a folder that the request names, a folder that the `CLAUDE.md` of the repository names, and the task folder of a KB clone. Else the notes folder is `~/claude-notes/<repo>/<branch>/`. The test for a KB clone is the test of the launcher of the `kb` plugin: `KB_DIR` holds a full path to a folder with `_claude/RULES.md` (issue #368).
+- `references/notes-root.md`: the rule that finds the notes folder of a task. The first item that gives a folder wins: a folder that the request names, a folder that the `CLAUDE.md` of the repository names for notes, and the task folder of a KB clone. A folder that `CLAUDE.md` names for one kind of file only, such as plans, holds that kind only. If no item gives a folder, the notes folder is `~/claude-notes/<repo>/<branch>/`. The test for a KB clone is the test of the launcher of the `kb` plugin: `KB_DIR` holds a full path to a folder with `_claude/RULES.md` (issue #368).
 - `skills/merge-pr/SKILL.md`: item 6 of Step 4 loads `kb:close-task` after the merge. It has two conditions: the session lists that skill, and a KB clone exists. All workflows that merge reach it through `merge-pr` (issue #368).
 
 ### Changed in dev-essentials

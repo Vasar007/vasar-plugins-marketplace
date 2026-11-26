@@ -99,6 +99,19 @@ class NotesFolderRuleTests(unittest.TestCase):
                 self.assertTrue(any(NOTES_RULE in text for text in texts), f"No file of the unit names {NOTES_RULE}.")
         self.assertGreater(checked, 0, "No unit of dev-essentials names a notes folder.")
 
+    def test_no_file_of_dev_essentials_names_a_fixed_notes_path(self):
+        fixed_path = re.compile(r"(?<![\w/])Notes/")
+        checked = 0
+        for path in sorted(DEV_ESSENTIALS.rglob("*.md")):
+            relative = path.relative_to(DEV_ESSENTIALS).as_posix()
+            if relative.startswith("evals/") or relative == NOTES_RULE:
+                continue
+            checked += 1
+            with self.subTest(path=relative):
+                self.assertIsNone(fixed_path.search(path.read_text(encoding="utf-8")),
+                                  "Name a path in the notes folder, for example Plans/x.md, not Notes/Plans/x.md.")
+        self.assertGreater(checked, 0, "No Markdown file of dev-essentials was checked.")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -83,6 +83,17 @@ class RefusalTests(BackupMoveCase):
         self.assertTrue((self.ws / "untracked.md").is_file())
         self.assertFalse(self.backup.exists())
 
+    def test_git_error_in_a_repository_is_a_usage_error_and_no_file_moves(self):
+        self.write("tracked.md")
+        self.track("tracked.md")
+        subprocess.run(["git", "-C", str(self.ws), "commit", "-q", "-m", "add the file"], check=True,
+                       capture_output=True)
+        env = dict(os.environ, GIT_TEST_ASSUME_DIFFERENT_OWNER="1")
+        result = self.run_script("--workspace", self.ws, "--backup", self.backup, "--apply", "tracked.md", env=env)
+        self.assertResult(result, 2, "git rev-parse failed in")
+        self.assertTrue((self.ws / "tracked.md").is_file())
+        self.assertFalse(self.backup.exists())
+
     def test_bad_paths_are_refused(self):
         self.write("Notes/a.md")
         (self.ws / "Notes/folder").mkdir()

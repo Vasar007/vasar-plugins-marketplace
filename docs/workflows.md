@@ -31,7 +31,7 @@ Some runs have no GitHub repository: the request names none, and no remote of th
 The workflows of `dev-essentials` write plans, research files, reports, reviews, and drafts into a notes folder. The file [`notes-root.md`](../essentials/dev-essentials/references/notes-root.md) gives the rule. The first item that gives a folder wins:
 
 1. A folder that you name in your request, for example with the option `--notes-dir` of `implement-task`.
-2. A folder that the `CLAUDE.md` file of the repository names for notes, plans, or reports.
+2. A folder that the `CLAUDE.md` file of the repository names for notes. A folder that it names for one kind of file only, for example plans or reports, holds that kind only. The other files take the next items.
 3. The task folder of a knowledge base (KB) clone. The variable `KB_DIR` names the clone, and the clone holds `_claude/RULES.md`. The `kb` plugin uses the same test.
 4. Else the folder `~/claude-notes/<repo>/<branch>/` in your home folder.
 

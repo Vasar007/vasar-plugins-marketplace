@@ -75,6 +75,8 @@ def tracked_paths(workspace, keys):
     inside = subprocess.run(["git", "-C", str(workspace), "rev-parse", "--is-inside-work-tree"],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")
     if inside.returncode != 0 or inside.stdout.strip() != "true":
+        if any((folder / ".git").exists() for folder in [workspace, *workspace.parents]):
+            usage_error(f"git rev-parse failed in {workspace}: {inside.stderr.strip()}")
         return set()
     result = subprocess.run(["git", "--literal-pathspecs", "-C", str(workspace), "ls-files", "-z", "--", *keys],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")

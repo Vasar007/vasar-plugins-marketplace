@@ -23,7 +23,7 @@ The input can also name a base branch, and a spec, a plan, or a design document 
 
 ## Workflow
 
-All paths below are relative to the root of the repository (`git rev-parse --show-toplevel`). The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
+The git paths below are relative to the root of the repository (`git rev-parse --show-toplevel`). A path in the notes folder is relative to the notes folder. The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 ### 1. Analyze Git Changes
 
@@ -130,7 +130,7 @@ For example outputs of a small and a larger change, read [references/examples.md
 
 ### 6. Save PR Description
 
-- Save the description as `PRs/PR-<branch>.md` in the notes folder. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the folder `PRs/` does not exist, create it. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
+- Save the description as `PRs/PR-<branch>.md` in the notes folder. `<branch>` is the branch name with each `/` replaced by `-`. In a detached HEAD, use a `yyyyMMdd-HHmmss` timestamp instead. If the repo already uses a different drafts folder, for example `docs/prs/`, use that folder instead.
 - The file must be valid Markdown with the `.md` extension.
 - This skill writes the text only. It does not open, push, or edit the PR.
 - Tell the user the file path, and show the PR description for a quick review.

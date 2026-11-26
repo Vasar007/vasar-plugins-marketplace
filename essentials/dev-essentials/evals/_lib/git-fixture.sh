@@ -40,7 +40,7 @@ fixture_commit() {
 # Name the folder notes/ in CLAUDE.md as the notes folder, and commit the line.
 fixture_notes_folder() {
     printf '%s
-' '- Notes folder: `notes/`. Plans, reports, reviews, and drafts of a task go there.' >> CLAUDE.md
+' '- Notes folder: `notes/`.' >> CLAUDE.md
     fixture_commit "name the notes folder"
 }
 
