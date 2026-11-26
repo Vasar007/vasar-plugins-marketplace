@@ -41,11 +41,13 @@ If `KB_DIR` is not set, is not a full path, or names a folder with no `_claude/R
 
 ## Setup
 
-Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rules for `kb-search.sh` and for the KB text checks. They also include the three `git -C <KB root>` allow rules (`status`, `log`, `show`) and the ask rule for `--output`. Further pieces are the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes.
+Run `/kb:setup` once on each machine. It runs `check.sh`, which changes nothing and prints the OS and one line for each missing piece. The pieces are these: the KB clone, `KB_DIR`, and the allow rules for `kb-search.sh` and for the KB text checks. Each of these three rules holds the full path of the clone, for example `Bash(bash <KB root>/_claude/tools/kb-search.sh *)`. A Bash rule matches the command text, so the rule matches only a call of the script in the clone. The rules of the KB clone tell each session to call the scripts with this full path. They also include the three `git -C <KB root>` allow rules (`status`, `log`, `show`) and the ask rule for `--output`. Further pieces are the import lines and the "KB root" line in `~/.claude/CLAUDE.md`, the sync timer, and the git configuration. The skill shows each change and waits for the owner's yes. If `permissions.allow` still holds an old rule with a relative path, such as `Bash(bash _claude/tools/kb-search.sh *)`, `check.sh` prints a `STALE:` line. The skill removes the rule after the owner's yes.
 
 ## Limits
 
 - A session that signs in with a token or an API key does not load synced plugins, so it runs no KB hook.
-- If the KB clone has no `_claude/hooks/allow-read.sh` yet, `cd <KB root> && git ...` from a session outside the KB root asks. The plain rules then cover `git -C <KB root> ...` and the checks in the KB root.
+- If the KB clone has no `_claude/hooks/allow-read.sh` yet, `cd <KB root> && git ...` from a session outside the KB root asks. The plain rules then cover `git -C <KB root> ...` and the KB text checks with the full path of the clone.
+- `check.sh` prints the path rules only for the clone that `KB_DIR` names. For another clone, it prints one `MISSING:` line that asks you to set `KB_DIR`.
+- The three script rules need a clone path with only these characters: ASCII letters, digits, `.`, `_`, `/`, `:`, `~`, and `-`. A space or a `*` in the path changes what a Bash rule matches. For such a path, `check.sh` prints one `MISSING:` line and no script rule. Move the clone to another path.
 - There is no plain allow rule for `git diff`. A plain rule also lets `git diff <file outside the KB> /dev/null` print any file with no prompt. The `allow-read` script of the KB clone handles `git diff`.
 - Do not run these hooks and the same hooks from `~/.claude/settings.json` on one machine. Each hook then runs twice.
