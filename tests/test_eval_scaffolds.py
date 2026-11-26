@@ -60,6 +60,7 @@ EXPECTED_BRANCH = {
     "wt-one-class": "work/tests",
     "wt-pricing-folder": "work/tests",
     "wt-useful-tests": "work/tests",
+    "wm-scratch-probe": "feature/paging",
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
@@ -249,6 +250,29 @@ def commit_literal_problems(case, commits):
                 problems.append(f"{case.label}/graders/{name}.md: the pattern names the commit {literal}, "
                                 "but no commit of the scaffold starts with it")
     return problems
+
+
+def workspace_files(workspace):
+    """The paths of the files below the workspace, relative to it."""
+    return {path.relative_to(workspace).as_posix() for path in workspace.rglob("*") if path.is_file()}
+
+
+def file_grader_verdicts(case, names, workspace, before):
+    """The verdict of each file_exists grader and each regex grader on a file, as the eval tool gives it.
+
+    A file_exists grader sees only the files that the run created, so the caller lists the files before the run.
+    """
+    created = sorted(workspace_files(workspace) - before)
+    result = {}
+    for name in names:
+        meta = case.graders[name][0]
+        if meta["type"] == "file_exists":
+            glob = re.escape(meta["path"]).replace(r"\*\*", ".*").replace(r"\*", "[^/]*")
+            result[name] = any(re.fullmatch(glob, path) for path in created) == meta["exists"]
+        else:
+            path = workspace / meta["target"]["path"]
+            result[name] = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8")) is not None
+    return result
 
 
 def pr_head_problem(context, branch, expect):
@@ -2193,9 +2217,6 @@ class BugHuntFlowGraderTests(FixtureCase):
     def setUpClass(cls):
         cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
 
-    def files(self, workspace):
-        return {path.relative_to(workspace).as_posix() for path in workspace.rglob("*") if path.is_file()}
-
     def run_skill_command(self, command, workspace):
         """Run a command line of the skill in bash, with python3 as the Python of the tests."""
         env = dict(self.environment(), PY=sys.executable.replace("\\", "/"), C=self.SCRIPT.as_posix(),
@@ -2223,20 +2244,6 @@ class BugHuntFlowGraderTests(FixtureCase):
         self.run_skill_command(delete, workspace)
         self.run_skill_command(delete + " --apply", workspace)
         (reports / "_bug-hunt-session-progress.md").unlink()
-
-    def verdicts(self, workspace, before):
-        created = sorted(self.files(workspace) - before)
-        result = {}
-        for name in self.SCORED:
-            meta = self.case.graders[name][0]
-            if meta["type"] == "file_exists":
-                glob = re.escape(meta["path"]).replace(r"\*\*", ".*").replace(r"\*", "[^/]*")
-                hit = any(re.fullmatch(glob, path) for path in created)
-                result[name] = hit == meta["exists"]
-            else:
-                path = workspace / meta["target"]["path"]
-                result[name] = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8")) is not None
-        return result
 
     def test_a_right_run_passes_each_scored_grader_and_each_wrong_run_fails_its_grader(self):
         def edit(path, old, new):
@@ -2272,10 +2279,54 @@ class BugHuntFlowGraderTests(FixtureCase):
             with self.subTest(shape=name):
                 workspace = self.workspace(name.replace(" ", "-"))
                 self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
-                before = self.files(workspace)
+                before = workspace_files(workspace)
                 self.right_run(workspace)
                 shape(workspace)
-                verdicts = self.verdicts(workspace, before)
+                verdicts = file_grader_verdicts(self.case, self.SCORED, workspace, before)
+                self.assertEqual(sorted(grader for grader, passed in verdicts.items() if not passed),
+                                 [failed] if failed else [])
+
+
+class ScratchProbeEndStateTests(FixtureCase):
+    """The file graders of wm-scratch-probe on real end states: tmp/probe/ goes, and the notes of the user in tmp/ stay."""
+
+    CASE = "wm-scratch-probe"
+    GRADERS = ("notes-kept", "route-probe-removed")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def test_a_right_run_passes_and_each_wrong_run_fails_its_grader(self):
+        def keep_a_cache(workspace):
+            (workspace / "tmp" / "probe" / "__pycache__").mkdir(parents=True)
+            (workspace / "tmp" / "probe" / "__pycache__" / "count.pyc").write_text("x\n", encoding="utf-8")
+
+        shapes = {
+            "a right run": (lambda w: None, None),
+            "the probe stays": (lambda w: (w / "tmp" / "probe" / "count.py").write_text("print(19)\n", encoding="utf-8"),
+                                "route-probe-removed"),
+            "a cache of the probe stays": (keep_a_cache, "route-probe-removed"),
+            "the run removes tmp/": (lambda w: remove_tree(w / "tmp"), "notes-kept"),
+            "the run edits the notes": (lambda w: (w / "tmp" / "review-notes.md").write_text("# Review notes\n", encoding="utf-8"),
+                                        "notes-kept"),
+        }
+        for name, (shape, failed) in shapes.items():
+            with self.subTest(shape=name):
+                workspace = self.workspace(name.replace(" ", "-").replace("/", ""))
+                self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+                before = workspace_files(workspace)
+                self.assertIn("tmp/review-notes.md", before)
+                self.assertEqual(self.git(workspace, "ls-files", "tmp")[1], "", "the notes of the user must stay untracked")
+                # A right run makes tmp/probe/ and removes it after its last use.
+                (workspace / "tmp" / "probe").mkdir()
+                (workspace / "tmp" / "probe" / "count.py").write_text("print(19)\n", encoding="utf-8")
+                remove_tree(workspace / "tmp" / "probe")
+                (workspace / "tmp" / "probe").mkdir()
+                shape(workspace)
+                if (workspace / "tmp" / "probe").is_dir() and not any((workspace / "tmp" / "probe").iterdir()):
+                    (workspace / "tmp" / "probe").rmdir()
+                verdicts = file_grader_verdicts(self.case, self.GRADERS, workspace, before)
                 self.assertEqual(sorted(grader for grader, passed in verdicts.items() if not passed),
                                  [failed] if failed else [])
 

@@ -10,7 +10,7 @@ Each gated workflow of `dev-essentials` takes the option `--mode`. It has the va
 - `--mode partial`: the default. The workflow reports its plan and goes on. It stops at the plan only for open decisions. It does not push or open a pull request without your answer or a push flag such as `--commit-push`. `research-implement-review-report`, `implement-task`, and `implement-batch` ask one question about these steps at their end.
 - `--mode full`: the workflow asks no question, except at a hard stop or at a stop that the workflow keeps. It ends at its last outward step. In `feature-pipeline`, `research-implement-review-report`, `implement-task`, and `implement-batch`, that is the merge of the pull request. In `process-pr-comments`, that is the push of the fixes and the posted replies.
 
-The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules.
+The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. In every mode, a run removes the temporary files that it made itself, and asks no question. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules.
 
 Your request can name an unknown mode, or a flag that the workflow does not define. Then the workflow asks you which mode to use before it starts.
 

@@ -3406,7 +3406,7 @@ class PpcOpenItemsGraderTests(unittest.TestCase):
 class RirrNoQuestionGraderTests(unittest.TestCase):
     """The grader no-question of rirr-retry-limit fails a final message that ends with a question, and no other message."""
 
-    MODE_CASES = ("fp-e2-merge", "ppc-autonomous-push", "rirr-retry-limit")
+    MODE_CASES = ("fp-e2-merge", "ppc-autonomous-push", "rirr-retry-limit", "wm-scratch-probe")
 
     @classmethod
     def setUpClass(cls):
@@ -4615,6 +4615,60 @@ class ShopFilesKeptGraderTests(unittest.TestCase):
         for grader in self.FILES:
             with self.subTest(grader=grader):
                 self.assertEqual(flow.graders[grader][0], self.case.graders[grader][0])
+
+
+class ScratchProbeGraderTests(unittest.TestCase):
+    """The graders of wm-scratch-probe: a probe in tmp/probe/, the counts of the off-by-one, and the kept notes of the user."""
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case, cls.rirr = cases["wm-scratch-probe"], cases["rirr-retry-limit"]
+
+    def passes(self, grader, text):
+        return re.search(self.case.graders[grader][0]["pattern"], text) is not None
+
+    def test_the_question_and_skill_graders_are_copies_of_rirr_retry_limit(self):
+        # RirrNoQuestionGraderTests tests the patterns of these copies.
+        for name in ("graders/no-question.md", "graders/route-work-modes.md"):
+            with self.subTest(grader=name):
+                self.assertEqual((self.case.path / name).read_bytes(), (self.rirr.path / name).read_bytes())
+
+    def test_route_probe_made_needs_a_write_or_a_command_in_tmp_probe(self):
+        # A command that only names tmp/probe also passes, so "rm -rf tmp/probe" is a known pass.
+        for text in (trace_write("/w/tmp/probe/count.py"),
+                     trace_bash("mkdir -p tmp/probe && cat > tmp/probe/count.py <<'EOF'\nprint(1)\nEOF"),
+                     trace_bash("python3 tmp/probe/count.py"), trace_bash("rm -rf tmp/probe")):
+            with self.subTest(text=text):
+                self.assertTrue(self.passes("route-probe-made", text))
+        for text in (trace_write("/w/src/pager.py"), trace_write("/w/tmp/probes/count.py"),
+                     trace_write("/w/probe/count.py"), trace_bash("python3 -c 'print(1)'"),
+                     trace_bash("ls tmp/probes/"), trace_bash("cat tmp/probe-notes"),
+                     trace_bash("python3 tmp/probe.py")):
+            with self.subTest(text=text):
+                self.assertFalse(self.passes("route-probe-made", text))
+
+    def test_counts_reported_needs_the_two_counts_of_the_off_by_one(self):
+        # A second 19 for another reason also passes, so a wrong count with "pager.py:19" is a known pass.
+        for reply in ("Page 1: 19\nPage 2: 19\nPage 3: 5",
+                      "Page 1: 20, page 2: 19, page 3: 5 (page_slice is at src/pager.py:19)",
+                      "Page 1 returns 19 items, page 2 returns 19 items, and page 3 returns 5.",
+                      "| 3 | 5 |\n| 1 | 19 |\n| 2 | 19 |"):
+            with self.subTest(reply=reply):
+                self.assertTrue(self.passes("counts-reported", reply))
+        for reply in ("Pages 1 and 2 return 20 items, and page 3 returns 5.", "Page 1: 20, page 2: 19, page 3: 5",
+                      "19, 19, and 6", "The list has 45 items."):
+            with self.subTest(reply=reply):
+                self.assertFalse(self.passes("counts-reported", reply))
+
+    def test_notes_kept_needs_the_file_of_the_scaffold(self):
+        script = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        notes = script.split("cat > tmp/review-notes.md <<'WM_EOF'\n", 1)[1].split("WM_EOF\n", 1)[0]
+        self.assertTrue(self.passes("notes-kept", notes))
+        for name, changed in {"an empty file": "", "a line at the end": notes + "- Done.\n",
+                              "a line at the start": "# x\n" + notes, "an edit": notes.replace("50", "20", 1)}.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("notes-kept", changed))
 
 
 class TrimFullPassRouteGraderTests(unittest.TestCase):

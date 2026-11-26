@@ -47,6 +47,24 @@ HARD_STOPS = (
     "or a reference that already does or contradicts the task. Ask the user. In the full mode, a workflow can say how the run answers it. Its text must say so.",
     "7. An instruction of the user in the conversation outranks the mode.",
 )
+# Hard stop 1 lets a run remove only the scratch that it made (issue #367).
+SCRATCH_RULES = (
+    "The file rule has one exception: scratch that the run itself created in this session for its own use.",
+    "Examples are a probe script, a log, and a scratch clone with no commit of its own.",
+    "Another example is a tool that the run installed in a scratch folder for one test.",
+    "In every mode, remove it after its last use, and ask no question.",
+    "A folder or file that existed before the run is never scratch, even a folder that the run wrote into.",
+    "The run removes only the files that it created there.",
+    'If you are not sure that the run created a path, keep it, and list it under "Leftovers".',
+    "This exception does not cover git work that has no other copy, a worktree, "
+    "or a file that a step of the workflow names.",
+    "A permanent install, such as a global package, needs a yes of the user first.",
+    "In the full mode, do not make it, and list it in the final report.",
+    "If a removal fails, for example because a safety check of the tool refuses it, try no workaround.",
+    'List each leftover path in the final report under "Leftovers".',
+)
+LEFTOVERS = ('- Under "Leftovers", each scratch path that the run did not remove, and each path of unknown origin '
+             "(hard stop 1). Scratch that the run removed needs no line, also not in the list of deletions.")
 RULES = (
     "- Ask a question only at a hard stop. Ask also where a gate row, the text of the workflow, or a rule below says to ask. Do not ask in other cases.",
     "- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.",
@@ -119,6 +137,17 @@ class WorkModesSkillTests(unittest.TestCase):
         for stop in HARD_STOPS:
             with self.subTest(stop=stop):
                 self.assertIn(stop, self.text[stops:])
+
+    def test_stop_1_lets_the_run_remove_only_its_own_scratch(self):
+        stop = self.text[self.text.index("1. Data loss."):self.text.index("\n2. History.")]
+        for sentence in SCRATCH_RULES:
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, stop)
+        # The exception comes after the rule that it lifts, so the rule for git work reads first.
+        self.assertLess(stop.index("No gate table removes the stop for git work."), stop.index(SCRATCH_RULES[0]))
+
+    def test_the_final_report_names_the_place_for_leftovers(self):
+        self.assertIn(LEFTOVERS, self.text[self.text.index("## The final report"):])
 
     def test_the_rules_for_every_mode_stay(self):
         rules = self.text[self.text.index("## Rules for every mode"):]

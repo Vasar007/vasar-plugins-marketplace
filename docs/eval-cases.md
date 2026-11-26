@@ -137,6 +137,7 @@ These graders do not read shell quotes or heredocs. So a quoted text can count a
 
 - `route-no-branch` of `it-no-worktree-dirty` (`NoWorktreeDirtyRouteGraderTests`).
 - `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`).
+- `route-probe-made` of `wm-scratch-probe` (`ScratchProbeGraderTests`).
 - `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`).
 - `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). Four tries at a better pattern each failed, so it stays ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
 
