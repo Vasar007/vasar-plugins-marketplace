@@ -88,7 +88,11 @@ class RefusalTests(BackupMoveCase):
         self.track("tracked.md")
         subprocess.run(["git", "-C", str(self.ws), "commit", "-q", "-m", "add the file"], check=True,
                        capture_output=True)
-        env = dict(os.environ, GIT_TEST_ASSUME_DIFFERENT_OWNER="1")
+        # A safe.directory rule of the machine, as on CI runners, would make git trust the folder.
+        empty = self.tmp / "empty.gitconfig"
+        empty.write_text("", encoding="utf-8")
+        env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_CONFIG")}
+        env.update(GIT_TEST_ASSUME_DIFFERENT_OWNER="1", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(empty))
         result = self.run_script("--workspace", self.ws, "--backup", self.backup, "--apply", "tracked.md", env=env)
         self.assertResult(result, 2, "git rev-parse failed in")
         self.assertTrue((self.ws / "tracked.md").is_file())
