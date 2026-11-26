@@ -53,7 +53,7 @@ has_path_rule() {
 # Older versions printed these rules with a relative path, which matches the script of that path in every project.
 for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
   if has_rule "$allow" "$rule"; then
-    stale "allow rule: $rule is in permissions.allow in $settings. Remove it: its relative path matches a script in any project."
+    stale "allow rule: $rule is in permissions.allow in $settings. Its relative path matches a script in any project. Remove it after the KB rules call the scripts with the full path."
   fi
 done
 if [ -n "$kb_named" ]; then

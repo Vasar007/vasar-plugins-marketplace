@@ -418,7 +418,8 @@ class CheckScriptTests(BashCase):
         self.settings_with(home, clone, [*OLD_RULES, *allow], ask)
         settings = f"{self.bash_home(home)}/.claude/settings.json"
         expected = [f"STALE: allow rule: {rule} is in permissions.allow in {settings}. "
-                    "Remove it: its relative path matches a script in any project." for rule in OLD_RULES]
+                    "Its relative path matches a script in any project. "
+                    "Remove it after the KB rules call the scripts with the full path." for rule in OLD_RULES]
         done = self.run_complete(home, clone, gitconfig)
         self.assertEqual(done.stdout.splitlines(), ["OS: linux", *expected])
 
