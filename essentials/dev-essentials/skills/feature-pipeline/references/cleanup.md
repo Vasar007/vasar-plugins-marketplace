@@ -32,7 +32,9 @@ The test does not cover the case without a PR. Steps 2 and 4 handle that case in
 
 Do not archive by default right after the PR opens. While the PR is in review, the task artifacts are live documents. Examples: `spec.md`, `review.md`, the HTML artifact, and `pipeline-state.json`. The review rounds use the copy in the worktree.
 
-Archive `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` to `~/.claude/task-logs/{TASK_ID}/` only in these cases: the run has no PR, or the PR passes the eligibility test for the archive. If `~/.claude/task-logs/` does not exist, create it. If the target folder exists, overwrite its contents.
+The archive folder is `Pipeline/{TASK_ID}/` in the notes folder of the branch of the task. `git -C "{WORKTREE_PATH}" branch --show-current` prints that branch. The file `references/notes-root.md` at the root of this plugin gives the notes folder. From the base folder of this skill, its path is `../../references/notes-root.md`. Read that file before the archive. A notes folder inside the repository is a folder of a checkout. Use the folder in the main worktree, because the removal of a linked worktree deletes the files in it. The main worktree is the first path that `git -C "{WORKTREE_PATH}" worktree list` prints. With `--no-worktree` in the main checkout, that path is `{WORKTREE_PATH}`.
+
+Copy each file of `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` into the archive folder only in these cases: the run has no PR, or the PR passes the eligibility test for the archive. If the archive folder has a file with the same name, overwrite it. If a copy fails, report each file that is not in the archive folder.
 
 Else leave the artifacts in `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/`, skip the archive, and report that the archive waits for the PR review.
 
@@ -47,7 +49,7 @@ Do not remove the worktree by default. The worktree stays on disk until the PR i
 - No PR: keep the worktree, unless the user explicitly asks to remove it. For that request, use the user-directed override of `dev-essentials:git-worktree-management` Workflow C. Do not remove a worktree without a PR on your own.
 - A PR exists: use the PR status from step 1. Do not look it up again. The eligibility test for the removal decides.
 
-If the archive of step 2 did not run yet, run it before each worktree removal. This holds for both triggers: a merged PR and an explicit request of the user. The removal deletes `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` with the worktree. So copy anything that you want to keep to `~/.claude/task-logs/{TASK_ID}/` first. Workflow C of `dev-essentials:git-worktree-management` has the same rule ("archive anything worth keeping before removal").
+Before each worktree removal, make sure that each file of `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` is in the archive folder of step 2. If one is not, do not remove the worktree, and report it. If the archive of step 2 did not run yet, run it before each worktree removal. This holds for both triggers: a merged PR and an explicit request of the user. The removal deletes `{WORKTREE_PATH}/{ARTIFACTS_DIR}/{TASK_ID}/` with the worktree. So copy anything that you want to keep to the archive folder of step 2 first. Workflow C of `dev-essentials:git-worktree-management` has the same rule ("archive anything worth keeping before removal").
 
 > **Bulk cleanup is out of scope for this skill.** The user can ask to remove worktrees broadly. Examples: "remove all worktrees" or "clean up all merged worktrees". Do not try a bulk cleanup here. This skill manages exactly one worktree, for the current task, and `pipeline-state.json` has a `pr` object for that task only. Hand the request to Workflow D of `dev-essentials:git-worktree-management` at once, and stop the pipeline. Do not list or touch any other worktree.
 
@@ -59,6 +61,6 @@ The keep-until-merged rule has its main text in the "Lifecycle Rule" section of 
 
 ## 5. Announce the end of the run
 
-If Step 9b merged the PR, or found it merged, first do item 3 of Step 4 of `dev-essentials:merge-pr`. It deletes the merged local branch.
+If Step 9b merged the PR, or found it merged, first do items 3 and 6 of Step 4 of `dev-essentials:merge-pr`, in this order. Item 3 deletes the merged local branch. If a linked worktree still holds the branch after step 4 of this file, skip item 3, and report that the branch stays. With `--no-worktree` and the branch in the main work tree, do item 3. Item 6 closes the KB task folder after the archive of step 2. If step 2 reported a missing file, skip item 6 too, and report it.
 
-Report the final branch or PR outcome. Say whether the run removed the worktree or kept it on purpose, and why. Say whether the run archived the task logs or left them in place until the PR review ends.
+Report the final branch or PR outcome. Say whether the run removed the worktree or kept it on purpose, and why. Say whether the run archived the task logs or left them in place until the PR review ends. If it archived them, give the archive folder. If item 6 moved the task folder, give the new path.

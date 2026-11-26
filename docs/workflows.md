@@ -37,6 +37,8 @@ The workflows of `dev-essentials` write plans, research files, reports, reviews,
 
 The folders of items 3 and 4 are outside the repository. So no commit takes the notes, and the removal of a worktree keeps them. Claude Code asks before each write outside the working folders of a session. To allow these writes, add the folder with `/add-dir`, or add it to `permissions.additionalDirectories` in your configuration file.
 
+`feature-pipeline` keeps the files of a run in its artifacts folder in the worktree. Its archive step, for example after the merge, copies them to `Pipeline/<task ID>/` in the notes folder.
+
 ## One session or a new one
 
 The usual chain has these steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.

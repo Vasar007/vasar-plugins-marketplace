@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.1.0 in release [7.1.0] - 2026-11-26
 
-When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365). Each workflow that opens a pull request now sets its assignee, the labels of its issue, and its Project (issue #366). Hard stop 1 of `work-modes` lets a run remove its own scratch with no question (issue #367).
+When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365). Each workflow that opens a pull request now sets its assignee, the labels of its issue, and its Project (issue #366). Hard stop 1 of `work-modes` lets a run remove its own scratch with no question (issue #367). The archive of `feature-pipeline` now goes to the notes folder, not to `~/.claude/task-logs/` (issue #369).
 
 ### Added in dev-essentials
 
@@ -30,6 +30,9 @@ When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` no
 - `skills/work-modes/references/finish.md`: a field of the new pull request that the run cannot set is no failed step. The run goes on to the merge (issue #366).
 - The eval case `rirr-merge`: the task of the earlier run is issue 58 with two labels. New mocks and graders make sure that the run sets the assignee and both labels on the pull request with `issue_write`. The cases `rirr-merge-gate`, `it-merge`, and `ib-merge` get a mock of `issue_write` (issue #366).
 - `skills/work-modes/SKILL.md`: hard stop 1 has an exception for scratch. The run removes scratch that it created in this session for its own use, with no question, in every mode. Examples are a probe script, a log, a scratch clone with no commit of its own, and a tool in a scratch folder. A folder or file that existed before the run is never scratch. If the run is not sure that it created a path, it keeps the path. The exception does not cover git work that has no other copy, a worktree, or a file that a step of the workflow names. A permanent install needs a yes of the user first. In the full mode, the run does not make it, and lists it in the final report. If a removal fails, the run tries no workaround, and the final report lists each leftover path under "Leftovers" (issue #367).
+- `skills/feature-pipeline`: Step 10 archives the task logs to `Pipeline/<task ID>/` in the notes folder of the branch, not to `~/.claude/task-logs/`. `~/.claude/` is a protected path. A write there prompts in the modes `default` and `acceptEdits`, and the mode `dontAsk` denies it. So the archive of a run in the full mode stopped or failed. A notes folder outside the working folders needs `/add-dir` or `permissions.additionalDirectories`, as for the other workflows. A notes folder inside the repository is the folder in the main worktree. So the removal of a linked worktree keeps the archive. If a file is not in the archive, the run keeps the worktree. If a linked worktree still holds the merged local branch, the run keeps that branch too. With a missing file, the run also leaves the KB task folder open. The pipeline does not read or move an old archive in `~/.claude/task-logs/` (issue #369).
+- `skills/feature-pipeline`: Step 9b leaves item 6 of Step 4 of `merge-pr`, the close of the KB task folder, to Step 10. So the archive goes into the task folder before the close moves it (issue #369).
+- The eval case `fp-e2-merge`: the request names the notes folder `notes/`, and the new grader `route-archive-in-notes` reads the archive there (issue #369).
 
 ### Fixed in dev-essentials
 
@@ -43,6 +46,8 @@ When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` no
 - `docs/workflows.md`: in every mode, a run removes the temporary files that it made itself (issue #367).
 - `docs/eval-cases.md`: the list of known limits of the graders names `route-probe-made` (issue #367).
 - Tests: `tests/test_work_modes_text.py` makes sure that hard stop 1 keeps the exception for scratch and its limits, and that the final report names "Leftovers". `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py` test the graders of `wm-scratch-probe` (issue #367).
+- `docs/workflows.md`: the section "Where the notes go" says where `feature-pipeline` archives its files (issue #369).
+- Tests: `tests/test_rule_references.py` makes sure that no file of `dev-essentials` names a path such as `~/.claude/<name>/`, other than the files of Claude Code. It does not find a Windows path or a path that code builds. `tests/test_eval_cases.py` pins the archive grader of `fp-e2-merge` and the deferred items of `merge-pr` (issue #369).
 
 ## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26
 
