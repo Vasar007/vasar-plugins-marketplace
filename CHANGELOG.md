@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## kb 0.4.0 in release [7.2.0] - 2026-11-26
+## kb 0.4.0 in release [7.1.0] - 2026-11-26
 
 The allow rules of `/kb:setup` for `kb-search.sh`, `ste-check.py`, and `md-check.py` now hold the full path of the KB clone. Before, they had a relative path, so they also matched a script with the same path in another project. Run `/kb:setup` again. It adds the new rules. Until the rules of the KB clone call the scripts with the full path, keep the old rules with the relative path. Then remove them (issue #356).
 
@@ -2764,8 +2764,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...HEAD
-[7.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.2.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...HEAD
+[7.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.1.0
 [7.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...v7.0.0
 [6.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...v6.2.3
 [6.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...v6.2.2
