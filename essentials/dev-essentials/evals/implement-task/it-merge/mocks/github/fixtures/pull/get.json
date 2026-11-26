@@ -16,5 +16,6 @@
   },
   "user": {
     "login": "eval-user"
-  }
+  },
+  "assignees": ["eval-user"]
 }

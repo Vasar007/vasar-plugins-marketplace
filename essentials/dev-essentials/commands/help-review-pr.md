@@ -30,7 +30,7 @@ Invoke `dev-essentials:github-mcp-conventions` with the `Skill` tool. All its ru
 - Rule 2: pass `owner` and `repo` on every call.
 - Rule 3: pagination.
 - Rule 4: no comment edit or comment delete after a post. Clean up in the GitHub UI.
-- Rule 5: no fallback to REST or to the `gh` CLI.
+- Rule 5: use the MCP tools first. If no MCP tool can make the call, use the `gh` CLI, and name each `gh` call in the report.
 
 Then invoke the convention skills that apply to the **target repo**. Find them in the `CLAUDE.md` of that repo. If it is not clear which skills apply, ask the user. The skills differ for each repo. For example, a PR in a plugin marketplace of Markdown skills needs `dev-essentials:write-markdown` and `dev-essentials:engineering-discipline`. A .NET backend repo also needs `dotnet-backend-dev:dotnet-conventions`. Another repo can have other registered convention skills, or none.
 

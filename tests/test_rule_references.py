@@ -55,6 +55,13 @@ class RuleReferenceTests(unittest.TestCase):
 PLUGIN_ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([\w./-]+)")
 NOTES_RULE = "references/notes-root.md"
 DEV_ESSENTIALS = REPO / "essentials" / "dev-essentials"
+# The pattern finds ~, $HOME, and ${HOME} with /.claude/<name>, also a placeholder name.
+# It does not find a Windows path such as %USERPROFILE%\.claude\x.
+# It does not find a path that code builds, such as Path.home() / ".claude" / "x".
+HOME_CLAUDE_PATH = re.compile(r"(?:~|\$HOME|\$\{HOME\})/\.claude/([^/\\\s\"'`)\],;:]+?)\.?(?=[/\\\s\"'`)\],;:]|$)")
+# The folders and files of Claude Code itself below ~/.claude/ that a unit of dev-essentials can name.
+CLAUDE_CODE_FILES = {"projects"}
+TEXT_SUFFIXES = {".md", ".py", ".sh", ".json", ".yaml", ".yml"}
 
 
 def plugin_folder(path):
@@ -111,6 +118,40 @@ class NotesFolderRuleTests(unittest.TestCase):
                 self.assertIsNone(fixed_path.search(path.read_text(encoding="utf-8")),
                                   "Name a path in the notes folder, for example Plans/x.md, not Notes/Plans/x.md.")
         self.assertGreater(checked, 0, "No Markdown file of dev-essentials was checked.")
+
+    def test_no_file_of_dev_essentials_names_a_path_below_the_home_claude_folder(self):
+        found = 0
+        for path in sorted(p for p in DEV_ESSENTIALS.rglob("*") if p.is_file() and p.suffix in TEXT_SUFFIXES):
+            relative = path.relative_to(DEV_ESSENTIALS).as_posix()
+            if relative.startswith("evals/results/"):
+                continue
+            for name in HOME_CLAUDE_PATH.findall(path.read_text(encoding="utf-8")):
+                found += 1
+                with self.subTest(path=relative, name=name):
+                    self.assertIn(name, CLAUDE_CODE_FILES,
+                                  "~/.claude/ is a protected path. Keep the files of a task in the notes folder.")
+        self.assertGreater(found, 0, "The pattern found no path below ~/.claude/, so it cannot find a new one.")
+
+    def test_the_home_claude_pattern_finds_these_forms(self):
+        forms = {
+            "~/.claude/task-logs/x": ["task-logs"],
+            "$HOME/.claude/task-logs": ["task-logs"],
+            "${HOME}/.claude/x": ["x"],
+            "`~/.claude/{TASK_ID}/`": ["{TASK_ID}"],
+            "~/.claude/<name>/ and ~/.claude/projects/": ["<name>", "projects"],
+            "see ~/.claude/settings.json.": ["settings.json"],
+            "~/.claude/x, then ~/.claude/y": ["x", "y"],
+        }
+        for text, names in forms.items():
+            with self.subTest(text=text):
+                self.assertEqual(HOME_CLAUDE_PATH.findall(text), names)
+
+    def test_the_home_claude_pattern_skips_these_forms(self):
+        for text in ("%USERPROFILE%\\.claude\\task-logs", "~\\.claude\\x", 'Path.home() / ".claude" / "task-logs"',
+                     "`~/.claude/`", "~/.claudex/y", "the folder .claude/worktrees/ of the project"):
+            with self.subTest(text=text):
+                self.assertEqual(HOME_CLAUDE_PATH.findall(text), [])
+        self.assertIn("projects", CLAUDE_CODE_FILES)
 
 
 if __name__ == "__main__":

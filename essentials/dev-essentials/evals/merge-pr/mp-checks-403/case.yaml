@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: mp-checks-403
+context:
+  scaffold_script: scaffold.sh

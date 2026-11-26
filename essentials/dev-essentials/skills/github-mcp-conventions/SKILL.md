@@ -1,6 +1,6 @@
 ---
 name: github-mcp-conventions
-description: "Rules for GitHub MCP tool calls (`mcp__plugin_github_github__*`) in PR and issue work. Never infer `owner` or `repo`, and pass both on every call. Paginate to the end, and edit or delete no comment through MCP. Never fall back to the `gh` CLI or REST."
+description: "Rules for GitHub MCP tool calls (`mcp__plugin_github_github__*`) in PR and issue work. Never infer `owner` or `repo`, and pass both on every call. Paginate to the end, and edit or delete no comment through MCP. If no MCP tool has the call, or the call fails twice, use `gh` for that call only."
 when_to_use: "Use it in any session that calls these tools. Examples: read PRs, post review comments, or create issues."
 ---
 
@@ -74,24 +74,43 @@ Do not edit or delete a posted comment through MCP. For PR review comments, the 
 
 **Pending review batches:** a batch from `add_comment_to_pending_review` is not visible until `pull_request_review_write` submits it. You can discard your own pending review through MCP: call `pull_request_review_write` with `method: "delete_pending"`. The call deletes the whole pending review of the current user, with all its comments. Nobody else saw these comments, so this is not a delete of a posted comment. MCP has no tool to edit or delete one comment of a pending review. To change one comment, delete the whole pending review, and create it again.
 
-## Rule 5 — No REST/`gh`-CLI fallback when MCP is unavailable
+## Rule 5 — Use the `gh` CLI only when no MCP tool can make the call
 
-If GitHub MCP tools are missing or misbehave, never use `gh pr comment`, `curl`, direct REST calls, or any script to work with GitHub instead.
+Try the GitHub MCP tool first. Use the `gh` CLI for a call only in one of these cases:
 
-**Why:** the GitHub MCP server is the sanctioned interface. REST workarounds bypass the consistent tool surface, need credential management, and are explicitly prohibited. If the MCP server is unavailable, the correct repair is to reconnect it, not to work around it.
+1. No GitHub MCP tool has the call, or a field that the step needs. Look at the other MCP tools first. A tool that the session lists with only its name counts too, so load it with `ToolSearch`.
+2. The MCP call fails, and it fails again after one retry. Before the retry, diagnose the call. The usual causes are a missing `owner` or `repo`, or a wrong type for `pullNumber`. If you can fix the call, fix it, and stay with MCP. After a failed MCP write, first read whether the write landed (Rule 4). Do this before the retry and before a `gh` call.
+
+A case holds for that one call. Make the next call with MCP.
+
+**Why:** the GitHub MCP server is the main interface. It gives one tool surface and needs no credential management. But it does not cover each call that the workflows need, and the `gh` CLI calls the full GitHub API.
+
+Known cases from real runs:
+
+- `pull_request_read` with `method: "get_check_runs"` fails with `403 Resource not accessible by personal access token`.
+- No MCP tool creates a release. Only `gh release create` can.
+- `issue_write` with `method: "create"` can open a form that the user never sees, and it returns no issue number. Then list the issues and look for the title before you call again.
+- `create_pull_request` takes no assignee and no labels.
+- No MCP tool makes a blocked-by link or a relates-to link between issues. `gh api graphql` can.
+- `search_issues` matches by meaning. It can miss an exact token in an issue body, so a search for a duplicate issue is not complete.
 
 **How to apply**:
 
-- If the session has no `mcp__plugin_github_github__*` tools, ask the user to reconnect with `/mcp`, and wait.
-- If a tool returns an unexpected error, diagnose the call. The usual causes are a missing `owner` or `repo`, a wrong type for `pullNumber`, or a permissions gap. Do not use the `gh` CLI or `curl` as a fallback.
-- `dev-essentials:subagent-orchestration` Rule 4 has the same rule for subagents. If MCP is missing in a subagent, the subagent reports the error upward and does not fall back to REST either.
-- One named exception: Phase 9c.4 step 7 of `dev-essentials:promote-conventions` creates a PR with `gh pr create`. If the session has no GitHub MCP tools, the step uses `gh`. The step also uses `gh` after an MCP call fails with a connection error or an authentication error. The exception covers only that step. It does not cover an MCP call that fails because of a wrong parameter.
+- Pass the `owner` and `repo` of Rules 1 and 2 to each `gh` call, with `--repo <owner>/<repo>` or in the `repos/<owner>/<repo>` path.
+- Name each `gh` call and its reason in the report: the missing tool or field, or the error of the MCP call and of its retry.
+- A `gh` call keeps each approval gate of the workflow, for example the merge gate. It needs the same approval as the MCP call that it replaces. A failed `merge_pull_request` call never goes through `gh`.
+- If the `gh` call fails too, or `gh` is not installed or not signed in, report the failure. Do not try `curl`, a REST call outside `gh`, or a script.
+- If the session has no `mcp__plugin_github_github__*` tools, ask the user to reconnect with `/mcp`, and wait. A missing server is not case 1.
+- A skill that gives its own stop or its own `gh` step wins over this rule. An example is Phase 9c.4 step 7 of `dev-essentials:promote-conventions`. If the session has no GitHub MCP tools, or the MCP call fails with a connection error or an authentication error, it runs `gh pr create`.
+- A `gh` command that the user or the project instructions name is not a fallback. This rule does not ban it.
+- `dev-essentials:subagent-orchestration` Rule 4 has the same rule for subagents.
 
 **Anti-patterns**:
 
-- "MCP returned an error, so I post with `gh pr comment` directly." No. Fix the MCP call.
-- "The MCP tool does not work, so I write a shell script with `curl` and the GitHub REST API." No. Ask the user to fix `/mcp`.
-- "Just a quick `gh pr view`, because MCP is slow." No. A slow MCP call is never a reason to use `gh`.
+- "Just a quick `gh pr view`, because MCP is slow." No. A slow MCP call, or a shorter `gh` command, is never a reason to use `gh`.
+- "MCP returned an error, so I post with `gh pr comment` at once." No. Diagnose the call, and retry it first.
+- "The MCP tool does not work, so I write a shell script with `curl` and the GitHub REST API." No. Use `gh` only in the cases above, and never `curl`.
+- "`gh` read the check runs as green, so I merge with no approval." No. A `gh` call changes no approval gate.
 
 ## Rule 6 — After a create call echoes a relationship, re-read to confirm it landed
 
@@ -130,6 +149,10 @@ git log --oneline origin/<base>..origin/pull/<id>/head
 This recipe needs `origin` to be the base repository of the PR. If the fetch fails, stop and ask the user which remote holds the base repository. Then use that remote in place of `origin`. Do not fall back to the name of the head branch.
 
 This is not a new pattern. The `target=pr <id>` resolution of `dev-essentials:review-loop` already fetches and diffs this way. Treat it as the precedent, and do not invent a new way at each call site.
+
+## The fields of a new pull request
+
+After you open a pull request on GitHub, set its assignee, its labels, and its Project. The steps are in `references/pull-request-fields.md`.
 
 ## Thread anchors and `html_url`
 

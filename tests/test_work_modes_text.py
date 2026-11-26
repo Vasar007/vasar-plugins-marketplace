@@ -47,6 +47,24 @@ HARD_STOPS = (
     "or a reference that already does or contradicts the task. Ask the user. In the full mode, a workflow can say how the run answers it. Its text must say so.",
     "7. An instruction of the user in the conversation outranks the mode.",
 )
+# Hard stop 1 lets a run remove only the scratch that it made (issue #367).
+SCRATCH_RULES = (
+    "The file rule has one exception: scratch that the run itself created in this session for its own use.",
+    "Examples are a probe script, a log, and a scratch clone with no commit of its own.",
+    "Another example is a tool that the run installed in a scratch folder for one test.",
+    "In every mode, remove it after its last use, and ask no question.",
+    "A folder or file that existed before the run is never scratch, even a folder that the run wrote into.",
+    "The run removes only the files that it created there.",
+    'If you are not sure that the run created a path, keep it, and list it under "Leftovers".',
+    "This exception does not cover git work that has no other copy, a worktree, "
+    "or a file that a step of the workflow names.",
+    "A permanent install, such as a global package, needs a yes of the user first.",
+    "In the full mode, do not make it, and list it in the final report.",
+    "If a removal fails, for example because a safety check of the tool refuses it, try no workaround.",
+    'List each leftover path in the final report under "Leftovers".',
+)
+LEFTOVERS = ('- Under "Leftovers", each scratch path that the run did not remove, and each path of unknown origin '
+             "(hard stop 1). Scratch that the run removed needs no line, also not in the list of deletions.")
 RULES = (
     "- Ask a question only at a hard stop. Ask also where a gate row, the text of the workflow, or a rule below says to ask. Do not ask in other cases.",
     "- At a gate that does not stop, save what the gate shows in its usual file. If the gate has no file, put the content in the final report. Then take the default of the gate, and continue.",
@@ -119,6 +137,17 @@ class WorkModesSkillTests(unittest.TestCase):
         for stop in HARD_STOPS:
             with self.subTest(stop=stop):
                 self.assertIn(stop, self.text[stops:])
+
+    def test_stop_1_lets_the_run_remove_only_its_own_scratch(self):
+        stop = self.text[self.text.index("1. Data loss."):self.text.index("\n2. History.")]
+        for sentence in SCRATCH_RULES:
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, stop)
+        # The exception comes after the rule that it lifts, so the rule for git work reads first.
+        self.assertLess(stop.index("No gate table removes the stop for git work."), stop.index(SCRATCH_RULES[0]))
+
+    def test_the_final_report_names_the_place_for_leftovers(self):
+        self.assertIn(LEFTOVERS, self.text[self.text.index("## The final report"):])
 
     def test_the_rules_for_every_mode_stay(self):
         rules = self.text[self.text.index("## Rules for every mode"):]
@@ -366,6 +395,81 @@ class FinishCallerTests(unittest.TestCase):
         self.assertIn("- `research-implement-review-report`, `implement-task`, and `implement-batch`: the merge of the pull request, "
                       "after the gate of `dev-essentials:merge-pr`. Their finish steps are in `references/finish.md` of this skill",
                       read(WORK_MODES))
+
+
+FIELDS = PLUGIN / "skills/github-mcp-conventions/references/pull-request-fields.md"
+# Each file that opens a pull request, and its path to the field steps from the base folder of its skill.
+FIELD_CALLERS = {
+    "skills/work-modes/references/finish.md": "../github-mcp-conventions/references/pull-request-fields.md",
+    "skills/feature-pipeline/stages/finalization.md": "../github-mcp-conventions/references/pull-request-fields.md",
+    "skills/promote-conventions/references/cleanup-and-provenance.md": "../github-mcp-conventions/references/pull-request-fields.md",
+    "skills/github-mcp-conventions/SKILL.md": "references/pull-request-fields.md",
+}
+OPENS_A_PULL_REQUEST = re.compile(r"create_pull_request|gh pr create")
+
+
+class PullRequestFieldTests(unittest.TestCase):
+    """The fields of a new pull request: the assignee, the labels, and the Project (issue #366)."""
+
+    def test_each_pointer_names_the_file_from_the_base_folder_of_its_skill(self):
+        for rel, pointer in FIELD_CALLERS.items():
+            base = PLUGIN / "/".join(rel.split("/")[:2])
+            with self.subTest(file=rel):
+                self.assertIn(f"`{pointer}`", read(PLUGIN / rel))
+                self.assertEqual((base / pointer).resolve(), FIELDS.resolve())
+
+    def test_each_unit_that_opens_a_pull_request_does_the_field_steps(self):
+        units = {}
+        for path in PLUGIN.rglob("*.md"):
+            parts = path.relative_to(PLUGIN).parts
+            if parts[0] == "evals":
+                continue
+            unit = "/".join(parts[:2]) if parts[0] == "skills" else "/".join(parts)
+            units.setdefault(unit, []).append(read(path))
+        openers = [unit for unit, texts in units.items() if any(OPENS_A_PULL_REQUEST.search(text) for text in texts)]
+        self.assertTrue(openers, "No unit opens a pull request.")
+        for unit in openers:
+            with self.subTest(unit=unit):
+                self.assertTrue(any("pull-request-fields.md" in text for text in units[unit]))
+
+    def test_the_steps_try_the_mcp_tool_first_and_use_gh_for_the_project_list(self):
+        text = read(FIELDS)
+        order = ["call `mcp__plugin_github_github__issue_read` with `method: \"get_labels\"`",
+                 "1. Call `mcp__plugin_github_github__pull_request_read` with `method: \"get\"`",
+                 "2. Call `mcp__plugin_github_github__issue_write` with `method: \"update\"`, `issue_number` set to the number of the pull request",
+                 "`gh pr edit <number> --repo <owner>/<repo> --add-assignee @me --add-label \"<label>,<label>\"`",
+                 "5. Read the pull request one more time, as in step 1.",
+                 "`gh repo view <owner>/<repo> --json projectsV2 --jq '.projectsV2.Nodes[] | [.number, .title] | @tsv'`",
+                 "`mcp__plugin_github_github__projects_write`, call it with `method: \"add_project_item\"`",
+                 "`gh pr edit <number> --repo <owner>/<repo> --add-project \"<title>\"`"]
+        positions = [text.index(step) for step in order]
+        self.assertEqual(positions, sorted(positions))
+        for sentence in ("A field that the steps cannot set does not stop the run, because the pull request exists.",
+                         "Never create a label, and never add a label that the issue does not have.",
+                         "The `id` of the create result is not the number.",
+                         "Pass the `owner`, the `repo`, and the `issue_number` of the issue, as the task names them (Rule 1).",
+                         "If a read of this section fails, fix the call, and make it one more time. If it fails again, name each label that the read did not give as not set, with the error. Then go on with the next section.",
+                         "A tool that the session lists with only its name counts. Load it with `ToolSearch`.",
+                         "If the session has no GitHub MCP tools, skip each MCP call of these steps, and use the `gh` commands of this file.",
+                         "Do not ask the user to reconnect.",
+                         "The update replaces the old lists.",
+                         "Do not skip this call.",
+                         "If the read fails, name the assignee and the labels as unknown, with the error.",
+                         "If the list has more than one Project, do not choose one.",
+                         "name the Project as unknown, with the error.",
+                         "do not run `gh auth refresh`"):
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, text)
+
+    def test_the_finish_steps_set_the_fields_before_the_merge(self):
+        steps = read(FINISH)[read(FINISH).index("## Steps"):read(FINISH).index("## A failed step in the full mode")]
+        created = steps.index("6. If the call fails, report the error and the pushed branch, and end the run.")
+        fields = steps.index("7. Set the fields of the new pull request:")
+        merge = steps.index("5. Load `dev-essentials:merge-pr` with the `Skill` tool")
+        self.assertLess(created, fields)
+        self.assertLess(fields, merge)
+        self.assertIn("A field that these steps cannot set is no failed step. Then do step 5, unless this file says to skip step 5.", steps)
+        self.assertIn("- Each field of the pull request that the run did not set, with the reason.", read(FINISH))
 
 
 NO_WORKTREE_UNITS = {"skills/implement-batch/SKILL.md": "Step 1", "commands/implement-task.md": "Phase 1"}

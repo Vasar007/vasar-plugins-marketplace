@@ -1,0 +1,8 @@
+{
+  "number": 58,
+  "title": "Lower the HTTP retry limit to 3",
+  "state": "open",
+  "html_url": "https://github.com/example-org/users-app/issues/58",
+  "labels": ["bug", "http"],
+  "body": "Five retries make a failed call wait too long. Lower the HTTP retry limit of the users app from 5 to 3."
+}

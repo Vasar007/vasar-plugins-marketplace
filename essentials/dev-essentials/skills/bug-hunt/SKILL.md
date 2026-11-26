@@ -237,7 +237,7 @@ the content below into its matching sections. Else use these sections, in this o
 
 1. Blocked on me: the decisions that only the user can make. List each Unconfirmed finding by ID and point to "For the owner's review" in the Summary. If there are none, write "Nothing".
 2. Changed: the report path, the run context file, the final summary file, and the artifacts folder with the number of subfolders. Say that the run made no change in the project, no commits, and no GitHub issues.
-3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not confirm. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and any leftover file. Also the lists that "Autonomy" asks for.
+3. Found: the counts for each verdict. The Confirmed findings by severity, with ID and title, at most 10. The leads that the verifiers or the auditor reported but did not confirm. The limits of the run, the use of the plain-English fallback, any change from the meta-plan, and each leftover file, under "Leftovers". Also the lists that "Autonomy" asks for.
 
 Save the final report, as is, to `bug-hunt-final-summary.md` in the report folder with the
 Write tool. If step 0 chose a dated name, use that name. Then post the same text in chat.

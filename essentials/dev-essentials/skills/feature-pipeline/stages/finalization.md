@@ -85,6 +85,8 @@ If the project context gives no PR command, skip this step. Report the branch st
 
    If neither source names the repository, do not call the tool. Do not take the repository from the `origin` remote, from the task URL, or from the session. Stop, and report that the project context names no repository for the PR. Also report the pushed branch, so that the human can open the PR.
 
+5. If this step created a PR on GitHub, set its fields: do the steps of `skills/github-mcp-conventions/references/pull-request-fields.md` of this plugin. From the base folder of this skill, its path is `../github-mcp-conventions/references/pull-request-fields.md`. Take `owner`, `repo`, and the number of the PR from the URL of the new PR, as that file says. Name that source in the final report. If the task URL points to a GitHub issue, it is the issue of these steps. Name each field that the run did not set in the final report.
+
 ### Step 7: Link the Tracking Issue
 
 If Step 6 created no PR, skip this step. The task URL can point to a tracking item of the PR provider, for example a GitHub issue for a PR on GitHub. If the provider has a linking tool, load it with `ToolSearch`, and link the PR to the item. If the link fails, report the failure, and continue, because the PR exists. Without a linking tool, the task URL in the PR body is the link.
@@ -95,4 +97,4 @@ If Step 6 created no PR, skip this step. The task URL can point to a tracking it
 - Never force-push. Never push the default branch.
 - Never include pipeline artifacts from `{ARTIFACTS_DIR}/` in the commit. They are local to the project.
 - Never name `{ARTIFACTS_DIR}/...` paths, artifact section numbers, or review-finding IDs in the commit message. See the `<commit-conventions>` block.
-- If a step fails (the build, the tests, the lint, the workflow inference, the push, or the PR), stop and report the failure. Do not try workarounds. A failed link of Step 7 is the one exception.
+- If a step fails (the build, the tests, the lint, the workflow inference, the push, or the PR), stop and report the failure. Do not try workarounds. A failed link of Step 7 and a field that item 5 of Step 6 did not set are the exceptions.

@@ -46,6 +46,7 @@ Where this file says not to look for the repository, skip this section. In the f
    4. Write a title of at most 72 characters from the section `## What` of the body.
    5. Call `mcp__plugin_github_github__create_pull_request` with `owner`, `repo`, `base` (the base branch of the run), `head` (the branch), `title`, and `body`.
    6. If the call fails, report the error and the pushed branch, and end the run.
+   7. Set the fields of the new pull request: do the steps of `skills/github-mcp-conventions/references/pull-request-fields.md` of this plugin. From the base folder of this skill, its path is `../github-mcp-conventions/references/pull-request-fields.md`. If the task is a GitHub issue, it is the issue of these steps. A field that these steps cannot set is no failed step. Then do step 5, unless this file says to skip step 5.
 5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request. The full mode of the run, or the yes of the final gate, is the approval that its section "Approval" asks for. If its gate fails, it does not merge, and the pull request stays open.
 
 ## A failed step in the full mode
@@ -62,5 +63,6 @@ Print the finish report after the final report of the workflow. It lists:
 
 - The repository, and its source: the request or the `origin` remote.
 - The result of each step: the build and the tests, the push, the pull request with its number and its URL, and the report of `merge-pr`.
+- Each field of the pull request that the run did not set, with the reason.
 - Each step that did not run, with the reason.
 - When a worktree was removed: the archive folder of the files of the run.

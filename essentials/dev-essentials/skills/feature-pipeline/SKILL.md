@@ -215,7 +215,7 @@ In the full mode, or with that approval, these items must hold:
 
 If an item does not hold, do not merge. Report the item, and go to Step 10.
 
-Else load the skill `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the PR of `pr`. Leave item 3 of its Step 4, the merged local branch, to Step 10, because Step 10 archives the task logs first. If the skill does not merge, the PR stays open. In both cases, put the report of the skill into the final report, and go to Step 10.
+Else load the skill `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the PR of `pr`. Leave items 3 and 6 of its Step 4, the merged local branch and the KB task folder, to Step 10. Step 10 archives the task logs first. If the skill does not merge, the PR stays open. In both cases, put the report of the skill into the final report, and go to Step 10.
 
 On a resume in the full mode, or with the approval of `dev-essentials:merge-pr`, run this step before Step 10. This holds also for a run that ended earlier with an open PR in another mode.
 
