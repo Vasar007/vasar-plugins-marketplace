@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## kb 0.4.1 in release [7.2.1] - 2026-11-26
+
+If no text that a session follows calls its script with a relative path, `/kb:setup` now removes the stale allow rule of that script. Before, the skill searched the whole folder `_claude` of the KB clone. That search found files that do not matter, so the rule stayed for all time (issue #373).
+
+### Fixed in kb
+
+- `skills/setup/check.sh`: it now decides for each stale rule whether the rule can go. It reads five files of the clone: `_claude/RULES.md`, `_claude/capture.md`, `_claude/close-task.md`, `_claude/hooks/session-start.sh`, and `_claude/hooks/subagent-start.sh`. A file that does not exist is skipped. It looks only for the relative call of the script of that rule. A full-path call and a call of another script do not count. If no file has the relative call, the `STALE:` line ends with the words "Remove it". If a file has it, the line ends with the words "Keep it for now:" and the path of the first such file. With no clone that a full `KB_DIR` names, the line ends with "Remove it" too (issue #373).
+
+### Changed in kb
+
+- `skills/setup/SKILL.md`: the step for a `STALE:` line has no search of its own. If the line says "Remove it", the skill removes the rule after the yes of the owner. If the line says "Keep it for now", it changes nothing and tells the owner which file still has the relative call (issue #373).
+- `README.md`: the setup section names the five files that `check.sh` reads and the two forms of the `STALE:` line (issue #373).
+
+### Changed in the repository
+
+- `tests/test_kb_plugin.py`: the stale tests expect the new text of the `STALE:` line. Five new tests cover these cases. A relative call in the rules file keeps only the rule of that script. The first file with the call is named. Each of the five files keeps the rule. Full-path calls keep no rule. A relative call in another file or of another script keeps no rule (issue #373).
+
 ## dev-essentials 6.1.0 in release [7.2.0] - 2026-11-26
 
 When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365). Each workflow that opens a pull request now sets its assignee, the labels of its issue, and its Project (issue #366). Hard stop 1 of `work-modes` lets a run remove its own scratch with no question (issue #367). The archive of `feature-pipeline` now goes to the notes folder, not to `~/.claude/task-logs/` (issue #369).
@@ -2805,7 +2822,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...HEAD
+[7.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...v7.2.0
 [7.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.1.0
 [7.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...v7.0.0

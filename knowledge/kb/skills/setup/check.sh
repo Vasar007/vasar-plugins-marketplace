@@ -51,9 +51,24 @@ has_path_rule() {
   [ "$os" = windows ] && has_rule "$1" "${2//"$kb_fwd"/"$kb_alt"}"
 }
 # Older versions printed these rules with a relative path, which matches the script of that path in every project.
+# Only these files of the clone tell a session which command to run.
+first_relative_call() {
+  [ -n "$kb_named" ] || return 0
+  for file in _claude/RULES.md _claude/capture.md _claude/close-task.md _claude/hooks/session-start.sh _claude/hooks/subagent-start.sh; do
+    if [ -f "$kb_named/$file" ] && grep -qF -- "$1" "$kb_named/$file" 2>/dev/null; then
+      echo "$file"
+      return 0
+    fi
+  done
+}
 for rule in 'Bash(bash _claude/tools/kb-search.sh *)' 'Bash(python3 -B _claude/tools/ste-check.py *)' 'Bash(python3 -B _claude/tools/md-check.py *)'; do
   if has_rule "$allow" "$rule"; then
-    stale "allow rule: $rule is in permissions.allow in $settings. Its relative path matches a script in any project. Remove it after the KB rules call the scripts with the full path."
+    call="${rule#Bash(}"
+    call="${call% \*)}"
+    caller="$(first_relative_call "$call")"
+    advice="Remove it."
+    [ -n "$caller" ] && advice="Keep it for now: $caller still calls the script with a relative path."
+    stale "allow rule: $rule is in permissions.allow in $settings. Its relative path matches a script in any project. $advice"
   fi
 done
 if [ -n "$kb_named" ]; then
