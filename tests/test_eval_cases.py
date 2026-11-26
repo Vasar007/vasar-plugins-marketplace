@@ -5332,6 +5332,10 @@ class RirrFinishCaseTests(unittest.TestCase):
                    "- Project: could not read the Projects of the repository (no network).": True,
                    "- Project: gh error (no network), so the run did not add the pull request.": True,
                    "- Project: not set. The gh command failed with a network error.": True,
+                   # The final lines of the first three head runs of the case.
+                   "- The Project wasn't set: listing Projects needs `gh`, which isn't installed here.": True,
+                   "- **The PR has no Project set:** listing the repo's Projects needs `gh`.": True,
+                   "- **Project:** not set. `gh` isn't installed, so I couldn't list the repository's Projects.": True,
                    "The project tests pass.": False,
                    "- The repository has no Project.": False,
                    "The assignee and both labels are set.": False,
