@@ -8,7 +8,7 @@ The folder of a branch is <root>/.claude/worktrees/<branch>, with the slashes of
 script refuses each path outside that folder.
 
 Subcommands:
-  create <branch> [--base <branch>] [--add-exclude] [--notes-dir <folder>] [--plan]
+  create <branch> [--base <branch>] [--add-exclude] [--plan]
       1. Check the branch name, the path, and the ignore rule for .claude/worktrees/. If no rule ignores
          the folder, refuse, or with --add-exclude add the line ".claude/worktrees/" to the local file
          info/exclude of git. Git does not track that file. It also refuses a rule of a .gitignore file
@@ -19,9 +19,8 @@ Subcommands:
          origin/HEAD.
       3. Fetch the start branch from origin (cases A and C), and run "git worktree add". In cases A and C,
          the new branch has no upstream (--no-track).
-      4. Bootstrap: remove the upstream of the branch if it has one, copy .claude/settings.local.json of
-         the main worktree if git ignores that file and the new worktree has no such file, and make the
-         notes folder (default Notes).
+      4. Bootstrap: remove the upstream of the branch if it has one, and copy .claude/settings.local.json
+         of the main worktree if git ignores that file and the new worktree has no such file.
       With --plan, do step 1 and step 2 only: print the plan and change nothing. A missing ignore rule
       then gives an IGNORE line and no refusal.
   remove <branch> [--apply]
@@ -43,7 +42,7 @@ Subcommands:
 Each subcommand also takes --repo <folder> (default: the current folder).
 
 Output on stdout, one fact on each line: MODE, REPO, REF, PATH, CASE, BASE, IGNORE, EXCLUDE, FETCHED,
-MADE, UPSTREAM, SETTINGS, NOTES, BRANCH, HEAD, FOLDER, CHANGED, HIDDEN, IGNORED, PRUNE, REFUSED, STEP, FAILED,
+MADE, UPSTREAM, SETTINGS, BRANCH, HEAD, FOLDER, CHANGED, HIDDEN, IGNORED, PRUNE, REFUSED, STEP, FAILED,
 LEFT, and REMOVED. The last line is RESULT. A line shows at most 300 characters, and then the count of
 the other characters. The PATH line is never cut. At most 20 lines of each kind of path come, and then
 one line gives the count of the others. A path or a name with a character that is not printable prints as a JSON string.
@@ -70,13 +69,12 @@ import shutil
 import stat
 import subprocess
 import sys
-from pathlib import Path, PurePath
+from pathlib import Path
 
 REMOTE = "origin"
 FOLDER = (".claude", "worktrees")
 EXCLUDE_LINE = ".claude/worktrees/"
 SETTINGS = (".claude", "settings.local.json")
-DEFAULT_NOTES = "Notes"
 MIN_GIT = (2, 31)
 REMOTE_COMMANDS = ("ls-remote", "fetch")
 REMOTE_SECONDS = 120
@@ -373,7 +371,7 @@ def report_left(repo, path):
         emit(f"LEFT worktree {show(str(path))}, which git lists")
 
 
-def bootstrap(repo, ref, path, notes):
+def bootstrap(repo, ref, path):
     """The steps after git worktree add. Return the number of steps that failed."""
     failed = 0
     try:
@@ -402,13 +400,6 @@ def bootstrap(repo, ref, path, notes):
     except OSError as error:
         failed += 1
         emit(f"FAILED the copy of .claude/settings.local.json: {error}")
-    folder = path / notes
-    try:
-        folder.mkdir(parents=True, exist_ok=True)
-        emit(f"NOTES {show(str(folder))}")
-    except OSError as error:
-        failed += 1
-        emit(f"FAILED the notes folder: {error}")
     return failed
 
 
@@ -451,7 +442,7 @@ def create(repo, args):
         emit("RESULT: FAILED. No worktree was made.")
         return 1
     emit(f"MADE {show(str(path))}")
-    failed = bootstrap(repo, ref, path, args.notes_dir)
+    failed = bootstrap(repo, ref, path)
     if failed:
         emit(f"RESULT: CREATED, BUT BOOTSTRAP STEPS FAILED: {failed}. The worktree of {show(ref)} is at "
              f"{show(str(path))}. Do each FAILED step by hand.")
@@ -644,14 +635,6 @@ def check_git():
         raise Stop(f"git {MIN_GIT[0]}.{MIN_GIT[1]} or later is needed")
 
 
-def notes_folder(value):
-    """An argparse type: a relative folder that stays inside the worktree."""
-    path = PurePath(value)
-    if not path.parts or path.is_absolute() or path.drive or path.root or ".." in path.parts:
-        raise argparse.ArgumentTypeError(f"not a relative folder inside the worktree: {show(value)}")
-    return path
-
-
 def parse_args(argv):
     common = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     common.add_argument("--repo", default=".", metavar="PATH",
@@ -667,8 +650,6 @@ def parse_args(argv):
                       help="the base branch of a new branch (default: the branch of origin/HEAD)")
     make.add_argument("--add-exclude", action="store_true",
                       help="if no git rule ignores .claude/worktrees/, add it to the local exclude file of git")
-    make.add_argument("--notes-dir", type=notes_folder, default=PurePath(DEFAULT_NOTES), metavar="FOLDER",
-                      help="the notes folder to make, relative to the worktree (default: %(default)s)")
     make.add_argument("--plan", action="store_true", help="print the plan only, and change nothing")
     drop = commands.add_parser("remove", parents=[common], allow_abbrev=False,
                                help="remove the worktree of a branch. Without --apply, print the plan only")

@@ -25,7 +25,7 @@ REF = "feature/tasks/1370383-add-export"
 SETTINGS = '{"permissions": {}}\n'
 TEMPLATE = []
 KEYS = ("MODE", "REPO", "REF", "PATH", "CASE", "BASE", "IGNORE", "EXCLUDE", "FETCHED", "MADE", "UPSTREAM", "SETTINGS",
-        "NOTES", "BRANCH", "HEAD", "FOLDER", "CHANGED", "HIDDEN", "IGNORED", "PRUNE", "REFUSED:", "STEP", "FAILED",
+        "BRANCH", "HEAD", "FOLDER", "CHANGED", "HIDDEN", "IGNORED", "PRUNE", "REFUSED:", "STEP", "FAILED",
         "LEFT", "REMOVED", "RESULT:")
 
 
@@ -122,15 +122,14 @@ class CreateTests(WorktreeCase):
         out = self.script("create", REF, "--base", "main")
         path = self.path()
         for line in ("CASE A: a new branch from origin/main", "BASE main (from --base)", "FETCHED origin main",
-                     f"MADE {path}", "UPSTREAM none", "SETTINGS copied .claude/settings.local.json",
-                     f"NOTES {path / 'Notes'}"):
+                     f"MADE {path}", "UPSTREAM none", "SETTINGS copied .claude/settings.local.json"):
             self.assertIn(line, out.splitlines())
         self.ends_with(out, f"RESULT: CREATED. The worktree of {REF} is at {path}.")
         self.assertTrue(self.is_listed(path))
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=path), self.git("rev-parse", "origin/main"))
         self.assertEqual(self.git("symbolic-ref", "--short", "HEAD", cwd=path), REF)
         self.assertFalse(self.has_upstream(REF))
-        self.assertTrue((path / "Notes").is_dir())
+        self.assertFalse((path / "Notes").exists())
         self.assertEqual((path / ".claude" / "settings.local.json").read_text(encoding="utf-8"), SETTINGS)
         self.assertNotIn("worktrees", self.git("status", "--porcelain", "--untracked-files=all"))
 
@@ -275,15 +274,6 @@ class CreateTests(WorktreeCase):
         out = self.script("create", REF, "--base", "a..b", code=3)
         self.assertIn("REFUSED: the base a..b is not a valid branch name", out)
 
-    def test_notes_folder_must_stay_inside_the_worktree(self):
-        for value in ("../x", "a/../../x", str(self.tmp / "abs"), "", "."):
-            with self.subTest(value=value):
-                result = run([sys.executable, "-I", SCRIPT, "create", REF, "--notes-dir", value], cwd=self.repo)
-                self.assertResult(result, 2, "not a relative folder inside the worktree")
-        out = self.script("create", REF, "--notes-dir", "docs/notes")
-        self.assertTrue((self.path() / "docs" / "notes").is_dir())
-        self.assertIn(f"NOTES {self.path() / 'docs' / 'notes'}", out)
-
     def test_settings_file_of_the_branch_stays(self):
         self.git("checkout", "-q", "-b", REF)
         self.write(".claude/settings.local.json", "branch\n")
@@ -347,12 +337,11 @@ class CreateTests(WorktreeCase):
         self.assertFalse(self.is_listed(self.path()))
 
     def test_failed_bootstrap_step_keeps_the_worktree(self):
-        self.write("Notes", "a file where the notes folder goes\n")
-        self.write(".gitignore", ".claude/worktrees/\n")
-        self.commit_all("a file named Notes")
-        self.git("push", "-q", "origin", "main")
-        out = self.script("create", REF, code=1)
-        self.assertRegex(out, r"(?m)^FAILED the notes folder: ")
+        self.write(".claude/settings.local.json", SETTINGS)
+        with mock.patch.object(wt.shutil, "copyfile", side_effect=OSError("disk full")):
+            code, out = self.in_process("create", REF, "--repo", self.repo)
+        self.assertEqual(code, 1, out)
+        self.assertRegex(out, r"(?m)^FAILED the copy of \.claude/settings\.local\.json: disk full")
         self.assertIn("RESULT: CREATED, BUT BOOTSTRAP STEPS FAILED: 1.", out)
         self.assertTrue(self.is_listed(self.path()))
 
@@ -472,6 +461,7 @@ class RemoveTests(WorktreeCase):
     def setUp(self):
         super().setUp()
         self.script("create", REF)
+        (self.path() / "Notes").mkdir()  # An ignored folder, as test data.
 
     def test_plan_changes_nothing(self):
         out = self.script("remove", REF)

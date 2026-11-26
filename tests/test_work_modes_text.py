@@ -21,7 +21,6 @@ TABLE_UNITS = (
     "skills/implement-batch/SKILL.md",
     "skills/review-loop/SKILL.md",
     "commands/implement.md",
-    "commands/opsx-implement.md",
     "skills/optimize-skill/SKILL.md",
     "skills/bug-hunt/SKILL.md",
     "skills/trim-artifacts/SKILL.md",
@@ -358,7 +357,7 @@ class FinishCallerTests(unittest.TestCase):
                       "Tell `/research-implement-review-report` not to run its Phase 5 (Finish).", fix)
 
     def test_no_other_workflow_does_the_finish_steps(self):
-        for rel in ("skills/feature-pipeline/SKILL.md", "commands/implement.md", "commands/opsx-implement.md",
+        for rel in ("skills/feature-pipeline/SKILL.md", "commands/implement.md",
                     "skills/process-pr-comments/SKILL.md", "skills/review-loop/SKILL.md"):
             with self.subTest(unit=rel):
                 self.assertNotIn("references/finish.md", read(PLUGIN / rel))

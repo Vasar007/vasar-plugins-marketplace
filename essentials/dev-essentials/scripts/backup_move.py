@@ -3,8 +3,8 @@
 
 The save-context command picks the files. This script only moves them, and it
 never deletes a file. Without --apply, it prints the plan and changes nothing.
-It uses only the standard library and git. The workspace must be inside a git
-work tree.
+It uses only the standard library and git. If the workspace is not inside a git
+work tree, no file counts as tracked.
 
 The script refuses a path in these cases: the path does not exist, is not a
 regular file, is a symbolic link, is outside the workspace, or comes twice.
@@ -22,9 +22,9 @@ the same folder.
 Exit codes: 0 = plan printed or files moved, 1 = a path was refused, 2 = usage error.
 
 Example:
-  python3 -I backup_move.py --workspace /path/to/repo Notes/Plans/old-plan.md
+  python3 -I backup_move.py --workspace /path/to/repo notes/Plans/old-plan.md
   python3 -I backup_move.py --workspace /path/to/repo \\
-      --backup ~/save-context-backups/repo-20261025-101500 --apply Notes/Plans/old-plan.md
+      --backup ~/save-context-backups/repo-20261025-101500 --apply notes/Plans/old-plan.md
 """
 import argparse
 import shutil
@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--workspace", default=".",
-                        help="root folder of the notes, usually the repository root (default: the current folder)")
+                        help="root folder of the notes: the repository root, or a notes folder outside git (default: the current folder)")
     parser.add_argument("--backup",
                         help="backup folder outside the workspace "
                              "(default: ~/save-context-backups/<workspace name>-<UTC time>)")
@@ -71,6 +71,12 @@ def parse_args():
 def tracked_paths(workspace, keys):
     """The keys that git tracks. Each key is a path relative to the workspace, with forward slashes."""
     if not keys:
+        return set()
+    inside = subprocess.run(["git", "-C", str(workspace), "rev-parse", "--is-inside-work-tree"],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if inside.returncode != 0 or inside.stdout.strip() != "true":
+        if any((folder / ".git").exists() for folder in [workspace, *workspace.parents]):
+            usage_error(f"git rev-parse failed in {workspace}: {inside.stderr.strip()}")
         return set()
     result = subprocess.run(["git", "--literal-pathspecs", "-C", str(workspace), "ls-files", "-z", "--", *keys],
                             capture_output=True, text=True, encoding="utf-8", errors="replace")

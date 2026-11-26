@@ -31,7 +31,7 @@ Phase 3 of `SKILL.md` reads this file. All disposition tokens in this file match
 
 ## Step 1 — Corroborate first
 
-Before you classify a rule, group it with every other extracted rule that states an equivalent point, from any source type and any project. Count the **independent sources** in the cluster. Independent means distinct files, not distinct lines in one file. One exception covers collapsed git-worktree siblings. Their memory files hold the memory of one repository, accumulated again. They count once for the whole family, not once per file (see `references/source-inventory.md`, worktree-sibling collapse).
+Before you classify a rule, group it with every other extracted rule that states an equivalent point, from any source type and any project. Count the **independent sources** in the cluster. Independent means distinct files, not distinct lines in one file. One exception covers collapsed git-worktree siblings. Their memory indexes hold the memory of one repository, accumulated again. They count once for the whole family, not once per file (see `references/source-inventory.md`, worktree-sibling collapse).
 
 - **3 or more independent sources that state an equivalent rule are a strong promote signal**. Corroboration this wide is unlikely to be the local habit of one person.
 - If the external-authority test of Step 3 clearly applies, a single-source rule can still be promoted (C/D). Corroboration is the strongest signal, not the only one.
@@ -43,7 +43,7 @@ Before you propose a new entity, find out whether the target marketplace already
 
 - Grep the real **on-disk plugin manifests** in the target marketplace repo: the `.claude-plugin/plugin.json` of each plugin, plus its `skills/`, `agents/`, and `commands/` directories. Never trust the "migrated" claim of a memory index. Indexes go stale (landmine 7 in `references/source-inventory.md`). Never trust the runtime skills listing of the session either. It mixes the personal global skills of the user with the shipped skills of the target marketplace. Only the file location tells them apart.
 - Tell a personal command, agent, or skill under `<claude-root>/{commands,agents,skills}/` from a shipped entity under `<marketplace-root>/<plugin>/{commands,agents,skills}/` strictly by the directory tree that holds the file.
-- If the rule is already shipped and correctly reflected there, the disposition is **F-stale** (prune the personal source, which is now redundant), not C/D. The redundant source can be a personal entity file (command, agent, or skill). Then the prune goes through the delete flow of Phase 9d, not through a plain memory-file prune. That flow is report-only by default, and it deletes only with `--delete-personal-entities`.
+- If the rule is already shipped and correctly reflected there, the disposition is **F-stale** (prune the personal source, which is now redundant), not C/D. The redundant source can be a personal entity file (command, agent, or skill). Then the prune goes through the delete flow of Phase 9d, not through a plain rule-file prune. That flow is report-only by default, and it deletes only with `--delete-personal-entities`.
 - If the rule is already shipped but the shipped version is *wrong*, the disposition is **E-fix-shipped** (see Step 4).
 
 ## Step 3 — B-vs-C external-authority tie-breaker
@@ -66,7 +66,7 @@ The answer decides between B and C:
 
 **E-fix-shipped never produces a new entity.** The fix always lands as an edit to the files of the existing shipped entity. Then Phase 9 prunes the source that reported the problem. It uses 9a, 9b, 9c, or 9d, by the source type. The corrected shipped entity now holds the content of that source.
 
-The near-certain marker for E is text like **"stopgap until `<plugin>:<entity>` is updated"**. Some memory files and wrapper personal entities call themselves a temporary workaround for a known defect in a shipped entity. Such a file identifies itself as E. Do not accept the self-label or the stated delta as it stands. Read the current content of the shipped entity, and find out whether the defect is still there. Sometimes an unrelated change already fixed it. In that case, the disposition is F-stale (prune, nothing to fix), not E.
+The near-certain marker for E is text like **"stopgap until `<plugin>:<entity>` is updated"**. Some rule files and wrapper personal entities call themselves a temporary workaround for a known defect in a shipped entity. Such a file identifies itself as E. Do not accept the self-label or the stated delta as it stands. Read the current content of the shipped entity, and find out whether the defect is still there. Sometimes an unrelated change already fixed it. In that case, the disposition is F-stale (prune, nothing to fix), not E.
 
 The second common path to E is the wrapper-entity landmine (`references/source-inventory.md`, landmine 12). A personal command, agent, or skill states a delta against the shipped entity that it wraps. The diff against the current content of the base entity shows that the delta is a correction. The base entity states something wrong, for example a wrong field name or an outdated command flag. It is not a real personal addition.
 
@@ -78,7 +78,7 @@ Classify each wrapper divergence with the rules of Steps 3 and 4, the same as ev
 
 ## Step 5 — `type:` frontmatter is never a category signal
 
-The `type:` frontmatter field of a memory file **predicts nothing about the disposition, in either direction**, whatever its shape (see landmine 1 in `references/source-inventory.md`). Always read the content. Two real findings in opposite directions anchor this rule (see calibration cases 3 and 4 below):
+The `type:` frontmatter field of a rule file **predicts nothing about the disposition, in either direction**, whatever its shape (see landmine 1 in `references/source-inventory.md`). Always read the content. Two real findings in opposite directions anchor this rule (see calibration cases 3 and 4 below):
 
 - A file with the self-label `type: reference` was pure A-local trivia.
 - A file with the self-label `type: project` was a clean D-scoped framework gotcha.
@@ -115,7 +115,7 @@ Sanitized and generalized versions of real findings. The repo and product names 
 
 ### Case 1 — Corroboration wins
 
-A rule ("write all commit messages and code comments in English regardless of the chat language") appeared, in independent words, in five sources: the global CLAUDE.md, the CLAUDE.md files of three different repos, and one memory file. Classified **C-universal** on corroboration alone. Read alone, one instance of this rule can look like ordinary house style, not like something worth a shared entity.
+A rule ("write all commit messages and code comments in English regardless of the chat language") appeared, in independent words, in five sources: the global CLAUDE.md, the CLAUDE.md files of three different repos, and one rule file. Classified **C-universal** on corroboration alone. Read alone, one instance of this rule can look like ordinary house style, not like something worth a shared entity.
 
 ### Case 2 — Classify per rule, not per section
 
@@ -129,15 +129,15 @@ The first audit of this section read point 1 as ordinary **B-taste**: a preferen
 
 ### Case 3 — `type: reference` that was pure A-local trivia
 
-A memory file with the self-label `type: reference` documented which git branch names map to which internal release-tag scheme of one specific repository. The "reference" label suggests generally useful lookup content. But the content was specific to the branch and tag history of that one repo. Classified **A-local**. The `type:` field predicted nothing.
+A rule file with the self-label `type: reference` documented which git branch names map to which internal release-tag scheme of one specific repository. The "reference" label suggests generally useful lookup content. But the content was specific to the branch and tag history of that one repo. Classified **A-local**. The `type:` field predicted nothing.
 
 ### Case 4 — `type: project` that was a clean D-scoped gotcha
 
-Another memory file had the self-label `type: project`, a label that suggests project-specific scope. It documented a real workaround for an ORM that behaves wrong against a specific NoSQL provider. The gotcha recurs for anyone who uses that ORM with that provider, in any repo, not only in the repo where it first came up. Classified **D-scoped** (scope: that ORM against that provider). The `type:` field again predicted nothing, this time in the opposite direction from Case 3.
+Another rule file had the self-label `type: project`, a label that suggests project-specific scope. It documented a real workaround for an ORM that behaves wrong against a specific NoSQL provider. The gotcha recurs for anyone who uses that ORM with that provider, in any repo, not only in the repo where it first came up. Classified **D-scoped** (scope: that ORM against that provider). The `type:` field again predicted nothing, this time in the opposite direction from Case 3.
 
 ### Case 5 — Two `E` cases found two different ways
 
-- A memory file with the self-label "stopgap until `<plugin>:<some-shipped-skill>` is updated" documented a defect. The worked example of the shipped skill used a wrong code pattern for a specific API call. Classified **E-fix-shipped**. The run corrected the example of the shipped skill, and then pruned the memory file. The file did not become its own entity.
+- A rule file with the self-label "stopgap until `<plugin>:<some-shipped-skill>` is updated" documented a defect. The worked example of the shipped skill used a wrong code pattern for a specific API call. Classified **E-fix-shipped**. The run corrected the example of the shipped skill, and then pruned the rule file. The file did not become its own entity.
 - A wrapper personal command stated a delta against the shipped entity that it wraps. Only the diff of the wrapper body against the current content of the base entity found the problem. A read of the wrapper alone did not. The delta corrected a wrong field name that the instructions of the base entity told the reader to use. Classified **E-fix-shipped** for the same reason: the correction belongs in the base entity, not in a new entity derived from the wrapper.
 
 ### Case 6 — Reconcile drift, don't pick a copy

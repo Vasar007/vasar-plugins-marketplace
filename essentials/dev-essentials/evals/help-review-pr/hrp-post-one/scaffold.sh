@@ -6,6 +6,7 @@ source "$lib/git-fixture.sh"
 source "$lib/py-fixture.sh"
 
 make_pager_repo
+fixture_notes_folder
 cat >> CLAUDE.md <<'CASE_EOF'
 - Convention skills: none. Review a pull request against the rules of this file.
 - Style: build a string with an f-string, not with `%` or `str.format`. This rule is a style preference.

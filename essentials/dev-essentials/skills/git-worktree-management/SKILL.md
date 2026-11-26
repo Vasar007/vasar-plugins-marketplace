@@ -98,10 +98,10 @@ Wait for the user's answer. Do not add it silently. On a yes, add the line `.cla
 
 ### Step 5: Create the worktree
 
-Run the script with the branch ref. Pass `--base` as Step 2 says, `--add-exclude` as Step 4 says, and `--notes-dir` as Step 6 says:
+Run the script with the branch ref. Pass `--base` as Step 2 says, and `--add-exclude` as Step 4 says:
 
 ```bash
-python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --add-exclude --notes-dir <notes-folder>
+python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" create <branch-ref> --base <base-branch> --add-exclude
 ```
 
 The script picks one of these cases by the state of the branch. Its `CASE` line names the case:
@@ -126,7 +126,6 @@ The create command of Step 5 runs these sub-steps right after `git worktree add`
 
 1. `UPSTREAM`: if the branch has an upstream, the script removes it with `git branch --unset-upstream <branch-ref>`. Then `git branch -vv` does not hide local commits behind the base branch, and no push or pull goes to the wrong target. Push with an explicit `origin <branch-ref>`.
 2. `SETTINGS`: the script copies `.claude/settings.local.json` of the main worktree into the worktree, so that subagents get the same allow-list, hooks, and permissions with no new prompt. If git does not ignore the file, or if the branch has its own copy, the script does not copy it. Look in `.gitignore` for other ignored files below `.claude/`, for example a local CLAUDE.md override or `.claude/state/`. Copy each one yourself in the same way.
-3. `NOTES`: the script makes the notes folder for plans, drafts, and scratch files. Pass the folder with `--notes-dir`. The configured notes folder is ${user_config.notes_dir}. If that value still shows as a placeholder, no value is saved: use Notes. A location that the CLAUDE.md of the repo names wins.
 
 ### Step 7: Find the solution or project file and report
 
@@ -199,7 +198,7 @@ Show the `PATH` line, the `BRANCH` line, and each `IGNORED` line. The removal de
 
 ### Step 3: Remove
 
-**Before the first removal attempt, archive anything worth keeping** to a location outside the worktree. Examples are `Notes/` drafts and task artifacts, and the files that the `IGNORED` lines name. A removal can fail halfway: git unregisters the worktree but leaves part of the folder on disk. So do not wait for a failed attempt before you archive.
+**Before the first removal attempt, archive anything worth keeping** to a location outside the worktree. Examples are drafts and task artifacts in an ignored folder, and the files that the `IGNORED` lines name. A removal can fail halfway: git unregisters the worktree but leaves part of the folder on disk. So do not wait for a failed attempt before you archive.
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
@@ -312,7 +311,7 @@ You can remove a worktree in these cases. First, the PR is merged, by the rule o
 
 The worktree can be missing despite the lifecycle rule, for example after a manual removal, an IDE prune, or `git worktree prune`. If the branch has an active PR, recreate the worktree before you do any work.
 
-**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Run the removal of the script first, as the block below shows. It removes an entry that git lists but whose folder is missing, with no `--force`. If the script refuses with `no worktree is at this path`, git lists no entry and no folder is there. Nothing is left to remove, so go on to the recreation. If the script refuses with `git does not list this folder as a worktree`, the folder is an unregistered orphan stub. List its contents. Then ask the user for an explicit yes before you delete it. The path can hold `Notes/` files or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. In the full mode, do not delete such a folder. List it in the final report.
+**Before you delete any stub directory,** find out whether its path starts with `.claude/worktrees/`. If it does not, do not use this fallback on that path. Run the removal of the script first, as the block below shows. It removes an entry that git lists but whose folder is missing, with no `--force`. If the script refuses with `no worktree is at this path`, git lists no entry and no folder is there. Nothing is left to remove, so go on to the recreation. If the script refuses with `git does not list this folder as a worktree`, the folder is an unregistered orphan stub. List its contents. Then ask the user for an explicit yes before you delete it. The path can hold notes or other files that you cannot recover, because the whole `.claude/worktrees/` subtree is gitignored. Never silently `rm -rf` a stub directory. In the full mode, do not delete such a folder. List it in the final report.
 
 ```bash
 python3 -I "${CLAUDE_SKILL_DIR}/scripts/worktree.py" remove <branch-ref> --apply
@@ -338,6 +337,6 @@ Then work in the recreated worktree. Do not work from the main worktree through 
 
 **Commits that no branch, tag, or remote branch holds:** The script refuses a worktree with a detached HEAD that has commits of its own. No branch, tag, or remote branch holds them. The removal loses them. Ask the user to keep them with the `git branch` command of the `REFUSED` line. In the full mode, keep that worktree, and name it in the final report.
 
-**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as `Notes/`, for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. In the full mode, keep the outer worktree, and name the folder in the final report.
+**Another repository inside the worktree:** The script refuses a worktree that holds another worktree or git repository. It looks in each ignored folder, such as a folder of drafts. It looks for a `.git` entry, a bare repository, or the git folder of `--separate-git-dir`. A `REFUSED` line names each such folder. The script also refuses an ignored folder that it cannot read. Tell the user the path of the folder. It can hold work that has no other copy. Ask the user to look at it and to move it out first. In the full mode, keep the outer worktree, and name the folder in the final report.
 
 **Permission denied on removal:** On Windows, this is usually not an IDE file lock. Work through the ordered diagnosis in Workflow C Step 3. Do not report an IDE lock and stop. Never blind force-remove.

@@ -194,7 +194,7 @@ The agent reports no new findings. Both applied fixes look correct, and it sees 
 
 ## Phase 9 — Final summary
 
-Two cycles ran. So the summary goes to `Notes/Reviews/branch-1234567-add-pagination-summary.md` (the destination rule for a run with more than one cycle).
+Two cycles ran. So the summary goes to `Reviews/branch-1234567-add-pagination-summary.md` in the notes folder (the destination rule for a run with more than one cycle).
 
 ```markdown
 ## Review Loop Complete
@@ -258,7 +258,7 @@ Cycle 2 — re-review of fix diff (2 files)
 
 ## Full format — Round 1 report
 
-The skill writes this report to `Notes/Reviews/branch-1234567-add-pagination-cycle-1.md`.
+The skill writes this report to `Reviews/branch-1234567-add-pagination-cycle-1.md` in the notes folder.
 
 ---
 

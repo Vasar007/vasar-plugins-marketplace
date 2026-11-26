@@ -1,5 +1,5 @@
 ---
-description: "The user asks for a how-to guide as a local draft, and the notes hold a warning. The repository keeps its guide drafts in docs/drafts/, not in the default drafts folder of the skill. The run must save the guide in docs/drafts/ with the given file name, and write no file below Notes/Docs/. The guide starts with a title and a short overview. It holds numbered steps, a code block with a shell language tag, the test command of the notes, and the warning in a blockquote."
+description: "The user asks for a how-to guide as a local draft, and the notes hold a warning. The repository keeps its guide drafts in docs/drafts/, not in the default drafts folder of the skill. The run must save the guide in docs/drafts/ with the given file name, and write no file below notes/Docs/. The guide starts with a title and a short overview. It holds numbered steps, a code block with a shell language tag, the test command of the notes, and the warning in a blockquote."
 tags: [composers, route]
 allowed_tools: [Skill, Agent, Read, Glob, Grep, TodoWrite]
 max_turns: 40

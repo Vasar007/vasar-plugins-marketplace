@@ -82,7 +82,7 @@ Item 5 of the description recipe asks for a general term in place of a replaceab
 - A bracket with the tool as its label, as in "(FluentValidation: `.SetValidator()`)".
 - A section or a code block that says that it shows X, as in "The example uses the Cosmos DB provider of EF Core".
 - A section or a paragraph for one tool that starts with a condition or a scope sentence. Examples are "If the project does not use Cosmos DB, skip this section" and "This gate is for NSubstitute as the mocking library".
-- A sentence, a list item, or a bracket that starts with the tool as a condition: "With X,", "For X,", or "In X,", also in lower case. Examples are "With OpenSpec, run `openspec list`" and "(for NSwag, the `NSwagGeneration` item group)".
+- A sentence, a list item, or a bracket that starts with the tool as a condition: "With X,", "For X,", or "In X,", also in lower case. Examples are "With pnpm, run `pnpm install`" and "(for NSwag, the `NSwagGeneration` item group)".
 
 A label can come before a marked form, as in "**Fixture.Inject**: In AutoFixture, replace the default mock".
 
@@ -102,7 +102,7 @@ Item 5 also asks for one general term for each role. The table lists the general
 | Connects EF Core to a database | the database provider | Cosmos DB, SQLite, the EF Core in-memory provider |
 | Shows and edits the data in a database by hand | the data tool of the database | Cosmos DB Data Explorer |
 | Sets the environment values of a deployment | the deployment system | Helm |
-| Runs a spec-first change workflow | the spec framework | OpenSpec |
+| Runs a spec-first change workflow | the spec framework | Spec Kit |
 | Tracks issues and tasks | the task provider | GitHub Issues, Jira |
 | Gives the cloud APIs for scripts | the cloud provider | AWS, Azure |
 | Opens the files and the worktrees | the editor | VS Code, Rider |

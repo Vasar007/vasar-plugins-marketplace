@@ -83,6 +83,21 @@ class RefusalTests(BackupMoveCase):
         self.assertTrue((self.ws / "untracked.md").is_file())
         self.assertFalse(self.backup.exists())
 
+    def test_git_error_in_a_repository_is_a_usage_error_and_no_file_moves(self):
+        self.write("tracked.md")
+        self.track("tracked.md")
+        subprocess.run(["git", "-C", str(self.ws), "commit", "-q", "-m", "add the file"], check=True,
+                       capture_output=True)
+        # A safe.directory rule of the machine, as on CI runners, would make git trust the folder.
+        empty = self.tmp / "empty.gitconfig"
+        empty.write_text("", encoding="utf-8")
+        env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_CONFIG")}
+        env.update(GIT_TEST_ASSUME_DIFFERENT_OWNER="1", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(empty))
+        result = self.run_script("--workspace", self.ws, "--backup", self.backup, "--apply", "tracked.md", env=env)
+        self.assertResult(result, 2, "git rev-parse failed in")
+        self.assertTrue((self.ws / "tracked.md").is_file())
+        self.assertFalse(self.backup.exists())
+
     def test_bad_paths_are_refused(self):
         self.write("Notes/a.md")
         (self.ws / "Notes/folder").mkdir()
@@ -123,12 +138,14 @@ class UsageTests(BackupMoveCase):
         result = self.run_script("--workspace", self.ws, "--backup", self.tmp, "a.md")
         self.assertResult(result, 2, "must not contain each other")
 
-    def test_workspace_outside_git_is_a_usage_error(self):
+    def test_workspace_outside_git_moves_the_file(self):
         plain = self.tmp / "plain"
         plain.mkdir()
         (plain / "a.md").write_text("x\n", encoding="utf-8")
-        result = self.run_script("--workspace", plain, "--backup", self.backup, "a.md")
-        self.assertResult(result, 2, "git ls-files failed")
+        result = self.run_script("--workspace", plain, "--backup", self.backup, "--apply", "a.md")
+        self.assertResult(result, 0, "MOVED a.md", "RESULT: MOVED 1")
+        self.assertTrue((self.backup / "a.md").is_file())
+        self.assertFalse((plain / "a.md").exists())
 
 
 if __name__ == "__main__":

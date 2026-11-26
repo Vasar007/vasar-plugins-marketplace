@@ -2499,7 +2499,7 @@ class PrBodyFormGraderTests(unittest.TestCase):
     def test_the_draft_grader_names_the_draft_file_of_compose_pr(self):
         meta = self.graders["pr-draft-not-saved"][0]
         self.assertEqual((meta["type"], meta["path"], meta["exists"]),
-                         ("file_exists", "Notes/PRs/PR-work-untracked-file.md", False))
+                         ("file_exists", "notes/PRs/PR-work-untracked-file.md", False))
 
     def test_the_stage_names_the_step_of_compose_pr_that_has_the_form(self):
         skill = (FP_ROOT / "skills" / "compose-pr" / "SKILL.md").read_text(encoding="utf-8")
@@ -3563,10 +3563,11 @@ class PpcBuildContextGraderTests(unittest.TestCase):
     def test_the_hand_off_file_names_the_branch_of_the_pr(self):
         pull = json.loads((self.case.path / "mocks" / "github" / "fixtures" / "get.json").read_text(encoding="utf-8"))
         scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
-        self.assertIn("fixture_write Notes/Results/", scaffold)
+        self.assertIn("fixture_write notes/Results/", scaffold)
         self.assertIn(f"Branch: `{pull['head']['ref']}`", scaffold)
         self.assertIn("nine days", scaffold)
-        self.assertIn("printf 'Notes/\\n' >> .git/info/exclude", scaffold, "git must ignore Notes/, as in many repositories")
+        self.assertIn("printf 'notes/\\n' >> .git/info/exclude", scaffold, "git must ignore notes/, as in many repositories")
+        self.assertIn("fixture_notes_folder", scaffold)
 
 
 def agent_input(subagent_type):
@@ -3924,7 +3925,7 @@ class ComposerGraderTests(unittest.TestCase):
         self.assertEqual(graders["draft-file"][0]["path"], draft)
         self.assertNotIn("exists", graders["draft-file"][0])
         no_default = graders["no-default-folder"][0]
-        self.assertEqual((no_default["path"], no_default["exists"]), ("Notes/Docs/**", False))
+        self.assertEqual((no_default["path"], no_default["exists"]), ("notes/Docs/**", False))
         for name in ("structure", "intro", "numbered-steps", "code-tag", "test-command", "warning-quote"):
             with self.subTest(grader=name):
                 self.assertEqual(graders[name][0]["target"], {"source": "file", "path": draft})
@@ -4002,11 +4003,11 @@ class ComposerGraderTests(unittest.TestCase):
     def test_guide_reported_path_names_the_draft(self):
         self.check("cmp-guide-draft", "reported-path", {
             "the draft path": ("Created `docs/drafts/run-tests-locally.md`.", True),
-            "the default folder": ("Created `Notes/Docs/run-tests-locally.md`.", False),
+            "the default folder": ("Created `notes/Docs/run-tests-locally.md`.", False),
             "the folder and the name apart": ("Created `run-tests-locally.md` in `docs/drafts/`.", True),
             "the folder first": ("The repository keeps drafts in `docs/drafts/`, so I created `run-tests-locally.md` there.", True),
             "the name only": ("Created `run-tests-locally.md`.", False),
-            "the name and the default folder": ("Created `run-tests-locally.md` in `Notes/Docs/`.", False),
+            "the name and the default folder": ("Created `run-tests-locally.md` in `notes/Docs/`.", False),
             "the name and the folder on two lines": ("Created the guide `run-tests-locally.md`.\n\nFolder: `docs/drafts/`", True),
             "a folder name that ends in docs/drafts": ("Created `run-tests-locally.md` in `userdocs/drafts/`.", False),
         })
@@ -4957,7 +4958,7 @@ class WorktreeScriptCaseTests(unittest.TestCase):
     def test_the_create_grader_counts_a_create_call_of_the_script(self):
         runs = {
             "the form of the skill": ('python3 -I "/p/skills/git-worktree-management/scripts/worktree.py" create '
-                                      "eval/tasks/42-add-paging --base main --add-exclude --notes-dir Notes", True),
+                                      "eval/tasks/42-add-paging --base main --add-exclude", True),
             "the options first": ("python3 -I /p/scripts/worktree.py create --base main eval/tasks/42-add-paging", True),
             "a quoted branch": ('python3 -I /p/scripts/worktree.py create "eval/tasks/42-add-paging"', True),
             "a line break": ('python3 -I "/p/scripts/worktree.py" \\\n  create eval/tasks/42-add-paging', True),
@@ -5680,19 +5681,20 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
         meta = self.case.graders["artifact-named"][0]
         self.assertEqual(meta.get("target"), "last_message")
         self.assertIn("The reviews folder is `Reviews/` in the notes folder.", self.command)
-        self.assertIn("no value is saved, and the notes folder is `Notes`.", self.command)
-        manifest = json.loads((FP_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        helper = (FP_ROOT / "evals/_lib/git-fixture.sh").read_text(encoding="utf-8")
+        folder = re.search(r"Notes folder: `([^`]+)/`", helper).group(1)
+        scaffold = (self.case.path / "scaffold.sh").read_text(encoding="utf-8")
+        self.assertIn("fixture_notes_folder", scaffold)
         written = self.case.graders["artifact-written"][0]
-        folder = manifest["userConfig"]["notes_dir"]["default"]
         self.assertEqual((written["type"], written["path"]), ("file_exists", f"{folder}/Reviews/pr-7-review.html"))
         start = self.command.index("ARTIFACT: <reviews-folder>/")
         block = self.command[start:self.command.index("`" * 3, start)]
-        reply = block.replace("<reviews-folder>", "Notes/Reviews").replace("<number>", "7")
+        reply = block.replace("<reviews-folder>", f"{folder}/Reviews").replace("<number>", "7")
         replies = {
             "the output block of the command": (reply, True),
-            "an absolute path": ("ARTIFACT: /work/Notes/Reviews/pr-7-review.html\n2 findings", True),
+            "an absolute path": ("ARTIFACT: /work/notes/Reviews/pr-7-review.html\n2 findings", True),
             "another pull request": (reply.replace("pr-7-review", "pr-17-review"), False),
-            "another folder": (reply.replace("Notes/Reviews/", "Notes/"), False),
+            "another folder": (reply.replace(f"{folder}/Reviews/", f"{folder}/"), False),
             "no artifact line": ("I reviewed PR 7 and posted finding 2.", False),
         }
         for name, (text, expected) in replies.items():
@@ -5705,8 +5707,8 @@ class HelpReviewPrPostGraderTests(unittest.TestCase):
         review = "\n".join([
             self.tool_use("Bash", {"command": "git diff origin/main...origin/pull/7/head -- src/pager.py"}),
             self.tool_use("Read", {"file_path": "/work/src/pager.py"}),
-            self.tool_use("Write", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "content": "<p>src/pager.py</p>"}),
-            self.tool_use("Edit", {"file_path": "/work/Notes/Reviews/pr-7-review.html", "old_string": "a", "new_string": "b"}),
+            self.tool_use("Write", {"file_path": "/work/notes/Reviews/pr-7-review.html", "content": "<p>src/pager.py</p>"}),
+            self.tool_use("Edit", {"file_path": "/work/notes/Reviews/pr-7-review.html", "old_string": "a", "new_string": "b"}),
         ])
         self.assertTrue(self.passes("no-code-edit", review))
         edit = {"file_path": "/work/src/pager.py", "old_string": "size - 1", "new_string": "size"}

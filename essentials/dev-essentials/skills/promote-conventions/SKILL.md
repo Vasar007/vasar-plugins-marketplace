@@ -155,6 +155,7 @@ In the full mode, no gate of Phase 9 stops. This covers the 9a stub question, th
 - A **fully promoted** file: `stub` replaces the body with a one-line pointer. `annotate` puts a pointer above the body and keeps the body. `none` touches nothing for that item: no stub, no annotation, and no `MEMORY.md` index bullet for it. List it as a manual TODO. The other items of the run that use `stub` or `annotate` still get their index bullets.
 - A **partially promoted** file: never stub it. Annotate only the promoted section, and keep the rest of the file as it is.
 - An approved **F** item in a memory file or a `MEMORY.md` index: remove only the stale line or reference (with `--cleanup-mode=annotate`, annotate it). It falls under the same once-per-run question as `stub`. An E source in the global CLAUDE.md goes through 9b, one in a project CLAUDE.md through 9c, and a personal entity through 9d. An F item in a CLAUDE.md has no promotion, so 9b and 9c cannot process it. Keep it report-only: list it in the "Manual TODOs" of the report.
+- A source in a KB clone stays report-only. List it in the Manual TODOs of the report, because the rules of the KB own its notes.
 
 Outside the interactive mode, no user reply at Phase 5 approved the cleanup, and `stub` deletes the body of personal memory files. So list the files that `stub` changes, and ask once before you write. In the full mode, list them in the report, and write without the question. This question stays, although 9a is on by default, because no user reply approved the deletion. `annotate` and `none` need no question.
 
@@ -212,7 +213,7 @@ If step 1 fails, or the step 2 answer is not `yes`, all personal entity files of
 
 ### Phase 10 — Report
 
-By default, the report goes to chat. Do not assume that the calling repo has a `Notes/Plans` or `Notes/Results` convention. Write a file only in these cases: `--report=<path>` names one, or the calling repo clearly has its own convention for report files. In that case, propose the path, and ask before you write it. Copy the Phase 10 run report template from `references/report-templates.md`. If a row of "Shipped this run" is a new entity, add the restart notice of Phase 8.
+By default, the report goes to chat. Do not assume that the calling repo has a convention for report files. Write a file only in these cases: `--report=<path>` names one, or the calling repo clearly has its own convention for report files. In that case, propose the path, and ask before you write it. Copy the Phase 10 run report template from `references/report-templates.md`. If a row of "Shipped this run" is a new entity, add the restart notice of Phase 8.
 
 ## Cross-references
 

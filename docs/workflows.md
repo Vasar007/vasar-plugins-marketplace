@@ -26,6 +26,17 @@ Some runs have no GitHub repository: the request names none, and no remote of th
 - If the branch holds commits that are not on the remote base branch, they ask outside the full mode. If they cannot count these commits, they also ask. In the full mode, they do no push.
 - After a merge, they remove no worktree.
 
+## Where the notes go
+
+The workflows of `dev-essentials` write plans, research files, reports, reviews, and drafts into a notes folder. The file [`notes-root.md`](../essentials/dev-essentials/references/notes-root.md) gives the rule. The first item that gives a folder wins:
+
+1. A folder that you name in your request, for example with the option `--notes-dir` of `implement-task`.
+2. A folder that the `CLAUDE.md` file of the repository names for notes. A folder that it names for one kind of file only, for example plans or reports, holds that kind only. The other files take the next items.
+3. The task folder of a knowledge base (KB) clone. The variable `KB_DIR` names the clone, and the clone holds `_claude/RULES.md`. The `kb` plugin uses the same test.
+4. Else the folder `~/claude-notes/<repo>/<branch>/` in your home folder.
+
+The folders of items 3 and 4 are outside the repository. So no commit takes the notes, and the removal of a worktree keeps them. Claude Code asks before each write outside the working folders of a session. To allow these writes, add the folder with `/add-dir`, or add it to `permissions.additionalDirectories` in your configuration file.
+
 ## One session or a new one
 
 The usual chain has these steps. You build a task, for example with `/dev-essentials:research-implement-review-report`. Then you open a pull request, or the workflow opens it at its end. Then you run `/dev-essentials:process-pr-comments` for the review comments.
@@ -38,7 +49,7 @@ After a pause longer than the cache lifetime, the cache is cold. The first call 
 2. If the review comes after the cache lifetime, start a new session in the same folder, on the branch of the pull request.
 3. Run `/dev-essentials:process-pr-comments` in the new session.
 
-The skill reads the hand-off file in Phase 1, so the decisions of the build session stay known. It reads each file in `Results/` of the notes folder whose `Branch:` line names the branch of the pull request. If you want another file, name it when you start the skill.
+The skill reads the hand-off file in Phase 1, so the decisions of the build session stay known. It reads each file in `Results/` of the [notes folder](#where-the-notes-go) whose `Branch:` line names the branch of the pull request. If you want another file, name it when you start the skill.
 
 Claude Code can also compact a long session that stays idle on the one-hour cache. The hand-off file keeps the decisions in that case too.
 

@@ -1,4 +1,4 @@
 ---
 type: file_exists
-path: Notes/Tasks/task-customer-index.md
+path: notes/Tasks/task-customer-index.md
 ---

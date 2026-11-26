@@ -76,7 +76,7 @@ Before you launch a stage, do these steps in order:
 5. Replace the placeholders in the composed prompt, also in the `<worktree>` block:
    - `{TASK_ID}`: the task ID.
    - `{WORKTREE_PATH}`: the absolute path of the project root. This is the worktree path, or the current working directory with `--no-worktree`.
-   - `{ARTIFACTS_DIR}`: the repository-relative folder for the pipeline artifacts, for example `tasks` or `Notes/Tasks`.
+   - `{ARTIFACTS_DIR}`: the repository-relative folder for the pipeline artifacts, for example `tasks` or `.pipeline`.
    - `{COMMIT_MODE}`: the resolved commit cadence, `per-step` or `finalization`.
 6. Make sure that no placeholder is left as a literal string in the composed prompt. `{CADENCE_LINE}` must also be gone. If one is left, stop, and name the placeholder and the stage.
 

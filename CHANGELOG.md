@@ -9,10 +9,57 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26
+
+The skills and commands of `dev-essentials` now keep their notes in one notes folder, and a new rule file finds it. The notes no longer go to a fixed `Notes/` folder in the repository. The configuration `notes_dir`, the command `opsx-implement`, and the support for OpenSpec go. A knowledge base (KB) clone is a local git clone of notes. If the `kb` plugin and a KB clone are there, `merge-pr` closes the KB task folder after a merge with `kb:close-task` (issue #368).
+
+### Added in dev-essentials
+
+- `references/notes-root.md`: the rule that finds the notes folder of a task. The first item that gives a folder wins: a folder that the request names, a folder that the `CLAUDE.md` of the repository names for notes, and the task folder of a KB clone. A folder that `CLAUDE.md` names for one kind of file only, such as plans, holds that kind only. If no item gives a folder, the notes folder is `~/claude-notes/<repo>/<branch>/`. The test for a KB clone is the test of the launcher of the `kb` plugin: `KB_DIR` holds a full path to a folder with `_claude/RULES.md` (issue #368).
+- `skills/merge-pr/SKILL.md`: item 6 of Step 4 loads `kb:close-task` after the merge. It has two conditions: the session lists that skill, and a KB clone exists. All workflows that merge reach it through `merge-pr` (issue #368).
+
+### Changed in dev-essentials
+
+- The units with a notes folder take it from the new rule, and no unit names a fixed `Notes/` path now. These units are the commands `implement`, `save-context`, `help-review-pr`, and `implement-task`. The workflow skills among them are `review-loop`, `process-pr-comments`, `research-implement-review-report`, `implement-batch`, and `feature-pipeline`. The other skills are `compose-pr`, `compose-task`, `create-documentation`, `create-html-artifact`, `engineering-discipline`, and `promote-conventions` (issue #368).
+- `commands/implement.md` and `skills/research-implement-review-report/SKILL.md`: the last fallback for the context now reads the rules of a KB clone, not the auto-memory folder (issue #368).
+- `skills/audit-personal-conventions`: the audit reads no memory topic file now. The scope `memory` reads the `MEMORY.md` index of each project. The new scope `kb` reads the rules of a KB clone (issue #368).
+- `skills/promote-conventions/SKILL.md`: a rule from a KB clone stays report-only in the cleanup of Phase 9 (issue #368).
+- `skills/optimize-skill/SKILL.md`: the sources of the decisions of the user are the `CLAUDE.md` files and the rules of a KB clone, not memory files (issue #368).
+- `commands/merge-worktree-projects.md`: the report says that no unit reads a memory topic file as a rule. The script still moves the memory files as data (issue #368).
+- `commands/save-context.md`: Step 5 moves the files of a notes folder outside the repository too. In a KB clone, it moves no file, because the rules of the KB own the task folder (issue #368).
+- `scripts/backup_move.py`: a workspace outside a git work tree is no error now. No file counts as tracked there (issue #368).
+- `skills/git-worktree-management`: a new worktree gets no notes folder. The bootstrap removes the upstream and copies `.claude/settings.local.json` (issue #368).
+- `commands/audit-plan.md`: the command audits a plan file or a plan folder (issue #368).
+- `skills/review-loop`, `skills/compose-pr`, and `skills/engineering-discipline`: the text names a spec framework in general, not OpenSpec (issue #368).
+- The eval cases `cmp-pr-from-diff`, `cmp-task-draft`, `cmp-guide-draft`, `fp-e2-untracked-file`, `hrp-post-one`, and `ppc-build-context`: the `CLAUDE.md` of each scaffold names the notes folder `notes/`, and the graders read that folder. `evals/_lib/git-fixture.sh` has the new function `fixture_notes_folder` for this line (issue #368).
+
+### Removed in dev-essentials
+
+- The command `opsx-implement` (issue #368).
+- The configuration key `notes_dir` (issue #368).
+- The option `--change` of `save-context`, and the OpenSpec change as an input of `audit-plan` (issue #368).
+- The option `--notes-dir` of `skills/git-worktree-management/scripts/worktree.py`, and its output line `NOTES` (issue #368).
+- The trigger case `evals/triggers/audit-plan-openspec-fires` (issue #368).
+
+### Breaking changes in dev-essentials
+
+- The notes of a task move out of the repository, unless the request or the `CLAUDE.md` of the repository names a folder for them. To keep the notes in the `Notes/` folder of the repository, name that folder in the `CLAUDE.md` file of the repository (issue #368).
+- The audit of `audit-personal-conventions` no longer reads the memory topic files. Move each rule that you keep there to a `CLAUDE.md` file or to a KB clone (issue #368).
+
+| Old name | New name |
+| --- | --- |
+| `/dev-essentials:opsx-implement <change>` | `/dev-essentials:implement <plan file>` |
+| `/dev-essentials:audit-plan openspec/changes/<change>` | `/dev-essentials:audit-plan <plan file or plan folder>` |
+| `/dev-essentials:save-context --change <name>` | `/dev-essentials:save-context --plan <plan file>` |
+| The configuration `notes_dir` | A line in the `CLAUDE.md` file of the repository that names the notes folder |
+| `worktree.py create <branch> --notes-dir <folder>` | `worktree.py create <branch>` |
+
 ### Changed in the repository
 
 - `CLAUDE.md`: the model rule now says which new model starts a new run of the main eval cases. A new model counts in two cases: the eval agent or the judge moves to it, or the owner starts to use it as the main model of sessions (issue #362).
 - `docs/evals.md`: the new section "Run the main cases on a new model" lists the main cases and gives the command for one run. It also gives the cost and the time of the first model run, with an agent of the Fable family: 59 runs, each at 1.00, for 42.70 USD (issue #362).
+- `docs/workflows.md`: the new section "Where the notes go" gives the rule for the notes folder (issue #368).
+- Tests: `tests/test_worktree.py`, `tests/test_backup_move.py`, `tests/test_eval_cases.py`, `tests/test_eval_scaffolds.py`, `tests/test_work_modes_text.py`, and `tests/test_review_loop_text.py` follow the changes. `tests/test_rule_references.py` makes sure that each path below `${CLAUDE_PLUGIN_ROOT}` exists, and that each unit with a notes folder points at the rule. `tests/test_kb_plugin.py` makes sure that the rule and the launcher of `kb` agree on each KB clone. It also makes sure that `merge-pr` names only skills that `kb` has (issue #368).
 
 ## dev-essentials 5.1.6 in release [6.2.3] - 2026-11-22
 
@@ -2699,7 +2746,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...HEAD
+[7.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...v7.0.0
 [6.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...v6.2.3
 [6.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...v6.2.2
 [6.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.0...v6.2.1

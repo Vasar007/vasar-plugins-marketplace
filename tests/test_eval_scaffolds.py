@@ -90,7 +90,7 @@ START_CONTENT = {
 # A literal commit id in a grader pattern: \b, then 7 to 40 hex characters.
 COMMIT_LITERAL = re.compile(r"\\b([0-9a-f]{7,40})(?![0-9a-f])")
 BRANCH_LOG_PATH = re.compile(r"(?:^|/)logs/refs/heads/(.+)$")
-# compose-pr saves Notes/PRs/PR-<branch>.md, with each / of the branch as -. A pattern writes the dot as \.
+# compose-pr saves PRs/PR-<branch>.md in the notes folder, with each / of the branch as -. A pattern writes the dot as \.
 PR_FILE_NAME = re.compile(r"PR-([\w.-]+?)\\?\.md")
 # The fork owner in the PR creation entry of a project context. Step 6 of feature-pipeline then sends <owner>:<branch> as head.
 FORK_OWNER = re.compile(r"^- \*\*PR creation:\*\* .*, fork owner `([^`]+)`$", re.MULTILINE)
@@ -347,9 +347,9 @@ class GraderBranchTests(unittest.TestCase):
 
     def test_a_pr_file_of_another_branch_is_found(self):
         case = SimpleNamespace(label="cmp-x", graders={
-            "saved": ({"type": "file_exists", "path": "Notes/PRs/PR-user-tasks-13-index.md"}, ""),
+            "saved": ({"type": "file_exists", "path": "notes/PRs/PR-user-tasks-13-index.md"}, ""),
             "reported": ({"type": "regex", "pattern": "PR-user-tasks-13-index\\.md"}, ""),
-            "read": ({"type": "regex", "target": {"source": "file", "path": "Notes/PRs/PR-main.md"}}, ""),
+            "read": ({"type": "regex", "target": {"source": "file", "path": "notes/PRs/PR-main.md"}}, ""),
         })
         problems = pr_file_problems(case, "user/tasks/12-index")
         self.assertEqual(len(problems), 3, problems)

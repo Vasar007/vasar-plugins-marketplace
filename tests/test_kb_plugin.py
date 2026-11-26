@@ -4,6 +4,7 @@ Each test builds a fake KB clone with stub hook scripts in a temporary folder an
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import unittest
@@ -15,6 +16,8 @@ from testkit import ScratchCase, clean_env, git_bash_pwd_stub, git_init, run
 PLUGIN = REPO / "knowledge/kb"
 LAUNCHER = PLUGIN / "scripts/kb-hook.sh"
 CHECK = PLUGIN / "skills/setup/check.sh"
+NOTES_RULE = REPO / "essentials/dev-essentials/references/notes-root.md"
+MERGE_PR = REPO / "essentials/dev-essentials/skills/merge-pr/SKILL.md"
 NO_CLONE_LINE = "KB plugin: no KB clone found. Set KB_DIR with /kb:setup."
 EVENTS = {
     "SessionStart": "session-start",
@@ -154,6 +157,39 @@ class LauncherTests(BashCase):
         done = self.launch("subagent-start", project, stdin="x", KB_DIR=str(self.tmp / "moved"),
                            CLAUDE_PROJECT_DIR=str(project))
         self.assertEqual((done.returncode, done.stdout), (0, ""))
+
+
+class NotesRuleTests(BashCase):
+    def test_the_rule_and_the_launcher_agree_on_a_kb_clone(self):
+        lines = [line.strip() for line in NOTES_RULE.read_text(encoding="utf-8").splitlines()
+                 if line.strip().startswith('case "${KB_DIR-}"')]
+        self.assertEqual(len(lines), 1, "The rule file must hold exactly one KB test line.")
+        script = self.tmp / "kb-test.sh"
+        script.write_text(f"{lines[0]}\n", encoding="utf-8", newline="\n")
+        clone = self.make_clone(self.tmp / "clone")
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        inputs = (
+            ({"KB_DIR": str(clone)}, str(clone)),
+            ({"KB_DIR": "clone"}, ""),
+            ({"KB_DIR": str(empty)}, ""),
+            ({}, ""),
+        )
+        for extra, expected in inputs:
+            with self.subTest(env=extra):
+                found = run([self.bash, script], env=self.env(**extra), cwd=self.tmp, timeout=30)
+                self.assertEqual(found.stdout.strip(), expected)
+                launched = self.launch("session-start", self.tmp, **extra)
+                self.assertEqual(NO_CLONE_LINE in launched.stdout, expected == "")
+
+
+class CrossPluginTests(unittest.TestCase):
+    def test_merge_pr_names_only_skills_that_kb_has(self):
+        names = set(re.findall(r"`kb:([\w-]+)`", MERGE_PR.read_text(encoding="utf-8")))
+        self.assertTrue(names, "merge-pr names no skill of the kb plugin.")
+        for name in sorted(names):
+            with self.subTest(skill=name):
+                self.assertTrue((PLUGIN / "skills" / name / "SKILL.md").is_file())
 
 
 class HooksFileTests(unittest.TestCase):

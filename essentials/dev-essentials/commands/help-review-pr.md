@@ -72,7 +72,7 @@ Report every finding with a severity. Sort the findings table of the artifact by
 
 ## Phase 5 — Produce the HTML artifact
 
-The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`. The reviews folder is `Reviews/` in the notes folder.
+The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Use the head branch of the pull request (`head.ref` in the response), not the current branch. Read that file before the first read or write in the notes folder. The reviews folder is `Reviews/` in the notes folder.
 
 Output path: `pr-<number>-review.html` in the reviews folder.
 

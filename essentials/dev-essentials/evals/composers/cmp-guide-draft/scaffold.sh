@@ -6,6 +6,7 @@ source "$lib/git-fixture.sh"
 source "$lib/py-fixture.sh"
 
 make_pager_repo
+fixture_notes_folder
 fixture_write docs/drafts/release-steps.md <<'CASE_EOF'
 # Release the pager package
 

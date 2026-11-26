@@ -27,7 +27,7 @@ orchestrator decides open items from the source of truth, not from the taste of 
 - Audit report: the Markdown file where the auditor writes the items, the executor section, and the "Not changed on purpose" list.
 - Item: one planned change in the audit report, with an ID such as `O-01`.
 - Settled list: the decisions of the user that the run must not change.
-- Source of truth: the files that record decisions of the user. Examples are memory files, `CLAUDE.md` files, earlier plans and audits, the CHANGELOG, and commit messages.
+- Source of truth: the files that record decisions of the user. Examples are `CLAUDE.md` files, the rules of a KB clone, earlier plans and audits, the CHANGELOG, and commit messages.
 - Open item: an item whose fix plan or risk offers a choice, or that changes behavior on purpose. Step 2 decides it.
 - Pointer grep: a `grep` command that proves that a moved text has one home and that every link to it resolves.
 - Behavior review: the step-5 review with one goal, "did the optimization keep behavior".

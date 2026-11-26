@@ -4,19 +4,19 @@ description: Implement tasks from a plan file (no spec-framework dependency)
 
 Implement tasks from a plan or task list file.
 
-The notes folder is `${user_config.notes_dir}`. If that value still shows as a `${...}` placeholder, no value is saved, and the notes folder is `Notes`.
+The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **Arguments**: $ARGUMENTS
 
 - Format: `<path-to-plan-file> [phase/section numbers] [options]`
 - Examples:
-  - `Notes/Results/my-plan.md`: implement all tasks
-  - `Notes/Results/my-plan.md 3`: implement only section/phase 3
-  - `Notes/Results/my-plan.md 2-5`: implement sections 2 through 5
-  - `Notes/Results/my-plan.md 1,3,7`: implement sections 1, 3, and 7
-  - `Notes/Results/my-plan.md 3-5 --commit`: implement and commit after each phase
-  - `Notes/Results/my-plan.md --commit-push`: commit and push after each phase
-  - `Notes/Results/my-plan.md --context Notes/Results/research.md`: use a specific context file
+  - `plans/my-plan.md`: implement all tasks
+  - `plans/my-plan.md 3`: implement only section/phase 3
+  - `plans/my-plan.md 2-5`: implement sections 2 through 5
+  - `plans/my-plan.md 1,3,7`: implement sections 1, 3, and 7
+  - `plans/my-plan.md 3-5 --commit`: implement and commit after each phase
+  - `plans/my-plan.md --commit-push`: commit and push after each phase
+  - `plans/my-plan.md --context plans/research.md`: use a specific context file
 - If no arguments, use the **AskUserQuestion tool** to ask for the plan file path.
 
 **Options:**
@@ -56,7 +56,7 @@ Before the first step, load `dev-essentials:work-modes` with the `Skill` tool. I
    Check for prior context in this order:
    1. If `--context <path>` was specified, read that file.
    2. Otherwise, derive a research file name from the plan file (for example, `my-plan.md` → `Results/my-plan-research.md` in the notes folder). If it exists, read it.
-   3. As a final fallback, check the auto-memory directory (`MEMORY.md` and topic files) for relevant project notes.
+   3. As the last fallback, run the command of item 3 of `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md`. It finds a KB clone. If it prints a folder, read `_claude/RULES.md` in that folder. Then read each rules index that it loads, and the index that it names for the project of this repository. If it prints nothing, skip this item.
 
 3. **Determine which tasks to implement**
 

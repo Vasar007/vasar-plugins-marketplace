@@ -4,6 +4,7 @@
 # fixture_init, fixture_commit, fixture_write: build a repo in the current folder.
 # fixture_remote_init: add a bare remote at .remote/origin.git inside the workspace. The remote URL is an absolute path.
 # fixture_publish: push every branch, then turn on the reflogs that the graders read.
+# fixture_notes_folder: name notes/ as the notes folder in CLAUDE.md, and commit it.
 # Every commit has the subject prefix "fixture:", so that a grader can tell it from a commit of the run.
 #
 # dotnet-backend-dev has a git symlink to this file. A test makes sure that the link is there.
@@ -34,6 +35,13 @@ fixture_commit() {
     git add -A
     GIT_AUTHOR_DATE="$FIXTURE_CLOCK +0000" GIT_COMMITTER_DATE="$FIXTURE_CLOCK +0000" \
         git commit -q --allow-empty -m "fixture: ${subject#fixture: }"
+}
+
+# Name the folder notes/ in CLAUDE.md as the notes folder, and commit the line.
+fixture_notes_folder() {
+    printf '%s
+' '- Notes folder: `notes/`.' >> CLAUDE.md
+    fixture_commit "name the notes folder"
 }
 
 # Add the bare remote origin inside the workspace. A sandboxed run can write only there.

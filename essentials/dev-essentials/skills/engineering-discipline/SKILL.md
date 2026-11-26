@@ -10,7 +10,7 @@ Apply these rules all session. They are not a list for the end of the task.
 
 ## Rule 1 — Own every red signal in your session
 
-A red signal is a failure from an automated tool: a failing test, a spec validator (for example, `openspec validate`), a linter (for example, markdownlint), a compile error, or a warning treated as an error. If you see a red signal, it is yours to fix at once.
+A red signal is a failure from an automated tool: a failing test, a spec validator, a linter (for example, markdownlint), a compile error, or a warning treated as an error. If you see a red signal, it is yours to fix at once.
 
 Do not say "pre-existing failure", "not caused by my change", "already failing before I touched this", or anything with the same meaning. Do not look in `git log` to find out whether the failure predates your work. Work in the area makes the failure yours. This also holds for a failure across the whole codebase, for example a format issue that many specs share. "Everyone has it" is not a reason to skip it.
 
@@ -25,7 +25,7 @@ How to apply:
 
 ## Rule 2 — No unilateral critical decisions in spec-first / plan-first work
 
-Inside a spec-first or plan-first workflow, you must not make a critical decision that the artifact does not already cover. Examples of such workflows: OpenSpec, design docs, task plans, RFCs, ADRs, and feature-pipeline. Critical decisions include at least these:
+Inside a spec-first or plan-first workflow, you must not make a critical decision that the artifact does not already cover. Examples of such workflows: spec frameworks, design docs, task plans, RFCs, ADRs, and feature-pipeline. Critical decisions include at least these:
 
 - A change to a public signature (method, interface, or controller endpoint shape)
 - A new DI dependency or a new persistence concern
@@ -46,22 +46,22 @@ How to apply:
 
 ## Rule 3 — No pipeline-internal artifacts in shipped code, docs, or commit messages
 
-Production source files, shipped tests, shipped docs, commit messages, PR titles, and PR descriptions must not reference any pipeline-internal artifact. Shipped docs are, for example, `Docs/`, or the specs of the spec framework, such as `openspec/specs/`. The pipeline-internal artifacts are:
+Production source files, shipped tests, shipped docs, commit messages, PR titles, and PR descriptions must not reference any pipeline-internal artifact. Shipped docs are, for example, `Docs/`, or the specs of a spec framework. The pipeline-internal artifacts are:
 
-- `Notes/Tasks/<id>/...` paths (a gitignored work folder)
+- Paths in the notes folder (`${CLAUDE_PLUGIN_ROOT}/references/notes-root.md`) or in the artifacts folder of a pipeline, for example `tasks/<id>/...`
 - Section anchors of a spec or a test plan, such as `§7d`, `§3.5`, `Q5`, or `Resolved Question #5`
 - File names such as `scenario-coverage-gap.md`, `requirements.md`, `spec.md`, `test-plan.md`, `review.md`, or `pipeline-state.json`
 - Pipeline stage names such as `Step C`, `Stage 3`, or `feature-pipeline §X`
 
 Use only stable references: issue or task IDs (`#1234`, `#5678`), code-level concepts (predicate names, helper names, configuration option names), and self-contained descriptions of behavior.
 
-Why: pipeline artifacts live under `Notes/Tasks/` (gitignored) and in the working memory of the orchestration. A later reader of the merged code finds a reference that leads nowhere, because the artifact never shipped.
+Why: pipeline artifacts live in the notes folder, in an ignored artifacts folder, and in the working memory of the orchestration. A later reader of the merged code finds a reference that leads nowhere, because the artifact never shipped.
 
 How to apply:
 
 - In XML docs, inline comments, log messages, test names, and commit bodies, describe the *behavior* in self-contained terms. Write it so that a reader does not need the pipeline work folder to understand it.
 - If the *why* is not obvious, link to a stable issue or task ID, not to a pipeline section anchor.
-- Before you commit, grep the staged diff for `Notes/Tasks`, `§`, `scenario-coverage-gap`, `Stage <N>`, `pipeline-state.json`, and `Resolved Q`. Remove every match unless it lives in `Notes/Tasks/<id>/` itself (gitignored, never shipped).
+- Before you commit, grep the staged diff for these texts: the path of the notes folder, the path of the artifacts folder, `§`, `scenario-coverage-gap`, `Stage <N>`, `pipeline-state.json`, and `Resolved Q`. Remove every match. A file in one of these folders never ships, so a match there can stay.
 - If you brief a subagent that writes shipped artifacts (tests, docs, code), put this rule in the prompt. Then the subagent does not paste pipeline cross-references into the diff.
 
 ## Rule 4 — Never use try/catch to silence a red signal

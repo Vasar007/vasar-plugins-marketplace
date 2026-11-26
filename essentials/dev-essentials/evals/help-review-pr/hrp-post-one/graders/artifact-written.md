@@ -1,4 +1,4 @@
 ---
 type: file_exists
-path: Notes/Reviews/pr-7-review.html
+path: notes/Reviews/pr-7-review.html
 ---

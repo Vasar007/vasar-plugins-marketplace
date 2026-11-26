@@ -84,6 +84,8 @@ Give these facts for each main project, from the output of the script:
 
 Say clearly whether this was a **dry run** (nothing changed, see "Modes and safety gate") or an **applied** run (the run executed the approved plan). Keep the report short. It is a routine maintenance report.
 
+Add this line to the report: "No skill or command of dev-essentials reads a memory topic file as a rule. Keep each rule in a CLAUDE.md file or in a KB clone."
+
 ## Hard rules
 
 - Never write or delete anything without both of these: `--apply`, and an explicit "yes" at the approval of "Modes and safety gate". The default is always a dry run.

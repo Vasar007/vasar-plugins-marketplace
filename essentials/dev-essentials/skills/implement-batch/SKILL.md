@@ -9,13 +9,12 @@ argument-hint: <parent issue reference, or an explicit list of N tasks> [--base=
 ## Division of labor in this skill family
 
 - `dev-essentials:implement` runs the tasks of an existing plan file, with no research and no review loop.
-- `dev-essentials:opsx-implement` implements phases of an existing OpenSpec change, with no research and no review.
 - `dev-essentials:research-implement-review-report` (RIRR) works one task: research, a plan, the implementation, a review loop, and a report.
 - `dev-essentials:implement-task` wraps RIRR for one task. It adds a sweep of extra context first and a `/simplify` commit at the end.
 - `dev-essentials:implement-batch` works N related tasks in one branch: one squashed commit for each task, then one final review across the tasks.
 - `dev-essentials:feature-pipeline` runs one task end-to-end in an isolated git worktree. The task is a tracked task of the task provider (for example, GitHub Issues or Jira), or a plain request. Subagents run its stages from the requirements to the reviews, the session pushes and opens the PR, and it has its own approval gates.
 
-The configured branch prefix is `${user_config.branch_prefix}`. The notes folder is `${user_config.notes_dir}`. Set both with `/plugin configure` (see `plugin.json`). If a value still shows as a `${...}` placeholder, no value is saved. Then the configured branch prefix is empty, and the notes folder is `Notes`.
+The configured branch prefix is `${user_config.branch_prefix}`. Set it with `/plugin configure` (see `plugin.json`). If the value still shows as a `${...}` placeholder, no value is saved, and the configured branch prefix is empty. The notes folder is the folder that `${CLAUDE_PLUGIN_ROOT}/references/notes-root.md` gives. Read that file before the first read or write in the notes folder.
 
 **Arguments**: $ARGUMENTS
 
@@ -34,7 +33,7 @@ The configured branch prefix is `${user_config.branch_prefix}`. The notes folder
 | `--base=<branch>` | from context, else ask | Use the base that this flag or the prose of $ARGUMENTS names (for example "... from release/2.0"). If neither names a base and `git ls-remote --heads origin` lists exactly one branch, use that branch, and say so. Else use the **AskUserQuestion** tool to ask. If the remote has more than one branch, never assume `main`, `master`, or `develop`. |
 | `--worktree=<branch-ref>` | ask or derive | The branch ref that all N tasks share. Use the ref that this flag or the prose of $ARGUMENTS names, verbatim. Else build `<prefix>/<parent-type>s/<parent-ID>-<slug>`. Take the prefix from the first of these that gives one: a branch-naming rule in the `CLAUDE.md` of the repo, the configured branch prefix, a branch-naming rule in the `CLAUDE.md` of the user. If none gives a prefix, **ask once**. With `--no-worktree`, the ref names only the branch that Step 1 creates, so resolve it only then. |
 | `--no-worktree` | off | Make no worktree, and work on the current branch in the current folder. Step 1 says what the run does on the default branch, the base branch, or a detached HEAD. |
-| `--plan-dir=<path>` | `Plans/` in the notes folder | The folder inside the worktree for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
+| `--plan-dir=<path>` | `Plans/` in the notes folder | The folder for the plan files. A plan location that the repo documents wins. The plan files stay out of every commit (see "Guardrails"). |
 | `--rounds=<N>` | `2` | Review-loop cycles, passed as `--rounds` to every loop: the plan loops, the code loops, and the final loop. |
 | `--mode interactive\|partial\|full` | `partial` | The work mode. `dev-essentials:work-modes` defines the modes, and the gate table in "Autonomy" says what each mode does here. |
 
@@ -106,7 +105,7 @@ Then record `BATCH_BASE_SHA = git -C "<worktree>" rev-parse HEAD`.
 
 ### Step 2 — Plan every task
 
-Dispatch planners in parallel, one for each task. Each one writes `<--plan-dir>/<task-slug>-plan.md` inside the worktree. A plan holds the scope of the task, the files that it touches, and the patterns that it must follow (with `file:line` anchors). It also holds its verification commands and each open decision. An open decision is a critical decision that the task, the code, and the documentation do not settle (`dev-essentials:engineering-discipline` Rule 2).
+Dispatch planners in parallel, one for each task. Each one writes `<--plan-dir>/<task-slug>-plan.md`. A plan holds the scope of the task, the files that it touches, and the patterns that it must follow (with `file:line` anchors). It also holds its verification commands and each open decision. An open decision is a critical decision that the task, the code, and the documentation do not settle (`dev-essentials:engineering-discipline` Rule 2).
 
 Then, for each plan, run `dev-essentials:review-loop` with `target=spec <plan path>`, and fix the plan as the loop decides, with the options of "Review-loop configuration".
 

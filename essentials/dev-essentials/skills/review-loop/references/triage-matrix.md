@@ -111,5 +111,5 @@ One type for each finding. Use these exact tokens in every report table and in t
 | `Test` | Missing coverage of critical paths, assertions that do not test the contract, flaky setup. |
 | `Style` | Formatting, naming conventions, whitespace, with no semantic impact. |
 | `Architecture` | Structural issues across components: DI lifetime mismatches, layer violations, wrong abstractions, broken contracts between components. |
-| `Spec` | A finding in a target that is not code: a spec, a design doc, or a change of the spec framework (for example, OpenSpec). |
+| `Spec` | A finding in a target that is not code: a spec, a design doc, or a change of the spec framework. |
 | `Docs` | Missing, wrong, or misleading documentation, comments, or changelog entries. |
