@@ -411,17 +411,96 @@ class CheckScriptTests(BashCase):
         done = self.run_complete(home, clone, gitconfig)
         self.assertFalse(any(" diff *" in line for line in done.stdout.splitlines()), done.stdout)
 
-    def test_old_relative_rules_in_the_allow_list_are_reported_as_stale(self):
+    RELATIVE_CALLS = {
+        OLD_RULES[0]: "bash _claude/tools/kb-search.sh",
+        OLD_RULES[1]: "python3 -B _claude/tools/ste-check.py",
+        OLD_RULES[2]: "python3 -B _claude/tools/md-check.py",
+    }
+    CALL_FILES = (
+        "_claude/RULES.md",
+        "_claude/capture.md",
+        "_claude/close-task.md",
+        "_claude/hooks/session-start.sh",
+        "_claude/hooks/subagent-start.sh",
+    )
+
+    def stale_home(self):
+        """A complete home whose allow list also holds the three old rules. Returns the home, the clone, and the git config."""
         home, clone, gitconfig = self.complete_home()
         self.stub("crontab", 'echo "kb-sync.sh"')
         allow, ask = rules(clone.as_posix())
         self.settings_with(home, clone, [*OLD_RULES, *allow], ask)
+        return home, clone, gitconfig
+
+    def expected_stale_lines(self, home, kept=None):
+        """The STALE lines for the three old rules. `kept` maps a rule to the file that keeps it."""
+        kept = kept or {}
         settings = f"{self.bash_home(home)}/.claude/settings.json"
-        expected = [f"STALE: allow rule: {rule} is in permissions.allow in {settings}. "
-                    "Its relative path matches a script in any project. "
-                    "Remove it after the KB rules call the scripts with the full path." for rule in OLD_RULES]
+        lines = []
+        for rule in OLD_RULES:
+            advice = (f"Keep it for now: {kept[rule]} still calls the script with a relative path."
+                      if rule in kept else "Remove it.")
+            lines.append(f"STALE: allow rule: {rule} is in permissions.allow in {settings}. "
+                         f"Its relative path matches a script in any project. {advice}")
+        return lines
+
+    def write_clone_file(self, clone, relative, text):
+        path = clone / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_old_relative_rules_in_the_allow_list_are_reported_as_stale(self):
+        home, clone, gitconfig = self.stale_home()
         done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", *self.expected_stale_lines(home)])
+
+    def test_a_relative_call_of_one_script_in_the_rules_file_keeps_only_the_rule_of_that_script(self):
+        home, clone, gitconfig = self.stale_home()
+        self.write_clone_file(clone, "_claude/RULES.md", "Run cd X && bash _claude/tools/kb-search.sh --steps 'a'\n")
+        done = self.run_complete(home, clone, gitconfig)
+        expected = self.expected_stale_lines(home, {OLD_RULES[0]: "_claude/RULES.md"})
         self.assertEqual(done.stdout.splitlines(), ["OS: linux", *expected])
+
+    def test_the_first_file_with_the_relative_call_is_named(self):
+        home, clone, gitconfig = self.stale_home()
+        for relative in ("_claude/capture.md", "_claude/RULES.md"):
+            self.write_clone_file(clone, relative, "Run python3 -B _claude/tools/md-check.py --changed\n")
+        done = self.run_complete(home, clone, gitconfig)
+        expected = self.expected_stale_lines(home, {OLD_RULES[2]: "_claude/RULES.md"})
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", *expected])
+
+    def test_each_file_that_tells_a_session_a_command_keeps_the_rule_and_is_named(self):
+        home, clone, gitconfig = self.stale_home()
+        for relative in self.CALL_FILES:
+            with self.subTest(file=relative):
+                text = "echo 'python3 -B _claude/tools/ste-check.py --changed'\n"
+                path = self.write_clone_file(clone, relative, text)
+                done = self.run_complete(home, clone, gitconfig)
+                if relative == "_claude/RULES.md":
+                    path.write_text("rules\n", encoding="utf-8")
+                else:
+                    path.unlink()
+                expected = self.expected_stale_lines(home, {OLD_RULES[1]: relative})
+                self.assertEqual(done.stdout.splitlines(), ["OS: linux", *expected])
+
+    def test_full_path_calls_in_the_files_that_tell_a_session_a_command_keep_no_rule(self):
+        home, clone, gitconfig = self.stale_home()
+        full_calls = "\n".join(call.replace(" _claude", f" {clone.as_posix()}/_claude") + " --x"
+                               for call in self.RELATIVE_CALLS.values())
+        for relative in self.CALL_FILES:
+            self.write_clone_file(clone, relative, f"{full_calls}\n")
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", *self.expected_stale_lines(home)])
+
+    def test_a_relative_call_in_another_file_or_of_another_script_keeps_no_rule(self):
+        home, clone, gitconfig = self.stale_home()
+        every_call = "\n".join(self.RELATIVE_CALLS.values())
+        for relative in ("_claude/gardener.md", "_claude/hooks/allow-read.sh", "_claude/tools/test_x.py"):
+            self.write_clone_file(clone, relative, f"{every_call}\n")
+        self.write_clone_file(clone, "_claude/close-task.md", "Run python3 -B _claude/tools/vault_lint.py --all\n")
+        done = self.run_complete(home, clone, gitconfig)
+        self.assertEqual(done.stdout.splitlines(), ["OS: linux", *self.expected_stale_lines(home)])
 
     def test_old_relative_rules_outside_the_allow_list_are_not_stale(self):
         home, clone, gitconfig = self.complete_home()
@@ -437,7 +516,10 @@ class CheckScriptTests(BashCase):
         (home / ".claude/settings.json").write_text(json.dumps({"permissions": {"allow": list(OLD_RULES)}}),
                                                     encoding="utf-8")
         self.stub("crontab", "exit 1")
-        self.assertEqual(len(self.stale_lines(self.run_check(home))), len(OLD_RULES))
+        stale = self.stale_lines(self.run_check(home))
+        self.assertEqual(len(stale), len(OLD_RULES))
+        for line in stale:
+            self.assertTrue(line.endswith(" Remove it."), line)
 
     def test_a_clone_path_with_a_space_or_a_star_gets_no_script_rule(self):
         home, _, gitconfig = self.complete_home()
