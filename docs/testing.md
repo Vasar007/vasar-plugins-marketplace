@@ -42,7 +42,7 @@ Under WSL2, install Node.js in Linux. The `npx` of a Windows install cannot run 
 | Plugin scripts | `test_<script>.py` for each script of a plugin, and `test_kb_plugin.py` | A wrong result of a script that a skill, a command, or a hook runs |
 | Maintainer tools | `test_changelog_merge.py`, `test_eval_results.py`, `test_release.py`, and `test_tools_wsl.py` | A wrong result of a script in `tools/` |
 | Lint of the text | `test_simple_english.py`, `test_markdownlint.py`, `test_readme_counts.py`, `test_prompt_phrases.py` | A lint hit, a count of units in the docs, or a request to show the reasoning |
-| Rules in the units | `test_work_modes_*.py`, `test_review_loop_text.py`, `test_model_ladder_text.py`, and `test_rule_references.py` | A rule that leaves a unit, or a reference to a rule that does not exist |
+| Rules in the units | `test_work_modes_*.py`, `test_review_loop_text.py`, `test_model_ladder_text.py`, `test_gh_fallback_text.py`, and `test_rule_references.py` | A rule that leaves a unit, or a reference to a rule that does not exist |
 | Manifests and versions | `test_plugin_cli.py`, `test_claude_ai_sync.py`, `test_version_bump.py` | A failed `claude plugin validate --strict`, a cost over budget, a key that the sync drops, or no new version |
 | Eval cases | `test_eval_*.py` and the tests in `tests/evals/` | A case that does not load, a scaffold that fails, or a grader with a wrong verdict on a known run |
 | Test helpers | `test_testkit.py` and `test_support.py` | A wrong result of a helper of the tests |

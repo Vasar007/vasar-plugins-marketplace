@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.1.0 in release [7.1.0] - 2026-11-26
+
+When no GitHub MCP tool can make a call, the GitHub rules of `dev-essentials` now allow the `gh` CLI. Each `gh` call goes into the report, and each approval gate stays (issue #365).
+
+### Added in dev-essentials
+
+- `evals/merge-pr/mp-checks-403`: the MCP read of the check runs fails with a `403` error. The run must read the check runs with `gh` and name that call and its reason in the report. It must make no other `gh` call, and it must not merge (issue #365).
+
+### Changed in dev-essentials
+
+- `skills/github-mcp-conventions/SKILL.md`: Rule 5 allows the `gh` CLI in two cases. No MCP tool has the call or a field that the step needs, or the MCP call fails again after one retry. The rule lists the known cases, for example a `403` error on the check runs and a release, which no MCP tool creates. The report names each `gh` call and its reason. A case holds for one call, and a stop or a `gh` step that a skill names wins over the rule. A slow MCP call is still no reason for `gh`, and each approval gate stays (issue #365).
+- `skills/merge-pr/SKILL.md`: if the MCP read of the check runs fails again after a retry, the gate reads them with `gh api`. When no MCP tool reads them, Step 4 reads the checks of the merge commit with `gh`. Step 3 bans a `gh` merge after a failed MCP merge. The approval of the merge does not change (issue #365).
+- `skills/subagent-orchestration/SKILL.md`: Rule 4 points at the two cases of Rule 5 of `github-mcp-conventions` (issue #365).
+- `commands/help-review-pr.md`, `commands/save-context.md`, `agents/bug-hunter.md`, and `agents/bug-verifier.md`: the text follows the new Rule 5 (issue #365).
+- `evals/merge-pr/mp-green-merge`: the new grader `no-gh-for-the-pr` fails a run that reads the pull request or merges with `gh` while the MCP tools work (issue #365).
+
+### Changed in the repository
+
+- Tests: the new `tests/test_gh_fallback_text.py` makes sure that Rule 5 keeps each part of the rule, and that no unit keeps the old ban. `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py` cover the new case and the new grader (issue #365).
+- `docs/testing.md`: the table of the test groups names the new module (issue #365).
+
 ## dev-essentials 6.0.0 in release [7.0.0] - 2026-11-26
 
 The skills and commands of `dev-essentials` now keep their notes in one notes folder, and a new rule file finds it. The notes no longer go to a fixed `Notes/` folder in the repository. The configuration `notes_dir`, the command `opsx-implement`, and the support for OpenSpec go. A knowledge base (KB) clone is a local git clone of notes. If the `kb` plugin and a KB clone are there, `merge-pr` closes the KB task folder after a merge with `kb:close-task` (issue #368).
@@ -2746,7 +2767,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...HEAD
+[7.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.1.0
 [7.0.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.3...v7.0.0
 [6.2.3]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.2...v6.2.3
 [6.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v6.2.1...v6.2.2

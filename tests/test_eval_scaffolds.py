@@ -67,6 +67,7 @@ EXPECTED_BRANCH = {
     "mp-green-merge": "feature/paging",
     "mp-red-check": "feature/paging",
     "mp-no-merge-word": "feature/paging",
+    "mp-checks-403": "feature/paging",
     "os-review-fixes": "main",
     "rirr-merge": "work/retry-limit",
     "rirr-merge-gate": "work/retry-gate",

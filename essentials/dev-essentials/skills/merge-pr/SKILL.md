@@ -24,7 +24,7 @@ Take `owner`, `repo`, and the PR number from the request, or from the workflow o
 
 Each item of the gate must hold. Read each item now. Do not reuse an older read.
 
-1. Checks: call `pull_request_read` with `method: "get_check_runs"` and with `method: "get_status"`. Read each page of the check runs with `perPage: 100`, until you have `total_count` check runs. Each check run has the status `completed` and the conclusion `success`, `neutral`, or `skipped`. The combined status is `success`, or it holds no status. For a head with no status, GitHub reports `pending` with a count of 0.
+1. Checks: call `pull_request_read` with `method: "get_check_runs"` and with `method: "get_status"`. Read each page of the check runs with `perPage: 100`, until you have `total_count` check runs. Each check run has the status `completed` and the conclusion `success`, `neutral`, or `skipped`. The combined status is `success`, or it holds no status. For a head with no status, GitHub reports `pending` with a count of 0. If the MCP read of the check runs fails again after one retry, for example with `403 Resource not accessible by personal access token`, read them with `gh api --paginate "repos/<owner>/<repo>/commits/<head.sha>/check-runs?per_page=100"`. Rule 5 of `dev-essentials:github-mcp-conventions` allows this call. If the MCP read of the combined status fails again after one retry, read it from `repos/<owner>/<repo>/commits/<head.sha>/status` in the same way. Name each `gh` call and the MCP error in the report.
 2. Merge state: `mergeable_state` of the PR is `clean`. On GitHub Enterprise Server, `has_hooks` also passes.
 3. Reviews: call `pull_request_read` with `method: "get_reviews"`, and read each page. For each reviewer, the latest review with the state `APPROVED` or `CHANGES_REQUESTED` is not `CHANGES_REQUESTED`. A later `COMMENTED` review does not end a change request.
 4. Local commits: if this session has the branch of the PR in a local clone, `git rev-list <head.sha>..<branch>` exits with 0 and prints nothing. So the PR holds each local commit. If git does not know `<head.sha>`, run `git fetch origin pull/<PR number>/head`, and run the command again. An error of the command is a failed read.
@@ -39,20 +39,20 @@ These states are not failures yet:
 
 While one of the first three states holds, the merge states `unstable` and `blocked` are not failures either. Wait about one minute, and read items 1 and 2 again. A wait is real time on the clock between two reads, for example a sleep command or a timer. Never read again with no wait. Stop the wait after 30 minutes, or after the limit that the user named. If this session has no way to wait, the wait ends at once. When items 1 and 2 pass after a wait, read item 3 again before Step 3. After 3 reads, a head can still have no check run and no status. Then item 1 fails, unless the user said that the repository has no CI.
 
-If an item fails, a read fails, or the wait ends, do not merge. For example, a token with no access to the check runs makes a read fail. Do not repair the cause in this skill. Make no new commit, do not update the branch, start no check again, and do not call the merge with other values. Report the item, its evidence, and what the user can do. Then stop.
+If an item fails, a read fails, or the wait ends, do not merge. For example, the MCP call and the `gh` call of item 1 can both fail. Then the read fails. Do not repair the cause in this skill. Make no new commit, do not update the branch, start no check again, and do not call the merge with other values. Report the item, its evidence, and what the user can do. Then stop.
 
 ## Step 3: Merge
 
 1. Take the merge method that the user or the project instructions name. Else use `squash`.
 2. For a squash merge, write the commit text. The title is the PR title, then a space and `(#<PR number>)`. The body says what changed and why, in a few lines from the PR body. It keeps each closing line of the PR body, such as `Closes #12.`, and it does not repeat the title. If the project instructions give a form for commit messages, use that form.
 3. Call `merge_pull_request` with `owner`, `repo`, `pullNumber`, `merge_method`, `commit_title`, `commit_message`, and `expectedHeadSha`. Set `expectedHeadSha` to the `head.sha` of Step 1, so that GitHub refuses the merge after a later push.
-4. The answer of the call is the proof of the merge: `merged: true` and the SHA of the merge commit. If the call fails, do not call it again with another method or without `expectedHeadSha`. Report the error text, and stop.
+4. The answer of the call is the proof of the merge: `merged: true` and the SHA of the merge commit. If the call fails, do not call it again with another method or without `expectedHeadSha`. Do not merge with `gh` either. Report the error text, and stop.
 
 ## Step 4: After the merge
 
 Do these steps in order. A failed step does not undo the merge. Report it, and do the next step.
 
-1. Checks of the base branch: read the check runs or the workflow runs of the merge commit, and wait as in Step 2. This needs a tool that reads them for a commit, for example the `actions` tools of the GitHub MCP server. If one fails, tell the user the failed check at once, and skip item 5. Without such a tool, say in the report that nobody read these checks.
+1. Checks of the base branch: read the check runs or the workflow runs of the merge commit, and wait as in Step 2. This needs a tool that reads them for a commit, for example the `actions` tools of the GitHub MCP server. If no MCP tool reads them, use `gh api --paginate "repos/<owner>/<repo>/commits/<merge commit SHA>/check-runs?per_page=100"`, as Rule 5 of `dev-essentials:github-mcp-conventions` allows. If a check run of the merge commit fails, tell the user the failed check at once, and skip item 5. If neither MCP nor `gh` can read them, say in the report that nobody read these checks.
 2. Local base branch: in a local clone, run `git fetch origin`. Then move the local base branch to `origin/<base branch>` with a fast-forward only. In the work tree that holds the base branch, run `git merge --ff-only origin/<base branch>`. If no work tree holds it, run `git fetch origin <base branch>:<base branch>`. If git refuses, report it. Never reset the branch.
 3. Merged local branch: first free the branch. If a linked worktree holds it, remove that worktree with Workflow C of `dev-essentials:git-worktree-management`. The approval of the merge covers this removal. If the main work tree holds the branch, switch to the base branch. Then run `git branch -d <branch>`. If git refuses, run `git rev-parse <branch>`. If that prints the `head.sha` that the merge used, run `git branch -D <branch>`. Else keep the branch, and report it. Do not delete the remote branch. If it still exists, say so.
 4. Linked issues: call `issue_read` with `method: "get"` for each issue that the title or the body of the PR names. Report each issue that is still open after a closing word (`Closes #N`, `Fixes #N`, `Resolves #N`). Report each issue that closed with no closing word. Do not close or reopen an issue.
@@ -68,4 +68,4 @@ Do these steps in order. A failed step does not undo the merge. Report it, and d
 
 ## Report
 
-Give one short report: the PR, each item of the gate with its evidence, the merge method, and the merge commit. Then list each step after the merge with its result. Name each step that you did not do, with the reason.
+Give one short report: the PR, each item of the gate with its evidence, the merge method, and the merge commit. Then list each step after the merge with its result. Name each step that you did not do, with the reason. Name each `gh` call and its reason.
