@@ -2292,14 +2292,14 @@ class PpcRuleCandidatesEndStateTests(FixtureCase):
             with (workspace / "CLAUDE.md").open("a", encoding="utf-8") as stream:
                 stream.write("- Name each Python function in snake_case.\n")
 
-        def keep_an_old_name_in_a_docstring(workspace):
+        def keep_the_old_name_as_an_alias(workspace):
             path = workspace / "src" / "users.py"
             path.write_text(path.read_text(encoding="utf-8") + "\ndisplayName = display_name\n", encoding="utf-8")
 
         shapes = {
             "a right run": (lambda w: None, (), None),
             "a rule line in CLAUDE.md": (add_a_rule, (), "claude-md-unchanged"),
-            "an old name left in the file": (keep_an_old_name_in_a_docstring, (), "users-renamed"),
+            "an old name left in the file": (keep_the_old_name_as_an_alias, (), "users-renamed"),
             "one rename missing": (lambda w: None, ("ranges-renamed",), "ranges-renamed"),
             "the limit stays at 500": (lambda w: None, ("limit-kept",), "limit-kept"),
         }

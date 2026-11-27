@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: '(?:rule[ -]candidates?|candidate rules?|draft rule)[\s\S]{0,300}^(?=[^\n]*9201)(?=[^\n]*9202)(?=[^\n]*9203)|^(?=[^\n]*9201)(?=[^\n]*9202)(?=[^\n]*9203)[^\n]*(?:\n[^\n]*){0,2}?(?:rule[ -]candidates?|candidate rules?|draft rule)'
+pattern: '(?<!\bno )(?:rule[ -]candidates?|candidate rules?|draft rule)\b(?![^\S\n]*(?:\(0\)|:[^\S\n]*none))[\s\S]{0,300}^(?=[^\n]*9201)(?=[^\n]*9202)(?=[^\n]*9203)|^(?=[^\n]*9201)(?=[^\n]*9202)(?=[^\n]*9203)[^\n]*(?:\n[^\n]*){0,2}?(?<!\bno )(?:rule[ -]candidates?|candidate rules?|draft rule)\b(?![^\S\n]*(?:\(0\)|:[^\S\n]*none))'
 flags: im
 target: last_message
 ---

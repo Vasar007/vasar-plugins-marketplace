@@ -3805,7 +3805,7 @@ class PpcRuleCandidateTests(unittest.TestCase):
 
     def test_a_right_report_passes_each_grader_of_the_last_message(self):
         report = self.LOG + self.CANDIDATE + self.PUSHED
-        for grader in ("rule-candidate", "route-candidate-threads", "unrelated-not-candidate"):
+        for grader in ("rule-candidate", "route-candidate-threads", "route-unrelated-not-candidate"):
             with self.subTest(grader=grader):
                 self.assertTrue(self.passes(grader, report))
 
@@ -3828,8 +3828,12 @@ class PpcRuleCandidateTests(unittest.TestCase):
             "a rule word with no point": ("Rule candidates: none.", False),
             "the point with no candidate": ("All three naming threads now use snake_case.", False),
             "a reply that names its commit": ("Each reply names its commit. I added no new test.", False),
-            # Known limit: an empty list next to a commit subject with the point passes. The skill prints no empty list.
-            "known limit: an empty list near the commit list": ("Rule candidates: none.\n\n" + self.PUSHED, True),
+            "an empty list near the commit list": ("Rule candidates: none.\n\n" + self.PUSHED, False),
+            "an empty list with a zero count": ("Rule candidates (0)\n\n" + self.PUSHED, False),
+            "no candidates near the point": ("No rule candidates this cycle.\n\n| T#9201 | renamed to snake_case |", False),
+            # Known limit: a point with none of the point words fails.
+            "known limit: the point only as PEP 8": ("Rule candidates (1)\n- PEP 8 for Python identifiers: T#9201, T#9202, "
+                                                     "T#9203. Draft rule: Follow PEP 8 for each Python identifier.", False),
         }
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
@@ -3843,22 +3847,36 @@ class PpcRuleCandidateTests(unittest.TestCase):
             "the base log and the commit list": (self.LOG + self.PUSHED, False),
             "two threads only": ("Rule candidates (1)\n  snake_case: T#9201, T#9202. Draft rule: use snake_case.", False),
             "a rule word far from the threads": ("Rule candidates (0)\n" + "x" * 400 + "\n" + self.PUSHED, False),
+            "an empty list near the shared commit": ("Rule candidates: none.\n\n" + self.PUSHED, False),
+            # Known limit: the bullet asks for one line for each point, so one line for each thread fails.
+            "known limit: one line for each thread": ("**Rule candidate:** Python function names in snake_case.\n"
+                                                      "- T#9201\n- T#9202\n- T#9203\nDraft rule: use snake_case.", False),
         }
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(self.passes("route-candidate-threads", text), expected)
 
-    def test_unrelated_not_candidate_fails_a_candidate_with_the_limit_thread(self):
+    def test_route_unrelated_not_candidate_fails_a_candidate_with_the_limit_thread(self):
         runs = {
             "the base log": (self.LOG + self.PUSHED, True),
             "the right candidate": (self.CANDIDATE, True),
             "the limit thread in the candidate line": ("Rule candidates (1)\n  snake_case: T#9201, T#9202, T#9203, T#9204. "
                                                        "Draft rule: use snake_case.", False),
             "a candidate of the limit thread": ("Rule candidates (2)\n  Default limit (T#9204). Draft rule: keep 50.", False),
+            # Known limits: the pattern reads one line and sees no negation.
+            "known limit: the limit thread named as no candidate": (
+                "Rule candidates (1)\n- snake_case function names: T#9201, T#9202, T#9203. Draft rule: Name each Python "
+                "function in snake_case. (T#9204 is a separate point, so it is no rule candidate.)", False),
+            "known limit: the limit thread in prose": ("Rule candidate: three threads (T#9201, T#9202, T#9203) ask for "
+                                                        "snake_case names. The limit thread T#9204 is a one-off.", False),
+            "known limit: the limit thread in a table row": (
+                "| Point | Threads | Draft rule |\n|---|---|---|\n| Review points | T#9201, T#9202, T#9203, T#9204 | "
+                "Name functions in snake_case and keep defaults. |", True),
+            "known limit: the draft on the next line": ("- Keep default limits: T#9204\n  Draft: keep each default.", True),
         }
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
-                self.assertEqual(self.passes("unrelated-not-candidate", text), expected)
+                self.assertEqual(self.passes("route-unrelated-not-candidate", text), expected)
 
     def test_no_rule_file_fails_a_new_instruction_file(self):
         runs = {
@@ -3869,6 +3887,7 @@ class PpcRuleCandidateTests(unittest.TestCase):
             "a new AGENTS.md": ("AGENTS.md", False),
             "a new REVIEW.md with an absolute path": ("/home/eval/work/REVIEW.md", False),
             "a skill file": (".claude/skills/naming/SKILL.md", False),
+            "a CLAUDE.local.md": ("CLAUDE.local.md", False),
         }
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
