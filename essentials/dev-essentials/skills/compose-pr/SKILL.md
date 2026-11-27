@@ -121,12 +121,7 @@ If the repository has no template, use this structure. Start with `## What`, `##
 - **[Component]**: [what changed - 1 line]
 
 ## UI changes
-[Only for a change that a person sees - see the writing rules]
-- **[View]**: [what changed for the person - 1 line]
-
-| Before | After |
-| --- | --- |
-| ![Before: [state]]([image link of the input]) | ![After: [state]]([image link of the input]) |
+[Only for a change that a person sees - see the last writing rule]
 
 ## Testing
 [The tests that the diff adds or changes, and the run result - 1-2 sentences]
@@ -144,11 +139,11 @@ Writing rules:
 - **Focus** on architectural impact (what capabilities changed).
 - In `## Changes`, use **bullet points**, not paragraphs.
 - **Testing** names only the tests that the diff adds or changes, or says that the diff changes no test. If the input gives a test command with its result line, name both. Do the same for a test run of this session after its last change of the code. Else write `Not run in this session.`, and do not say that a test passes or verifies the change. Do not run the tests only for this section.
-- **UI changes** is only for a diff that changes what a person sees in the product: a view, a style, the layout, the text on a screen, or an animation. A refactor with the same output gets no such section. Put the image links of the input in the table, with alt text that names the state, and each video link on its own line. The length limits do not count these URLs. A local file path is no link, so that item is missing. Write `Not confirmed:` and name each missing item: an image of the state before or after, and a short video for a change of motion, timing, or an interaction. If the input gives no image link, leave out the table. Leave the cell of a missing image empty. Evidence goes to the pull request, never into the repository.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description.
 - If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
+- **UI changes** is only for a diff that changes what a person sees in the product: a view, a style, the layout, the text on a screen, or an animation. For another diff, also a refactor with the same output, skip this rule. Write one line for each changed view: `- **[View]**: [what changed for the person]`. Put the image links of the input in a table with the columns Before and After. The alt text names the state, for example `![Before: the list shows 10 rows](<link>)`. Put each video link on its own line. The length limits do not count these URLs. A local file path is no link, so that item is missing. Write `Not confirmed:` and name each missing image of the state before or after. If the diff changes motion, timing, or an interaction, also name a missing short video there. If the input gives no image link, leave out the table. Leave the cell of a missing image empty. Evidence goes to the pull request, never into the repository.
 
 For example outputs of a small change, a UI change, and a larger change, read [references/examples.md](references/examples.md).
 
