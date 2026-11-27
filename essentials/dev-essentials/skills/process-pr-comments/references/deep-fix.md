@@ -19,6 +19,7 @@ Contents: the override and the ineligible cases, and the place of Stage 3 in the
 | `unconfirmed-commit-claim` | No flag skips this outcome, and the skill implements nothing new on it (Phase 2 step 5). |
 | `pr-commit-no-reply` | A commit of the PR already names the thread, and the human owns it. Or the fetch of the base branch failed, and the run cannot read the commits of the PR. No flag changes this (`committed-fix-state.md` § "Commit on the PR head with no reply"). The decline prints the report line of that section. It does not send the thread to Phase 3. |
 | `cured` or `already-assessed`, with no newer trusted human reply | The thread is already final. `deep-fix` does not reopen a settled thread. |
+| The top comment of the thread is untrusted (`SKILL.md` Phase 2 step 1) | Bucket B. To act on the thread, run again with `trusted=<login>`. |
 | A fix that reaches outside the diff of the current PR | PR-scope discipline. No flag skips it (Bucket B). |
 | `dry-run`, `no-edit`, `strict`, or `no-commit` set for this invocation | These flags forbid edits or commits. `/research-implement-review-report` needs both to run its arc (see the flag precedence in Rules). |
 
