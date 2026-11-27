@@ -32,6 +32,25 @@ The other numbers in a heading are plugin versions.
 - `tests/test_eval_cases.py`: the new class `PpcTrustTests` makes sure that the mock of each `ppc-*` case trusts each reviewer of that case. The one exception is `drive-by-user` of `ppc-untrusted-full`. The class also pins the verdicts of the graders `listed` and `route-trust-read` (issue #375).
 - `tests/test_eval_scaffolds.py`: `NO_COMMIT_GRADERS` holds the grader `no-commit` of `ppc-untrusted-full`, so a test runs it on the scaffold (issue #375).
 
+## dev-essentials 6.1.1 in release [7.2.2] - 2026-11-27
+
+`compose-pr`: the `## Testing` section now names only the tests that the diff adds or changes. If the input or the session shows a test command and its result line, the section names them. Else it says that the tests did not run in this session, and it claims no pass. Before, the template asked for a testing approach, and one example said that load tests proved the change. So a description claimed a run that nobody did (issue #377).
+
+### Fixed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: the template line of `## Testing` names the tests and the run result. A new writing rule says where a run result comes from. With no run, the section says `Not run in this session.` and claims no pass. The rule also tells the skill not to run the tests only for this section (issue #377).
+- `skills/compose-pr/references/examples.md`: each `## Testing` section of the examples now says that the tests did not run in this session. The larger example names its load test and no longer claims a load test result. The lengths of the examples changed (issue #377).
+- `skills/work-modes/references/finish.md`: step 4 now gives `pr-composer` the test command of step 2 and its result line. So the description names the run (issue #377).
+
+### Changed in dev-essentials
+
+- `evals/composers/cmp-pr-untested-diff`: a new case with no shell tool. The prompt gives a diff with a new test file and no test run. The Testing section must name the test and say that the tests did not run in this session. It must claim no pass (issue #377).
+- `evals/composers/cmp-pr-tested-diff`: a new case with no shell tool. The prompt gives the same diff and the result of a test run. The Testing section must name the result and must not say that the tests did not run (issue #377).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts, with their known limits. A new test makes sure that the two new cases grant no shell tool. It also makes sure that only the prompt of `cmp-pr-tested-diff` holds a test result (issue #377).
+
 ## kb 0.4.1 in release [7.2.1] - 2026-11-26
 
 If no text that a session follows calls its script with a relative path, `/kb:setup` now removes the stale allow rule of that script. Before, the skill searched the whole folder `_claude` of the KB clone. That search found files that do not matter, so the rule stayed for all time (issue #373).
@@ -2846,7 +2865,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...HEAD
-[7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...v7.3.0
+[7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
+[7.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...v7.2.2
 [7.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...v7.2.0
 [7.1.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.0.0...v7.1.0
