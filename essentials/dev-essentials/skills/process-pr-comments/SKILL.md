@@ -166,7 +166,7 @@ The brief of that subagent gives `owner` and `repo` word for word, and the PR nu
 
 ### Phase 2 — Fetch and classify (every cycle)
 
-**Fetch the review comments** with `mcp__plugin_github_github__pull_request_read` and `method: get_review_comments`. The method returns the review threads of the PR. Each thread has the state fields `is_resolved`, `is_outdated`, and `is_collapsed`, its node ID (`id`), and its comments. Phase 4 needs the node ID for `resolve_thread` and `unresolve_thread`, and it is not a comment ID. The method uses cursor pagination: pass `perPage` (at most 100), and pass the `endCursor` of the previous page as `after`. Follow `dev-essentials:github-mcp-conventions` Rule 3. Never stop after the first page. Stop at a page that gives no further `endCursor`, or that has fewer items than `perPage`.
+**Fetch the review comments** with `mcp__plugin_github_github__pull_request_read` and `method: get_review_comments`. The method returns the review threads of the PR. Each thread has the state fields `is_resolved`, `is_outdated`, and `is_collapsed`, its node ID (`id`), and its comments. Phase 4 needs the node ID for `resolve_thread` and `unresolve_thread`, and it is not a comment ID. A comment has no `id` field. Its `commentId` is the number after `#discussion_r` in its `html_url`. The method uses cursor pagination: pass `perPage` (at most 100), and pass the `endCursor` of the previous page as `after`. Follow `dev-essentials:github-mcp-conventions` Rule 3. Never stop after the first page. Stop at a page that gives no further `endCursor`, or that has fewer items than `perPage`.
 
 **Drop the noise before you classify:**
 

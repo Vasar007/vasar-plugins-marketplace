@@ -101,7 +101,7 @@ git bundle create //wsl.localhost/<distribution>/home/<user>/work.bundle main <b
 git fetch ~/work.bundle '+refs/heads/*:refs/remotes/win/*'
 ```
 
-The fetch puts the branch at `win/<branch>`. Pass that name to `--commit`, `--base`, or `--head`. The scripts in `tools/wsl/` do these steps for you: see [Maintainer tools](tools.md#run-the-unit-suite-and-eval-runs-in-wsl2).
+The fetch puts the branch at `win/<branch>`. Pass that name to `--commit`, `--base`, or `--head`. Do not pass a plain name such as `main`, because the fetch does not move a local branch of the Linux clone. The scripts in `tools/wsl/` do these steps for you: see [Maintainer tools](tools.md#run-the-unit-suite-and-eval-runs-in-wsl2).
 
 ## Run a suite
 
