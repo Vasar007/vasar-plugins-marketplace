@@ -1,5 +1,0 @@
----
-type: regex
-pattern: '"name":"(?:[\w-]*__)?create_pull_request","input":\{[\s\S]*?"name":"Skill","input":\{(?:[^}\\]|\\.)*?"skill":"(?:[\w-]+:)?review-loop"'
-target: trace
----

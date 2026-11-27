@@ -4,22 +4,22 @@
     {
       "id": 9381,
       "name": "unit-tests",
-      "head_sha": "cd62caa9137c1187f704033c005ead25aa16bff6",
       "status": "completed",
       "conclusion": "success",
-      "html_url": "https://github.com/example-org/users-app/actions/runs/738/job/9381"
+      "html_url": "https://github.com/example-org/users-app/actions/runs/738/job/9381",
+      "details_url": "https://github.com/example-org/users-app/actions/runs/738/job/9381",
+      "started_at": "2026-01-01T01:00:00Z",
+      "completed_at": "2026-01-01T01:02:00Z"
     },
     {
       "id": 9382,
       "name": "lint",
-      "head_sha": "cd62caa9137c1187f704033c005ead25aa16bff6",
       "status": "completed",
-      "conclusion": "failure",
+      "conclusion": "success",
       "html_url": "https://github.com/example-org/users-app/actions/runs/738/job/9382",
-      "output": {
-        "title": "python3 tools/lint.py app config exited with code 1",
-        "summary": "config/settings.py:3: line too long (98 > 88)"
-      }
+      "details_url": "https://github.com/example-org/users-app/actions/runs/738/job/9382",
+      "started_at": "2026-01-01T01:00:00Z",
+      "completed_at": "2026-01-01T01:02:00Z"
     }
   ]
 }

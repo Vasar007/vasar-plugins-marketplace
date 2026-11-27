@@ -5,17 +5,19 @@
   "state": "open",
   "draft": false,
   "merged": false,
-  "mergeable_state": "unstable",
+  "mergeable_state": "behind",
   "html_url": "https://github.com/example-org/users-app/pull/39",
   "base": {
     "ref": "main"
   },
   "head": {
-    "ref": "work/retry-lint",
-    "sha": "cd62caa9137c1187f704033c005ead25aa16bff6"
+    "ref": "work/retry-behind",
+    "sha": "6b5ab54c24ec80296e7c13a93546ef75c1c12e51"
   },
   "user": {
     "login": "eval-user"
   },
-  "assignees": ["eval-user"]
+  "assignees": [
+    "eval-user"
+  ]
 }

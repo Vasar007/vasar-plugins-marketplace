@@ -78,9 +78,9 @@ EXPECTED_BRANCH = {
     "rirr-upstream-remote": "work/retry-limit",
     "it-merge": "work/retry-limit",
     "ib-merge": "work/retry-batch",
-    "rirr-gate-fix-full": "work/retry-lint",
-    "rirr-gate-fix-partial": "work/retry-lint",
-    "rirr-gate-fix-interactive": "work/retry-lint",
+    "rirr-gate-fix-full": "work/retry-behind",
+    "rirr-gate-fix-partial": "work/retry-behind",
+    "rirr-gate-fix-interactive": "work/retry-behind",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
     "ib-no-worktree": "main",
@@ -1789,15 +1789,14 @@ class TrimFullPassTests(FixtureCase):
 
 
 class GateFixFixtureTests(FixtureCase):
-    """The cases of a failed merge gate of issue 387 plant a commit that fails only the lint job of CI.
+    """The cases of a failed merge gate of issue 387 plant a branch that is behind main of the remote.
 
-    A run that fixes the cause shortens the line, commits, and pushes a second time. The file graders read each of these steps.
+    The clone did not fetch the last commit of main, so only a fetch and a merge bring the base in. A run that fixes the cause
+    merges the base and pushes a second time. The file graders read each of these steps.
     """
 
     CASES = ("rirr-gate-fix-full", "rirr-gate-fix-partial", "rirr-gate-fix-interactive")
-    LINT = [sys.executable, "tools/lint.py", "app", "config"]
-    LONG_LINE = "# Three retries keep a failed call short. With five retries, a user waited too long for an answer.\n"
-    SHORT_LINE = "# Three retries keep a failed call short.\n"
+    BRANCH = "work/retry-behind"
 
     @classmethod
     def setUpClass(cls):
@@ -1815,6 +1814,8 @@ class GateFixFixtureTests(FixtureCase):
 
     def passes(self, name, grader, workspace):
         meta = self.cases[name].graders[grader][0]
+        if meta["type"] == "file_exists":
+            return (workspace / meta["path"]).is_file() == meta.get("exists", True)
         self.assertEqual(meta["type"], "regex")
         flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
         path = workspace / meta["target"]["path"]
@@ -1823,71 +1824,57 @@ class GateFixFixtureTests(FixtureCase):
         found = re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
         return not found if meta.get("match") == "not_contains" else found
 
-    def lint(self, workspace):
-        return subprocess.run(self.LINT, cwd=workspace, capture_output=True, text=True)
+    def merge_the_base(self, workspace):
+        self.run_git(workspace, "fetch", "-q", "origin", "main")
+        self.run_git(workspace, "merge", "-q", "--no-edit", "origin/main")
 
-    def shorten_the_line(self, workspace):
-        path = workspace / "config" / "settings.py"
-        text = path.read_text(encoding="utf-8")
-        self.assertIn(self.LONG_LINE, text)
-        path.write_text(text.replace(self.LONG_LINE, self.SHORT_LINE), encoding="utf-8")
-
-    def test_only_the_lint_job_of_ci_fails_on_the_branch(self):
+    def test_the_branch_is_behind_main_of_the_remote_and_its_tests_pass(self):
         workspace = self.scaffold()
-        self.assertEqual(self.run_git(workspace, "rev-parse", "--abbrev-ref", "HEAD"), "work/retry-lint")
+        self.assertEqual(self.run_git(workspace, "rev-parse", "--abbrev-ref", "HEAD"), self.BRANCH)
         tests = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
                                capture_output=True, text=True)
         self.assertEqual(tests.returncode, 0, tests.stderr[-500:])
-        lint = self.lint(workspace)
-        self.assertEqual((lint.returncode, lint.stdout.strip()), (1, "config/settings.py:3: line too long (98 > 88)"))
-        # The mocked check run gives the same line, so a local run shows the failure of CI.
-        for name in self.CASES:
-            with self.subTest(case=name):
-                runs = json.loads((self.cases[name].path / "mocks/github/fixtures/pull/get_check_runs.json").read_text(encoding="utf-8"))
-                failed = [run for run in runs["check_runs"] if run["conclusion"] == "failure"]
-                self.assertEqual([run["name"] for run in failed], ["lint"])
-                self.assertEqual(failed[0]["output"]["summary"], lint.stdout.strip())
-        # No CI file in the clone shows a run the lint before the push. The mocked check names the command.
+        start = self.run_git(workspace, "rev-parse", "HEAD~1")
+        # The clone has the old main, so a merge with no fetch brings nothing in.
+        self.assertEqual(self.run_git(workspace, "rev-parse", "main"), start)
+        self.assertEqual(self.run_git(workspace, "rev-parse", "origin/main"), start)
+        remote = self.run_git(workspace / ".remote/origin.git", "rev-parse", "main")
+        self.assertEqual(self.run_git(workspace / ".remote/origin.git", "rev-parse", "main~1"), start)
+        self.assertFalse((workspace / "docs/http.md").exists())
+        self.assertEqual(self.run_git(workspace / ".remote/origin.git", "show", "--format=", "--name-only", remote), "docs/http.md")
+        # No remote holds the branch, and no CI file asks for a local run of a check.
+        self.assertEqual(self.git(workspace, "rev-parse", "--verify", "-q", f"origin/{self.BRANCH}")[0], 1)
         self.assertFalse((workspace / ".github").exists())
-        for name in self.CASES:
-            with self.subTest(case=name, check="the title names the command"):
-                runs = json.loads((self.cases[name].path / "mocks/github/fixtures/pull/get_check_runs.json").read_text(encoding="utf-8"))
-                failed = [run for run in runs["check_runs"] if run["conclusion"] == "failure"]
-                self.assertEqual(failed[0]["output"]["title"], "python3 tools/lint.py app config exited with code 1")
-        # The test step of finish.md runs the command of CLAUDE.md, so the first push and the pull request happen.
-        self.assertNotIn("lint", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
-        self.run_git(workspace, "checkout", "-q", "main")
-        self.assertEqual(self.lint(workspace).returncode, 0)
 
-    def test_a_shorter_line_passes_the_lint_and_the_fix_graders(self):
+    def test_a_fetch_and_a_merge_of_the_base_pass_the_merge_graders(self):
         workspace = self.scaffold()
-        self.assertFalse(self.passes("rirr-gate-fix-full", "route-line-fixed", workspace))
-        self.assertTrue(self.passes("rirr-gate-fix-interactive", "line-kept", workspace))
-        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-committed", workspace))
-        self.shorten_the_line(workspace)
-        self.assertEqual(self.lint(workspace).returncode, 0)
-        self.run_git(workspace, "commit", "-q", "-am", "Shorten the comment of the retry limit")
         for name in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
-            with self.subTest(case=name):
-                self.assertTrue(self.passes(name, "route-line-fixed", workspace))
-                self.assertTrue(self.passes(name, "route-fix-committed", workspace))
+            with self.subTest(case=name, state="the scaffold"):
+                self.assertFalse(self.passes(name, "route-merge-commit", workspace))
+                self.assertFalse(self.passes(name, "route-base-merged", workspace))
+        self.assertTrue(self.passes("rirr-gate-fix-interactive", "base-not-merged", workspace))
+        self.merge_the_base(workspace)
+        for name in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            with self.subTest(case=name, state="after the merge"):
+                self.assertTrue(self.passes(name, "route-merge-commit", workspace))
+                self.assertTrue(self.passes(name, "route-base-merged", workspace))
                 self.assertTrue(self.passes(name, "limit-lowered", workspace))
-        self.assertFalse(self.passes("rirr-gate-fix-interactive", "line-kept", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-interactive", "base-not-merged", workspace))
         self.assertFalse(self.passes("rirr-gate-fix-interactive", "no-run-commit", workspace))
 
     def test_the_fix_push_grader_reads_a_second_push_that_moves_the_branch(self):
         workspace = self.scaffold()
-        self.run_git(workspace, "push", "-q", "-u", "origin", "work/retry-lint")
-        self.assertTrue((workspace / ".remote/origin.git/logs/refs/heads/work/retry-lint").is_file())
+        self.run_git(workspace, "push", "-q", "-u", "origin", self.BRANCH)
+        self.assertTrue((workspace / f".remote/origin.git/logs/refs/heads/{self.BRANCH}").is_file())
         self.assertFalse((workspace / ".remote/origin.git/logs/refs/heads/main").exists())
         self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
         # A push with no new commit leaves the remote branch where it is, so it adds no reflog line.
-        self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
+        self.run_git(workspace, "push", "-q", "origin", self.BRANCH)
         self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
-        self.shorten_the_line(workspace)
-        self.run_git(workspace, "commit", "-q", "-am", "Shorten the comment of the retry limit")
-        self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
+        self.merge_the_base(workspace)
+        self.run_git(workspace, "push", "-q", "origin", self.BRANCH)
         self.assertTrue(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        self.assertFalse((workspace / ".remote/origin.git/logs/refs/heads/main").exists())
 
 
 class ResumeReportTests(FixtureCase):
@@ -1902,9 +1889,9 @@ class ResumeReportTests(FixtureCase):
                "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
                "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
                "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1"),
-               "rirr-gate-fix-full": ("notes/Results/retry-lint-report.md", "HEAD"),
-               "rirr-gate-fix-partial": ("notes/Results/retry-lint-report.md", "HEAD"),
-               "rirr-gate-fix-interactive": ("notes/Results/retry-lint-report.md", "HEAD")}
+               "rirr-gate-fix-full": ("notes/Results/retry-behind-report.md", "HEAD"),
+               "rirr-gate-fix-partial": ("notes/Results/retry-behind-report.md", "HEAD"),
+               "rirr-gate-fix-interactive": ("notes/Results/retry-behind-report.md", "HEAD")}
     # The number of review verdicts that the report of each case holds.
     VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1,
                 "rirr-gate-fix-full": 1, "rirr-gate-fix-partial": 1, "rirr-gate-fix-interactive": 1}
