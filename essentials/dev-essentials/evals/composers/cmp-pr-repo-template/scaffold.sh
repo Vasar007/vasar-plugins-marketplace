@@ -5,7 +5,7 @@ lib="$(dirname "${BASH_SOURCE[0]}")/../../_lib"
 source "$lib/git-fixture.sh"
 
 # The prompt gives the diff, and the session has no shell. So the repository holds only the PR template on main.
-# The rules of the template are only in HTML comments. rirr-pr-title-form plants the same file, and a test makes sure of it.
+# The rules of the template are only in HTML comments. rirr-pr-title-form plants the same file with no check box, and a test makes sure of it.
 fixture_init
 fixture_write .github/pull_request_template.md <<'TEMPLATE_EOF'
 <!--
@@ -24,7 +24,7 @@ Title: write it as `type(scope): summary`. The type is one of feat, fix, refacto
 
 <!-- Name the tests that cover the change. Paste the test command that you ran and the last lines of its output. -->
 
-- [ ] The tests ran and passed.
+- [ ] I ran the tests of this change.
 
 <!-- If an AI agent wrote this pull request, end it with one line that names the agent tool and the model. -->
 TEMPLATE_EOF

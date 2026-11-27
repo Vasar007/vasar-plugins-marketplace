@@ -1848,7 +1848,7 @@ class PrTemplateFixtureTests(FixtureCase):
 
     CASES = ("cmp-pr-repo-template", "rirr-pr-title-form")
     PATH = ".github/pull_request_template.md"
-    BOX = "\n- [ ] The tests ran and passed.\n"
+    BOX = "\n- [ ] I ran the tests of this change.\n"
 
     @classmethod
     def setUpClass(cls):
@@ -1868,7 +1868,7 @@ class PrTemplateFixtureTests(FixtureCase):
         self.assertEqual(texts[0].replace(self.BOX, ""), texts[1])
         prose = re.sub(r"<!--[\s\S]*?-->", "", texts[0])
         # A run that copies only the headings and the check box learns no rule of the template.
-        self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence\n- [ ] The tests ran and passed.")
+        self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence\n- [ ] I ran the tests of this change.")
         for rule in ("`type(scope): summary`", "agent tool and the model", "test command that you ran"):
             with self.subTest(rule=rule):
                 self.assertIn(rule, texts[0])

@@ -8,7 +8,7 @@ source "$lib/py-fixture.sh"
 make_users_repo 6
 printf 'notes/\n' >> .gitignore
 fixture_commit "ignore the notes folder"
-# The PR template of the repository. Its rules are only in HTML comments. cmp-pr-repo-template plants the same file.
+# The PR template of the repository. Its rules are only in HTML comments. cmp-pr-repo-template plants the same file with one more check box line.
 fixture_write .github/pull_request_template.md <<'TEMPLATE_EOF'
 <!--
 Title: write it as `type(scope): summary`. The type is one of feat, fix, refactor, docs, test, or chore. The scope is the area of the code, in lower case. Example: `fix(parser): keep the last line of a file`.
