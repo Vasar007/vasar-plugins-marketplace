@@ -107,7 +107,7 @@ Use this structure. Start with `## What`, `## Why`, and `## Changes`, in this or
 - **[Component]**: [what changed - 1 line]
 
 ## Testing
-[Brief testing approach - 1 sentence]
+[The tests that the diff adds or changes, and the run result - 1-2 sentences]
 
 ## Notes
 [Any breaking changes, migration steps, or risks - if applicable]
@@ -121,6 +121,7 @@ Writing rules:
 - **Skip** implementation details (how it works). Do not describe every file change, and do not explain code line by line.
 - **Focus** on architectural impact (what capabilities changed).
 - In `## Changes`, use **bullet points**, not paragraphs.
+- **Testing** names only the tests that the diff adds or changes, or says that the diff changes no test. If the input gives a test command with its result line, name both. Do the same for a test run of this session after its last change of the code. Else write `Not run in this session.`, and do not say that a test passes or verifies the change. Do not run the tests only for this section.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description.
