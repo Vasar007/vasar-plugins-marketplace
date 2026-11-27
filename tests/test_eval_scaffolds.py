@@ -73,6 +73,7 @@ EXPECTED_BRANCH = {
     "os-review-fixes": "main",
     "rirr-merge": "work/retry-limit",
     "rirr-merge-gate": "work/retry-gate",
+    "rirr-pr-title-form": "work/retry-title",
     "rirr-final-gate": "main",
     "rirr-resume-moved-head": "work/retry-limit",
     "rirr-upstream-remote": "work/retry-limit",
@@ -110,7 +111,8 @@ COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed"
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
                       ("rirr-merge-gate", "main-not-pushed"), ("it-merge", "main-not-pushed"),
-                      ("ib-merge", "main-not-pushed")}
+                      ("ib-merge", "main-not-pushed"),
+                      ("rirr-pr-title-form", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
@@ -120,6 +122,7 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "ppc-ride-along-commit": ("no-commit",), "rl-clean-branch": ("no-fix-commit",),
                      "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed"),
                      "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
+                     "rirr-pr-title-form": ("no-run-commit",),
                      "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
                      "ib-merge": ("no-run-commit",),
                      "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",),
@@ -1256,7 +1259,8 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit_with_no_edit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "--no-edit")
 
-        for name in ("it-merge", "ib-merge", "rirr-merge", "rirr-resume-moved-head", "rirr-upstream-remote"):
+        for name in ("it-merge", "ib-merge", "rirr-merge", "rirr-resume-moved-head", "rirr-upstream-remote",
+                     "rirr-pr-title-form"):
             self.check_shapes(name, {an_orphan_commit: False, an_amend_of_the_fixture_commit_with_no_edit: False},
                               "no-run-commit")
 
@@ -1792,12 +1796,13 @@ class ResumeReportTests(FixtureCase):
 
     # The report of each case, and the commit that its report must name.
     REPORTS = {"rirr-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
+               "rirr-pr-title-form": ("notes/Results/retry-title-report.md", "HEAD"),
                "it-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
                "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
                "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
                "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1")}
     # The number of review verdicts that the report of each case holds.
-    VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
+    VERDICTS = {"rirr-merge": 1, "rirr-pr-title-form": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
 
     @classmethod
     def setUpClass(cls):
@@ -1839,9 +1844,9 @@ class ResumeReportTests(FixtureCase):
 
 
 class PrTemplateFixtureTests(FixtureCase):
-    """The case cmp-pr-repo-template of issue #382 plants a PR template on main. Its rules are only in HTML comments."""
+    """The two cases of issue #382 plant the same PR template on main. Its rules are only in HTML comments."""
 
-    CASE = "cmp-pr-repo-template"
+    CASES = ("cmp-pr-repo-template", "rirr-pr-title-form")
     PATH = ".github/pull_request_template.md"
     BOX = "\n- [ ] I ran the tests of this change.\n"
 
@@ -1849,22 +1854,24 @@ class PrTemplateFixtureTests(FixtureCase):
     def setUpClass(cls):
         cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
 
-    def template(self):
-        workspace = self.workspace(self.CASE)
-        self.run_bash([(self.cases[self.CASE].path / "scaffold.sh").as_posix()], workspace)
+    def template(self, name):
+        workspace = self.workspace(name)
+        self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
         code, text = self.git(workspace, "show", f"main:{self.PATH}")
-        self.assertEqual(code, 0, f"{self.CASE}: main has no {self.PATH}")
+        self.assertEqual(code, 0, f"{name}: main has no {self.PATH}")
         return text
 
-    def test_the_case_plants_a_template_whose_rules_are_only_in_comments(self):
-        text = self.template()
-        self.assertEqual(text.count(self.BOX), 1)
-        prose = re.sub(r"<!--[\s\S]*?-->", "", text)
+    def test_both_cases_plant_one_template_whose_rules_are_only_in_comments(self):
+        texts = [self.template(name) for name in self.CASES]
+        # The composer case adds one check box on a test run to its Evidence section. The other case plants none.
+        self.assertIn(self.BOX, texts[0])
+        self.assertEqual(texts[0].replace(self.BOX, ""), texts[1])
+        prose = re.sub(r"<!--[\s\S]*?-->", "", texts[0])
         # A run that copies only the headings and the check box learns no rule of the template.
         self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence\n- [ ] I ran the tests of this change.")
         for rule in ("`type(scope): summary`", "agent tool and the model", "test command that you ran"):
             with self.subTest(rule=rule):
-                self.assertIn(rule, text)
+                self.assertIn(rule, texts[0])
         # The heading grader of case 1 passes on the headings of the template.
         pattern = self.cases["cmp-pr-repo-template"].graders["template-headings"][0]["pattern"]
         self.assertRegex(prose, re.compile(pattern, re.M))
