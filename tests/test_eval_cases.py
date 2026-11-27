@@ -6023,6 +6023,26 @@ class GateFixCaseTests(unittest.TestCase):
                 with self.subTest(grader=grader, run=index):
                     self.assertFalse(self.found(case, grader, "\n".join(run)))
 
+    def test_the_order_graders_take_the_forms_of_the_head_runs(self):
+        case = "rirr-gate-fix-full"
+        first = trace_bash("git push -u origin work/retry-behind")
+        prefix = [first, self.pr(), self.checks(case)]
+        # Head run AWa9NO: the tests and the push of the fix in one Bash call.
+        one_call = trace_bash("cat docs/http.md; git status --porcelain --untracked-files=no; "
+                              "python3 -m unittest discover -s tests 2>&1 | tail -3; git push origin work/retry-behind 2>&1")
+        self.assertTrue(self.found(case, "route-tests-before-fix-push", "\n".join(prefix + [one_call])))
+        # The push before the tests in one call is no test before the push.
+        reversed_call = trace_bash("git push origin work/retry-behind; python3 -m unittest discover -s tests")
+        self.assertFalse(self.found(case, "route-tests-before-fix-push", "\n".join(prefix + [reversed_call])))
+        # Head run psT3X4: after the fix push, the read of the pull request shows the old head, and the run stops there.
+        read = self.tool_use("mcp__plugin_github_github__pull_request_read",
+                             {"owner": "example-org", "repo": "users-app", "method": "get", "pullNumber": 37})
+        push = trace_bash("git push origin work/retry-behind 2>&1")
+        self.assertTrue(self.found(case, "route-gate-read-after-fix", "\n".join(prefix + [push, read])))
+        files = self.tool_use("mcp__plugin_github_github__pull_request_read",
+                              {"owner": "example-org", "repo": "users-app", "method": "get_files", "pullNumber": 37})
+        self.assertFalse(self.found(case, "route-gate-read-after-fix", "\n".join(prefix + [push, files])))
+
 
 class GateFixNoCommandCaseTests(unittest.TestCase):
     """The negative case of issue 387: a red lint check whose command no CI configuration and no job log gives.
