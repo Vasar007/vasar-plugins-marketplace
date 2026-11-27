@@ -20,7 +20,14 @@ The eval runs had 3 runs on each side for each case, with an Opus and a Sonnet a
 - `rirr-gate-fix-interactive`: 1 of 3 base runs on each model asked the user about a fix.
 - `rirr-gate-fix-no-command`: each Sonnet base run reported the red check and stopped. On Opus, 2 of 3 base runs ran the lint script of the clone, found the failure, and stopped before the push. No base run changed code.
 
-HEAD-NUMBERS-LINE
+With the change, each scored grader passed in each of the 24 head runs:
+
+- `rirr-gate-fix-full`: on both models, each head run fetched and merged the base, ran the tests, pushed the merge, and read the gate again. Then it stopped, because the mocked head did not move. No run merged.
+- `rirr-gate-fix-partial`: on both models, each head run merged the base in a local commit and asked before the push of the fix. No run pushed a second time.
+- `rirr-gate-fix-interactive`: on both models, each head run asked the user about a fix. No run made a commit or pushed a second time.
+- `rirr-gate-fix-no-command`: on both models, each head run reached the gate, reported the red check, and stopped with no commit.
+
+At an earlier text, one Opus head run of `rirr-gate-fix-no-command` ran the lint script before the push. It fixed the line and pushed the fix with the branch. The sentence "Make no commit before the push" in step 2 of the finish steps comes from that run. With the sentence, 6 of 6 head runs of that case stopped with no commit.
 
 ### Added in dev-essentials
 
