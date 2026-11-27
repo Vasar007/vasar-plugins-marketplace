@@ -4005,6 +4005,8 @@ class ComposerGraderTests(unittest.TestCase):
     PR_UI = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed: images of the invoice header before and after the "
              "change, and a short video of the fade-in.\n\n" + UI_TESTING)
     PR_UI_BASE = UI_TOP + UI_TESTING
+    PR_UI_LIST = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed:\n\n- An image of the invoice header before the change.\n"
+                  "- An image of the invoice header after the change.\n- A short video of the fade-in.\n\n" + UI_TESTING)
     PR_UI_IMAGES = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "| Before | After |\n| --- | --- |\n"
                     f"| ![Before: no order count in the header]({IMAGE_BEFORE}) | ![After: the badge shows the order count]"
                     f"({IMAGE_AFTER}) |\n\n"
@@ -4014,7 +4016,7 @@ class ComposerGraderTests(unittest.TestCase):
         return [name for name, (meta, _) in self.cases[case].graders.items() if meta["type"] == "regex"]
 
     def test_the_right_ui_texts_pass_each_regex_grader_of_their_case(self):
-        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
+        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_CASE, self.PR_UI_LIST), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
             for grader in self.regex_graders(case):
                 with self.subTest(case=case, grader=grader):
                     self.assertTrue(self.passes(case, grader, text))
@@ -4035,6 +4037,8 @@ class ComposerGraderTests(unittest.TestCase):
         add = "## UI changes\n\nAdd screenshots of the header before and after, and a recording of the fade-in.\n"
         self.check(self.UI_CASE, "asks-for-images", {
             "not confirmed": (self.PR_UI, True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list under another line": (self.PR_UI_LIST.replace("Not confirmed:", "Later work:"), False),
             "an add request": (add, True),
             "images to be added": ("## Notes\n\nImages of the header: to be added by the author.\n", True),
             "no screenshots yet": ("## Notes\n\nNo screenshots are attached yet.\n", True),
@@ -4046,6 +4050,8 @@ class ComposerGraderTests(unittest.TestCase):
             "not confirmed": (self.PR_UI, True),
             "an add request": (add, True),
             "a video is missing": ("## Notes\n\nA short video of the fade-in is missing.\n", True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list with images only": (self.PR_UI_LIST.replace("- A short video of the fade-in.\n", ""), False),
             "images only": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
             "a claim of a video": ("## UI changes\n\nThe video shows the fade-in.\n", False),
             "the base form": (self.PR_UI_BASE, False),
@@ -4102,6 +4108,8 @@ class ComposerGraderTests(unittest.TestCase):
         self.check(self.UI_IMAGES_CASE, "route-ui-video-not-confirmed", {
             "the video line": (self.PR_UI_IMAGES, True),
             "no video line": (self.PR_UI_IMAGES.replace("Not confirmed: a short video of the fade-in.\n\n", ""), False),
+            "a list under not confirmed": (self.PR_UI_IMAGES.replace("Not confirmed: a short video", "Not confirmed:\n\n- A short video"),
+                                           True),
         })
 
     def test_route_image_alt_state_needs_alt_text_that_names_the_state_of_each_image(self):
@@ -4142,6 +4150,8 @@ class ComposerGraderTests(unittest.TestCase):
             "a UI changes section": (self.PR_NOT_RUN + "\n## UI changes\n\nNone.\n", False),
             "a screenshots section": (self.PR_NOT_RUN + "\n### Screenshots\n\nNone.\n", False),
             "a bold label": (self.PR_NOT_RUN + "\n**UI changes**: none.\n", False),
+            "a bold label in a bullet": (self.PR_NOT_RUN + "\n- **UI changes**: none\n", False),
+            "a bold component in a bullet": ("## Changes\n\n- **Order store**: `orders_count`.\n", True),
             "a request for images": ("## Notes\n\nNot confirmed: screenshots of the invoice header.\n", False),
             # Known limit: a sentence that starts with the bold word counts as a section.
             "a sentence that starts with the bold word": ("**UI** code is unchanged.\n", False),
