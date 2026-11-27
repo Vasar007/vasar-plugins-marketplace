@@ -15,10 +15,8 @@ The default form of `compose-pr` now has the section `## UI changes` for a chang
 
 ### Added in dev-essentials
 
-- `evals/composers/cmp-pr-ui-change`: a new case with no shell tool. Its diff adds a badge and a fade-in animation to a page header, and its prompt has no image. The description must ask for the images before and after and for a short video, and mark them as not there yet. It must hold no image link and claim no evidence. The base ran 3 times on an Opus agent and 3 times on a Sonnet agent. Each base run failed the scored graders `asks-for-images` and `asks-for-video`, and passed the other 5 (issue #389).
-HEAD-NUMBERS-LINE-UI-CHANGE
-- `evals/composers/cmp-pr-ui-images`: a new case with the same diff and two uploaded image links. The description must use both links and no other media link, and ask for the video. Route graders read the Before and After table and alt text that names the state of each image. The base ran 3 times on each of the two agents. Each base run failed the scored grader `asks-for-video`, and passed the other 4 (issue #389).
-HEAD-NUMBERS-LINE-UI-IMAGES
+- `evals/composers/cmp-pr-ui-change`: a new case with no shell tool. Its diff adds a badge and a fade-in animation to a page header, and its prompt has no image. The description must ask for the images before and after and for a short video, and mark them as not there yet. It must hold no image link and claim no evidence. The base ran 3 times on an Opus agent and 3 times on a Sonnet agent. Each base run failed the scored graders `asks-for-images` and `asks-for-video`, and passed the other 5. At the head, each scored grader passed in 3 of 3 runs on each agent (issue #389).
+- `evals/composers/cmp-pr-ui-images`: a new case with the same diff and two uploaded image links. The description must use both links and no other media link, and ask for the video. Route graders read the Before and After table and alt text that names the state of each image. The base ran 3 times on each of the two agents. Each base run failed the scored grader `asks-for-video`, and passed the other 4. At the head, each scored grader passed in 3 of 3 runs on each agent (issue #389).
 
 ### Changed in dev-essentials
 
