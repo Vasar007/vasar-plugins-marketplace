@@ -3755,12 +3755,10 @@ class PpcTrustTests(unittest.TestCase):
 class PpcRuleCandidateTests(unittest.TestCase):
     """ppc-rule-candidates: three threads make one naming point, and one thread is about a limit (issue #388).
 
-    The fixture has the shape that the GitHub MCP server returns: review_threads, a plain author, and no comment id.
+    ReviewCommentsFixtureTests and PpcTrustTests test the fixture and the reply mock of the case.
     """
 
     CASE = "ppc-rule-candidates"
-    NAMING = (9201, 9202, 9203)
-    UNRELATED = 9204
     LOG = ("Cycle 1 @ 10:00 — PR #42 (4 threads, 4 new comments)\n"
            "  T#9201 [ToFix] src/pager.py:19   → fixed (2 LoC), commit a1b2c3d | resolved\n"
            "  T#9202 [ToFix] src/ranges.py:12  → fixed (2 LoC), commit a1b2c3d | resolved\n"
@@ -3777,44 +3775,11 @@ class PpcRuleCandidateTests(unittest.TestCase):
     def setUpClass(cls):
         cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
 
-    def fixture(self, name):
-        return json.loads((self.case.path / "mocks" / "github" / "fixtures" / name).read_text(encoding="utf-8"))
-
     def passes(self, grader, text):
         meta = self.case.graders[grader][0]
         flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
         found = re.search(meta["pattern"], text, flags) is not None
         return not found if meta.get("match") == "not_contains" else found
-
-    def test_the_fixture_has_the_shape_of_the_server(self):
-        data = self.fixture("get_review_comments.json")
-        self.assertEqual(sorted(data), ["pageInfo", "review_threads", "totalCount"])
-        self.assertEqual(data["totalCount"], len(data["review_threads"]))
-        self.assertFalse(data["pageInfo"]["hasNextPage"])
-        for thread in data["review_threads"]:
-            with self.subTest(thread=thread["id"]):
-                self.assertEqual(thread["total_count"], len(thread["comments"]))
-                for comment in thread["comments"]:
-                    self.assertNotIn("id", comment)
-                    self.assertNotIn("user", comment)
-                    self.assertIsInstance(comment["author"], str)
-
-    def test_the_reply_mock_expects_the_ids_of_the_thread_links(self):
-        threads = self.fixture("get_review_comments.json")["review_threads"]
-        ids = [int(re.fullmatch(r"https://github\.com/example-org/pager/pull/42#discussion_r(\d+)",
-                                thread["comments"][0]["html_url"]).group(1)) for thread in threads]
-        self.assertEqual(ids, [*self.NAMING, self.UNRELATED])
-        mock = self.case.path / "mocks" / "github" / "add_reply_to_pull_request_comment.md"
-        lines, _body = split_frontmatter(mock.read_text(encoding="utf-8"))
-        self.assertEqual(parse_block(lines)["expect"], {"owner": "example-org", "repo": "pager", "commentId": ids})
-
-    def test_each_reviewer_is_trusted(self):
-        mock = self.case.path / "mocks" / "github" / "list_repository_collaborators.md"
-        _lines, body = split_frontmatter(mock.read_text(encoding="utf-8"))
-        writers = {item["login"] for item in json.loads(body)["items"] if item["role_name"] in {"admin", "maintain", "write"}}
-        authors = {comment["author"] for thread in self.fixture("get_review_comments.json")["review_threads"]
-                   for comment in thread["comments"]}
-        self.assertLessEqual(authors, writers)
 
     def test_a_right_report_passes_each_grader_of_the_last_message(self):
         report = self.LOG + self.CANDIDATE + self.PUSHED
