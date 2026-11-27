@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.8.0 in release [7.9.0] - 2026-11-27
+
+A new section of `subagent-orchestration` is about the final report of a change of behavior. If no smoke run, integration test, or end-to-end test covers the change, the section asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+
+In a fresh head run with the rule, 3 of 3 runs with an Opus agent named the missing proof. So did 2 of 3 runs with a Sonnet agent. At the base, 1 of 12 runs named it. Runs follow the second part of the rule less often. By a read of the replies, 3 of the 6 head runs named a test to add, all of them with an Opus agent. The case `so-integration-proof` scored 1.00 in each run at the base and at the head (issue #386).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The other scored graders read the change, the unit test run, and the commit (issue #386).
+- `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new section does not make a run skip an integration test that exists (issue #386).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: a new section `Proof of a change`, right before `Trust but verify`. It holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, the final report says so. It names that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so a run does not stop for it (issue #386).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the graders of both new cases, on right and wrong texts and traces. The lists of the shared commit graders name both cases (issue #386).
+- `tests/test_eval_scaffolds.py`: in `so-integration-proof`, a new test makes sure that the plain change breaks only the integration test. In `so-no-integration-proof`, it breaks only the unit test. The list of commit graders names both cases (issue #386).
+- `docs/eval-cases.md`: the known limits of `integration-after-edit`, `route-smoke-run`, `no-proof-named`, and `route-gap-named` (issue #386).
+
 ## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
 
 A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix. An example is a base branch that moved on after the push, so that GitHub reports the head as out of date. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops. A red build or test before the push still ends the run (issue #387).
@@ -2995,7 +3016,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...HEAD
+[7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0
 [7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...v7.8.0
 [7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
 [7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0

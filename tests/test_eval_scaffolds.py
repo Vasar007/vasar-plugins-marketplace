@@ -111,7 +111,7 @@ PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+
 FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
-                  "rirr-retry-limit": "committed"}
+                  "so-integration-proof": "committed", "so-no-integration-proof": "committed", "rirr-retry-limit": "committed"}
 # A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
@@ -1496,7 +1496,7 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
 
-        for name in ("so-rename-small", "so-rename-large", "rirr-retry-limit"):
+        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "rirr-retry-limit"):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,
@@ -2501,6 +2501,85 @@ class ScratchProbeEndStateTests(FixtureCase):
                 verdicts = file_grader_verdicts(self.case, self.GRADERS, workspace, before)
                 self.assertEqual(sorted(grader for grader, passed in verdicts.items() if not passed),
                                  [failed] if failed else [])
+
+
+class ReceiptsScaffoldCase(FixtureCase):
+    """Helpers for the receipts projects of so-integration-proof and so-no-integration-proof. A subclass sets CASE."""
+
+    CASE = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def suite(self, workspace, folder):
+        done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", folder], cwd=workspace,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                              env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+        return done.returncode == 0
+
+    def replace(self, path, old, new):
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+class IntegrationProofScaffoldTests(ReceiptsScaffoldCase):
+    """The project of so-integration-proof: the plain change passes the unit tests, and only the integration test fails."""
+
+    CASE = "so-integration-proof"
+    GRADERS = ("discount-changed", "receipt-updated")
+
+    def test_the_plain_change_breaks_only_the_integration_test(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertEqual((self.suite(workspace, "tests"), self.suite(workspace, "integration")), (True, True))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": False, "receipt-updated": False})
+        # The instruction files name only the unit tests. The CI workflow names both suites.
+        for name in ("CLAUDE.md", "README.md"):
+            self.assertNotIn("integration", (workspace / name).read_text(encoding="utf-8"))
+        self.assertIn("discover -s integration", (workspace / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertEqual((self.suite(workspace, "tests"), self.suite(workspace, "integration")), (True, False))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": True, "receipt-updated": False})
+
+        receipt = subprocess.run([sys.executable, "-m", "app.cli", "samples/order.json"], cwd=workspace, capture_output=True,
+                                 text=True, encoding="utf-8", check=True, env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+        (workspace / "integration" / "expected" / "receipt.txt").write_text(receipt.stdout, encoding="utf-8", newline="\n")
+        self.assertTrue(self.suite(workspace, "integration"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": True, "receipt-updated": True})
+
+
+class NoIntegrationProofScaffoldTests(ReceiptsScaffoldCase):
+    """The project of so-no-integration-proof: the same app with only unit tests, and no documented run of the real CLI."""
+
+    CASE = "so-no-integration-proof"
+    GRADERS = ("discount-changed",)
+
+    def test_the_plain_change_breaks_only_its_unit_test(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertFalse((workspace / "integration").exists())
+        self.assertFalse((workspace / "samples").exists())
+        texts = {name: (workspace / name).read_text(encoding="utf-8") for name in ("CLAUDE.md", "README.md", ".github/workflows/ci.yml")}
+        for name, text in texts.items():
+            with self.subTest(file=name):
+                self.assertNotRegex(text, r"integration|smoke|end-to-end|app\.cli|app/cli")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": False})
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
 
 
 class OptimizeSkillFixtureTests(FixtureCase):

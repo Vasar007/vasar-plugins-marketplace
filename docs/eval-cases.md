@@ -143,6 +143,8 @@ These graders do not read shell quotes or heredocs. So a quoted text can count a
 - `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`).
 - `route-probe-made` of `wm-scratch-probe` (`ScratchProbeGraderTests`).
 - `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`).
+- `integration-after-edit` of `so-integration-proof` (`IntegrationProofGraderTests`). The words of a test run in a commit message count as a run, and a `sed -i` edit after the run stays hidden.
+- `route-smoke-run` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`).
 - `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). Four tries at a better pattern each failed, so it stays ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
 
 These graders have other known limits:
@@ -153,3 +155,5 @@ These graders have other known limits:
 - `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.
 - `triage-before-fix`, `reviewer-separate`, `tests-before-commit`, `route-no-code-triage`, and `route-no-commit-in-fixer` of `rl-workflow-request` (`WorkflowRequestGraderTests`): for a workflow run, they read the words of the script, not what its agents did. A triage step with another name fails `triage-before-fix`. A main-loop triage counts only in the words of the Phase 4 table, or in a text with a severity, a fix, and a deferral. A rule in code on another field than the severity, such as `conclusion`, passes `route-no-code-triage`. A rule in another form, such as a regular expression or `.some()`, passes it too. A fixer prompt in double quotes or joined with `+` passes `route-no-commit-in-fixer`. So does a nested template literal before the commit order, and a commit order in a rules constant with an upper-case name.
 - `reviewer-no-edit`, `untested-commit`, and `route-fix-in-main` of `rl-workflow-request`: they see no call of a workflow agent, so they test only the main loop of a workflow run.
+- `no-proof-named` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`): a reply that says that the change needs no integration test passes it. So does a reply that says that no test failed in the receipt code.
+- `route-gap-named` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`): a reply that says that the run did not yet add such a test passes it. So does a reply that chose not to add such a test, or that says that there is no need to add one. A reply that names the test only as "one" fails it, for example "Consider adding one". So does a reply with no verb of adding, for example "Consider an integration test".

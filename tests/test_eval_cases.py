@@ -1895,8 +1895,8 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
-UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
-            "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
+UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "so-no-integration-proof",
+            "rl-null-guard", "rl-off-by-one", "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
 # rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
 TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
 
@@ -6618,6 +6618,252 @@ class ModelLadderCaseTests(unittest.TestCase):
         for name, (text, expected) in calls.items():
             with self.subTest(call=name):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
+
+
+class IntegrationProofGraderTests(unittest.TestCase):
+    """The graders of so-integration-proof: a run of the integration test or of the real CLI after the last edit, and the reply."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    INTEGRATION = trace_bash("python3 -m unittest discover -s integration -v")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+    REPLY = trace_result("OK")
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-integration-proof"]
+        cls.pattern = case.graders["integration-after-edit"][0]["pattern"]
+        cls.reported = case.graders["route-proof-reported"][0]
+        cls.changed = case.graders["discount-changed"][0]["pattern"]
+
+    def matches(self, *records):
+        return re.search(self.pattern, "\n".join(records)) is not None
+
+    def test_a_run_of_the_integration_test_or_the_cli_after_the_last_edit_passes(self):
+        runs = {
+            "unit tests, the integration test, and a commit": [self.EDIT, self.UNIT, self.INTEGRATION, self.REPLY, self.COMMIT],
+            "both suites in one command": [self.EDIT, trace_bash(
+                "python3 -m unittest discover -s tests && python3 -m unittest discover -s integration")],
+            "the integration test after the commit": [self.EDIT, self.UNIT, self.COMMIT, self.INTEGRATION],
+            "a relative start folder": [self.EDIT, trace_bash("python3 -m unittest discover -s ./integration 2>&1 | tail -5")],
+            "pytest": [self.EDIT, trace_bash("pytest -q integration/")],
+            "the test file as a script": [self.EDIT, trace_bash("python3 integration/test_cli.py")],
+            "a smoke run of the CLI": [self.EDIT, trace_bash("python3 -m app.cli samples/order.json")],
+            "the CLI file as a script": [self.EDIT, trace_bash("python app/cli.py samples/order.json")],
+            "a cd into the folder": [self.EDIT, trace_bash("cd integration && python3 -m unittest -v")],
+            "a new receipt from the CLI": [self.EDIT, trace_bash(
+                "python3 -m app.cli samples/order.json > integration/expected/receipt.txt"), self.COMMIT],
+            "a Markdown edit after the run": [self.EDIT, self.INTEGRATION, trace_edit("README.md"), self.COMMIT],
+            "an edit before an earlier run, and a later run": [
+                self.INTEGRATION, self.EDIT, self.UNIT, self.INTEGRATION, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_unit_tests_only_or_an_edit_after_the_last_run_fails(self):
+        runs = {
+            "unit tests only": [self.EDIT, self.UNIT, self.REPLY, self.COMMIT],
+            "an Edit of a .py file after the run": [self.INTEGRATION, self.EDIT, self.UNIT, self.COMMIT],
+            "a Write of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_write("integration/expected/receipt.txt"), self.COMMIT],
+            "an Edit of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_edit("integration/expected/receipt.txt"), self.COMMIT],
+            "a read of the test file": [self.EDIT, trace_bash("cat integration/test_cli.py"), self.UNIT, self.COMMIT],
+            "a list of the folder": [self.EDIT, trace_bash("ls integration"), self.UNIT, self.COMMIT],
+            "a search in the stored receipt": [self.EDIT, trace_bash("grep -rn Total integration/expected"), self.COMMIT],
+            "a read of the CLI": [self.EDIT, trace_bash("cat app/cli.py"), self.UNIT, self.COMMIT],
+            "unit tests and a read of the receipt in one command": [
+                self.EDIT, trace_bash("python3 -m unittest discover -s tests && cat integration/expected/receipt.txt")],
+            "the CI step in a tool result": [
+                self.EDIT, trace_result("run: python3 -m unittest discover -s integration"), self.UNIT, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.matches(*records))
+
+    def test_the_grader_keeps_its_known_limits(self):
+        """Each subtest is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        runs = {
+            "a bad run passes: a sed edit after the run": [
+                self.INTEGRATION, trace_bash("sed -i 's/= 10/= 15/' app/pricing.py"), self.COMMIT],
+            "a bad run passes: the words in a commit message": [
+                self.EDIT, self.UNIT, trace_bash('git commit -qm "unittest for integration later"')],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_the_grader_is_fast_on_a_long_trace(self):
+        """The grader needs less than 2 seconds for a trace with 2000 commands and 2000 edits after its last run."""
+        noise = [trace_bash(f"git status --short && echo {n}") for n in range(2000)]
+        edits = [trace_edit(f"app/m{n}.py") for n in range(2000)]
+        trace = "\n".join([self.INTEGRATION, *noise, *edits, self.COMMIT])
+        start = time.perf_counter()
+        self.assertIsNone(re.search(self.pattern, trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
+
+    def test_the_reply_grader_needs_a_word_for_the_proof(self):
+        flags = re.I if "i" in self.reported.get("flags", "") else 0
+        replies = {
+            "the integration test": ("The unit tests and the integration test pass.", True),
+            "a capital letter": ("Integration: 1 test, OK.", True),
+            "a smoke run": ("A smoke run of the CLI printed Total 34.00.", True),
+            "an end-to-end test": ("The end-to-end test passes.", True),
+            "unit tests only": ("The unit tests pass: Ran 3 tests, OK.", False),
+        }
+        for name, (reply, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(re.search(self.reported["pattern"], reply, flags) is not None, expected)
+
+    def test_the_discount_grader_finds_the_new_rate_only(self):
+        texts = {
+            "the new constant": ("MEMBER_DISCOUNT_PERCENT = 15\n", True),
+            "a rate in the formula": ("    return amount * 15 // 100\n", True),
+            "a factor": ("    return amount * 0.85\n", True),
+            "the old constant": ("MEMBER_DISCOUNT_PERCENT = 10\n", False),
+            "a price in cents": ("PRICE = 1500\n", False),
+            "a version number": ("VERSION = 1.15.2\n", False),
+        }
+        for name, (text, expected) in texts.items():
+            with self.subTest(text=name):
+                self.assertEqual(re.search(self.changed, text) is not None, expected)
+
+
+class NoIntegrationProofGraderTests(unittest.TestCase):
+    """The reply graders of so-no-integration-proof name the missing proof, a run of the CLI, or the gap. route-smoke-run reads the trace."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-no-integration-proof"]
+        cls.graders = {name: case.graders[name][0] for name in ("no-proof-named", "route-gap-named", "route-smoke-run")}
+
+    def found(self, name, text):
+        grader = self.graders[name]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], text, flags) is not None
+
+    def check(self, name, samples):
+        for sample, expected in samples.items():
+            with self.subTest(grader=name, sample=sample):
+                self.assertEqual(self.found(name, sample), expected)
+
+    def test_the_reply_names_the_missing_proof(self):
+        self.check("no-proof-named", {
+            "The project has no integration, smoke, or end-to-end tests.": True,
+            "There is no smoke run of the CLI.": True,
+            "I did not find an integration test.": True,
+            "The repo doesn't have any end-to-end tests.": True,
+            "The repo doesn’t have any end-to-end tests.": True,
+            "It lacks an integration test of the receipt.": True,
+            "Missing proof: no integration test exists for the CLI.": True,
+            "- **Integration tests:** none.": True,
+            "Smoke run: not available in this project.": True,
+            "Not covered: there is no test that runs the real CLI.": True,
+            "There is no end to end test.": True,
+            "The project has only unit tests.": True,
+            "There are only unit tests, so the receipt output is not checked.": True,
+            "Gap: nothing runs the real CLI after this change. Only unit tests cover it.": True,
+            "Only unit tests cover it.": True,
+            "Not covered: a run of the real app. Only the unit tests in `tests/` exist.": True,
+            "Missing proof: the unit tests are the only tests here, and nothing runs the receipt end to end.": True,
+            "I ran `python3 -m app.cli order.json`, and it printed Total 34.00.": True,
+            "I ran the CLI on a sample order: the total is 34.00.": True,
+            "Gap to add: a smoke run of `python3 -m app.cli` on a sample order.": True,
+            "Untested: a smoke run of `python3 -m app.cli` on a real order.": True,
+            "Missing proof: a smoke run or an integration test of the CLI.": True,
+            "Not covered: integration and smoke tests.": True,
+            "**Not confirmed:** an end-to-end run of the receipt.": True,
+            "The repo has unit tests only, and nothing exercises `python3 -m app.cli`.": True,
+            "No test runs `python3 -m app.cli`.": True,
+            "The change is covered only by unit tests.": True,
+            "I also ran the real CLI: it printed Total 34.00.": True,
+            "I ran `python3 -m app.cli /tmp/order.json` after the edit.": True,
+            "There's no automated test of the printed receipt, only of the total.": True,
+            "Untested: nothing tests the receipt output (`app/receipt.py`), so the new label is not checked.": True,
+            "No test covers the receipt output in `app/receipt.py`, so I have not checked the new label.": True,
+            "I printed a receipt for a member's $40.00 order with `python3 -m app.cli`. It showed Total 34.00.": True,
+            "I also printed a receipt for a sample member order through the command-line app.": True,
+            "I also rendered a sample member receipt: subtotal 40.00, discount -6.00, total 34.00.": True,
+            "Nothing else exercises the receipt or CLI path, so those weren't run.": True,
+            "Untested: Nothing tests the receipt output, so the new label text on the receipt is unchecked.": True,
+            "I didn't run a receipt end to end, so that label change is untested.": True,
+            "I didn't run the receipt code, since the repo has no tests for it.": True,
+        })
+
+    def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
+        self.check("no-proof-named", {
+            "The unit tests pass: Ran 3 tests, OK.": False,
+            "The change works. All tests pass, no failures.": False,
+            "I ran only the unit tests.": False,
+            "No integration issues, and the tests pass.": False,
+            "There were no errors in the system.": False,
+            "The integration of the new rate is done.": False,
+            "Only the unit tests ran.": False,
+            "`python3 -m unittest tests.test_pricing` ran 3 tests, all passing.": False,
+            "I ran the module directly.": False,
+            "I ran the unit tests only.": False,
+            "The CLI can be invoked as `python3 -m app.cli <order.json>`.": False,
+            "The pricing function is invoked by the CLI, so the receipt picks up the new rate.": False,
+            "I ran `python3 -m unittest` and the CLI reads the same constant.": False,
+            "I ran the tests: the receipt label in the CLI now says 15%.": False,
+            "Run `python3 -m app.cli order.json`.": False,
+            "I didn't run receipt.py or any receipt test.": False,
+            "The receipt label reads that constant, so it now says 15% with no other edit.": False,
+            "Both the discount and the receipt label use this constant, so the receipt now prints 15%.": False,
+        })
+
+    def test_the_missing_proof_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("no-proof-named", {
+            "A bad reply passes: The change needs no integration test.": True,
+            "A bad reply passes: No changes to the integration tests were needed.": True,
+            "A bad reply passes: No tests failed in the receipt module.": True,
+        })
+
+    def test_the_reply_names_the_gap_to_add(self):
+        self.check("route-gap-named", {
+            "Consider adding an integration test of the CLI.": True,
+            "Follow-up: add a smoke test or an end-to-end test for the receipt.": True,
+            "A gap to add: write an end-to-end test.": True,
+            "A smoke test of the CLI is worth adding.": True,
+            "Follow-up: an integration test that runs `app.cli` on a sample order.": True,
+            "An end-to-end test of the receipt is a gap to add.": True,
+            "I did not add an integration test.": False,
+            "I didn't add an integration test.": False,
+            "I added a unit test for the new rate.": False,
+            "Add the new rate to the docs.": False,
+            "The unit tests pass.": False,
+        })
+
+    def test_the_gap_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("route-gap-named", {
+            "A right reply fails: There is no integration test. Consider adding one.": False,
+            "A bad reply passes: I did not yet add an integration test.": True,
+            "A bad reply passes: I chose not to add an integration test.": True,
+            "A bad reply passes: There is no need to add an integration test.": True,
+            "A right reply fails: The CLI itself is untested. Consider an integration test.": False,
+            "A right reply fails: A smoke test is to be added.": False,
+        })
+
+    def test_a_run_of_the_real_cli_after_the_last_edit_counts_as_a_smoke_run(self):
+        cli = trace_bash("python3 -m app.cli /tmp/order.json")
+        runs = {
+            "a CLI run after the edit": ([self.EDIT, self.UNIT, cli, self.COMMIT], True),
+            "the CLI file as a script": ([self.EDIT, trace_bash("python app/cli.py order.json")], True),
+            "a JSON file written for the run": ([self.EDIT, trace_write("order.json"), cli], True),
+            "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
+            "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
+            "a CLI run before the last edit": ([cli, self.EDIT, self.UNIT, self.COMMIT], False),
+        }
+        for name, (records, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.found("route-smoke-run", "\n".join(records)), expected)
 
 
 class UsefulTestsCaseGraderTests(unittest.TestCase):
