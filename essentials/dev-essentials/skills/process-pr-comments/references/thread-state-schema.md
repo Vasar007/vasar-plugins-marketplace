@@ -263,7 +263,7 @@ Next cycle in <interval> (via /loop).
 | `error — <short reason>` | A temporary failure. The next cycle tries again. |
 | `deep-fix (<N> rounds, clean)` | A `deep-fix` thread whose review loop ended `stop-clean`. |
 | `deep-fix — open findings` | A `deep-fix` thread whose review loop ended `stop-max-rounds`. The thread stays open (`openFindingsMarker: true`). |
-| `deep-fix — blocked` | A `deep-fix` thread whose review loop ended `stop-blocked` (build red). The push of this cycle is cancelled. |
+| `deep-fix — blocked` | A `deep-fix` thread whose review loop ended `stop-blocked` (a red build, or a unit of the review that no reviewer covered). The push of this cycle is cancelled. |
 | `report only — commit <sha> on the PR head` | A `pr-commit-no-reply` thread that a commit of the PR names. The human handles it. With `claimedSha: null`, write `report only — PR commits not read`. Then the fetch of the base branch failed, and the next cycle or run tests the thread again. |
 | `untrusted (<login>) — left to you` | The top comment of the thread has `trusted: false` (`SKILL.md` Phase 2 step 1). No fix, no reply, no issue, and no resolve, in every mode. To act on the thread, the user runs the skill again with `trusted=<login>`. This outcome wins over each `assessedState`. Stage 2 makes no catch-up resolve for such a thread, and the session asks no Phase 2 step 5 question for it. |
 

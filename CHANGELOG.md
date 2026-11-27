@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.2.0 in release [7.3.0] - 2026-11-27
+## dev-essentials 6.3.0 in release [7.4.0] - 2026-11-27
 
 `process-pr-comments` now acts only on the review comments of trusted logins. A login is trusted in three cases. It is the author of the pull request, it has write access to the repository, or the new `trusted` parameter names it. Before, the skill acted on the comment of each GitHub user. In the full mode, it fixed, committed, and pushed the change of a user with no write access, with no question (issue #375).
 
@@ -31,6 +31,30 @@ The other numbers in a heading are plugin versions.
 
 - `tests/test_eval_cases.py`: the new class `PpcTrustTests` makes sure that the mock of each `ppc-*` case trusts each reviewer of that case. The one exception is `drive-by-user` of `ppc-untrusted-full`. The class also pins the verdicts of the graders `listed` and `route-trust-read` (issue #375).
 - `tests/test_eval_scaffolds.py`: `NO_COMMIT_GRADERS` holds the grader `no-commit` of `ppc-untrusted-full`, so a test runs it on the scaffold (issue #375).
+
+## dev-essentials 6.2.0 in release [7.3.0] - 2026-11-27
+
+In a fan-out, a subagent can end with no report, for example on an API error or a usage limit. The orchestrator now gives such a unit one more try. If it fails again, the final report names the unit as not covered, and the run reports no clean result for it. A review loop with such a unit now ends with `stop-blocked`, not `stop-clean` (issue #376).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-area-not-covered`: the orchestrated review of a large branch ends with three Area Explorers. Two of them report no finding. An API error cuts off the third, and its one resume fails again. The run must name the area `ledger` as not covered, and its stop verdict must be `stop-blocked`. The case needs no shell tool and no scaffold (issue #376).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: the section `Trust but verify` has a rule for a fan-out. The orchestrator matches each report to its unit. A failed agent, a stopped agent, and a reply that Claude Code marks as cut off or partial give no report. Such a unit gets one resume or one new dispatch. If it fails again, the final report names it as not covered. A cut-off reply keeps its findings, but the unit stays not covered. A limit of tries or a stop rule that a skill names wins, and a run format does not replace the rule (issue #376).
+- `skills/review-loop/SKILL.md`: `stop-clean` needs a third condition. The `Not covered:` line of the Phase 9 summary must be `none`. If a unit is not covered, the verdict is `stop-blocked`. In a run with more than one cycle, chat also gets a `Not covered:` line that is not `none` (issue #376).
+- `skills/process-pr-comments/references/deep-fix.md`, `skills/process-pr-comments/references/thread-state-schema.md`, and `skills/research-implement-review-report/SKILL.md`: a `stop-blocked` has two reasons, a red build or a unit that no reviewer covered. The cycle log line is `deep-fix — blocked (<reason>, not pushed)`. With a unit that is not covered, the text does not say that red commits sit on the branch (issue #376).
+- `evals/review-loop/rl-area-not-covered/prompt.md`: the request line has `--print-reports`, so the run needs no file write (issue #376).
+- `skills/review-loop/references/output-formats.md`: the Phase 9 summary has a new line, `Not covered:` (issue #376).
+- `skills/review-loop/references/orchestrated-review.md`: the collate step first matches each Area Explorer report to its area. The final report names each area that is still not covered (issue #376).
+- `skills/review-loop/references/audit-team-adapter.md`: a role that the **Reviewers** line marks as not covered goes to the `Not covered:` line (issue #376).
+- `commands/audit-team.md`: Step 3 matches each agent report to its role. The **Reviewers** line marks a role with no report as `(not covered)` (issue #376).
+
+### Changed in the repository
+
+- `tests/test_review_loop_text.py`: a new test makes sure that Phase 8 reads the `Not covered:` line that the Phase 9 template defines (issue #376).
+- `tests/test_eval_cases.py`: the test of Step 3 of `audit-team` expects the new sentence on the labels that `review-loop` reads (issue #376).
 
 ## dev-essentials 6.1.1 in release [7.2.2] - 2026-11-27
 
@@ -2864,7 +2888,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...HEAD
+[7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
 [7.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...v7.2.2
 [7.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...v7.2.1
