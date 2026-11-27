@@ -50,6 +50,38 @@ Unit tests cover the edge cases, and integration tests cover multi-currency orde
 
 Length: about 470 characters.
 
+## Example Output (UI Change)
+
+The input gives no image and no video:
+
+```markdown
+## What
+
+Adds a toggle for compact rows to the settings page.
+
+## Why
+
+Users with long lists asked to see more rows on one screen.
+
+## Changes
+
+- **Settings page**: a toggle for compact rows
+- **List styles**: a compact row height, with a short slide when the height changes
+
+## UI changes
+
+- **Settings page**: a new toggle "Compact rows" under Display.
+- **Order list**: with the toggle on, each row is shorter, and the list slides to the new height.
+
+Not confirmed: images of the settings page and the order list before and after the change, and a short video of the slide. Upload them to this pull request.
+
+## Testing
+
+The diff changes no test. Not run in this session.
+```
+
+Length: about 680 characters.
+
 ## Example Output (Larger Change)
 
 ```markdown

@@ -38,6 +38,7 @@ EXPECTED_BRANCH = {
     "probe-dotnet-sandbox": "work/probe-dotnet-sandbox",
     "probe-test-fixture": "work/tests",
     "rl-off-by-one": "feature/paging",
+    "rl-workflow-request": "feature/paging",
     "rl-null-guard": "feature/display-name",
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
@@ -80,6 +81,10 @@ EXPECTED_BRANCH = {
     "rirr-upstream-remote": "work/retry-limit",
     "it-merge": "work/retry-limit",
     "ib-merge": "work/retry-batch",
+    "rirr-gate-fix-full": "work/retry-behind",
+    "rirr-gate-fix-partial": "work/retry-behind",
+    "rirr-gate-fix-interactive": "work/retry-behind",
+    "rirr-gate-fix-no-command": "work/retry-lint",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
     "ib-no-worktree": "main",
@@ -107,12 +112,14 @@ PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+
 FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
-                  "rirr-retry-limit": "committed"}
+                  "so-integration-proof": "committed", "so-no-integration-proof": "committed", "rirr-retry-limit": "committed"}
 # A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
                       ("rirr-merge-gate", "main-not-pushed"), ("it-merge", "main-not-pushed"),
-                      ("ib-merge", "main-not-pushed"),
+                      ("ib-merge", "main-not-pushed"), ("rirr-gate-fix-full", "main-not-pushed"),
+                      ("rirr-gate-fix-partial", "main-not-pushed"), ("rirr-gate-fix-interactive", "main-not-pushed"),
+                      ("rirr-gate-fix-no-command", "main-not-pushed"),
                       ("rirr-pr-title-form", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
@@ -125,7 +132,8 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
                      "rirr-pr-title-form": ("no-run-commit",),
                      "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
-                     "ib-merge": ("no-run-commit",),
+                     "ib-merge": ("no-run-commit",), "rirr-gate-fix-interactive": ("no-run-commit",),
+                     "rirr-gate-fix-no-command": ("no-run-commit",),
                      "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",),
                      "it-no-worktree-dirty": ("no-run-commit",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
@@ -1489,7 +1497,7 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
 
-        for name in ("so-rename-small", "so-rename-large", "rirr-retry-limit"):
+        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "rirr-retry-limit"):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,
@@ -1789,6 +1797,124 @@ class TrimFullPassTests(FixtureCase):
         self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
+class GateFixFixtureTests(FixtureCase):
+    """The cases of a failed merge gate of issue 387 plant a branch that is behind main of the remote.
+
+    The clone did not fetch the last commit of main, so only a fetch and a merge bring the base in. A run that fixes the cause
+    merges the base and pushes a second time. The file graders read each of these steps.
+    """
+
+    CASES = ("rirr-gate-fix-full", "rirr-gate-fix-partial", "rirr-gate-fix-interactive")
+    BRANCH = "work/retry-behind"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
+
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
+        self.assertEqual(code, 0, output)
+        return output
+
+    def scaffold(self, name="rirr-gate-fix-full"):
+        workspace = self.workspace(name)
+        self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, name, grader, workspace):
+        meta = self.cases[name].graders[grader][0]
+        if meta["type"] == "file_exists":
+            return (workspace / meta["path"]).is_file() == meta.get("exists", True)
+        self.assertEqual(meta["type"], "regex")
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        path = workspace / meta["target"]["path"]
+        # A regex grader on a file that does not exist fails, also with not_contains (the base runs of issue 387). So no scored grader reads a reflog.
+        self.assertTrue(path.is_file(), f"{grader} reads {path}, which does not exist")
+        found = re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def merge_the_base(self, workspace):
+        self.run_git(workspace, "fetch", "-q", "origin", "main")
+        self.run_git(workspace, "merge", "-q", "--no-edit", "origin/main")
+
+    def test_the_branch_is_behind_main_of_the_remote_and_its_tests_pass(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.run_git(workspace, "rev-parse", "--abbrev-ref", "HEAD"), self.BRANCH)
+        tests = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                               capture_output=True, text=True)
+        self.assertEqual(tests.returncode, 0, tests.stderr[-500:])
+        start = self.run_git(workspace, "rev-parse", "HEAD~1")
+        # The clone has the old main, so a merge with no fetch brings nothing in.
+        self.assertEqual(self.run_git(workspace, "rev-parse", "main"), start)
+        self.assertEqual(self.run_git(workspace, "rev-parse", "origin/main"), start)
+        remote = self.run_git(workspace / ".remote/origin.git", "rev-parse", "main")
+        self.assertEqual(self.run_git(workspace / ".remote/origin.git", "rev-parse", "main~1"), start)
+        self.assertFalse((workspace / "docs/http.md").exists())
+        self.assertEqual(self.run_git(workspace / ".remote/origin.git", "show", "--format=", "--name-only", remote), "docs/http.md")
+        # No remote holds the branch, and no CI file asks for a local run of a check.
+        self.assertEqual(self.git(workspace, "rev-parse", "--verify", "-q", f"origin/{self.BRANCH}")[0], 1)
+        self.assertFalse((workspace / ".github").exists())
+
+    def test_a_fetch_and_a_merge_of_the_base_pass_the_merge_graders(self):
+        workspace = self.scaffold()
+        for name in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            with self.subTest(case=name, state="the scaffold"):
+                self.assertFalse(self.passes(name, "route-merge-commit", workspace))
+                self.assertFalse(self.passes(name, "route-base-merged", workspace))
+        self.assertTrue(self.passes("rirr-gate-fix-interactive", "base-not-merged", workspace))
+        self.merge_the_base(workspace)
+        for name in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            with self.subTest(case=name, state="after the merge"):
+                self.assertTrue(self.passes(name, "route-merge-commit", workspace))
+                self.assertTrue(self.passes(name, "route-base-merged", workspace))
+                self.assertTrue(self.passes(name, "limit-lowered", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-interactive", "base-not-merged", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-interactive", "no-run-commit", workspace))
+
+    def test_the_rebase_grader_fails_a_rebase_of_the_pushed_branch(self):
+        for name, rebase in (("pull", ["pull", "-q", "--rebase", "origin", "main"]), ("rebase", ["rebase", "-q", "origin/main"])):
+            workspace = self.scaffold("rirr-gate-fix-partial") if name == "pull" else self.workspace("rirr-gate-fix-rebase")
+            if name == "rebase":
+                self.run_bash([(self.cases["rirr-gate-fix-partial"].path / "scaffold.sh").as_posix()], workspace)
+            self.run_git(workspace, "push", "-q", "-u", "origin", self.BRANCH)
+            for case in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+                with self.subTest(form=name, case=case, state="the scaffold and a push"):
+                    self.assertTrue(self.passes(case, "no-rebase", workspace))
+            if name == "rebase":
+                self.run_git(workspace, "fetch", "-q", "origin", "main")
+            self.run_git(workspace, *rebase)
+            for case in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+                with self.subTest(form=name, case=case, state="after the rebase"):
+                    self.assertFalse(self.passes(case, "no-rebase", workspace))
+
+    def test_the_lint_case_has_a_lint_script_and_no_source_of_its_command(self):
+        workspace = self.scaffold("rirr-gate-fix-no-command")
+        self.assertEqual(self.run_git(workspace, "rev-parse", "--abbrev-ref", "HEAD"), "work/retry-lint")
+        tests = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                               capture_output=True, text=True)
+        self.assertEqual(tests.returncode, 0, tests.stderr[-500:])
+        lint = subprocess.run([sys.executable, "tools/lint.py", "app", "config"], cwd=workspace, capture_output=True, text=True)
+        self.assertEqual((lint.returncode, lint.stdout.strip()), (1, "config/settings.py:3: line too long (98 > 88)"))
+        # No CI configuration and no instructions file name the command, so a right run finds no source for it.
+        self.assertFalse((workspace / ".github").exists())
+        self.assertNotIn("lint", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        self.assertTrue(self.passes("rirr-gate-fix-no-command", "no-run-commit", workspace))
+
+    def test_the_fix_push_grader_reads_a_second_push_that_moves_the_branch(self):
+        workspace = self.scaffold()
+        self.run_git(workspace, "push", "-q", "-u", "origin", self.BRANCH)
+        self.assertTrue((workspace / f".remote/origin.git/logs/refs/heads/{self.BRANCH}").is_file())
+        self.assertFalse((workspace / ".remote/origin.git/logs/refs/heads/main").exists())
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        # A push with no new commit leaves the remote branch where it is, so it adds no reflog line.
+        self.run_git(workspace, "push", "-q", "origin", self.BRANCH)
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        self.merge_the_base(workspace)
+        self.run_git(workspace, "push", "-q", "origin", self.BRANCH)
+        self.assertTrue(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        self.assertFalse((workspace / ".remote/origin.git/logs/refs/heads/main").exists())
+
+
 class ResumeReportTests(FixtureCase):
     """The planted report of each resume case names its head commit (issues #271 and #283).
 
@@ -1801,9 +1927,15 @@ class ResumeReportTests(FixtureCase):
                "it-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
                "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
                "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
-               "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1")}
+               "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1"),
+               "rirr-gate-fix-full": ("notes/Results/retry-behind-report.md", "HEAD"),
+               "rirr-gate-fix-partial": ("notes/Results/retry-behind-report.md", "HEAD"),
+               "rirr-gate-fix-interactive": ("notes/Results/retry-behind-report.md", "HEAD"),
+               "rirr-gate-fix-no-command": ("notes/Results/retry-lint-report.md", "HEAD")}
     # The number of review verdicts that the report of each case holds.
-    VERDICTS = {"rirr-merge": 1, "rirr-pr-title-form": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
+    VERDICTS = {"rirr-merge": 1, "rirr-pr-title-form": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1,
+                "rirr-gate-fix-full": 1, "rirr-gate-fix-partial": 1, "rirr-gate-fix-interactive": 1,
+                "rirr-gate-fix-no-command": 1}
 
     @classmethod
     def setUpClass(cls):
@@ -2439,6 +2571,85 @@ class ScratchProbeEndStateTests(FixtureCase):
                 verdicts = file_grader_verdicts(self.case, self.GRADERS, workspace, before)
                 self.assertEqual(sorted(grader for grader, passed in verdicts.items() if not passed),
                                  [failed] if failed else [])
+
+
+class ReceiptsScaffoldCase(FixtureCase):
+    """Helpers for the receipts projects of so-integration-proof and so-no-integration-proof. A subclass sets CASE."""
+
+    CASE = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def suite(self, workspace, folder):
+        done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", folder], cwd=workspace,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+                              env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+        return done.returncode == 0
+
+    def replace(self, path, old, new):
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+class IntegrationProofScaffoldTests(ReceiptsScaffoldCase):
+    """The project of so-integration-proof: the plain change passes the unit tests, and only the integration test fails."""
+
+    CASE = "so-integration-proof"
+    GRADERS = ("discount-changed", "receipt-updated")
+
+    def test_the_plain_change_breaks_only_the_integration_test(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertEqual((self.suite(workspace, "tests"), self.suite(workspace, "integration")), (True, True))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": False, "receipt-updated": False})
+        # The instruction files name only the unit tests. The CI workflow names both suites.
+        for name in ("CLAUDE.md", "README.md"):
+            self.assertNotIn("integration", (workspace / name).read_text(encoding="utf-8"))
+        self.assertIn("discover -s integration", (workspace / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertEqual((self.suite(workspace, "tests"), self.suite(workspace, "integration")), (True, False))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": True, "receipt-updated": False})
+
+        receipt = subprocess.run([sys.executable, "-m", "app.cli", "samples/order.json"], cwd=workspace, capture_output=True,
+                                 text=True, encoding="utf-8", check=True, env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+        (workspace / "integration" / "expected" / "receipt.txt").write_text(receipt.stdout, encoding="utf-8", newline="\n")
+        self.assertTrue(self.suite(workspace, "integration"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"discount-changed": True, "receipt-updated": True})
+
+
+class NoIntegrationProofScaffoldTests(ReceiptsScaffoldCase):
+    """The project of so-no-integration-proof: the same app with only unit tests, and no documented run of the real CLI."""
+
+    CASE = "so-no-integration-proof"
+    GRADERS = ("discount-changed",)
+
+    def test_the_plain_change_breaks_only_its_unit_test(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertFalse((workspace / "integration").exists())
+        self.assertFalse((workspace / "samples").exists())
+        texts = {name: (workspace / name).read_text(encoding="utf-8") for name in ("CLAUDE.md", "README.md", ".github/workflows/ci.yml")}
+        for name, text in texts.items():
+            with self.subTest(file=name):
+                self.assertNotRegex(text, r"integration|smoke|end-to-end|app\.cli|app/cli")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": False})
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
 
 
 class OptimizeSkillFixtureTests(FixtureCase):

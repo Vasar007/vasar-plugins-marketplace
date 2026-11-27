@@ -1,0 +1,25 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "id": 9401,
+      "name": "unit-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/740/job/9401",
+      "details_url": "https://github.com/example-org/users-app/actions/runs/740/job/9401",
+      "started_at": "2026-01-01T01:00:00Z",
+      "completed_at": "2026-01-01T01:02:00Z"
+    },
+    {
+      "id": 9402,
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/740/job/9402",
+      "details_url": "https://github.com/example-org/users-app/actions/runs/740/job/9402",
+      "started_at": "2026-01-01T01:00:00Z",
+      "completed_at": "2026-01-01T01:02:00Z"
+    }
+  ]
+}

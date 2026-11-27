@@ -1895,9 +1895,10 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
-UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
-            "rl-unbounded-query", "rirr-retry-limit")
-TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
+UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "so-no-integration-proof",
+            "rl-null-guard", "rl-off-by-one", "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
+# rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
+TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
 
 
 def trace_bash(command):
@@ -4257,6 +4258,204 @@ class ComposerGraderTests(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertNotIn(word, case.prompt_body)
 
+    UI_CASE = "cmp-pr-ui-change"
+    UI_IMAGES_CASE = "cmp-pr-ui-images"
+    IMAGE_BEFORE = "https://github.com/user-attachments/assets/0b6f1c2e-5d4a-4e8b-9f3a-2c7d8e9a1b01"
+    IMAGE_AFTER = "https://github.com/user-attachments/assets/7e2d9a4b-1c3f-4a6e-8b5d-9f0e1a2b3c04"
+    IMAGES_BLOCK = ("I uploaded two screenshots of the invoice header to GitHub:\n\n"
+                    f"- Before the change: <{IMAGE_BEFORE}>\n- After the change: <{IMAGE_AFTER}>\n\n")
+    UI_TOP = ("## What\n\nShows the order count of a customer as a badge in the invoice header.\n\n"
+              "## Why\n\nSupport staff asked for the order count of a customer in the invoice header.\n\n"
+              "## Changes\n\n- **Invoice header template**: a badge with the order count, after the customer name.\n"
+              "- **Invoice styles**: the badge style and a 300 ms fade-in.\n\n")
+    UI_VIEW = "- **Invoice header**: a blue badge with the order count now follows the customer name. It fades in.\n\n"
+    UI_TESTING = "## Testing\n\nThe diff changes no test. Not run in this session.\n"
+    PR_UI = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed: images of the invoice header before and after the "
+             "change, and a short video of the fade-in.\n\n" + UI_TESTING)
+    PR_UI_BASE = UI_TOP + UI_TESTING
+    PR_UI_LIST = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed:\n\n- An image of the invoice header before the change.\n"
+                  "- An image of the invoice header after the change.\n- A short video of the fade-in.\n\n" + UI_TESTING)
+    PR_UI_IMAGES = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "| Before | After |\n| --- | --- |\n"
+                    f"| ![Before: no order count in the header]({IMAGE_BEFORE}) | ![After: the badge shows the order count]"
+                    f"({IMAGE_AFTER}) |\n\n"
+                    "Not confirmed: a short video of the fade-in.\n\n" + UI_TESTING)
+
+    def regex_graders(self, case):
+        return [name for name, (meta, _) in self.cases[case].graders.items() if meta["type"] == "regex"]
+
+    def test_the_right_ui_texts_pass_each_regex_grader_of_their_case(self):
+        shows = self.PR_UI_LIST.replace("- A short video of the fade-in.", "- A short video that shows the fade-in.")
+        bold_numbers = (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**").replace("- An image", "1. An image", 1)
+                        .replace("- An image", "2. An image").replace("- A short", "3. A short"))
+        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_CASE, self.PR_UI_LIST), (self.UI_CASE, shows),
+                           (self.UI_CASE, bold_numbers), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
+            for grader in self.regex_graders(case):
+                with self.subTest(case=case, grader=grader):
+                    self.assertTrue(self.passes(case, grader, text))
+
+    def test_the_base_form_fails_the_evidence_graders_and_the_route_graders_of_the_ui_case(self):
+        for grader in ("asks-for-images", "asks-for-video", "route-ui-section", "route-ui-not-confirmed"):
+            with self.subTest(grader=grader):
+                self.assertFalse(self.passes(self.UI_CASE, grader, self.PR_UI_BASE))
+        # The scored guards pass the base form, so a base run can pass them.
+        for grader in ("structure", "within-limit", "no-media-link", "no-evidence-claim"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(self.UI_CASE, grader, self.PR_UI_BASE))
+        for grader in ("asks-for-video", "route-ui-table", "route-ui-video-not-confirmed"):
+            with self.subTest(grader=grader):
+                self.assertFalse(self.passes(self.UI_IMAGES_CASE, grader, self.PR_UI_BASE))
+
+    def test_asks_for_images_and_video_need_a_mark_of_missing_evidence_on_the_line(self):
+        add = "## UI changes\n\nAdd screenshots of the header before and after, and a recording of the fade-in.\n"
+        self.check(self.UI_CASE, "asks-for-images", {
+            "not confirmed": (self.PR_UI, True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list under another line": (self.PR_UI_LIST.replace("Not confirmed:", "Later work:"), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
+            "an add request": (add, True),
+            "images to be added": ("## Notes\n\nImages of the header: to be added by the author.\n", True),
+            "no screenshots yet": ("## Notes\n\nNo screenshots are attached yet.\n", True),
+            "the base form": (self.PR_UI_BASE, False),
+            "a claim of images": ("## UI changes\n\nThe screenshots below show the badge.\n", False),
+            "the image word with no mark": ("## Changes\n\n- **Header**: the image of the logo stays.\n", False),
+        })
+        self.check(self.UI_CASE, "asks-for-video", {
+            "not confirmed": (self.PR_UI, True),
+            "an add request": (add, True),
+            "a video is missing": ("## Notes\n\nA short video of the fade-in is missing.\n", True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list with images only": (self.PR_UI_LIST.replace("- A short video of the fade-in.\n", ""), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
+            "images only": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
+            "a claim of a video": ("## UI changes\n\nThe video shows the fade-in.\n", False),
+            "the base form": (self.PR_UI_BASE, False),
+        })
+
+    def test_no_media_link_fails_an_invented_or_a_placeholder_link(self):
+        self.check(self.UI_CASE, "no-media-link", {
+            "not confirmed": (self.PR_UI, True),
+            "a file name with no link": ("Not confirmed: `invoice-header-before.png` and `invoice-header-after.png`.\n", True),
+            "an invented image": (f"| ![Before]({self.IMAGE_BEFORE}) | x |\n", False),
+            "a placeholder image": ("| ![before](TODO) | ![after](TODO) |\n", False),
+            "an image tag": ('<img src="before.png" alt="Before" />\n', False),
+            "a link to a video file": ("[Fade-in](https://example.com/fade-in.webm)\n", False),
+            "a bare upload link": ("Before: https://github.com/user-attachments/assets/1234\n", False),
+        })
+
+    def test_no_evidence_claim_fails_a_claim_of_evidence_that_the_input_lacks(self):
+        self.check(self.UI_CASE, "no-evidence-claim", {
+            "not confirmed": (self.PR_UI, True),
+            "an add request": ("Add screenshots of the header before and after the change.\n", True),
+            "no screenshots yet": ("No screenshots are attached yet.\n", True),
+            "images not attached": ("The images are not attached.\n", True),
+            "screenshots below": ("Screenshots below.\n", False),
+            "see the attached": ("See the attached screenshots.\n", False),
+            "the video shows": ("The video shows the fade-in.\n", False),
+            "the images show": ("The images show the badge.\n", False),
+            "images included": ("Images of both states are included.\n", False),
+            "a list item that shows": ("Not confirmed:\n\n- A short video that shows the fade-in.\n", True),
+            "a list item which shows": ("Not confirmed:\n\n- An image of the header after the change, which shows the badge.\n",
+                                        True),
+        })
+
+    def test_the_images_case_needs_both_given_links_and_no_other_media_link(self):
+        self.check(self.UI_IMAGES_CASE, "uses-given-images", {
+            "both links": (self.PR_UI_IMAGES, True),
+            "both links as plain links": (f"Before: <{self.IMAGE_BEFORE}>\nAfter: <{self.IMAGE_AFTER}>\n", True),
+            "only the link after": (self.PR_UI_IMAGES.replace(self.IMAGE_BEFORE, "before.png"), False),
+            "no link": (self.PR_UI, False),
+        })
+        self.check(self.UI_IMAGES_CASE, "no-other-media-link", {
+            "the given links": (self.PR_UI_IMAGES, True),
+            "the given links as tags": (f'<img src="{self.IMAGE_BEFORE}" /> <img src="{self.IMAGE_AFTER}" />\n', True),
+            "a bare given link": (self.IMAGE_AFTER + "\n", True),
+            "an invented video upload": (self.PR_UI_IMAGES + "\nhttps://github.com/user-attachments/assets/aaaa-fade\n", False),
+            "an invented image": (self.PR_UI_IMAGES + "\n![Fade-in](fade-in.gif)\n", False),
+            "an invented video tag": (self.PR_UI_IMAGES + '\n<video src="fade-in.mp4"></video>\n', False),
+            "a link to a video file": (self.PR_UI_IMAGES + "\n[Fade-in](https://example.com/fade-in.webm)\n", False),
+        })
+        table = "| Before | After |\n| --- | --- |\n"
+        self.check(self.UI_IMAGES_CASE, "route-ui-table", {
+            "the table in the section": (self.PR_UI_IMAGES, True),
+            "a table with no links": (self.PR_UI_IMAGES.replace(self.IMAGE_BEFORE, "x").replace(self.IMAGE_AFTER, "y"), False),
+            "the links with no table": (self.UI_TOP + "## UI changes\n\n" + self.UI_VIEW + f"![Old header]({self.IMAGE_BEFORE})\n"
+                                        f"![New header]({self.IMAGE_AFTER})\n\n" + self.UI_TESTING, False),
+            "the table in another section": (self.UI_TOP + "## Notes\n\n" + table + f"| <{self.IMAGE_BEFORE}> | "
+                                             f"<{self.IMAGE_AFTER}> |\n\n" + self.UI_TESTING, False),
+        })
+        self.check(self.UI_IMAGES_CASE, "route-ui-video-not-confirmed", {
+            "the video line": (self.PR_UI_IMAGES, True),
+            "no video line": (self.PR_UI_IMAGES.replace("Not confirmed: a short video of the fade-in.\n\n", ""), False),
+            "a list under not confirmed": (self.PR_UI_IMAGES.replace("Not confirmed: a short video", "Not confirmed:\n\n- A short video"),
+                                           True),
+            "a bold label and a numbered list": (self.PR_UI_IMAGES.replace("Not confirmed: a short video",
+                                                                           "**Not confirmed:**\n\n1. A short video"), True),
+        })
+
+    def test_route_image_alt_state_needs_alt_text_that_names_the_state_of_each_image(self):
+        bare = (f"| ![Invoice header before]({self.IMAGE_BEFORE}) | ![Invoice header after]({self.IMAGE_AFTER}) |\n")
+        self.check(self.UI_IMAGES_CASE, "route-image-alt-state", {
+            "alt text with the state": (self.PR_UI_IMAGES, True),
+            "the form of a base run": (bare, False),
+            "the words before and after only": (f"![Before]({self.IMAGE_BEFORE})\n![After]({self.IMAGE_AFTER})\n", False),
+            "the state only on one image": (bare.replace("Invoice header after", "After: the badge is there"), False),
+            "the state in angle brackets": (f"![Before: no badge](<{self.IMAGE_BEFORE}>) ![After: with the badge](<{self.IMAGE_AFTER}>)\n",
+                                            True),
+            "plain links": (f"Before: <{self.IMAGE_BEFORE}>\nAfter: <{self.IMAGE_AFTER}>\n", False),
+        })
+
+    def test_route_ui_graders_read_only_the_ui_section(self):
+        moved = self.PR_UI.replace("## UI changes\n\n", "").replace(self.UI_TESTING, self.UI_TESTING + "\n## UI changes\n\n-\n")
+        self.check(self.UI_CASE, "route-ui-section", {
+            "the section": (self.PR_UI, True),
+            "crlf line ends": (self.PR_UI.replace("\n", "\r\n"), True),
+            "another heading": (self.PR_UI.replace("## UI changes", "## Screenshots"), False),
+            "an empty section at the end": (moved, False),
+        })
+        self.check(self.UI_CASE, "route-ui-not-confirmed", {
+            "the section": (self.PR_UI, True),
+            "no video in the section": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
+            "the mark only in the notes": (self.UI_TOP + "## UI changes\n\n" + self.UI_VIEW + self.UI_TESTING
+                                           + "\n## Notes\n\nNot confirmed: images before and after, and a video.\n", False),
+        })
+
+    def test_no_ui_section_fails_a_ui_section_on_a_backend_diff(self):
+        for case in (self.UNTESTED, self.TESTED):
+            with self.subTest(case=case):
+                self.assertEqual(self.cases[case].graders["no-ui-section"], self.cases[self.UNTESTED].graders["no-ui-section"])
+        self.check(self.UNTESTED, "no-ui-section", {
+            "the not-run form": (self.PR_NOT_RUN, True),
+            "a sentence on the user interface": ("## Notes\n\n- The UI is unchanged.\n", True),
+            "a not confirmed test run": ("## Testing\n\nNot confirmed: the output of a test run.\n", True),
+            "a UI changes section": (self.PR_NOT_RUN + "\n## UI changes\n\nNone.\n", False),
+            "a screenshots section": (self.PR_NOT_RUN + "\n### Screenshots\n\nNone.\n", False),
+            "a bold label": (self.PR_NOT_RUN + "\n**UI changes**: none.\n", False),
+            "a bold label in a bullet": (self.PR_NOT_RUN + "\n- **UI changes**: none\n", False),
+            "a bold component in a bullet": ("## Changes\n\n- **Order store**: `orders_count`.\n", True),
+            "a request for images": ("## Notes\n\nNot confirmed: screenshots of the invoice header.\n", False),
+            # Known limit: a sentence that starts with the bold word counts as a section.
+            "a sentence that starts with the bold word": ("**UI** code is unchanged.\n", False),
+        })
+
+    def test_the_ui_cases_share_the_diff_and_differ_only_in_the_images(self):
+        change, images = self.cases[self.UI_CASE], self.cases[self.UI_IMAGES_CASE]
+        for case in (change, images):
+            with self.subTest(case=case.name):
+                self.assertNotIn("Bash", case.field("allowed_tools"))
+                self.assertIn("+++ b/web/static/invoice.css", case.prompt_body)
+                self.assertIn("animation:", case.prompt_body)
+                for grader in ("structure", "saved", "asks-for-video"):
+                    self.assertEqual(case.graders[grader], change.graders[grader])
+        self.assertEqual(images.prompt_body.replace(self.IMAGES_BLOCK, ""), change.prompt_body)
+        structure = self.cases["cmp-pr-from-diff"].graders["structure"][0]["pattern"]
+        self.assertEqual(change.graders["structure"][0]["pattern"], structure)
+        # A prompt that names the evidence or the section gives the base side the answer.
+        for word in ("screenshot", "image", "video", "before", "after", "UI", "visible"):
+            with self.subTest(word=word):
+                self.assertIsNone(re.search(rf"\b{word}", change.prompt_body, re.I))
+
     def test_reason_from_plan_needs_the_reason_in_the_why_section(self):
         self.check("cmp-pr-from-diff", "reason-from-plan", {
             "reason in the why section": (self.PR_RIGHT, True),
@@ -4863,7 +5062,7 @@ class RirrSquashRouteGraderTests(unittest.TestCase):
         self.assertFalse(self.passes("route-tree-kept", read_of_the_script))
 
 
-STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate")
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate", "rl-workflow-request")
 
 
 class StopVerdictRouteGraderTests(unittest.TestCase):
@@ -4965,6 +5164,328 @@ class EarlierFindingsGraderTests(unittest.TestCase):
         for name, text in wrong.items():
             with self.subTest(text=name):
                 self.assertFalse(self.passes(text))
+
+
+# The Workflow scripts of two probe runs of rl-workflow-request, word for word: an Opus run with a triage step, and a Sonnet run with none.
+WORKFLOW_SCRIPTS = REPO / "tests" / "evals" / "fixtures" / "workflow-scripts"
+
+
+class WorkflowRequestGraderTests(unittest.TestCase):
+    """The new graders of rl-workflow-request: the triage before the first fix, a reviewer that does not fix, and the Workflow tool."""
+
+    REVIEWER_ID = "toolu_rev1"
+    FIXER_ID = "toolu_fix1"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["rl-workflow-request"]
+        skill = FP_ROOT / "skills" / "review-loop"
+        cls.briefs = (skill / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+        cls.skill_text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        cls.fixer_rules = cls.skill_text.split("The rules that the fixer must follow:", 1)[1].split(
+            "Follow `dev-essentials:engineering-discipline` Rule 2", 1)[0]
+        cls.example = (skill / "examples" / "branch-review.md").read_text(encoding="utf-8")
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def passes(self, grader, *records):
+        meta = self.meta(grader)
+        found = re.search(meta["pattern"], "\n".join(records)) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    @staticmethod
+    def call(tool, tool_input, parent=None, call_id="toolu_9"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": call_id, "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def text(body, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "text", "text": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def result(body, parent=None):
+        return trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def init(*tools):
+        return trace_record({"type": "system", "subtype": "init", "tools": list(tools)})
+
+    def edit(self, parent=None, path="/w/src/pager.py"):
+        return self.call("Edit", {"replace_all": False, "file_path": path, "old_string": "a", "new_string": "b"}, parent)
+
+    def reviewer(self, parent=None, extra=""):
+        return self.call("Agent", {"description": "Round 1 review", "model": "opus",
+                                   "prompt": self.briefs + "\n+def page_slice(items, page):\n" + extra},
+                         parent, self.REVIEWER_ID)
+
+    def fixer(self):
+        return self.call("Agent", {"description": "Round 1 fixer", "model": "sonnet",
+                                   "prompt": "1. High Bug src/pager.py:15. Fix plan: end the slice at start + size.\n"
+                                   + self.fixer_rules}, None, self.FIXER_ID)
+
+    def start(self):
+        return [self.init("Agent", "Bash", "Edit", "Read", "Skill"),
+                self.call("Skill", {"skill": "dev-essentials:review-loop", "args": "--rounds 2"}),
+                self.result(self.skill_text)]
+
+    TRIAGE = "Round 1 findings:\n  High:     1  (will fix; 1 blocking)\n\nProceeding to verify+fix 1 issues. Deferring 0."
+
+    def test_new_graders_have_the_planned_types_and_targets(self):
+        self.assertEqual((self.meta("triage-before-fix")["target"], self.meta("triage-before-fix").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-separate")["target"], self.meta("reviewer-separate").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-no-edit")["target"], self.meta("reviewer-no-edit")["match"]), ("trace", "not_contains"))
+        self.assertEqual((self.meta("route-no-workflow-call")["tool"], self.meta("route-no-workflow-call")["max"]), ("Workflow", 0))
+
+    def test_a_right_run_passes_each_new_scored_grader(self):
+        review = [self.reviewer(), self.result("| 1 | High | Bug |\nReview made by `opus`", self.REVIEWER_ID)]
+        runs = {
+            "a fix in the main loop": [*review, self.text(self.TRIAGE), self.edit()],
+            "a fixer subagent": [*review, self.text(self.TRIAGE), self.fixer(), self.edit(self.FIXER_ID)],
+            "the triage in the cycle report": [*review, self.call("Write", {
+                "file_path": "/w/notes/Reviews/feature-paging-cycle-1.md", "content": "# Cycle 1\n\n" + self.TRIAGE}), self.edit()],
+            "the status line of the cycle": [*review, self.text("Cycle 1: 1 finding. Triage: fix=1, deferred=0."), self.edit()],
+            "a reviewer in a workflow": [self.call("Workflow", {"script": "await agent(" + json.dumps(self.briefs) + ")"}),
+                                         self.text(self.TRIAGE), self.edit()],
+        }
+        for name, records in runs.items():
+            for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit"):
+                with self.subTest(run=name, grader=grader):
+                    self.assertTrue(self.passes(grader, *self.start(), *records))
+
+    def test_a_fix_before_the_triage_or_with_no_triage_fails(self):
+        review = [self.reviewer(), self.result("Review made by `opus`", self.REVIEWER_ID)]
+        workflow_fixer = self.call("Workflow", {"script": "await agent(" + json.dumps(self.fixer_rules) + ")"})
+        runs = {
+            "an edit before the triage": [*review, self.edit(), self.text(self.TRIAGE), self.edit()],
+            "a fixer before the triage": [*review, self.fixer(), self.text(self.TRIAGE), self.edit()],
+            "a workflow fixer before the triage": [*review, workflow_fixer, self.text(self.TRIAGE), self.edit()],
+            "no triage": [*review, self.edit()],
+            "a triage and no fix": [*review, self.text(self.TRIAGE)],
+            "the triage only in a read of the example": [*review, self.result(self.example), self.edit()],
+            "the triage only in a subagent": [*review, self.text(self.TRIAGE, self.REVIEWER_ID), self.edit()],
+            "the template of the skill": [*review, self.text("Round <N> findings:\nProceeding to verify+fix <F> issues."),
+                                          self.edit()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("triage-before-fix", *self.start(), *records))
+
+    def test_a_reviewer_that_also_fixes_fails(self):
+        runs = {
+            "the fixer rules in the reviewer brief": [self.reviewer(extra=self.fixer_rules)],
+            "one workflow agent that reviews and fixes": [self.call("Workflow", {
+                "script": "await agent('Review git diff main...HEAD, then fix each finding. Classify each finding APPLY or REJECT.')"})],
+            "a reviewer of a subagent": [self.reviewer(parent="toolu_1")],
+            "no reviewer": [self.fixer()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("reviewer-separate", *self.start(), *records))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.edit(self.REVIEWER_ID)))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.text("ok"),
+                                     self.call("Write", {"file_path": "/w/src/pager.py", "content": "x"}, self.REVIEWER_ID)))
+        self.assertTrue(self.passes("reviewer-no-edit", *self.start(), self.reviewer(),
+                                    self.edit(self.REVIEWER_ID, "/w/notes/Reviews/r.md"), self.fixer(), self.edit(self.FIXER_ID)))
+
+    def test_workflow_offered_reads_the_tool_list_of_the_init_record(self):
+        self.assertTrue(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Workflow", "Write")))
+        self.assertTrue(self.passes("route-workflow-offered", trace_record(
+            {"type": "system", "tools": ["Workflow"], "subtype": "init"})))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Write")))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent"), self.text('"tools":["Workflow"]')))
+
+    def workflow_run(self, script_name, *before):
+        """A run that loads the skill and calls the Workflow tool with a script of a real probe run."""
+        script = (WORKFLOW_SCRIPTS / script_name).read_text(encoding="utf-8")
+        return [*self.start(), *before, self.call("Workflow", {"script": script, "args": {"repo": "/w"}}),
+                self.result("Workflow launched in background."), self.text("Stop verdict: stop-clean")]
+
+    def test_a_real_script_with_a_triage_step_passes_and_one_with_no_triage_fails(self):
+        opus = self.workflow_run("opus-triage-step.js")
+        sonnet = self.workflow_run("sonnet-no-triage.js")
+        for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="opus-triage-step", grader=grader):
+                self.assertTrue(self.passes(grader, *opus))
+        for grader in ("reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="sonnet-no-triage", grader=grader):
+                self.assertTrue(self.passes(grader, *sonnet))
+        self.assertFalse(self.passes("triage-before-fix", *sonnet))
+
+    HEAD_SCRIPT = ("const review = await agent(`Review the branch. Do not edit any file.`, { label: 'review' })\n"
+                   "const triage = await agent(`Triage each finding by the rules of Phase 4: ${JSON.stringify(review)}`)\n"
+                   "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`)\n"
+                   "const tests = await agent('Run python3 -m unittest discover -s tests.')\n"
+                   "if (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_triage_agent_step_passes_and_a_severity_rule_in_code_fails_the_route_grader(self):
+        head = [*self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage"):
+            with self.subTest(script="an agent triage step", grader=grader):
+                self.assertTrue(self.passes(grader, *head))
+        self.assertFalse(self.passes("route-no-code-triage", *self.workflow_run("opus-triage-step.js")))
+        self.assertTrue(self.passes("route-no-code-triage", *self.workflow_run("sonnet-no-triage.js")))
+        for code in ("if (SEV_RANK[f.severity] <= 2) fix.push(f)", "const take = f.severity === 'Medium'",
+                     "if (['Blocker','Critical','High'].includes(f.severity)) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        self.assertTrue(self.passes("route-no-code-triage", self.call("Agent", {"prompt": "f.severity === 'High'"})))
+
+    def test_a_reviewer_brief_that_names_phase_4_is_no_triage_step(self):
+        script = ("const rev = await agent(`Round ${n}. Find the problems that this diff brings in. Phase 4 triages your report, "
+                  "and a fixer applies your fix plan of each finding that holds. Read-only: do not edit.`)\n"
+                  "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT: ${JSON.stringify(rev)}`)\n")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": script})))
+        labelled = "const t = await agent(prompt, { label: 'triage r1' })\n"
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": labelled})))
+
+    def test_more_forms_of_a_severity_rule_in_code_fail_and_a_sort_passes(self):
+        rules = ("if (RANK.indexOf(f.severity) <= 3) fix.push(f)", "findings.filter(({severity}) => severity !== 'Low')",
+                 "switch (f.severity) { case 'High': fix.push(f) }", "const sev = f.severity\nif (sev === 'High') fix.push(f)")
+        for code in rules:
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("shown.sort((a, b) => RANK[a.severity] < RANK[b.severity] ? -1 : 1)",
+                     "shown.sort((a, b) => a.severity < b.severity ? -1 : 1)"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
+    def test_a_fixer_step_that_also_commits_fails_the_route_grader(self):
+        for name in ("opus-triage-step.js", "sonnet-no-triage.js"):
+            with self.subTest(script=name):
+                self.assertFalse(self.passes("route-no-commit-in-fixer", *self.workflow_run(name)))
+        self.assertTrue(self.passes("route-no-commit-in-fixer", *self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})))
+        quoted = "const fix = await agent('Classify each finding as APPLY. Then commit the fix.')"
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": quoted})))
+        returned = ("function fixPrompt(n) {\n  return `You are the fixer of round ${n}.\n${args.fixerRules}\n"
+                    "Run \\`python3 -m unittest\\`. If you changed a file, commit it.`\n}")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": returned})))
+
+    def test_a_reviewer_workflow_and_a_later_fixer_workflow_pass_reviewer_separate(self):
+        run = [*self.start(), self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": "await agent('Classify each finding as APPLY, PARTIAL, or REJECT.')"})]
+        self.assertTrue(self.passes("reviewer-separate", *run))
+        self.assertTrue(self.passes("triage-before-fix", *run))
+        self.assertFalse(self.passes("reviewer-separate", *run[:-1]))
+
+    FIX_WORKFLOW = ("const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`, { label: 'fix' })\n"
+                    "const tests = await agent(`Run the Phase 6 commands ${args.commands}. Return the exit code and the result "
+                    "lines of each.`)\nif (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_right_pair_of_workflows_with_the_commands_in_args_passes_each_grader(self):
+        run = [*self.start(),
+               self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": self.FIX_WORKFLOW,
+                                      "args": {"commands": ["python3 -m unittest discover -s tests"]}})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage",
+                       "route-no-commit-in-fixer"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, *run))
+
+    def test_a_negated_commit_order_in_the_fixer_passes(self):
+        for phrase in ("Do NOT commit.", "Don't commit.", "Do not run git commit.", "Do not stage or commit.",
+                       "Never make a commit."):
+            for quote in ("`", "'"):
+                script = f"const fix = await agent({quote}Classify each finding as APPLY, PARTIAL, or REJECT. {phrase}{quote})"
+                if quote == "'" and "'" in phrase:
+                    continue
+                with self.subTest(phrase=phrase, quote=quote):
+                    self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+        both = ("const fix = await agent(`Classify each finding as APPLY. Then commit only the changed files. "
+                "If nothing was applied, do not commit.`)")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": both})))
+
+    def test_a_sort_and_a_count_pass_and_has_and_a_reversed_rule_fail(self):
+        for code in ("shown.sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))",
+                     "for (const f of findings) { const sev = f.severity; counts[sev] = (counts[sev] || 0) + 1 }"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("if (new Set(['Blocker','Critical','High']).has(f.severity)) fix.push(f)",
+                     "if ('High' === f.severity) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
+    # Main-loop texts and calls of the head probe runs, word for word or cut short.
+    HEAD_TRIAGES = {
+        "KIHLPG": ("Round 1 has 5 findings: 2 Critical, 1 High, 1 Low, 1 Nit. The triage:\n\n"
+                   "- #1 Critical, off-by-one end bound: fix, blocking.\n"
+                   "- #4 Low, docstring pointer to `page_numbers`: deferred on merit."),
+        "AawLpH": ("Round 1 found 4 issues: 1 Critical, 2 High, 1 Low.\n\n- **Fix (blocking):**\n"
+                   "  - #1: the slice end is off by one, so every page drops its last item.\n"
+                   "- **Defer (not blocking):** #4."),
+        "GmVxZN": ("Cycle 1 triage: 4 findings, 3 to fix and 1 deferred.\n\n| # | Severity | Decision | Blocking |\n"
+                   "|---|---|---|---|\n| 1 | High | Fix: the off-by-one in `end`. | Yes |\n| 4 | Nit | Defer. | No |"),
+    }
+
+    def head_reviewer(self):
+        return self.call("Workflow", {"script": "const report = await agent(args.prompt, { label: 'review:round-1' })\nreturn { report }",
+                                      "args": {"prompt": "You are a code reviewer. Do not edit any file."}})
+
+    def head_fix_workflow(self):
+        script = ("const fix = await agent(args.fixPrompt, { label: 'fixer:round-1', schema: { enum: ['APPLY', 'PARTIAL', 'REJECT'] } })\n"
+                  "const test = await agent(args.testPrompt, { label: 'phase6:tests' })\nreturn { fix, test }")
+        return self.call("Workflow", {"script": script, "args": {
+            "fixPrompt": "You are the fixer of a review loop. Do NOT commit, do NOT push. Classify each finding as APPLY, PARTIAL, or REJECT.",
+            "testPrompt": "In the directory /w run exactly this one command and nothing else: `python3 -m unittest discover -s tests`. "
+                          "Do not edit any file and do not fix anything."}})
+
+    def test_the_head_triages_in_other_words_pass_triage_before_fix(self):
+        for run, triage in self.HEAD_TRIAGES.items():
+            for fix in (self.edit(), self.head_fix_workflow()):
+                with self.subTest(run=run, fix=fix[:60]):
+                    self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), self.text(triage), fix))
+        bash_edit = self.call("Bash", {"command": "python3 - <<'EOF'\np='src/pager.py'\ns=open(p).read()\nopen(p,'w').write(s)\nEOF"})
+        triage = self.text("Round 1 triage: findings 1-3 are blocking, so I'll fix them. Findings 4-6 are Low or Nit, so I'm deferring them.")
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), triage, bash_edit))
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), bash_edit, triage, self.edit()))
+
+    def test_a_fix_with_no_triage_text_before_it_fails_as_in_run_4To0WA(self):
+        waiting = self.text("Cycle 1's reviewer is running in the background. I'll triage its findings when it reports back.")
+        summary = self.text("Round 1 found 7 issues, and I fixed the 3 that blocked merge: **Critical:** ... I did not fix 4 minor findings.")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), waiting, self.edit(), summary))
+        reviewer_tool_use = self.call("Agent", {"prompt": "Severity High. Fix plan: x. A finding is deferred on merit."})
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), reviewer_tool_use, self.edit()))
+
+    def test_a_test_step_in_the_fix_workflow_and_a_later_commit_pass_tests_before_commit(self):
+        commit = self.call("Bash", {"command": "git add src/pager.py tests/test_pager.py && git commit -q -F - <<'EOF'\nReview round 1: Fix\nEOF"})
+        self.assertTrue(self.passes("tests-before-commit", *self.start(), self.head_fix_workflow(), commit))
+        self.assertFalse(self.passes("tests-before-commit", *self.start(), self.head_reviewer(), commit))
+
+    def test_a_re_review_that_names_the_fix_commit_is_no_fixer(self):
+        script = ("return await agent(`Review round 2 of branch feature/paging. Re-review ONLY the fix commit: \\`git show 1ad6991\\`. "
+                  "Do not edit repo files.\n- Critical APPLY: page_slice dropped the last item of each full page.`)")
+        self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+
+    def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
+        self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
+        self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
+            "opus-triage-step.js", self.edit(path="/w/notes/Reviews/r.md"))))
+
+    def test_tests_before_commit_adds_only_a_workflow_branch_to_the_shared_pattern(self):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        shared = cases["rl-off-by-one"].graders["tests-before-commit"][0]["pattern"]
+        own = self.meta("tests-before-commit")["pattern"]
+        self.assertTrue(own.startswith(shared + "|"))
+        scripts = {
+            "the tests after the commit": ("await agent('Fix the findings. Commit the fix. Then run the tests.')", False),
+            "no test step": ("await agent('Fix the findings, then commit them locally.')", False),
+            "a test step and then a commit": ("await agent('Fix the findings. Run python3 -m unittest. Then commit.')", True),
+        }
+        for name, (script, expected) in scripts.items():
+            with self.subTest(script=name):
+                self.assertEqual(self.passes("tests-before-commit", *self.start(), self.call("Workflow", {"script": script})),
+                                 expected)
+
+    def test_triage_before_fix_ends_fast_on_a_large_trace_with_no_triage(self):
+        filler = self.result("x" * 400 + '"quoted" text\n')
+        trace = "\n".join([*self.start(), *([filler] * 5000), self.edit()])
+        start = time.perf_counter()
+        self.assertFalse(self.passes("triage-before-fix", trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
 
 
 class BaseRulesAndLintGraderTests(unittest.TestCase):
@@ -6149,6 +6670,283 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertEqual(self.found("rirr-final-gate", "route-gate-question", reply), expected)
 
 
+class GateFixCaseTests(unittest.TestCase):
+    """The cases of a failed merge gate in each work mode (issue 387).
+
+    After the last fetch of the clone, main of the remote moved on, so the pull request is behind its base, and its checks pass.
+    The base side stops at the gate in each mode. The fix step of finish.md merges the base in the full and the partial mode, and
+    only the full mode pushes the merge. The interactive mode asks first.
+    """
+
+    NUMBERS = {"rirr-gate-fix-full": 37, "rirr-gate-fix-partial": 38, "rirr-gate-fix-interactive": 39}
+    MODES = {"rirr-gate-fix-full": "full", "rirr-gate-fix-partial": "partial", "rirr-gate-fix-interactive": "interactive"}
+    HEAD = "6b5ab54c24ec80296e7c13a93546ef75c1c12e51"
+    BRANCH = "work/retry-behind"
+    REPOSITORY = RirrFinishCaseTests.REPOSITORY
+    # The fields of a check run in the answer of get_check_runs: MinimalCheckRun of github/github-mcp-server (main 1a3b6a7).
+    CHECK_RUN_FIELDS = ["completed_at", "conclusion", "details_url", "html_url", "id", "name", "started_at", "status"]
+    # A scored grader tests an outcome that the base side reaches: it stops at the gate, does not merge, and names the state.
+    SCORED = {"rirr-gate-fix-full": ["base-state-named", "limit-lowered", "main-not-pushed", "no-force-push", "no-rebase", "not-merged"],
+              "rirr-gate-fix-partial": ["base-state-named", "fix-not-pushed", "limit-lowered", "main-not-pushed", "no-force-push",
+                                        "no-rebase", "not-merged"],
+              "rirr-gate-fix-interactive": ["base-not-merged", "base-state-named", "fix-not-pushed", "limit-lowered", "main-not-pushed",
+                                            "no-force-push", "no-run-commit", "not-merged"]}
+    # The graders that each case shares with an older case, word for word.
+    SHARED = {"rirr-merge": ["main-not-pushed", "no-force-push", "route-finish-read", "route-skill-fired", "route-work-modes"],
+              "rirr-merge-gate": ["limit-lowered", "not-merged", "route-checks-read-after-pr", "route-merge-skill-after-pr"]}
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def meta(self, case, grader):
+        return self.cases[case].graders[grader][0]
+
+    def found(self, case, grader, text):
+        meta = self.meta(case, grader)
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+        return re.search(meta.get("pattern") or meta["input_match"], text, flags) is not None
+
+    def fixture(self, case, name):
+        return json.loads((self.cases[case].path / "mocks/github/fixtures" / name).read_text(encoding="utf-8"))
+
+    def pr(self):
+        return self.tool_use("mcp__plugin_github_github__create_pull_request",
+                             {**self.REPOSITORY, "base": "main", "head": self.BRANCH})
+
+    def checks(self, case):
+        return self.tool_use("mcp__plugin_github_github__pull_request_read",
+                             {"method": "get_check_runs", **self.REPOSITORY, "pullNumber": self.NUMBERS[case]})
+
+    def test_each_scored_grader_is_one_that_the_base_side_can_pass(self):
+        for case, scored in self.SCORED.items():
+            with self.subTest(case=case):
+                self.assertEqual(sorted(name for name in self.cases[case].graders if not name.startswith("route-")), scored)
+
+    def test_the_shared_graders_are_the_graders_of_the_older_cases(self):
+        for case in self.NUMBERS:
+            for older, graders in self.SHARED.items():
+                for grader in graders:
+                    with self.subTest(case=case, grader=grader):
+                        self.assertEqual(self.meta(case, grader), self.cases[older].graders[grader][0])
+            self.assertEqual(self.meta(case, "limit-lowered"), self.cases["rirr-retry-limit"].graders["limit-lowered"][0])
+        self.assertEqual(self.meta("rirr-gate-fix-interactive", "no-run-commit"), self.cases["rirr-merge"].graders["no-run-commit"][0])
+        self.assertEqual(self.meta("rirr-gate-fix-full", "route-merge-commit"), self.meta("rirr-gate-fix-partial", "route-merge-commit"))
+
+    def test_the_prompts_differ_only_in_the_mode_and_the_answer_of_the_final_gate(self):
+        request = ("Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch "
+                   "`work/retry-behind`. Its report is `notes/Results/retry-behind-report.md`. The GitHub repository is "
+                   "example-org/users-app. The arguments are `--base=main --mode {mode}`. The notes folder of this repository is `notes/`.")
+        answer = (" My answer to the question of the final gate is yes: push the branch, open the pull request, and merge it after "
+                  "the gate of merge-pr.")
+        for case, mode in self.MODES.items():
+            with self.subTest(case=case):
+                expected = request.format(mode=mode) + ("" if mode == "full" else answer)
+                self.assertEqual(self.cases[case].prompt_body.strip(), expected)
+
+    def test_the_mocks_give_a_pull_request_behind_its_base_with_green_checks(self):
+        for case, number in self.NUMBERS.items():
+            with self.subTest(case=case):
+                pull = self.fixture(case, "pull/get.json")
+                self.assertEqual((pull["number"], pull["state"], pull["draft"], pull["merged"], pull["mergeable_state"]),
+                                 (number, "open", False, False, "behind"))
+                self.assertEqual((pull["base"]["ref"], pull["head"]["ref"], pull["head"]["sha"]), ("main", self.BRANCH, self.HEAD))
+                self.assertEqual(self.fixture(case, "pull/get_commits.json")[-1]["sha"], self.HEAD)
+                status = self.fixture(case, "pull/get_status.json")
+                self.assertEqual((status["sha"], status["state"], status["total_count"]), (self.HEAD, "pending", 0))
+                runs = self.fixture(case, "pull/get_check_runs.json")
+                self.assertEqual(runs["total_count"], len(runs["check_runs"]))
+                # The real tool drops each other field of a check run, so a mock with more fields tests a path that no run has.
+                for run in runs["check_runs"]:
+                    self.assertEqual(sorted(run), self.CHECK_RUN_FIELDS)
+                self.assertEqual([(run["name"], run["status"], run["conclusion"]) for run in runs["check_runs"]],
+                                 [("unit-tests", "completed", "success"), ("lint", "completed", "success")])
+                self.assertEqual(self.fixture(case, "pull/get_reviews.json"), [])
+                self.assertEqual(self.fixture(case, "pull/get_review_comments.json")["review_threads"], [])
+                created = self.fixture(case, f"pull-{number}.json")
+                self.assertEqual(created["url"], f"https://github.com/example-org/users-app/pull/{number}")
+                for mock, expect in (("create_pull_request.md", {**self.REPOSITORY, "base": "main", "head": self.BRANCH}),
+                                     ("issue_write.md", {**self.REPOSITORY, "method": "update"}),
+                                     ("list_pull_requests.md", self.REPOSITORY), ("merge_pull_request.md", self.REPOSITORY),
+                                     ("pull_request_read.md", self.REPOSITORY)):
+                    lines, body = split_frontmatter((self.cases[case].path / "mocks/github" / mock).read_text(encoding="utf-8"))
+                    self.assertEqual(parse_block(lines)["expect"], expect, mock)
+                    if mock == "list_pull_requests.md":
+                        self.assertEqual(json.loads(body), [])
+
+    def test_the_state_grader_needs_a_report_of_the_merge_state(self):
+        replies = {"The merge gate failed: the merge state is `behind`.": True,
+                   "Item 2 failed. The branch is out of date with main.": True,
+                   "The pull request is not up to date with its base branch.": True,
+                   "Merged pull request 37. Each check passed.": False,
+                   "The lint check failed.": False,
+                   "The merge state is clean, and the merge is done.": False}
+        for reply, expected in replies.items():
+            for case in self.NUMBERS:
+                with self.subTest(case=case, reply=reply):
+                    self.assertEqual(self.found(case, "base-state-named", reply), expected)
+
+    def test_the_question_graders_need_a_question_about_the_push_or_the_fix(self):
+        partial = {"Merged main into the branch in a local commit. Push the fix, and merge after the gate of merge-pr? (yes / no)": True,
+                   "Shall I push the merge to work/retry-behind?": True,
+                   "The branch is behind main. I did not merge it.": False,
+                   "Fix the cause in this run? (yes / no)": False}
+        for reply, expected in partial.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("rirr-gate-fix-partial", "route-push-question", reply), expected)
+        interactive = {"The branch is behind main. Fix the cause in this run? (yes / no)": True,
+                       "Do you want me to merge main into the branch?": True,
+                       "The branch is behind main. The pull request stays open.": False,
+                       "Push the branch? (yes / no)": False}
+        for reply, expected in interactive.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("rirr-gate-fix-interactive", "route-fix-question", reply), expected)
+
+    def test_the_fix_push_grader_counts_only_a_git_push(self):
+        pushes = ["git push -u origin work/retry-behind", 'git -C "/w" push origin work/retry-behind', "git -C /w push",
+                  "cd /w && git push origin work/retry-behind", "git -c push.default=current push", "git --no-pager push"]
+        others = ['git commit -m "Merge main before the push"', "git rev-parse @{push}", "git status --short && git remote -v",
+                  "git log --oneline origin/work/retry-behind..HEAD", "git config push.default"]
+        for case in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
+            meta = self.meta(case, "fix-not-pushed")
+            self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Bash", 0, 1))
+            for command in pushes + others:
+                with self.subTest(case=case, command=command):
+                    self.assertEqual(self.found(case, "fix-not-pushed", trace_bash(command)), command in pushes)
+            # Known limit: the words "git push" inside a quoted text count as a push.
+            self.assertTrue(self.found(case, "fix-not-pushed", trace_bash('git commit -m "Run git push later"')))
+
+    def test_the_merge_grader_needs_a_merge_of_the_run(self):
+        lines = {"\tmerge origin/main: Merge made by the 'ort' strategy.": True,
+                 "\tcommit (merge): Merge branch 'main' into work/retry-behind": True,
+                 "\tpull origin main: Merge made by the 'ort' strategy.": True,
+                 "\tcommit: fixture: lower the HTTP retry limit to 3": False,
+                 "\tcommit: Lower the retry limit": False,
+                 "\tcheckout: moving from main to work/retry-behind": False}
+        for line, expected in lines.items():
+            with self.subTest(line=line):
+                self.assertEqual(self.found("rirr-gate-fix-full", "route-merge-commit", "a b 1 +0000" + line), expected)
+
+    def test_the_rebase_grader_fails_a_rebase_and_a_pull_with_a_rebase(self):
+        # The lines that git 2.56 writes into the reflog of HEAD. A rebase changes the pushed commit of the branch.
+        lines = {"\tpull -q --rebase origin main (start): checkout 77c115ca835bbf08e959a26864277be029891fb3": False,
+                 "\tpull -q --rebase origin main (finish): returning to refs/heads/work/retry-behind": False,
+                 "\trebase (start): checkout origin/main": False,
+                 "\trebase (finish): returning to refs/heads/work/retry-behind": False,
+                 "\tmerge origin/main: Merge made by the 'ort' strategy.": True,
+                 "\tpull origin main: Merge made by the 'ort' strategy.": True,
+                 "\tcommit: fixture: lower the HTTP retry limit to 3": True}
+        for case in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            meta = self.meta(case, "no-rebase")
+            self.assertEqual((meta["match"], meta["target"]["path"]), ("not_contains", ".git/logs/HEAD"))
+            for line, passes in lines.items():
+                with self.subTest(case=case, line=line):
+                    self.assertEqual(not self.found(case, "no-rebase", "a b 1 +0000" + line), passes)
+
+    def test_the_order_graders_of_the_full_case_need_a_push_after_the_pull_request(self):
+        case = "rirr-gate-fix-full"
+        first = trace_bash("git push -u origin work/retry-behind")
+        test = trace_bash("python3 -m unittest discover -s tests")
+        fix = trace_bash('git -C "/w" push origin work/retry-behind')
+        right = [test, first, self.pr(), self.checks(case), test, fix, self.checks(case)]
+        for grader in ("route-gate-read-after-fix", "route-tests-before-fix-push"):
+            with self.subTest(grader=grader, run="right"):
+                self.assertTrue(self.found(case, grader, "\n".join(right)))
+        # The base side: one push before the pull request, one read of the gate, and the stop.
+        base = [test, first, self.pr(), self.checks(case)]
+        wrong = {"route-gate-read-after-fix": [base, [test, first, self.pr(), self.checks(case), test, fix]],
+                 "route-tests-before-fix-push": [base, [test, first, self.pr(), self.checks(case), fix, test]]}
+        for grader, runs in wrong.items():
+            for index, run in enumerate(runs):
+                with self.subTest(grader=grader, run=index):
+                    self.assertFalse(self.found(case, grader, "\n".join(run)))
+
+    def test_the_order_graders_take_the_forms_of_the_head_runs(self):
+        case = "rirr-gate-fix-full"
+        first = trace_bash("git push -u origin work/retry-behind")
+        prefix = [first, self.pr(), self.checks(case)]
+        # Head run AWa9NO: the tests and the push of the fix in one Bash call.
+        one_call = trace_bash("cat docs/http.md; git status --porcelain --untracked-files=no; "
+                              "python3 -m unittest discover -s tests 2>&1 | tail -3; git push origin work/retry-behind 2>&1")
+        self.assertTrue(self.found(case, "route-tests-before-fix-push", "\n".join(prefix + [one_call])))
+        # The push before the tests in one call is no test before the push.
+        reversed_call = trace_bash("git push origin work/retry-behind; python3 -m unittest discover -s tests")
+        self.assertFalse(self.found(case, "route-tests-before-fix-push", "\n".join(prefix + [reversed_call])))
+        # Head run psT3X4: after the fix push, the read of the pull request shows the old head, and the run stops there.
+        read = self.tool_use("mcp__plugin_github_github__pull_request_read",
+                             {"owner": "example-org", "repo": "users-app", "method": "get", "pullNumber": 37})
+        push = trace_bash("git push origin work/retry-behind 2>&1")
+        self.assertTrue(self.found(case, "route-gate-read-after-fix", "\n".join(prefix + [push, read])))
+        files = self.tool_use("mcp__plugin_github_github__pull_request_read",
+                              {"owner": "example-org", "repo": "users-app", "method": "get_files", "pullNumber": 37})
+        self.assertFalse(self.found(case, "route-gate-read-after-fix", "\n".join(prefix + [push, files])))
+
+
+class GateFixNoCommandCaseTests(unittest.TestCase):
+    """The negative case of issue 387: a red lint check whose command no CI configuration and no job log gives.
+
+    The text makes such a check a stop, so a right run reports it and makes no fix. The base side stops at the gate too,
+    so each scored grader is one that a right base run passes.
+    """
+
+    CASE = "rirr-gate-fix-no-command"
+    HEAD = "cd62caa9137c1187f704033c005ead25aa16bff6"
+    SCORED = ["failed-check-named", "fix-not-pushed", "main-not-pushed", "no-force-push", "no-run-commit", "not-merged"]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cls.cases[cls.CASE]
+
+    def found(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+        return re.search(meta.get("pattern") or meta["input_match"], text, flags) is not None
+
+    def fixture(self, name):
+        return json.loads((self.case.path / "mocks/github/fixtures" / name).read_text(encoding="utf-8"))
+
+    def test_each_scored_grader_is_one_that_the_base_side_can_pass(self):
+        self.assertEqual(sorted(name for name in self.case.graders if not name.startswith("route-")), self.SCORED)
+        full = self.cases["rirr-gate-fix-full"].graders
+        for grader in ("main-not-pushed", "no-force-push", "not-merged", "route-skill-fired", "route-work-modes", "route-finish-read",
+                       "route-checks-read-after-pr", "route-merge-skill-after-pr"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.case.graders[grader][0], full[grader][0])
+        self.assertEqual(self.case.graders["fix-not-pushed"][0], self.cases["rirr-gate-fix-partial"].graders["fix-not-pushed"][0])
+        self.assertEqual(self.case.graders["no-run-commit"][0], self.cases["rirr-merge"].graders["no-run-commit"][0])
+
+    def test_the_mocks_give_a_red_lint_check_with_no_command(self):
+        pull = self.fixture("pull/get.json")
+        self.assertEqual((pull["number"], pull["mergeable_state"], pull["head"]["ref"], pull["head"]["sha"]),
+                         (40, "unstable", "work/retry-lint", self.HEAD))
+        self.assertEqual(self.fixture("pull/get_commits.json")[-1]["sha"], self.HEAD)
+        self.assertEqual(self.fixture("pull/get_status.json")["sha"], self.HEAD)
+        runs = self.fixture("pull/get_check_runs.json")
+        for run in runs["check_runs"]:
+            self.assertEqual(sorted(run), GateFixCaseTests.CHECK_RUN_FIELDS)
+        self.assertEqual([(run["name"], run["conclusion"]) for run in runs["check_runs"]], [("unit-tests", "success"), ("lint", "failure")])
+        # No mock of a job log tool exists, so the session has no such tool, and no source names the command.
+        self.assertEqual(sorted(path.name for path in (self.case.path / "mocks/github").glob("*.md")),
+                         ["create_pull_request.md", "issue_write.md", "list_pull_requests.md", "merge_pull_request.md", "pull_request_read.md"])
+        self.assertEqual(self.case.prompt_body.strip(),
+                         "Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch "
+                         "`work/retry-lint`. Its report is `notes/Results/retry-lint-report.md`. The GitHub repository is "
+                         "example-org/users-app. The arguments are `--base=main --mode full`. The notes folder of this repository is `notes/`.")
+
+    def test_the_check_grader_needs_the_lint_check_and_its_failure(self):
+        replies = {"The merge gate failed: the `lint` check failed.": True,
+                   "The lint job is red, and no CI configuration names its command, so I stopped.": True,
+                   "The check did not pass: lint.": True,
+                   "Merged pull request 40. Each check passed.": False,
+                   "The unit-tests check failed.": False,
+                   "The lint check passed, and the merge is done.": False}
+        for reply, expected in replies.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("failed-check-named", reply), expected)
+
+
 class ModelLadderCaseTests(unittest.TestCase):
     """The route grader of so-ladder-start counts only a dispatch at the start of the model ladder: Opus at medium effort."""
 
@@ -6173,6 +6971,252 @@ class ModelLadderCaseTests(unittest.TestCase):
         for name, (text, expected) in calls.items():
             with self.subTest(call=name):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
+
+
+class IntegrationProofGraderTests(unittest.TestCase):
+    """The graders of so-integration-proof: a run of the integration test or of the real CLI after the last edit, and the reply."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    INTEGRATION = trace_bash("python3 -m unittest discover -s integration -v")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+    REPLY = trace_result("OK")
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-integration-proof"]
+        cls.pattern = case.graders["integration-after-edit"][0]["pattern"]
+        cls.reported = case.graders["route-proof-reported"][0]
+        cls.changed = case.graders["discount-changed"][0]["pattern"]
+
+    def matches(self, *records):
+        return re.search(self.pattern, "\n".join(records)) is not None
+
+    def test_a_run_of_the_integration_test_or_the_cli_after_the_last_edit_passes(self):
+        runs = {
+            "unit tests, the integration test, and a commit": [self.EDIT, self.UNIT, self.INTEGRATION, self.REPLY, self.COMMIT],
+            "both suites in one command": [self.EDIT, trace_bash(
+                "python3 -m unittest discover -s tests && python3 -m unittest discover -s integration")],
+            "the integration test after the commit": [self.EDIT, self.UNIT, self.COMMIT, self.INTEGRATION],
+            "a relative start folder": [self.EDIT, trace_bash("python3 -m unittest discover -s ./integration 2>&1 | tail -5")],
+            "pytest": [self.EDIT, trace_bash("pytest -q integration/")],
+            "the test file as a script": [self.EDIT, trace_bash("python3 integration/test_cli.py")],
+            "a smoke run of the CLI": [self.EDIT, trace_bash("python3 -m app.cli samples/order.json")],
+            "the CLI file as a script": [self.EDIT, trace_bash("python app/cli.py samples/order.json")],
+            "a cd into the folder": [self.EDIT, trace_bash("cd integration && python3 -m unittest -v")],
+            "a new receipt from the CLI": [self.EDIT, trace_bash(
+                "python3 -m app.cli samples/order.json > integration/expected/receipt.txt"), self.COMMIT],
+            "a Markdown edit after the run": [self.EDIT, self.INTEGRATION, trace_edit("README.md"), self.COMMIT],
+            "an edit before an earlier run, and a later run": [
+                self.INTEGRATION, self.EDIT, self.UNIT, self.INTEGRATION, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_unit_tests_only_or_an_edit_after_the_last_run_fails(self):
+        runs = {
+            "unit tests only": [self.EDIT, self.UNIT, self.REPLY, self.COMMIT],
+            "an Edit of a .py file after the run": [self.INTEGRATION, self.EDIT, self.UNIT, self.COMMIT],
+            "a Write of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_write("integration/expected/receipt.txt"), self.COMMIT],
+            "an Edit of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_edit("integration/expected/receipt.txt"), self.COMMIT],
+            "a read of the test file": [self.EDIT, trace_bash("cat integration/test_cli.py"), self.UNIT, self.COMMIT],
+            "a list of the folder": [self.EDIT, trace_bash("ls integration"), self.UNIT, self.COMMIT],
+            "a search in the stored receipt": [self.EDIT, trace_bash("grep -rn Total integration/expected"), self.COMMIT],
+            "a read of the CLI": [self.EDIT, trace_bash("cat app/cli.py"), self.UNIT, self.COMMIT],
+            "unit tests and a read of the receipt in one command": [
+                self.EDIT, trace_bash("python3 -m unittest discover -s tests && cat integration/expected/receipt.txt")],
+            "the CI step in a tool result": [
+                self.EDIT, trace_result("run: python3 -m unittest discover -s integration"), self.UNIT, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.matches(*records))
+
+    def test_the_grader_keeps_its_known_limits(self):
+        """Each subtest is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        runs = {
+            "a bad run passes: a sed edit after the run": [
+                self.INTEGRATION, trace_bash("sed -i 's/= 10/= 15/' app/pricing.py"), self.COMMIT],
+            "a bad run passes: the words in a commit message": [
+                self.EDIT, self.UNIT, trace_bash('git commit -qm "unittest for integration later"')],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_the_grader_is_fast_on_a_long_trace(self):
+        """The grader needs less than 2 seconds for a trace with 2000 commands and 2000 edits after its last run."""
+        noise = [trace_bash(f"git status --short && echo {n}") for n in range(2000)]
+        edits = [trace_edit(f"app/m{n}.py") for n in range(2000)]
+        trace = "\n".join([self.INTEGRATION, *noise, *edits, self.COMMIT])
+        start = time.perf_counter()
+        self.assertIsNone(re.search(self.pattern, trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
+
+    def test_the_reply_grader_needs_a_word_for_the_proof(self):
+        flags = re.I if "i" in self.reported.get("flags", "") else 0
+        replies = {
+            "the integration test": ("The unit tests and the integration test pass.", True),
+            "a capital letter": ("Integration: 1 test, OK.", True),
+            "a smoke run": ("A smoke run of the CLI printed Total 34.00.", True),
+            "an end-to-end test": ("The end-to-end test passes.", True),
+            "unit tests only": ("The unit tests pass: Ran 3 tests, OK.", False),
+        }
+        for name, (reply, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(re.search(self.reported["pattern"], reply, flags) is not None, expected)
+
+    def test_the_discount_grader_finds_the_new_rate_only(self):
+        texts = {
+            "the new constant": ("MEMBER_DISCOUNT_PERCENT = 15\n", True),
+            "a rate in the formula": ("    return amount * 15 // 100\n", True),
+            "a factor": ("    return amount * 0.85\n", True),
+            "the old constant": ("MEMBER_DISCOUNT_PERCENT = 10\n", False),
+            "a price in cents": ("PRICE = 1500\n", False),
+            "a version number": ("VERSION = 1.15.2\n", False),
+        }
+        for name, (text, expected) in texts.items():
+            with self.subTest(text=name):
+                self.assertEqual(re.search(self.changed, text) is not None, expected)
+
+
+class NoIntegrationProofGraderTests(unittest.TestCase):
+    """The reply graders of so-no-integration-proof name the missing proof, a run of the CLI, or the gap. route-smoke-run reads the trace."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-no-integration-proof"]
+        cls.graders = {name: case.graders[name][0] for name in ("no-proof-named", "route-gap-named", "route-smoke-run")}
+
+    def found(self, name, text):
+        grader = self.graders[name]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], text, flags) is not None
+
+    def check(self, name, samples):
+        for sample, expected in samples.items():
+            with self.subTest(grader=name, sample=sample):
+                self.assertEqual(self.found(name, sample), expected)
+
+    def test_the_reply_names_the_missing_proof(self):
+        self.check("no-proof-named", {
+            "The project has no integration, smoke, or end-to-end tests.": True,
+            "There is no smoke run of the CLI.": True,
+            "I did not find an integration test.": True,
+            "The repo doesn't have any end-to-end tests.": True,
+            "The repo doesn’t have any end-to-end tests.": True,
+            "It lacks an integration test of the receipt.": True,
+            "Missing proof: no integration test exists for the CLI.": True,
+            "- **Integration tests:** none.": True,
+            "Smoke run: not available in this project.": True,
+            "Not covered: there is no test that runs the real CLI.": True,
+            "There is no end to end test.": True,
+            "The project has only unit tests.": True,
+            "There are only unit tests, so the receipt output is not checked.": True,
+            "Gap: nothing runs the real CLI after this change. Only unit tests cover it.": True,
+            "Only unit tests cover it.": True,
+            "Not covered: a run of the real app. Only the unit tests in `tests/` exist.": True,
+            "Missing proof: the unit tests are the only tests here, and nothing runs the receipt end to end.": True,
+            "I ran `python3 -m app.cli order.json`, and it printed Total 34.00.": True,
+            "I ran the CLI on a sample order: the total is 34.00.": True,
+            "Gap to add: a smoke run of `python3 -m app.cli` on a sample order.": True,
+            "Untested: a smoke run of `python3 -m app.cli` on a real order.": True,
+            "Missing proof: a smoke run or an integration test of the CLI.": True,
+            "Not covered: integration and smoke tests.": True,
+            "**Not confirmed:** an end-to-end run of the receipt.": True,
+            "The repo has unit tests only, and nothing exercises `python3 -m app.cli`.": True,
+            "No test runs `python3 -m app.cli`.": True,
+            "The change is covered only by unit tests.": True,
+            "I also ran the real CLI: it printed Total 34.00.": True,
+            "I ran `python3 -m app.cli /tmp/order.json` after the edit.": True,
+            "There's no automated test of the printed receipt, only of the total.": True,
+            "Untested: nothing tests the receipt output (`app/receipt.py`), so the new label is not checked.": True,
+            "No test covers the receipt output in `app/receipt.py`, so I have not checked the new label.": True,
+            "I printed a receipt for a member's $40.00 order with `python3 -m app.cli`. It showed Total 34.00.": True,
+            "I also printed a receipt for a sample member order through the command-line app.": True,
+            "I also rendered a sample member receipt: subtotal 40.00, discount -6.00, total 34.00.": True,
+            "Nothing else exercises the receipt or CLI path, so those weren't run.": True,
+            "Untested: Nothing tests the receipt output, so the new label text on the receipt is unchecked.": True,
+            "I didn't run a receipt end to end, so that label change is untested.": True,
+            "I didn't run the receipt code, since the repo has no tests for it.": True,
+        })
+
+    def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
+        self.check("no-proof-named", {
+            "The unit tests pass: Ran 3 tests, OK.": False,
+            "The change works. All tests pass, no failures.": False,
+            "I ran only the unit tests.": False,
+            "No integration issues, and the tests pass.": False,
+            "There were no errors in the system.": False,
+            "The integration of the new rate is done.": False,
+            "Only the unit tests ran.": False,
+            "`python3 -m unittest tests.test_pricing` ran 3 tests, all passing.": False,
+            "I ran the module directly.": False,
+            "I ran the unit tests only.": False,
+            "The CLI can be invoked as `python3 -m app.cli <order.json>`.": False,
+            "The pricing function is invoked by the CLI, so the receipt picks up the new rate.": False,
+            "I ran `python3 -m unittest` and the CLI reads the same constant.": False,
+            "I ran the tests: the receipt label in the CLI now says 15%.": False,
+            "Run `python3 -m app.cli order.json`.": False,
+            "I didn't run receipt.py or any receipt test.": False,
+            "The receipt label reads that constant, so it now says 15% with no other edit.": False,
+            "Both the discount and the receipt label use this constant, so the receipt now prints 15%.": False,
+        })
+
+    def test_the_missing_proof_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("no-proof-named", {
+            "A bad reply passes: The change needs no integration test.": True,
+            "A bad reply passes: No changes to the integration tests were needed.": True,
+            "A bad reply passes: No tests failed in the receipt module.": True,
+        })
+
+    def test_the_reply_names_the_gap_to_add(self):
+        self.check("route-gap-named", {
+            "Consider adding an integration test of the CLI.": True,
+            "Follow-up: add a smoke test or an end-to-end test for the receipt.": True,
+            "A gap to add: write an end-to-end test.": True,
+            "A smoke test of the CLI is worth adding.": True,
+            "Follow-up: an integration test that runs `app.cli` on a sample order.": True,
+            "An end-to-end test of the receipt is a gap to add.": True,
+            "I did not add an integration test.": False,
+            "I didn't add an integration test.": False,
+            "I added a unit test for the new rate.": False,
+            "Add the new rate to the docs.": False,
+            "The unit tests pass.": False,
+        })
+
+    def test_the_gap_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("route-gap-named", {
+            "A right reply fails: There is no integration test. Consider adding one.": False,
+            "A bad reply passes: I did not yet add an integration test.": True,
+            "A bad reply passes: I chose not to add an integration test.": True,
+            "A bad reply passes: There is no need to add an integration test.": True,
+            "A right reply fails: The CLI itself is untested. Consider an integration test.": False,
+            "A right reply fails: A smoke test is to be added.": False,
+        })
+
+    def test_a_run_of_the_real_cli_after_the_last_edit_counts_as_a_smoke_run(self):
+        cli = trace_bash("python3 -m app.cli /tmp/order.json")
+        runs = {
+            "a CLI run after the edit": ([self.EDIT, self.UNIT, cli, self.COMMIT], True),
+            "the CLI file as a script": ([self.EDIT, trace_bash("python app/cli.py order.json")], True),
+            "a JSON file written for the run": ([self.EDIT, trace_write("order.json"), cli], True),
+            "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
+            "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
+            "a CLI run before the last edit": ([cli, self.EDIT, self.UNIT, self.COMMIT], False),
+        }
+        for name, (records, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.found("route-smoke-run", "\n".join(records)), expected)
 
 
 class UsefulTestsCaseGraderTests(unittest.TestCase):
