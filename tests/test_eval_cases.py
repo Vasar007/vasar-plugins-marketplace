@@ -1897,7 +1897,8 @@ class SeLintHookProbeGraderTests(ScratchCase):
 
 UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
             "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
-TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
+# rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
+TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
 
 
 def trace_bash(command):
@@ -4700,6 +4701,10 @@ class EarlierFindingsGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes(text))
 
 
+# The Workflow scripts of two probe runs of rl-workflow-request, word for word: an Opus run with a triage step, and a Sonnet run with none.
+WORKFLOW_SCRIPTS = REPO / "tests" / "evals" / "fixtures" / "workflow-scripts"
+
+
 class WorkflowRequestGraderTests(unittest.TestCase):
     """The new graders of rl-workflow-request: the triage before the first fix, a reviewer that does not fix, and the Workflow tool."""
 
@@ -4806,8 +4811,8 @@ class WorkflowRequestGraderTests(unittest.TestCase):
     def test_a_reviewer_that_also_fixes_fails(self):
         runs = {
             "the fixer rules in the reviewer brief": [self.reviewer(extra=self.fixer_rules)],
-            "one workflow that reviews and fixes": [self.call("Workflow", {
-                "script": "await agent(" + json.dumps(self.briefs) + "); await agent(" + json.dumps(self.fixer_rules) + ")"})],
+            "one workflow agent that reviews and fixes": [self.call("Workflow", {
+                "script": "await agent('Review git diff main...HEAD, then fix each finding. Classify each finding APPLY or REJECT.')"})],
             "a reviewer of a subagent": [self.reviewer(parent="toolu_1")],
             "no reviewer": [self.fixer()],
         }
@@ -4826,6 +4831,43 @@ class WorkflowRequestGraderTests(unittest.TestCase):
             {"type": "system", "tools": ["Workflow"], "subtype": "init"})))
         self.assertFalse(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Write")))
         self.assertFalse(self.passes("route-workflow-offered", self.init("Agent"), self.text('"tools":["Workflow"]')))
+
+    def workflow_run(self, script_name, *before):
+        """A run that loads the skill and calls the Workflow tool with a script of a real probe run."""
+        script = (WORKFLOW_SCRIPTS / script_name).read_text(encoding="utf-8")
+        return [*self.start(), *before, self.call("Workflow", {"script": script, "args": {"repo": "/w"}}),
+                self.result("Workflow launched in background."), self.text("Stop verdict: stop-clean")]
+
+    def test_a_real_script_with_a_triage_step_passes_and_one_with_no_triage_fails(self):
+        opus = self.workflow_run("opus-triage-step.js")
+        sonnet = self.workflow_run("sonnet-no-triage.js")
+        for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="opus-triage-step", grader=grader):
+                self.assertTrue(self.passes(grader, *opus))
+        for grader in ("reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="sonnet-no-triage", grader=grader):
+                self.assertTrue(self.passes(grader, *sonnet))
+        self.assertFalse(self.passes("triage-before-fix", *sonnet))
+
+    def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
+        self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
+        self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
+            "opus-triage-step.js", self.edit(path="/w/notes/Reviews/r.md"))))
+
+    def test_tests_before_commit_adds_only_a_workflow_branch_to_the_shared_pattern(self):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        shared = cases["rl-off-by-one"].graders["tests-before-commit"][0]["pattern"]
+        own = self.meta("tests-before-commit")["pattern"]
+        self.assertTrue(own.startswith(shared + "|"))
+        scripts = {
+            "the tests after the commit": ("await agent('Fix the findings. Commit the fix. Then run the tests.')", False),
+            "no test step": ("await agent('Fix the findings, then commit them locally.')", False),
+            "a test step and then a commit": ("await agent('Fix the findings. Run python3 -m unittest. Then commit.')", True),
+        }
+        for name, (script, expected) in scripts.items():
+            with self.subTest(script=name):
+                self.assertEqual(self.passes("tests-before-commit", *self.start(), self.call("Workflow", {"script": script})),
+                                 expected)
 
     def test_triage_before_fix_ends_fast_on_a_large_trace_with_no_triage(self):
         filler = self.result("x" * 400 + '"quoted" text\n')
