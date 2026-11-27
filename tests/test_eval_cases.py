@@ -1896,7 +1896,7 @@ class SeLintHookProbeGraderTests(ScratchCase):
 
 
 UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
-            "rl-unbounded-query", "rirr-retry-limit")
+            "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
 TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
 
 
@@ -4596,7 +4596,7 @@ class RirrSquashRouteGraderTests(unittest.TestCase):
         self.assertFalse(self.passes("route-tree-kept", read_of_the_script))
 
 
-STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate")
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate", "rl-workflow-request")
 
 
 class StopVerdictRouteGraderTests(unittest.TestCase):
@@ -4698,6 +4698,141 @@ class EarlierFindingsGraderTests(unittest.TestCase):
         for name, text in wrong.items():
             with self.subTest(text=name):
                 self.assertFalse(self.passes(text))
+
+
+class WorkflowRequestGraderTests(unittest.TestCase):
+    """The new graders of rl-workflow-request: the triage before the first fix, a reviewer that does not fix, and the Workflow tool."""
+
+    REVIEWER_ID = "toolu_rev1"
+    FIXER_ID = "toolu_fix1"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["rl-workflow-request"]
+        skill = FP_ROOT / "skills" / "review-loop"
+        cls.briefs = (skill / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+        cls.skill_text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        cls.fixer_rules = cls.skill_text.split("The rules that the fixer must follow:", 1)[1].split(
+            "Follow `dev-essentials:engineering-discipline` Rule 2", 1)[0]
+        cls.example = (skill / "examples" / "branch-review.md").read_text(encoding="utf-8")
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def passes(self, grader, *records):
+        meta = self.meta(grader)
+        found = re.search(meta["pattern"], "\n".join(records)) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    @staticmethod
+    def call(tool, tool_input, parent=None, call_id="toolu_9"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": call_id, "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def text(body, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "text", "text": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def result(body, parent=None):
+        return trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def init(*tools):
+        return trace_record({"type": "system", "subtype": "init", "tools": list(tools)})
+
+    def edit(self, parent=None, path="/w/src/pager.py"):
+        return self.call("Edit", {"replace_all": False, "file_path": path, "old_string": "a", "new_string": "b"}, parent)
+
+    def reviewer(self, parent=None, extra=""):
+        return self.call("Agent", {"description": "Round 1 review", "model": "opus",
+                                   "prompt": self.briefs + "\n+def page_slice(items, page):\n" + extra},
+                         parent, self.REVIEWER_ID)
+
+    def fixer(self):
+        return self.call("Agent", {"description": "Round 1 fixer", "model": "sonnet",
+                                   "prompt": "1. High Bug src/pager.py:15. Fix plan: end the slice at start + size.\n"
+                                   + self.fixer_rules}, None, self.FIXER_ID)
+
+    def start(self):
+        return [self.init("Agent", "Bash", "Edit", "Read", "Skill"),
+                self.call("Skill", {"skill": "dev-essentials:review-loop", "args": "--rounds 2"}),
+                self.result(self.skill_text)]
+
+    TRIAGE = "Round 1 findings:\n  High:     1  (will fix; 1 blocking)\n\nProceeding to verify+fix 1 issues. Deferring 0."
+
+    def test_new_graders_have_the_planned_types_and_targets(self):
+        self.assertEqual((self.meta("triage-before-fix")["target"], self.meta("triage-before-fix").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-separate")["target"], self.meta("reviewer-separate").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-no-edit")["target"], self.meta("reviewer-no-edit")["match"]), ("trace", "not_contains"))
+        self.assertEqual((self.meta("route-no-workflow-call")["tool"], self.meta("route-no-workflow-call")["max"]), ("Workflow", 0))
+
+    def test_a_right_run_passes_each_new_scored_grader(self):
+        review = [self.reviewer(), self.result("| 1 | High | Bug |\nReview made by `opus`", self.REVIEWER_ID)]
+        runs = {
+            "a fix in the main loop": [*review, self.text(self.TRIAGE), self.edit()],
+            "a fixer subagent": [*review, self.text(self.TRIAGE), self.fixer(), self.edit(self.FIXER_ID)],
+            "the triage in the cycle report": [*review, self.call("Write", {
+                "file_path": "/w/notes/Reviews/feature-paging-cycle-1.md", "content": "# Cycle 1\n\n" + self.TRIAGE}), self.edit()],
+            "the status line of the cycle": [*review, self.text("Cycle 1: 1 finding. Triage: fix=1, deferred=0."), self.edit()],
+            "a reviewer in a workflow": [self.call("Workflow", {"script": "await agent(" + json.dumps(self.briefs) + ")"}),
+                                         self.text(self.TRIAGE), self.edit()],
+        }
+        for name, records in runs.items():
+            for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit"):
+                with self.subTest(run=name, grader=grader):
+                    self.assertTrue(self.passes(grader, *self.start(), *records))
+
+    def test_a_fix_before_the_triage_or_with_no_triage_fails(self):
+        review = [self.reviewer(), self.result("Review made by `opus`", self.REVIEWER_ID)]
+        workflow_fixer = self.call("Workflow", {"script": "await agent(" + json.dumps(self.fixer_rules) + ")"})
+        runs = {
+            "an edit before the triage": [*review, self.edit(), self.text(self.TRIAGE), self.edit()],
+            "a fixer before the triage": [*review, self.fixer(), self.text(self.TRIAGE), self.edit()],
+            "a workflow fixer before the triage": [*review, workflow_fixer, self.text(self.TRIAGE), self.edit()],
+            "no triage": [*review, self.edit()],
+            "a triage and no fix": [*review, self.text(self.TRIAGE)],
+            "the triage only in a read of the example": [*review, self.result(self.example), self.edit()],
+            "the triage only in a subagent": [*review, self.text(self.TRIAGE, self.REVIEWER_ID), self.edit()],
+            "the template of the skill": [*review, self.text("Round <N> findings:\nProceeding to verify+fix <F> issues."),
+                                          self.edit()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("triage-before-fix", *self.start(), *records))
+
+    def test_a_reviewer_that_also_fixes_fails(self):
+        runs = {
+            "the fixer rules in the reviewer brief": [self.reviewer(extra=self.fixer_rules)],
+            "one workflow that reviews and fixes": [self.call("Workflow", {
+                "script": "await agent(" + json.dumps(self.briefs) + "); await agent(" + json.dumps(self.fixer_rules) + ")"})],
+            "a reviewer of a subagent": [self.reviewer(parent="toolu_1")],
+            "no reviewer": [self.fixer()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("reviewer-separate", *self.start(), *records))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.edit(self.REVIEWER_ID)))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.text("ok"),
+                                     self.call("Write", {"file_path": "/w/src/pager.py", "content": "x"}, self.REVIEWER_ID)))
+        self.assertTrue(self.passes("reviewer-no-edit", *self.start(), self.reviewer(),
+                                    self.edit(self.REVIEWER_ID, "/w/notes/Reviews/r.md"), self.fixer(), self.edit(self.FIXER_ID)))
+
+    def test_workflow_offered_reads_the_tool_list_of_the_init_record(self):
+        self.assertTrue(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Workflow", "Write")))
+        self.assertTrue(self.passes("route-workflow-offered", trace_record(
+            {"type": "system", "tools": ["Workflow"], "subtype": "init"})))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Write")))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent"), self.text('"tools":["Workflow"]')))
+
+    def test_triage_before_fix_ends_fast_on_a_large_trace_with_no_triage(self):
+        filler = self.result("x" * 400 + '"quoted" text\n')
+        trace = "\n".join([*self.start(), *([filler] * 5000), self.edit()])
+        start = time.perf_counter()
+        self.assertFalse(self.passes("triage-before-fix", trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
 
 
 class BaseRulesAndLintGraderTests(unittest.TestCase):
