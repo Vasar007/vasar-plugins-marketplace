@@ -3,6 +3,7 @@
 # Run one tests/evals/compare_versions.py command in the eval clone, at a ref of a git bundle.
 # Usage: eval-run.sh <bundle> <ref> <result folder> <eval clone> <wait: yes or no> <compare_versions arguments>...
 # The script adds --out <result folder> and --claude <path>. Give the other arguments, also --model and --judge-model.
+# The eval clone holds each branch of the bundle at win/<branch>, and no other branch. Name a branch in that form.
 # A lock lets only one run use the eval clone at a time. With wait "yes", the run also waits for a quiet machine.
 set -euo pipefail
 cd "$HOME"
@@ -35,8 +36,10 @@ if [ "$wait" = yes ]; then
     until [ "$(busy)" = 0 ]; do sleep 5; done
 fi
 [ -d "$clone/.git" ] || git -c init.defaultBranch=main -c advice.detachedHead=false clone -q --no-checkout "$bundle" "$clone"
-git -C "$clone" fetch -q "$bundle" '+refs/heads/*:refs/remotes/win/*'
+git -C "$clone" fetch -q --prune "$bundle" '+refs/heads/*:refs/remotes/win/*'
 git -C "$clone" checkout -q --detach "win/$ref"
+# The first clone made local branches and origin refs that never move. Remove them, so that only win/<branch> resolves.
+git -C "$clone" for-each-ref --format='delete %(refname)' refs/heads refs/remotes/origin | git -C "$clone" update-ref --no-deref --stdin
 echo "HEAD: $(git -C "$clone" log --oneline -1)"
 echo "START: $(date -u +%H:%M:%S)"
 status=0

@@ -383,6 +383,27 @@ class RunEvalTests(WslCase):
         self.assertIn("STOP: the bundle has no branch bad", out)
         self.assertEqual(list((self.tmp / "r2").iterdir()), [], "no run at the old commit of the branch")
 
+    def test_plain_branch_name_does_not_resolve_to_a_stale_branch_of_the_eval_clone(self):
+        self.claude()
+        self.script("run-eval.sh", "--no-wait", self.repo, "work/one", self.tmp / "r1", "baseline")
+        self.git("branch", "-q", "gone", "work/one")
+        self.script("run-eval.sh", "--no-wait", self.repo, "gone", self.tmp / "r2", "baseline")
+        self.git("branch", "-q", "-D", "gone")
+        self.commit("NEW.md", "new\n", "a new commit on main")
+        self.script("run-eval.sh", "--no-wait", self.repo, "work/one", self.tmp / "r3", "baseline")
+        clone = self.tools / "eval-clone"
+
+        def resolve(name):
+            done = run(["git", "-C", clone, "rev-parse", "-q", "--verify", f"{name}^{{commit}}"], env=self.env)
+            return done.stdout.strip() if done.returncode == 0 else None
+
+        self.assertEqual(resolve("win/main"), self.git("rev-parse", "main"))
+        for stale in ("main", "origin/main", "origin/work/one", "win/gone"):
+            with self.subTest(name=stale):
+                self.assertIsNone(resolve(stale), "only a branch of the last bundle resolves")
+        usage = run(["bash", WSL / "run-eval.sh", "--help"], env=self.env, stdin="").stdout
+        self.assertIn("--base win/main", usage)
+
     def test_two_runs_in_one_second_get_two_result_folders(self):
         self.claude()
         self.write_exe(self.stubs / "date", "#!/bin/sh\necho 20260101-000000\n")

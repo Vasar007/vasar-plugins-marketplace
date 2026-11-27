@@ -7,6 +7,9 @@
 # Give the compare_versions arguments without --out and --claude, for example:
 #   run-eval.sh /c/src/repo my-branch results/head baseline --plugin essentials/dev-essentials --commit HEAD \
 #       --model <model id> --judge-model <model id> --case <case> --scaffold --runs 3 --keep-temp
+# The run checks out <branch>, so HEAD names it. The eval clone holds main and <branch> at win/main and win/<branch>.
+# Give --base, --head, or --commit a branch in that form, for example --base win/main. A plain name such as main
+# names no branch there, so compare_versions.py stops.
 # The result folder is a folder on Windows. It must be empty or new.
 # The exit code is the exit code of compare_versions.py.
 # The script itself ends with exit code 2 for a usage error, and for --out or --claude in the arguments.
