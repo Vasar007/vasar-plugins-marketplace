@@ -1,7 +1,10 @@
 {
-  "threads": [],
   "pageInfo": {
+    "endCursor": "",
     "hasNextPage": false,
-    "endCursor": ""
-  }
+    "hasPreviousPage": false,
+    "startCursor": ""
+  },
+  "review_threads": [],
+  "totalCount": 0
 }
