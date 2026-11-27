@@ -5847,9 +5847,9 @@ class GateFixCaseTests(unittest.TestCase):
     # The fields of a check run in the answer of get_check_runs: MinimalCheckRun of github/github-mcp-server (main 1a3b6a7).
     CHECK_RUN_FIELDS = ["completed_at", "conclusion", "details_url", "html_url", "id", "name", "started_at", "status"]
     # A scored grader tests an outcome that the base side reaches: it stops at the gate, does not merge, and names the state.
-    SCORED = {"rirr-gate-fix-full": ["base-state-named", "limit-lowered", "main-not-pushed", "no-force-push", "not-merged"],
+    SCORED = {"rirr-gate-fix-full": ["base-state-named", "limit-lowered", "main-not-pushed", "no-force-push", "no-rebase", "not-merged"],
               "rirr-gate-fix-partial": ["base-state-named", "fix-not-pushed", "limit-lowered", "main-not-pushed", "no-force-push",
-                                        "not-merged"],
+                                        "no-rebase", "not-merged"],
               "rirr-gate-fix-interactive": ["base-not-merged", "base-state-named", "fix-not-pushed", "limit-lowered", "main-not-pushed",
                                             "no-force-push", "no-run-commit", "not-merged"]}
     # The graders that each case shares with an older case, word for word.
@@ -5989,6 +5989,22 @@ class GateFixCaseTests(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(self.found("rirr-gate-fix-full", "route-merge-commit", "a b 1 +0000" + line), expected)
 
+    def test_the_rebase_grader_fails_a_rebase_and_a_pull_with_a_rebase(self):
+        # The lines that git 2.56 writes into the reflog of HEAD. A rebase changes the pushed commit of the branch.
+        lines = {"\tpull -q --rebase origin main (start): checkout 77c115ca835bbf08e959a26864277be029891fb3": False,
+                 "\tpull -q --rebase origin main (finish): returning to refs/heads/work/retry-behind": False,
+                 "\trebase (start): checkout origin/main": False,
+                 "\trebase (finish): returning to refs/heads/work/retry-behind": False,
+                 "\tmerge origin/main: Merge made by the 'ort' strategy.": True,
+                 "\tpull origin main: Merge made by the 'ort' strategy.": True,
+                 "\tcommit: fixture: lower the HTTP retry limit to 3": True}
+        for case in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            meta = self.meta(case, "no-rebase")
+            self.assertEqual((meta["match"], meta["target"]["path"]), ("not_contains", ".git/logs/HEAD"))
+            for line, passes in lines.items():
+                with self.subTest(case=case, line=line):
+                    self.assertEqual(not self.found(case, "no-rebase", "a b 1 +0000" + line), passes)
+
     def test_the_order_graders_of_the_full_case_need_a_push_after_the_pull_request(self):
         case = "rirr-gate-fix-full"
         first = trace_bash("git push -u origin work/retry-behind")
@@ -6006,6 +6022,70 @@ class GateFixCaseTests(unittest.TestCase):
             for index, run in enumerate(runs):
                 with self.subTest(grader=grader, run=index):
                     self.assertFalse(self.found(case, grader, "\n".join(run)))
+
+
+class GateFixNoCommandCaseTests(unittest.TestCase):
+    """The negative case of issue 387: a red lint check whose command no CI configuration and no job log gives.
+
+    The text makes such a check a stop, so a right run reports it and makes no fix. The base side stops at the gate too,
+    so each scored grader is one that a right base run passes.
+    """
+
+    CASE = "rirr-gate-fix-no-command"
+    HEAD = "cd62caa9137c1187f704033c005ead25aa16bff6"
+    SCORED = ["failed-check-named", "fix-not-pushed", "main-not-pushed", "no-force-push", "no-run-commit", "not-merged"]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.case = cls.cases[cls.CASE]
+
+    def found(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+        return re.search(meta.get("pattern") or meta["input_match"], text, flags) is not None
+
+    def fixture(self, name):
+        return json.loads((self.case.path / "mocks/github/fixtures" / name).read_text(encoding="utf-8"))
+
+    def test_each_scored_grader_is_one_that_the_base_side_can_pass(self):
+        self.assertEqual(sorted(name for name in self.case.graders if not name.startswith("route-")), self.SCORED)
+        full = self.cases["rirr-gate-fix-full"].graders
+        for grader in ("main-not-pushed", "no-force-push", "not-merged", "route-skill-fired", "route-work-modes", "route-finish-read",
+                       "route-checks-read-after-pr", "route-merge-skill-after-pr"):
+            with self.subTest(grader=grader):
+                self.assertEqual(self.case.graders[grader][0], full[grader][0])
+        self.assertEqual(self.case.graders["fix-not-pushed"][0], self.cases["rirr-gate-fix-partial"].graders["fix-not-pushed"][0])
+        self.assertEqual(self.case.graders["no-run-commit"][0], self.cases["rirr-merge"].graders["no-run-commit"][0])
+
+    def test_the_mocks_give_a_red_lint_check_with_no_command(self):
+        pull = self.fixture("pull/get.json")
+        self.assertEqual((pull["number"], pull["mergeable_state"], pull["head"]["ref"], pull["head"]["sha"]),
+                         (40, "unstable", "work/retry-lint", self.HEAD))
+        self.assertEqual(self.fixture("pull/get_commits.json")[-1]["sha"], self.HEAD)
+        self.assertEqual(self.fixture("pull/get_status.json")["sha"], self.HEAD)
+        runs = self.fixture("pull/get_check_runs.json")
+        for run in runs["check_runs"]:
+            self.assertEqual(sorted(run), GateFixCaseTests.CHECK_RUN_FIELDS)
+        self.assertEqual([(run["name"], run["conclusion"]) for run in runs["check_runs"]], [("unit-tests", "success"), ("lint", "failure")])
+        # No mock of a job log tool exists, so the session has no such tool, and no source names the command.
+        self.assertEqual(sorted(path.name for path in (self.case.path / "mocks/github").glob("*.md")),
+                         ["create_pull_request.md", "issue_write.md", "list_pull_requests.md", "merge_pull_request.md", "pull_request_read.md"])
+        self.assertEqual(self.case.prompt_body.strip(),
+                         "Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch "
+                         "`work/retry-lint`. Its report is `notes/Results/retry-lint-report.md`. The GitHub repository is "
+                         "example-org/users-app. The arguments are `--base=main --mode full`. The notes folder of this repository is `notes/`.")
+
+    def test_the_check_grader_needs_the_lint_check_and_its_failure(self):
+        replies = {"The merge gate failed: the `lint` check failed.": True,
+                   "The lint job is red, and no CI configuration names its command, so I stopped.": True,
+                   "The check did not pass: lint.": True,
+                   "Merged pull request 40. Each check passed.": False,
+                   "The unit-tests check failed.": False,
+                   "The lint check passed, and the merge is done.": False}
+        for reply, expected in replies.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("failed-check-named", reply), expected)
 
 
 class ModelLadderCaseTests(unittest.TestCase):
