@@ -168,5 +168,24 @@ class AuditTeamCountTextTests(unittest.TestCase):
                       command)
 
 
+class NotCoveredTextTests(unittest.TestCase):
+    """Phase 8 reads the Not covered line of the Phase 9 template, so both files name the same line."""
+
+    def template(self):
+        return section(read("references/output-formats.md"), "## Phase 9 summary template", "## Output formats")
+
+    def test_the_phase_9_template_has_one_not_covered_line(self):
+        self.assertEqual(len(re.findall(r"(?m)^Not covered: <[^>\n]+\| none>$", self.template())), 1)
+
+    def test_phase_8_reads_the_line_of_the_template_and_stops_blocked(self):
+        label = re.search(r"(?m)^(Not covered:) <", self.template()).group(1)
+        phase_8 = section(read("SKILL.md"), "### Phase 8", "### Phase 9")
+        stop_clean = section(phase_8, "**stop-clean**", "**stop-max-rounds**")
+        stop_blocked = section(phase_8, "**stop-blocked**", "\n")
+        self.assertIn(f"The `{label}` line of the Phase 9 summary is `none`.", stop_clean)
+        self.assertIn("If condition 3 fails, use `stop-blocked`.", stop_clean)
+        self.assertIn("condition 3 of `stop-clean`", stop_blocked)
+
+
 if __name__ == "__main__":
     unittest.main()

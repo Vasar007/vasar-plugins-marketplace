@@ -198,7 +198,7 @@ Keep each field to its limit above. Do not leave out a finding to make the respo
 
 ## Step between Role 2 and Role 3 — collate
 
-The orchestrator does this step itself, with no subagent. Merge the duplicates across areas (one issue that shows up in two areas) into one finding with several sites. Sort the findings by severity, then by file path.
+The orchestrator does this step itself, with no subagent. First, match each Area Explorer report to its area, as the fan-out rule of `Trust but verify` in `dev-essentials:subagent-orchestration` says. In `dev-essentials:review-loop`, an area that is still not covered goes to the `Not covered:` line of the Phase 9 summary. Merge the duplicates across areas (one issue that shows up in two areas) into one finding with several sites. Sort the findings by severity, then by file path.
 
 ## Role 3 — Main-agent synthesis (not a subagent)
 

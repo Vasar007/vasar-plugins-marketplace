@@ -70,10 +70,11 @@ If arguments are ambiguous or missing the path, use **AskUserQuestion** to clari
 3. **Consolidate results**
 
    After the review of Step 2 is done:
+   - Match each agent report to its role, as the fan-out rule of `Trust but verify` in `dev-essentials:subagent-orchestration` says. On the **Reviewers** line, write a role that is still not covered as `{role name} (not covered)`.
    - Collect all findings: on the two-view route, the findings of the main session and of the agent. On the team route, the findings of all agents.
    - Deduplicate. If several roles found the same issue, merge them into one entry, and name the roles that flagged it. On the two-view route, name a lens of the main session as `main: {role name}`, and the agent as `agent: devil's advocate`.
    - Filter once, here. If a finding does not affect correctness or a stated requirement, move it to Suggestions. The other findings stay under Blockers or Warnings.
-   - Present a unified report in the form below. Keep its heading and each bold label word for word, also `**Agreement matrix:**`. `review-loop` reads the parts Blockers, Warnings, and Suggestions and the agreement matrix by these labels.
+   - Present a unified report in the form below. Keep its heading and each bold label word for word, also `**Agreement matrix:**`. `review-loop` reads the **Reviewers** line, the parts Blockers, Warnings, and Suggestions, and the agreement matrix by these labels.
 
    ```md
    ### Team Review Report: {path}

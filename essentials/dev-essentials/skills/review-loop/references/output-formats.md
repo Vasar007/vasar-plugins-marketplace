@@ -13,6 +13,7 @@ Tests: <X passed, Y failed, Z skipped | not run>
 Lint: <passing | failing (<details>) | not run (no lint command)>
 Stop verdict: <stop-clean | stop-max-rounds | stop-blocked>
 Fixed files: <path of each fixed file | none>
+Not covered: <each reviewer, audit-team role, or orchestrated-mode area with no report | none>
 
 ### Round 1 (<target-summary>)
   Found:    <B> Blocker, <C> Critical, <H> High, <M> Medium, <L> Low, <N> Nit
