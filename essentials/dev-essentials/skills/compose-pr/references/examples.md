@@ -22,10 +22,10 @@ A discount above the order total made the total negative, and the payment step r
 
 ## Testing
 
-Unit and integration tests cover multi-currency edge cases.
+Unit and integration tests cover multi-currency edge cases. Not run in this session.
 ```
 
-Length: about 430 characters.
+Length: about 450 characters.
 
 **Without a spec or a plan:**
 
@@ -45,10 +45,10 @@ Orders with a large discount got a negative total. The validation stops them bef
 
 ## Testing
 
-Unit tests cover the edge cases, and integration tests cover multi-currency orders.
+Unit tests cover the edge cases, and integration tests cover multi-currency orders. Not run in this session.
 ```
 
-Length: about 440 characters.
+Length: about 470 characters.
 
 ## Example Output (Larger Change)
 
@@ -67,10 +67,10 @@ The synchronous flow held the request thread during payment, and a failed step l
 - **Persistence**: Added event store container with TTL policies
 
 ## Testing
-Integration tests simulate failures at each stage, and load tests verify 1000 concurrent orders.
+Integration tests simulate a failure at each stage, and a load test sends 1000 concurrent orders. Not run in this session.
 
 ## Notes
 Breaking change: Order status polling now uses an event subscription model. Update clients to use webhooks.
 ```
 
-Length: about 890 characters.
+Length: about 920 characters.
