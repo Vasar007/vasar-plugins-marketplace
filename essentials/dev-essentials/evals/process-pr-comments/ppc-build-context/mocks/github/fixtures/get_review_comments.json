@@ -1,27 +1,28 @@
 {
-  "threads": [
-    {
-      "id": "PRRT_kwDOexample001",
-      "is_resolved": false,
-      "is_outdated": false,
-      "is_collapsed": false,
-      "comments": [
-        {
-          "id": 9101,
-          "body": "**[ToFix]** `page_slice` raises for a size of zero or less. Return an empty list instead. A paging helper must not crash its caller.",
-          "path": "src/pager.py",
-          "line": 22,
-          "user": {
-            "login": "example-reviewer"
-          },
-          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9101",
-          "created_at": "2026-01-02T10:00:00Z"
-        }
-      ]
-    }
-  ],
   "pageInfo": {
     "hasNextPage": false,
-    "endCursor": ""
-  }
+    "hasPreviousPage": false
+  },
+  "review_threads": [
+    {
+      "comments": [
+        {
+          "author": "example-reviewer",
+          "body": "**[ToFix]** `page_slice` raises for a size of zero or less. Return an empty list instead. A paging helper must not crash its caller.",
+          "created_at": "2026-01-02T10:00:00Z",
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9101",
+          "line": 22,
+          "original_line": 22,
+          "path": "src/pager.py",
+          "updated_at": "2026-01-02T10:00:00Z"
+        }
+      ],
+      "id": "PRRT_kwDOexample001",
+      "is_collapsed": false,
+      "is_outdated": false,
+      "is_resolved": false,
+      "total_count": 1
+    }
+  ],
+  "totalCount": 1
 }

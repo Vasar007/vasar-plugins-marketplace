@@ -6,6 +6,10 @@
 # Both functions leave main checked out with one fixture commit and a bare remote. They do not publish it.
 # add_paging_branch: on the pager repo, add the branch feature/paging with the planted off-by-one in page_slice.
 # It leaves feature/paging checked out. It does not publish it.
+# add_retry_behind_run: on the small users repo, the state of an earlier run whose branch is behind main of the remote.
+# It publishes main, and it leaves work/retry-behind checked out with no remote copy.
+# add_retry_lint_run: on the small users repo, the state of an earlier run whose commit has a line that is too long for the lint script.
+# It publishes main, and it leaves work/retry-lint checked out with no remote copy.
 set -euo pipefail
 
 make_pager_repo() {
@@ -425,4 +429,127 @@ USERS_EOF
         printf '                    self.assertTrue(module.run(1).startswith(name.rsplit(".", 1)[1]))\n'
         printf '\n\nif __name__ == "__main__":\n    unittest.main()\n'
     } | fixture_write tests/test_modules.py
+}
+
+# The earlier run committed its change on a branch that no remote holds. After its last fetch, another commit reached main on
+# the remote. So origin/main of the clone is old, and the pull request of the branch is behind its base. The checks pass.
+add_retry_behind_run() {
+    printf 'notes/\n' >> .gitignore
+    fixture_commit "ignore the notes folder"
+    local start
+    start="$(git rev-parse HEAD)"
+    fixture_write docs/http.md <<'USERS_EOF'
+# HTTP client
+
+`app/http_client.py` retries a failed call. `HTTP_RETRY_LIMIT` in `config/settings.py` sets the number of retries.
+USERS_EOF
+    fixture_commit "document the HTTP client"
+    fixture_publish main
+    git reset -q --hard "$start"
+    git update-ref refs/remotes/origin/main "$start"
+
+    git checkout -q -b work/retry-behind
+    sed -i 's/^HTTP_RETRY_LIMIT = 5$/HTTP_RETRY_LIMIT = 3/' config/settings.py
+    sed -i 's/(retries=5)/(retries=3)/' tests/test_http_client.py
+    fixture_commit "lower the HTTP retry limit to 3"
+
+    fixture_write notes/Plans/retry-behind-plan.md <<'USERS_EOF'
+# Plan: lower the HTTP retry limit of the users app
+
+## Tasks
+
+- [x] Task 1: In `config/settings.py`, set `HTTP_RETRY_LIMIT` to 3. The test `tests/test_http_client.py` expects 5, so change it to expect the new limit. Run `python3 -m unittest discover -s tests`, and commit the task.
+USERS_EOF
+    fixture_write notes/Results/retry-behind-report.md <<'USERS_EOF'
+# Report: lower the HTTP retry limit of the users app
+
+## Overview
+
+- **Branch**: work/retry-behind
+- **Base branch**: main
+- **Head commit**: HEAD_SHA
+- **Worktree**: none, the main work tree
+- **Plan**: notes/Plans/retry-behind-plan.md
+
+## What Was Done
+
+- Task 1: `HTTP_RETRY_LIMIT` is 3, and `tests/test_http_client.py` expects 3. The tests pass.
+- Review loop: one round. Verdict `stop-clean`. No finding.
+
+## What's Next
+
+The branch is not pushed. The final gate asked about the push, the pull request, and the merge, and the answer was no.
+USERS_EOF
+    sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-behind-report.md
+}
+
+# The commit of the earlier run adds a comment line of more than 88 characters to config/settings.py.
+# The local tests pass. The clone has a lint script, but CLAUDE.md and no CI configuration name its command.
+add_retry_lint_run() {
+    printf 'notes/\n' >> .gitignore
+    fixture_write tools/lint.py <<'USERS_EOF'
+"""Lint the Python files of the given folders: a line has at most 88 characters."""
+import sys
+from pathlib import Path
+
+LIMIT = 88
+
+
+def main(folders):
+    problems = []
+    for folder in folders:
+        for path in sorted(Path(folder).glob("**/*.py")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for number, line in enumerate(lines, start=1):
+                if len(line) > LIMIT:
+                    problems.append(f"{path.as_posix()}:{number}: line too long ({len(line)} > {LIMIT})")
+    print("\n".join(problems) if problems else "lint: no problem found")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+USERS_EOF
+    fixture_commit "add the lint tool, and ignore the notes folder"
+    fixture_publish main
+
+    git checkout -q -b work/retry-lint
+    fixture_write config/settings.py <<'USERS_EOF'
+"""Settings of the users app."""
+
+# Three retries keep a failed call short. With five retries, a user waited too long for an answer.
+HTTP_RETRY_LIMIT = 3
+TIMEOUT_SECONDS = 30
+USERS_EOF
+    sed -i 's/(retries=5)/(retries=3)/' tests/test_http_client.py
+    fixture_commit "lower the HTTP retry limit to 3"
+
+    fixture_write notes/Plans/retry-lint-plan.md <<'USERS_EOF'
+# Plan: lower the HTTP retry limit of the users app
+
+## Tasks
+
+- [x] Task 1: In `config/settings.py`, set `HTTP_RETRY_LIMIT` to 3, with a comment that gives the reason. The test `tests/test_http_client.py` expects 5, so change it to expect the new limit. Run `python3 -m unittest discover -s tests`, and commit the task.
+USERS_EOF
+    fixture_write notes/Results/retry-lint-report.md <<'USERS_EOF'
+# Report: lower the HTTP retry limit of the users app
+
+## Overview
+
+- **Branch**: work/retry-lint
+- **Base branch**: main
+- **Head commit**: HEAD_SHA
+- **Worktree**: none, the main work tree
+- **Plan**: notes/Plans/retry-lint-plan.md
+
+## What Was Done
+
+- Task 1: `HTTP_RETRY_LIMIT` is 3, with a comment that gives the reason, and `tests/test_http_client.py` expects 3. The tests pass.
+- Review loop: one round. Verdict `stop-clean`. No finding.
+
+## What's Next
+
+The branch is not pushed. The final gate asked about the push, the pull request, and the merge, and the answer was no.
+USERS_EOF
+    sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-lint-report.md
 }

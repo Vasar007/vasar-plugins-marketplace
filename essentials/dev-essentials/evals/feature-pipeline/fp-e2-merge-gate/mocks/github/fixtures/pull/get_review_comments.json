@@ -1,7 +1,8 @@
 {
-  "threads": [],
   "pageInfo": {
     "hasNextPage": false,
-    "endCursor": ""
-  }
+    "hasPreviousPage": false
+  },
+  "review_threads": [],
+  "totalCount": 0
 }

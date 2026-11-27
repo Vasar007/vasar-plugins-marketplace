@@ -49,7 +49,7 @@ Fields:
 | Field | Required | Notes |
 | --- | --- | --- |
 | `pullRequestNumber` | yes | A safety test. The user can invoke the skill for another PR in the same session. Then the skill stops and asks. It never mixes the state of two PRs. |
-| `commentId` | yes | The GitHub comment ID that `pull_request_read` returns. |
+| `commentId` | yes | The GitHub comment ID: the number after `#discussion_r` in the `html_url` of the comment. |
 | `tag` | yes | The primary tag that the skill applied, or `AutoReview` or `Note`. |
 | `action` | yes | One of `fixed`, `drafted`, `noted`, `tracked`, and `skipped`. Write `skipped` only for an explicit final skip, for example the answer `skip` of the user to the approval question of a `[Question]` reply. Never write it for an exclusion by the `tags` filter. |
 | `verdict` | AutoReview only | One of the verdicts of `automated-review-verification.md`. |

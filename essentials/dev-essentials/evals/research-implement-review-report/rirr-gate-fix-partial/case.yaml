@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: rirr-gate-fix-partial
+context:
+  scaffold_script: scaffold.sh

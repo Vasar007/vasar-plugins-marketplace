@@ -1,6 +1,6 @@
 {
   "name": "dev-essentials",
-  "version": "6.9.0",
+  "version": "6.8.0",
   "description": "Cross-stack workflows for everyday development with Claude Code. They help you plan, implement, review, and document changes, and keep git and pull requests in order.",
   "author": {
     "name": "Vasily Vasilyev",
