@@ -13,6 +13,15 @@ The other numbers in a heading are plugin versions.
 
 A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix. An example is a base branch that moved on after the push, so that GitHub reports the head as out of date. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops. A red build or test before the push still ends the run (issue #387).
 
+The eval runs had 3 runs on each side for each case, with an Opus and a Sonnet agent. Without the change, no run fixed a failed gate:
+
+- `rirr-gate-fix-full`: on both models, each base run stopped at the gate with no merge of the base and no second push.
+- `rirr-gate-fix-partial`: on both models, no base run merged the base or asked about a push of a fix.
+- `rirr-gate-fix-interactive`: 1 of 3 base runs on each model asked the user about a fix.
+- `rirr-gate-fix-no-command`: each Sonnet base run reported the red check and stopped. On Opus, 2 of 3 base runs ran the lint script of the clone, found the failure, and stopped before the push. No base run changed code.
+
+HEAD-NUMBERS-LINE
+
 ### Added in dev-essentials
 
 - `evals/research-implement-review-report/rirr-gate-fix-full`, `rirr-gate-fix-partial`, and `rirr-gate-fix-interactive`: three resume cases with a failed merge gate, one for each work mode. After the last fetch of the clone, main of the remote moved on. So the pull request is behind its base, and its checks pass. The full case needs a merge of the base, a test run, the second push, and a second read of the gate. The partial case needs the merge in a local commit and a question before the push. The interactive case needs a question about the fix, and no commit and no second push (issue #387).
@@ -21,7 +30,7 @@ A failed merge gate now gets a next step in the finish steps of `research-implem
 
 ### Changed in dev-essentials
 
-- `skills/work-modes/references/finish.md`: the new section "A failed merge gate". Step 5 points to it, and the section "A failed step in the full mode" no longer says that a failed gate gets no repair. The section sorts each failed item of the report of `merge-pr`. Two kinds of items are fixable. The first is a red check whose command fails in a local run too. Its output names at least one file, and only files of the branch. The command comes from the CI configuration or from the log of the job. The second is the merge state `behind` or `dirty`. A check that reports a secret is hard stop 4, and each other item is a stop (hard stop 5). A fix round fixes the cause in new commits, or fetches and merges the base branch with no rebase. It reviews the new commits with one review round, runs the start conditions, the tests, and each fixed check again. The interactive mode asks before the fix. The modes other than the full mode ask before the push. The run does at most 2 fix rounds. The finish report lists each fix round (issue #387).
+- `skills/work-modes/references/finish.md`: the new section "A failed merge gate". Step 2 now says that the run makes no commit before the push. Step 5 points to the new section. The section "A failed step in the full mode" no longer says that a failed gate gets no repair. The section sorts each failed item of the report of `merge-pr`. Two kinds of items are fixable. The first is a red check whose command fails in a local run too. Its output names at least one file, and only files of the branch. The command comes from the CI configuration or from the log of the job. The second is the merge state `behind` or `dirty`. A check that reports a secret is hard stop 4, and each other item is a stop (hard stop 5). A fix round fixes the cause in new commits, or fetches and merges the base branch with no rebase. It reviews the new commits with one review round, runs the start conditions, the tests, and each fixed check again. The interactive mode asks before the fix. The modes other than the full mode ask before the push. The run does at most 2 fix rounds. The finish report lists each fix round (issue #387).
 - `skills/merge-pr/SKILL.md`: step 2 says that a workflow that calls the skill can repair the cause with its own steps after the stop. Then the workflow does the steps of the skill again. The rule that the skill itself does not repair a cause stays (issue #387).
 - `skills/work-modes/SKILL.md`: hard stop 5 names a merge gate that fails after its fix rounds (issue #387).
 

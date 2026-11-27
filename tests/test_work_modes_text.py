@@ -389,6 +389,9 @@ class FinishStepTests(unittest.TestCase):
         # The push of the fix is step 3 of the steps, so the section holds no push command of its own.
         self.assertNotIn("git -C", section)
         self.assertNotIn("--force", section)
+        # An eval run fixed a lint failure at step 2 and pushed it, before any gate read (issue 387).
+        steps = self.text[self.text.index("## Steps"):self.text.index("## A failed merge gate")]
+        self.assertIn('Make no commit before the push. A fix comes only after the gate, in the section "A failed merge gate".', steps)
         report = self.text[self.text.index("## The finish report"):]
         self.assertIn("- Each fix round: the failed items, the fix commits, the verdict of its review, "
                       "and the push or the answer to the push question.", report)
