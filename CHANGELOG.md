@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
-`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In two tested runs, a run without the rule followed a template only on the larger of the two models (issue #382).
+`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models, and it ignored the template on the smaller one (issue #382).
 
 ### Changed in dev-essentials
 
