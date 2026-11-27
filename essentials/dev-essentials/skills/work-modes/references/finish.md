@@ -53,7 +53,7 @@ Where this file says not to look for the repository, skip this section. In the f
 
 Sort each failed item of the report of `merge-pr`. These items are fixable:
 
-- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository or from the log of the failed job. Each file or test that its output names is one that the branch changed (`git diff --name-only origin/<base branch>...HEAD`).
+- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository or from the log of the failed job. Its output names at least one file or test, and each of them is one that the branch changed (`git diff --name-only origin/<base branch>...HEAD`).
 - The merge state `behind` or `dirty`.
 
 If a fixable red check fails, the merge state `unstable` or `blocked` of the same read is part of that item.
@@ -64,9 +64,9 @@ If each failed item is fixable, do a fix round:
 
 1. In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.
 2. Fix the cause in new commits, as the workflow does a task of its plan. For `behind` or `dirty`, run `git fetch origin <base branch>`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.
-3. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. Then do steps 1 and 2 again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).
+3. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. Then do steps 1 and 2 of the section "Steps" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).
 4. Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". With "no", end the run.
-5. Push as step 3 says, and do step 5 again.
+5. Push as step 3 of the section "Steps" says, and do step 5 of that section again.
 
 Do at most 2 fix rounds. If the gate still fails, report it, and end the run (hard stop 5).
 

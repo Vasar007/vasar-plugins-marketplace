@@ -364,7 +364,7 @@ class FinishStepTests(unittest.TestCase):
         section = self.text[self.text.index("## A failed merge gate"):self.text.index("## A failed step in the full mode")]
         sentences = (
             "- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository "
-            "or from the log of the failed job. Each file or test that its output names is one that the branch changed "
+            "or from the log of the failed job. Its output names at least one file or test, and each of them is one that the branch changed "
             "(`git diff --name-only origin/<base branch>...HEAD`).",
             "- The merge state `behind` or `dirty`.",
             # merge-pr item 2 passes only for clean, and a red check gives unstable or blocked in the same read.
@@ -378,10 +378,10 @@ class FinishStepTests(unittest.TestCase):
             "and resolve each conflict. Never rebase.",
             "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. "
             "After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. "
-            "Then do steps 1 and 2 again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
+            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
             'Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". '
             'With "no", end the run.',
-            "Push as step 3 says, and do step 5 again.",
+            'Push as step 3 of the section "Steps" says, and do step 5 of that section again.',
             "Do at most 2 fix rounds. If the gate still fails, report it, and end the run (hard stop 5).")
         for sentence in sentences:
             with self.subTest(sentence=sentence):
