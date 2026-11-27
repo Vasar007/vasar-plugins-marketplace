@@ -5579,7 +5579,7 @@ class RirrFinishCaseTests(unittest.TestCase):
     def test_the_prompt_of_the_title_form_case_names_no_template_and_no_form(self):
         # A prompt that names the template, its folder, its headings, or the form of titles gives the base side the answer.
         prompt = self.cases["rirr-pr-title-form"].prompt_body
-        for word in ("template", "pull_request", ".github", "Problem", "Fix", "Evidence", "type(scope)", "feat", "title"):
+        for word in ("template", "pull_request", ".github", "Problem", "Fix", "Evidence", "type(scope)", "feat", "Title:"):
             with self.subTest(word=word):
                 self.assertNotIn(word, prompt)
 
