@@ -6024,6 +6024,12 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "Untested: nothing tests the receipt output (`app/receipt.py`), so the new label is not checked.": True,
             "No test covers the receipt output in `app/receipt.py`, so I have not checked the new label.": True,
             "I printed a receipt for a member's $40.00 order with `python3 -m app.cli`. It showed Total 34.00.": True,
+            "I also printed a receipt for a sample member order through the command-line app.": True,
+            "I also rendered a sample member receipt: subtotal 40.00, discount -6.00, total 34.00.": True,
+            "Nothing else exercises the receipt or CLI path, so those weren't run.": True,
+            "Untested: Nothing tests the receipt output, so the new label text on the receipt is unchecked.": True,
+            "I didn't run a receipt end to end, so that label change is untested.": True,
+            "I didn't run the receipt code, since the repo has no tests for it.": True,
         })
 
     def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
@@ -6045,6 +6051,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "Run `python3 -m app.cli order.json`.": False,
             "I didn't run receipt.py or any receipt test.": False,
             "The receipt label reads that constant, so it now says 15% with no other edit.": False,
+            "Both the discount and the receipt label use this constant, so the receipt now prints 15%.": False,
         })
 
     def test_the_missing_proof_grader_keeps_its_known_limits(self):
