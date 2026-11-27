@@ -101,10 +101,11 @@ First, look for a PR template of the repository. GitHub reads the file `pull_req
 If you use a template:
 
 - Use the headings of the template in their order, instead of the form of this step. Write each heading as the template writes it.
-- Read each HTML comment (`<!-- ... -->`) of the template as an instruction for its section or for the whole description. Do what it says, and leave the comment out of the description.
+- Read each HTML comment (`<!-- ... -->`) of the template as an instruction for its section or for the whole description. Do what it says, and leave the comment out of the description. A comment that gives a rule for the PR title is no instruction for the description. Write no title, and quote the rule in your final reply (step 6).
 - The writing rules below and the length limits still apply. If the template does not fit in the limit, the limit wins. Keep each heading, and make each section short.
 - The **Testing** rule below applies to the section that asks for tests or for the result of a test run.
 - If the template asks for an item that the session cannot show, do not invent it. Examples are a screenshot, a video, and the output of a command that did not run. Write `Not confirmed:` and the name of the item instead.
+- A check box of the template is a claim. Tick it only for an item that the input or this session shows, and leave each other box empty.
 
 If the repository has no template, use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
 

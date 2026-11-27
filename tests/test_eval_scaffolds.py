@@ -1848,6 +1848,7 @@ class PrTemplateFixtureTests(FixtureCase):
 
     CASES = ("cmp-pr-repo-template", "rirr-pr-title-form")
     PATH = ".github/pull_request_template.md"
+    BOX = "\n- [ ] The tests ran and passed.\n"
 
     @classmethod
     def setUpClass(cls):
@@ -1862,10 +1863,12 @@ class PrTemplateFixtureTests(FixtureCase):
 
     def test_both_cases_plant_one_template_whose_rules_are_only_in_comments(self):
         texts = [self.template(name) for name in self.CASES]
-        self.assertEqual(texts[0], texts[1])
+        # The composer case adds one check box on a test run to its Evidence section. The other case plants none.
+        self.assertIn(self.BOX, texts[0])
+        self.assertEqual(texts[0].replace(self.BOX, ""), texts[1])
         prose = re.sub(r"<!--[\s\S]*?-->", "", texts[0])
-        # A run that copies only the headings learns no rule of the template.
-        self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence")
+        # A run that copies only the headings and the check box learns no rule of the template.
+        self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence\n- [ ] The tests ran and passed.")
         for rule in ("`type(scope): summary`", "agent tool and the model", "test command that you ran"):
             with self.subTest(rule=rule):
                 self.assertIn(rule, texts[0])

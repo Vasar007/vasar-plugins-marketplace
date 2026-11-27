@@ -1,5 +1,5 @@
 ---
-description: "The repository has a PR template with its own headings. Its rules are only in HTML comments, and the prompt does not name it. The prompt gives the diff of a branch with a new function, a new test file, and no test run. The session has no shell tool. The run must save a PR description with the headings of the template in their order and no What section. The text holds no comment of the template. Its Evidence section says that the tests did not run, and it claims no pass. A last line names the agent tool and the model."
+description: "The repository has a PR template with its own headings. Its rules are only in HTML comments, and the prompt does not name it. The prompt gives the diff of a branch with a new function, a new test file, and no test run. The session has no shell tool. The run must save a PR description with the headings of the template in their order and no What section. The text holds no comment of the template. Its Evidence section says that the tests did not run, and it claims no pass. A last line names the agent tool and the model. The check box of the template for a passed test run stays empty."
 tags: [composers, route]
 allowed_tools: [Skill, Read, Glob, Grep, TodoWrite]
 max_turns: 30

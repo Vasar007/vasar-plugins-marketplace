@@ -3879,6 +3879,33 @@ class ComposerGraderTests(unittest.TestCase):
                                                         "## Evidence\n\nNot run in this session.\n", True),
         })
 
+    def test_no_ticked_test_box_fails_a_ticked_box_on_a_test_item(self):
+        box = "- [ ] The tests ran and passed."
+        text = self.PR_TEMPLATE.replace("## Evidence
+
+", "## Evidence
+
+" + box + "
+")
+        self.check(self.TEMPLATE_CASE, "no-ticked-test-box", {
+            "an empty box": (text, True),
+            "no box": (self.PR_TEMPLATE, True),
+            "a ticked box": (text.replace("[ ]", "[x]"), False),
+            "a ticked box in upper case": (text.replace("[ ]", "[X]"), False),
+            "a ticked box with a star bullet": (text.replace("- [ ]", "* [x]"), False),
+            "a ticked box on another item": (text.replace(box, "- [x] The docs are updated."), True),
+        })
+
+    def test_route_template_named_needs_the_template_path_in_the_final_reply(self):
+        self.check(self.TEMPLATE_CASE, "route-template-named", {
+            "the path": ("I used `.github/pull_request_template.md`.", True),
+            "the file name only": ("I used pull_request_template.md.", True),
+            "no template": ("Saved the draft in `notes/PRs/PR-user-tasks-12-customer-index.md`.", False),
+            "the old form": ("The repository has a PR template, and I used it.", False),
+        })
+        meta = self.cases[self.TEMPLATE_CASE].graders["route-template-named"][0]
+        self.assertEqual(meta["target"], "last_message")
+
     def test_the_template_case_has_the_diff_of_the_untested_case_and_names_no_template(self):
         case, untested = self.cases[self.TEMPLATE_CASE], self.cases[self.UNTESTED]
         self.assertNotIn("Bash", case.field("allowed_tools"))
@@ -5341,7 +5368,8 @@ class RirrFinishCaseTests(unittest.TestCase):
     # The resume cases that must do no finish step, with the number of their mocked pull request.
     STOP_CASES = {"rirr-resume-moved-head": 35, "rirr-upstream-remote": 36}
     REPOSITORY = {"owner": "example-org", "repo": "users-app"}
-    # A scored grader must be one that the base side can pass. A grader that only the finish steps can pass is a route grader.
+    # A scored grader tests an outcome that a base run can reach. The base of these cases has the finish steps too.
+    # A grader that reads a step which only the new text names gets the prefix route-.
     SCORED = {"rirr-merge": ["main-not-pushed", "no-force-push", "no-gh-pr-edit", "no-run-commit"],
               "rirr-merge-gate": ["committed", "limit-lowered", "main-not-pushed", "not-merged"],
               "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
@@ -5546,11 +5574,19 @@ class RirrFinishCaseTests(unittest.TestCase):
 
     def test_the_skill_grader_names_the_workflow_of_the_case(self):
         units = {"rirr-merge": "research-implement-review-report", "it-merge": "implement-task", "ib-merge": "implement-batch",
-                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report"}
+                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report",
+                 "rirr-pr-title-form": "research-implement-review-report"}
         for case, unit in units.items():
             with self.subTest(case=case):
                 for other in sorted(set(units.values())):
                     self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
+
+    def test_the_prompt_of_the_title_form_case_names_no_template_and_no_form(self):
+        # A prompt that names the template, its folder, its headings, or the form of titles gives the base side the answer.
+        prompt = self.cases["rirr-pr-title-form"].prompt_body
+        for word in ("template", "pull_request", ".github", "Problem", "Fix", "Evidence", "type(scope)", "feat", "title"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, prompt)
 
     def test_the_request_of_a_stop_case_names_no_stop(self):
         # The request is the request of rirr-merge, which merges. The planted state is the only reason to stop.

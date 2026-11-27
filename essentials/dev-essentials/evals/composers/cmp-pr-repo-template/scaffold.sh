@@ -24,6 +24,8 @@ Title: write it as `type(scope): summary`. The type is one of feat, fix, refacto
 
 <!-- Name the tests that cover the change. Paste the test command that you ran and the last lines of its output. -->
 
+- [ ] The tests ran and passed.
+
 <!-- If an AI agent wrote this pull request, end it with one line that names the agent tool and the model. -->
 TEMPLATE_EOF
 fixture_commit "add the pull request template"
