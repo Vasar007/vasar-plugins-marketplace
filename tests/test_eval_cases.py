@@ -1895,8 +1895,8 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
-UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "rl-null-guard", "rl-off-by-one",
-            "rl-unbounded-query", "rirr-retry-limit")
+UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "so-no-integration-proof",
+            "rl-null-guard", "rl-off-by-one", "rl-unbounded-query", "rirr-retry-limit")
 TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
 
 
@@ -5965,6 +5965,87 @@ class IntegrationProofGraderTests(unittest.TestCase):
         for name, (text, expected) in texts.items():
             with self.subTest(text=name):
                 self.assertEqual(re.search(self.changed, text) is not None, expected)
+
+
+class NoIntegrationProofGraderTests(unittest.TestCase):
+    """The route graders of so-no-integration-proof: the reply names the missing proof or the gap, or the run ran the real CLI."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-no-integration-proof"]
+        cls.graders = {name: case.graders[name][0] for name in ("route-no-proof-named", "route-gap-named", "route-smoke-run")}
+
+    def found(self, name, text):
+        grader = self.graders[name]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], text, flags) is not None
+
+    def check(self, name, samples):
+        for sample, expected in samples.items():
+            with self.subTest(grader=name, sample=sample):
+                self.assertEqual(self.found(name, sample), expected)
+
+    def test_the_reply_names_the_missing_proof(self):
+        self.check("route-no-proof-named", {
+            "The project has no integration, smoke, or end-to-end tests.": True,
+            "There is no smoke run of the CLI.": True,
+            "I did not find an integration test.": True,
+            "The repo doesn't have any end-to-end tests.": True,
+            "The repo doesn’t have any end-to-end tests.": True,
+            "It lacks an integration test of the receipt.": True,
+            "Missing proof: no integration test exists for the CLI.": True,
+            "- **Integration tests:** none.": True,
+            "Smoke run: not available in this project.": True,
+            "Not covered: there is no test that runs the real CLI.": True,
+            "There is no end to end test.": True,
+            "The project has only unit tests.": True,
+            "There are only unit tests, so the receipt output is not checked.": True,
+        })
+
+    def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
+        self.check("route-no-proof-named", {
+            "The unit tests pass: Ran 3 tests, OK.": False,
+            "The change works. All tests pass, no failures.": False,
+            "I ran only the unit tests.": False,
+            "No integration issues, and the tests pass.": False,
+            "There were no errors in the system.": False,
+            "The integration of the new rate is done.": False,
+        })
+
+    def test_the_missing_proof_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("route-no-proof-named", {
+            "A bad reply passes: The change needs no integration test.": True,
+            "A bad reply passes: No changes to the integration tests were needed.": True,
+        })
+
+    def test_the_reply_names_the_gap_to_add(self):
+        self.check("route-gap-named", {
+            "Consider adding an integration test of the CLI.": True,
+            "Follow-up: add a smoke test or an end-to-end test for the receipt.": True,
+            "A gap to add: write an end-to-end test.": True,
+            "I added a unit test for the new rate.": False,
+            "Add the new rate to the docs.": False,
+            "The unit tests pass.": False,
+        })
+
+    def test_a_run_of_the_real_cli_after_the_last_edit_counts_as_a_smoke_run(self):
+        cli = trace_bash("python3 -m app.cli /tmp/order.json")
+        runs = {
+            "a CLI run after the edit": ([self.EDIT, self.UNIT, cli, self.COMMIT], True),
+            "the CLI file as a script": ([self.EDIT, trace_bash("python app/cli.py order.json")], True),
+            "a JSON file written for the run": ([self.EDIT, trace_write("order.json"), cli], True),
+            "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
+            "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
+            "a CLI run before the last edit": ([cli, self.EDIT, self.UNIT, self.COMMIT], False),
+        }
+        for name, (records, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.found("route-smoke-run", "\n".join(records)), expected)
 
 
 class UsefulTestsCaseGraderTests(unittest.TestCase):

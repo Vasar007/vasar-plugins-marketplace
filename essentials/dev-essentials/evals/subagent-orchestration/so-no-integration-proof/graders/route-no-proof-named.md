@@ -1,0 +1,6 @@
+---
+type: regex
+pattern: '(?:\b(?:no|without|lacks?|lacking|missing|none)\b|\bnot\s+any\b|\b(?:does|do|did|has|have)(?:\s+not|n(?:\x27|’)t)\s+(?:have|find|exist|include|contain|got)\b|\bthere\s+(?:is|are)(?:\s+not|n(?:\x27|’)t)\b)[^.\n\x3b:]{0,30}?\b(?:integration|end[- ]to[- ]end|e2e|smoke|functional|system)\b(?:\s*(?:[,/]\s*)?(?:(?:or|and|nor)\s+)?(?:an?\s+)?(?:integration|end[- ]to[- ]end|e2e|smoke|functional|system)\b)*[\s-]+(?:tests?|suites?|runs?|checks?|coverage|testing)\b|(?:\b(?:no|without|lacks?|lacking|missing|none)\b|\bnot\s+any\b|\b(?:does|do|did|has|have)(?:\s+not|n(?:\x27|’)t)\s+(?:have|find|exist|include|contain|got)\b|\bthere\s+(?:is|are)(?:\s+not|n(?:\x27|’)t)\b)[^.\n\x3b:]{0,30}?\b(?:tests?|checks?)\b[^.\n\x3b:]{0,40}?\b(?:real|actual|whole|full)\b[^.\n\x3b:]{0,20}?\b(?:CLI|app|application|program)\b|\b(?:integration|end[- ]to[- ]end|e2e|smoke|functional|system)\b(?:\s*(?:[,/]\s*)?(?:(?:or|and|nor)\s+)?(?:an?\s+)?(?:integration|end[- ]to[- ]end|e2e|smoke|functional|system)\b)*[\s-]+(?:tests?|suites?|runs?|checks?|coverage|testing)\b[^.\n\x3b]{0,30}?\b(?:missing|absent|none|not\s+(?:found|available)|(?:do|does)(?:\s+not|n(?:\x27|’)t)\s+exist)\b|\b(?:has|have|are|is|with)\s+only\s+unit\s+tests?\b|\bonly\s+(?:has|have)\s+unit\s+tests?\b|\bthe\s+only\s+tests\s+are\s+unit\s+tests\b'
+flags: i
+target: last_message
+---
