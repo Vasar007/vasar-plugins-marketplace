@@ -3699,8 +3699,8 @@ class PpcTrustTests(unittest.TestCase):
         return {item["login"].lower() for item in json.loads(body)["items"] if item["role_name"] in self.WRITE_ROLES}
 
     def untrusted(self, case):
-        threads = self.fixture(case, "get_review_comments.json")["threads"]
-        reviewers = {comment["user"]["login"].lower() for thread in threads for comment in thread["comments"]}
+        threads = self.fixture(case, "get_review_comments.json")["review_threads"]
+        reviewers = {comment["author"].lower() for thread in threads for comment in thread["comments"]}
         return reviewers - self.write_logins(case) - {self.fixture(case, "get.json")["user"]["login"].lower()}
 
     def passes(self, grader, text):
@@ -3876,6 +3876,106 @@ class PpcRuleCandidateTests(unittest.TestCase):
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(self.passes("no-rule-file", text), expected)
+
+
+class ReviewCommentsFixtureTests(unittest.TestCase):
+    """Each get_review_comments fixture has the shape of the GitHub MCP server, and each reply mock expects its IDs (issue #381).
+
+    The real result has review_threads, a plain string author, and no comment id: the ID is only in #discussion_r<id> of html_url.
+    """
+
+    TOP_KEYS = {"pageInfo", "review_threads", "totalCount"}
+    PAGE_REQUIRED = {"hasNextPage", "hasPreviousPage"}
+    PAGE_KEYS = PAGE_REQUIRED | {"endCursor", "startCursor"}
+    THREAD_KEYS = {"id", "is_resolved", "is_outdated", "is_collapsed", "total_count", "comments"}
+    COMMENT_KEYS = {"author", "body", "path", "line", "start_line", "original_line", "original_start_line", "html_url",
+                    "created_at", "updated_at"}
+    COMMENT_REQUIRED = {"author", "body", "path", "html_url", "created_at", "updated_at"}
+    DISCUSSION = re.compile(r"#discussion_r(\d+)$")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.fixtures = sorted(path for manifest in REPO.glob(PLUGIN_GLOB)
+                              for path in (manifest.parent.parent / EVALS).rglob("get_review_comments.json"))
+
+    def shape_errors(self, data):
+        """The list of the points where the data differs from the real result."""
+        errors = []
+        if set(data) != self.TOP_KEYS:
+            return [f"top keys {sorted(data)}"]
+        page = data["pageInfo"]
+        if not self.PAGE_REQUIRED <= set(page) <= self.PAGE_KEYS:
+            errors.append(f"pageInfo keys {sorted(page)}")
+        # The server leaves an empty cursor out, so a cursor that is there holds a value.
+        elif any(not isinstance(page.get(key), str) or not page[key] for key in ("startCursor", "endCursor") if key in page):
+            errors.append(f"empty or wrong cursor in {page}")
+        threads = data["review_threads"]
+        single_page = not page.get("hasNextPage") and not page.get("hasPreviousPage")
+        if data["totalCount"] < len(threads) or (single_page and data["totalCount"] != len(threads)):
+            errors.append(f"totalCount {data['totalCount']} for {len(threads)} threads")
+        for thread in threads:
+            if set(thread) != self.THREAD_KEYS:
+                errors.append(f"thread keys {sorted(thread)}")
+                continue
+            if thread["total_count"] != len(thread["comments"]):
+                errors.append(f"total_count {thread['total_count']} of {thread['id']}")
+            for comment in thread["comments"]:
+                keys = set(comment)
+                if not self.COMMENT_REQUIRED <= keys <= self.COMMENT_KEYS:
+                    errors.append(f"comment keys {sorted(keys)}")
+                elif not isinstance(comment["author"], str) or not self.DISCUSSION.search(comment["html_url"]):
+                    errors.append(f"author or html_url of {comment['html_url']}")
+        return errors
+
+    def top_comment_ids(self, fixture):
+        data = json.loads(fixture.read_text(encoding="utf-8"))
+        return {int(self.DISCUSSION.search(thread["comments"][0]["html_url"]).group(1)) for thread in data["review_threads"]}
+
+    def test_each_fixture_has_the_shape_of_the_real_result(self):
+        self.assertGreater(len(self.fixtures), 0)
+        for fixture in self.fixtures:
+            with self.subTest(fixture=fixture.relative_to(REPO).as_posix()):
+                self.assertEqual(self.shape_errors(json.loads(fixture.read_text(encoding="utf-8"))), [])
+
+    def test_the_old_keys_fail_the_shape(self):
+        comment = {"author": "example-reviewer", "body": "**[ToFix]** Fix it.", "path": "src/pager.py", "line": 24,
+                   "original_line": 24, "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9101",
+                   "created_at": "2026-01-02T10:00:00Z", "updated_at": "2026-01-02T10:00:00Z"}
+        thread = {"id": "PRRT_1", "is_resolved": False, "is_outdated": False, "is_collapsed": False, "total_count": 1,
+                  "comments": [comment]}
+        page = {"hasNextPage": False, "hasPreviousPage": False}
+        self.assertEqual(self.shape_errors({"pageInfo": page, "review_threads": [thread], "totalCount": 1}), [])
+        last_page = {"hasNextPage": False, "hasPreviousPage": True, "startCursor": "Y3Vyc29y", "endCursor": "Y3Vyc29y"}
+        self.assertEqual(self.shape_errors({"pageInfo": last_page, "review_threads": [thread], "totalCount": 31}), [])
+        old_comment = {key: value for key, value in comment.items() if key != "author"}
+        wrong = {
+            "threads in place of review_threads": {"pageInfo": page, "threads": [thread], "totalCount": 1},
+            "user.login in place of author": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**old_comment, "user": {"login": "example-reviewer"}}]}]},
+            "a comment id": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**comment, "id": 9101}]}]},
+            "an empty cursor": {"pageInfo": {**page, "startCursor": ""}, "totalCount": 1, "review_threads": [thread]},
+            "a wrong totalCount on a single page": {"pageInfo": page, "totalCount": 2, "review_threads": [thread]},
+            "no totalCount": {"pageInfo": page, "review_threads": [thread]},
+            "no total_count": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {key: value for key, value in thread.items() if key != "total_count"}]},
+            "an html_url with no comment ID": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**comment, "html_url": "https://github.com/example-org/pager/pull/42"}]}]},
+        }
+        for name, data in wrong.items():
+            with self.subTest(fixture=name):
+                self.assertNotEqual(self.shape_errors(data), [])
+
+    def test_each_reply_mock_expects_the_ids_of_the_top_comments(self):
+        mocks = sorted(fixture.parent.parent / "add_reply_to_pull_request_comment.md" for fixture in self.fixtures
+                       if (fixture.parent.parent / "add_reply_to_pull_request_comment.md").is_file())
+        self.assertGreater(len(mocks), 0)
+        for mock_file in mocks:
+            with self.subTest(mock=mock_file.relative_to(REPO).as_posix()):
+                ids = self.top_comment_ids(mock_file.parent / "fixtures" / "get_review_comments.json")
+                lines, _body = split_frontmatter(mock_file.read_text(encoding="utf-8"))
+                # The model can pass the ID as a number or as a string, and a value outside the list aborts the run.
+                self.assertCountEqual(parse_block(lines)["expect"]["commentId"], [*sorted(ids), *map(str, sorted(ids))])
 
 
 def agent_input(subagent_type):
