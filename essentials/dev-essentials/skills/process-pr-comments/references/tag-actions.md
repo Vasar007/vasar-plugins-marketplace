@@ -13,7 +13,7 @@ The gates in this file are the defaults. Where `SKILL.md` § "Autonomy" differs,
 
 The replies in this file show the marker and the text. Post each reply in the full form of `commit-push-resolve.md` § "Reply templates": the marker and the T# link tag on the first line, then a blank line, then the text. Every reply in this file is a pending reply, in every mode. Stage 2 writes it at once. It posts in the one batch of the cycle (`commit-push-resolve.md` § "When replies post"). In this file, "post" means "add to the batch".
 
-Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Pick one action with the rules of "When multiple tags combine". A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags and whatever its author. That file defines the header (§ "What counts as an automated review comment").
+Tag parsing: the tags are the bracketed tokens at the very start of the comment, for example `[ToFix]` or `[P1][Performance]`. Several tags combine. Pick one action with the rules of "When multiple tags combine". A comment with an automated-review header goes to `automated-review-verification.md`, whatever its tags. Its author must first pass Phase 2 step 1 of `SKILL.md`. That file defines the header (§ "What counts as an automated review comment").
 
 ## Size thresholds for autonomy
 

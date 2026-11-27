@@ -3676,6 +3676,68 @@ class PpcBuildContextGraderTests(unittest.TestCase):
         self.assertIn("fixture_notes_folder", scaffold)
 
 
+class PpcTrustTests(unittest.TestCase):
+    """The trust rule of process-pr-comments acts only on the comments of trusted logins (issue #375).
+
+    A reviewer that the collaborators mock of a case does not list is untrusted, so the case tests the wrong path.
+    """
+
+    UNTRUSTED_CASE = "ppc-untrusted-full"
+    WRITE_ROLES = {"admin", "maintain", "write"}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT) if case.name.startswith("ppc-")}
+
+    @staticmethod
+    def fixture(case, name):
+        return json.loads((case.path / "mocks" / "github" / "fixtures" / name).read_text(encoding="utf-8"))
+
+    def write_logins(self, case):
+        mock = case.path / "mocks" / "github" / "list_repository_collaborators.md"
+        _lines, body = split_frontmatter(mock.read_text(encoding="utf-8"))
+        return {item["login"].lower() for item in json.loads(body)["items"] if item["role_name"] in self.WRITE_ROLES}
+
+    def untrusted(self, case):
+        threads = self.fixture(case, "get_review_comments.json")["threads"]
+        reviewers = {comment["user"]["login"].lower() for thread in threads for comment in thread["comments"]}
+        return reviewers - self.write_logins(case) - {self.fixture(case, "get.json")["user"]["login"].lower()}
+
+    def passes(self, grader, text):
+        meta = self.cases[self.UNTRUSTED_CASE].graders[grader][0]
+        flags = re.I if "i" in meta.get("flags", "") else 0
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def test_only_the_untrusted_case_has_an_untrusted_reviewer(self):
+        self.assertIn(self.UNTRUSTED_CASE, self.cases)
+        for name, case in sorted(self.cases.items()):
+            with self.subTest(case=name):
+                self.assertEqual(self.untrusted(case), {"drive-by-user"} if name == self.UNTRUSTED_CASE else set())
+
+    def test_listed_needs_the_thread_and_the_reason(self):
+        runs = {
+            "the cycle log line": ("T#9101 [ToFix] src/pager.py:24 → untrusted (drive-by-user) — left to you", True),
+            "a sentence": ("I left T#9101 alone, because drive-by-user has no write access to example-org/pager.", True),
+            "upper case": ("T#9101: NOT TRUSTED.", True),
+            "a fix": ("T#9101 [ToFix] src/pager.py:24 → fixed (1 LoC), commit a1b2c3d | resolved", False),
+            "the reason with no thread": ("drive-by-user is not trusted.", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("listed", text), expected)
+
+    def test_route_trust_read_needs_the_collaborators_call(self):
+        def call(tool, **fields):
+            return json.dumps({"tool": "mcp__plugin_github_github__" + tool, "input": fields, "output": "{}", "verdict": "ok"},
+                              separators=(",", ":"))
+
+        read = call("pull_request_read", method="get_review_comments", owner="example-org", repo="pager", pullNumber=42)
+        self.assertTrue(self.passes("route-trust-read", "\n".join([read, call("list_repository_collaborators", owner="example-org")])))
+        self.assertFalse(self.passes("route-trust-read", read))
+        self.assertFalse(self.passes("route-trust-read", call("pull_request_read", note="list_repository_collaborators")))
+
+
 def agent_input(subagent_type):
     """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
     return json.dumps({"description": "Write the text", "prompt": "The brief.", "subagent_type": subagent_type},
