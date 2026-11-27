@@ -9,6 +9,22 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.4.1 in release [7.5.1] - 2026-11-27
+
+`process-pr-comments` now says where the ID of a review comment comes from. The `get_review_comments` result of the GitHub MCP server has no `id` field for a comment. The ID is only the number after `#discussion_r` in the `html_url` of the comment. The eval fixtures of the review threads now have the shape of the real result. So the eval cases test the read of that result (issue #381).
+
+### Fixed in dev-essentials
+
+- `skills/process-pr-comments/SKILL.md`: Phase 2 says that a comment has no `id` field. Its `commentId` is the number after `#discussion_r` in its `html_url` (issue #381).
+- `skills/process-pr-comments/references/thread-state-schema.md`: the `commentId` row of `processedCommentIds` names the same source (issue #381).
+- `skills/github-mcp-conventions/SKILL.md`: the section "Thread anchors and `html_url`" no longer calls the `#discussion_r<id>` part an implementation detail. It names that part as the source of the comment ID in a `get_review_comments` result. The rule against a URL built by hand stays (issue #381).
+- `evals/*/*/mocks/github/fixtures/**/get_review_comments.json`: each of the 23 fixtures has the real shape. The list of threads is `review_threads`, the login is the plain string `author`, and a comment has no `id`. Each thread has `total_count`, and the result has `totalCount` and the four fields of `pageInfo`. The threads, the texts, the logins, the states, and the comment IDs in `html_url` stay the same (issue #381).
+- `evals/process-pr-comments/*/mocks/github/add_reply_to_pull_request_comment.md`: each reply mock expects only the IDs of the top comments of its fixture, as a number or as a string. A reply with another ID ends the run with the score 0 (issue #381).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: a new test fails for a fixture with the old keys `threads`, `user.login`, or a comment `id`. It also fails with no `totalCount` or `total_count`. A new test makes sure that each reply mock expects the IDs of the top comments of its fixture. The trust test reads the logins from `author` (issue #381).
+
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
 `compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
@@ -2902,7 +2918,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...HEAD
+[7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
