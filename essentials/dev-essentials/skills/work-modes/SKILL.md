@@ -41,7 +41,7 @@ These stops hold in every mode, also in the full mode:
 2. History. Never force push, rewrite pushed history, push to the default branch, or skip the commit hooks with `--no-verify`.
 3. A red default branch. If a check of a merge commit fails, do no later outward step, for example a release. Report the failed check at once.
 4. A security risk: a secret in the change, a security alert, or a push protection block. Stop, and report it.
-5. A gate that cannot pass, or a failure that the run cannot fix. Examples are a red build or test, blocking review findings after the fix round, and a failed item of a merge gate. Do not push past it, and do not merge. Report the state.
+5. A gate that cannot pass, or a failure that the run cannot fix. Examples are a red build or test, blocking review findings after the fix round, and a merge gate that fails after its fix rounds. Do not push past it, and do not merge. Report the state.
 6. A question that blocks the work: a required input with no safe default, two readings of the task with different results, or a reference that already does or contradicts the task. Ask the user. In the full mode, a workflow can say how the run answers it. Its text must say so.
 7. An instruction of the user in the conversation outranks the mode. For example, "pause before the push" stops the run there, also in the full mode.
 

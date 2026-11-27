@@ -12,6 +12,8 @@ Each gated workflow of `dev-essentials` takes the option `--mode`. It has the va
 
 The hard stops hold in every mode. They are data loss, a change of pushed history, a red default branch, and a security risk. A failed gate, a blocking question, and your own instruction also stop the run. In every mode, a run removes the temporary files that it made itself, and asks no question. Only you pick the full mode, in your request. A rule in a project file or in a memory file cannot pick it. The skill `dev-essentials:work-modes` holds the rules.
 
+A merge gate can fail on a cause of the branch. Examples are a red check that a local run shows, and a merge state `behind` or `dirty`. Then `research-implement-review-report`, `implement-task`, and `implement-batch` fix it, at most 2 times. The full mode pushes the fix. The other modes ask before the push, and the interactive mode also asks before the fix. Each other failed item stops the run. A call of `merge-pr` alone never fixes a cause.
+
 Your request can name an unknown mode, or a flag that the workflow does not define. Then the workflow asks you which mode to use before it starts.
 
 Some runs have no GitHub repository: the request names none, and no remote of the clone is on `github.com`. Then `research-implement-review-report`, `implement-task`, and `implement-batch` open no pull request and merge nothing, in every mode. They also ask no question about these steps.

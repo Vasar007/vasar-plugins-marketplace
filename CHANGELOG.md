@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+
+A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix, such as a red lint check. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops (issue #387).
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-gate-fix-full`, `rirr-gate-fix-partial`, and `rirr-gate-fix-interactive`: three resume cases with a failed merge gate, one for each work mode. The earlier run left a commit that passes the tests and fails only the lint job of CI. The mocked check names the lint command. The full case needs the fix, its review, a test run, the second push, and a second read of the gate. The partial case needs the fix in a local commit and a question before the push. The interactive case needs a question about the fix, and no commit and no second push (issue #387).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: the new section "A failed merge gate". Step 5 points to it, and the section "A failed step in the full mode" no longer says that a failed gate gets no repair. The section sorts each failed item of the report of `merge-pr`. A red check that a local run shows too, and the merge states `behind` and `dirty`, are fixable. Each other item is a stop (hard stop 5). A fix round fixes the cause in new commits, or merges the base branch with no rebase. Then it reviews the new commits with one review round, and it runs the start conditions and the tests again. The interactive mode asks before the fix. The modes other than the full mode ask before the push. The run does at most 2 fix rounds, and this limit wins over the model ladder (issue #387).
+- `skills/merge-pr/SKILL.md`: step 2 says that a workflow that calls the skill can repair the cause with its own steps. Then the workflow does the steps of the skill again. The rule that the skill itself does not repair a cause stays (issue #387).
+- `skills/work-modes/SKILL.md`: hard stop 5 names a merge gate that fails after its fix rounds (issue #387).
+
+### Changed in the repository
+
+- `docs/workflows.md`: the section "Work modes" says what a failed merge gate does in each mode (issue #387).
+- `tests/test_work_modes_text.py`: the pinned sentences of the failed-gate rule follow the new text. New tests pin the section "A failed merge gate" and the new sentence of `merge-pr` (issue #387).
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: new tests for the three gate cases and their scaffold. The planted repository holds no CI configuration, so no file there leads a run to the failure before the gate. The grader `fix-not-pushed` counts the `git push` calls and allows one. Before, it read the reflog of the branch. A run that does not push has no such file, and a grader on a missing file fails (issue #387).
+
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
 `compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
@@ -2902,7 +2922,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...HEAD
+[7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.7.0
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0

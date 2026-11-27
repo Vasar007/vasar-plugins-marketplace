@@ -47,11 +47,30 @@ Where this file says not to look for the repository, skip this section. In the f
    5. Call `mcp__plugin_github_github__create_pull_request` with `owner`, `repo`, `base` (the base branch of the run), `head` (the branch), `title`, and `body`.
    6. If the call fails, report the error and the pushed branch, and end the run.
    7. Set the fields of the new pull request: do the steps of `skills/github-mcp-conventions/references/pull-request-fields.md` of this plugin. From the base folder of this skill, its path is `../github-mcp-conventions/references/pull-request-fields.md`. If the task is a GitHub issue, it is the issue of these steps. A field that these steps cannot set is no failed step. Then do step 5, unless this file says to skip step 5.
-5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request. The full mode of the run, or the yes of the final gate, is the approval that its section "Approval" asks for. If its gate fails, it does not merge, and the pull request stays open.
+5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request. The full mode of the run, or the yes of the final gate, is the approval that its section "Approval" asks for. If its gate fails, it does not merge, and the pull request stays open. Then do the section "A failed merge gate".
+
+## A failed merge gate
+
+Sort each failed item of the report of `merge-pr`. These items are fixable:
+
+- A red check that fails in a local run of its command too. Its output names a file or a test that the branch changed (`git diff --name-only origin/<base branch>...HEAD`).
+- The merge state `behind` or `dirty`.
+
+Each other item is a stop, for example a change request, a missing approval, or open review threads. A check of other code, a check that did not end, and local commits that the head lacks are stops too. If one failed item is a stop, report each item, and end the run (hard stop 5).
+
+If each failed item is fixable, do a fix round:
+
+1. In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.
+2. Fix the cause in new commits, as the workflow does a task of its plan. For `behind` or `dirty`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.
+3. Review the new commits with `dev-essentials:review-loop --rounds=1`. A merge with no conflict needs no review. Then do steps 1 and 2 again.
+4. Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". With "no", end the run.
+5. Push as step 3 says, and do step 5 again.
+
+Do at most 2 fix rounds. This limit wins over the ladder of `dev-essentials:subagent-orchestration`. If the gate still fails, report it, and end the run (hard stop 5).
 
 ## A failed step in the full mode
 
-A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. For a failed merge gate, name the failed item from the report of `merge-pr`. Do not repair the cause, and do not do a step again.
+A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. For a failed merge gate, first do the section "A failed merge gate". Do no other step again.
 
 ## Resume
 
