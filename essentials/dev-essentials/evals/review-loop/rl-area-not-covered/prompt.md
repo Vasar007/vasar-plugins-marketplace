@@ -10,7 +10,7 @@ Finish a review loop run of mine. This folder has no repository. So run no comma
 
 The run so far:
 
-- Request: `/dev-essentials:review-loop branch --rounds 2 --mode full`.
+- Request: `/dev-essentials:review-loop branch --rounds 2 --mode full --print-reports`.
 - Target: the branch `feature/ledger-export`, with the diff `origin/main...HEAD`. The diff changes 41 files and about 3,100 lines. The build and the tests pass at `HEAD`.
 - Phase 3 chose the large-target orchestrated mode. The Target Explorer mapped three areas: `api` (14 files), `ui` (15 files), and `ledger` (12 files). I dispatched one Area Explorer for each area, all in one message.
 
