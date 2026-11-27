@@ -2514,7 +2514,9 @@ class PrBodyFormGraderTests(unittest.TestCase):
         step = skill.split("### 5. Generate PR Description", 1)[1].split("### 6.", 1)[0]
         self.assertIn("If you use a template:", step)
         stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
-        self.assertIn('If the repository has a PR template, follow the rules for a template in its step "5. Generate PR Description".', stage)
+        paragraph = next(line for line in stage.splitlines() if "dev-essentials:compose-pr" in line)
+        self.assertIn("PR template", paragraph)
+        self.assertIn('"5. Generate PR Description"', paragraph)
         self.assertNotIn("HTML comment", stage)
 
 

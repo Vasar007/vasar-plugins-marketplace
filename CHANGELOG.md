@@ -15,12 +15,12 @@ The finish steps of `work-modes` now write the title of a pull request in the fo
 
 ### Added in dev-essentials
 
-- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template. The case is a guard: both sides scored 1.00 on two agent models (issue #385).
+- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template. The case is a guard: in the runs of PR #384, both sides scored 1.00 on two agent models (issue #385).
 
 ### Changed in dev-essentials
 
-- `skills/work-modes/references/finish.md`: step 4 gives `pr-composer` the name of the model of the session. The title follows a form for titles from the instructions file or from the template. Else it comes from the summary of the change in the body, which is `## What` for a body with no template (issue #385).
-- `skills/feature-pipeline/stages/finalization.md`: step 6 loads `compose-pr`. For a PR template, it follows the template rules of step 5 of `compose-pr` (issue #385).
+- `skills/work-modes/references/finish.md`: step 4 writes the title in the form that the instructions file or the template gives. Else it comes from the summary of the change in the body, which is `## What` for a body with no template (issue #385).
+- `skills/feature-pipeline/stages/finalization.md`: step 6 loads `compose-pr` only for a repository with a PR template, or with no form for the PR body. For a template, it follows the template rules of step 5 of `compose-pr`. The closing line, the length limit, and the skipped steps apply in these two cases (issue #385).
 
 ### Changed in the repository
 
