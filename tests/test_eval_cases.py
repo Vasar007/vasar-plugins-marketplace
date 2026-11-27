@@ -6410,7 +6410,7 @@ class GateFixCaseTests(unittest.TestCase):
                 self.assertEqual([(run["name"], run["status"], run["conclusion"]) for run in runs["check_runs"]],
                                  [("unit-tests", "completed", "success"), ("lint", "completed", "success")])
                 self.assertEqual(self.fixture(case, "pull/get_reviews.json"), [])
-                self.assertEqual(self.fixture(case, "pull/get_review_comments.json")["threads"], [])
+                self.assertEqual(self.fixture(case, "pull/get_review_comments.json")["review_threads"], [])
                 created = self.fixture(case, f"pull-{number}.json")
                 self.assertEqual(created["url"], f"https://github.com/example-org/users-app/pull/{number}")
                 for mock, expect in (("create_pull_request.md", {**self.REPOSITORY, "base": "main", "head": self.BRANCH}),
