@@ -11,18 +11,18 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.9.0 in release [7.10.0] - 2026-11-27
 
-A new paragraph of `subagent-orchestration` is about the final report of a change. If no smoke run, integration test, or end-to-end test covers the change, the paragraph asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+A new section of `subagent-orchestration` is about the final report of a change of behavior. If no smoke run, integration test, or end-to-end test covers the change, the section asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
 
 HEAD-NUMBERS-LINE
 
 ### Added in dev-essentials
 
 - `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The other scored graders read the change, the unit test run, and the commit (issue #386).
-- `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new paragraph does not make a run skip an integration test that exists (issue #386).
+- `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new section does not make a run skip an integration test that exists (issue #386).
 
 ### Changed in dev-essentials
 
-- `skills/subagent-orchestration/SKILL.md`: a new paragraph in `Trust but verify`. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers a change, the final report says so. It names that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so a run does not stop for it (issue #386).
+- `skills/subagent-orchestration/SKILL.md`: a new section `Proof of a change`, right before `Trust but verify`. It holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, the final report says so. It names that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so a run does not stop for it (issue #386).
 
 ### Changed in the repository
 

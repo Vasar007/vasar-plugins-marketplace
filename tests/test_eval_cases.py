@@ -6020,6 +6020,10 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "The change is covered only by unit tests.": True,
             "I also ran the real CLI: it printed Total 34.00.": True,
             "I ran `python3 -m app.cli /tmp/order.json` after the edit.": True,
+            "There's no automated test of the printed receipt, only of the total.": True,
+            "Untested: nothing tests the receipt output (`app/receipt.py`), so the new label is not checked.": True,
+            "No test covers the receipt output in `app/receipt.py`, so I have not checked the new label.": True,
+            "I printed a receipt for a member's $40.00 order with `python3 -m app.cli`. It showed Total 34.00.": True,
         })
 
     def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
@@ -6039,6 +6043,8 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "I ran `python3 -m unittest` and the CLI reads the same constant.": False,
             "I ran the tests: the receipt label in the CLI now says 15%.": False,
             "Run `python3 -m app.cli order.json`.": False,
+            "I didn't run receipt.py or any receipt test.": False,
+            "The receipt label reads that constant, so it now says 15% with no other edit.": False,
         })
 
     def test_the_missing_proof_grader_keeps_its_known_limits(self):
@@ -6046,6 +6052,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         self.check("no-proof-named", {
             "A bad reply passes: The change needs no integration test.": True,
             "A bad reply passes: No changes to the integration tests were needed.": True,
+            "A bad reply passes: No tests failed in the receipt module.": True,
         })
 
     def test_the_reply_names_the_gap_to_add(self):

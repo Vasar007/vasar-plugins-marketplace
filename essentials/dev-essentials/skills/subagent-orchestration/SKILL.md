@@ -206,6 +206,10 @@ A vague brief produces shallow work. Each delegation must include:
 
 A 10-line brief that prevents one wrong dispatch is worth more than three 3-line briefs that each need a redo.
 
+## Proof of a change
+
+This section holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, say so in the final report. Name that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so do not stop for it.
+
 ## Trust but verify
 
 Check a subagent report in these tiers:
@@ -213,8 +217,6 @@ Check a subagent report in these tiers:
 1. Cheap facts, always, by the orchestrator: the files exist, the counts match the report, the build, test, or validator output shows a pass, and each commit holds only the intended files. If one fails, fix it or dispatch a repair. Read the verbatim result lines that the subagent reports. Do not add a run after each report. Before a commit or a push, run the build and the tests one time in the main loop. That run is the check of all reports since the last run. Use one command whose output holds only the result lines and the errors, and keep its exit code (for .NET, the filters of `dev-essentials:dotnet-build-test`). If each command exits with code 0 and the result line shows zero failed tests, the run is green. Any other result is not green. Run the tests that the subagent ran. If it ran none, run the tests that cover the changed files. A green run of the main loop after the last edit counts. If the run is red, fix the cause or send the error lines back, and run again. Compare only the status, the error count, and the Failed, Passed, and Total counts with the report. Ignore the duration and the warning count, because they differ between runs. If a run can take longer than 10 minutes, dispatch `dev-essentials:test-runner`. Its brief gives the absolute worktree path, the commands, and the test filter or the words that the whole test suite runs. It also says that the run can take longer than 10 minutes. If its status is STOPPED, answer its question and dispatch it again, or ask the user. Also dispatch it for runs in several worktrees at the same time (test 2).
 2. Content, by an agent: a verifier or reviewer agent checks whether a finding, a cited line, or a claimed behavior is true. If the workflow has no such agent and the next step depends on the content, dispatch one. Do not redo its work. Every re-read stays in the main context for the rest of the run.
 3. Spot-check, by the orchestrator, only before a high-risk action: a push, a deletion, a post to an outside system, or a recommendation that the user acts on. Re-read only the lines that the action depends on. If a subagent claimed a green build or green tests after a rebase, run them again (for .NET, see `dev-essentials:dotnet-build-test`).
-
-A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers a change, say so in the final report. Name that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so do not stop for it.
 
 In a fan-out, match each report to the unit that you dispatched. A failed agent, a stopped agent, and a reply that Claude Code marks as cut off or partial give no report. Give each unit with no report one resume (Rule 5) or one new dispatch. If it fails again, name it in the final report as not covered, and report no clean result for it. Keep the findings of a cut-off reply, but the unit stays not covered. This rule, not the ladder, covers a unit with no report. A limit of tries or a stop rule that a skill names wins, and a run format does not replace this check.
 
