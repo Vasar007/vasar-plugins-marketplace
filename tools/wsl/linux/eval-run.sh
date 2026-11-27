@@ -36,6 +36,11 @@ if [ "$wait" = yes ]; then
     until [ "$(busy)" = 0 ]; do sleep 5; done
 fi
 [ -d "$clone/.git" ] || git -c init.defaultBranch=main -c advice.detachedHead=false clone -q --no-checkout "$bundle" "$clone"
+# Only a clone that this script made has a bundle as its origin. Another clone keeps its branches.
+case "$(git -C "$clone" config remote.origin.url || true)" in
+    *.bundle) ;;
+    *) echo "STOP: $clone is not an eval clone that this script made, and a run removes the branches of its eval clone. Pass a folder that does not exist yet, and the script makes the eval clone there." >&2; exit 3 ;;
+esac
 git -C "$clone" fetch -q --prune "$bundle" '+refs/heads/*:refs/remotes/win/*'
 git -C "$clone" checkout -q --detach "win/$ref"
 # The first clone made local branches and origin refs that never move. Remove them, so that only win/<branch> resolves.

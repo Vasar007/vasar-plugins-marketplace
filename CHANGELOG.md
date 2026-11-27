@@ -12,6 +12,7 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `tools/wsl/linux/eval-run.sh`: after the fetch of the bundle, the eval clone now keeps only the branches of that bundle at `win/<branch>`. The script removes each local branch, each `origin` ref, and each other `win/` branch. Before, the local `main` of the first clone never moved, so `--base main` compared against an old commit with no warning. Now a plain `main` names no branch, and `compare_versions.py` stops before the first run (issue #383).
+- `tools/wsl/linux/eval-run.sh`: a `--clone` folder with a clone that the script did not make now gets a `STOP` line and exit code 3. Before, a run removed the local branches of such a clone (issue #383).
 - `tools/wsl/run-eval.sh`, `docs/tools.md`, `docs/evals.md`: the usage text and the docs tell you to give `--base`, `--head`, or `--commit` a branch in the form `win/<branch>` (issue #383).
 - `tests/test_tools_wsl.py`: a new test makes three runs. Then it makes sure that `win/main` is the new `main` and that no stale branch of the eval clone resolves. It also makes sure that the usage text names `--base win/main` (issue #383).
 

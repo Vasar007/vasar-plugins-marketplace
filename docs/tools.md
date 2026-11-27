@@ -104,7 +104,7 @@ The third argument is the result folder on Windows. It must be empty or new. The
 
 The bundle of a run holds `main` and the branch of the second argument. The eval clone gets them as `win/main` and `win/<branch>`, and the run checks out `win/<branch>`. After the fetch, the script removes each other branch of the eval clone, also the local `main` of its first clone. So give `--base`, `--head`, or `--commit` a branch in the form `win/<branch>`, for example `--base win/main`. `HEAD` names the branch of the second argument. A plain name such as `main` names no branch, so `compare_versions.py` stops before the first run.
 
-The scripts keep their files in `~/.cache/marketplace-tools` of Linux. The eval clone is `eval-clone` there, or the Linux path of the option `--clone` of `run-eval.sh`. The runs use `~/.cache/plugin-evals/tmp` as the temp folder. These variables change the defaults:
+The scripts keep their files in `~/.cache/marketplace-tools` of Linux. The eval clone is `eval-clone` there, or the Linux path of the option `--clone` of `run-eval.sh`. Each run removes the local branches of the eval clone. If the folder of `--clone` holds a work clone, the script stops with exit code 3. To make a new eval clone, give a folder that does not exist yet. The runs use `~/.cache/plugin-evals/tmp` as the temp folder. These variables change the defaults:
 
 | Variable | Default | What it sets |
 | --- | --- | --- |

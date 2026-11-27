@@ -348,6 +348,17 @@ class RunEvalTests(WslCase):
         self.assertTrue((clone / ".git").is_dir())
         self.assertFalse((self.tools / "eval-clone").exists())
 
+    def test_clone_that_the_script_did_not_make_keeps_its_branches(self):
+        self.claude()
+        clone = self.tmp / "work-clone"
+        run(["git", "clone", "-q", self.repo, clone], env=self.env, check=True)
+        run(["git", "-C", clone, "branch", "wip"], env=self.env, check=True)
+        out = self.script("run-eval.sh", "--no-wait", "--clone", clone, self.repo, "work/one", self.tmp / "r",
+                          "baseline", code=3)
+        self.assertIn(f"STOP: {clone} is not an eval clone that this script made", out)
+        branches = run(["git", "-C", clone, "branch", "--format=%(refname:short)"], env=self.env, check=True)
+        self.assertIn("wip", branches.stdout.split())
+
     def test_claude_below_mnt_is_refused(self):
         if subprocess.run(["unshare", "-r", "-m", "true"], capture_output=True).returncode != 0:
             self.skipTest("unshare -r -m is not allowed here")

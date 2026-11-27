@@ -4,6 +4,8 @@
 # Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <branch> <result folder> <compare_versions arguments>...
 #   --no-wait      do not wait for a quiet machine. The run still waits for the lock of the eval clone
 #   --clone PATH   the Linux path of the eval clone (default: <tools folder>/eval-clone)
+#                  Each run removes the branches of the eval clone. Give a new folder or a clone of an earlier run.
+#                  The script stops with exit code 3 for another clone, for example a work clone.
 # Give the compare_versions arguments without --out and --claude, for example:
 #   run-eval.sh /c/src/repo my-branch results/head baseline --plugin essentials/dev-essentials --commit HEAD \
 #       --model <model id> --judge-model <model id> --case <case> --scaffold --runs 3 --keep-temp
