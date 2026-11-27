@@ -147,3 +147,4 @@ These graders have other known limits:
 - `one-commit` and `one-commit-per-task` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`): an amend, a merge, a cherry-pick, or a rebase fails the run. `one-commit-per-task` cannot tell a task with two commits from a final review commit.
 - `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`): it does not see `Assert.Ignore` in a `[SetUp]` method, a filter in the test command, or a moved test.
 - `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.
+- `rule-candidate`, `route-candidate-threads`, and `route-unrelated-not-candidate` of `ppc-rule-candidates` (`PpcRuleCandidateTests`): `rule-candidate` fails a point with none of its point words, such as PEP 8. `route-candidate-threads` fails a reply with one line for each thread. `route-unrelated-not-candidate` reads one line and sees no negation.

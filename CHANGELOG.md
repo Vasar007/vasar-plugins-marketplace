@@ -11,20 +11,21 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.10.0 in release [7.11.0] - 2026-11-27
 
-If two or more threads of one cycle make the same review point, `process-pr-comments` now lists a rule candidate in its cycle log. A reviewer often makes the same point again in the next pull request. Before, the skill fixed each comment, and nothing kept the point. The skill writes no rule into an instruction file. The user decides on each rule (issue #388).
+`process-pr-comments` now lists a rule candidate in its cycle log. A rule candidate is a review point that two or more threads of trusted people make in one cycle. A reviewer often makes the same point again in the next pull request. Before, the skill fixed each comment, and nothing kept the point. The skill writes no rule into a file or into memory. The user decides on each rule (issue #388).
 
 ### Added in dev-essentials
 
-- `evals/process-pr-comments/ppc-rule-candidates`: a new case in the full mode. Three `[ToFix]` threads make one naming point in other words, and one thread is about a default limit. The fixture has the real shape of the GitHub MCP server. The scored graders read the four fixes, the commit, the push, the replies, and the resolve. They also make sure that no instruction file changes, and that the final reply lists the naming point as a rule candidate. No candidate can hold the limit thread. A route grader reads the three threads on the line of the candidate. At the base, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent fixed, committed, pushed, replied, and resolved. No base run named the point or a rule, and each failed the candidate graders (issue #388).
+- `evals/process-pr-comments/ppc-rule-candidates`: a new case in the full mode. Three `[ToFix]` threads make one naming point in other words, and one thread is about a default limit. The fixture has the real shape of the GitHub MCP server. The scored graders read the four fixes, the commit, the push, the replies, and the resolve. They also make sure that no instruction file changes, and that the final reply lists the naming point as a rule candidate. A route grader reads the three threads on the line of the candidate. Another route grader reads that no candidate line holds the limit thread. At the base, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent fixed, committed, pushed, replied, and resolved. No base run named the point or a rule, and each failed the candidate graders (issue #388).
 HEAD-NUMBERS-LINE
 
 ### Changed in dev-essentials
 
-- `skills/process-pr-comments/SKILL.md`: Phase 5 has a `Rule candidates (<N>)` list before the line about the push state. Each line names the point, the threads that make it, and a draft rule in one sentence. The skill writes no candidate into `CLAUDE.md`, `AGENTS.md`, `REVIEW.md`, or another instruction file. A cycle with no repeated point has no list (issue #388).
+- `skills/process-pr-comments/SKILL.md`: Phase 5 has a `Rule candidates (<N>)` list after the thread lines and before any line about the push state. Only the threads of trusted people count. Each line names the point, the threads that make it, and a draft rule in one sentence. The skill writes a candidate only into the cycle log, not into a file such as `CLAUDE.md`, and not into memory. A cycle with no candidate has no list (issue #388).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the patterns of the candidate graders of `ppc-rule-candidates` on right and wrong texts. The wrong texts include the words of two base runs (issue #388).
+- `tests/test_eval_cases.py`: new tests for the patterns of the candidate graders of `ppc-rule-candidates` on right and wrong texts. The wrong texts include the words of two base runs and an empty list of candidates (issue #388).
+- `docs/eval-cases.md`: the list of grader limits names the candidate graders of `ppc-rule-candidates` (issue #388).
 - `tests/test_eval_scaffolds.py`: the list of branches names `ppc-rule-candidates`. A new test runs the file graders of the case on real end states of its scaffold (issue #388).
 
 ## dev-essentials 6.5.0 in release [7.6.0] - 2026-11-27
