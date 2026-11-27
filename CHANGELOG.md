@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.8.0 in release [7.9.0] - 2026-11-27
+
+The default form of `compose-pr` now has the section `## UI changes` for a change that a person sees. Before, the description of a UI change read like the description of a backend change, and it asked for no image or video. The new section names each changed view. It shows the images of the state before and after that the input gives, with alt text that names the state. With no image, it names each missing image, and a short video for motion, after `Not confirmed:`. The form follows the pull requests of a public repository with a clear form for UI evidence (issue #389).
+
+### Added in dev-essentials
+
+- `evals/composers/cmp-pr-ui-change`: a new case with no shell tool. Its diff adds a badge and a fade-in animation to a page header, and its prompt has no image. The description must ask for the images before and after and for a short video, and mark them as not there yet. It must hold no image link and claim no evidence. At the base, each of 3 runs on an Opus agent and each of 3 runs on a Sonnet agent scored 0.60. Each run failed `asks-for-images` and `asks-for-video` (issue #389).
+- `evals/composers/cmp-pr-ui-images`: a new case with the same diff and two uploaded image links. The description must use both links and no other media link, and ask for the video. Route graders read the Before and After table and alt text that names the state of each image. At the base, each of 3 runs on each of the two agents scored 0.625. Each run failed `asks-for-video` (issue #389).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: step 5 has the section `## UI changes` after `## Changes`. It is there only for a diff that changes what a person sees. It holds one line for each changed view and a Before and After table of the image links of the input. The alt text of each image names its state. A given video link goes on its own line. A change of motion, timing, or an interaction asks for a short video. The skill writes no image or video link of its own, and the evidence goes to the pull request, never into the repository. The length limits do not count the links. A PR template of the repository still wins (issue #389).
+- `skills/compose-pr/references/examples.md`: an example of a UI change with no image (issue #389).
+- `evals/composers/cmp-pr-untested-diff` and `evals/composers/cmp-pr-tested-diff`: the new scored grader `no-ui-section` makes sure that a backend diff gets no such section (issue #389).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A test makes sure that the prompts of the two new cases differ only in the image links. It also makes sure that the first prompt names no evidence (issue #389).
+
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
 `compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
@@ -2902,7 +2921,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...HEAD
+[7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.9.0
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
