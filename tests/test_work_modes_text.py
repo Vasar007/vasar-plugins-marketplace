@@ -363,32 +363,41 @@ class FinishStepTests(unittest.TestCase):
     def test_a_failed_merge_gate_gets_a_fix_round_by_the_work_mode(self):
         section = self.text[self.text.index("## A failed merge gate"):self.text.index("## A failed step in the full mode")]
         sentences = (
-            "- A red check that fails in a local run of its command too. Its output names a file or a test that the branch changed "
+            "- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository "
+            "or from the log of the failed job. Each file or test that its output names is one that the branch changed "
             "(`git diff --name-only origin/<base branch>...HEAD`).",
             "- The merge state `behind` or `dirty`.",
+            # merge-pr item 2 passes only for clean, and a red check gives unstable or blocked in the same read.
+            "If a fixable red check fails, the merge state `unstable` or `blocked` of the same read is part of that item.",
             "Each other item is a stop, for example a change request, a missing approval, or open review threads.",
-            "A check of other code, a check that did not end, and local commits that the head lacks are stops too.",
+            "A check with no command in these sources and local commits that the head lacks are stops too.",
+            "A check that reports a secret or a security alert is hard stop 4. A local run of it does not change this.",
             "If one failed item is a stop, report each item, and end the run (hard stop 5).",
             'In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.',
-            "For `behind` or `dirty`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.",
-            "Review the new commits with `dev-essentials:review-loop --rounds=1`. A merge with no conflict needs no review. "
-            "Then do steps 1 and 2 again.",
+            "For `behind` or `dirty`, run `git fetch origin <base branch>`, merge `origin/<base branch>` into the branch, "
+            "and resolve each conflict. Never rebase.",
+            "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. "
+            "After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. "
+            "Then do steps 1 and 2 again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
             'Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". '
             'With "no", end the run.',
             "Push as step 3 says, and do step 5 again.",
-            "Do at most 2 fix rounds. This limit wins over the ladder of `dev-essentials:subagent-orchestration`. "
-            "If the gate still fails, report it, and end the run (hard stop 5).")
+            "Do at most 2 fix rounds. If the gate still fails, report it, and end the run (hard stop 5).")
         for sentence in sentences:
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, section)
         # The push of the fix is step 3 of the steps, so the section holds no push command of its own.
         self.assertNotIn("git -C", section)
         self.assertNotIn("--force", section)
+        report = self.text[self.text.index("## The finish report"):]
+        self.assertIn("- Each fix round: the failed items, the fix commits, the verdict of its review, "
+                      "and the push or the answer to the push question.", report)
 
     def test_merge_pr_leaves_the_repair_to_the_workflow_that_loaded_it(self):
         text = read(PLUGIN / "skills/merge-pr/SKILL.md")
-        self.assertIn("Do not repair the cause in this skill. A workflow that loaded this skill can repair the cause with its own steps, "
-                      "and then do the steps of this skill again.", text)
+        # The sentence comes after the stop, so the prohibitions before it bind the skill and not the workflow.
+        self.assertIn("Report the item, its evidence, and what the user can do. Then stop. A workflow that loaded this skill can then "
+                      "repair the cause with its own steps. Then it does the steps of this skill again.", text)
         self.assertIn("a failure that the run cannot fix. Examples are a red build or test, blocking review findings after the fix round, "
                       "and a merge gate that fails after its fix rounds.", read(WORK_MODES))
 

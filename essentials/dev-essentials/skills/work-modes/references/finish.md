@@ -53,20 +53,22 @@ Where this file says not to look for the repository, skip this section. In the f
 
 Sort each failed item of the report of `merge-pr`. These items are fixable:
 
-- A red check that fails in a local run of its command too. Its output names a file or a test that the branch changed (`git diff --name-only origin/<base branch>...HEAD`).
+- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository or from the log of the failed job. Each file or test that its output names is one that the branch changed (`git diff --name-only origin/<base branch>...HEAD`).
 - The merge state `behind` or `dirty`.
 
-Each other item is a stop, for example a change request, a missing approval, or open review threads. A check of other code, a check that did not end, and local commits that the head lacks are stops too. If one failed item is a stop, report each item, and end the run (hard stop 5).
+If a fixable red check fails, the merge state `unstable` or `blocked` of the same read is part of that item.
+
+Each other item is a stop, for example a change request, a missing approval, or open review threads. A check with no command in these sources and local commits that the head lacks are stops too. A check that reports a secret or a security alert is hard stop 4. A local run of it does not change this. If one failed item is a stop, report each item, and end the run (hard stop 5).
 
 If each failed item is fixable, do a fix round:
 
 1. In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.
-2. Fix the cause in new commits, as the workflow does a task of its plan. For `behind` or `dirty`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.
-3. Review the new commits with `dev-essentials:review-loop --rounds=1`. A merge with no conflict needs no review. Then do steps 1 and 2 again.
+2. Fix the cause in new commits, as the workflow does a task of its plan. For `behind` or `dirty`, run `git fetch origin <base branch>`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.
+3. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. Then do steps 1 and 2 again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).
 4. Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". With "no", end the run.
 5. Push as step 3 says, and do step 5 again.
 
-Do at most 2 fix rounds. This limit wins over the ladder of `dev-essentials:subagent-orchestration`. If the gate still fails, report it, and end the run (hard stop 5).
+Do at most 2 fix rounds. If the gate still fails, report it, and end the run (hard stop 5).
 
 ## A failed step in the full mode
 
@@ -84,4 +86,5 @@ Print the finish report after the final report of the workflow. It lists:
 - The result of each step: the build and the tests, the push, the pull request with its number and its URL, and the report of `merge-pr`.
 - Each field of the pull request that the run did not set, with the reason.
 - Each step that did not run, with the reason.
+- Each fix round: the failed items, the fix commits, the verdict of its review, and the push or the answer to the push question.
 - When a worktree was removed: the archive folder of the files of the run.

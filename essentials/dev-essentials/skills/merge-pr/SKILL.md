@@ -39,7 +39,7 @@ These states are not failures yet:
 
 While one of the first three states holds, the merge states `unstable` and `blocked` are not failures either. Wait about one minute, and read items 1 and 2 again. A wait is real time on the clock between two reads, for example a sleep command or a timer. Never read again with no wait. Stop the wait after 30 minutes, or after the limit that the user named. If this session has no way to wait, the wait ends at once. When items 1 and 2 pass after a wait, read item 3 again before Step 3. After 3 reads, a head can still have no check run and no status. Then item 1 fails, unless the user said that the repository has no CI.
 
-If an item fails, a read fails, or the wait ends, do not merge. For example, the MCP call and the `gh` call of item 1 can both fail. Then the read fails. Do not repair the cause in this skill. A workflow that loaded this skill can repair the cause with its own steps, and then do the steps of this skill again. Make no new commit, do not update the branch, start no check again, and do not call the merge with other values. Report the item, its evidence, and what the user can do. Then stop.
+If an item fails, a read fails, or the wait ends, do not merge. For example, the MCP call and the `gh` call of item 1 can both fail. Then the read fails. Do not repair the cause in this skill. Make no new commit, do not update the branch, start no check again, and do not call the merge with other values. Report the item, its evidence, and what the user can do. Then stop. A workflow that loaded this skill can then repair the cause with its own steps. Then it does the steps of this skill again.
 
 ## Step 3: Merge
 
