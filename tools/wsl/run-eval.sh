@@ -18,6 +18,7 @@
 # It ends with exit code 3 and a STOP line if ANTHROPIC_API_KEY is set, if the sign-in is not claude.ai,
 # or if WSL2 has no claude command of its own. It also does so if the repository does not have the branch,
 # if the result folder is not empty or cannot be made, if WSL_DISTRO names no distribution, or if a copy fails.
+# A --clone folder with a clone that this script did not make gets exit code 3 too.
 # If this script stops, it removes its bundle. A run that did not print its HEAD line then can fail in WSL2.
 # A run after its HEAD line goes on in WSL2. Its result stays in the LINUX RESULT FOLDER.
 # wsl.exe makes one backslash from two in a row, so give no argument with two backslashes in a row.
