@@ -1,0 +1,85 @@
+{
+  "pageInfo": {
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  },
+  "review_threads": [
+    {
+      "comments": [
+        {
+          "author": "example-reviewer",
+          "body": "**[ToFix]** Rename `pageCount` to `page_count`. The functions of this package use snake_case names.",
+          "created_at": "2026-01-02T10:00:00Z",
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9201",
+          "line": 19,
+          "original_line": 19,
+          "path": "src/pager.py",
+          "updated_at": "2026-01-02T10:00:00Z"
+        }
+      ],
+      "id": "PRRT_kwDOexample201",
+      "is_collapsed": false,
+      "is_outdated": false,
+      "is_resolved": false,
+      "total_count": 1
+    },
+    {
+      "comments": [
+        {
+          "author": "example-reviewer",
+          "body": "**[ToFix]** `lastPage` should be `last_page`, like `page_numbers` above.",
+          "created_at": "2026-01-02T10:01:00Z",
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9202",
+          "line": 12,
+          "original_line": 12,
+          "path": "src/ranges.py",
+          "updated_at": "2026-01-02T10:01:00Z"
+        }
+      ],
+      "id": "PRRT_kwDOexample202",
+      "is_collapsed": false,
+      "is_outdated": false,
+      "is_resolved": false,
+      "total_count": 1
+    },
+    {
+      "comments": [
+        {
+          "author": "example-reviewer",
+          "body": "**[ToFix]** Please call it `display_name`. We write Python function names in snake_case, not camelCase.",
+          "created_at": "2026-01-02T10:02:00Z",
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9203",
+          "line": 18,
+          "original_line": 18,
+          "path": "src/users.py",
+          "updated_at": "2026-01-02T10:02:00Z"
+        }
+      ],
+      "id": "PRRT_kwDOexample203",
+      "is_collapsed": false,
+      "is_outdated": false,
+      "is_resolved": false,
+      "total_count": 1
+    },
+    {
+      "comments": [
+        {
+          "author": "example-reviewer",
+          "body": "**[ToFix]** Keep the default `limit` at 50. A page of 500 rows is too slow for the order screen.",
+          "created_at": "2026-01-02T10:03:00Z",
+          "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9204",
+          "line": 19,
+          "original_line": 19,
+          "path": "src/store.py",
+          "updated_at": "2026-01-02T10:03:00Z"
+        }
+      ],
+      "id": "PRRT_kwDOexample204",
+      "is_collapsed": false,
+      "is_outdated": false,
+      "is_resolved": false,
+      "total_count": 1
+    }
+  ],
+  "totalCount": 4
+}

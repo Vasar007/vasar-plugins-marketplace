@@ -62,6 +62,7 @@ EXPECTED_BRANCH = {
     "wt-pricing-folder": "work/tests",
     "wt-useful-tests": "work/tests",
     "wm-scratch-probe": "feature/paging",
+    "ppc-rule-candidates": "feature/page-helpers",
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-pr-repo-template": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
@@ -2372,6 +2373,75 @@ class NoWorktreeDirtyGraderTests(FixtureCase):
         for reply, expected in replies.items():
             with self.subTest(reply=reply):
                 self.assertEqual(self.passes("names-changed-file", reply), expected)
+
+
+class PpcRuleCandidatesEndStateTests(FixtureCase):
+    """The file graders of ppc-rule-candidates on real end states of its scaffold.
+
+    A right run renames the three functions, puts the limit back to 50, commits, and keeps CLAUDE.md as it is.
+    """
+
+    CASE = "ppc-rule-candidates"
+    RENAMES = {"pager-renamed": ("src/pager.py", "pageCount", "page_count"),
+               "ranges-renamed": ("src/ranges.py", "lastPage", "last_page"),
+               "users-renamed": ("src/users.py", "displayName", "display_name")}
+    FILE_GRADERS = ("pager-renamed", "ranges-renamed", "users-renamed", "limit-kept", "committed", "claude-md-unchanged")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def environment(self, skip_dotnet=True):
+        env = super().environment(skip_dotnet)
+        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/dev/null"})
+        return env
+
+    def edit(self, path, old, new):
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        path.write_text(text.replace(old, new), encoding="utf-8")
+
+    def failed(self, workspace):
+        verdicts = file_grader_verdicts(self.case, self.FILE_GRADERS, workspace, set())
+        return sorted(grader for grader, passed in verdicts.items() if not passed)
+
+    def right_run(self, workspace, skip=()):
+        for grader, (path, old, new) in self.RENAMES.items():
+            if grader not in skip:
+                self.edit(workspace / path, old, new)
+        if "limit-kept" not in skip:
+            self.edit(workspace / "src" / "store.py", "limit=500", "limit=50")
+        code, output = self.git(workspace, "commit", "-q", "-am", "PR #42 T#9201 T#9202 T#9203 T#9204: fix the review points")
+        self.assertEqual(code, 0, output)
+
+    def test_the_scaffold_fails_each_fix_grader(self):
+        workspace = self.workspace("planted")
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        self.assertEqual(self.failed(workspace), ["committed", "limit-kept", "pager-renamed", "ranges-renamed", "users-renamed"])
+
+    def test_a_right_run_passes_and_each_wrong_run_fails_its_grader(self):
+        def add_a_rule(workspace):
+            with (workspace / "CLAUDE.md").open("a", encoding="utf-8") as stream:
+                stream.write("- Name each Python function in snake_case.\n")
+
+        def keep_the_old_name_as_an_alias(workspace):
+            path = workspace / "src" / "users.py"
+            path.write_text(path.read_text(encoding="utf-8") + "\ndisplayName = display_name\n", encoding="utf-8")
+
+        shapes = {
+            "a right run": (lambda w: None, (), None),
+            "a rule line in CLAUDE.md": (add_a_rule, (), "claude-md-unchanged"),
+            "an old name left in the file": (keep_the_old_name_as_an_alias, (), "users-renamed"),
+            "one rename missing": (lambda w: None, ("ranges-renamed",), "ranges-renamed"),
+            "the limit stays at 500": (lambda w: None, ("limit-kept",), "limit-kept"),
+        }
+        for name, (shape, skip, failed) in shapes.items():
+            with self.subTest(shape=name):
+                workspace = self.workspace(name.replace(" ", "-"))
+                self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+                self.right_run(workspace, skip)
+                shape(workspace)
+                self.assertEqual(self.failed(workspace), [failed] if failed else [])
 
 
 class BugHuntFlowGraderTests(FixtureCase):

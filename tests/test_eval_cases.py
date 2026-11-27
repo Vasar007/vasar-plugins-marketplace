@@ -3765,6 +3765,161 @@ class PpcTrustTests(unittest.TestCase):
         self.assertFalse(self.passes("route-trust-read", call("pull_request_read", note="list_repository_collaborators")))
 
 
+class PpcRuleCandidateTests(unittest.TestCase):
+    """ppc-rule-candidates: three threads make one naming point, and one thread is about a limit (issue #388).
+
+    ReviewCommentsFixtureTests and PpcTrustTests test the fixture and the reply mock of the case.
+    """
+
+    CASE = "ppc-rule-candidates"
+    LOG = ("Cycle 1 @ 10:00 — PR #42 (4 threads, 4 new comments)\n"
+           "  T#9201 [ToFix] src/pager.py:19   → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9202 [ToFix] src/ranges.py:12  → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9203 [ToFix] src/users.py:18   → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9204 [ToFix] src/store.py:19   → fixed (1 LoC), commit b2c3d4e | resolved\n\n")
+    PUSHED = ("2 commits pushed as b2c3d4e.\n"
+              "  a1b2c3d PR #42 T#9201 T#9202 T#9203: use snake_case names\n"
+              "  b2c3d4e PR #42 T#9204: keep the default limit at 50\n")
+    CANDIDATE = ("Rule candidates (1)\n"
+                 "  Function names in snake_case: T#9201, T#9202, T#9203. "
+                 "Draft rule: Name each Python function in snake_case, not camelCase.\n\n")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
+
+    def passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    # The words of two base runs of the probe at e75495d. No base run named the point or a rule.
+    BASE_REPLIES = (
+        "| T#9201 | `src/pager.py:19` | Renamed `pageCount` to `page_count` | b45a0fd |\n"
+        "| T#9202 | `src/ranges.py:12` | Renamed `lastPage` to `last_page` | d23da36 |\n"
+        "| T#9203 | `src/users.py:18` | Renamed `displayName` to `display_name` | 43a257c |\n\n"
+        "- **The three renames:** nothing in the repo calls the old names, so nothing else needed to change.",
+        "- **Replies:** each thread got an `**[AI]**` reply naming its commit, all posted in one batch before the push.\n"
+        "- **Decisions and skipped threads:** The full mode made no choices on its own.",
+    )
+    # The candidate lines of four head runs at 2a08651, and the verdicts of rule-candidate and route-candidate-threads.
+    HEAD_LINES = {
+        "a range of threads": ("**Possible rule:** threads 9201–9203 all say Python function names must be snake_case. "
+                               "A draft rule for the repo instructions: \"Name Python functions in snake_case.\"", True, True),
+        "no thread IDs": ("- **Possible rule:** three threads asked for snake_case function names. It could go in "
+                          "`CLAUDE.md` as \"use snake_case for Python function names\".", True, False),
+        "a word between possible and rule": ("- **Possible repo rule:** three comments asked that Python function names "
+                                             "use snake_case.", True, False),
+        "the candidate with its threads": ("- **Rule candidate (snake_case):** T#9201, T#9202 and T#9203 all ask for "
+                                           "snake_case Python identifiers.", True, True),
+        "a run with no candidate": ("- **Callers and tests:** nothing in the repo called the three renamed functions.\n"
+                                    "- **Decisions and deferrals:** I made no judgment calls beyond the reviewer's explicit "
+                                    "instructions, so there is nothing to review under \"Decisions for your review\".",
+                                    False, False),
+    }
+
+    def test_the_head_lines_get_their_verdicts(self):
+        for name, (line, candidate, threads) in self.HEAD_LINES.items():
+            with self.subTest(line=name):
+                self.assertEqual((self.passes("rule-candidate", line), self.passes("route-candidate-threads", line)),
+                                 (candidate, threads))
+
+    def test_a_right_report_passes_each_grader_of_the_last_message(self):
+        report = self.LOG + self.CANDIDATE + self.PUSHED
+        for grader in ("rule-candidate", "route-candidate-threads", "route-unrelated-not-candidate"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, report))
+
+    def test_the_base_replies_fail_both_candidate_graders(self):
+        for reply in self.BASE_REPLIES:
+            for grader in ("rule-candidate", "route-candidate-threads"):
+                with self.subTest(grader=grader, reply=reply[:30]):
+                    self.assertFalse(self.passes(grader, reply))
+
+    def test_rule_candidate_needs_a_candidate_for_the_naming_point(self):
+        runs = {
+            "a table": ("| Point | Threads | Draft rule |\n|---|---|---|\n| snake_case names | T#9201, T#9202, T#9203 | "
+                        "Use snake_case. |", True),
+            "a sentence": ("I list one candidate rule: function names use snake_case.", True),
+            "camelCase first": ("Three threads asked to drop camelCase names. Rule candidate: use snake_case.", True),
+            "a proposed rule with no case word": ("Proposed rule for CLAUDE.md: write function names with underscores.", True),
+            "a rule to add": ("T#9201, T#9202, and T#9203 make one naming point. A rule to add: use lower case names.", True),
+            "the user adds the rule": ("All three threads ask for snake_case. You can add a rule for it to CLAUDE.md.", True),
+            "the base log only": (self.LOG + self.PUSHED, False),
+            "a rule word with no point": ("Rule candidates: none.", False),
+            "the point with no candidate": ("All three naming threads now use snake_case.", False),
+            "a reply that names its commit": ("Each reply names its commit. I added no new test.", False),
+            "an empty list near the commit list": ("Rule candidates: none.\n\n" + self.PUSHED, False),
+            "an empty list with a zero count": ("Rule candidates (0)\n\n" + self.PUSHED, False),
+            "no candidates near the point": ("No rule candidates this cycle.\n\n| T#9201 | renamed to snake_case |", False),
+            # Known limit: a point with none of the point words fails.
+            "known limit: the point only as PEP 8": ("Rule candidates (1)\n- PEP 8 for Python identifiers: T#9201, T#9202, "
+                                                     "T#9203. Draft rule: Follow PEP 8 for each Python identifier.", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("rule-candidate", text), expected)
+
+    def test_route_candidate_threads_needs_the_three_threads_with_the_candidate(self):
+        runs = {
+            "the heading, then the line": (self.CANDIDATE, True),
+            "the draft rule on the line": ("- snake_case: T#9201, T#9202, T#9203. Draft rule: use snake_case.", True),
+            "the draft rule on the next line": ("- snake_case: T#9201, T#9202, T#9203\n  Draft rule: use snake_case.", True),
+            "the base log and the commit list": (self.LOG + self.PUSHED, False),
+            "two threads only": ("Rule candidates (1)\n  snake_case: T#9201, T#9202. Draft rule: use snake_case.", False),
+            "a rule word far from the threads": ("Rule candidates (0)\n" + "x" * 400 + "\n" + self.PUSHED, False),
+            "an empty list near the shared commit": ("Rule candidates: none.\n\n" + self.PUSHED, False),
+            "a range of threads": ("- snake_case: T#9201–T#9203. Draft rule: use snake_case.", True),
+            "a range with another first thread": ("- snake_case: T#9202–T#9203. Draft rule: use snake_case.", False),
+            # Known limit: an empty list in another form passes near a shared commit with the three threads.
+            "known limit: a bold empty list near the shared commit": ("**Rule candidates:** none\n\n" + self.PUSHED, True),
+            # Known limit: the bullet asks for one line for each point, so one line for each thread fails.
+            "known limit: one line for each thread": ("**Rule candidate:** Python function names in snake_case.\n"
+                                                      "- T#9201\n- T#9202\n- T#9203\nDraft rule: use snake_case.", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-candidate-threads", text), expected)
+
+    def test_route_unrelated_not_candidate_fails_a_candidate_with_the_limit_thread(self):
+        runs = {
+            "the base log": (self.LOG + self.PUSHED, True),
+            "the right candidate": (self.CANDIDATE, True),
+            "the limit thread in the candidate line": ("Rule candidates (1)\n  snake_case: T#9201, T#9202, T#9203, T#9204. "
+                                                       "Draft rule: use snake_case.", False),
+            "a candidate of the limit thread": ("Rule candidates (2)\n  Default limit (T#9204). Draft rule: keep 50.", False),
+            # Known limits: the pattern reads one line and sees no negation.
+            "known limit: the limit thread named as no candidate": (
+                "Rule candidates (1)\n- snake_case function names: T#9201, T#9202, T#9203. Draft rule: Name each Python "
+                "function in snake_case. (T#9204 is a separate point, so it is no rule candidate.)", False),
+            "known limit: the limit thread in prose": ("Rule candidate: three threads (T#9201, T#9202, T#9203) ask for "
+                                                        "snake_case names. The limit thread T#9204 is a one-off.", False),
+            "known limit: the limit thread in a table row": (
+                "| Point | Threads | Draft rule |\n|---|---|---|\n| Review points | T#9201, T#9202, T#9203, T#9204 | "
+                "Name functions in snake_case and keep defaults. |", True),
+            "known limit: the draft on the next line": ("- Keep default limits: T#9204\n  Draft: keep each default.", True),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-unrelated-not-candidate", text), expected)
+
+    def test_no_rule_file_fails_a_new_instruction_file(self):
+        runs = {
+            "only notes": ("notes/progress.md\n.git/objects/ab/cdef\nsrc/__pycache__/pager.cpython-312.pyc", True),
+            "a claude folder with settings": (".claude/settings.local.json", True),
+            "a rules file": ("notes/a.md\n.claude/rules/naming.md", False),
+            "a nested CLAUDE.md": ("src/CLAUDE.md", False),
+            "a new AGENTS.md": ("AGENTS.md", False),
+            "a new REVIEW.md with an absolute path": ("/home/eval/work/REVIEW.md", False),
+            "a skill file": (".claude/skills/naming/SKILL.md", False),
+            "a CLAUDE.local.md": ("CLAUDE.local.md", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("no-rule-file", text), expected)
+
+
 class ReviewCommentsFixtureTests(unittest.TestCase):
     """Each get_review_comments fixture has the shape of the GitHub MCP server, and each reply mock expects its IDs (issue #381).
 
