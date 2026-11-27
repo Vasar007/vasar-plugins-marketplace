@@ -11,18 +11,19 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
 
-If the user asks for a workflow run of `review-loop`, the loop now keeps its gates. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
+`review-loop` now says which of its gates a workflow run keeps. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
 
 ### Changed in dev-essentials
 
-- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. The reviewer and the fixer are separate agent steps. The triage of Phase 4 runs between them, in the main session or as its own agent step. A rule in code that sorts the findings by severity is no triage. A finding that needs a decision of the user gets no fix in the run. The fixer step does not commit, and Phase 7 commits only after a green Phase 6. After the run, the main session sets the stop verdict and writes the summary (issue #390).
-- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. With the Workflow tool, the base runs showed the gap: with a Sonnet agent, 3 of 3 scripts dropped the triage. With an Opus agent, 3 of 3 scripts kept the steps, but each one sorted the findings by severity in code. The route grader `route-no-code-triage` fails such a script (issue #390).
+- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. Each check that can ask the user runs in the main session, before or between workflows. Each step of the script gets the rules of its phase. The triage judges each finding on its merits, and a rule in code that sorts the findings by severity is no triage. Outside the full mode, the triage runs in the main session between two workflows. The fixer step does not commit. In the workflow, Phase 7 commits only after a green Phase 6. After a red one, the main session finishes Phases 6 and 7. The script returns the data of each finding, and a step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8, and each next cycle is a new workflow (issue #390).
+- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. With the Workflow tool, the base runs showed the gap: with a Sonnet agent, 3 of 3 scripts dropped the triage. With an Opus agent, 3 of 3 scripts kept the steps, but each one sorted the findings by severity in code. The route grader `route-no-code-triage` fails such a script. In 6 of 6 base scripts, the fixer step also made the commit. The route grader `route-no-commit-in-fixer` fails 5 of these 6 scripts (issue #390).
 
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: new tests for the graders of `rl-workflow-request`, with the scripts of two base runs in `tests/evals/fixtures/workflow-scripts/` (issue #390).
 - `tests/test_eval_scaffolds.py`: the list of branches names `rl-workflow-request` (issue #390).
 - `docs/eval-cases.md`: a new section "Workflow runs" says what the trace of a workflow run holds. The list of known limits names the graders of `rl-workflow-request` (issue #390).
+- `docs/evals.md`: the section "Run a suite" says that `rl-workflow-request` needs its own command with the grant `Workflow` (issue #390).
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 

@@ -109,13 +109,12 @@ If the run format applies, the check scope replaces these things for this run on
 
 ## Run as a workflow
 
-If the user asks for a workflow run (the Workflow tool), keep the phases of this skill in the script. A workflow takes no input in the middle of a run.
+If the user asks for a workflow run (the Workflow tool), keep the phases of this skill. A workflow takes no input while it runs. So each check that can ask the user, such as the head gate of Phase 5, runs in the main session before or between workflows.
 
-- The reviewer and the fixer are separate `agent()` steps with the briefs of Phases 3 and 5.
-- The triage of Phase 4 runs between them: in the main session between two workflows, or as its own `agent()` step. It judges each finding on its merits. A rule in code that sorts the findings by severity is no triage.
-- Outside the full mode, a finding that needs a decision of the user gets no fix in this run. Ask the user after the run.
-- The fixer step does not commit. Phase 6 runs in a later step. If Phase 6 is green, Phase 7 commits. Else end the workflow, and finish Phases 6 and 7 in the main session.
-- After the run, the main session sets the stop verdict of Phase 8 and does Phase 9.
+- Each step of the script gets the rules of its phase.
+- The triage judges each finding on its merits. A rule in code that sorts the findings by severity is no triage. Outside the full mode, the triage runs in the main session between two workflows.
+- The fixer step does not commit. A later step runs the Phase 6 commands and returns their exit codes and result lines. Phase 7 commits only after a green result. Else the main session finishes Phases 6 and 7.
+- The script returns each finding with its triage decision, its `blocking` flag, and the fixer verdict. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8. Each next cycle is a new workflow.
 
 ## Severity and type taxonomy
 

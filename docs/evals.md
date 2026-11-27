@@ -116,6 +116,7 @@ python3 tests/evals/compare_versions.py baseline --plugin essentials/dev-essenti
 - `--scaffold` makes each case build its repository with its `scaffold.sh`.
 - `--allow-tools` grants the tools, because a run asks for no permission and grants no shell tool by default.
 - If the shell does not find `claude`, pass its path with `--claude`.
+- The case `rl-workflow-request` needs the grant `Workflow`. Run it with its own command, with `--case rl-workflow-request` and `--allow-tools Bash Write Edit Workflow`. In the suite run above, it tests only the request in words.
 
 ## Run the main cases on a new model
 

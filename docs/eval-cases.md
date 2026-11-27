@@ -109,7 +109,7 @@ A `file_exists` grader sees only the files that the run created. It does not see
 
 ### Workflow runs
 
-A run calls the Workflow tool only with the grant `--allow-tools Workflow`. The trace holds the Workflow call with its script, but no call of a workflow agent. The transcripts of the workflow agents are in `config/projects/<project>/<session>/subagents/workflows/` of a kept run folder, and no grader reads them. So a grader of a workflow run reads the script of the Workflow call. The graders of `rl-workflow-request` are the model.
+A run calls the Workflow tool only with the grant `--allow-tools Workflow`. The trace holds the Workflow call with its script, but no call of a workflow agent. The transcripts of the workflow agents are in `config/projects/<project>/<session>/subagents/workflows/` of a kept run folder, and no grader reads them. So a grader of a workflow run reads the script of the Workflow call. Follow the graders of `rl-workflow-request` as an example.
 
 ### Long traces
 
@@ -151,4 +151,5 @@ These graders have other known limits:
 - `one-commit` and `one-commit-per-task` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`): an amend, a merge, a cherry-pick, or a rebase fails the run. `one-commit-per-task` cannot tell a task with two commits from a final review commit.
 - `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`): it does not see `Assert.Ignore` in a `[SetUp]` method, a filter in the test command, or a moved test.
 - `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.
-- `triage-before-fix`, `reviewer-separate`, `tests-before-commit`, and `route-no-code-triage` of `rl-workflow-request` (`WorkflowRequestGraderTests`): for a workflow run, they read the words of the script, not what its agents did. A triage step with another name fails `triage-before-fix`.
+- `triage-before-fix`, `reviewer-separate`, `tests-before-commit`, `route-no-code-triage`, and `route-no-commit-in-fixer` of `rl-workflow-request` (`WorkflowRequestGraderTests`): for a workflow run, they read the words of the script, not what its agents did. A triage step with another name fails `triage-before-fix`. A rule in code on another field than the severity, such as `conclusion`, passes `route-no-code-triage`. A fixer prompt with a nested template literal before its commit order passes `route-no-commit-in-fixer`.
+- `reviewer-no-edit`, `untested-commit`, and `route-fix-in-main` of `rl-workflow-request`: they see no call of a workflow agent, so each workflow run passes them.
