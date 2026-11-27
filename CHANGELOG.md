@@ -9,6 +9,21 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
+
+If the user asks for a workflow run of `review-loop`, the loop now keeps its gates. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. The reviewer and the fixer are separate agent steps. The triage of Phase 4 runs between them, in the main session or as its own agent step. A rule in code that sorts the findings by severity is no triage. A finding that needs a decision of the user gets no fix in the run. The fixer step does not commit, and Phase 7 commits only after a green Phase 6. After the run, the main session sets the stop verdict and writes the summary (issue #390).
+- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. With the Workflow tool, the base runs showed the gap: with a Sonnet agent, 3 of 3 scripts dropped the triage. With an Opus agent, 3 of 3 scripts kept the steps, but each one sorted the findings by severity in code. The route grader `route-no-code-triage` fails such a script (issue #390).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-workflow-request`, with the scripts of two base runs in `tests/evals/fixtures/workflow-scripts/` (issue #390).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-workflow-request` (issue #390).
+- `docs/eval-cases.md`: a new section "Workflow runs" says what the trace of a workflow run holds. The list of known limits names the graders of `rl-workflow-request` (issue #390).
+
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
 `compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
@@ -2902,7 +2917,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...HEAD
+[7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.8.0
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
