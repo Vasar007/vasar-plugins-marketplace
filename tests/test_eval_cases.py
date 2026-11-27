@@ -4906,6 +4906,44 @@ class WorkflowRequestGraderTests(unittest.TestCase):
         self.assertTrue(self.passes("triage-before-fix", *run))
         self.assertFalse(self.passes("reviewer-separate", *run[:-1]))
 
+    FIX_WORKFLOW = ("const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`, { label: 'fix' })\n"
+                    "const tests = await agent(`Run the Phase 6 commands ${args.commands}. Return the exit code and the result "
+                    "lines of each.`)\nif (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_right_pair_of_workflows_with_the_commands_in_args_passes_each_grader(self):
+        run = [*self.start(),
+               self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": self.FIX_WORKFLOW,
+                                      "args": {"commands": ["python3 -m unittest discover -s tests"]}})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage",
+                       "route-no-commit-in-fixer"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, *run))
+
+    def test_a_negated_commit_order_in_the_fixer_passes(self):
+        for phrase in ("Do NOT commit.", "Don't commit.", "Do not run git commit.", "Do not stage or commit.",
+                       "Never make a commit."):
+            for quote in ("`", "'"):
+                script = f"const fix = await agent({quote}Classify each finding as APPLY, PARTIAL, or REJECT. {phrase}{quote})"
+                if quote == "'" and "'" in phrase:
+                    continue
+                with self.subTest(phrase=phrase, quote=quote):
+                    self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+        both = ("const fix = await agent(`Classify each finding as APPLY. Then commit only the changed files. "
+                "If nothing was applied, do not commit.`)")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": both})))
+
+    def test_a_sort_and_a_count_pass_and_has_and_a_reversed_rule_fail(self):
+        for code in ("shown.sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))",
+                     "for (const f of findings) { const sev = f.severity; counts[sev] = (counts[sev] || 0) + 1 }"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("if (new Set(['Blocker','Critical','High']).has(f.severity)) fix.push(f)",
+                     "if ('High' === f.severity) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
     def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
         self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
         self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
