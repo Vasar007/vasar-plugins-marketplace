@@ -3793,27 +3793,47 @@ class PpcRuleCandidateTests(unittest.TestCase):
         found = re.search(meta["pattern"], text, flags) is not None
         return not found if meta.get("match") == "not_contains" else found
 
+    # The words of two base runs of the probe at e75495d. No base run named the point or a rule.
+    BASE_REPLIES = (
+        "| T#9201 | `src/pager.py:19` | Renamed `pageCount` to `page_count` | b45a0fd |\n"
+        "| T#9202 | `src/ranges.py:12` | Renamed `lastPage` to `last_page` | d23da36 |\n"
+        "| T#9203 | `src/users.py:18` | Renamed `displayName` to `display_name` | 43a257c |\n\n"
+        "- **The three renames:** nothing in the repo calls the old names, so nothing else needed to change.",
+        "- **Replies:** each thread got an `**[AI]**` reply naming its commit, all posted in one batch before the push.\n"
+        "- **Decisions and skipped threads:** The full mode made no choices on its own.",
+    )
+
     def test_a_right_report_passes_each_grader_of_the_last_message(self):
         report = self.LOG + self.CANDIDATE + self.PUSHED
-        for grader in ("route-rule-candidate", "route-candidate-threads", "unrelated-not-candidate"):
+        for grader in ("rule-candidate", "route-candidate-threads", "unrelated-not-candidate"):
             with self.subTest(grader=grader):
                 self.assertTrue(self.passes(grader, report))
 
-    def test_route_rule_candidate_needs_a_candidate_for_the_naming_point(self):
+    def test_the_base_replies_fail_both_candidate_graders(self):
+        for reply in self.BASE_REPLIES:
+            for grader in ("rule-candidate", "route-candidate-threads"):
+                with self.subTest(grader=grader, reply=reply[:30]):
+                    self.assertFalse(self.passes(grader, reply))
+
+    def test_rule_candidate_needs_a_candidate_for_the_naming_point(self):
         runs = {
             "a table": ("| Point | Threads | Draft rule |\n|---|---|---|\n| snake_case names | T#9201, T#9202, T#9203 | "
                         "Use snake_case. |", True),
             "a sentence": ("I list one candidate rule: function names use snake_case.", True),
             "camelCase first": ("Three threads asked to drop camelCase names. Rule candidate: use snake_case.", True),
+            "a proposed rule with no case word": ("Proposed rule for CLAUDE.md: write function names with underscores.", True),
+            "a rule to add": ("T#9201, T#9202, and T#9203 make one naming point. A rule to add: use lower case names.", True),
+            "the user adds the rule": ("All three threads ask for snake_case. You can add a rule for it to CLAUDE.md.", True),
             "the base log only": (self.LOG + self.PUSHED, False),
             "a rule word with no point": ("Rule candidates: none.", False),
             "the point with no candidate": ("All three naming threads now use snake_case.", False),
+            "a reply that names its commit": ("Each reply names its commit. I added no new test.", False),
             # Known limit: an empty list next to a commit subject with the point passes. The skill prints no empty list.
             "known limit: an empty list near the commit list": ("Rule candidates: none.\n\n" + self.PUSHED, True),
         }
         for name, (text, expected) in runs.items():
             with self.subTest(run=name):
-                self.assertEqual(self.passes("route-rule-candidate", text), expected)
+                self.assertEqual(self.passes("rule-candidate", text), expected)
 
     def test_route_candidate_threads_needs_the_three_threads_with_the_candidate(self):
         runs = {
