@@ -24,6 +24,10 @@ The other numbers in a heading are plugin versions.
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: a new test fails for a fixture with the old keys `threads`, `user.login`, or a comment `id`. It also fails with no `totalCount` or `total_count`. A new test makes sure that each reply mock expects the IDs of the top comments of its fixture. The trust test reads the logins from `author` (issue #381).
+- `tools/wsl/linux/eval-run.sh`: after the fetch of the bundle, the eval clone now keeps only the branches of that bundle at `win/<branch>`. The script removes each local branch, each `origin` ref, and each other `win/` branch. Before, the local `main` of the first clone never moved, so `--base main` compared against an old commit with no warning. Now a plain `main` names no branch, and `compare_versions.py` stops before the first run (issue #383).
+- `tools/wsl/linux/eval-run.sh`: a `--clone` folder with a clone that the script did not make now gets a `STOP` line and exit code 3. The run changes no ref of it. Before, the script took each clone that `--clone` named (issue #383).
+- `tools/wsl/run-eval.sh`, `docs/tools.md`, `docs/evals.md`: the usage text and the docs tell you to give `--base`, `--head`, or `--commit` a branch in the form `win/<branch>` (issue #383).
+- `tests/test_tools_wsl.py`: a new test makes three runs. Then it makes sure that `win/main` is the new `main` and that no stale branch of the eval clone resolves. It also makes sure that the usage text names `--base win/main`. A second test makes sure that a clone that the script did not make keeps its branches (issue #383).
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 

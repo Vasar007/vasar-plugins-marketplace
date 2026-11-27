@@ -4,15 +4,21 @@
 # Usage: run-eval.sh [--no-wait] [--clone PATH] <repository> <branch> <result folder> <compare_versions arguments>...
 #   --no-wait      do not wait for a quiet machine. The run still waits for the lock of the eval clone
 #   --clone PATH   the Linux path of the eval clone (default: <tools folder>/eval-clone)
+#                  Each run removes the branches of the eval clone. Give a new folder or a clone of an earlier run.
+#                  The script stops with exit code 3 for another clone, for example a work clone.
 # Give the compare_versions arguments without --out and --claude, for example:
 #   run-eval.sh /c/src/repo my-branch results/head baseline --plugin essentials/dev-essentials --commit HEAD \
 #       --model <model id> --judge-model <model id> --case <case> --scaffold --runs 3 --keep-temp
+# The run checks out <branch>, so HEAD names it. The eval clone holds main and <branch> at win/main and win/<branch>.
+# Give --base, --head, or --commit a branch in that form, for example --base win/main. A plain name such as main
+# names no branch there, so compare_versions.py stops.
 # The result folder is a folder on Windows. It must be empty or new.
 # The exit code is the exit code of compare_versions.py.
 # The script itself ends with exit code 2 for a usage error, and for --out or --claude in the arguments.
 # It ends with exit code 3 and a STOP line if ANTHROPIC_API_KEY is set, if the sign-in is not claude.ai,
 # or if WSL2 has no claude command of its own. It also does so if the repository does not have the branch,
 # if the result folder is not empty or cannot be made, if WSL_DISTRO names no distribution, or if a copy fails.
+# A --clone folder with a clone that this script did not make gets exit code 3 too.
 # If this script stops, it removes its bundle. A run that did not print its HEAD line then can fail in WSL2.
 # A run after its HEAD line goes on in WSL2. Its result stays in the LINUX RESULT FOLDER.
 # wsl.exe makes one backslash from two in a row, so give no argument with two backslashes in a row.
