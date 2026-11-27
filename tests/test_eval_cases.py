@@ -3759,7 +3759,8 @@ class ReviewCommentsFixtureTests(unittest.TestCase):
     """
 
     TOP_KEYS = {"pageInfo", "review_threads", "totalCount"}
-    PAGE_KEYS = {"endCursor", "hasNextPage", "hasPreviousPage", "startCursor"}
+    PAGE_REQUIRED = {"hasNextPage", "hasPreviousPage"}
+    PAGE_KEYS = PAGE_REQUIRED | {"endCursor", "startCursor"}
     THREAD_KEYS = {"id", "is_resolved", "is_outdated", "is_collapsed", "total_count", "comments"}
     COMMENT_KEYS = {"author", "body", "path", "line", "start_line", "original_line", "original_start_line", "html_url",
                     "created_at", "updated_at"}
@@ -3776,10 +3777,15 @@ class ReviewCommentsFixtureTests(unittest.TestCase):
         errors = []
         if set(data) != self.TOP_KEYS:
             return [f"top keys {sorted(data)}"]
-        if set(data["pageInfo"]) != self.PAGE_KEYS:
-            errors.append(f"pageInfo keys {sorted(data['pageInfo'])}")
+        page = data["pageInfo"]
+        if not self.PAGE_REQUIRED <= set(page) <= self.PAGE_KEYS:
+            errors.append(f"pageInfo keys {sorted(page)}")
+        # The server leaves an empty cursor out, so a cursor that is there holds a value.
+        elif any(not isinstance(page.get(key), str) or not page[key] for key in ("startCursor", "endCursor") if key in page):
+            errors.append(f"empty or wrong cursor in {page}")
         threads = data["review_threads"]
-        if data["totalCount"] < len(threads) or (not data["pageInfo"].get("hasNextPage") and data["totalCount"] != len(threads)):
+        single_page = not page.get("hasNextPage") and not page.get("hasPreviousPage")
+        if data["totalCount"] < len(threads) or (single_page and data["totalCount"] != len(threads)):
             errors.append(f"totalCount {data['totalCount']} for {len(threads)} threads")
         for thread in threads:
             if set(thread) != self.THREAD_KEYS:
@@ -3811,8 +3817,10 @@ class ReviewCommentsFixtureTests(unittest.TestCase):
                    "created_at": "2026-01-02T10:00:00Z", "updated_at": "2026-01-02T10:00:00Z"}
         thread = {"id": "PRRT_1", "is_resolved": False, "is_outdated": False, "is_collapsed": False, "total_count": 1,
                   "comments": [comment]}
-        page = {"endCursor": "", "hasNextPage": False, "hasPreviousPage": False, "startCursor": ""}
+        page = {"hasNextPage": False, "hasPreviousPage": False}
         self.assertEqual(self.shape_errors({"pageInfo": page, "review_threads": [thread], "totalCount": 1}), [])
+        last_page = {"hasNextPage": False, "hasPreviousPage": True, "startCursor": "Y3Vyc29y", "endCursor": "Y3Vyc29y"}
+        self.assertEqual(self.shape_errors({"pageInfo": last_page, "review_threads": [thread], "totalCount": 31}), [])
         old_comment = {key: value for key, value in comment.items() if key != "author"}
         wrong = {
             "threads in place of review_threads": {"pageInfo": page, "threads": [thread], "totalCount": 1},
@@ -3820,6 +3828,8 @@ class ReviewCommentsFixtureTests(unittest.TestCase):
                 {**thread, "comments": [{**old_comment, "user": {"login": "example-reviewer"}}]}]},
             "a comment id": {"pageInfo": page, "totalCount": 1, "review_threads": [
                 {**thread, "comments": [{**comment, "id": 9101}]}]},
+            "an empty cursor": {"pageInfo": {**page, "startCursor": ""}, "totalCount": 1, "review_threads": [thread]},
+            "a wrong totalCount on a single page": {"pageInfo": page, "totalCount": 2, "review_threads": [thread]},
             "no totalCount": {"pageInfo": page, "review_threads": [thread]},
             "no total_count": {"pageInfo": page, "totalCount": 1, "review_threads": [
                 {key: value for key, value in thread.items() if key != "total_count"}]},
