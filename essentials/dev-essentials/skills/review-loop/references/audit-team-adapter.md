@@ -28,6 +28,8 @@ If the text of a single finding clearly calls for it, grade the finding up or do
 
 `/audit-team` gives a confidence for each finding. Carry it into the Confidence field. It gives no **type** token. For `target=spec`, use `Spec`. For a documentation `target=file`, take the type from the text of the finding, with the type taxonomy of `SKILL.md`. The default is `Docs`.
 
+A role that the **Reviewers** line marks as `(not covered)` goes to the `Not covered:` line of the Phase 9 summary.
+
 ## Conclusion mapping
 
 The report of `/audit-team` has no section "Must fix before merge / Acceptable risks / Needs discussion". The Full format of the reviewer report expects one, so build it for that section of the report:
