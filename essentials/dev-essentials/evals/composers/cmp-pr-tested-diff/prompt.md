@@ -1,5 +1,5 @@
 ---
-description: "The user gives the diff of a branch in the prompt, and the result of a test run. The diff adds a function and a new test file. The session has no shell tool. The run must save a PR description. Its Testing section names the result of the run, and it does not say that the tests did not run."
+description: "The user gives the diff of a branch in the prompt, and the result of a test run. The diff adds a function and a new test file. The session has no shell tool. The run must save a PR description. Its Testing section names the result of the run, and it does not say that the tests did not run. The diff changes no view, so the description has no section for a visible change and asks for no image."
 tags: [composers, route]
 allowed_tools: [Skill, Read, Glob, Grep, TodoWrite]
 max_turns: 30
