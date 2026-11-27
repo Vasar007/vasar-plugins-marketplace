@@ -158,4 +158,4 @@ After you open a pull request on GitHub, set its assignee, its labels, and its P
 
 To reference a PR comment in chat output or in a reply, use the `html_url` field of the comment from `pull_request_read`. It is the stable browser URL of the thread. Format: `https://github.com/<owner>/<repo>/pull/<id>#discussion_r<comment-id>`.
 
-Do not build thread URLs by hand from `pullNumber` and `commentId`. The `#discussion_r<id>` fragment format is an implementation detail that can change. Always use the `html_url` that the API returns.
+Do not build thread URLs by hand from `pullNumber` and `commentId`. Always use the `html_url` that the API returns. A comment of `get_review_comments` has no `id` field. Its ID is the number after `#discussion_r` in its `html_url`.
