@@ -62,6 +62,7 @@ EXPECTED_BRANCH = {
     "wt-useful-tests": "work/tests",
     "wm-scratch-probe": "feature/paging",
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
+    "cmp-pr-repo-template": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
@@ -1835,6 +1836,38 @@ class ResumeReportTests(FixtureCase):
         self.assertEqual(self.git(workspace, "remote", "get-url", "upstream"), (0, "https://github.com/example-org/users-app.git"))
         _code, origin = self.git(workspace, "remote", "get-url", "origin")
         self.assertNotIn("github.com", origin)
+
+
+class PrTemplateFixtureTests(FixtureCase):
+    """The case cmp-pr-repo-template of issue #382 plants a PR template on main. Its rules are only in HTML comments."""
+
+    CASE = "cmp-pr-repo-template"
+    PATH = ".github/pull_request_template.md"
+    BOX = "\n- [ ] I ran the tests of this change.\n"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
+
+    def template(self):
+        workspace = self.workspace(self.CASE)
+        self.run_bash([(self.cases[self.CASE].path / "scaffold.sh").as_posix()], workspace)
+        code, text = self.git(workspace, "show", f"main:{self.PATH}")
+        self.assertEqual(code, 0, f"{self.CASE}: main has no {self.PATH}")
+        return text
+
+    def test_the_case_plants_a_template_whose_rules_are_only_in_comments(self):
+        text = self.template()
+        self.assertEqual(text.count(self.BOX), 1)
+        prose = re.sub(r"<!--[\s\S]*?-->", "", text)
+        # A run that copies only the headings and the check box learns no rule of the template.
+        self.assertEqual(re.sub(r"\s*\n\s*", "\n", prose.strip()), "## Problem\n## Fix\n## Evidence\n- [ ] I ran the tests of this change.")
+        for rule in ("`type(scope): summary`", "agent tool and the model", "test command that you ran"):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, text)
+        # The heading grader of case 1 passes on the headings of the template.
+        pattern = self.cases["cmp-pr-repo-template"].graders["template-headings"][0]["pattern"]
+        self.assertRegex(prose, re.compile(pattern, re.M))
 
 
 class RirrSquashGraderTests(FixtureCase):

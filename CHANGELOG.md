@@ -9,6 +9,20 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
+
+`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: step 5 first looks for a PR template in the places that GitHub reads. With a template, the description uses its headings in their order. Each HTML comment of the template is the instruction for its section, and the description holds no comment. The writing rules, the Testing rule, and the length limits still apply, and the limit wins over a long template. An item that the session cannot show gets `Not confirmed:`. A comment with a rule for the PR title gives no title line. With several templates and none in the input, the skill uses its own form and names the templates. With no template, the form stays as it was. Step 6 names the template that the skill used, and it quotes a rule for titles (issue #382).
+- `evals/composers/cmp-pr-repo-template`: a new case with no shell tool. The repository has a PR template, and the prompt does not name it. The description must have the headings of the template, no What section, and no comment of the template. Its Evidence section claims no test run, and a check box on a passed test run stays empty. A last line names the agent tool and the model. A route grader makes sure that the final reply names the template (issue #382).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A new test makes sure that the prompt of `cmp-pr-repo-template` names no template and has the diff of `cmp-pr-untested-diff` (issue #382).
+- `tests/test_eval_scaffolds.py`: the lists of branches and commit graders name `cmp-pr-repo-template`. A new test makes sure that the case plants its template on `main`, with its rules only in comments (issue #382).
+
 ## dev-essentials 6.3.0 in release [7.4.0] - 2026-11-27
 
 `process-pr-comments` now acts only on the review comments of trusted logins. A login is trusted in three cases. It is the author of the pull request, it has write access to the repository, or the new `trusted` parameter names it. Before, the skill acted on the comment of each GitHub user. In the full mode, it fixed, committed, and pushed the change of a user with no write access, with no question (issue #375).
@@ -2888,7 +2902,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
 [7.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...v7.2.2
