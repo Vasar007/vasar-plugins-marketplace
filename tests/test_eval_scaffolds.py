@@ -1818,7 +1818,7 @@ class GateFixFixtureTests(FixtureCase):
         self.assertEqual(meta["type"], "regex")
         flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
         path = workspace / meta["target"]["path"]
-        # Not confirmed: the verdict of the eval tool on a file that does not exist. No test asks for it.
+        # A regex grader on a file that does not exist fails, also with not_contains (the base runs of issue 387). So no scored grader reads a reflog.
         self.assertTrue(path.is_file(), f"{grader} reads {path}, which does not exist")
         found = re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
         return not found if meta.get("match") == "not_contains" else found
@@ -1847,8 +1847,13 @@ class GateFixFixtureTests(FixtureCase):
                 failed = [run for run in runs["check_runs"] if run["conclusion"] == "failure"]
                 self.assertEqual([run["name"] for run in failed], ["lint"])
                 self.assertEqual(failed[0]["output"]["summary"], lint.stdout.strip())
-        ci = (workspace / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("      - run: python3 tools/lint.py app config\n", ci)
+        # No CI file in the clone shows a run the lint before the push. The mocked check names the command.
+        self.assertFalse((workspace / ".github").exists())
+        for name in self.CASES:
+            with self.subTest(case=name, check="the title names the command"):
+                runs = json.loads((self.cases[name].path / "mocks/github/fixtures/pull/get_check_runs.json").read_text(encoding="utf-8"))
+                failed = [run for run in runs["check_runs"] if run["conclusion"] == "failure"]
+                self.assertEqual(failed[0]["output"]["title"], "python3 tools/lint.py app config exited with code 1")
         # The test step of finish.md runs the command of CLAUDE.md, so the first push and the pull request happen.
         self.assertNotIn("lint", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
         self.run_git(workspace, "checkout", "-q", "main")
@@ -1870,7 +1875,7 @@ class GateFixFixtureTests(FixtureCase):
         self.assertFalse(self.passes("rirr-gate-fix-interactive", "line-kept", workspace))
         self.assertFalse(self.passes("rirr-gate-fix-interactive", "no-run-commit", workspace))
 
-    def test_the_push_graders_count_each_push_that_moves_the_branch(self):
+    def test_the_fix_push_grader_reads_a_second_push_that_moves_the_branch(self):
         workspace = self.scaffold()
         self.run_git(workspace, "push", "-q", "-u", "origin", "work/retry-lint")
         self.assertTrue((workspace / ".remote/origin.git/logs/refs/heads/work/retry-lint").is_file())
@@ -1878,16 +1883,11 @@ class GateFixFixtureTests(FixtureCase):
         self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
         # A push with no new commit leaves the remote branch where it is, so it adds no reflog line.
         self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
-        for name in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
-            with self.subTest(case=name, pushes="the first push"):
-                self.assertTrue(self.passes(name, "fix-not-pushed", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
         self.shorten_the_line(workspace)
         self.run_git(workspace, "commit", "-q", "-am", "Shorten the comment of the retry limit")
         self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
         self.assertTrue(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
-        for name in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
-            with self.subTest(case=name, pushes="the push of a fix"):
-                self.assertFalse(self.passes(name, "fix-not-pushed", workspace))
 
 
 class ResumeReportTests(FixtureCase):

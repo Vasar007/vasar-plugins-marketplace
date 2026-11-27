@@ -430,7 +430,8 @@ USERS_EOF
 }
 
 # The commit of the earlier run adds a comment line of more than 88 characters to config/settings.py.
-# The local tests pass, and CLAUDE.md names no lint command. Only the lint job of CI runs tools/lint.py.
+# The local tests pass, and CLAUDE.md names no lint command. The repository holds no CI config: the lint job runs outside it.
+# Only the mocked check run names its command, so no CI file shows a run the lint before the push.
 add_retry_lint_run() {
     printf 'notes/\n' >> .gitignore
     fixture_write tools/lint.py <<'USERS_EOF'
@@ -456,22 +457,7 @@ def main(folders):
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 USERS_EOF
-    fixture_write .github/workflows/ci.yml <<'USERS_EOF'
-name: ci
-on: [pull_request]
-jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 -m unittest discover -s tests
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tools/lint.py app config
-USERS_EOF
-    fixture_commit "add the lint job of CI, and ignore the notes folder"
+    fixture_commit "add the lint tool, and ignore the notes folder"
     fixture_publish main
 
     git checkout -q -b work/retry-lint

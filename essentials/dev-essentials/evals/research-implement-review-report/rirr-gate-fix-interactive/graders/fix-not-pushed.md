@@ -1,6 +1,7 @@
 ---
-type: regex
-pattern: '\n[^\n]'
-match: not_contains
-target: { source: file, path: .remote/origin.git/logs/refs/heads/work/retry-lint }
+type: tool_used
+tool: Bash
+input_match: '\bgit\b(?:[^"\\]|\\.)*?\bpush\b'
+min: 0
+max: 1
 ---

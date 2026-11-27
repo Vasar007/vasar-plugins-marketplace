@@ -5959,6 +5959,22 @@ class GateFixCaseTests(unittest.TestCase):
             with self.subTest(reply=reply):
                 self.assertEqual(self.found("rirr-gate-fix-interactive", "route-fix-question", reply), expected)
 
+    def test_the_fix_push_grader_passes_a_run_with_no_push_and_fails_a_second_push(self):
+        # A base run that stops before the first push has no reflog file, so a grader on that file failed it (issue 387).
+        first = trace_bash("git push -u origin work/retry-lint")
+        second = trace_bash('git -C "/w" push origin work/retry-lint')
+        status = trace_bash("git status --short && git remote -v")
+        runs = {"no push": ([status], True), "one push": ([status, first], True), "two pushes": ([status, first, second], False)}
+        for case in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
+            meta = self.meta(case, "fix-not-pushed")
+            self.assertEqual((meta["type"], meta["tool"], meta["min"], meta["max"]), ("tool_used", "Bash", 0, 1))
+            for name, (calls, expected) in runs.items():
+                with self.subTest(case=case, run=name):
+                    self.assertEqual(self.calls(case, "fix-not-pushed", *calls) <= meta["max"], expected)
+
+    def calls(self, case, grader, *inputs):
+        return sum(1 for text in inputs if re.search(self.meta(case, grader)["input_match"], text))
+
     def test_the_order_graders_of_the_full_case_need_a_push_after_the_pull_request(self):
         case = "rirr-gate-fix-full"
         first = trace_bash("git push -u origin work/retry-lint")
