@@ -107,6 +107,10 @@ Each reflog line that the fixture did not write fails it, except a `branch: Crea
 
 A `file_exists` grader sees only the files that the run created. It does not see an edit or a delete of a file that the scaffold made. So a grader that must catch an edit compares the whole file with the file of the scaffold. `bh-planted-bugs` and `bh-flow` do this for the files with a planted bug. No grader reads the other files of their projects, so an edit of such a file passes.
 
+### Workflow runs
+
+A run calls the Workflow tool only with the grant `--allow-tools Workflow`. The trace holds the Workflow call with its script, but no call of a workflow agent. The transcripts of the workflow agents are in `config/projects/<project>/<session>/subagents/workflows/` of a kept run folder, and no grader reads them. So a grader of a workflow run reads the script of the Workflow call. Follow the graders of `rl-workflow-request` as an example.
+
 ### Long traces
 
 The `claude` binary runs the regex graders in Bun 1.4.4, which uses the JavaScriptCore engine. In Bun, a long search can end with no match and no error. Then a grader fails a right run, and a `not_contains` grader passes a wrong run. No result shows it ([#319](https://github.com/Vasar007/vasar-plugins-marketplace/issues/319)).
@@ -139,6 +143,8 @@ These graders do not read shell quotes or heredocs. So a quoted text can count a
 - `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`).
 - `route-probe-made` of `wm-scratch-probe` (`ScratchProbeGraderTests`).
 - `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`).
+- `integration-after-edit` of `so-integration-proof` (`IntegrationProofGraderTests`). The words of a test run in a commit message count as a run, and a `sed -i` edit after the run stays hidden.
+- `route-smoke-run` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`).
 - `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). Four tries at a better pattern each failed, so it stays ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
 
 These graders have other known limits:
@@ -147,3 +153,7 @@ These graders have other known limits:
 - `one-commit` and `one-commit-per-task` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`): an amend, a merge, a cherry-pick, or a rebase fails the run. `one-commit-per-task` cannot tell a task with two commits from a final review commit.
 - `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`): it does not see `Assert.Ignore` in a `[SetUp]` method, a filter in the test command, or a moved test.
 - `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.
+- `triage-before-fix`, `reviewer-separate`, `tests-before-commit`, `route-no-code-triage`, and `route-no-commit-in-fixer` of `rl-workflow-request` (`WorkflowRequestGraderTests`): for a workflow run, they read the words of the script, not what its agents did. A triage step with another name fails `triage-before-fix`. A main-loop triage counts only in the words of the Phase 4 table, or in a text with a severity, a fix, and a deferral. A rule in code on another field than the severity, such as `conclusion`, passes `route-no-code-triage`. A rule in another form, such as a regular expression or `.some()`, passes it too. A fixer prompt in double quotes or joined with `+` passes `route-no-commit-in-fixer`. So does a nested template literal before the commit order, and a commit order in a rules constant with an upper-case name.
+- `reviewer-no-edit`, `untested-commit`, and `route-fix-in-main` of `rl-workflow-request`: they see no call of a workflow agent, so they test only the main loop of a workflow run.
+- `no-proof-named` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`): a reply that says that the change needs no integration test passes it. So does a reply that says that no test failed in the receipt code.
+- `route-gap-named` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`): a reply that says that the run did not yet add such a test passes it. So does a reply that chose not to add such a test, or that says that there is no need to add one. A reply that names the test only as "one" fails it, for example "Consider adding one". So does a reply with no verb of adding, for example "Consider an integration test".

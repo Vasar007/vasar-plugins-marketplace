@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+## dev-essentials 6.9.0 in release [7.10.0] - 2026-11-27
 
 The default form of `compose-pr` now has the section `## UI changes` for a change that a person sees. Before, the description of a UI change read like the description of a backend change, and it asked for no image or video. The new section names each changed view. It shows the images of the state before and after that the input gives, with alt text that names the state. It names each missing image and, for a change of motion, a missing short video. The line starts with `Not confirmed:`. The form follows the pull requests of a public repository with a clear form for UI evidence (issue #389).
 
@@ -27,6 +27,82 @@ The default form of `compose-pr` now has the section `## UI changes` for a chang
 ### Changed in the repository
 
 - `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A test makes sure that the prompts of the two new cases differ only in the image links. It also makes sure that the first prompt names no evidence (issue #389).
+
+## dev-essentials 6.8.0 in release [7.9.0] - 2026-11-27
+
+A new section of `subagent-orchestration` is about the final report of a change of behavior. If no smoke run, integration test, or end-to-end test covers the change, the section asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+
+In a fresh head run with the rule, 3 of 3 runs with an Opus agent named the missing proof. So did 2 of 3 runs with a Sonnet agent. At the base, 1 of 12 runs named it. Runs follow the second part of the rule less often. By a read of the replies, 3 of the 6 head runs named a test to add, all of them with an Opus agent. The case `so-integration-proof` scored 1.00 in each run at the base and at the head (issue #386).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The other scored graders read the change, the unit test run, and the commit (issue #386).
+- `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new section does not make a run skip an integration test that exists (issue #386).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: a new section `Proof of a change`, right before `Trust but verify`. It holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, the final report says so. It names that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so a run does not stop for it (issue #386).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the graders of both new cases, on right and wrong texts and traces. The lists of the shared commit graders name both cases (issue #386).
+- `tests/test_eval_scaffolds.py`: in `so-integration-proof`, a new test makes sure that the plain change breaks only the integration test. In `so-no-integration-proof`, it breaks only the unit test. The list of commit graders names both cases (issue #386).
+- `docs/eval-cases.md`: the known limits of `integration-after-edit`, `route-smoke-run`, `no-proof-named`, and `route-gap-named` (issue #386).
+
+## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
+
+A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix. An example is a base branch that moved on after the push, so that GitHub reports the head as out of date. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops. A red build or test before the push still ends the run (issue #387).
+
+The eval runs had 3 runs on each side for each case, with an Opus and a Sonnet agent. Without the change, no run fixed a failed gate:
+
+- `rirr-gate-fix-full`: on both models, each base run stopped at the gate with no merge of the base and no second push.
+- `rirr-gate-fix-partial`: on both models, no base run merged the base or asked about a push of a fix.
+- `rirr-gate-fix-interactive`: 1 of 3 base runs on each model asked the user about a fix.
+- `rirr-gate-fix-no-command`: each Sonnet base run reported the red check and stopped. On Opus, 2 of 3 base runs ran the lint script of the clone, found the failure, and stopped before the push. No base run changed code.
+
+With the change, each scored grader passed in each of the 24 head runs:
+
+- `rirr-gate-fix-full`: on both models, each head run fetched and merged the base, ran the tests, pushed the merge, and read the gate again. Then it stopped, because the mocked head did not move. No run merged.
+- `rirr-gate-fix-partial`: on both models, each head run merged the base in a local commit and asked before the push of the fix. No run pushed a second time.
+- `rirr-gate-fix-interactive`: on both models, each head run asked the user about a fix. No run made a commit or pushed a second time.
+- `rirr-gate-fix-no-command`: on both models, each head run reached the gate, reported the red check, and stopped with no commit.
+
+At an earlier text, one Opus head run of `rirr-gate-fix-no-command` ran the lint script before the push. It fixed the line and pushed the fix with the branch. The sentence "Make no commit before the push" in step 2 of the finish steps comes from that run. With the sentence, 6 of 6 head runs of that case stopped with no commit.
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-gate-fix-full`, `rirr-gate-fix-partial`, and `rirr-gate-fix-interactive`: three resume cases with a failed merge gate, one for each work mode. After the last fetch of the clone, main of the remote moved on. So the pull request is behind its base, and its checks pass. The full case needs a merge of the base, a test run, the second push, and a second read of the gate. The partial case needs the merge in a local commit and a question before the push. The interactive case needs a question about the fix, and no commit and no second push (issue #387).
+- `evals/research-implement-review-report/rirr-gate-fix-no-command`: a resume case in the full mode with a red `lint` check. The clone has a lint script, but no CI configuration names its command, and no job log exists. So the check is a stop: the run must make no commit, push no second time, and not merge (issue #387).
+- `evals/_lib/py-fixture.sh`: the functions `add_retry_behind_run` and `add_retry_lint_run`, which plant the state of these cases (issue #387).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: the new section "A failed merge gate". Step 2 now says that the run makes no commit before the push. Step 5 points to the new section. The section "A failed step in the full mode" no longer says that a failed gate gets no repair. The section sorts each failed item of the report of `merge-pr`. Two kinds of items are fixable. The first is a red check whose command fails in a local run too. Its output names at least one file, and only files of the branch. The command comes from the CI configuration or from the log of the job. The second is the merge state `behind` or `dirty`. A check that reports a secret is hard stop 4, and each other item is a stop (hard stop 5). A fix round fixes the cause in new commits, or fetches and merges the base branch with no rebase. It reviews the new commits with one review round, runs the start conditions, the tests, and each fixed check again. The interactive mode asks before the fix. The modes other than the full mode ask before the push. The run does at most 2 fix rounds. The finish report lists each fix round (issue #387).
+- `skills/merge-pr/SKILL.md`: step 2 says that a workflow that calls the skill can repair the cause with its own steps after the stop. Then the workflow does the steps of the skill again. The rule that the skill itself does not repair a cause stays (issue #387).
+- `skills/work-modes/SKILL.md`: hard stop 5 names a merge gate that fails after its fix rounds (issue #387).
+
+### Changed in the repository
+
+- `docs/workflows.md`: the section "Work modes" says what a failed merge gate does in each mode. It also says that a red build or test before the push still ends the run (issue #387).
+- `tests/test_work_modes_text.py`: the pinned sentences of the failed-gate rule follow the new text. New tests pin the section "A failed merge gate", its line of the finish report, and the new sentence of `merge-pr` (issue #387).
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: new tests for the four gate cases and their scaffolds. The mocked check runs have only the fields that the GitHub MCP server gives. The grader `fix-not-pushed` counts the `git push` calls and allows one. The grader `no-rebase` fails a rebase of the pushed branch (issue #387).
+- `tests/simple-english-baseline.json`: the file path `config/settings.py` in the grader `limit-lowered` of the three cases (issue #387).
+
+## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+
+`review-loop` now says which of its gates a workflow run keeps. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. Each check that can ask the user runs in the main session, before or between workflows. Each step gets the brief that its phase builds, word for word. The triage judges each finding on its merits, and a severity rule in code is no triage. Outside the full mode, the main session writes the triage table between two workflows. The fixer step does not commit. In the workflow, Phase 7 commits only after a green Phase 6. After a red one, the main session finishes Phases 6 and 7. The script returns the Phase 6 result and the data of each finding, with the reason of each fixer verdict. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8, and each next cycle is a new workflow (issue #390).
+- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. The runs had the Workflow tool. With a Sonnet agent, 0 of 6 base runs triaged the findings before the fix. At the head, 2 of 3 runs did, so the Sonnet head is not at 3 of 3. The third head run fixed the findings and listed the deferred ones only in its final reply. With an Opus agent, each of 6 base scripts kept a triage step, but 5 of them sorted the findings by severity in code. In at least 4 of the 6, the fixer step also made the commit. At the head, 3 of 3 Opus runs had no severity rule in code and no commit by the fixer step. They passed each scored grader. The route graders `route-no-code-triage` and `route-no-commit-in-fixer` read these two forms. With an Opus agent, the hold run of `rl-off-by-one` scored 1.00 in 3 of 3 runs at the base and at the head (issue #390).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-workflow-request`, with the scripts of two base runs in `tests/evals/fixtures/workflow-scripts/` (issue #390).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-workflow-request` (issue #390).
+- `docs/eval-cases.md`: a new section "Workflow runs" says what the trace of a workflow run holds. The list of known limits names the graders of `rl-workflow-request` (issue #390).
+- `docs/evals.md`: the section "Run a suite" says that `rl-workflow-request` needs its own command with the grant `Workflow` (issue #390).
 
 ## dev-essentials 6.5.0 in release [7.6.0] - 2026-11-27
 
@@ -2959,7 +3035,10 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...HEAD
+[7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
+[7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0
+[7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...v7.8.0
 [7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
 [7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0
 [7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1

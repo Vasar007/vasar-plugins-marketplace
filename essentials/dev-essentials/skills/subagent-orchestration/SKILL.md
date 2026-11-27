@@ -206,6 +206,10 @@ A vague brief produces shallow work. Each delegation must include:
 
 A 10-line brief that prevents one wrong dispatch is worth more than three 3-line briefs that each need a redo.
 
+## Proof of a change
+
+This section holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, say so in the final report. Name that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so do not stop for it.
+
 ## Trust but verify
 
 Check a subagent report in these tiers:
