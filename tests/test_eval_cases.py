@@ -4103,6 +4103,204 @@ class ComposerGraderTests(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertNotIn(word, case.prompt_body)
 
+    UI_CASE = "cmp-pr-ui-change"
+    UI_IMAGES_CASE = "cmp-pr-ui-images"
+    IMAGE_BEFORE = "https://github.com/user-attachments/assets/0b6f1c2e-5d4a-4e8b-9f3a-2c7d8e9a1b01"
+    IMAGE_AFTER = "https://github.com/user-attachments/assets/7e2d9a4b-1c3f-4a6e-8b5d-9f0e1a2b3c04"
+    IMAGES_BLOCK = ("I uploaded two screenshots of the invoice header to GitHub:\n\n"
+                    f"- Before the change: <{IMAGE_BEFORE}>\n- After the change: <{IMAGE_AFTER}>\n\n")
+    UI_TOP = ("## What\n\nShows the order count of a customer as a badge in the invoice header.\n\n"
+              "## Why\n\nSupport staff asked for the order count of a customer in the invoice header.\n\n"
+              "## Changes\n\n- **Invoice header template**: a badge with the order count, after the customer name.\n"
+              "- **Invoice styles**: the badge style and a 300 ms fade-in.\n\n")
+    UI_VIEW = "- **Invoice header**: a blue badge with the order count now follows the customer name. It fades in.\n\n"
+    UI_TESTING = "## Testing\n\nThe diff changes no test. Not run in this session.\n"
+    PR_UI = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed: images of the invoice header before and after the "
+             "change, and a short video of the fade-in.\n\n" + UI_TESTING)
+    PR_UI_BASE = UI_TOP + UI_TESTING
+    PR_UI_LIST = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "Not confirmed:\n\n- An image of the invoice header before the change.\n"
+                  "- An image of the invoice header after the change.\n- A short video of the fade-in.\n\n" + UI_TESTING)
+    PR_UI_IMAGES = (UI_TOP + "## UI changes\n\n" + UI_VIEW + "| Before | After |\n| --- | --- |\n"
+                    f"| ![Before: no order count in the header]({IMAGE_BEFORE}) | ![After: the badge shows the order count]"
+                    f"({IMAGE_AFTER}) |\n\n"
+                    "Not confirmed: a short video of the fade-in.\n\n" + UI_TESTING)
+
+    def regex_graders(self, case):
+        return [name for name, (meta, _) in self.cases[case].graders.items() if meta["type"] == "regex"]
+
+    def test_the_right_ui_texts_pass_each_regex_grader_of_their_case(self):
+        shows = self.PR_UI_LIST.replace("- A short video of the fade-in.", "- A short video that shows the fade-in.")
+        bold_numbers = (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**").replace("- An image", "1. An image", 1)
+                        .replace("- An image", "2. An image").replace("- A short", "3. A short"))
+        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_CASE, self.PR_UI_LIST), (self.UI_CASE, shows),
+                           (self.UI_CASE, bold_numbers), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
+            for grader in self.regex_graders(case):
+                with self.subTest(case=case, grader=grader):
+                    self.assertTrue(self.passes(case, grader, text))
+
+    def test_the_base_form_fails_the_evidence_graders_and_the_route_graders_of_the_ui_case(self):
+        for grader in ("asks-for-images", "asks-for-video", "route-ui-section", "route-ui-not-confirmed"):
+            with self.subTest(grader=grader):
+                self.assertFalse(self.passes(self.UI_CASE, grader, self.PR_UI_BASE))
+        # The scored guards pass the base form, so a base run can pass them.
+        for grader in ("structure", "within-limit", "no-media-link", "no-evidence-claim"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(self.UI_CASE, grader, self.PR_UI_BASE))
+        for grader in ("asks-for-video", "route-ui-table", "route-ui-video-not-confirmed"):
+            with self.subTest(grader=grader):
+                self.assertFalse(self.passes(self.UI_IMAGES_CASE, grader, self.PR_UI_BASE))
+
+    def test_asks_for_images_and_video_need_a_mark_of_missing_evidence_on_the_line(self):
+        add = "## UI changes\n\nAdd screenshots of the header before and after, and a recording of the fade-in.\n"
+        self.check(self.UI_CASE, "asks-for-images", {
+            "not confirmed": (self.PR_UI, True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list under another line": (self.PR_UI_LIST.replace("Not confirmed:", "Later work:"), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
+            "an add request": (add, True),
+            "images to be added": ("## Notes\n\nImages of the header: to be added by the author.\n", True),
+            "no screenshots yet": ("## Notes\n\nNo screenshots are attached yet.\n", True),
+            "the base form": (self.PR_UI_BASE, False),
+            "a claim of images": ("## UI changes\n\nThe screenshots below show the badge.\n", False),
+            "the image word with no mark": ("## Changes\n\n- **Header**: the image of the logo stays.\n", False),
+        })
+        self.check(self.UI_CASE, "asks-for-video", {
+            "not confirmed": (self.PR_UI, True),
+            "an add request": (add, True),
+            "a video is missing": ("## Notes\n\nA short video of the fade-in is missing.\n", True),
+            "a list under not confirmed": (self.PR_UI_LIST, True),
+            "a list with images only": (self.PR_UI_LIST.replace("- A short video of the fade-in.\n", ""), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
+            "images only": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
+            "a claim of a video": ("## UI changes\n\nThe video shows the fade-in.\n", False),
+            "the base form": (self.PR_UI_BASE, False),
+        })
+
+    def test_no_media_link_fails_an_invented_or_a_placeholder_link(self):
+        self.check(self.UI_CASE, "no-media-link", {
+            "not confirmed": (self.PR_UI, True),
+            "a file name with no link": ("Not confirmed: `invoice-header-before.png` and `invoice-header-after.png`.\n", True),
+            "an invented image": (f"| ![Before]({self.IMAGE_BEFORE}) | x |\n", False),
+            "a placeholder image": ("| ![before](TODO) | ![after](TODO) |\n", False),
+            "an image tag": ('<img src="before.png" alt="Before" />\n', False),
+            "a link to a video file": ("[Fade-in](https://example.com/fade-in.webm)\n", False),
+            "a bare upload link": ("Before: https://github.com/user-attachments/assets/1234\n", False),
+        })
+
+    def test_no_evidence_claim_fails_a_claim_of_evidence_that_the_input_lacks(self):
+        self.check(self.UI_CASE, "no-evidence-claim", {
+            "not confirmed": (self.PR_UI, True),
+            "an add request": ("Add screenshots of the header before and after the change.\n", True),
+            "no screenshots yet": ("No screenshots are attached yet.\n", True),
+            "images not attached": ("The images are not attached.\n", True),
+            "screenshots below": ("Screenshots below.\n", False),
+            "see the attached": ("See the attached screenshots.\n", False),
+            "the video shows": ("The video shows the fade-in.\n", False),
+            "the images show": ("The images show the badge.\n", False),
+            "images included": ("Images of both states are included.\n", False),
+            "a list item that shows": ("Not confirmed:\n\n- A short video that shows the fade-in.\n", True),
+            "a list item which shows": ("Not confirmed:\n\n- An image of the header after the change, which shows the badge.\n",
+                                        True),
+        })
+
+    def test_the_images_case_needs_both_given_links_and_no_other_media_link(self):
+        self.check(self.UI_IMAGES_CASE, "uses-given-images", {
+            "both links": (self.PR_UI_IMAGES, True),
+            "both links as plain links": (f"Before: <{self.IMAGE_BEFORE}>\nAfter: <{self.IMAGE_AFTER}>\n", True),
+            "only the link after": (self.PR_UI_IMAGES.replace(self.IMAGE_BEFORE, "before.png"), False),
+            "no link": (self.PR_UI, False),
+        })
+        self.check(self.UI_IMAGES_CASE, "no-other-media-link", {
+            "the given links": (self.PR_UI_IMAGES, True),
+            "the given links as tags": (f'<img src="{self.IMAGE_BEFORE}" /> <img src="{self.IMAGE_AFTER}" />\n', True),
+            "a bare given link": (self.IMAGE_AFTER + "\n", True),
+            "an invented video upload": (self.PR_UI_IMAGES + "\nhttps://github.com/user-attachments/assets/aaaa-fade\n", False),
+            "an invented image": (self.PR_UI_IMAGES + "\n![Fade-in](fade-in.gif)\n", False),
+            "an invented video tag": (self.PR_UI_IMAGES + '\n<video src="fade-in.mp4"></video>\n', False),
+            "a link to a video file": (self.PR_UI_IMAGES + "\n[Fade-in](https://example.com/fade-in.webm)\n", False),
+        })
+        table = "| Before | After |\n| --- | --- |\n"
+        self.check(self.UI_IMAGES_CASE, "route-ui-table", {
+            "the table in the section": (self.PR_UI_IMAGES, True),
+            "a table with no links": (self.PR_UI_IMAGES.replace(self.IMAGE_BEFORE, "x").replace(self.IMAGE_AFTER, "y"), False),
+            "the links with no table": (self.UI_TOP + "## UI changes\n\n" + self.UI_VIEW + f"![Old header]({self.IMAGE_BEFORE})\n"
+                                        f"![New header]({self.IMAGE_AFTER})\n\n" + self.UI_TESTING, False),
+            "the table in another section": (self.UI_TOP + "## Notes\n\n" + table + f"| <{self.IMAGE_BEFORE}> | "
+                                             f"<{self.IMAGE_AFTER}> |\n\n" + self.UI_TESTING, False),
+        })
+        self.check(self.UI_IMAGES_CASE, "route-ui-video-not-confirmed", {
+            "the video line": (self.PR_UI_IMAGES, True),
+            "no video line": (self.PR_UI_IMAGES.replace("Not confirmed: a short video of the fade-in.\n\n", ""), False),
+            "a list under not confirmed": (self.PR_UI_IMAGES.replace("Not confirmed: a short video", "Not confirmed:\n\n- A short video"),
+                                           True),
+            "a bold label and a numbered list": (self.PR_UI_IMAGES.replace("Not confirmed: a short video",
+                                                                           "**Not confirmed:**\n\n1. A short video"), True),
+        })
+
+    def test_route_image_alt_state_needs_alt_text_that_names_the_state_of_each_image(self):
+        bare = (f"| ![Invoice header before]({self.IMAGE_BEFORE}) | ![Invoice header after]({self.IMAGE_AFTER}) |\n")
+        self.check(self.UI_IMAGES_CASE, "route-image-alt-state", {
+            "alt text with the state": (self.PR_UI_IMAGES, True),
+            "the form of a base run": (bare, False),
+            "the words before and after only": (f"![Before]({self.IMAGE_BEFORE})\n![After]({self.IMAGE_AFTER})\n", False),
+            "the state only on one image": (bare.replace("Invoice header after", "After: the badge is there"), False),
+            "the state in angle brackets": (f"![Before: no badge](<{self.IMAGE_BEFORE}>) ![After: with the badge](<{self.IMAGE_AFTER}>)\n",
+                                            True),
+            "plain links": (f"Before: <{self.IMAGE_BEFORE}>\nAfter: <{self.IMAGE_AFTER}>\n", False),
+        })
+
+    def test_route_ui_graders_read_only_the_ui_section(self):
+        moved = self.PR_UI.replace("## UI changes\n\n", "").replace(self.UI_TESTING, self.UI_TESTING + "\n## UI changes\n\n-\n")
+        self.check(self.UI_CASE, "route-ui-section", {
+            "the section": (self.PR_UI, True),
+            "crlf line ends": (self.PR_UI.replace("\n", "\r\n"), True),
+            "another heading": (self.PR_UI.replace("## UI changes", "## Screenshots"), False),
+            "an empty section at the end": (moved, False),
+        })
+        self.check(self.UI_CASE, "route-ui-not-confirmed", {
+            "the section": (self.PR_UI, True),
+            "no video in the section": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
+            "the mark only in the notes": (self.UI_TOP + "## UI changes\n\n" + self.UI_VIEW + self.UI_TESTING
+                                           + "\n## Notes\n\nNot confirmed: images before and after, and a video.\n", False),
+        })
+
+    def test_no_ui_section_fails_a_ui_section_on_a_backend_diff(self):
+        for case in (self.UNTESTED, self.TESTED):
+            with self.subTest(case=case):
+                self.assertEqual(self.cases[case].graders["no-ui-section"], self.cases[self.UNTESTED].graders["no-ui-section"])
+        self.check(self.UNTESTED, "no-ui-section", {
+            "the not-run form": (self.PR_NOT_RUN, True),
+            "a sentence on the user interface": ("## Notes\n\n- The UI is unchanged.\n", True),
+            "a not confirmed test run": ("## Testing\n\nNot confirmed: the output of a test run.\n", True),
+            "a UI changes section": (self.PR_NOT_RUN + "\n## UI changes\n\nNone.\n", False),
+            "a screenshots section": (self.PR_NOT_RUN + "\n### Screenshots\n\nNone.\n", False),
+            "a bold label": (self.PR_NOT_RUN + "\n**UI changes**: none.\n", False),
+            "a bold label in a bullet": (self.PR_NOT_RUN + "\n- **UI changes**: none\n", False),
+            "a bold component in a bullet": ("## Changes\n\n- **Order store**: `orders_count`.\n", True),
+            "a request for images": ("## Notes\n\nNot confirmed: screenshots of the invoice header.\n", False),
+            # Known limit: a sentence that starts with the bold word counts as a section.
+            "a sentence that starts with the bold word": ("**UI** code is unchanged.\n", False),
+        })
+
+    def test_the_ui_cases_share_the_diff_and_differ_only_in_the_images(self):
+        change, images = self.cases[self.UI_CASE], self.cases[self.UI_IMAGES_CASE]
+        for case in (change, images):
+            with self.subTest(case=case.name):
+                self.assertNotIn("Bash", case.field("allowed_tools"))
+                self.assertIn("+++ b/web/static/invoice.css", case.prompt_body)
+                self.assertIn("animation:", case.prompt_body)
+                for grader in ("structure", "saved", "asks-for-video"):
+                    self.assertEqual(case.graders[grader], change.graders[grader])
+        self.assertEqual(images.prompt_body.replace(self.IMAGES_BLOCK, ""), change.prompt_body)
+        structure = self.cases["cmp-pr-from-diff"].graders["structure"][0]["pattern"]
+        self.assertEqual(change.graders["structure"][0]["pattern"], structure)
+        # A prompt that names the evidence or the section gives the base side the answer.
+        for word in ("screenshot", "image", "video", "before", "after", "UI", "visible"):
+            with self.subTest(word=word):
+                self.assertIsNone(re.search(rf"\b{word}", change.prompt_body, re.I))
+
     def test_reason_from_plan_needs_the_reason_in_the_why_section(self):
         self.check("cmp-pr-from-diff", "reason-from-plan", {
             "reason in the why section": (self.PR_RIGHT, True),

@@ -104,6 +104,7 @@ If you use a template:
 - Read each HTML comment (`<!-- ... -->`) of the template as an instruction for its section or for the whole description. Do what it says, and leave the comment out of the description. A comment that gives a rule for the PR title is no instruction for the description. Write no title, and quote the rule in your final reply (step 6).
 - The writing rules below and the length limits still apply. If the template does not fit in the limit, the limit wins. Keep each heading, and make each section short.
 - The **Testing** rule below applies to the section that asks for tests or for the result of a test run.
+- The **UI changes** rule below applies to the section that asks for images or a video. Add no `## UI changes` heading of your own. For a diff with no visible change, keep the heading and write `No visible change.`
 - If the template asks for an item that the session cannot show, do not invent it. Examples are a screenshot, a video, and the output of a command that did not run. Write `Not confirmed:` and the name of the item instead.
 
 If the repository has no template, use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
@@ -118,6 +119,9 @@ If the repository has no template, use this structure. Start with `## What`, `##
 ## Changes
 - **[Component]**: [what changed - 1 line]
 - **[Component]**: [what changed - 1 line]
+
+## UI changes
+[Only for a change that a person sees - see the last writing rule]
 
 ## Testing
 [The tests that the diff adds or changes, and the run result - 1-2 sentences]
@@ -139,8 +143,9 @@ Writing rules:
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description.
 - If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
+- **UI changes** is only for a diff that changes what a person sees in the product: a view, a style, the layout, the text on a screen, or an animation. For another diff, also a refactor with the same output, skip this rule. Write one line for each changed view: `- **[View]**: [what changed for the person]`. Put the image links of the input in a table with the columns Before and After. The alt text names the state, for example `![Before: the list shows 10 rows](<link>)`. Put each video link on its own line. The length limits do not count these URLs. A local file path is no link, so that item is missing. Write `Not confirmed:` and name each missing image of the state before or after. If the diff changes motion, timing, or an interaction, also name a missing short video there. If the input gives no image link, leave out the table. Leave the cell of a missing image empty. Evidence goes to the pull request, never into the repository.
 
-For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
+For example outputs of a small change, a UI change, and a larger change, read [references/examples.md](references/examples.md).
 
 ### 6. Save PR Description
 

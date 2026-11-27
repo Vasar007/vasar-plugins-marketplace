@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.9.0 in release [7.10.0] - 2026-11-27
+
+The default form of `compose-pr` now has the section `## UI changes` for a change that a person sees. Before, the description of a UI change read like the description of a backend change, and it asked for no image or video. The new section names each changed view. It shows the images of the state before and after that the input gives, with alt text that names the state. It names each missing image and, for a change of motion, a missing short video. The line starts with `Not confirmed:`. The form follows the pull requests of a public repository with a clear form for UI evidence (issue #389).
+
+### Added in dev-essentials
+
+- `evals/composers/cmp-pr-ui-change`: a new case with no shell tool. Its diff adds a badge and a fade-in animation to a page header, and its prompt has no image. The description must ask for the images before and after and for a short video, and mark them as not there yet. It must hold no image link and claim no evidence. The base ran 3 times on an Opus agent and 3 times on a Sonnet agent. Each base run failed the scored graders `asks-for-images` and `asks-for-video`, and passed the other 5. At the head, each scored grader passed in 3 of 3 runs on each agent (issue #389).
+- `evals/composers/cmp-pr-ui-images`: a new case with the same diff and two uploaded image links. The description must use both links and no other media link, and ask for the video. Route graders read the Before and After table and alt text that names the state of each image. The base ran 3 times on each of the two agents. Each base run failed the scored grader `asks-for-video`, and passed the other 4. At the head, each scored grader passed in 3 of 3 runs on each agent (issue #389).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: step 5 has the section `## UI changes` after `## Changes`. It is there only for a diff that changes what a person sees in the product, and a refactor with the same output gets none. It holds one line for each changed view and a Before and After table of the image links of the input. The alt text of each image names its state. A given video link goes on its own line. `Not confirmed:` names each missing image, and a short video for a change of motion, timing, or an interaction. The evidence goes to the pull request, never into the repository. The length limits do not count the URLs of images and videos. A PR template of the repository still wins: the rule applies to its section for images or a video, and the description adds no `## UI changes` heading (issue #389).
+- `skills/compose-pr/references/examples.md`: an example of a UI change with no image (issue #389).
+- `evals/composers/cmp-pr-untested-diff` and `evals/composers/cmp-pr-tested-diff`: the new scored grader `no-ui-section` makes sure that a backend diff gets no such section (issue #389).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A test makes sure that the prompts of the two new cases differ only in the image links. It also makes sure that the first prompt names no evidence (issue #389).
+
 ## dev-essentials 6.8.0 in release [7.9.0] - 2026-11-27
 
 A new section of `subagent-orchestration` is about the final report of a change of behavior. If no smoke run, integration test, or end-to-end test covers the change, the section asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
@@ -3016,7 +3035,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...HEAD
+[7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
 [7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0
 [7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...v7.8.0
 [7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
