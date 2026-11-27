@@ -3881,12 +3881,7 @@ class ComposerGraderTests(unittest.TestCase):
 
     def test_no_ticked_test_box_fails_a_ticked_box_on_a_test_item(self):
         box = "- [ ] The tests ran and passed."
-        text = self.PR_TEMPLATE.replace("## Evidence
-
-", "## Evidence
-
-" + box + "
-")
+        text = self.PR_TEMPLATE.replace("## Evidence\n\n", "## Evidence\n\n" + box + "\n")
         self.check(self.TEMPLATE_CASE, "no-ticked-test-box", {
             "an empty box": (text, True),
             "no box": (self.PR_TEMPLATE, True),
