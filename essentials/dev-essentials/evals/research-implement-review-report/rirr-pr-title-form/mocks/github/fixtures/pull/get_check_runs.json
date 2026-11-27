@@ -1,0 +1,19 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "id": 9101,
+      "name": "unit-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/601/job/9101"
+    },
+    {
+      "id": 9102,
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/601/job/9102"
+    }
+  ]
+}
