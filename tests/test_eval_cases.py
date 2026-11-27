@@ -3802,6 +3802,27 @@ class PpcRuleCandidateTests(unittest.TestCase):
         "- **Replies:** each thread got an `**[AI]**` reply naming its commit, all posted in one batch before the push.\n"
         "- **Decisions and skipped threads:** The full mode made no choices on its own.",
     )
+    # The candidate lines of four head runs at 2a08651, and the verdicts of rule-candidate and route-candidate-threads.
+    HEAD_LINES = {
+        "a range of threads": ("**Possible rule:** threads 9201–9203 all say Python function names must be snake_case. "
+                               "A draft rule for the repo instructions: \"Name Python functions in snake_case.\"", True, True),
+        "no thread IDs": ("- **Possible rule:** three threads asked for snake_case function names. It could go in "
+                          "`CLAUDE.md` as \"use snake_case for Python function names\".", True, False),
+        "a word between possible and rule": ("- **Possible repo rule:** three comments asked that Python function names "
+                                             "use snake_case.", True, False),
+        "the candidate with its threads": ("- **Rule candidate (snake_case):** T#9201, T#9202 and T#9203 all ask for "
+                                           "snake_case Python identifiers.", True, True),
+        "a run with no candidate": ("- **Callers and tests:** nothing in the repo called the three renamed functions.\n"
+                                    "- **Decisions and deferrals:** I made no judgment calls beyond the reviewer's explicit "
+                                    "instructions, so there is nothing to review under \"Decisions for your review\".",
+                                    False, False),
+    }
+
+    def test_the_head_lines_get_their_verdicts(self):
+        for name, (line, candidate, threads) in self.HEAD_LINES.items():
+            with self.subTest(line=name):
+                self.assertEqual((self.passes("rule-candidate", line), self.passes("route-candidate-threads", line)),
+                                 (candidate, threads))
 
     def test_a_right_report_passes_each_grader_of_the_last_message(self):
         report = self.LOG + self.CANDIDATE + self.PUSHED
@@ -3848,6 +3869,10 @@ class PpcRuleCandidateTests(unittest.TestCase):
             "two threads only": ("Rule candidates (1)\n  snake_case: T#9201, T#9202. Draft rule: use snake_case.", False),
             "a rule word far from the threads": ("Rule candidates (0)\n" + "x" * 400 + "\n" + self.PUSHED, False),
             "an empty list near the shared commit": ("Rule candidates: none.\n\n" + self.PUSHED, False),
+            "a range of threads": ("- snake_case: T#9201–T#9203. Draft rule: use snake_case.", True),
+            "a range with another first thread": ("- snake_case: T#9202–T#9203. Draft rule: use snake_case.", False),
+            # Known limit: an empty list in another form passes near a shared commit with the three threads.
+            "known limit: a bold empty list near the shared commit": ("**Rule candidates:** none\n\n" + self.PUSHED, True),
             # Known limit: the bullet asks for one line for each point, so one line for each thread fails.
             "known limit: one line for each thread": ("**Rule candidate:** Python function names in snake_case.\n"
                                                       "- T#9201\n- T#9202\n- T#9203\nDraft rule: use snake_case.", False),

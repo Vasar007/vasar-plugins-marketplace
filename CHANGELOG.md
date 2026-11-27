@@ -15,8 +15,7 @@ The other numbers in a heading are plugin versions.
 
 ### Added in dev-essentials
 
-- `evals/process-pr-comments/ppc-rule-candidates`: a new case in the full mode. Three `[ToFix]` threads make one naming point in other words, and one thread is about a default limit. The fixture has the real shape of the GitHub MCP server. The scored graders read the four fixes, the commit, the push, the replies, and the resolve. They also make sure that no instruction file changes, and that the final reply lists the naming point as a rule candidate. A route grader reads the three threads on the line of the candidate. Another route grader reads that no candidate line holds the limit thread. At the base, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent fixed, committed, pushed, replied, and resolved. No base run named the point or a rule, and each failed the candidate graders (issue #388).
-HEAD-NUMBERS-LINE
+- `evals/process-pr-comments/ppc-rule-candidates`: a new case in the full mode. Three `[ToFix]` threads make one naming point in other words, and one thread is about a default limit. The fixture has the real shape of the GitHub MCP server. The scored graders read the four fixes, the commit, the push, the replies, and the resolve. They also make sure that no instruction file changes, and that the final reply lists the naming point as a rule candidate. A route grader reads the three threads on the line of the candidate. Another route grader reads that no candidate line holds the limit thread. At the base, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent fixed, committed, pushed, replied, and resolved. No base run named the point or a rule, and each failed the candidate graders. At the head, `rule-candidate` passed in 3 of 3 runs with an Opus agent and in 1 of 3 runs with a Sonnet agent. The two Sonnet runs with no candidate also read no reference file of the cycle log and dispatched no Stage 1 (issue #388).
 
 ### Changed in dev-essentials
 
@@ -24,7 +23,7 @@ HEAD-NUMBERS-LINE
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the patterns of the candidate graders of `ppc-rule-candidates` on right and wrong texts. The wrong texts include the words of two base runs and an empty list of candidates (issue #388).
+- `tests/test_eval_cases.py`: new tests for the patterns of the candidate graders of `ppc-rule-candidates` on right and wrong texts. The texts include the words of two base runs, the candidate lines of head runs, and an empty list of candidates (issue #388).
 - `docs/eval-cases.md`: the list of grader limits names the candidate graders of `ppc-rule-candidates` (issue #388).
 - `tests/test_eval_scaffolds.py`: the list of branches names `ppc-rule-candidates`. A new test runs the file graders of the case on real end states of its scaffold (issue #388).
 
