@@ -1895,7 +1895,7 @@ class SeLintHookProbeGraderTests(ScratchCase):
                     self.assertNotRegex(reply, pattern)
 
 
-UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
+UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "rl-null-guard", "rl-off-by-one",
             "rl-unbounded-query", "rirr-retry-limit")
 TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
 
@@ -5855,6 +5855,116 @@ class ModelLadderCaseTests(unittest.TestCase):
         for name, (text, expected) in calls.items():
             with self.subTest(call=name):
                 self.assertEqual(re.search(self.pattern, text) is not None, expected)
+
+
+class IntegrationProofGraderTests(unittest.TestCase):
+    """The graders of so-integration-proof: a run of the integration test or of the real CLI after the last edit, and the reply."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    INTEGRATION = trace_bash("python3 -m unittest discover -s integration -v")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+    REPLY = trace_result("OK")
+
+    @classmethod
+    def setUpClass(cls):
+        case = {case.name: case for case in load_cases(FP_ROOT)}["so-integration-proof"]
+        cls.pattern = case.graders["integration-after-edit"][0]["pattern"]
+        cls.reported = case.graders["route-proof-reported"][0]
+        cls.changed = case.graders["discount-changed"][0]["pattern"]
+
+    def matches(self, *records):
+        return re.search(self.pattern, "\n".join(records)) is not None
+
+    def test_a_run_of_the_integration_test_or_the_cli_after_the_last_edit_passes(self):
+        runs = {
+            "unit tests, the integration test, and a commit": [self.EDIT, self.UNIT, self.INTEGRATION, self.REPLY, self.COMMIT],
+            "both suites in one command": [self.EDIT, trace_bash(
+                "python3 -m unittest discover -s tests && python3 -m unittest discover -s integration")],
+            "the integration test after the commit": [self.EDIT, self.UNIT, self.COMMIT, self.INTEGRATION],
+            "a relative start folder": [self.EDIT, trace_bash("python3 -m unittest discover -s ./integration 2>&1 | tail -5")],
+            "pytest": [self.EDIT, trace_bash("pytest -q integration/")],
+            "the test file as a script": [self.EDIT, trace_bash("python3 integration/test_cli.py")],
+            "a smoke run of the CLI": [self.EDIT, trace_bash("python3 -m app.cli samples/order.json")],
+            "the CLI file as a script": [self.EDIT, trace_bash("python app/cli.py samples/order.json")],
+            "a cd into the folder": [self.EDIT, trace_bash("cd integration && python3 -m unittest -v")],
+            "a new receipt from the CLI": [self.EDIT, trace_bash(
+                "python3 -m app.cli samples/order.json > integration/expected/receipt.txt"), self.COMMIT],
+            "a Markdown edit after the run": [self.EDIT, self.INTEGRATION, trace_edit("README.md"), self.COMMIT],
+            "an edit before an earlier run, and a later run": [
+                self.INTEGRATION, self.EDIT, self.UNIT, self.INTEGRATION, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_unit_tests_only_or_an_edit_after_the_last_run_fails(self):
+        runs = {
+            "unit tests only": [self.EDIT, self.UNIT, self.REPLY, self.COMMIT],
+            "an Edit of a .py file after the run": [self.INTEGRATION, self.EDIT, self.UNIT, self.COMMIT],
+            "a Write of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_write("integration/expected/receipt.txt"), self.COMMIT],
+            "an Edit of the receipt after the run": [
+                self.EDIT, self.INTEGRATION, trace_edit("integration/expected/receipt.txt"), self.COMMIT],
+            "a read of the test file": [self.EDIT, trace_bash("cat integration/test_cli.py"), self.UNIT, self.COMMIT],
+            "a list of the folder": [self.EDIT, trace_bash("ls integration"), self.UNIT, self.COMMIT],
+            "a search in the stored receipt": [self.EDIT, trace_bash("grep -rn Total integration/expected"), self.COMMIT],
+            "a read of the CLI": [self.EDIT, trace_bash("cat app/cli.py"), self.UNIT, self.COMMIT],
+            "unit tests and a read of the receipt in one command": [
+                self.EDIT, trace_bash("python3 -m unittest discover -s tests && cat integration/expected/receipt.txt")],
+            "the CI step in a tool result": [
+                self.EDIT, trace_result("run: python3 -m unittest discover -s integration"), self.UNIT, self.COMMIT],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.matches(*records))
+
+    def test_the_grader_keeps_its_known_limits(self):
+        """Each subtest is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        runs = {
+            "a bad run passes: a sed edit after the run": [
+                self.INTEGRATION, trace_bash("sed -i 's/= 10/= 15/' app/pricing.py"), self.COMMIT],
+            "a bad run passes: the words in a commit message": [
+                self.EDIT, self.UNIT, trace_bash('git commit -qm "unittest for integration later"')],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertTrue(self.matches(*records))
+
+    def test_the_grader_is_fast_on_a_long_trace(self):
+        """The grader needs less than 2 seconds for a trace with 2000 commands and 2000 edits after its last run."""
+        noise = [trace_bash(f"git status --short && echo {n}") for n in range(2000)]
+        edits = [trace_edit(f"app/m{n}.py") for n in range(2000)]
+        trace = "\n".join([self.INTEGRATION, *noise, *edits, self.COMMIT])
+        start = time.perf_counter()
+        self.assertIsNone(re.search(self.pattern, trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
+
+    def test_the_reply_grader_needs_a_word_for_the_proof(self):
+        flags = re.I if "i" in self.reported.get("flags", "") else 0
+        replies = {
+            "the integration test": ("The unit tests and the integration test pass.", True),
+            "a capital letter": ("Integration: 1 test, OK.", True),
+            "a smoke run": ("A smoke run of the CLI printed Total 34.00.", True),
+            "an end-to-end test": ("The end-to-end test passes.", True),
+            "unit tests only": ("The unit tests pass: Ran 3 tests, OK.", False),
+        }
+        for name, (reply, expected) in replies.items():
+            with self.subTest(reply=name):
+                self.assertEqual(re.search(self.reported["pattern"], reply, flags) is not None, expected)
+
+    def test_the_discount_grader_finds_the_new_rate_only(self):
+        texts = {
+            "the new constant": ("MEMBER_DISCOUNT_PERCENT = 15\n", True),
+            "a rate in the formula": ("    return amount * 15 // 100\n", True),
+            "a factor": ("    return amount * 0.85\n", True),
+            "the old constant": ("MEMBER_DISCOUNT_PERCENT = 10\n", False),
+            "a price in cents": ("PRICE = 1500\n", False),
+            "a version number": ("VERSION = 1.15.2\n", False),
+        }
+        for name, (text, expected) in texts.items():
+            with self.subTest(text=name):
+                self.assertEqual(re.search(self.changed, text) is not None, expected)
 
 
 class UsefulTestsCaseGraderTests(unittest.TestCase):
