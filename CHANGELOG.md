@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
 
 A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix. An example is a base branch that moved on after the push, so that GitHub reports the head as out of date. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops. A red build or test before the push still ends the run (issue #387).
 
@@ -47,6 +47,60 @@ At an earlier text, one Opus head run of `rirr-gate-fix-no-command` ran the lint
 - `tests/test_work_modes_text.py`: the pinned sentences of the failed-gate rule follow the new text. New tests pin the section "A failed merge gate", its line of the finish report, and the new sentence of `merge-pr` (issue #387).
 - `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: new tests for the four gate cases and their scaffolds. The mocked check runs have only the fields that the GitHub MCP server gives. The grader `fix-not-pushed` counts the `git push` calls and allows one. The grader `no-rebase` fails a rebase of the pushed branch (issue #387).
 - `tests/simple-english-baseline.json`: the file path `config/settings.py` in the grader `limit-lowered` of the three cases (issue #387).
+
+## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+
+`review-loop` now says which of its gates a workflow run keeps. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. Each check that can ask the user runs in the main session, before or between workflows. Each step gets the brief that its phase builds, word for word. The triage judges each finding on its merits, and a severity rule in code is no triage. Outside the full mode, the main session writes the triage table between two workflows. The fixer step does not commit. In the workflow, Phase 7 commits only after a green Phase 6. After a red one, the main session finishes Phases 6 and 7. The script returns the Phase 6 result and the data of each finding, with the reason of each fixer verdict. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8, and each next cycle is a new workflow (issue #390).
+- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. The runs had the Workflow tool. With a Sonnet agent, 0 of 6 base runs triaged the findings before the fix. At the head, 2 of 3 runs did, so the Sonnet head is not at 3 of 3. The third head run fixed the findings and listed the deferred ones only in its final reply. With an Opus agent, each of 6 base scripts kept a triage step, but 5 of them sorted the findings by severity in code. In at least 4 of the 6, the fixer step also made the commit. At the head, 3 of 3 Opus runs had no severity rule in code and no commit by the fixer step. They passed each scored grader. The route graders `route-no-code-triage` and `route-no-commit-in-fixer` read these two forms. With an Opus agent, the hold run of `rl-off-by-one` scored 1.00 in 3 of 3 runs at the base and at the head (issue #390).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-workflow-request`, with the scripts of two base runs in `tests/evals/fixtures/workflow-scripts/` (issue #390).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-workflow-request` (issue #390).
+- `docs/eval-cases.md`: a new section "Workflow runs" says what the trace of a workflow run holds. The list of known limits names the graders of `rl-workflow-request` (issue #390).
+- `docs/evals.md`: the section "Run a suite" says that `rl-workflow-request` needs its own command with the grant `Workflow` (issue #390).
+
+## dev-essentials 6.5.0 in release [7.6.0] - 2026-11-27
+
+The finish steps of `work-modes` now write the title of a pull request in the form that the repository uses. Before, the title always came from the section `## What` of the body. The form that a model picks with no rule can change from one model to the next (issue #385).
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template. The case is a guard: in the runs of PR #384, both sides scored 1.00 on two agent models (issue #385).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: step 4 writes the title in the form that the instructions file or the template gives. Else it comes from the summary of the change in the body, which is `## What` for a body with no template (issue #385).
+- `skills/feature-pipeline/stages/finalization.md`: step 6 loads `compose-pr` only for a repository with a PR template, or with no form for the PR body. For a template, it follows the template rules of step 5 of `compose-pr`. The closing line, the length limit, and the skipped steps apply in these two cases (issue #385).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the title grader and the body grader of `rirr-pr-title-form` on right and wrong texts. A new test makes sure that its prompt names no template and no form of titles. The finish case tests cover `rirr-pr-title-form` too. A new test makes sure that `finalization.md` loads `compose-pr` for a PR template. The test also makes sure that the stage points to its template rules and has no copy of them (issue #385).
+- `tests/test_eval_scaffolds.py`: the lists of branches, push graders, commit graders, and reports name `rirr-pr-title-form`. A test makes sure that `cmp-pr-repo-template` and `rirr-pr-title-form` plant the same template on `main`, with its rules only in comments (issue #385).
+
+## dev-essentials 6.4.1 in release [7.5.1] - 2026-11-27
+
+`process-pr-comments` now says where the ID of a review comment comes from. The `get_review_comments` result of the GitHub MCP server has no `id` field for a comment. The ID is only the number after `#discussion_r` in the `html_url` of the comment. The eval fixtures of the review threads now have the shape of the real result. So the eval cases test the read of that result (issue #381).
+
+### Fixed in dev-essentials
+
+- `skills/process-pr-comments/SKILL.md`: Phase 2 says that a comment has no `id` field. Its `commentId` is the number after `#discussion_r` in its `html_url` (issue #381).
+- `skills/process-pr-comments/references/thread-state-schema.md`: the `commentId` row of `processedCommentIds` names the same source (issue #381).
+- `skills/github-mcp-conventions/SKILL.md`: the section "Thread anchors and `html_url`" no longer calls the `#discussion_r<id>` part an implementation detail. It names that part as the source of the comment ID in a `get_review_comments` result. The rule against a URL built by hand stays (issue #381).
+- `evals/*/*/mocks/github/fixtures/**/get_review_comments.json`: each of the 23 fixtures has the real shape. The list of threads is `review_threads`, the login is the plain string `author`, and a comment has no `id`. Each thread has `total_count`, and the result has `totalCount` and `pageInfo`, which has no empty cursor. The threads, the texts, the logins, the states, and the comment IDs in `html_url` stay the same (issue #381).
+- `evals/process-pr-comments/*/mocks/github/add_reply_to_pull_request_comment.md`: each reply mock expects only the IDs of the top comments of its fixture, as a number or as a string. A reply with another ID ends the run with the score 0 (issue #381).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: a new test fails for a fixture with the old keys `threads`, `user.login`, or a comment `id`. It also fails with no `totalCount` or `total_count`. A new test makes sure that each reply mock expects the IDs of the top comments of its fixture. The trust test reads the logins from `author` (issue #381).
+- `tools/wsl/linux/eval-run.sh`: after the fetch of the bundle, the eval clone now keeps only the branches of that bundle at `win/<branch>`. The script removes each local branch, each `origin` ref, and each other `win/` branch. Before, the local `main` of the first clone never moved, so `--base main` compared against an old commit with no warning. Now a plain `main` names no branch, and `compare_versions.py` stops before the first run (issue #383).
+- `tools/wsl/linux/eval-run.sh`: a `--clone` folder with a clone that the script did not make now gets a `STOP` line and exit code 3. The run changes no ref of it. Before, the script took each clone that `--clone` named (issue #383).
+- `tools/wsl/run-eval.sh`, `docs/tools.md`, `docs/evals.md`: the usage text and the docs tell you to give `--base`, `--head`, or `--commit` a branch in the form `win/<branch>` (issue #383).
+- `tests/test_tools_wsl.py`: a new test makes three runs. Then it makes sure that `win/main` is the new `main` and that no stale branch of the eval clone resolves. It also makes sure that the usage text names `--base win/main`. A second test makes sure that a clone that the script did not make keeps its branches (issue #383).
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
@@ -2941,8 +2995,11 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...HEAD
-[7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.7.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...HEAD
+[7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...v7.8.0
+[7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
+[7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0
+[7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0

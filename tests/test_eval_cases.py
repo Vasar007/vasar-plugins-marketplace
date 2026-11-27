@@ -1896,8 +1896,9 @@ class SeLintHookProbeGraderTests(ScratchCase):
 
 
 UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "rl-null-guard", "rl-off-by-one",
-            "rl-unbounded-query", "rirr-retry-limit")
-TBC_CASES = (*UC_CASES, "it-no-worktree", "ib-no-worktree")
+            "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
+# rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
+TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
 
 
 def trace_bash(command):
@@ -2507,6 +2508,18 @@ class PrBodyFormGraderTests(unittest.TestCase):
         self.assertRegex(skill, r"`{3}md\n## What\n[^\n]*\n\n## Why\n[^\n]*\n\n## Changes\n")
         stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
         self.assertIn('"5. Generate PR Description"', stage)
+
+    def test_the_stage_points_to_the_template_rules_of_compose_pr(self):
+        # The stage keeps no copy of the template rules (issue #385).
+        skill = (FP_ROOT / "skills" / "compose-pr" / "SKILL.md").read_text(encoding="utf-8")
+        step = skill.split("### 5. Generate PR Description", 1)[1].split("### 6.", 1)[0]
+        self.assertIn("If you use a template:", step)
+        stage = (FP_STAGES / "finalization.md").read_text(encoding="utf-8")
+        paragraph = next(line for line in stage.splitlines() if "dev-essentials:compose-pr" in line)
+        condition = paragraph.split("dev-essentials:compose-pr", 1)[0].rsplit(". ", 1)[-1]
+        self.assertIn("PR template", condition)
+        self.assertIn('rules for a template in its step "5. Generate PR Description"', paragraph)
+        self.assertNotIn("HTML comment", stage)
 
 
 class ForkHeadMockTests(unittest.TestCase):
@@ -3699,8 +3712,8 @@ class PpcTrustTests(unittest.TestCase):
         return {item["login"].lower() for item in json.loads(body)["items"] if item["role_name"] in self.WRITE_ROLES}
 
     def untrusted(self, case):
-        threads = self.fixture(case, "get_review_comments.json")["threads"]
-        reviewers = {comment["user"]["login"].lower() for thread in threads for comment in thread["comments"]}
+        threads = self.fixture(case, "get_review_comments.json")["review_threads"]
+        reviewers = {comment["author"].lower() for thread in threads for comment in thread["comments"]}
         return reviewers - self.write_logins(case) - {self.fixture(case, "get.json")["user"]["login"].lower()}
 
     def passes(self, grader, text):
@@ -3750,6 +3763,106 @@ class PpcTrustTests(unittest.TestCase):
         self.assertTrue(self.passes("route-trust-read", "\n".join([read, call("list_repository_collaborators", owner="example-org")])))
         self.assertFalse(self.passes("route-trust-read", read))
         self.assertFalse(self.passes("route-trust-read", call("pull_request_read", note="list_repository_collaborators")))
+
+
+class ReviewCommentsFixtureTests(unittest.TestCase):
+    """Each get_review_comments fixture has the shape of the GitHub MCP server, and each reply mock expects its IDs (issue #381).
+
+    The real result has review_threads, a plain string author, and no comment id: the ID is only in #discussion_r<id> of html_url.
+    """
+
+    TOP_KEYS = {"pageInfo", "review_threads", "totalCount"}
+    PAGE_REQUIRED = {"hasNextPage", "hasPreviousPage"}
+    PAGE_KEYS = PAGE_REQUIRED | {"endCursor", "startCursor"}
+    THREAD_KEYS = {"id", "is_resolved", "is_outdated", "is_collapsed", "total_count", "comments"}
+    COMMENT_KEYS = {"author", "body", "path", "line", "start_line", "original_line", "original_start_line", "html_url",
+                    "created_at", "updated_at"}
+    COMMENT_REQUIRED = {"author", "body", "path", "html_url", "created_at", "updated_at"}
+    DISCUSSION = re.compile(r"#discussion_r(\d+)$")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.fixtures = sorted(path for manifest in REPO.glob(PLUGIN_GLOB)
+                              for path in (manifest.parent.parent / EVALS).rglob("get_review_comments.json"))
+
+    def shape_errors(self, data):
+        """The list of the points where the data differs from the real result."""
+        errors = []
+        if set(data) != self.TOP_KEYS:
+            return [f"top keys {sorted(data)}"]
+        page = data["pageInfo"]
+        if not self.PAGE_REQUIRED <= set(page) <= self.PAGE_KEYS:
+            errors.append(f"pageInfo keys {sorted(page)}")
+        # The server leaves an empty cursor out, so a cursor that is there holds a value.
+        elif any(not isinstance(page.get(key), str) or not page[key] for key in ("startCursor", "endCursor") if key in page):
+            errors.append(f"empty or wrong cursor in {page}")
+        threads = data["review_threads"]
+        single_page = not page.get("hasNextPage") and not page.get("hasPreviousPage")
+        if data["totalCount"] < len(threads) or (single_page and data["totalCount"] != len(threads)):
+            errors.append(f"totalCount {data['totalCount']} for {len(threads)} threads")
+        for thread in threads:
+            if set(thread) != self.THREAD_KEYS:
+                errors.append(f"thread keys {sorted(thread)}")
+                continue
+            if thread["total_count"] != len(thread["comments"]):
+                errors.append(f"total_count {thread['total_count']} of {thread['id']}")
+            for comment in thread["comments"]:
+                keys = set(comment)
+                if not self.COMMENT_REQUIRED <= keys <= self.COMMENT_KEYS:
+                    errors.append(f"comment keys {sorted(keys)}")
+                elif not isinstance(comment["author"], str) or not self.DISCUSSION.search(comment["html_url"]):
+                    errors.append(f"author or html_url of {comment['html_url']}")
+        return errors
+
+    def top_comment_ids(self, fixture):
+        data = json.loads(fixture.read_text(encoding="utf-8"))
+        return {int(self.DISCUSSION.search(thread["comments"][0]["html_url"]).group(1)) for thread in data["review_threads"]}
+
+    def test_each_fixture_has_the_shape_of_the_real_result(self):
+        self.assertGreater(len(self.fixtures), 0)
+        for fixture in self.fixtures:
+            with self.subTest(fixture=fixture.relative_to(REPO).as_posix()):
+                self.assertEqual(self.shape_errors(json.loads(fixture.read_text(encoding="utf-8"))), [])
+
+    def test_the_old_keys_fail_the_shape(self):
+        comment = {"author": "example-reviewer", "body": "**[ToFix]** Fix it.", "path": "src/pager.py", "line": 24,
+                   "original_line": 24, "html_url": "https://github.com/example-org/pager/pull/42#discussion_r9101",
+                   "created_at": "2026-01-02T10:00:00Z", "updated_at": "2026-01-02T10:00:00Z"}
+        thread = {"id": "PRRT_1", "is_resolved": False, "is_outdated": False, "is_collapsed": False, "total_count": 1,
+                  "comments": [comment]}
+        page = {"hasNextPage": False, "hasPreviousPage": False}
+        self.assertEqual(self.shape_errors({"pageInfo": page, "review_threads": [thread], "totalCount": 1}), [])
+        last_page = {"hasNextPage": False, "hasPreviousPage": True, "startCursor": "Y3Vyc29y", "endCursor": "Y3Vyc29y"}
+        self.assertEqual(self.shape_errors({"pageInfo": last_page, "review_threads": [thread], "totalCount": 31}), [])
+        old_comment = {key: value for key, value in comment.items() if key != "author"}
+        wrong = {
+            "threads in place of review_threads": {"pageInfo": page, "threads": [thread], "totalCount": 1},
+            "user.login in place of author": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**old_comment, "user": {"login": "example-reviewer"}}]}]},
+            "a comment id": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**comment, "id": 9101}]}]},
+            "an empty cursor": {"pageInfo": {**page, "startCursor": ""}, "totalCount": 1, "review_threads": [thread]},
+            "a wrong totalCount on a single page": {"pageInfo": page, "totalCount": 2, "review_threads": [thread]},
+            "no totalCount": {"pageInfo": page, "review_threads": [thread]},
+            "no total_count": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {key: value for key, value in thread.items() if key != "total_count"}]},
+            "an html_url with no comment ID": {"pageInfo": page, "totalCount": 1, "review_threads": [
+                {**thread, "comments": [{**comment, "html_url": "https://github.com/example-org/pager/pull/42"}]}]},
+        }
+        for name, data in wrong.items():
+            with self.subTest(fixture=name):
+                self.assertNotEqual(self.shape_errors(data), [])
+
+    def test_each_reply_mock_expects_the_ids_of_the_top_comments(self):
+        mocks = sorted(fixture.parent.parent / "add_reply_to_pull_request_comment.md" for fixture in self.fixtures
+                       if (fixture.parent.parent / "add_reply_to_pull_request_comment.md").is_file())
+        self.assertGreater(len(mocks), 0)
+        for mock_file in mocks:
+            with self.subTest(mock=mock_file.relative_to(REPO).as_posix()):
+                ids = self.top_comment_ids(mock_file.parent / "fixtures" / "get_review_comments.json")
+                lines, _body = split_frontmatter(mock_file.read_text(encoding="utf-8"))
+                # The model can pass the ID as a number or as a string, and a value outside the list aborts the run.
+                self.assertCountEqual(parse_block(lines)["expect"]["commentId"], [*sorted(ids), *map(str, sorted(ids))])
 
 
 def agent_input(subagent_type):
@@ -4596,7 +4709,7 @@ class RirrSquashRouteGraderTests(unittest.TestCase):
         self.assertFalse(self.passes("route-tree-kept", read_of_the_script))
 
 
-STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate")
+STOP_VERDICT_CASES = ("rl-off-by-one", "rl-failing-build", "rl-edited-rules", "rl-lint-gate", "rl-workflow-request")
 
 
 class StopVerdictRouteGraderTests(unittest.TestCase):
@@ -4698,6 +4811,328 @@ class EarlierFindingsGraderTests(unittest.TestCase):
         for name, text in wrong.items():
             with self.subTest(text=name):
                 self.assertFalse(self.passes(text))
+
+
+# The Workflow scripts of two probe runs of rl-workflow-request, word for word: an Opus run with a triage step, and a Sonnet run with none.
+WORKFLOW_SCRIPTS = REPO / "tests" / "evals" / "fixtures" / "workflow-scripts"
+
+
+class WorkflowRequestGraderTests(unittest.TestCase):
+    """The new graders of rl-workflow-request: the triage before the first fix, a reviewer that does not fix, and the Workflow tool."""
+
+    REVIEWER_ID = "toolu_rev1"
+    FIXER_ID = "toolu_fix1"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["rl-workflow-request"]
+        skill = FP_ROOT / "skills" / "review-loop"
+        cls.briefs = (skill / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+        cls.skill_text = (skill / "SKILL.md").read_text(encoding="utf-8")
+        cls.fixer_rules = cls.skill_text.split("The rules that the fixer must follow:", 1)[1].split(
+            "Follow `dev-essentials:engineering-discipline` Rule 2", 1)[0]
+        cls.example = (skill / "examples" / "branch-review.md").read_text(encoding="utf-8")
+
+    def meta(self, grader):
+        return self.case.graders[grader][0]
+
+    def passes(self, grader, *records):
+        meta = self.meta(grader)
+        found = re.search(meta["pattern"], "\n".join(records)) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    @staticmethod
+    def call(tool, tool_input, parent=None, call_id="toolu_9"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": call_id, "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def text(body, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "text", "text": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def result(body, parent=None):
+        return trace_record({"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": body}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def init(*tools):
+        return trace_record({"type": "system", "subtype": "init", "tools": list(tools)})
+
+    def edit(self, parent=None, path="/w/src/pager.py"):
+        return self.call("Edit", {"replace_all": False, "file_path": path, "old_string": "a", "new_string": "b"}, parent)
+
+    def reviewer(self, parent=None, extra=""):
+        return self.call("Agent", {"description": "Round 1 review", "model": "opus",
+                                   "prompt": self.briefs + "\n+def page_slice(items, page):\n" + extra},
+                         parent, self.REVIEWER_ID)
+
+    def fixer(self):
+        return self.call("Agent", {"description": "Round 1 fixer", "model": "sonnet",
+                                   "prompt": "1. High Bug src/pager.py:15. Fix plan: end the slice at start + size.\n"
+                                   + self.fixer_rules}, None, self.FIXER_ID)
+
+    def start(self):
+        return [self.init("Agent", "Bash", "Edit", "Read", "Skill"),
+                self.call("Skill", {"skill": "dev-essentials:review-loop", "args": "--rounds 2"}),
+                self.result(self.skill_text)]
+
+    TRIAGE = "Round 1 findings:\n  High:     1  (will fix; 1 blocking)\n\nProceeding to verify+fix 1 issues. Deferring 0."
+
+    def test_new_graders_have_the_planned_types_and_targets(self):
+        self.assertEqual((self.meta("triage-before-fix")["target"], self.meta("triage-before-fix").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-separate")["target"], self.meta("reviewer-separate").get("match")), ("trace", None))
+        self.assertEqual((self.meta("reviewer-no-edit")["target"], self.meta("reviewer-no-edit")["match"]), ("trace", "not_contains"))
+        self.assertEqual((self.meta("route-no-workflow-call")["tool"], self.meta("route-no-workflow-call")["max"]), ("Workflow", 0))
+
+    def test_a_right_run_passes_each_new_scored_grader(self):
+        review = [self.reviewer(), self.result("| 1 | High | Bug |\nReview made by `opus`", self.REVIEWER_ID)]
+        runs = {
+            "a fix in the main loop": [*review, self.text(self.TRIAGE), self.edit()],
+            "a fixer subagent": [*review, self.text(self.TRIAGE), self.fixer(), self.edit(self.FIXER_ID)],
+            "the triage in the cycle report": [*review, self.call("Write", {
+                "file_path": "/w/notes/Reviews/feature-paging-cycle-1.md", "content": "# Cycle 1\n\n" + self.TRIAGE}), self.edit()],
+            "the status line of the cycle": [*review, self.text("Cycle 1: 1 finding. Triage: fix=1, deferred=0."), self.edit()],
+            "a reviewer in a workflow": [self.call("Workflow", {"script": "await agent(" + json.dumps(self.briefs) + ")"}),
+                                         self.text(self.TRIAGE), self.edit()],
+        }
+        for name, records in runs.items():
+            for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit"):
+                with self.subTest(run=name, grader=grader):
+                    self.assertTrue(self.passes(grader, *self.start(), *records))
+
+    def test_a_fix_before_the_triage_or_with_no_triage_fails(self):
+        review = [self.reviewer(), self.result("Review made by `opus`", self.REVIEWER_ID)]
+        workflow_fixer = self.call("Workflow", {"script": "await agent(" + json.dumps(self.fixer_rules) + ")"})
+        runs = {
+            "an edit before the triage": [*review, self.edit(), self.text(self.TRIAGE), self.edit()],
+            "a fixer before the triage": [*review, self.fixer(), self.text(self.TRIAGE), self.edit()],
+            "a workflow fixer before the triage": [*review, workflow_fixer, self.text(self.TRIAGE), self.edit()],
+            "no triage": [*review, self.edit()],
+            "a triage and no fix": [*review, self.text(self.TRIAGE)],
+            "the triage only in a read of the example": [*review, self.result(self.example), self.edit()],
+            "the triage only in a subagent": [*review, self.text(self.TRIAGE, self.REVIEWER_ID), self.edit()],
+            "the template of the skill": [*review, self.text("Round <N> findings:\nProceeding to verify+fix <F> issues."),
+                                          self.edit()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("triage-before-fix", *self.start(), *records))
+
+    def test_a_reviewer_that_also_fixes_fails(self):
+        runs = {
+            "the fixer rules in the reviewer brief": [self.reviewer(extra=self.fixer_rules)],
+            "one workflow agent that reviews and fixes": [self.call("Workflow", {
+                "script": "await agent('Review git diff main...HEAD, then fix each finding. Classify each finding APPLY or REJECT.')"})],
+            "a reviewer of a subagent": [self.reviewer(parent="toolu_1")],
+            "no reviewer": [self.fixer()],
+        }
+        for name, records in runs.items():
+            with self.subTest(run=name):
+                self.assertFalse(self.passes("reviewer-separate", *self.start(), *records))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.edit(self.REVIEWER_ID)))
+        self.assertFalse(self.passes("reviewer-no-edit", *self.start(), self.reviewer(), self.text("ok"),
+                                     self.call("Write", {"file_path": "/w/src/pager.py", "content": "x"}, self.REVIEWER_ID)))
+        self.assertTrue(self.passes("reviewer-no-edit", *self.start(), self.reviewer(),
+                                    self.edit(self.REVIEWER_ID, "/w/notes/Reviews/r.md"), self.fixer(), self.edit(self.FIXER_ID)))
+
+    def test_workflow_offered_reads_the_tool_list_of_the_init_record(self):
+        self.assertTrue(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Workflow", "Write")))
+        self.assertTrue(self.passes("route-workflow-offered", trace_record(
+            {"type": "system", "tools": ["Workflow"], "subtype": "init"})))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent", "Bash", "Write")))
+        self.assertFalse(self.passes("route-workflow-offered", self.init("Agent"), self.text('"tools":["Workflow"]')))
+
+    def workflow_run(self, script_name, *before):
+        """A run that loads the skill and calls the Workflow tool with a script of a real probe run."""
+        script = (WORKFLOW_SCRIPTS / script_name).read_text(encoding="utf-8")
+        return [*self.start(), *before, self.call("Workflow", {"script": script, "args": {"repo": "/w"}}),
+                self.result("Workflow launched in background."), self.text("Stop verdict: stop-clean")]
+
+    def test_a_real_script_with_a_triage_step_passes_and_one_with_no_triage_fails(self):
+        opus = self.workflow_run("opus-triage-step.js")
+        sonnet = self.workflow_run("sonnet-no-triage.js")
+        for grader in ("triage-before-fix", "reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="opus-triage-step", grader=grader):
+                self.assertTrue(self.passes(grader, *opus))
+        for grader in ("reviewer-separate", "reviewer-no-edit", "tests-before-commit"):
+            with self.subTest(script="sonnet-no-triage", grader=grader):
+                self.assertTrue(self.passes(grader, *sonnet))
+        self.assertFalse(self.passes("triage-before-fix", *sonnet))
+
+    HEAD_SCRIPT = ("const review = await agent(`Review the branch. Do not edit any file.`, { label: 'review' })\n"
+                   "const triage = await agent(`Triage each finding by the rules of Phase 4: ${JSON.stringify(review)}`)\n"
+                   "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`)\n"
+                   "const tests = await agent('Run python3 -m unittest discover -s tests.')\n"
+                   "if (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_triage_agent_step_passes_and_a_severity_rule_in_code_fails_the_route_grader(self):
+        head = [*self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage"):
+            with self.subTest(script="an agent triage step", grader=grader):
+                self.assertTrue(self.passes(grader, *head))
+        self.assertFalse(self.passes("route-no-code-triage", *self.workflow_run("opus-triage-step.js")))
+        self.assertTrue(self.passes("route-no-code-triage", *self.workflow_run("sonnet-no-triage.js")))
+        for code in ("if (SEV_RANK[f.severity] <= 2) fix.push(f)", "const take = f.severity === 'Medium'",
+                     "if (['Blocker','Critical','High'].includes(f.severity)) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        self.assertTrue(self.passes("route-no-code-triage", self.call("Agent", {"prompt": "f.severity === 'High'"})))
+
+    def test_a_reviewer_brief_that_names_phase_4_is_no_triage_step(self):
+        script = ("const rev = await agent(`Round ${n}. Find the problems that this diff brings in. Phase 4 triages your report, "
+                  "and a fixer applies your fix plan of each finding that holds. Read-only: do not edit.`)\n"
+                  "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT: ${JSON.stringify(rev)}`)\n")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": script})))
+        labelled = "const t = await agent(prompt, { label: 'triage r1' })\n"
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": labelled})))
+
+    def test_more_forms_of_a_severity_rule_in_code_fail_and_a_sort_passes(self):
+        rules = ("if (RANK.indexOf(f.severity) <= 3) fix.push(f)", "findings.filter(({severity}) => severity !== 'Low')",
+                 "switch (f.severity) { case 'High': fix.push(f) }", "const sev = f.severity\nif (sev === 'High') fix.push(f)")
+        for code in rules:
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("shown.sort((a, b) => RANK[a.severity] < RANK[b.severity] ? -1 : 1)",
+                     "shown.sort((a, b) => a.severity < b.severity ? -1 : 1)"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
+    def test_a_fixer_step_that_also_commits_fails_the_route_grader(self):
+        for name in ("opus-triage-step.js", "sonnet-no-triage.js"):
+            with self.subTest(script=name):
+                self.assertFalse(self.passes("route-no-commit-in-fixer", *self.workflow_run(name)))
+        self.assertTrue(self.passes("route-no-commit-in-fixer", *self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})))
+        quoted = "const fix = await agent('Classify each finding as APPLY. Then commit the fix.')"
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": quoted})))
+        returned = ("function fixPrompt(n) {\n  return `You are the fixer of round ${n}.\n${args.fixerRules}\n"
+                    "Run \\`python3 -m unittest\\`. If you changed a file, commit it.`\n}")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": returned})))
+
+    def test_a_reviewer_workflow_and_a_later_fixer_workflow_pass_reviewer_separate(self):
+        run = [*self.start(), self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": "await agent('Classify each finding as APPLY, PARTIAL, or REJECT.')"})]
+        self.assertTrue(self.passes("reviewer-separate", *run))
+        self.assertTrue(self.passes("triage-before-fix", *run))
+        self.assertFalse(self.passes("reviewer-separate", *run[:-1]))
+
+    FIX_WORKFLOW = ("const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`, { label: 'fix' })\n"
+                    "const tests = await agent(`Run the Phase 6 commands ${args.commands}. Return the exit code and the result "
+                    "lines of each.`)\nif (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_right_pair_of_workflows_with_the_commands_in_args_passes_each_grader(self):
+        run = [*self.start(),
+               self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": self.FIX_WORKFLOW,
+                                      "args": {"commands": ["python3 -m unittest discover -s tests"]}})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage",
+                       "route-no-commit-in-fixer"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, *run))
+
+    def test_a_negated_commit_order_in_the_fixer_passes(self):
+        for phrase in ("Do NOT commit.", "Don't commit.", "Do not run git commit.", "Do not stage or commit.",
+                       "Never make a commit."):
+            for quote in ("`", "'"):
+                script = f"const fix = await agent({quote}Classify each finding as APPLY, PARTIAL, or REJECT. {phrase}{quote})"
+                if quote == "'" and "'" in phrase:
+                    continue
+                with self.subTest(phrase=phrase, quote=quote):
+                    self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+        both = ("const fix = await agent(`Classify each finding as APPLY. Then commit only the changed files. "
+                "If nothing was applied, do not commit.`)")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": both})))
+
+    def test_a_sort_and_a_count_pass_and_has_and_a_reversed_rule_fail(self):
+        for code in ("shown.sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))",
+                     "for (const f of findings) { const sev = f.severity; counts[sev] = (counts[sev] || 0) + 1 }"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("if (new Set(['Blocker','Critical','High']).has(f.severity)) fix.push(f)",
+                     "if ('High' === f.severity) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
+    # Main-loop texts and calls of the head probe runs, word for word or cut short.
+    HEAD_TRIAGES = {
+        "KIHLPG": ("Round 1 has 5 findings: 2 Critical, 1 High, 1 Low, 1 Nit. The triage:\n\n"
+                   "- #1 Critical, off-by-one end bound: fix, blocking.\n"
+                   "- #4 Low, docstring pointer to `page_numbers`: deferred on merit."),
+        "AawLpH": ("Round 1 found 4 issues: 1 Critical, 2 High, 1 Low.\n\n- **Fix (blocking):**\n"
+                   "  - #1: the slice end is off by one, so every page drops its last item.\n"
+                   "- **Defer (not blocking):** #4."),
+        "GmVxZN": ("Cycle 1 triage: 4 findings, 3 to fix and 1 deferred.\n\n| # | Severity | Decision | Blocking |\n"
+                   "|---|---|---|---|\n| 1 | High | Fix: the off-by-one in `end`. | Yes |\n| 4 | Nit | Defer. | No |"),
+    }
+
+    def head_reviewer(self):
+        return self.call("Workflow", {"script": "const report = await agent(args.prompt, { label: 'review:round-1' })\nreturn { report }",
+                                      "args": {"prompt": "You are a code reviewer. Do not edit any file."}})
+
+    def head_fix_workflow(self):
+        script = ("const fix = await agent(args.fixPrompt, { label: 'fixer:round-1', schema: { enum: ['APPLY', 'PARTIAL', 'REJECT'] } })\n"
+                  "const test = await agent(args.testPrompt, { label: 'phase6:tests' })\nreturn { fix, test }")
+        return self.call("Workflow", {"script": script, "args": {
+            "fixPrompt": "You are the fixer of a review loop. Do NOT commit, do NOT push. Classify each finding as APPLY, PARTIAL, or REJECT.",
+            "testPrompt": "In the directory /w run exactly this one command and nothing else: `python3 -m unittest discover -s tests`. "
+                          "Do not edit any file and do not fix anything."}})
+
+    def test_the_head_triages_in_other_words_pass_triage_before_fix(self):
+        for run, triage in self.HEAD_TRIAGES.items():
+            for fix in (self.edit(), self.head_fix_workflow()):
+                with self.subTest(run=run, fix=fix[:60]):
+                    self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), self.text(triage), fix))
+        bash_edit = self.call("Bash", {"command": "python3 - <<'EOF'\np='src/pager.py'\ns=open(p).read()\nopen(p,'w').write(s)\nEOF"})
+        triage = self.text("Round 1 triage: findings 1-3 are blocking, so I'll fix them. Findings 4-6 are Low or Nit, so I'm deferring them.")
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), triage, bash_edit))
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), bash_edit, triage, self.edit()))
+
+    def test_a_fix_with_no_triage_text_before_it_fails_as_in_run_4To0WA(self):
+        waiting = self.text("Cycle 1's reviewer is running in the background. I'll triage its findings when it reports back.")
+        summary = self.text("Round 1 found 7 issues, and I fixed the 3 that blocked merge: **Critical:** ... I did not fix 4 minor findings.")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), waiting, self.edit(), summary))
+        reviewer_tool_use = self.call("Agent", {"prompt": "Severity High. Fix plan: x. A finding is deferred on merit."})
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), reviewer_tool_use, self.edit()))
+
+    def test_a_test_step_in_the_fix_workflow_and_a_later_commit_pass_tests_before_commit(self):
+        commit = self.call("Bash", {"command": "git add src/pager.py tests/test_pager.py && git commit -q -F - <<'EOF'\nReview round 1: Fix\nEOF"})
+        self.assertTrue(self.passes("tests-before-commit", *self.start(), self.head_fix_workflow(), commit))
+        self.assertFalse(self.passes("tests-before-commit", *self.start(), self.head_reviewer(), commit))
+
+    def test_a_re_review_that_names_the_fix_commit_is_no_fixer(self):
+        script = ("return await agent(`Review round 2 of branch feature/paging. Re-review ONLY the fix commit: \\`git show 1ad6991\\`. "
+                  "Do not edit repo files.\n- Critical APPLY: page_slice dropped the last item of each full page.`)")
+        self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+
+    def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
+        self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
+        self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
+            "opus-triage-step.js", self.edit(path="/w/notes/Reviews/r.md"))))
+
+    def test_tests_before_commit_adds_only_a_workflow_branch_to_the_shared_pattern(self):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        shared = cases["rl-off-by-one"].graders["tests-before-commit"][0]["pattern"]
+        own = self.meta("tests-before-commit")["pattern"]
+        self.assertTrue(own.startswith(shared + "|"))
+        scripts = {
+            "the tests after the commit": ("await agent('Fix the findings. Commit the fix. Then run the tests.')", False),
+            "no test step": ("await agent('Fix the findings, then commit them locally.')", False),
+            "a test step and then a commit": ("await agent('Fix the findings. Run python3 -m unittest. Then commit.')", True),
+        }
+        for name, (script, expected) in scripts.items():
+            with self.subTest(script=name):
+                self.assertEqual(self.passes("tests-before-commit", *self.start(), self.call("Workflow", {"script": script})),
+                                 expected)
+
+    def test_triage_before_fix_ends_fast_on_a_large_trace_with_no_triage(self):
+        filler = self.result("x" * 400 + '"quoted" text\n')
+        trace = "\n".join([*self.start(), *([filler] * 5000), self.edit()])
+        start = time.perf_counter()
+        self.assertFalse(self.passes("triage-before-fix", trace))
+        self.assertLess(time.perf_counter() - start, 2.0)
 
 
 class BaseRulesAndLintGraderTests(unittest.TestCase):
@@ -5434,8 +5869,8 @@ class RirrFinishCaseTests(unittest.TestCase):
     """
 
     BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate", "it-merge": "work/retry-limit",
-                "ib-merge": "work/retry-batch"}
-    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34}
+                "ib-merge": "work/retry-batch", "rirr-pr-title-form": "work/retry-title"}
+    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34, "rirr-pr-title-form": 37}
     # The resume cases that must merge, one for each workflow of finish.md.
     MERGE_CASES = ("rirr-merge", "it-merge", "ib-merge")
     # The field graders of rirr-merge, the one case whose task is a GitHub issue with labels (issue #366).
@@ -5450,6 +5885,8 @@ class RirrFinishCaseTests(unittest.TestCase):
               "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
               "it-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
               "ib-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+              "rirr-pr-title-form": ["body-template-headings", "main-not-pushed", "no-force-push", "no-run-commit", "not-merged",
+                                     "title-form"],
               "rirr-resume-moved-head": ["no-pull-request-call", "no-push", "no-run-commit"],
               "rirr-upstream-remote": ["no-pull-request-call", "no-push", "no-run-commit"]}
     call = staticmethod(PipelineMergeTests.call)
@@ -5647,11 +6084,19 @@ class RirrFinishCaseTests(unittest.TestCase):
 
     def test_the_skill_grader_names_the_workflow_of_the_case(self):
         units = {"rirr-merge": "research-implement-review-report", "it-merge": "implement-task", "ib-merge": "implement-batch",
-                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report"}
+                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report",
+                 "rirr-pr-title-form": "research-implement-review-report"}
         for case, unit in units.items():
             with self.subTest(case=case):
                 for other in sorted(set(units.values())):
                     self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
+
+    def test_the_prompt_of_the_title_form_case_names_no_template_and_no_form(self):
+        # A prompt that names the template, its folder, its headings, or the form of titles gives the base side the answer.
+        prompt = self.cases["rirr-pr-title-form"].prompt_body
+        for word in ("template", "pull_request", ".github", "Problem", "Fix", "Evidence", "type(scope)", "feat", "Title:"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, prompt)
 
     def test_the_request_of_a_stop_case_names_no_stop(self):
         # The request is the request of rirr-merge, which merges. The planted state is the only reason to stop.
@@ -5691,6 +6136,47 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
                 self.assertFalse(self.found(case, "route-finish-read", skill_text))
                 self.assertFalse(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path.replace("finish", "other")})))
+
+    def test_the_title_grader_needs_the_form_of_the_template(self):
+        case = "rirr-pr-title-form"
+
+        def pr(title, tool="create_pull_request"):
+            return self.call(tool, {**self.REPOSITORY, "base": "main", "head": "work/retry-title", "title": title, "body": "x"},
+                             '{"id": "2847560037", "url": "https://github.com/example-org/users-app/pull/37"}')
+
+        titles = {"fix(config): lower the HTTP retry limit to 3": True,
+                  "chore(http-client): lower the retry limit to 3": True,
+                  "Lower the HTTP retry limit to 3": False,
+                  "fix: lower the HTTP retry limit to 3": False,
+                  "Fix(config): lower the HTTP retry limit to 3": False,
+                  "fix(config):lower the HTTP retry limit to 3": False,
+                  "perf(config): lower the HTTP retry limit to 3": False}
+        for title, expected in titles.items():
+            with self.subTest(title=title):
+                self.assertEqual(self.passes(case, "title-form", [pr(title)]), expected)
+        # The form in a call of another tool does not count.
+        self.assertFalse(self.passes(case, "title-form", [pr("Lower the HTTP retry limit to 3"),
+                                                          pr("fix(config): lower the limit", tool="update_pull_request")]))
+
+    def test_the_body_grader_needs_the_template_headings_in_the_create_call(self):
+        case = "rirr-pr-title-form"
+        template = "## Problem\nFive retries wait too long.\n\n## Fix\n- `HTTP_RETRY_LIMIT` is 3.\n\n## Evidence\nRan 3 tests, OK."
+        form = "## What\nLower the limit.\n\n## Why\nToo long.\n\n## Changes\n- Settings."
+
+        def pr(body):
+            return self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": "work/retry-title",
+                                                     "title": "t", "body": body}, "{}")
+
+        update = self.call("issue_write", {**self.REPOSITORY, "method": "update", "issue_number": 37, "body": template})
+        runs = {"the template form": ([pr(template)], True),
+                "the form of compose-pr": ([pr(form)], False),
+                "a changed heading": ([pr(template.replace("## Fix", "## Changes"))], False),
+                "the template form only in another call": ([pr(form), update], False)}
+        for name, (calls, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes(case, "body-template-headings", calls), expected)
+        self.assertTrue(self.passes(case, "not-merged", [pr(template)]))
+        self.assertFalse(self.passes(case, "not-merged", [pr(template), self.merge(case)]))
 
     def test_the_mocks_guard_the_repository_and_the_branch(self):
         for case, branch in self.BRANCHES.items():

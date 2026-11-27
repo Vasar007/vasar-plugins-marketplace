@@ -107,6 +107,15 @@ After Phase 2, state the run format in a few lines. If Phase 1 has a scope hint,
 
 If the run format applies, the check scope replaces these things for this run only. The first is tiers 1 and 2 of the section `Trust but verify` in `dev-essentials:subagent-orchestration`. Tier 3 still applies. The second is any rule in the instructions of the user that asks the orchestrator to re-check every subagent claim. The triage judgment of Phase 4, Phase 6, and the Role 3 reads of the large-target mode still run.
 
+## Run as a workflow
+
+If the user asks for a workflow run (the Workflow tool), keep the phases of this skill. A workflow takes no input while it runs. So each check that can ask the user, such as the head gate of Phase 5, runs in the main session before or between workflows.
+
+- Each step gets the brief that its phase builds, word for word.
+- The triage judges each finding on its merits. A severity rule in code is no triage. Outside the full mode, the main session writes the triage table between two workflows.
+- The fixer step does not commit. A later step runs the Phase 6 commands and returns their exit codes and result lines. Phase 7 commits only after a green result. Else the main session finishes Phases 6 and 7.
+- The script returns the Phase 6 result and each finding with its triage decision, `blocking` flag, and fixer verdict with its reason. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8. Each next cycle is a new workflow.
+
 ## Severity and type taxonomy
 
 Every finding has one severity and one type. Use these exact tokens in all output formats and phases. Do not invent new levels, and do not abbreviate. The triage of Phase 4 and the deferred list of Phase 9 depend on them.
