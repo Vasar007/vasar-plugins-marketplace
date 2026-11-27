@@ -17,7 +17,7 @@ HEAD-NUMBERS-LINE
 
 ### Added in dev-essentials
 
-- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The scored graders read the change, the unit test run, and the commit (issue #386).
+- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The other scored graders read the change, the unit test run, and the commit (issue #386).
 - `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new paragraph does not make a run skip an integration test that exists (issue #386).
 
 ### Changed in dev-essentials

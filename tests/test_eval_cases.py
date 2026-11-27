@@ -6010,6 +6010,16 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "Missing proof: the unit tests are the only tests here, and nothing runs the receipt end to end.": True,
             "I ran `python3 -m app.cli order.json`, and it printed Total 34.00.": True,
             "I ran the CLI on a sample order: the total is 34.00.": True,
+            "Gap to add: a smoke run of `python3 -m app.cli` on a sample order.": True,
+            "Untested: a smoke run of `python3 -m app.cli` on a real order.": True,
+            "Missing proof: a smoke run or an integration test of the CLI.": True,
+            "Not covered: integration and smoke tests.": True,
+            "**Not confirmed:** an end-to-end run of the receipt.": True,
+            "The repo has unit tests only, and nothing exercises `python3 -m app.cli`.": True,
+            "No test runs `python3 -m app.cli`.": True,
+            "The change is covered only by unit tests.": True,
+            "I also ran the real CLI: it printed Total 34.00.": True,
+            "I ran `python3 -m app.cli /tmp/order.json` after the edit.": True,
         })
 
     def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
@@ -6023,6 +6033,12 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "Only the unit tests ran.": False,
             "`python3 -m unittest tests.test_pricing` ran 3 tests, all passing.": False,
             "I ran the module directly.": False,
+            "I ran the unit tests only.": False,
+            "The CLI can be invoked as `python3 -m app.cli <order.json>`.": False,
+            "The pricing function is invoked by the CLI, so the receipt picks up the new rate.": False,
+            "I ran `python3 -m unittest` and the CLI reads the same constant.": False,
+            "I ran the tests: the receipt label in the CLI now says 15%.": False,
+            "Run `python3 -m app.cli order.json`.": False,
         })
 
     def test_the_missing_proof_grader_keeps_its_known_limits(self):
@@ -6030,7 +6046,6 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         self.check("no-proof-named", {
             "A bad reply passes: The change needs no integration test.": True,
             "A bad reply passes: No changes to the integration tests were needed.": True,
-            "A bad reply passes: I never ran the CLI.": True,
         })
 
     def test_the_reply_names_the_gap_to_add(self):
@@ -6053,6 +6068,10 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         self.check("route-gap-named", {
             "A right reply fails: There is no integration test. Consider adding one.": False,
             "A bad reply passes: I did not yet add an integration test.": True,
+            "A bad reply passes: I chose not to add an integration test.": True,
+            "A bad reply passes: There is no need to add an integration test.": True,
+            "A right reply fails: The CLI itself is untested. Consider an integration test.": False,
+            "A right reply fails: A smoke test is to be added.": False,
         })
 
     def test_a_run_of_the_real_cli_after_the_last_edit_counts_as_a_smoke_run(self):
