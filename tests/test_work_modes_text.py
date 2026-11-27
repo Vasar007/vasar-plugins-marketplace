@@ -277,7 +277,7 @@ class FinishStepTests(unittest.TestCase):
         self.text = read(FINISH)
 
     def test_the_steps_push_open_the_pull_request_and_merge_in_this_order(self):
-        steps = self.text[self.text.index("## Steps"):self.text.index("## A failed step in the full mode")]
+        steps = self.text[self.text.index("## Steps"):self.text.index("## A failed merge gate")]
         order = ["1. Make sure that each start condition holds.", "2. Run the build and the tests one time",
                  '3. Push with `git -C "<work tree>" push -u origin <branch>`.', "4. Open the pull request:",
                  "5. Load `dev-essentials:merge-pr` with the `Skill` tool, and do its steps for the pull request."]
@@ -353,11 +353,56 @@ class FinishStepTests(unittest.TestCase):
     def test_the_final_gate_asks_one_question_and_a_failed_step_ends_a_full_run(self):
         for sentence in ("(yes / push and pull request only / no)", "Do no step before the answer.",
                          "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. "
-                         "For a failed merge gate, name the failed item from the report of `merge-pr`.",
-                         "Do not repair the cause, and do not do a step again.",
+                         'For a failed merge gate, first do the section "A failed merge gate". Do no other step again.',
+                         'If its gate fails, it does not merge, and the pull request stays open. Then do the section "A failed merge gate".',
                          "In the full mode, do the steps with no question."):
             with self.subTest(sentence=sentence):
                 self.assertIn(sentence, self.text)
+        self.assertNotIn("name the failed item from the report of `merge-pr`", self.text)
+
+    def test_a_failed_merge_gate_gets_a_fix_round_by_the_work_mode(self):
+        section = self.text[self.text.index("## A failed merge gate"):self.text.index("## A failed step in the full mode")]
+        sentences = (
+            "- A red check that fails in a local run of its command too. Take the command from the CI configuration of the repository "
+            "or from the log of the failed job. Its output names at least one file or test, and each of them is one that the branch changed "
+            "(`git diff --name-only origin/<base branch>...HEAD`).",
+            "- The merge state `behind` or `dirty`.",
+            # merge-pr item 2 passes only for clean, and a red check gives unstable or blocked in the same read.
+            "If a fixable red check fails, the merge state `unstable` or `blocked` of the same read is part of that item.",
+            "Each other item is a stop, for example a change request, a missing approval, or open review threads.",
+            "A check with no command in these sources and local commits that the head lacks are stops too.",
+            "A check that reports a secret or a security alert is hard stop 4. A local run of it does not change this.",
+            "If one failed item is a stop, report each item, and end the run (hard stop 5).",
+            'In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.',
+            "For `behind` or `dirty`, run `git fetch origin <base branch>`, merge `origin/<base branch>` into the branch, "
+            "and resolve each conflict. Never rebase.",
+            "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. "
+            "After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. "
+            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
+            'Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". '
+            'With "no", end the run.',
+            'Push as step 3 of the section "Steps" says, and do step 5 of that section again.',
+            "Do at most 2 fix rounds. If the gate still fails, report it, and end the run (hard stop 5).")
+        for sentence in sentences:
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, section)
+        # The push of the fix is step 3 of the steps, so the section holds no push command of its own.
+        self.assertNotIn("git -C", section)
+        self.assertNotIn("--force", section)
+        # An eval run fixed a lint failure at step 2 and pushed it, before any gate read (issue 387).
+        steps = self.text[self.text.index("## Steps"):self.text.index("## A failed merge gate")]
+        self.assertIn('Make no commit before the push. A fix comes only after the gate, in the section "A failed merge gate".', steps)
+        report = self.text[self.text.index("## The finish report"):]
+        self.assertIn("- Each fix round: the failed items, the fix commits, the verdict of its review, "
+                      "and the push or the answer to the push question.", report)
+
+    def test_merge_pr_leaves_the_repair_to_the_workflow_that_loaded_it(self):
+        text = read(PLUGIN / "skills/merge-pr/SKILL.md")
+        # The sentence comes after the stop, so the prohibitions before it bind the skill and not the workflow.
+        self.assertIn("Report the item, its evidence, and what the user can do. Then stop. A workflow that loaded this skill can then "
+                      "repair the cause with its own steps. Then it does the steps of this skill again.", text)
+        self.assertIn("a failure that the run cannot fix. Examples are a red build or test, blocking review findings after the fix round, "
+                      "and a merge gate that fails after its fix rounds.", read(WORK_MODES))
 
 
 class FinishCallerTests(unittest.TestCase):
@@ -462,7 +507,7 @@ class PullRequestFieldTests(unittest.TestCase):
                 self.assertIn(sentence, text)
 
     def test_the_finish_steps_set_the_fields_before_the_merge(self):
-        steps = read(FINISH)[read(FINISH).index("## Steps"):read(FINISH).index("## A failed step in the full mode")]
+        steps = read(FINISH)[read(FINISH).index("## Steps"):read(FINISH).index("## A failed merge gate")]
         created = steps.index("6. If the call fails, report the error and the pushed branch, and end the run.")
         fields = steps.index("7. Set the fields of the new pull request:")
         merge = steps.index("5. Load `dev-essentials:merge-pr` with the `Skill` tool")

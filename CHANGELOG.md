@@ -9,6 +9,45 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.7.0 in release [7.8.0] - 2026-11-27
+
+A failed merge gate now gets a next step in the finish steps of `research-implement-review-report`, `implement-task`, and `implement-batch`. Before, each of these runs ended at the gate, also for a small cause that the run can fix. An example is a base branch that moved on after the push, so that GitHub reports the head as out of date. The user then started a second run for the fix. A call of `merge-pr` alone still reports the failed item and stops. A red build or test before the push still ends the run (issue #387).
+
+The eval runs had 3 runs on each side for each case, with an Opus and a Sonnet agent. Without the change, no run fixed a failed gate:
+
+- `rirr-gate-fix-full`: on both models, each base run stopped at the gate with no merge of the base and no second push.
+- `rirr-gate-fix-partial`: on both models, no base run merged the base or asked about a push of a fix.
+- `rirr-gate-fix-interactive`: 1 of 3 base runs on each model asked the user about a fix.
+- `rirr-gate-fix-no-command`: each Sonnet base run reported the red check and stopped. On Opus, 2 of 3 base runs ran the lint script of the clone, found the failure, and stopped before the push. No base run changed code.
+
+With the change, each scored grader passed in each of the 24 head runs:
+
+- `rirr-gate-fix-full`: on both models, each head run fetched and merged the base, ran the tests, pushed the merge, and read the gate again. Then it stopped, because the mocked head did not move. No run merged.
+- `rirr-gate-fix-partial`: on both models, each head run merged the base in a local commit and asked before the push of the fix. No run pushed a second time.
+- `rirr-gate-fix-interactive`: on both models, each head run asked the user about a fix. No run made a commit or pushed a second time.
+- `rirr-gate-fix-no-command`: on both models, each head run reached the gate, reported the red check, and stopped with no commit.
+
+At an earlier text, one Opus head run of `rirr-gate-fix-no-command` ran the lint script before the push. It fixed the line and pushed the fix with the branch. The sentence "Make no commit before the push" in step 2 of the finish steps comes from that run. With the sentence, 6 of 6 head runs of that case stopped with no commit.
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-gate-fix-full`, `rirr-gate-fix-partial`, and `rirr-gate-fix-interactive`: three resume cases with a failed merge gate, one for each work mode. After the last fetch of the clone, main of the remote moved on. So the pull request is behind its base, and its checks pass. The full case needs a merge of the base, a test run, the second push, and a second read of the gate. The partial case needs the merge in a local commit and a question before the push. The interactive case needs a question about the fix, and no commit and no second push (issue #387).
+- `evals/research-implement-review-report/rirr-gate-fix-no-command`: a resume case in the full mode with a red `lint` check. The clone has a lint script, but no CI configuration names its command, and no job log exists. So the check is a stop: the run must make no commit, push no second time, and not merge (issue #387).
+- `evals/_lib/py-fixture.sh`: the functions `add_retry_behind_run` and `add_retry_lint_run`, which plant the state of these cases (issue #387).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: the new section "A failed merge gate". Step 2 now says that the run makes no commit before the push. Step 5 points to the new section. The section "A failed step in the full mode" no longer says that a failed gate gets no repair. The section sorts each failed item of the report of `merge-pr`. Two kinds of items are fixable. The first is a red check whose command fails in a local run too. Its output names at least one file, and only files of the branch. The command comes from the CI configuration or from the log of the job. The second is the merge state `behind` or `dirty`. A check that reports a secret is hard stop 4, and each other item is a stop (hard stop 5). A fix round fixes the cause in new commits, or fetches and merges the base branch with no rebase. It reviews the new commits with one review round, runs the start conditions, the tests, and each fixed check again. The interactive mode asks before the fix. The modes other than the full mode ask before the push. The run does at most 2 fix rounds. The finish report lists each fix round (issue #387).
+- `skills/merge-pr/SKILL.md`: step 2 says that a workflow that calls the skill can repair the cause with its own steps after the stop. Then the workflow does the steps of the skill again. The rule that the skill itself does not repair a cause stays (issue #387).
+- `skills/work-modes/SKILL.md`: hard stop 5 names a merge gate that fails after its fix rounds (issue #387).
+
+### Changed in the repository
+
+- `docs/workflows.md`: the section "Work modes" says what a failed merge gate does in each mode. It also says that a red build or test before the push still ends the run (issue #387).
+- `tests/test_work_modes_text.py`: the pinned sentences of the failed-gate rule follow the new text. New tests pin the section "A failed merge gate", its line of the finish report, and the new sentence of `merge-pr` (issue #387).
+- `tests/test_eval_cases.py` and `tests/test_eval_scaffolds.py`: new tests for the four gate cases and their scaffolds. The mocked check runs have only the fields that the GitHub MCP server gives. The grader `fix-not-pushed` counts the `git push` calls and allows one. The grader `no-rebase` fails a rebase of the pushed branch (issue #387).
+- `tests/simple-english-baseline.json`: the file path `config/settings.py` in the grader `limit-lowered` of the three cases (issue #387).
+
 ## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
 
 `review-loop` now says which of its gates a workflow run keeps. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
@@ -2956,7 +2995,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...HEAD
+[7.8.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...v7.8.0
 [7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
 [7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0
 [7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1
