@@ -93,7 +93,20 @@ Group the files by purpose, with the folder layout of the project. Examples of g
 
 ### 5. Generate PR Description
 
-Use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
+First, look for a PR template of the repository. GitHub reads the file `pull_request_template.md` in the root folder, in `docs/`, and in `.github/`. It also reads each file of a `PULL_REQUEST_TEMPLATE/` folder in one of these three folders. Name each folder in the `Glob` pattern, for example `.github/*` and `.github/PULL_REQUEST_TEMPLATE/*`. Accept a file name in upper case letters too, for example `PULL_REQUEST_TEMPLATE.md`.
+
+- If the input names a template, use it. If the input names none and you find only one template, use that one.
+- If you find several templates and the input names none, use the form of this step. In your final reply, name each template, so that the user can choose one.
+
+If you use a template:
+
+- Use the headings of the template in their order, instead of the form of this step. Write each heading as the template writes it.
+- Read each HTML comment (`<!-- ... -->`) of the template as an instruction for its section or for the whole description. Do what it says, and leave the comment out of the description.
+- The writing rules below and the length limits still apply. If the template does not fit in the limit, the limit wins. Keep each heading, and make each section short.
+- The **Testing** rule below applies to the section that asks for tests or for the result of a test run.
+- If the template asks for an item that the session cannot show, do not invent it. Examples are a screenshot, a video, and the output of a command that did not run. Write `Not confirmed:` and the name of the item instead.
+
+If the repository has no template, use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
 
 ```md
 ## What
@@ -126,6 +139,7 @@ Writing rules:
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description.
 - If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
+- The instructions file of the repository is `CLAUDE.md` or `AGENTS.md`. The PR template or the instructions file can ask for the agent tool and the model of the change. Then end the description with one line that names both. Name the model that the input gives. Else name the model of this session. Put this line after the closing line, and before an attribution line of the session.
 
 For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
 
@@ -136,6 +150,7 @@ For example outputs of a small and a larger change, read [references/examples.md
 - This skill writes the text only. It does not open, push, or edit the PR.
 - Tell the user the file path, and show the PR description for a quick review.
 - Name each artifact that you used in your final reply, with its path. Also name each guess and each issue number that had no text in the input.
+- If you used a PR template, name its path in your final reply. If the template or the instructions file gives a form for PR titles, quote that rule too. This skill writes no title.
 
 ## When to Stop and Ask
 

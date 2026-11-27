@@ -9,6 +9,23 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.2.0 in release [7.3.0] - 2026-11-27
+
+`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The finish steps of three workflows use it: `research-implement-review-report`, `implement-task`, and `implement-batch`. So they also ignored the template and its form of titles (issue #382).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: step 5 first looks for a PR template in the places that GitHub reads. With a template, the description uses its headings in their order. Each HTML comment of the template is the instruction for its section, and the description holds no comment. The writing rules, the Testing rule, and the length limits still apply, and the limit wins over a long template. An item that the session cannot show gets `Not confirmed:`. With several templates and none in the input, the skill uses its own form and names the templates. With no template, the form stays as it was (issue #382).
+- `skills/compose-pr/SKILL.md`: a new writing rule. If the template or the instructions file asks for the agent tool and the model, the description ends with one line that names both. Step 6 names the template that the skill used, and it quotes a rule for titles (issue #382).
+- `skills/work-modes/references/finish.md`: step 4 gives `pr-composer` the name of the model of the session. The title follows a form for titles from the instructions file or from the template. Else it comes from `## What` or from the first section of a template (issue #382).
+- `evals/composers/cmp-pr-repo-template`: a new case with no shell tool. The repository has a PR template, and the prompt does not name it. The description must have the headings of the template, no What section, and no comment of the template. Its Evidence section claims no test run, and a last line names the agent tool and the model (issue #382).
+- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template (issue #382).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A new test makes sure that the prompt of `cmp-pr-repo-template` names no template and has the diff of `cmp-pr-untested-diff`. The finish case tests now cover `rirr-pr-title-form` too (issue #382).
+- `tests/test_eval_scaffolds.py`: the lists of branches, push graders, commit graders, and reports name `rirr-pr-title-form` and `cmp-pr-repo-template`. A new test makes sure that both cases plant the same template on `main`, with its rules only in comments (issue #382).
+
 ## dev-essentials 6.1.1 in release [7.2.2] - 2026-11-27
 
 `compose-pr`: the `## Testing` section now names only the tests that the diff adds or changes. If the input or the session shows a test command and its result line, the section names them. Else it says that the tests did not run in this session, and it claims no pass. Before, the template asked for a testing approach, and one example said that load tests proved the change. So a description claimed a run that nobody did (issue #377).
@@ -2841,7 +2858,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...HEAD
+[7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
 [7.2.2]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.1...v7.2.2
 [7.2.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.0...v7.2.1
 [7.2.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.1.0...v7.2.0

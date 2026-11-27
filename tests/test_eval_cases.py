@@ -3821,6 +3821,74 @@ class ComposerGraderTests(unittest.TestCase):
         lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
         return "\n".join(lines) + "\n"
 
+    TEMPLATE_CASE = "cmp-pr-repo-template"
+    PR_TEMPLATE = ("## Problem\n\nThe invoice header needs the order count of a customer.\n\n"
+                   "## Fix\n\n- **Order store**: `orders_count` returns the order count of a customer.\n\n"
+                   "## Evidence\n\n`test_orders_count` covers `orders_count`. Not run in this session.\n\n"
+                   "Written with Claude Code and Claude Opus 5.5.\n")
+
+    def test_template_headings_need_the_three_headings_in_order(self):
+        swapped = self.PR_TEMPLATE.replace("## Problem", "## Tmp").replace("## Fix", "## Problem").replace("## Tmp", "## Fix")
+        self.check(self.TEMPLATE_CASE, "template-headings", {
+            "the template form": (self.PR_TEMPLATE, True),
+            "crlf line ends": (self.PR_TEMPLATE.replace("\n", "\r\n"), True),
+            "the form of compose-pr": (self.PR_RIGHT, False),
+            "fix before problem": (swapped, False),
+            "third-level headings": (self.PR_TEMPLATE.replace("## ", "### "), False),
+            "no evidence section": (self.PR_TEMPLATE.split("## Evidence")[0], False),
+            "a longer heading": (self.PR_TEMPLATE.replace("## Fix\n", "## Fix Details\n"), False),
+        })
+
+    def test_no_what_section_and_no_template_comment_fail_the_old_form_and_a_kept_comment(self):
+        self.check(self.TEMPLATE_CASE, "no-what-section", {
+            "the template form": (self.PR_TEMPLATE, True),
+            "the form of compose-pr": (self.PR_RIGHT, False),
+            "a What section after the template": (self.PR_TEMPLATE + "\n## What\n\nAn index.\n", False),
+            "the word what in a sentence": ("## Problem\n\nWhat the header needs is the count.\n", True),
+        })
+        self.check(self.TEMPLATE_CASE, "no-template-comment", {
+            "the template form": (self.PR_TEMPLATE, True),
+            "a kept comment": ("## Problem\n\n<!-- Say what was wrong. -->\nThe header needs the count.\n", False),
+        })
+
+    def test_model_line_needs_the_tool_and_a_model_family_on_one_line_after_evidence(self):
+        line = "Written with Claude Code and Claude Opus 5.5."
+        self.check(self.TEMPLATE_CASE, "model-line", {
+            "tool then model": (self.PR_TEMPLATE, True),
+            "model then tool": (self.PR_TEMPLATE.replace(line, "Model: Claude Sonnet 5.5, agent tool: Claude Code."), True),
+            "a model id": (self.PR_TEMPLATE.replace(line, "Claude Code, claude-opus-5-5"), True),
+            "the tool only": (self.PR_TEMPLATE.replace(line, "Generated with Claude Code"), False),
+            "tool and model on two lines": (self.PR_TEMPLATE.replace(line, "Agent tool: Claude Code\nModel: Opus 5.5"), False),
+            "the line only before evidence": (line + "\n\n## Evidence\n\nNot run in this session.\n", False),
+        })
+
+    def test_evidence_graders_read_only_the_evidence_section(self):
+        not_run = "Not run in this session."
+        self.check(self.TEMPLATE_CASE, "evidence-not-run", {
+            "the not-run line": (self.PR_TEMPLATE, True),
+            "a not confirmed mark": (self.PR_TEMPLATE.replace(not_run, "Not confirmed: the output of a test run."), True),
+            "the line only in the problem section": ("## Problem\n\nNot run in this session.\n\n## Fix\n\n- x\n\n"
+                                                     "## Evidence\n\nA unit test.\n", False),
+            "an invented run": (self.PR_TEMPLATE.replace(not_run, "`python3 -m unittest discover -s tests`: Ran 3 tests, OK."),
+                                False),
+        })
+        self.check(self.TEMPLATE_CASE, "evidence-no-pass-claim", {
+            "the not-run line": (self.PR_TEMPLATE, True),
+            "the test passes": (self.PR_TEMPLATE.replace(not_run, "The new test passes."), False),
+            "a pass word only in the problem section": ("## Problem\n\nThe old check passed a blank name.\n\n"
+                                                        "## Evidence\n\nNot run in this session.\n", True),
+        })
+
+    def test_the_template_case_has_the_diff_of_the_untested_case_and_names_no_template(self):
+        case, untested = self.cases[self.TEMPLATE_CASE], self.cases[self.UNTESTED]
+        self.assertNotIn("Bash", case.field("allowed_tools"))
+        diff = lambda body: body[body.index("```diff"):]
+        self.assertEqual(diff(case.prompt_body), diff(untested.prompt_body))
+        # A prompt that names the template, its folder, or one of its headings gives the base side the answer.
+        for word in ("template", ".github", "Problem", "Evidence"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, case.prompt_body)
+
     def test_reason_from_plan_needs_the_reason_in_the_why_section(self):
         self.check("cmp-pr-from-diff", "reason-from-plan", {
             "reason in the why section": (self.PR_RIGHT, True),
@@ -5264,8 +5332,8 @@ class RirrFinishCaseTests(unittest.TestCase):
     """
 
     BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate", "it-merge": "work/retry-limit",
-                "ib-merge": "work/retry-batch"}
-    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34}
+                "ib-merge": "work/retry-batch", "rirr-pr-title-form": "work/retry-title"}
+    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34, "rirr-pr-title-form": 37}
     # The resume cases that must merge, one for each workflow of finish.md.
     MERGE_CASES = ("rirr-merge", "it-merge", "ib-merge")
     # The field graders of rirr-merge, the one case whose task is a GitHub issue with labels (issue #366).
@@ -5279,6 +5347,8 @@ class RirrFinishCaseTests(unittest.TestCase):
               "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
               "it-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
               "ib-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
+              "rirr-pr-title-form": ["body-template-headings", "main-not-pushed", "no-force-push", "no-run-commit", "not-merged",
+                                     "title-form"],
               "rirr-resume-moved-head": ["no-pull-request-call", "no-push", "no-run-commit"],
               "rirr-upstream-remote": ["no-pull-request-call", "no-push", "no-run-commit"]}
     call = staticmethod(PipelineMergeTests.call)
@@ -5520,6 +5590,47 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
                 self.assertFalse(self.found(case, "route-finish-read", skill_text))
                 self.assertFalse(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path.replace("finish", "other")})))
+
+    def test_the_title_grader_needs_the_form_of_the_template(self):
+        case = "rirr-pr-title-form"
+
+        def pr(title, tool="create_pull_request"):
+            return self.call(tool, {**self.REPOSITORY, "base": "main", "head": "work/retry-title", "title": title, "body": "x"},
+                             '{"id": "2847560037", "url": "https://github.com/example-org/users-app/pull/37"}')
+
+        titles = {"fix(config): lower the HTTP retry limit to 3": True,
+                  "chore(http-client): lower the retry limit to 3": True,
+                  "Lower the HTTP retry limit to 3": False,
+                  "fix: lower the HTTP retry limit to 3": False,
+                  "Fix(config): lower the HTTP retry limit to 3": False,
+                  "fix(config):lower the HTTP retry limit to 3": False,
+                  "perf(config): lower the HTTP retry limit to 3": False}
+        for title, expected in titles.items():
+            with self.subTest(title=title):
+                self.assertEqual(self.passes(case, "title-form", [pr(title)]), expected)
+        # The form in a call of another tool does not count.
+        self.assertFalse(self.passes(case, "title-form", [pr("Lower the HTTP retry limit to 3"),
+                                                          pr("fix(config): lower the limit", tool="update_pull_request")]))
+
+    def test_the_body_grader_needs_the_template_headings_in_the_create_call(self):
+        case = "rirr-pr-title-form"
+        template = "## Problem\nFive retries wait too long.\n\n## Fix\n- `HTTP_RETRY_LIMIT` is 3.\n\n## Evidence\nRan 3 tests, OK."
+        form = "## What\nLower the limit.\n\n## Why\nToo long.\n\n## Changes\n- Settings."
+
+        def pr(body):
+            return self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": "work/retry-title",
+                                                     "title": "t", "body": body}, "{}")
+
+        update = self.call("issue_write", {**self.REPOSITORY, "method": "update", "issue_number": 37, "body": template})
+        runs = {"the template form": ([pr(template)], True),
+                "the form of compose-pr": ([pr(form)], False),
+                "a changed heading": ([pr(template.replace("## Fix", "## Changes"))], False),
+                "the template form only in another call": ([pr(form), update], False)}
+        for name, (calls, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes(case, "body-template-headings", calls), expected)
+        self.assertTrue(self.passes(case, "not-merged", [pr(template)]))
+        self.assertFalse(self.passes(case, "not-merged", [pr(template), self.merge(case)]))
 
     def test_the_mocks_guard_the_repository_and_the_branch(self):
         for case, branch in self.BRANCHES.items():
