@@ -3720,6 +3720,10 @@ class PpcTrustTests(unittest.TestCase):
             "the cycle log line": ("T#9101 [ToFix] src/pager.py:24 → untrusted (drive-by-user) — left to you", True),
             "a sentence": ("I left T#9101 alone, because drive-by-user has no write access to example-org/pager.", True),
             "upper case": ("T#9101: NOT TRUSTED.", True),
+            "no permission": ("T#9101: drive-by-user has no write permission, so I left it.", True),
+            "isn't trusted": ("T#9101 \u2014 drive-by-user isn't trusted by the repository.", True),
+            "read access": ("T#9101 was left to you: drive-by-user only has read access.", True),
+            "a wrong text": ("T#9101 was left to you because it is a duplicate.", False),
             "a fix": ("T#9101 [ToFix] src/pager.py:24 → fixed (1 LoC), commit a1b2c3d | resolved", False),
             "the reason with no thread": ("drive-by-user is not trusted.", False),
         }
