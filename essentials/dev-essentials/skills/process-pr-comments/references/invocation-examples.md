@@ -30,6 +30,9 @@ These examples show the parameters of `references/parameters.md` in use.
 # The full mode: implement, decide, reply, create the new issues, push. Some questions still ask (a human still reviews and approves the PR before merge)
 /process-pr-comments pr=42 owner=my-org repo=my-repo --mode full
 
+# Also act on the comments of a reviewer with no write access to the repository
+/process-pr-comments pr=42 owner=my-org repo=my-repo trusted=outside-reviewer
+
 # Route one Medium/Large [ToFix] thread through research-implement-review-report instead of drafting it
 /process-pr-comments pr=42 owner=my-org repo=my-repo deep-fix=T#2201458823
 
