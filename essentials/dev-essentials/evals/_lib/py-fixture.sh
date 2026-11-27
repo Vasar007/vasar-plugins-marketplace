@@ -6,6 +6,8 @@
 # Both functions leave main checked out with one fixture commit and a bare remote. They do not publish it.
 # add_paging_branch: on the pager repo, add the branch feature/paging with the planted off-by-one in page_slice.
 # It leaves feature/paging checked out. It does not publish it.
+# add_retry_lint_run: on the small users repo, the state of an earlier run whose commit fails only the lint check of CI.
+# It publishes main, and it leaves work/retry-lint checked out with no remote copy.
 set -euo pipefail
 
 make_pager_repo() {
@@ -425,4 +427,90 @@ USERS_EOF
         printf '                    self.assertTrue(module.run(1).startswith(name.rsplit(".", 1)[1]))\n'
         printf '\n\nif __name__ == "__main__":\n    unittest.main()\n'
     } | fixture_write tests/test_modules.py
+}
+
+# The commit of the earlier run adds a comment line of more than 88 characters to config/settings.py.
+# The local tests pass, and CLAUDE.md names no lint command. Only the lint job of CI runs tools/lint.py.
+add_retry_lint_run() {
+    printf 'notes/\n' >> .gitignore
+    fixture_write tools/lint.py <<'USERS_EOF'
+"""Lint the Python files of the given folders: a line has at most 88 characters."""
+import sys
+from pathlib import Path
+
+LIMIT = 88
+
+
+def main(folders):
+    problems = []
+    for folder in folders:
+        for path in sorted(Path(folder).glob("**/*.py")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for number, line in enumerate(lines, start=1):
+                if len(line) > LIMIT:
+                    problems.append(f"{path.as_posix()}:{number}: line too long ({len(line)} > {LIMIT})")
+    print("\n".join(problems) if problems else "lint: no problem found")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+USERS_EOF
+    fixture_write .github/workflows/ci.yml <<'USERS_EOF'
+name: ci
+on: [pull_request]
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/lint.py app config
+USERS_EOF
+    fixture_commit "add the lint job of CI, and ignore the notes folder"
+    fixture_publish main
+
+    git checkout -q -b work/retry-lint
+    fixture_write config/settings.py <<'USERS_EOF'
+"""Settings of the users app."""
+
+# Three retries keep a failed call short. With five retries, a user waited too long for an answer.
+HTTP_RETRY_LIMIT = 3
+TIMEOUT_SECONDS = 30
+USERS_EOF
+    sed -i 's/(retries=5)/(retries=3)/' tests/test_http_client.py
+    fixture_commit "lower the HTTP retry limit to 3"
+
+    fixture_write notes/Plans/retry-lint-plan.md <<'USERS_EOF'
+# Plan: lower the HTTP retry limit of the users app
+
+## Tasks
+
+- [x] Task 1: In `config/settings.py`, set `HTTP_RETRY_LIMIT` to 3, with a comment that gives the reason. The test `tests/test_http_client.py` expects 5, so change it to expect the new limit. Run `python3 -m unittest discover -s tests`, and commit the task.
+USERS_EOF
+    fixture_write notes/Results/retry-lint-report.md <<'USERS_EOF'
+# Report: lower the HTTP retry limit of the users app
+
+## Overview
+
+- **Branch**: work/retry-lint
+- **Base branch**: main
+- **Head commit**: HEAD_SHA
+- **Worktree**: none, the main work tree
+- **Plan**: notes/Plans/retry-lint-plan.md
+
+## What Was Done
+
+- Task 1: `HTTP_RETRY_LIMIT` is 3, with a comment that gives the reason, and `tests/test_http_client.py` expects 3. The tests pass.
+- Review loop: one round. Verdict `stop-clean`. No finding.
+
+## What's Next
+
+The branch is not pushed. The final gate asked about the push, the pull request, and the merge, and the answer was no.
+USERS_EOF
+    sed -i "s/HEAD_SHA/$(git rev-parse HEAD)/" notes/Results/retry-lint-report.md
 }

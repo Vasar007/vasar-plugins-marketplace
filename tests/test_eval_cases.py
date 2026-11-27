@@ -5831,6 +5831,156 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertEqual(self.found("rirr-final-gate", "route-gate-question", reply), expected)
 
 
+class GateFixCaseTests(unittest.TestCase):
+    """The cases of a failed merge gate in each work mode (issue 387).
+
+    The planted commit fails only the lint job of CI. The base side stops at the gate in each mode. The fix step of finish.md
+    fixes the line in the full and the partial mode, and only the full mode pushes the fix. The interactive mode asks first.
+    """
+
+    NUMBERS = {"rirr-gate-fix-full": 37, "rirr-gate-fix-partial": 38, "rirr-gate-fix-interactive": 39}
+    MODES = {"rirr-gate-fix-full": "full", "rirr-gate-fix-partial": "partial", "rirr-gate-fix-interactive": "interactive"}
+    HEAD = "a173c632262ffb10c74cf9160d29b705f8e0e8d6"
+    REPOSITORY = RirrFinishCaseTests.REPOSITORY
+    # A scored grader tests an outcome that the base side reaches: it stops at the gate, does not merge, and names the check.
+    SCORED = {"rirr-gate-fix-full": ["failed-check-named", "limit-lowered", "main-not-pushed", "no-force-push", "not-merged"],
+              "rirr-gate-fix-partial": ["failed-check-named", "fix-not-pushed", "limit-lowered", "main-not-pushed", "no-force-push",
+                                        "not-merged"],
+              "rirr-gate-fix-interactive": ["failed-check-named", "fix-not-pushed", "limit-lowered", "line-kept", "main-not-pushed",
+                                            "no-force-push", "no-run-commit", "not-merged"]}
+    # The graders that each case shares with an older case, word for word.
+    SHARED = {"rirr-merge": ["main-not-pushed", "no-force-push", "route-finish-read", "route-skill-fired", "route-work-modes"],
+              "rirr-merge-gate": ["limit-lowered", "not-merged", "route-checks-read-after-pr", "route-merge-skill-after-pr"]}
+    tool_use = staticmethod(PipelineMergeTests.tool_use)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(FP_ROOT)}
+
+    def meta(self, case, grader):
+        return self.cases[case].graders[grader][0]
+
+    def found(self, case, grader, text):
+        meta = self.meta(case, grader)
+        flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+        return re.search(meta.get("pattern") or meta["input_match"], text, flags) is not None
+
+    def fixture(self, case, name):
+        return json.loads((self.cases[case].path / "mocks/github/fixtures" / name).read_text(encoding="utf-8"))
+
+    def pr(self):
+        return self.tool_use("mcp__plugin_github_github__create_pull_request",
+                             {**self.REPOSITORY, "base": "main", "head": "work/retry-lint"})
+
+    def checks(self, case):
+        return self.tool_use("mcp__plugin_github_github__pull_request_read",
+                             {"method": "get_check_runs", **self.REPOSITORY, "pullNumber": self.NUMBERS[case]})
+
+    def test_each_scored_grader_is_one_that_the_base_side_can_pass(self):
+        for case, scored in self.SCORED.items():
+            with self.subTest(case=case):
+                self.assertEqual(sorted(name for name in self.cases[case].graders if not name.startswith("route-")), scored)
+
+    def test_the_shared_graders_are_the_graders_of_the_older_cases(self):
+        for case in self.NUMBERS:
+            for older, graders in self.SHARED.items():
+                for grader in graders:
+                    with self.subTest(case=case, grader=grader):
+                        self.assertEqual(self.meta(case, grader), self.cases[older].graders[grader][0])
+            self.assertEqual(self.meta(case, "limit-lowered"), self.cases["rirr-retry-limit"].graders["limit-lowered"][0])
+        for case in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            self.assertEqual(self.meta(case, "route-fix-committed"), self.cases["rirr-merge-gate"].graders["committed"][0])
+        self.assertEqual(self.meta("rirr-gate-fix-interactive", "no-run-commit"), self.cases["rirr-merge"].graders["no-run-commit"][0])
+
+    def test_the_prompts_differ_only_in_the_mode_and_the_answer_of_the_final_gate(self):
+        request = ("Use the dev-essentials research-implement-review-report skill to finish the earlier run on the branch "
+                   "`work/retry-lint`. Its report is `notes/Results/retry-lint-report.md`. The GitHub repository is "
+                   "example-org/users-app. The arguments are `--base=main --mode {mode}`. The notes folder of this repository is `notes/`.")
+        answer = (" My answer to the question of the final gate is yes: push the branch, open the pull request, and merge it after "
+                  "the gate of merge-pr.")
+        for case, mode in self.MODES.items():
+            with self.subTest(case=case):
+                expected = request.format(mode=mode) + ("" if mode == "full" else answer)
+                self.assertEqual(self.cases[case].prompt_body.strip(), expected)
+
+    def test_the_mocks_give_a_red_lint_check_on_the_planted_head(self):
+        for case, number in self.NUMBERS.items():
+            with self.subTest(case=case):
+                pull = self.fixture(case, "pull/get.json")
+                self.assertEqual((pull["number"], pull["state"], pull["draft"], pull["merged"], pull["mergeable_state"]),
+                                 (number, "open", False, False, "unstable"))
+                self.assertEqual((pull["base"]["ref"], pull["head"]["ref"], pull["head"]["sha"]), ("main", "work/retry-lint", self.HEAD))
+                self.assertEqual(self.fixture(case, "pull/get_commits.json")[-1]["sha"], self.HEAD)
+                status = self.fixture(case, "pull/get_status.json")
+                self.assertEqual((status["sha"], status["state"], status["total_count"]), (self.HEAD, "pending", 0))
+                runs = self.fixture(case, "pull/get_check_runs.json")
+                self.assertEqual(runs["total_count"], len(runs["check_runs"]))
+                self.assertEqual([(run["name"], run["status"], run["conclusion"], run["head_sha"]) for run in runs["check_runs"]],
+                                 [("unit-tests", "completed", "success", self.HEAD), ("lint", "completed", "failure", self.HEAD)])
+                self.assertEqual(self.fixture(case, "pull/get_reviews.json"), [])
+                self.assertEqual(self.fixture(case, "pull/get_review_comments.json")["threads"], [])
+                created = self.fixture(case, f"pull-{number}.json")
+                self.assertEqual(created["url"], f"https://github.com/example-org/users-app/pull/{number}")
+                for mock, expect in (("create_pull_request.md", {**self.REPOSITORY, "base": "main", "head": "work/retry-lint"}),
+                                     ("issue_write.md", {**self.REPOSITORY, "method": "update"}),
+                                     ("list_pull_requests.md", self.REPOSITORY), ("merge_pull_request.md", self.REPOSITORY),
+                                     ("pull_request_read.md", self.REPOSITORY)):
+                    lines, body = split_frontmatter((self.cases[case].path / "mocks/github" / mock).read_text(encoding="utf-8"))
+                    self.assertEqual(parse_block(lines)["expect"], expect, mock)
+                    if mock == "list_pull_requests.md":
+                        self.assertEqual(json.loads(body), [])
+
+    def test_the_check_grader_needs_the_lint_check_and_its_failure(self):
+        replies = {"The merge gate failed: the `lint` check failed on config/settings.py:3.": True,
+                   "The lint job is red, so I did not merge pull request 37.": True,
+                   "Item 1 failed. lint: line too long (98 > 88).": True,
+                   "The check did not pass: lint.": True,
+                   "Merged pull request 37. Each check passed.": False,
+                   "The unit-tests check failed.": False,
+                   "The lint check passed, and the merge is done.": False}
+        for reply, expected in replies.items():
+            for case in self.NUMBERS:
+                with self.subTest(case=case, reply=reply):
+                    self.assertEqual(self.found(case, "failed-check-named", reply), expected)
+
+    def test_the_question_graders_need_a_question_about_the_push_or_the_fix(self):
+        partial = {"Fixed the line in a local commit. Push the fix, and merge after the gate of merge-pr? (yes / no)": True,
+                   "Shall I push the fix to work/retry-lint?": True,
+                   "The lint check failed. I did not fix it.": False,
+                   "Fix the cause in this run? (yes / no)": False}
+        for reply, expected in partial.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("rirr-gate-fix-partial", "route-push-question", reply), expected)
+        interactive = {"The lint check failed on config/settings.py:3. Fix the cause in this run? (yes / no)": True,
+                       "Do you want me to shorten the comment line?": True,
+                       "The lint check failed. The pull request stays open.": False,
+                       "Push the branch? (yes / no)": False}
+        for reply, expected in interactive.items():
+            with self.subTest(reply=reply):
+                self.assertEqual(self.found("rirr-gate-fix-interactive", "route-fix-question", reply), expected)
+
+    def test_the_order_graders_of_the_full_case_need_a_push_after_the_pull_request(self):
+        case = "rirr-gate-fix-full"
+        first = trace_bash("git push -u origin work/retry-lint")
+        test = trace_bash("python3 -m unittest discover -s tests")
+        fix = trace_bash('git -C "/w" push origin work/retry-lint')
+        review = self.tool_use("Skill", {"skill": "dev-essentials:review-loop", "args": "--rounds=1"})
+        right = [test, first, self.pr(), self.checks(case), review, test, fix, self.checks(case)]
+        for grader in ("route-gate-read-after-fix", "route-tests-before-fix-push", "route-fix-reviewed"):
+            with self.subTest(grader=grader, run="right"):
+                self.assertTrue(self.found(case, grader, "\n".join(right)))
+        # The base side: one push before the pull request, one read of the gate, and the stop.
+        base = [test, first, self.pr(), self.checks(case)]
+        wrong = {"route-gate-read-after-fix": [base, [test, first, self.pr(), self.checks(case), test, fix]],
+                 "route-tests-before-fix-push": [base, [test, first, self.pr(), self.checks(case), fix, test]],
+                 "route-fix-reviewed": [base, [review, test, first, self.pr(), self.checks(case), fix]]}
+        for grader, runs in wrong.items():
+            for index, run in enumerate(runs):
+                with self.subTest(grader=grader, run=index):
+                    self.assertFalse(self.found(case, grader, "\n".join(run)))
+        self.assertEqual(self.meta(case, "route-fix-reviewed"), self.meta("rirr-gate-fix-partial", "route-fix-reviewed"))
+
+
 class ModelLadderCaseTests(unittest.TestCase):
     """The route grader of so-ladder-start counts only a dispatch at the start of the model ladder: Opus at medium effort."""
 

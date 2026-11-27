@@ -78,6 +78,9 @@ EXPECTED_BRANCH = {
     "rirr-upstream-remote": "work/retry-limit",
     "it-merge": "work/retry-limit",
     "ib-merge": "work/retry-batch",
+    "rirr-gate-fix-full": "work/retry-lint",
+    "rirr-gate-fix-partial": "work/retry-lint",
+    "rirr-gate-fix-interactive": "work/retry-lint",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
     "ib-no-worktree": "main",
@@ -110,7 +113,8 @@ COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed"
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
                       ("rirr-merge-gate", "main-not-pushed"), ("it-merge", "main-not-pushed"),
-                      ("ib-merge", "main-not-pushed")}
+                      ("ib-merge", "main-not-pushed"), ("rirr-gate-fix-full", "main-not-pushed"),
+                      ("rirr-gate-fix-partial", "main-not-pushed"), ("rirr-gate-fix-interactive", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
@@ -121,7 +125,7 @@ NO_COMMIT_GRADERS = {"fp-e1-clean-change": ("no-commit", "no-commit-any-branch")
                      "rl-pr-head-gate": ("main-not-committed", "pr-branch-not-committed"),
                      "rirr-merge": ("no-run-commit",), "rirr-resume-moved-head": ("no-run-commit",),
                      "rirr-upstream-remote": ("no-run-commit",), "it-merge": ("no-run-commit",),
-                     "ib-merge": ("no-run-commit",),
+                     "ib-merge": ("no-run-commit",), "rirr-gate-fix-interactive": ("no-run-commit",),
                      "ib-no-worktree": ("main-not-committed",), "it-no-worktree": ("main-not-committed",),
                      "it-no-worktree-dirty": ("no-run-commit",)}
 PUBLISH_CALL = re.compile(r"^\s*fixture_publish\s+(\S+)((?:\s+\d+:\S+)*)", re.MULTILINE)
@@ -1784,6 +1788,108 @@ class TrimFullPassTests(FixtureCase):
         self.assertFalse(self.passes(workspace, "backup-kept"))
 
 
+class GateFixFixtureTests(FixtureCase):
+    """The cases of a failed merge gate of issue 387 plant a commit that fails only the lint job of CI.
+
+    A run that fixes the cause shortens the line, commits, and pushes a second time. The file graders read each of these steps.
+    """
+
+    CASES = ("rirr-gate-fix-full", "rirr-gate-fix-partial", "rirr-gate-fix-interactive")
+    LINT = [sys.executable, "tools/lint.py", "app", "config"]
+    LONG_LINE = "# Three retries keep a failed call short. With five retries, a user waited too long for an answer.\n"
+    SHORT_LINE = "# Three retries keep a failed call short.\n"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}
+
+    def run_git(self, cwd, *args):
+        code, output = self.git(cwd, *args)
+        self.assertEqual(code, 0, output)
+        return output
+
+    def scaffold(self, name="rirr-gate-fix-full"):
+        workspace = self.workspace(name)
+        self.run_bash([(self.cases[name].path / "scaffold.sh").as_posix()], workspace)
+        return workspace
+
+    def passes(self, name, grader, workspace):
+        meta = self.cases[name].graders[grader][0]
+        self.assertEqual(meta["type"], "regex")
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        path = workspace / meta["target"]["path"]
+        # Not confirmed: the verdict of the eval tool on a file that does not exist. No test asks for it.
+        self.assertTrue(path.is_file(), f"{grader} reads {path}, which does not exist")
+        found = re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def lint(self, workspace):
+        return subprocess.run(self.LINT, cwd=workspace, capture_output=True, text=True)
+
+    def shorten_the_line(self, workspace):
+        path = workspace / "config" / "settings.py"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(self.LONG_LINE, text)
+        path.write_text(text.replace(self.LONG_LINE, self.SHORT_LINE), encoding="utf-8")
+
+    def test_only_the_lint_job_of_ci_fails_on_the_branch(self):
+        workspace = self.scaffold()
+        self.assertEqual(self.run_git(workspace, "rev-parse", "--abbrev-ref", "HEAD"), "work/retry-lint")
+        tests = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace,
+                               capture_output=True, text=True)
+        self.assertEqual(tests.returncode, 0, tests.stderr[-500:])
+        lint = self.lint(workspace)
+        self.assertEqual((lint.returncode, lint.stdout.strip()), (1, "config/settings.py:3: line too long (98 > 88)"))
+        # The mocked check run gives the same line, so a local run shows the failure of CI.
+        for name in self.CASES:
+            with self.subTest(case=name):
+                runs = json.loads((self.cases[name].path / "mocks/github/fixtures/pull/get_check_runs.json").read_text(encoding="utf-8"))
+                failed = [run for run in runs["check_runs"] if run["conclusion"] == "failure"]
+                self.assertEqual([run["name"] for run in failed], ["lint"])
+                self.assertEqual(failed[0]["output"]["summary"], lint.stdout.strip())
+        ci = (workspace / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("      - run: python3 tools/lint.py app config\n", ci)
+        # The test step of finish.md runs the command of CLAUDE.md, so the first push and the pull request happen.
+        self.assertNotIn("lint", (workspace / "CLAUDE.md").read_text(encoding="utf-8"))
+        self.run_git(workspace, "checkout", "-q", "main")
+        self.assertEqual(self.lint(workspace).returncode, 0)
+
+    def test_a_shorter_line_passes_the_lint_and_the_fix_graders(self):
+        workspace = self.scaffold()
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-line-fixed", workspace))
+        self.assertTrue(self.passes("rirr-gate-fix-interactive", "line-kept", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-committed", workspace))
+        self.shorten_the_line(workspace)
+        self.assertEqual(self.lint(workspace).returncode, 0)
+        self.run_git(workspace, "commit", "-q", "-am", "Shorten the comment of the retry limit")
+        for name in ("rirr-gate-fix-full", "rirr-gate-fix-partial"):
+            with self.subTest(case=name):
+                self.assertTrue(self.passes(name, "route-line-fixed", workspace))
+                self.assertTrue(self.passes(name, "route-fix-committed", workspace))
+                self.assertTrue(self.passes(name, "limit-lowered", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-interactive", "line-kept", workspace))
+        self.assertFalse(self.passes("rirr-gate-fix-interactive", "no-run-commit", workspace))
+
+    def test_the_push_graders_count_each_push_that_moves_the_branch(self):
+        workspace = self.scaffold()
+        self.run_git(workspace, "push", "-q", "-u", "origin", "work/retry-lint")
+        self.assertTrue((workspace / ".remote/origin.git/logs/refs/heads/work/retry-lint").is_file())
+        self.assertFalse((workspace / ".remote/origin.git/logs/refs/heads/main").exists())
+        self.assertFalse(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        # A push with no new commit leaves the remote branch where it is, so it adds no reflog line.
+        self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
+        for name in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
+            with self.subTest(case=name, pushes="the first push"):
+                self.assertTrue(self.passes(name, "fix-not-pushed", workspace))
+        self.shorten_the_line(workspace)
+        self.run_git(workspace, "commit", "-q", "-am", "Shorten the comment of the retry limit")
+        self.run_git(workspace, "push", "-q", "origin", "work/retry-lint")
+        self.assertTrue(self.passes("rirr-gate-fix-full", "route-fix-pushed", workspace))
+        for name in ("rirr-gate-fix-partial", "rirr-gate-fix-interactive"):
+            with self.subTest(case=name, pushes="the push of a fix"):
+                self.assertFalse(self.passes(name, "fix-not-pushed", workspace))
+
+
 class ResumeReportTests(FixtureCase):
     """The planted report of each resume case names its head commit (issues #271 and #283).
 
@@ -1795,9 +1901,13 @@ class ResumeReportTests(FixtureCase):
                "it-merge": ("notes/Results/retry-limit-report.md", "HEAD"),
                "ib-merge": ("notes/Results/retry-batch-report.md", "HEAD"),
                "rirr-upstream-remote": ("notes/Results/retry-limit-report.md", "HEAD"),
-               "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1")}
+               "rirr-resume-moved-head": ("notes/Results/retry-limit-report.md", "HEAD~1"),
+               "rirr-gate-fix-full": ("notes/Results/retry-lint-report.md", "HEAD"),
+               "rirr-gate-fix-partial": ("notes/Results/retry-lint-report.md", "HEAD"),
+               "rirr-gate-fix-interactive": ("notes/Results/retry-lint-report.md", "HEAD")}
     # The number of review verdicts that the report of each case holds.
-    VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1}
+    VERDICTS = {"rirr-merge": 1, "it-merge": 1, "ib-merge": 3, "rirr-upstream-remote": 1, "rirr-resume-moved-head": 1,
+                "rirr-gate-fix-full": 1, "rirr-gate-fix-partial": 1, "rirr-gate-fix-interactive": 1}
 
     @classmethod
     def setUpClass(cls):

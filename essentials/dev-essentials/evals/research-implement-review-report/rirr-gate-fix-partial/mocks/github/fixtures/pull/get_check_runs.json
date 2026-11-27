@@ -1,0 +1,25 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "id": 9381,
+      "name": "unit-tests",
+      "head_sha": "a173c632262ffb10c74cf9160d29b705f8e0e8d6",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/738/job/9381"
+    },
+    {
+      "id": 9382,
+      "name": "lint",
+      "head_sha": "a173c632262ffb10c74cf9160d29b705f8e0e8d6",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/example-org/users-app/actions/runs/738/job/9382",
+      "output": {
+        "title": "python3 tools/lint.py app config exited with code 1",
+        "summary": "config/settings.py:3: line too long (98 > 88)"
+      }
+    }
+  ]
+}
