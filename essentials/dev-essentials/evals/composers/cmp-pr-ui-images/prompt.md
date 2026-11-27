@@ -1,5 +1,5 @@
 ---
-description: "The prompt of cmp-pr-ui-change, plus the links of two uploaded images of the view, before and after the change. The session has no shell tool. The run must save a PR description in the default form that uses both links, and no other image or video link. It asks for a short video of the animation and marks it as not there yet. The route graders read a Before and After table in the new section UI changes."
+description: "The prompt of cmp-pr-ui-change, plus the links of two uploaded images of the view, before and after the change. The session has no shell tool. The run must save a PR description in the default form that uses both links, and no other image or video link. It asks for a short video of the animation and marks it as not there yet. The route graders read a Before and After table in the new section UI changes. They also read alt text that names the state of each image."
 tags: [composers, route]
 allowed_tools: [Skill, Read, Glob, Grep, TodoWrite]
 max_turns: 30
