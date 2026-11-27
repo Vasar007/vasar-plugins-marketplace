@@ -4944,6 +4944,57 @@ class WorkflowRequestGraderTests(unittest.TestCase):
             with self.subTest(code=code):
                 self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
 
+    # Main-loop texts and calls of the head probe runs, word for word or cut short.
+    HEAD_TRIAGES = {
+        "KIHLPG": ("Round 1 has 5 findings: 2 Critical, 1 High, 1 Low, 1 Nit. The triage:\n\n"
+                   "- #1 Critical, off-by-one end bound: fix, blocking.\n"
+                   "- #4 Low, docstring pointer to `page_numbers`: deferred on merit."),
+        "AawLpH": ("Round 1 found 4 issues: 1 Critical, 2 High, 1 Low.\n\n- **Fix (blocking):**\n"
+                   "  - #1: the slice end is off by one, so every page drops its last item.\n"
+                   "- **Defer (not blocking):** #4."),
+        "GmVxZN": ("Cycle 1 triage: 4 findings, 3 to fix and 1 deferred.\n\n| # | Severity | Decision | Blocking |\n"
+                   "|---|---|---|---|\n| 1 | High | Fix: the off-by-one in `end`. | Yes |\n| 4 | Nit | Defer. | No |"),
+    }
+
+    def head_reviewer(self):
+        return self.call("Workflow", {"script": "const report = await agent(args.prompt, { label: 'review:round-1' })\nreturn { report }",
+                                      "args": {"prompt": "You are a code reviewer. Do not edit any file."}})
+
+    def head_fix_workflow(self):
+        script = ("const fix = await agent(args.fixPrompt, { label: 'fixer:round-1', schema: { enum: ['APPLY', 'PARTIAL', 'REJECT'] } })\n"
+                  "const test = await agent(args.testPrompt, { label: 'phase6:tests' })\nreturn { fix, test }")
+        return self.call("Workflow", {"script": script, "args": {
+            "fixPrompt": "You are the fixer of a review loop. Do NOT commit, do NOT push. Classify each finding as APPLY, PARTIAL, or REJECT.",
+            "testPrompt": "In the directory /w run exactly this one command and nothing else: `python3 -m unittest discover -s tests`. "
+                          "Do not edit any file and do not fix anything."}})
+
+    def test_the_head_triages_in_other_words_pass_triage_before_fix(self):
+        for run, triage in self.HEAD_TRIAGES.items():
+            for fix in (self.edit(), self.head_fix_workflow()):
+                with self.subTest(run=run, fix=fix[:60]):
+                    self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), self.text(triage), fix))
+        bash_edit = self.call("Bash", {"command": "python3 - <<'EOF'\np='src/pager.py'\ns=open(p).read()\nopen(p,'w').write(s)\nEOF"})
+        triage = self.text("Round 1 triage: findings 1-3 are blocking, so I'll fix them. Findings 4-6 are Low or Nit, so I'm deferring them.")
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), triage, bash_edit))
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), bash_edit, triage, self.edit()))
+
+    def test_a_fix_with_no_triage_text_before_it_fails_as_in_run_4To0WA(self):
+        waiting = self.text("Cycle 1's reviewer is running in the background. I'll triage its findings when it reports back.")
+        summary = self.text("Round 1 found 7 issues, and I fixed the 3 that blocked merge: **Critical:** ... I did not fix 4 minor findings.")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.head_reviewer(), waiting, self.edit(), summary))
+        reviewer_tool_use = self.call("Agent", {"prompt": "Severity High. Fix plan: x. A finding is deferred on merit."})
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), reviewer_tool_use, self.edit()))
+
+    def test_a_test_step_in_the_fix_workflow_and_a_later_commit_pass_tests_before_commit(self):
+        commit = self.call("Bash", {"command": "git add src/pager.py tests/test_pager.py && git commit -q -F - <<'EOF'\nReview round 1: Fix\nEOF"})
+        self.assertTrue(self.passes("tests-before-commit", *self.start(), self.head_fix_workflow(), commit))
+        self.assertFalse(self.passes("tests-before-commit", *self.start(), self.head_reviewer(), commit))
+
+    def test_a_re_review_that_names_the_fix_commit_is_no_fixer(self):
+        script = ("return await agent(`Review round 2 of branch feature/paging. Re-review ONLY the fix commit: \\`git show 1ad6991\\`. "
+                  "Do not edit repo files.\n- Critical APPLY: page_slice dropped the last item of each full page.`)")
+        self.assertTrue(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": script})))
+
     def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
         self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
         self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
