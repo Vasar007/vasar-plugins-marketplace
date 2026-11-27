@@ -81,13 +81,13 @@ Never link the report artifact of that skill from either reply. It is a pipeline
 **`stop-blocked`: cancel the push of the cycle**. With `--commit-mode=single`, `/research-implement-review-report` makes the commits of each review-loop round on the PR source branch. It makes them before it can know that the build is red. The rule of Phase 4 step 1 (no commit after a failed build) cannot stop commits that the arc of that skill already made. So:
 
 - Do not post a `**[AI]**` "Fixed" reply. Do not post `**[AI][Draft]**` either. `automated-review-verification.md` keeps that prefix for a proposal, and a half-finished commit stack is not a proposal.
-- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user these facts: red commits already sit on the PR source branch, and a push publishes a broken PR.
+- **Cancel the push of this cycle completely**, for the commits of every thread, not only for this one. Stop, and tell the user these facts: red commits already sit on the PR source branch, and a push publishes a broken PR. If no reviewer covered a unit, say instead that the build is green, and that a part of the arc got no review.
 - The pending replies of the other threads stay unposted, because the push of the cycle does not come. A later "push" of the user does not post them or push this cycle (Bucket B). The way back is a new invocation of the skill after the recovery below (`commit-push-resolve.md` § "When replies post").
-- In Phase 5, report it as `deep-fix — blocked (build red, not pushed)`.
+- In Phase 5, report it as `deep-fix — blocked (<reason>, not pushed)`. The reason is `build red`, or `review not covered` for a unit that no reviewer covered.
 - Offer the real ways to recover: fix forward in this session, or reset the branch to the SHA from before Stage 3. Use a new commit or `git reset` on this **unpushed** tip only. Bucket B still forbids an amend or a rewrite of *pushed* history.
 
 ## Cycle log on a `deep-fix` cycle
 
-The row of a `deep-fix` thread shows one of these outcomes: `deep-fix (N rounds, clean)`, `deep-fix — open findings`, or `deep-fix — blocked`. See `thread-state-schema.md` § "Cycle log" for the full list. A cycle whose `deep-fix` run ended `stop-blocked` prints `deep-fix — blocked (build red, not pushed)` in place of the usual line about the push state. The push of that cycle is cancelled.
+The row of a `deep-fix` thread shows one of these outcomes: `deep-fix (N rounds, clean)`, `deep-fix — open findings`, or `deep-fix — blocked`. See `thread-state-schema.md` § "Cycle log" for the full list. A cycle whose `deep-fix` run ended `stop-blocked` prints `deep-fix — blocked (<reason>, not pushed)` in place of the usual line about the push state. The push of that cycle is cancelled.
 
 On a `deep-fix` cycle, the cycle log also gives the squash SHA, the stop verdict, and the round count of Stage 3.

@@ -5253,7 +5253,8 @@ class AuditTeamRouteGraderTests(unittest.TestCase):
 
     def test_step_3_keeps_the_heading_and_the_labels_of_the_form(self):
         rule = "Keep its heading and each bold label word for word, also `**Agreement matrix:**`."
-        reason = "`review-loop` reads the parts Blockers, Warnings, and Suggestions and the agreement matrix by these labels."
+        reason = ("`review-loop` reads the **Reviewers** line, the parts Blockers, Warnings, and Suggestions, and the"
+                  " agreement matrix by these labels.")
         line = "   - Present a unified report in the form below. " + rule + " " + reason + "\n"
         self.assertIn(line, self.command)
         self.assertLess(self.command.index(line), self.command.index("### Team Review Report"))
