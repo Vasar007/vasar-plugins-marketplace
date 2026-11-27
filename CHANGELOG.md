@@ -13,7 +13,7 @@ The other numbers in a heading are plugin versions.
 
 A new section of `subagent-orchestration` is about the final report of a change of behavior. If no smoke run, integration test, or end-to-end test covers the change, the section asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
 
-HEAD-NUMBERS-LINE
+In a fresh head run with the rule, 3 of 3 runs with an Opus agent named the missing proof. So did 2 of 3 runs with a Sonnet agent. At the base, 1 of 12 runs named it. Runs follow the second part of the rule less often. By a read of the replies, 3 of the 6 head runs named a test to add, all of them with an Opus agent. The case `so-integration-proof` scored 1.00 in each run at the base and at the head (issue #386).
 
 ### Added in dev-essentials
 
