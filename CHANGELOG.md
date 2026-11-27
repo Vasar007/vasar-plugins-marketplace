@@ -24,7 +24,7 @@ The finish steps of `work-modes` now write the title of a pull request in the fo
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the title grader and the body grader of `rirr-pr-title-form` on right and wrong texts. A new test makes sure that its prompt names no template and no form of titles. The finish case tests cover `rirr-pr-title-form` too. A new test makes sure that `finalization.md` points to the template rules of `compose-pr` and has no copy of them (issue #385).
+- `tests/test_eval_cases.py`: new tests for the title grader and the body grader of `rirr-pr-title-form` on right and wrong texts. A new test makes sure that its prompt names no template and no form of titles. The finish case tests cover `rirr-pr-title-form` too. A new test makes sure that `finalization.md` loads `compose-pr` for a PR template. The test also makes sure that the stage points to its template rules and has no copy of them (issue #385).
 - `tests/test_eval_scaffolds.py`: the lists of branches, push graders, commit graders, and reports name `rirr-pr-title-form`. A test makes sure that `cmp-pr-repo-template` and `rirr-pr-title-form` plant the same template on `main`, with its rules only in comments (issue #385).
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
