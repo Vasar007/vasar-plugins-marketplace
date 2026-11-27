@@ -4868,6 +4868,44 @@ class WorkflowRequestGraderTests(unittest.TestCase):
                 self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
         self.assertTrue(self.passes("route-no-code-triage", self.call("Agent", {"prompt": "f.severity === 'High'"})))
 
+    def test_a_reviewer_brief_that_names_phase_4_is_no_triage_step(self):
+        script = ("const rev = await agent(`Round ${n}. Find the problems that this diff brings in. Phase 4 triages your report, "
+                  "and a fixer applies your fix plan of each finding that holds. Read-only: do not edit.`)\n"
+                  "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT: ${JSON.stringify(rev)}`)\n")
+        self.assertFalse(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": script})))
+        labelled = "const t = await agent(prompt, { label: 'triage r1' })\n"
+        self.assertTrue(self.passes("triage-before-fix", *self.start(), self.call("Workflow", {"script": labelled})))
+
+    def test_more_forms_of_a_severity_rule_in_code_fail_and_a_sort_passes(self):
+        rules = ("if (RANK.indexOf(f.severity) <= 3) fix.push(f)", "findings.filter(({severity}) => severity !== 'Low')",
+                 "switch (f.severity) { case 'High': fix.push(f) }", "const sev = f.severity\nif (sev === 'High') fix.push(f)")
+        for code in rules:
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        for code in ("shown.sort((a, b) => RANK[a.severity] < RANK[b.severity] ? -1 : 1)",
+                     "shown.sort((a, b) => a.severity < b.severity ? -1 : 1)"):
+            with self.subTest(code=code):
+                self.assertTrue(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+
+    def test_a_fixer_step_that_also_commits_fails_the_route_grader(self):
+        for name in ("opus-triage-step.js", "sonnet-no-triage.js"):
+            with self.subTest(script=name):
+                self.assertFalse(self.passes("route-no-commit-in-fixer", *self.workflow_run(name)))
+        self.assertTrue(self.passes("route-no-commit-in-fixer", *self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})))
+        quoted = "const fix = await agent('Classify each finding as APPLY. Then commit the fix.')"
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": quoted})))
+        returned = ("function fixPrompt(n) {\n  return `You are the fixer of round ${n}.\n${args.fixerRules}\n"
+                    "Run \\`python3 -m unittest\\`. If you changed a file, commit it.`\n}")
+        self.assertFalse(self.passes("route-no-commit-in-fixer", self.call("Workflow", {"script": returned})))
+
+    def test_a_reviewer_workflow_and_a_later_fixer_workflow_pass_reviewer_separate(self):
+        run = [*self.start(), self.call("Workflow", {"script": "await agent('Review the diff. Read-only: do not edit any file.')"}),
+               self.text(self.TRIAGE),
+               self.call("Workflow", {"script": "await agent('Classify each finding as APPLY, PARTIAL, or REJECT.')"})]
+        self.assertTrue(self.passes("reviewer-separate", *run))
+        self.assertTrue(self.passes("triage-before-fix", *run))
+        self.assertFalse(self.passes("reviewer-separate", *run[:-1]))
+
     def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
         self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
         self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
