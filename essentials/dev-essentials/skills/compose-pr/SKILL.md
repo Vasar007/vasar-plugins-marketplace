@@ -104,7 +104,7 @@ If you use a template:
 - Read each HTML comment (`<!-- ... -->`) of the template as an instruction for its section or for the whole description. Do what it says, and leave the comment out of the description. A comment that gives a rule for the PR title is no instruction for the description. Write no title, and quote the rule in your final reply (step 6).
 - The writing rules below and the length limits still apply. If the template does not fit in the limit, the limit wins. Keep each heading, and make each section short.
 - The **Testing** rule below applies to the section that asks for tests or for the result of a test run.
-- The **UI changes** rule below applies to the section that asks for images or a video. Add no `## UI changes` heading of your own.
+- The **UI changes** rule below applies to the section that asks for images or a video. Add no `## UI changes` heading of your own. For a diff with no visible change, keep the heading and write `No visible change.`
 - If the template asks for an item that the session cannot show, do not invent it. Examples are a screenshot, a video, and the output of a command that did not run. Write `Not confirmed:` and the name of the item instead.
 
 If the repository has no template, use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
@@ -144,7 +144,7 @@ Writing rules:
 - **Focus** on architectural impact (what capabilities changed).
 - In `## Changes`, use **bullet points**, not paragraphs.
 - **Testing** names only the tests that the diff adds or changes, or says that the diff changes no test. If the input gives a test command with its result line, name both. Do the same for a test run of this session after its last change of the code. Else write `Not run in this session.`, and do not say that a test passes or verifies the change. Do not run the tests only for this section.
-- **UI changes** is only for a diff that changes what a person sees in the product: a view, a style, the layout, the text on a screen, or an animation. A refactor with the same output gets no such section. Put the image links of the input in the table, with alt text that names the state, and each video link on its own line. A local file path is no link, so its image is missing. Write `Not confirmed:` and name each missing item: an image of the state before or after, and a short video for a change of motion, timing, or an interaction. If the input gives no image link, leave out the table. Evidence goes to the pull request, never into the repository.
+- **UI changes** is only for a diff that changes what a person sees in the product: a view, a style, the layout, the text on a screen, or an animation. A refactor with the same output gets no such section. Put the image links of the input in the table, with alt text that names the state, and each video link on its own line. A local file path is no link, so that item is missing. Write `Not confirmed:` and name each missing item: an image of the state before or after, and a short video for a change of motion, timing, or an interaction. If the input gives no image link, leave out the table. Leave the cell of a missing image empty. Evidence goes to the pull request, never into the repository.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description, except the URLs of images and videos.

@@ -11,13 +11,14 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.8.0 in release [7.9.0] - 2026-11-27
 
-The default form of `compose-pr` now has the section `## UI changes` for a change that a person sees. Before, the description of a UI change read like the description of a backend change, and it asked for no image or video. The new section names each changed view. It shows the images of the state before and after that the input gives, with alt text that names the state. With no image, it names each missing image, and a short video for motion, after `Not confirmed:`. The form follows the pull requests of a public repository with a clear form for UI evidence (issue #389).
+The default form of `compose-pr` now has the section `## UI changes` for a change that a person sees. Before, the description of a UI change read like the description of a backend change, and it asked for no image or video. The new section names each changed view. It shows the images of the state before and after that the input gives, with alt text that names the state. It names each missing image and, for a change of motion, a missing short video. The line starts with `Not confirmed:`. The form follows the pull requests of a public repository with a clear form for UI evidence (issue #389).
 
 ### Added in dev-essentials
 
 - `evals/composers/cmp-pr-ui-change`: a new case with no shell tool. Its diff adds a badge and a fade-in animation to a page header, and its prompt has no image. The description must ask for the images before and after and for a short video, and mark them as not there yet. It must hold no image link and claim no evidence. The base ran 3 times on an Opus agent and 3 times on a Sonnet agent. Each base run failed the scored graders `asks-for-images` and `asks-for-video`, and passed the other 5 (issue #389).
+HEAD-NUMBERS-LINE-UI-CHANGE
 - `evals/composers/cmp-pr-ui-images`: a new case with the same diff and two uploaded image links. The description must use both links and no other media link, and ask for the video. Route graders read the Before and After table and alt text that names the state of each image. The base ran 3 times on each of the two agents. Each base run failed the scored grader `asks-for-video`, and passed the other 4 (issue #389).
-  HEAD-NUMBERS-LINE
+HEAD-NUMBERS-LINE-UI-IMAGES
 
 ### Changed in dev-essentials
 
