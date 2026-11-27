@@ -5840,7 +5840,7 @@ class GateFixCaseTests(unittest.TestCase):
 
     NUMBERS = {"rirr-gate-fix-full": 37, "rirr-gate-fix-partial": 38, "rirr-gate-fix-interactive": 39}
     MODES = {"rirr-gate-fix-full": "full", "rirr-gate-fix-partial": "partial", "rirr-gate-fix-interactive": "interactive"}
-    HEAD = "a173c632262ffb10c74cf9160d29b705f8e0e8d6"
+    HEAD = "cd62caa9137c1187f704033c005ead25aa16bff6"
     REPOSITORY = RirrFinishCaseTests.REPOSITORY
     # A scored grader tests an outcome that the base side reaches: it stops at the gate, does not merge, and names the check.
     SCORED = {"rirr-gate-fix-full": ["failed-check-named", "limit-lowered", "main-not-pushed", "no-force-push", "not-merged"],

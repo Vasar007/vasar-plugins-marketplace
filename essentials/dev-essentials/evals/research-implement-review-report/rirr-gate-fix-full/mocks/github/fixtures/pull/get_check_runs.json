@@ -4,7 +4,7 @@
     {
       "id": 9371,
       "name": "unit-tests",
-      "head_sha": "a173c632262ffb10c74cf9160d29b705f8e0e8d6",
+      "head_sha": "cd62caa9137c1187f704033c005ead25aa16bff6",
       "status": "completed",
       "conclusion": "success",
       "html_url": "https://github.com/example-org/users-app/actions/runs/737/job/9371"
@@ -12,7 +12,7 @@
     {
       "id": 9372,
       "name": "lint",
-      "head_sha": "a173c632262ffb10c74cf9160d29b705f8e0e8d6",
+      "head_sha": "cd62caa9137c1187f704033c005ead25aa16bff6",
       "status": "completed",
       "conclusion": "failure",
       "html_url": "https://github.com/example-org/users-app/actions/runs/737/job/9372",
