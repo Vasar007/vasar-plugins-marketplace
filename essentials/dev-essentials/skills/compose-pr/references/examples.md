@@ -73,14 +73,14 @@ Users with long lists asked to see more rows on one screen.
 - **Settings page**: a new toggle "Compact rows" under Display.
 - **Order list**: with the toggle on, each row is shorter, and the list slides to the new height.
 
-Not confirmed: images of the settings page and the order list before and after the change, and a short video of the slide.
+Not confirmed: images of the settings page and the order list before and after the change, and a short video of the slide. Upload them to this pull request.
 
 ## Testing
 
 The diff changes no test. Not run in this session.
 ```
 
-Length: about 640 characters.
+Length: about 680 characters.
 
 ## Example Output (Larger Change)
 
