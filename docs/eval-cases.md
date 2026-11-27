@@ -139,6 +139,8 @@ These graders do not read shell quotes or heredocs. So a quoted text can count a
 - `route-snapshot-script` and `route-delete-temp` of `bh-flow` (`BugHuntFlowGraderTests`).
 - `route-probe-made` of `wm-scratch-probe` (`ScratchProbeGraderTests`).
 - `route-plain-dotnet` of each .NET case (`RoutePlainDotnetGraderTests`).
+- `integration-after-edit` of `so-integration-proof` (`IntegrationProofGraderTests`). The words of a test run in a commit message count as a run, and a `sed -i` edit after the run stays hidden.
+- `route-smoke-run` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`).
 - `untested-commit` of the `dev-essentials` cases that edit Python files (`TestsBeforeCommitGraderTests`). Four tries at a better pattern each failed, so it stays ([#162](https://github.com/Vasar007/vasar-plugins-marketplace/issues/162)).
 
 These graders have other known limits:
@@ -147,3 +149,4 @@ These graders have other known limits:
 - `one-commit` and `one-commit-per-task` (`NoWorktreeBranchGraderTests` in `tests/test_eval_scaffolds.py`): an amend, a merge, a cherry-pick, or a rebase fails the run. `one-commit-per-task` cannot tell a task with two commits from a final review commit.
 - `test-unchanged` of `fp-e5-breaking-change` (`BreakingChangeTestGraderTests`): it does not see `Assert.Ignore` in a `[SetUp]` method, a filter in the test command, or a moved test.
 - `no-code-edit` of `hrp-post-one` (`HelpReviewPrPostGraderTests`): it does not see a change through Bash.
+- `route-no-proof-named` of `so-no-integration-proof` (`NoIntegrationProofGraderTests`): a reply that says that the change needs no integration test passes it.

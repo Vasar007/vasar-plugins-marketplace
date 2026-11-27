@@ -9,6 +9,25 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.9.0 in release [7.10.0] - 2026-11-27
+
+The final report of a change in `subagent-orchestration` now names a missing smoke run, integration test, or end-to-end test as a gap to add. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The route grader `route-no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The scored graders read the change, the unit test run, and the commit (issue #386).
+- `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new paragraph does not make a run skip an integration test that exists (issue #386).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: a new paragraph in `Trust but verify`. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers a change, the final report says so. It names that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so a run does not stop for it (issue #386).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the graders of both new cases, on right and wrong texts and traces. The lists of the shared commit graders name both cases (issue #386).
+- `tests/test_eval_scaffolds.py`: in `so-integration-proof`, a new test makes sure that the plain change breaks only the integration test. In `so-no-integration-proof`, it breaks only the unit test. The list of commit graders names both cases (issue #386).
+- `docs/eval-cases.md`: the known limits of `integration-after-edit`, `route-smoke-run`, and `route-no-proof-named` (issue #386).
+
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
 `compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In the eval runs, a session without the rule followed a template on the larger of two tested models. On the smaller model, it ignored the template (issue #382).
@@ -2902,7 +2921,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...HEAD
+[7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.10.0
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
 [7.3.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.2.2...v7.3.0
