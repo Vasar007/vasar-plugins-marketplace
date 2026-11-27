@@ -5968,7 +5968,7 @@ class IntegrationProofGraderTests(unittest.TestCase):
 
 
 class NoIntegrationProofGraderTests(unittest.TestCase):
-    """The route graders of so-no-integration-proof: the reply names the missing proof or the gap, or the run ran the real CLI."""
+    """The reply graders of so-no-integration-proof name the missing proof, a run of the CLI, or the gap. route-smoke-run reads the trace."""
 
     EDIT = trace_edit("app/pricing.py")
     UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
@@ -5977,7 +5977,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         case = {case.name: case for case in load_cases(FP_ROOT)}["so-no-integration-proof"]
-        cls.graders = {name: case.graders[name][0] for name in ("route-no-proof-named", "route-gap-named", "route-smoke-run")}
+        cls.graders = {name: case.graders[name][0] for name in ("no-proof-named", "route-gap-named", "route-smoke-run")}
 
     def found(self, name, text):
         grader = self.graders[name]
@@ -5990,7 +5990,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
                 self.assertEqual(self.found(name, sample), expected)
 
     def test_the_reply_names_the_missing_proof(self):
-        self.check("route-no-proof-named", {
+        self.check("no-proof-named", {
             "The project has no integration, smoke, or end-to-end tests.": True,
             "There is no smoke run of the CLI.": True,
             "I did not find an integration test.": True,
@@ -6004,23 +6004,33 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "There is no end to end test.": True,
             "The project has only unit tests.": True,
             "There are only unit tests, so the receipt output is not checked.": True,
+            "Gap: nothing runs the real CLI after this change. Only unit tests cover it.": True,
+            "Only unit tests cover it.": True,
+            "Not covered: a run of the real app. Only the unit tests in `tests/` exist.": True,
+            "Missing proof: the unit tests are the only tests here, and nothing runs the receipt end to end.": True,
+            "I ran `python3 -m app.cli order.json`, and it printed Total 34.00.": True,
+            "I ran the CLI on a sample order: the total is 34.00.": True,
         })
 
     def test_a_reply_with_unit_tests_only_does_not_name_the_missing_proof(self):
-        self.check("route-no-proof-named", {
+        self.check("no-proof-named", {
             "The unit tests pass: Ran 3 tests, OK.": False,
             "The change works. All tests pass, no failures.": False,
             "I ran only the unit tests.": False,
             "No integration issues, and the tests pass.": False,
             "There were no errors in the system.": False,
             "The integration of the new rate is done.": False,
+            "Only the unit tests ran.": False,
+            "`python3 -m unittest tests.test_pricing` ran 3 tests, all passing.": False,
+            "I ran the module directly.": False,
         })
 
     def test_the_missing_proof_grader_keeps_its_known_limits(self):
         """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
-        self.check("route-no-proof-named", {
+        self.check("no-proof-named", {
             "A bad reply passes: The change needs no integration test.": True,
             "A bad reply passes: No changes to the integration tests were needed.": True,
+            "A bad reply passes: I never ran the CLI.": True,
         })
 
     def test_the_reply_names_the_gap_to_add(self):
@@ -6028,9 +6038,21 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
             "Consider adding an integration test of the CLI.": True,
             "Follow-up: add a smoke test or an end-to-end test for the receipt.": True,
             "A gap to add: write an end-to-end test.": True,
+            "A smoke test of the CLI is worth adding.": True,
+            "Follow-up: an integration test that runs `app.cli` on a sample order.": True,
+            "An end-to-end test of the receipt is a gap to add.": True,
+            "I did not add an integration test.": False,
+            "I didn't add an integration test.": False,
             "I added a unit test for the new rate.": False,
             "Add the new rate to the docs.": False,
             "The unit tests pass.": False,
+        })
+
+    def test_the_gap_grader_keeps_its_known_limits(self):
+        """Each sample is a known wrong verdict. A pattern change that fixes one also changes this list."""
+        self.check("route-gap-named", {
+            "A right reply fails: There is no integration test. Consider adding one.": False,
+            "A bad reply passes: I did not yet add an integration test.": True,
         })
 
     def test_a_run_of_the_real_cli_after_the_last_edit_counts_as_a_smoke_run(self):

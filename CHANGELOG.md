@@ -11,11 +11,13 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.9.0 in release [7.10.0] - 2026-11-27
 
-The final report of a change in `subagent-orchestration` now names a missing smoke run, integration test, or end-to-end test as a gap to add. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+A new paragraph of `subagent-orchestration` is about the final report of a change. If no smoke run, integration test, or end-to-end test covers the change, the paragraph asks the report to name that gap. A unit test does not count as this proof. Before, a run reported a change as done with only unit tests behind it, and it said nothing about the missing proof. In the new case `so-no-integration-proof`, each of 6 base runs did this: 3 runs with an Opus agent and 3 runs with a Sonnet agent. In the new case `so-integration-proof`, the project has an integration test that no instruction file names. Each of its 6 base runs on the same two models found that test and ran it. So the rule adds no sentence for that case (issue #386).
+
+HEAD-NUMBERS-LINE
 
 ### Added in dev-essentials
 
-- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The route grader `route-no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The scored graders read the change, the unit test run, and the commit (issue #386).
+- `evals/subagent-orchestration/so-no-integration-proof`: a new case. A small Python app has only unit tests, and the request changes a pricing rule. The scored grader `no-proof-named` makes sure that the final reply says that no smoke run, integration test, or end-to-end test exists. A reply that names a run of the real CLI also passes it. `route-gap-named` reads whether the reply names such a test as a thing to add. `route-smoke-run` reads whether the run ran the real CLI after its last edit. The scored graders read the change, the unit test run, and the commit (issue #386).
 - `evals/subagent-orchestration/so-integration-proof`: a new case. The same app has an integration test of the real CLI that only the CI workflow runs, and the plain change breaks its stored receipt. The scored grader `integration-after-edit` needs a run of that test or of the CLI after the last edit. The case makes sure that the new paragraph does not make a run skip an integration test that exists (issue #386).
 
 ### Changed in dev-essentials
@@ -26,7 +28,7 @@ The final report of a change in `subagent-orchestration` now names a missing smo
 
 - `tests/test_eval_cases.py`: new tests for the patterns of the graders of both new cases, on right and wrong texts and traces. The lists of the shared commit graders name both cases (issue #386).
 - `tests/test_eval_scaffolds.py`: in `so-integration-proof`, a new test makes sure that the plain change breaks only the integration test. In `so-no-integration-proof`, it breaks only the unit test. The list of commit graders names both cases (issue #386).
-- `docs/eval-cases.md`: the known limits of `integration-after-edit`, `route-smoke-run`, and `route-no-proof-named` (issue #386).
+- `docs/eval-cases.md`: the known limits of `integration-after-edit`, `route-smoke-run`, `no-proof-named`, and `route-gap-named` (issue #386).
 
 ## dev-essentials 6.4.0 in release [7.5.0] - 2026-11-27
 
