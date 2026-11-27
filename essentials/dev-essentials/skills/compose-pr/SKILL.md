@@ -119,6 +119,14 @@ If the repository has no template, use this structure. Start with `## What`, `##
 - **[Component]**: [what changed - 1 line]
 - **[Component]**: [what changed - 1 line]
 
+## UI changes
+[Only for a change that a person sees - see the writing rules]
+- **[View]**: [what changed for the person - 1 line]
+
+| Before | After |
+| --- | --- |
+| ![Before: [state]]([image link of the input]) | ![After: [state]]([image link of the input]) |
+
 ## Testing
 [The tests that the diff adds or changes, and the run result - 1-2 sentences]
 
@@ -135,12 +143,13 @@ Writing rules:
 - **Focus** on architectural impact (what capabilities changed).
 - In `## Changes`, use **bullet points**, not paragraphs.
 - **Testing** names only the tests that the diff adds or changes, or says that the diff changes no test. If the input gives a test command with its result line, name both. Do the same for a test run of this session after its last change of the code. Else write `Not run in this session.`, and do not say that a test passes or verifies the change. Do not run the tests only for this section.
+- **UI changes** is only for a diff that changes what a person sees: a view, a component, a style, the layout, the text on a screen, or an animation. Else leave it out. Use each image or video link that the input gives: the images in the table, with alt text that names the state, and a video link on its own line. Write no other image or video link. A local file is missing until the author uploads it. If the input gives no image link, leave out the table. Write `Not confirmed:` and name each missing image of the state before and after. For a change of motion, timing, or an interaction, also name a missing short video. Evidence goes to the pull request, never into the repository.
 - Use **technical terms**, not marketing language.
 - Do not copy commit messages word for word.
-- Stay within the character limits above. The limits count the whole description.
+- Stay within the character limits above. The limits count the whole description, except the image and video links.
 - If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
 
-For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
+For example outputs of a small change, a UI change, and a larger change, read [references/examples.md](references/examples.md).
 
 ### 6. Save PR Description
 
