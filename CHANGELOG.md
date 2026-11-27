@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.5.0 in release [7.6.0] - 2026-11-27
+
+The finish steps of `work-modes` now write the title of a pull request in the form that the repository uses. Before, the title always came from the section `## What` of the body. The form that a model picks with no rule can change from one model to the next (issue #385).
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template. The case is a guard: in the runs of PR #384, both sides scored 1.00 on two agent models (issue #385).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: step 4 writes the title in the form that the instructions file or the template gives. Else it comes from the summary of the change in the body, which is `## What` for a body with no template (issue #385).
+- `skills/feature-pipeline/stages/finalization.md`: step 6 loads `compose-pr` only for a repository with a PR template, or with no form for the PR body. For a template, it follows the template rules of step 5 of `compose-pr`. The closing line, the length limit, and the skipped steps apply in these two cases (issue #385).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the title grader and the body grader of `rirr-pr-title-form` on right and wrong texts. A new test makes sure that its prompt names no template and no form of titles. The finish case tests cover `rirr-pr-title-form` too. A new test makes sure that `finalization.md` loads `compose-pr` for a PR template. The test also makes sure that the stage points to its template rules and has no copy of them (issue #385).
+- `tests/test_eval_scaffolds.py`: the lists of branches, push graders, commit graders, and reports name `rirr-pr-title-form`. A test makes sure that `cmp-pr-repo-template` and `rirr-pr-title-form` plant the same template on `main`, with its rules only in comments (issue #385).
+
 ## dev-essentials 6.4.1 in release [7.5.1] - 2026-11-27
 
 `process-pr-comments` now says where the ID of a review comment comes from. The `get_review_comments` result of the GitHub MCP server has no `id` field for a comment. The ID is only the number after `#discussion_r` in the `html_url` of the comment. The eval fixtures of the review threads now have the shape of the real result. So the eval cases test the read of that result (issue #381).
@@ -2922,7 +2940,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...HEAD
+[7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0
 [7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.3.0...v7.4.0
