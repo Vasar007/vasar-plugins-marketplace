@@ -11,20 +11,17 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.3.0 in release [7.4.0] - 2026-11-27
 
-`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The finish steps of three workflows use it: `research-implement-review-report`, `implement-task`, and `implement-batch`. So they also ignored the template and its form of titles (issue #382).
+`compose-pr` now follows the PR template of the repository. Before, it always wrote the sections `## What`, `## Why`, and `## Changes`, and it did not look for a template. The rule matters most for a session on a smaller model. In two tested runs, a run without the rule followed a template only on the larger of the two models (issue #382).
 
 ### Changed in dev-essentials
 
-- `skills/compose-pr/SKILL.md`: step 5 first looks for a PR template in the places that GitHub reads. With a template, the description uses its headings in their order. Each HTML comment of the template is the instruction for its section, and the description holds no comment. The writing rules, the Testing rule, and the length limits still apply, and the limit wins over a long template. An item that the session cannot show gets `Not confirmed:`. A check box is ticked only for an item that the input or the session shows. A comment with a rule for the PR title gives no title line. With several templates and none in the input, the skill uses its own form and names the templates. With no template, the form stays as it was (issue #382).
-- `skills/compose-pr/SKILL.md`: a new writing rule. If the template or the instructions file asks for the agent tool and the model, the description ends with one line that names both. Step 6 names the template that the skill used, and it quotes a rule for titles (issue #382).
-- `skills/work-modes/references/finish.md`: step 4 gives `pr-composer` the name of the model of the session. The title follows a form for titles from the instructions file or from the template. Else it comes from the summary of the change in the body, which is `## What` for a body with no template (issue #382).
+- `skills/compose-pr/SKILL.md`: step 5 first looks for a PR template in the places that GitHub reads. With a template, the description uses its headings in their order. Each HTML comment of the template is the instruction for its section, and the description holds no comment. The writing rules, the Testing rule, and the length limits still apply, and the limit wins over a long template. An item that the session cannot show gets `Not confirmed:`. A comment with a rule for the PR title gives no title line. With several templates and none in the input, the skill uses its own form and names the templates. With no template, the form stays as it was. Step 6 names the template that the skill used, and it quotes a rule for titles (issue #382).
 - `evals/composers/cmp-pr-repo-template`: a new case with no shell tool. The repository has a PR template, and the prompt does not name it. The description must have the headings of the template, no What section, and no comment of the template. Its Evidence section claims no test run, and a check box on a passed test run stays empty. A last line names the agent tool and the model. A route grader makes sure that the final reply names the template (issue #382).
-- `evals/research-implement-review-report/rirr-pr-title-form`: a new case that finishes an earlier run with no merge. A comment of the PR template gives the form of titles. The pull request must have a title in that form and the headings of the template (issue #382).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A new test makes sure that the prompt of `cmp-pr-repo-template` names no template and has the diff of `cmp-pr-untested-diff`. The finish case tests now cover `rirr-pr-title-form` too (issue #382).
-- `tests/test_eval_scaffolds.py`: the lists of branches, push graders, commit graders, and reports name `rirr-pr-title-form` and `cmp-pr-repo-template`. A new test makes sure that both cases plant the same template on `main`, with its rules only in comments (issue #382).
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. A new test makes sure that the prompt of `cmp-pr-repo-template` names no template and has the diff of `cmp-pr-untested-diff` (issue #382).
+- `tests/test_eval_scaffolds.py`: the lists of branches and commit graders name `cmp-pr-repo-template`. A new test makes sure that the case plants its template on `main`, with its rules only in comments (issue #382).
 
 ## dev-essentials 6.2.0 in release [7.3.0] - 2026-11-27
 

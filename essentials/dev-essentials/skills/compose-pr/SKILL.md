@@ -105,7 +105,6 @@ If you use a template:
 - The writing rules below and the length limits still apply. If the template does not fit in the limit, the limit wins. Keep each heading, and make each section short.
 - The **Testing** rule below applies to the section that asks for tests or for the result of a test run.
 - If the template asks for an item that the session cannot show, do not invent it. Examples are a screenshot, a video, and the output of a command that did not run. Write `Not confirmed:` and the name of the item instead.
-- A check box of the template is a claim. Tick it only for an item that the input or this session shows, and leave each other box empty.
 
 If the repository has no template, use this structure. Start with `## What`, `## Why`, and `## Changes`, in this order. Put no other section or title before them or between them:
 
@@ -140,7 +139,6 @@ Writing rules:
 - Do not copy commit messages word for word.
 - Stay within the character limits above. The limits count the whole description.
 - If the input gives a closing line for an issue, put it on its own line after the last section. Examples are `Closes #42.` and `Part of #42.`. If the session adds an attribution line, it comes last.
-- The instructions file of the repository is `CLAUDE.md` or `AGENTS.md`. The PR template or the instructions file can ask for the agent tool and the model of the change. Then end the description with one line that names both. Name the model that the input gives. Else name the model of this session. Put this line after the closing line, and before an attribution line of the session.
 
 For example outputs of a small and a larger change, read [references/examples.md](references/examples.md).
 

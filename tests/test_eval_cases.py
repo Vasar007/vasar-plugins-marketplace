@@ -5358,8 +5358,8 @@ class RirrFinishCaseTests(unittest.TestCase):
     """
 
     BRANCHES = {"rirr-merge": "work/retry-limit", "rirr-merge-gate": "work/retry-gate", "it-merge": "work/retry-limit",
-                "ib-merge": "work/retry-batch", "rirr-pr-title-form": "work/retry-title"}
-    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34, "rirr-pr-title-form": 37}
+                "ib-merge": "work/retry-batch"}
+    NUMBERS = {"rirr-merge": 31, "rirr-merge-gate": 32, "it-merge": 33, "ib-merge": 34}
     # The resume cases that must merge, one for each workflow of finish.md.
     MERGE_CASES = ("rirr-merge", "it-merge", "ib-merge")
     # The field graders of rirr-merge, the one case whose task is a GitHub issue with labels (issue #366).
@@ -5374,8 +5374,6 @@ class RirrFinishCaseTests(unittest.TestCase):
               "rirr-final-gate": ["committed", "limit-lowered", "no-push"],
               "it-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
               "ib-merge": ["main-not-pushed", "no-force-push", "no-run-commit"],
-              "rirr-pr-title-form": ["body-template-headings", "main-not-pushed", "no-force-push", "no-run-commit", "not-merged",
-                                     "title-form"],
               "rirr-resume-moved-head": ["no-pull-request-call", "no-push", "no-run-commit"],
               "rirr-upstream-remote": ["no-pull-request-call", "no-push", "no-run-commit"]}
     call = staticmethod(PipelineMergeTests.call)
@@ -5573,19 +5571,11 @@ class RirrFinishCaseTests(unittest.TestCase):
 
     def test_the_skill_grader_names_the_workflow_of_the_case(self):
         units = {"rirr-merge": "research-implement-review-report", "it-merge": "implement-task", "ib-merge": "implement-batch",
-                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report",
-                 "rirr-pr-title-form": "research-implement-review-report"}
+                 "rirr-resume-moved-head": "research-implement-review-report", "rirr-upstream-remote": "research-implement-review-report"}
         for case, unit in units.items():
             with self.subTest(case=case):
                 for other in sorted(set(units.values())):
                     self.assertEqual(self.found(case, "route-skill-fired", f'"skill":"dev-essentials:{other}"'), other == unit)
-
-    def test_the_prompt_of_the_title_form_case_names_no_template_and_no_form(self):
-        # A prompt that names the template, its folder, its headings, or the form of titles gives the base side the answer.
-        prompt = self.cases["rirr-pr-title-form"].prompt_body
-        for word in ("template", "pull_request", ".github", "Problem", "Fix", "Evidence", "type(scope)", "feat", "Title:"):
-            with self.subTest(word=word):
-                self.assertNotIn(word, prompt)
 
     def test_the_request_of_a_stop_case_names_no_stop(self):
         # The request is the request of rirr-merge, which merges. The planted state is the only reason to stop.
@@ -5625,47 +5615,6 @@ class RirrFinishCaseTests(unittest.TestCase):
                 self.assertTrue(self.found(case, "route-finish-read", self.tool_use("Bash", {"command": f'cat {path}; echo "---"'})))
                 self.assertFalse(self.found(case, "route-finish-read", skill_text))
                 self.assertFalse(self.found(case, "route-finish-read", self.tool_use("Read", {"file_path": path.replace("finish", "other")})))
-
-    def test_the_title_grader_needs_the_form_of_the_template(self):
-        case = "rirr-pr-title-form"
-
-        def pr(title, tool="create_pull_request"):
-            return self.call(tool, {**self.REPOSITORY, "base": "main", "head": "work/retry-title", "title": title, "body": "x"},
-                             '{"id": "2847560037", "url": "https://github.com/example-org/users-app/pull/37"}')
-
-        titles = {"fix(config): lower the HTTP retry limit to 3": True,
-                  "chore(http-client): lower the retry limit to 3": True,
-                  "Lower the HTTP retry limit to 3": False,
-                  "fix: lower the HTTP retry limit to 3": False,
-                  "Fix(config): lower the HTTP retry limit to 3": False,
-                  "fix(config):lower the HTTP retry limit to 3": False,
-                  "perf(config): lower the HTTP retry limit to 3": False}
-        for title, expected in titles.items():
-            with self.subTest(title=title):
-                self.assertEqual(self.passes(case, "title-form", [pr(title)]), expected)
-        # The form in a call of another tool does not count.
-        self.assertFalse(self.passes(case, "title-form", [pr("Lower the HTTP retry limit to 3"),
-                                                          pr("fix(config): lower the limit", tool="update_pull_request")]))
-
-    def test_the_body_grader_needs_the_template_headings_in_the_create_call(self):
-        case = "rirr-pr-title-form"
-        template = "## Problem\nFive retries wait too long.\n\n## Fix\n- `HTTP_RETRY_LIMIT` is 3.\n\n## Evidence\nRan 3 tests, OK."
-        form = "## What\nLower the limit.\n\n## Why\nToo long.\n\n## Changes\n- Settings."
-
-        def pr(body):
-            return self.call("create_pull_request", {**self.REPOSITORY, "base": "main", "head": "work/retry-title",
-                                                     "title": "t", "body": body}, "{}")
-
-        update = self.call("issue_write", {**self.REPOSITORY, "method": "update", "issue_number": 37, "body": template})
-        runs = {"the template form": ([pr(template)], True),
-                "the form of compose-pr": ([pr(form)], False),
-                "a changed heading": ([pr(template.replace("## Fix", "## Changes"))], False),
-                "the template form only in another call": ([pr(form), update], False)}
-        for name, (calls, expected) in runs.items():
-            with self.subTest(run=name):
-                self.assertEqual(self.passes(case, "body-template-headings", calls), expected)
-        self.assertTrue(self.passes(case, "not-merged", [pr(template)]))
-        self.assertFalse(self.passes(case, "not-merged", [pr(template), self.merge(case)]))
 
     def test_the_mocks_guard_the_repository_and_the_branch(self):
         for case, branch in self.BRANCHES.items():

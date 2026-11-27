@@ -5,7 +5,7 @@ lib="$(dirname "${BASH_SOURCE[0]}")/../../_lib"
 source "$lib/git-fixture.sh"
 
 # The prompt gives the diff, and the session has no shell. So the repository holds only the PR template on main.
-# The rules of the template are only in HTML comments. rirr-pr-title-form plants the same file with no check box, and a test makes sure of it.
+# The rules of the template are only in HTML comments. A test makes sure of it.
 fixture_init
 fixture_write .github/pull_request_template.md <<'TEMPLATE_EOF'
 <!--
