@@ -112,7 +112,7 @@ If the run format applies, the check scope replaces these things for this run on
 If the user asks for a workflow run (the Workflow tool), keep the phases of this skill. A workflow takes no input while it runs. So each check that can ask the user, such as the head gate of Phase 5, runs in the main session before or between workflows.
 
 - Each step gets the brief that its phase builds, word for word.
-- The triage judges each finding on its merits. A severity rule in code is no triage. Outside the full mode, the triage runs in the main session between two workflows.
+- The triage judges each finding on its merits. A severity rule in code is no triage. Outside the full mode, the main session writes the triage table between two workflows.
 - The fixer step does not commit. A later step runs the Phase 6 commands and returns their exit codes and result lines. Phase 7 commits only after a green result. Else the main session finishes Phases 6 and 7.
 - The script returns the Phase 6 result and each finding with its triage decision, `blocking` flag, and fixer verdict with its reason. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8. Each next cycle is a new workflow.
 
