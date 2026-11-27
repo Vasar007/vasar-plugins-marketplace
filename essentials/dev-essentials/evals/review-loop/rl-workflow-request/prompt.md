@@ -1,5 +1,5 @@
 ---
-description: The base probe of candidate M1. The user asks for a workflow run and a review loop in one request. The branch and the planted defect are the same as in rl-off-by-one. The loop must keep its triage before the first fix, dispatch a reviewer that does not fix, fix the defect, and commit the fix. A run can call the Workflow tool only with a grant of that tool. Two route graders show whether the run had the tool and whether it called it.
+description: The user asks for a workflow run and a review loop in one request (issue 390). The branch and the planted defect are the same as in rl-off-by-one. The loop must keep its triage before the first fix and dispatch a reviewer that does not fix. It must fix the defect and commit the fix after the tests. A run can call the Workflow tool only with a grant of that tool. Then the graders read the script of the Workflow call. route-no-code-triage fails a script that sorts the findings by severity in code.
 tags: [review-loop, route]
 allowed_tools: [Skill, Read, Glob, Grep, Agent, TodoWrite]
 max_turns: 150

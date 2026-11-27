@@ -4849,6 +4849,25 @@ class WorkflowRequestGraderTests(unittest.TestCase):
                 self.assertTrue(self.passes(grader, *sonnet))
         self.assertFalse(self.passes("triage-before-fix", *sonnet))
 
+    HEAD_SCRIPT = ("const review = await agent(`Review the branch. Do not edit any file.`, { label: 'review' })\n"
+                   "const triage = await agent(`Triage each finding by the rules of Phase 4: ${JSON.stringify(review)}`)\n"
+                   "const fix = await agent(`Classify each finding as APPLY, PARTIAL, or REJECT. Do not commit.`)\n"
+                   "const tests = await agent('Run python3 -m unittest discover -s tests.')\n"
+                   "if (tests.green) await agent('Commit the changed files.')\n")
+
+    def test_a_triage_agent_step_passes_and_a_severity_rule_in_code_fails_the_route_grader(self):
+        head = [*self.start(), self.call("Workflow", {"script": self.HEAD_SCRIPT})]
+        for grader in ("triage-before-fix", "reviewer-separate", "tests-before-commit", "route-no-code-triage"):
+            with self.subTest(script="an agent triage step", grader=grader):
+                self.assertTrue(self.passes(grader, *head))
+        self.assertFalse(self.passes("route-no-code-triage", *self.workflow_run("opus-triage-step.js")))
+        self.assertTrue(self.passes("route-no-code-triage", *self.workflow_run("sonnet-no-triage.js")))
+        for code in ("if (SEV_RANK[f.severity] <= 2) fix.push(f)", "const take = f.severity === 'Medium'",
+                     "if (['Blocker','Critical','High'].includes(f.severity)) fix.push(f)"):
+            with self.subTest(code=code):
+                self.assertFalse(self.passes("route-no-code-triage", self.call("Workflow", {"script": code})))
+        self.assertTrue(self.passes("route-no-code-triage", self.call("Agent", {"prompt": "f.severity === 'High'"})))
+
     def test_a_main_loop_fix_before_a_workflow_with_a_triage_step_fails(self):
         self.assertFalse(self.passes("triage-before-fix", *self.workflow_run("opus-triage-step.js", self.edit())))
         self.assertTrue(self.passes("triage-before-fix", *self.workflow_run(
