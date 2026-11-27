@@ -3752,6 +3752,132 @@ class PpcTrustTests(unittest.TestCase):
         self.assertFalse(self.passes("route-trust-read", call("pull_request_read", note="list_repository_collaborators")))
 
 
+class PpcRuleCandidateTests(unittest.TestCase):
+    """ppc-rule-candidates: three threads make one naming point, and one thread is about a limit (issue #388).
+
+    The fixture has the shape that the GitHub MCP server returns: review_threads, a plain author, and no comment id.
+    """
+
+    CASE = "ppc-rule-candidates"
+    NAMING = (9201, 9202, 9203)
+    UNRELATED = 9204
+    LOG = ("Cycle 1 @ 10:00 — PR #42 (4 threads, 4 new comments)\n"
+           "  T#9201 [ToFix] src/pager.py:19   → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9202 [ToFix] src/ranges.py:12  → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9203 [ToFix] src/users.py:18   → fixed (2 LoC), commit a1b2c3d | resolved\n"
+           "  T#9204 [ToFix] src/store.py:19   → fixed (1 LoC), commit b2c3d4e | resolved\n\n")
+    PUSHED = ("2 commits pushed as b2c3d4e.\n"
+              "  a1b2c3d PR #42 T#9201 T#9202 T#9203: use snake_case names\n"
+              "  b2c3d4e PR #42 T#9204: keep the default limit at 50\n")
+    CANDIDATE = ("Rule candidates (1)\n"
+                 "  Function names in snake_case: T#9201, T#9202, T#9203. "
+                 "Draft rule: Name each Python function in snake_case, not camelCase.\n\n")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}[cls.CASE]
+
+    def fixture(self, name):
+        return json.loads((self.case.path / "mocks" / "github" / "fixtures" / name).read_text(encoding="utf-8"))
+
+    def passes(self, grader, text):
+        meta = self.case.graders[grader][0]
+        flags = sum(REGEX_FLAGS[flag] for flag in meta.get("flags", ""))
+        found = re.search(meta["pattern"], text, flags) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    def test_the_fixture_has_the_shape_of_the_server(self):
+        data = self.fixture("get_review_comments.json")
+        self.assertEqual(sorted(data), ["pageInfo", "review_threads", "totalCount"])
+        self.assertEqual(data["totalCount"], len(data["review_threads"]))
+        self.assertFalse(data["pageInfo"]["hasNextPage"])
+        for thread in data["review_threads"]:
+            with self.subTest(thread=thread["id"]):
+                self.assertEqual(thread["total_count"], len(thread["comments"]))
+                for comment in thread["comments"]:
+                    self.assertNotIn("id", comment)
+                    self.assertNotIn("user", comment)
+                    self.assertIsInstance(comment["author"], str)
+
+    def test_the_reply_mock_expects_the_ids_of_the_thread_links(self):
+        threads = self.fixture("get_review_comments.json")["review_threads"]
+        ids = [int(re.fullmatch(r"https://github\.com/example-org/pager/pull/42#discussion_r(\d+)",
+                                thread["comments"][0]["html_url"]).group(1)) for thread in threads]
+        self.assertEqual(ids, [*self.NAMING, self.UNRELATED])
+        mock = self.case.path / "mocks" / "github" / "add_reply_to_pull_request_comment.md"
+        lines, _body = split_frontmatter(mock.read_text(encoding="utf-8"))
+        self.assertEqual(parse_block(lines)["expect"], {"owner": "example-org", "repo": "pager", "commentId": ids})
+
+    def test_each_reviewer_is_trusted(self):
+        mock = self.case.path / "mocks" / "github" / "list_repository_collaborators.md"
+        _lines, body = split_frontmatter(mock.read_text(encoding="utf-8"))
+        writers = {item["login"] for item in json.loads(body)["items"] if item["role_name"] in {"admin", "maintain", "write"}}
+        authors = {comment["author"] for thread in self.fixture("get_review_comments.json")["review_threads"]
+                   for comment in thread["comments"]}
+        self.assertLessEqual(authors, writers)
+
+    def test_a_right_report_passes_each_grader_of_the_last_message(self):
+        report = self.LOG + self.CANDIDATE + self.PUSHED
+        for grader in ("route-rule-candidate", "route-candidate-threads", "unrelated-not-candidate"):
+            with self.subTest(grader=grader):
+                self.assertTrue(self.passes(grader, report))
+
+    def test_route_rule_candidate_needs_a_candidate_for_the_naming_point(self):
+        runs = {
+            "a table": ("| Point | Threads | Draft rule |\n|---|---|---|\n| snake_case names | T#9201, T#9202, T#9203 | "
+                        "Use snake_case. |", True),
+            "a sentence": ("I list one candidate rule: function names use snake_case.", True),
+            "camelCase first": ("Three threads asked to drop camelCase names. Rule candidate: use snake_case.", True),
+            "the base log only": (self.LOG + self.PUSHED, False),
+            "a rule word with no point": ("Rule candidates: none.", False),
+            "the point with no candidate": ("All three naming threads now use snake_case.", False),
+            # Known limit: an empty list next to a commit subject with the point passes. The skill prints no empty list.
+            "known limit: an empty list near the commit list": ("Rule candidates: none.\n\n" + self.PUSHED, True),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-rule-candidate", text), expected)
+
+    def test_route_candidate_threads_needs_the_three_threads_with_the_candidate(self):
+        runs = {
+            "the heading, then the line": (self.CANDIDATE, True),
+            "the draft rule on the line": ("- snake_case: T#9201, T#9202, T#9203. Draft rule: use snake_case.", True),
+            "the draft rule on the next line": ("- snake_case: T#9201, T#9202, T#9203\n  Draft rule: use snake_case.", True),
+            "the base log and the commit list": (self.LOG + self.PUSHED, False),
+            "two threads only": ("Rule candidates (1)\n  snake_case: T#9201, T#9202. Draft rule: use snake_case.", False),
+            "a rule word far from the threads": ("Rule candidates (0)\n" + "x" * 400 + "\n" + self.PUSHED, False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("route-candidate-threads", text), expected)
+
+    def test_unrelated_not_candidate_fails_a_candidate_with_the_limit_thread(self):
+        runs = {
+            "the base log": (self.LOG + self.PUSHED, True),
+            "the right candidate": (self.CANDIDATE, True),
+            "the limit thread in the candidate line": ("Rule candidates (1)\n  snake_case: T#9201, T#9202, T#9203, T#9204. "
+                                                       "Draft rule: use snake_case.", False),
+            "a candidate of the limit thread": ("Rule candidates (2)\n  Default limit (T#9204). Draft rule: keep 50.", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("unrelated-not-candidate", text), expected)
+
+    def test_no_rule_file_fails_a_new_instruction_file(self):
+        runs = {
+            "only notes": ("notes/progress.md\n.git/objects/ab/cdef\nsrc/__pycache__/pager.cpython-312.pyc", True),
+            "a claude folder with settings": (".claude/settings.local.json", True),
+            "a rules file": ("notes/a.md\n.claude/rules/naming.md", False),
+            "a nested CLAUDE.md": ("src/CLAUDE.md", False),
+            "a new AGENTS.md": ("AGENTS.md", False),
+            "a new REVIEW.md with an absolute path": ("/home/eval/work/REVIEW.md", False),
+            "a skill file": (".claude/skills/naming/SKILL.md", False),
+        }
+        for name, (text, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.passes("no-rule-file", text), expected)
+
+
 def agent_input(subagent_type):
     """The JSON text of the input of an Agent call, as a tool_used grader reads it."""
     return json.dumps({"description": "Write the text", "prompt": "The brief.", "subagent_type": subagent_type},

@@ -1,0 +1,52 @@
+diff --git a/src/pager.py b/src/pager.py
+index 5dd762b..8d77c77 100644
+--- a/src/pager.py
++++ b/src/pager.py
+@@ -14,3 +14,8 @@ def total_pages(total_items, size=DEFAULT_PAGE_SIZE):
+ def has_next_page(page, total_items, size=DEFAULT_PAGE_SIZE):
+     """Return True if a page after the given page (1-based) exists."""
+     return page < total_pages(total_items, size)
++
++
++def pageCount(items, size=DEFAULT_PAGE_SIZE):
++    """Return the number of pages for a list of items."""
++    return total_pages(len(items), size)
+diff --git a/src/ranges.py b/src/ranges.py
+index f092bf2..4afb191 100644
+--- a/src/ranges.py
++++ b/src/ranges.py
+@@ -7,3 +7,8 @@ def page_numbers(count):
+     The numbers are 1-based, inclusive: for 3 pages the result is [1, 2, 3].
+     """
+     return list(range(1, count + 1))
++
++
++def lastPage(count):
++    """Return the number of the last page of count pages, or 0 for no pages."""
++    return count
+diff --git a/src/store.py b/src/store.py
+index 96a82f7..8fed10c 100644
+--- a/src/store.py
++++ b/src/store.py
+@@ -16,7 +16,7 @@ def add_order(db, customer, total):
+     return cursor.lastrowid
+ 
+ 
+-def orders_for_customer(db, customer, limit=50):
++def orders_for_customer(db, customer, limit=500):
+     """Return the newest orders of a customer, at most limit rows."""
+     rows = db.execute(
+         "SELECT id, customer, total FROM orders WHERE customer = ? ORDER BY id DESC LIMIT ?",
+diff --git a/src/users.py b/src/users.py
+index d11346f..6f614b3 100644
+--- a/src/users.py
++++ b/src/users.py
+@@ -13,3 +13,8 @@ class User:
+ def email_domain(user):
+     """Return the part of the email address after the @ sign."""
+     return user.email.split("@", 1)[1]
++
++
++def displayName(user):
++    """Return the name of the user, or the email address for a user with no name."""
++    return user.name or user.email

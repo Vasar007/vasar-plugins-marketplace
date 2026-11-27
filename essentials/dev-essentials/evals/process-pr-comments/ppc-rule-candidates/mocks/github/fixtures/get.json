@@ -1,0 +1,17 @@
+{
+  "number": 42,
+  "title": "Add page helpers",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "base": {
+    "ref": "main"
+  },
+  "head": {
+    "ref": "feature/page-helpers",
+    "sha": "76d630a37826f17a6ac89265a99449309f345e9c"
+  },
+  "user": {
+    "login": "example-author"
+  }
+}
