@@ -4016,7 +4016,11 @@ class ComposerGraderTests(unittest.TestCase):
         return [name for name, (meta, _) in self.cases[case].graders.items() if meta["type"] == "regex"]
 
     def test_the_right_ui_texts_pass_each_regex_grader_of_their_case(self):
-        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_CASE, self.PR_UI_LIST), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
+        shows = self.PR_UI_LIST.replace("- A short video of the fade-in.", "- A short video that shows the fade-in.")
+        bold_numbers = (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**").replace("- An image", "1. An image", 1)
+                        .replace("- An image", "2. An image").replace("- A short", "3. A short"))
+        for case, text in ((self.UI_CASE, self.PR_UI), (self.UI_CASE, self.PR_UI_LIST), (self.UI_CASE, shows),
+                           (self.UI_CASE, bold_numbers), (self.UI_IMAGES_CASE, self.PR_UI_IMAGES)):
             for grader in self.regex_graders(case):
                 with self.subTest(case=case, grader=grader):
                     self.assertTrue(self.passes(case, grader, text))
@@ -4039,6 +4043,8 @@ class ComposerGraderTests(unittest.TestCase):
             "not confirmed": (self.PR_UI, True),
             "a list under not confirmed": (self.PR_UI_LIST, True),
             "a list under another line": (self.PR_UI_LIST.replace("Not confirmed:", "Later work:"), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
             "an add request": (add, True),
             "images to be added": ("## Notes\n\nImages of the header: to be added by the author.\n", True),
             "no screenshots yet": ("## Notes\n\nNo screenshots are attached yet.\n", True),
@@ -4052,6 +4058,8 @@ class ComposerGraderTests(unittest.TestCase):
             "a video is missing": ("## Notes\n\nA short video of the fade-in is missing.\n", True),
             "a list under not confirmed": (self.PR_UI_LIST, True),
             "a list with images only": (self.PR_UI_LIST.replace("- A short video of the fade-in.\n", ""), False),
+            "a bold label": (self.PR_UI_LIST.replace("Not confirmed:", "**Not confirmed:**"), True),
+            "a numbered list": (self.PR_UI_LIST.replace("\n- ", "\n1. "), True),
             "images only": (self.PR_UI.replace(", and a short video of the fade-in", ""), False),
             "a claim of a video": ("## UI changes\n\nThe video shows the fade-in.\n", False),
             "the base form": (self.PR_UI_BASE, False),
@@ -4077,7 +4085,11 @@ class ComposerGraderTests(unittest.TestCase):
             "screenshots below": ("Screenshots below.\n", False),
             "see the attached": ("See the attached screenshots.\n", False),
             "the video shows": ("The video shows the fade-in.\n", False),
+            "the images show": ("The images show the badge.\n", False),
             "images included": ("Images of both states are included.\n", False),
+            "a list item that shows": ("Not confirmed:\n\n- A short video that shows the fade-in.\n", True),
+            "a list item which shows": ("Not confirmed:\n\n- An image of the header after the change, which shows the badge.\n",
+                                        True),
         })
 
     def test_the_images_case_needs_both_given_links_and_no_other_media_link(self):
@@ -4110,6 +4122,8 @@ class ComposerGraderTests(unittest.TestCase):
             "no video line": (self.PR_UI_IMAGES.replace("Not confirmed: a short video of the fade-in.\n\n", ""), False),
             "a list under not confirmed": (self.PR_UI_IMAGES.replace("Not confirmed: a short video", "Not confirmed:\n\n- A short video"),
                                            True),
+            "a bold label and a numbered list": (self.PR_UI_IMAGES.replace("Not confirmed: a short video",
+                                                                           "**Not confirmed:**\n\n1. A short video"), True),
         })
 
     def test_route_image_alt_state_needs_alt_text_that_names_the_state_of_each_image(self):
