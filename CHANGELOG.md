@@ -9,6 +9,22 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.6.0 in release [7.7.0] - 2026-11-27
+
+`review-loop` now says which of its gates a workflow run keeps. A workflow run puts the loop into a script for the Workflow tool of Claude Code. Before, no rule said which steps the script keeps. In the base runs, some scripts dropped the triage, and some sorted the findings by severity in code (issue #390).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/SKILL.md`: the new section "Run as a workflow" says which phases the script keeps. Each check that can ask the user runs in the main session, before or between workflows. Each step gets the brief that its phase builds, word for word. The triage judges each finding on its merits, and a severity rule in code is no triage. Outside the full mode, the main session writes the triage table between two workflows. The fixer step does not commit. In the workflow, Phase 7 commits only after a green Phase 6. After a red one, the main session finishes Phases 6 and 7. The script returns the Phase 6 result and the data of each finding, with the reason of each fixer verdict. A step that returns `null` covered nothing. After each workflow, the main session writes the cycle report and runs Phase 8, and each next cycle is a new workflow (issue #390).
+- `evals/review-loop/rl-workflow-request`: a new case. The user asks for a workflow run of the loop on the branch of `rl-off-by-one`. The graders read the script of the Workflow call, because the trace holds no call of a workflow agent. The runs had the Workflow tool. With a Sonnet agent, 0 of 6 base runs triaged the findings before the fix. At the head, 2 of 3 runs did, so the Sonnet head is not at 3 of 3. The third head run fixed the findings and listed the deferred ones only in its final reply. With an Opus agent, each of 6 base scripts kept a triage step, but 5 of them sorted the findings by severity in code. In at least 4 of the 6, the fixer step also made the commit. At the head, 3 of 3 Opus runs had no severity rule in code and no commit by the fixer step. They passed each scored grader. The route graders `route-no-code-triage` and `route-no-commit-in-fixer` read these two forms. With an Opus agent, the hold run of `rl-off-by-one` scored 1.00 in 3 of 3 runs at the base and at the head (issue #390).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-workflow-request`, with the scripts of two base runs in `tests/evals/fixtures/workflow-scripts/` (issue #390).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-workflow-request` (issue #390).
+- `docs/eval-cases.md`: a new section "Workflow runs" says what the trace of a workflow run holds. The list of known limits names the graders of `rl-workflow-request` (issue #390).
+- `docs/evals.md`: the section "Run a suite" says that `rl-workflow-request` needs its own command with the grant `Workflow` (issue #390).
+
 ## dev-essentials 6.5.0 in release [7.6.0] - 2026-11-27
 
 The finish steps of `work-modes` now write the title of a pull request in the form that the repository uses. Before, the title always came from the section `## What` of the body. The form that a model picks with no rule can change from one model to the next (issue #385).
@@ -2940,7 +2956,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.7.0...HEAD
+[7.7.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.6.0...v7.7.0
 [7.6.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.1...v7.6.0
 [7.5.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.5.0...v7.5.1
 [7.5.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.4.0...v7.5.0

@@ -38,6 +38,7 @@ EXPECTED_BRANCH = {
     "probe-dotnet-sandbox": "work/probe-dotnet-sandbox",
     "probe-test-fixture": "work/tests",
     "rl-off-by-one": "feature/paging",
+    "rl-workflow-request": "feature/paging",
     "rl-null-guard": "feature/display-name",
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
