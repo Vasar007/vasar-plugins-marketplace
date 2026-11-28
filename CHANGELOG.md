@@ -9,6 +9,30 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.13.0 in release [7.14.0] - 2026-11-28
+
+The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent also uses a stand-in for an outside system that the run can change. The agent never asks the user for a manual run, and never stops for one. The section gives the report line for each part that the agent did not run: `Not tested by the agent: <part>. A manual run is necessary.` Before, a Sonnet agent ran the real program in 0 of 6 base runs. Both READMEs of the new cases gave the command. No base run on either model said that a manual run on a missing device is necessary (issue #401).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-smoke-run-self`: a new case. A pricing change in a small Python app with only unit tests. The README names a command that prints the receipt of a sample order. The route grader `route-program-run` reads a run of the CLI or of the receipt code after the last edit. At the base, it passed in 3 of 3 runs with an Opus agent and in 0 of 3 runs with a Sonnet agent. At the head, it passed in 3 of 3 runs on each model (issue #401).
+- `evals/subagent-orchestration/so-smoke-run-printer`: a new case. The same app, but the CLI writes the receipt to a USB printer that the sandbox does not have. `route-program-run` reads a run of the receipt code, and `route-manual-run-stated` reads the statement that a manual run is necessary. At the base, the Opus agent rendered the receipt in 3 of 3 runs, and the Sonnet agent in 0 of 3 runs. No base run stated the manual run. At the head, the Opus agent ran the receipt code with a stand-in and stated the manual run in 3 of 3 runs. The Sonnet agent ran the receipt code in 2 of 3 runs, and stated the manual run in 1 of 3 runs. One more Sonnet run named the untested print in other words (issue #401).
+- Both cases have the scored grader `no-manual-ask`: the final reply asks the user for no run. It passed in each base run and in each head run of the final text (issue #401).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: the section "Proof of a change" starts with the run of the real program. The run comes before the final report. A stand-in replaces a missing device or service, and an outside system that the run can change. The section forbids a request for a manual run and a stop for one. It gives the report line for each part that the agent did not run. The gap line of a missing smoke run, integration test, or end-to-end test stays (issue #401).
+
+### Fixed in dev-essentials
+
+- `evals/subagent-orchestration/so-no-integration-proof`: `route-smoke-run` now also reads a run of the CLI at the start of a new line of a command. Before, a right run with a `cd` line first failed the grader (issue #401).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests of the patterns of `route-program-run`, `no-manual-ask`, and `route-manual-run-stated` on the words of real base and head replies. A new sample tests `route-smoke-run` after a line break. Both new cases are in the list of the shared commit graders (issue #401).
+- `tests/test_eval_scaffolds.py`: both cases are in the lists of commit graders and commit shapes. New tests run the scaffolds: the CLI of `so-smoke-run-self` prints the new total, and the CLI of `so-smoke-run-printer` fails with no printer and works with a stand-in file (issue #401).
+- `docs/eval-cases.md`: the list of grader limits names the new graders (issue #401).
+
 ## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
 
 `compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps. At the head, the template case passed in 3 of 3 runs on each model. The bug case passed in 3 of 3 runs with Opus and in 2 of 3 runs with Sonnet. The third Sonnet run returned the text in chat and wrote no file (issue #399).
@@ -3106,7 +3130,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.14.0...HEAD
+[7.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...v7.14.0
 [7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
 [7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
