@@ -379,7 +379,8 @@ class FinishStepTests(unittest.TestCase):
             "and resolve each conflict. Never rebase.",
             "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. "
             "After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. "
-            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
+            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If one of them fails, report it, and end the run (hard stop 5). "
+            "Here step 2 gets no fix round of its own.",
             'Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". '
             'With "no", end the run.',
             'Push as step 3 of the section "Steps" says, and do step 5 of that section again.',
@@ -393,7 +394,9 @@ class FinishStepTests(unittest.TestCase):
         # An eval run fixed a lint failure at step 2 and pushed it, before any gate read (issue 387).
         # The full mode fixes only a red build or test of step 2 before the push (issue 402).
         steps = self.text[self.text.index("## Steps"):self.text.index("## A failed merge gate")]
-        for sentence in ("A failure of another command, such as a lint script, gets no fix round.",
+        for sentence in ("The full mode gives a fix round before the report to a failure of this run that the change of the branch causes.",
+                         "Review the commit with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`.",
+                         "A failure of another command, such as a lint script, gets no fix round.",
                          "Never weaken or skip a test to make it pass.",
                          "Do at most 2 such rounds. Make no other commit before the push.",
                          'A failed merge gate gets its fix in the section "A failed merge gate".'):
