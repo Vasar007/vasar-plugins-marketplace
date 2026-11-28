@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.14.0 in release [7.15.0] - 2026-11-28
+
+In the full mode, the finish steps of `work-modes` now fix a red build or test before the push. Before, step 2 of `references/finish.md` ended each run at such a failure. The run then asked the user, although the full mode asks no question. In the new case `rirr-prepush-red-test`, each of 6 base runs on an Opus agent and a Sonnet agent stopped at the red test. The fix round covers only a failure of the build and test run of step 2 that the change of the branch causes. The run fixes the cause in new commits, reviews them with one round of `review-loop`, and runs steps 1 and 2 again. It never weakens or skips a test, and it does at most 2 rounds. A failure of another command, such as a lint script, still gets no fix round. The partial and the interactive modes keep their stop (issue #402).
+
+### Added in dev-essentials
+
+- `evals/research-implement-review-report/rirr-prepush-red-test`: a new case. An earlier run lowered a retry limit, but a test still expects the old limit, so one test fails. The request finishes that run in the full mode. The route graders read the fix of the test, its commit, its review, a test run before the push, and the push. The scored graders make sure that the run keeps the new limit and the client setting, and skips or weakens no test. They also make sure that the run does not push `main`, force a push, or merge. At the base, no run fixed the test, in 6 of 6 runs on two models. At the head, each run fixed the test, ran the tests, pushed, and opened the pull request (issue #402).
+
+### Changed in dev-essentials
+
+- `skills/work-modes/references/finish.md`: step 2 has the fix round of the full mode. The section "A failed step in the full mode" points to it. In a fix round of "A failed merge gate", a red rerun of step 2 gets no fix round of its own (issue #402).
+
+### Changed in the repository
+
+- `tests/test_work_modes_text.py`: the text tests check the new sentences of step 2 and of "A failed step in the full mode" (issue #402).
+- `tests/test_eval_cases.py`: new tests of the graders of `rirr-prepush-red-test` (issue #402).
+- `tests/test_eval_scaffolds.py`: the lists of branches, failing tests, and no-push exceptions name the new case. A new test runs its scaffold: the head is red, a fix of the test makes it green, and three wrong fixes fail a scored grader. The helper `file_grader_verdicts` now reads the flags and `match: not_contains` of a regex grader, as the eval tool does (issue #402).
+- `docs/workflows.md`: the overview names the fix round before the push (issue #402).
+- `docs/eval-cases.md`: the list of grader limits names the route graders of the new case (issue #402).
+
 ## dev-essentials 6.13.0 in release [7.14.0] - 2026-11-28
 
 The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent also uses a stand-in for an outside system that the run can change. The agent never asks the user for a manual run, and never stops for one. The section gives the report line for each part that the agent did not run: `Not tested by the agent: <part>. A manual run is necessary.` Before, a Sonnet agent ran the real program in 0 of 6 base runs. Both READMEs of the new cases gave the command. No base run on either model said that a manual run on a missing device is necessary (issue #401).
@@ -3130,7 +3150,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.14.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.15.0...HEAD
+[7.15.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.14.0...v7.15.0
 [7.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...v7.14.0
 [7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
