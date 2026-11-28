@@ -19,7 +19,7 @@ If a missing test can catch a real bug or a real change of behavior, the reviewe
 
 ### Changed in dev-essentials
 
-- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless other code, other systems, or stored data read it. A text that people only read on screen is not such a contract value. It asks for no test of each case of a switch or a map whose cases only hold data. It reports a new test that cannot fail for a bug, with the type `Test`. The `spec` brief names the new rule. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
+- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless another system, a script, or stored data reads it. A value that only code of the same program reads is no such contract value. Neither is a text that people only read, on screen or in a log. It asks for no test of each case of a switch or a map whose cases only hold data. It reports a new test that cannot fail for a bug, with the type `Test`. The `spec` brief names the new rule. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
 
 ### Changed in the repository
 
