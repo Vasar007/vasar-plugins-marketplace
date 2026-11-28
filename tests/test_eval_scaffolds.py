@@ -112,7 +112,8 @@ PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+
 FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
-                  "so-integration-proof": "committed", "so-no-integration-proof": "committed", "rirr-retry-limit": "committed"}
+                  "so-integration-proof": "committed", "so-no-integration-proof": "committed",
+                  "so-smoke-run-self": "committed", "so-smoke-run-printer": "committed", "rirr-retry-limit": "committed"}
 # A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
@@ -1497,7 +1498,8 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
 
-        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "rirr-retry-limit"):
+        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "so-smoke-run-self",
+                     "so-smoke-run-printer", "rirr-retry-limit"):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,

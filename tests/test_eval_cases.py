@@ -1896,6 +1896,7 @@ class SeLintHookProbeGraderTests(ScratchCase):
 
 
 UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "so-no-integration-proof",
+            "so-smoke-run-self", "so-smoke-run-printer",
             "rl-null-guard", "rl-off-by-one", "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
 # rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
 TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
