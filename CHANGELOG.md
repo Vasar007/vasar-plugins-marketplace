@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
+## dev-essentials 6.13.0 in release [7.14.0] - 2026-11-28
 
 The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent also uses a stand-in for an outside system that the run can change. The agent never asks the user for a manual run, and never stops for one. The section gives the report line for each part that the agent did not run: `Not tested by the agent: <part>. A manual run is necessary.` Before, a Sonnet agent ran the real program in 0 of 6 base runs. Both READMEs of the new cases gave the command. No base run on either model said that a manual run on a missing device is necessary (issue #401).
 
@@ -32,6 +32,27 @@ The section "Proof of a change" of `subagent-orchestration` now asks the agent t
 - `tests/test_eval_cases.py`: new tests of the patterns of `route-program-run`, `no-manual-ask`, and `route-manual-run-stated` on the words of real base and head replies. A new sample tests `route-smoke-run` after a line break. Both new cases are in the list of the shared commit graders (issue #401).
 - `tests/test_eval_scaffolds.py`: both cases are in the lists of commit graders and commit shapes. New tests run the scaffolds: the CLI of `so-smoke-run-self` prints the new total, and the CLI of `so-smoke-run-printer` fails with no printer and works with a stand-in file (issue #401).
 - `docs/eval-cases.md`: the list of grader limits names the new graders (issue #401).
+
+## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
+
+`compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps. At the head, the template case passed in 3 of 3 runs on each model. The bug case passed in 3 of 3 runs with Opus and in 2 of 3 runs with Sonnet. The third Sonnet run returned the text in chat and wrote no file (issue #399).
+
+### Added in dev-essentials
+
+- `evals/composers/cmp-task-bug-draft`: a new case with no shell tool. The prompt describes a bug in plain words, with the steps in one sentence and no version. The draft must give numbered steps, an actual result, and an expected result. It also needs a version line with the commit of the repository or `unknown` (issue #399).
+- `evals/composers/cmp-task-repo-template`: a new case with no shell tool. The repository has a bug template and a feature template, and the prompt names neither. The draft must use the headings of the bug template in their order, with no section of the default form. It must have no comment of the template, and its title must take the form of the template. The final reply must name the label of the template (issue #399).
+
+### Changed in dev-essentials
+
+- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, or with several, the form stays as it was. The steps and the results of a bug can name an error, and Critical Rule 4 still holds for the rest (issue #399).
+- `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
+- `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
+- `evals/composers/cmp-issue-create`: the grader `names-dropped-label` takes a label name in bold after "no". A right run with the words "no **performance** label" failed it before (issue #399).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version line of the head runs (issue #399).
+- `tests/test_eval_scaffolds.py`: the list of branches names the two new cases. A new test makes sure that `cmp-task-repo-template` plants both templates on `main`, and that its prompt gives no graded word (issue #399).
 
 ## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
 
@@ -3109,7 +3130,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.14.0...HEAD
+[7.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...v7.14.0
 [7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
 [7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
