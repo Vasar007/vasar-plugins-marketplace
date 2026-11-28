@@ -63,7 +63,7 @@ First, look for an issue template of the repository: `Glob` the pattern `.github
 
 If you use a template:
 
-- Use its headings in their order, instead of the two sections of the form. For a form file (`.yml`), use the `label` of each field as a heading.
+- Use only its headings, in their order. Add no section of the form, also not "Changes to Do". For a form file (`.yml`), use the `label` of each field as a heading.
 - Read each HTML comment as the instruction for its section. Do what it says, and leave the comment out.
 - Write the H1 title in the form of the `title` of its front matter.
 - Name the `labels` of its front matter in your final reply. `mode: create` passes them as labels.

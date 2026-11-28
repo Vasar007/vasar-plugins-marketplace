@@ -66,6 +66,8 @@ EXPECTED_BRANCH = {
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-pr-repo-template": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
+    "cmp-task-bug-draft": "main",
+    "cmp-task-repo-template": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
     "mp-green-merge": "feature/paging",
@@ -2008,6 +2010,35 @@ class PrTemplateFixtureTests(FixtureCase):
         # The heading grader of case 1 passes on the headings of the template.
         pattern = self.cases["cmp-pr-repo-template"].graders["template-headings"][0]["pattern"]
         self.assertRegex(prose, re.compile(pattern, re.M))
+
+
+class IssueTemplateFixtureTests(FixtureCase):
+    """cmp-task-repo-template plants a bug template and a feature template on main. The prompt names neither."""
+
+    BUG = ".github/ISSUE_TEMPLATE/bug_report.md"
+    FEATURE = ".github/ISSUE_TEMPLATE/feature_request.md"
+
+    def test_the_bug_template_gives_the_graded_headings_title_form_and_label(self):
+        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["cmp-task-repo-template"]
+        workspace = self.workspace(case.name)
+        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+        texts = {}
+        for path in (self.BUG, self.FEATURE):
+            code, texts[path] = self.git(workspace, "show", f"main:{path}")
+            self.assertEqual(code, 0, f"main has no {path}")
+        bug = texts[self.BUG]
+        self.assertIn('title: "fix(<area>): <what is wrong>"', bug)
+        self.assertIn('labels: ["type: bug"]', bug)
+        self.assertIn("<!--", bug)
+        prose = re.sub(r"<!--[\s\S]*?-->", "", bug.split("---", 2)[2])
+        self.assertRegex(prose, re.compile(case.graders["template-headings"][0]["pattern"], re.M))
+        # The feature template has none of the graded headings, so a run that takes it fails the heading grader.
+        self.assertNotIn("## What happens", texts[self.FEATURE])
+        # The request gives no graded word, so a run must take the form from the skill or the template.
+        request = (case.path / "prompt.md").read_text(encoding="utf-8").split("---", 2)[2].lower()
+        for word in ("template", "expected", "actual", "version", "steps"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, request)
 
 
 class RirrSquashGraderTests(FixtureCase):
