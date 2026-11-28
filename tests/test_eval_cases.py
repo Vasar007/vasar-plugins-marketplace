@@ -4660,6 +4660,8 @@ class ComposerGraderTests(unittest.TestCase):
             "no such label": ("Not added: **performance** (no such label in example-org/pager).", True),
             "dropped": ("Dropped label: `performance`", True),
             "no label": ("The repository has no `performance` label, so I did not create it.", True),
+            # The words of a head run with an Opus agent: a bold name and "left it off".
+            "no bold label": ("The repo has no **performance** label, so I left it off rather than create a new one.", True),
             "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
             "is not a label": ("`performance` is not a label in this repository.", True),
             "does not have the label": ("The repository does not have a `performance` label, so the issue has only `feature`.", True),
@@ -4739,6 +4741,71 @@ class ComposerGraderTests(unittest.TestCase):
             "long numbered item": (self.TASK.replace(short, "1. " + long_item), False),
             "long indented item": (self.TASK.replace(short, "  - " + long_item), False),
             "long bullet in a later section": (self.TASK + "\n## Notes\n\n- " + long_item + "\n", True),
+        })
+
+    BUG_CASE = "cmp-task-bug-draft"
+    ISSUE_TEMPLATE_CASE = "cmp-task-repo-template"
+    BUG_TASK = ("# Fix the user report for an email with no @ sign\n\n## Current State Analysis\n\n"
+                "The user report stops for an email address with no @ sign.\n\n"
+                "Steps to repeat:\n\n1. Add a user with the email `guest` to the example users.\n2. Build the report.\n\n"
+                "Actual result: the build stops with an IndexError.\n\n"
+                "Expected result: the report shows a line for that user, with an empty domain.\n\n"
+                "Version: unknown\n\n## Changes to Do\n\n- Return an empty domain for such an email\n")
+    # The words of a base run with an Opus agent: the steps in a sentence, and no actual result and no version.
+    BUG_BASE = ("# Fix user report crash on email without @ sign\n\n## Current State Analysis\n\n"
+                "The user report stops with an error when a user has an email address with no `@` sign. To see it, add a "
+                "user with the email `guest` to the example users and build the report. The build stops with an "
+                "`IndexError`.\n\n## Changes to Do\n\n- Return an empty domain for emails without `@`\n")
+    TEMPLATE_TASK = ("# fix(report): the report stops for an email with no @ sign\n\n## What happens\n\n"
+                     "The user report stops with an IndexError.\n\n## Steps to reproduce\n\n"
+                     "1. Add a user with the email `guest`.\n2. Build the report.\n\n"
+                     "## Expected result\n\nThe report shows a line for that user.\n")
+
+    def test_bug_graders_need_steps_both_results_and_a_version_line(self):
+        for grader in ("numbered-steps", "expected-result", "actual-result", "version-line"):
+            self.check(self.BUG_CASE, grader, {"right draft": (self.BUG_TASK, True), "base draft": (self.BUG_BASE, False)})
+        self.check(self.BUG_CASE, "numbered-steps", {
+            "one step only": (self.BUG_TASK.replace("2. Build the report.", "Then build the report."), False),
+            "steps with a parenthesis": (self.BUG_TASK.replace("1. ", "1) ").replace("2. ", "2) "), True),
+            # Markdown renders a list of 1. items as 1, 2, 3.
+            "each step numbered 1": (self.BUG_TASK.replace("2. Build", "1. Build"), True),
+        })
+        self.check(self.BUG_CASE, "actual-result", {"observed": (self.BUG_BASE + "\nObserved: an IndexError.\n", True)})
+        self.check(self.BUG_CASE, "version-line", {
+            "a bold field with a code span": (self.BUG_BASE + "\n- **Version or commit:** `unknown`\n", True),
+            "a commit that is not known": (self.BUG_BASE + "\nThe commit is not known.\n", True),
+            "a guessed version": (self.BUG_BASE + "\nVersion: 1.2.0\n", False),
+            # Two head runs with a Sonnet agent took the commit of the scaffold from the repository.
+            "the commit of the repository": (self.BUG_BASE + "\n**Version or commit:** 666dea3 (HEAD of main).\n", True),
+            "another commit": (self.BUG_BASE + "\nVersion: commit 1a2b3c4.\n", False),
+        })
+
+    def test_no_bug_fields_fails_a_feature_task_with_bug_fields(self):
+        self.check("cmp-task-draft", "no-bug-fields", {
+            "right draft": (self.TASK, True),
+            "an expected result": (self.TASK + "\nExpected result: the page loads in under a second.\n", False),
+            "a steps heading": (self.TASK + "\n## Steps to reproduce\n\n1. Open the page.\n", False),
+            "the word expected in a sentence": (self.TASK.replace("is slow.", "is slower than expected."), True),
+        })
+
+    def test_issue_template_graders_need_the_template_form(self):
+        for grader in ("template-headings", "no-default-sections", "title-form"):
+            self.check(self.ISSUE_TEMPLATE_CASE, grader, {"right draft": (self.TEMPLATE_TASK, True),
+                                                          "base draft": (self.BUG_BASE, False)})
+        self.check(self.ISSUE_TEMPLATE_CASE, "template-headings", {
+            "steps before what happens": (self.TEMPLATE_TASK.replace("## What happens", "## Tmp")
+                                          .replace("## Steps to reproduce", "## What happens").replace("## Tmp", "## Steps to reproduce"),
+                                          False),
+            "crlf line ends": (self.TEMPLATE_TASK.replace("\n", "\r\n"), True),
+        })
+        self.check(self.ISSUE_TEMPLATE_CASE, "title-form", {
+            "a title field": ("**Title:** `fix(report): the report stops`\n\n## What happens\n", True),
+            "a feature title": (self.TEMPLATE_TASK.replace("# fix(report)", "# feat(report)"), False),
+            "a title with no scope": (self.TEMPLATE_TASK.replace("# fix(report):", "# fix:"), False),
+        })
+        self.check(self.ISSUE_TEMPLATE_CASE, "no-template-comment", {
+            "a kept comment": (self.TEMPLATE_TASK.replace("## Expected result\n", "## Expected result\n\n<!-- Say what. -->\n"),
+                               False),
         })
 
     def test_route_graders_find_no_composer_agent(self):

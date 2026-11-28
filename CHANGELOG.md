@@ -9,6 +9,27 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
+
+`compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps. At the head, the template case passed in 3 of 3 runs on each model. The bug case passed in 3 of 3 runs with Opus and in 2 of 3 runs with Sonnet. The third Sonnet run returned the text in chat and wrote no file (issue #399).
+
+### Added in dev-essentials
+
+- `evals/composers/cmp-task-bug-draft`: a new case with no shell tool. The prompt describes a bug in plain words, with the steps in one sentence and no version. The draft must give numbered steps, an actual result, and an expected result. It also needs a version line with the commit of the repository or `unknown` (issue #399).
+- `evals/composers/cmp-task-repo-template`: a new case with no shell tool. The repository has a bug template and a feature template, and the prompt names neither. The draft must use the headings of the bug template in their order, with no section of the default form. It must have no comment of the template, and its title must take the form of the template. The final reply must name the label of the template (issue #399).
+
+### Changed in dev-essentials
+
+- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, or with several, the form stays as it was. The steps and the results of a bug can name an error, and Critical Rule 4 still holds for the rest (issue #399).
+- `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
+- `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
+- `evals/composers/cmp-issue-create`: the grader `names-dropped-label` takes a label name in bold after "no". A right run with the words "no **performance** label" failed it before (issue #399).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version line of the head runs (issue #399).
+- `tests/test_eval_scaffolds.py`: the list of branches names the two new cases. A new test makes sure that `cmp-task-repo-template` plants both templates on `main`, and that its prompt gives no graded word (issue #399).
+
 ## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
 
 If a missing test can catch a real bug or a real change of behavior, the reviewer of `review-loop` asks for it. It asks for no other test, and it reports a new test that cannot fail for a bug. Before, the brief told the reviewer to name each missing test. So the reviewer asked for tests of a log line or of each sort label. It also missed a test that only restates a constant (issue #400).
@@ -3085,7 +3106,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...HEAD
+[7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
 [7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
