@@ -9,6 +9,26 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
+
+The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent never asks the user for a manual run, and never stops for one. Before, a Sonnet agent ran the real program in 0 of 6 base runs. In 3 of these runs, the README gave the command. No base run on either model said that a manual run on the missing device is necessary. Now each part that the agent did not run gets one line in the final report: "Not tested by the agent: <part>. A manual run is necessary." (issue #401)
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-smoke-run-self`: a new case. A pricing change in a small Python app with only unit tests. The README names a command that prints the receipt of a sample order. The route grader `route-program-run` reads a run of the CLI or of the receipt code after the last edit. At the base, it passed in 3 of 3 runs with an Opus agent and in 0 of 3 runs with a Sonnet agent. At the head, it passed in 3 of 3 runs on each model (issue #401).
+- `evals/subagent-orchestration/so-smoke-run-printer`: a new case. The same app, but the CLI writes the receipt to a USB printer that the sandbox does not have. `route-program-run` reads a run of the receipt code, and `route-manual-run-stated` reads the line that a manual run is necessary. At the base, the Opus agent rendered the receipt in 3 of 3 runs, and the Sonnet agent in 0 of 3. No base run stated the manual run. At the head, both models ran the receipt code with a stand-in in 3 of 3 runs. The Opus agent stated the manual run in 3 of 3 runs, and the Sonnet agent in 1 of 3 runs. Its other 2 runs named the untested print in other words (issue #401).
+- Both cases have the scored grader `no-manual-ask`: the final reply asks the user for no run. It passed in each base run and in each head run (issue #401).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: the section "Proof of a change" starts with the run of the real program. The run comes before the final report, with a stand-in for a missing device or service. It forbids a request for a manual run and a stop for one. It gives the report line for each part that the agent did not run. The gap line of a missing smoke run, integration test, or end-to-end test stays (issue #401).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests of the patterns of `route-program-run`, `no-manual-ask`, and `route-manual-run-stated` on the words of real base and head replies. Both new cases are in the list of the shared commit graders (issue #401).
+- `tests/test_eval_scaffolds.py`: both cases are in the lists of commit graders and commit shapes. New tests run the scaffolds: the CLI of `so-smoke-run-self` prints the new total, and the CLI of `so-smoke-run-printer` fails with no printer and works with a stand-in file (issue #401).
+- `docs/eval-cases.md`: the list of grader limits names the new graders (issue #401).
+
 ## dev-essentials 6.10.0 in release [7.11.0] - 2026-11-27
 
 `process-pr-comments` now lists a rule candidate in its cycle log. A rule candidate is a review point that two or more threads of trusted people make in one cycle. A reviewer often makes the same point again in the next pull request. Before, the skill fixed each comment, and nothing kept the point. The skill writes no rule into a file or into memory. The user decides on each rule (issue #388).
@@ -3053,7 +3073,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
+[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.12.0
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
 [7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0
