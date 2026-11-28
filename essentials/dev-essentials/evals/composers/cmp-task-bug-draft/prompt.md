@@ -1,5 +1,5 @@
 ---
-description: "The user asks for a task description of a bug in plain words, with the steps in a sentence and no version. The run must write the draft file with numbered steps to repeat the bug, an actual result, an expected result, and a version line that says the version is unknown."
+description: "The user asks for a task description of a bug in plain words, with the steps in a sentence and no version. The run must write the draft file with numbered steps to repeat the bug, an actual result, an expected result, and a version line with the commit of the repository or the word unknown."
 tags: [composers, route]
 allowed_tools: [Skill, Agent, Read, Glob, Grep, TodoWrite]
 max_turns: 40

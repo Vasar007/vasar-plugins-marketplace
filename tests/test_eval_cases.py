@@ -4726,17 +4726,20 @@ class ComposerGraderTests(unittest.TestCase):
                      "## Expected result\n\nThe report shows a line for that user.\n")
 
     def test_bug_graders_need_steps_both_results_and_a_version_line(self):
-        for grader in ("numbered-steps", "expected-result", "actual-result", "version-unknown"):
+        for grader in ("numbered-steps", "expected-result", "actual-result", "version-line"):
             self.check(self.BUG_CASE, grader, {"right draft": (self.BUG_TASK, True), "base draft": (self.BUG_BASE, False)})
         self.check(self.BUG_CASE, "numbered-steps", {
             "one step only": (self.BUG_TASK.replace("2. Build the report.", "Then build the report."), False),
             "steps with a parenthesis": (self.BUG_TASK.replace("1. ", "1) ").replace("2. ", "2) "), True),
         })
         self.check(self.BUG_CASE, "actual-result", {"observed": (self.BUG_BASE + "\nObserved: an IndexError.\n", True)})
-        self.check(self.BUG_CASE, "version-unknown", {
+        self.check(self.BUG_CASE, "version-line", {
             "a bold field with a code span": (self.BUG_BASE + "\n- **Version or commit:** `unknown`\n", True),
             "a commit that is not known": (self.BUG_BASE + "\nThe commit is not known.\n", True),
             "a guessed version": (self.BUG_BASE + "\nVersion: 1.2.0\n", False),
+            # Two head runs with a Sonnet agent took the commit of the scaffold from the repository.
+            "the commit of the repository": (self.BUG_BASE + "\n**Version or commit:** 666dea3 (HEAD of main).\n", True),
+            "another commit": (self.BUG_BASE + "\nVersion: commit 1a2b3c4.\n", False),
         })
 
     def test_no_bug_fields_fails_a_feature_task_with_bug_fields(self):

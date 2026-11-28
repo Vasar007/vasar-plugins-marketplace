@@ -43,7 +43,7 @@ Then these sections:
 - Current system state and why it is a problem
 - Key limitations or technical debt
 - Impact on development / performance / maintainability
-- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. If the input does not give the version or the commit, write `unknown`. Do not guess it.
+- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. Take it from the input or from the repository. If neither gives it, write `unknown`. Do not guess it.
 
 ### Changes to Do
 
