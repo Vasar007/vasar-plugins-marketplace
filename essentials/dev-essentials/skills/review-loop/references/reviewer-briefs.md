@@ -47,7 +47,7 @@ Every reviewer report must follow these rules. Each brief below ends with "Apply
 
 **Ask, do not guess**: if the material is not enough, do not guess. File an explicit question as a finding, with the type `Docs` or `Spec` and the severity `Low`. If the question blocks the review, use a higher severity.
 
-**Missing tests**: name missing tests or weak coverage explicitly, with the type `Test`.
+**Tests**: if a missing test can catch a real bug or a real change of behavior, name it, with the type `Test`. Ask for no other test. Do not ask for a test of a constant, a label, or a message text. Do not ask for one test for each case of a switch or a map. If a new test cannot fail for a bug, report it with the type `Test`. An example is a test that only restates the value of a constant.
 
 **Report every finding**: report each problem that you find, at every severity, also one that you are not sure of. Phase 4 of the loop sorts and filters the findings, so a filter here drops real findings. For each finding, show how it fails: the input or the state, and the wrong result. If you cannot show the failure, say so in the finding.
 
@@ -130,7 +130,7 @@ Find the problems that this diff brings in. Phase 4 triages your report, and a f
 4. **Performance**. N+1 queries, unbounded collection loads, synchronous I/O that blocks the pool.
 5. **DI lifetime**. A scoped service captured in a singleton, a transient EF context in the wrong lifetime.
 6. **Contract breaks**. Changes of the REST API shape, interface violations, changes of event schemas.
-7. **Test coverage**. Critical paths without tests, and assertions that test nothing meaningful.
+7. **Test coverage**. Critical paths and changes of behavior without tests, and new tests that cannot fail for a bug.
 
 **Coherence check (mandatory):** find out whether the changes are coherent across commits, and report each break as a finding. A later commit can hide a regression from an earlier commit. Read `git log origin/<BASE>..HEAD` to see the commit sequence.
 
@@ -158,7 +158,7 @@ The diff below comes from PR `<PR_ID>`. The remote-tracking refs `origin/<TARGET
 4. **Performance**. N+1 queries, unbounded collection loads, synchronous I/O that blocks the pool.
 5. **DI lifetime**. A scoped service captured in a singleton, a transient EF context in the wrong lifetime.
 6. **Contract breaks**. Changes of the REST API shape, interface violations, changes of event schemas.
-7. **Test coverage**. Critical paths without tests, and assertions that test nothing meaningful.
+7. **Test coverage**. Critical paths and changes of behavior without tests, and new tests that cannot fail for a bug.
 
 **Coherence check (mandatory):** find out whether the changes are coherent across commits, and report each break as a finding. A later commit can hide a regression from an earlier commit. Run `git log origin/<TARGET_BRANCH>..origin/pull/<PR_ID>/head` to see the commit sequence. Do not use `git log <BASE>..HEAD`, because `HEAD` is not the source branch of the PR here.
 
@@ -332,7 +332,7 @@ If the user passes `--reviewer-focus`, replace the default focus list in the bri
 | `performance` | N+1 queries, unbounded collections, synchronous I/O. |
 | `di-lifetime` | Mismatches of scoped and singleton lifetimes, captive dependencies. |
 | `contracts` | Changes of the REST API shape, interface violations, changes of event schemas. |
-| `test-coverage` | Paths without tests, weak assertions, missing tests of edge cases. |
+| `test-coverage` | Paths and changes of behavior without tests, weak assertions, new tests that cannot fail for a bug. |
 | `architecture` | Layer violations, circular dependencies, responsibilities in the wrong place. |
 | `docs` | Misleading XML docs, comments that contradict the code, missing docs. |
 
