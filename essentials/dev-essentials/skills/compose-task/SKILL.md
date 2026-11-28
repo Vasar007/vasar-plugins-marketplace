@@ -82,7 +82,7 @@ An edit request without an explicit `mode: create` changes the local Markdown fi
 
 ### 3. Creating in GitHub (`mode: create`)
 
-Before you call a GitHub tool, read [references/create-mode.md](references/create-mode.md). It has the pre-flight conditions, the create call, the read-back, and the report.
+Write the title and the body as step 1 says, also with no draft, and look for an issue template first. Before you call a GitHub tool, read [references/create-mode.md](references/create-mode.md). It has the pre-flight conditions, the create call, the read-back, and the report.
 
 ## Critical Rules
 
