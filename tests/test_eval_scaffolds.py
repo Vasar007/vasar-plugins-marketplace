@@ -42,6 +42,7 @@ EXPECTED_BRANCH = {
     "rl-null-guard": "feature/display-name",
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
+    "rl-useful-tests": "feature/size-limit",
     "rl-pr-head-gate": "main",
     "rl-failing-build": "feature/paging",
     "rl-edited-rules": "feature/paging",

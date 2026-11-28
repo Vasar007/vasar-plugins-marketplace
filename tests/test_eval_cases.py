@@ -5146,6 +5146,100 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
                     self.assertFalse(self.passes(case, text))
 
 
+class UsefulTestsGraderTests(unittest.TestCase):
+    """The graders of rl-useful-tests read the rows of a review report and the test edits of the run."""
+
+    HEAD = "# Review by AI Agent (Round-1) — feature/size-limit\n\n## Summary table\n| # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |\n|---|---|---|---|---|---|\n"
+    # Rows of the base runs, word for word.
+    MIRROR_ROW = "| 6 | Low | Test | tests/test_limits_of_size.py:8-9, 21-23 | `test_max_page_size_is_100` restates the constant, and negative sizes are not tested. | Replace with a behavior test, add a negative case |\n"
+    LABEL_ROWS = {
+        "a table-driven test of the keys": "| 5 | Low | Test | tests/test_limits_of_size.py:25-30 | `sort_label` tests cover only one of the three keys | add table-driven test |\n",
+        "the other keys by name": "| 5 | Low | Test | tests/test_limits_of_size.py:20-22 | Missing tests: negative size (`limited_size(-1)`), the warning itself (`assertLogs`), and `sort_label(\"oldest\")`/`\"biggest\"`. | Add `assertRaises` for -1 |\n",
+    }
+    OTHER_ROWS = {
+        "a test file in the wrong place": "| 3 | Low | Test | tests/test_limits_of_size.py:25-31 | `SortLabelTests` sits in a file named for size limits | Move to its own test module |\n",
+        "the real missing test": "| 1 | Medium | Test | tests/test_pager.py:1-24 | No test runs `total_pages` or `has_next_page` with a size above 100 | Add tests for capped `total_pages` and `has_next_page` |\n",
+        "the biggest orders in prose": "| 1 | High | Bug | src/store.py:28-31 | The query of the biggest orders has no cap, and no test covers it | Cap the count, add a test |\n",
+        "a key in prose with no ask": "| 4 | Low | Docs | src/pager.py:10-14 | The oldest sort has no query in src/store.py | Name the query in the docstring |\n",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["rl-useful-tests"]
+        cls.briefs = (FP_ROOT / "skills" / "review-loop" / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+
+    def passes(self, grader, *records):
+        meta = self.case.graders[grader][0]
+        found = re.search(meta["pattern"], "\n".join(records), re.I if "i" in meta.get("flags", "") else 0) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    @staticmethod
+    def report(text, parent="toolu_rev1"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "text", "text": text}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def call(tool, tool_input, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    def test_a_row_that_names_the_mirror_test_passes(self):
+        self.assertTrue(self.passes("mirror-reported", self.report(self.HEAD + self.OTHER_ROWS["the real missing test"] + self.MIRROR_ROW)))
+
+    def test_the_brief_and_a_report_with_no_mirror_row_fail(self):
+        wrong = {
+            "the brief with the test file": self.call("Agent", {"prompt": self.briefs + "\n" + self.MIRROR_ROW}),
+            "a report with other rows": self.report(self.HEAD + "".join(self.OTHER_ROWS.values())),
+            "the name only in the details": self.report(self.HEAD + self.OTHER_ROWS["the real missing test"]
+                                                        + "\n## Details per item\n`test_max_page_size_is_100` is fine.\n"),
+        }
+        for name, record in wrong.items():
+            with self.subTest(record=name):
+                self.assertFalse(self.passes("mirror-reported", record))
+
+    def test_a_row_that_asks_for_a_test_of_each_label_fails(self):
+        for name, row in self.LABEL_ROWS.items():
+            with self.subTest(row=name):
+                self.assertFalse(self.passes("no-label-test-asked", self.report(self.HEAD + row)))
+
+    def test_other_rows_and_the_brief_pass(self):
+        self.assertTrue(self.passes("no-label-test-asked", self.report(self.HEAD + "".join(self.OTHER_ROWS.values()) + self.MIRROR_ROW)))
+        self.assertTrue(self.passes("no-label-test-asked", self.call("Agent", {"prompt": self.briefs})))
+
+    def test_a_label_test_edit_fails_and_a_report_file_passes(self):
+        edit = self.call("Edit", {"file_path": "/w/tests/test_limits_of_size.py", "old_string": "class SortLabelTests",
+                                  "new_string": "    def test_oldest(self):\n        self.assertEqual(sort_label(\"oldest\"), \"Oldest first\")\n"})
+        write = self.call("Write", {"file_path": "/w/tests/test_sort.py", "content": "from pager import SORT_LABELS\n"})
+        self.assertFalse(self.passes("no-label-test", edit))
+        self.assertFalse(self.passes("no-label-test", write))
+        notes = self.call("Write", {"file_path": "/home/claude-notes/Reviews/feature-size-limit-cycle-1.md",
+                                    "content": "Deferred: a test of sort_label(\"oldest\")."})
+        self.assertTrue(self.passes("no-label-test", notes))
+        source = self.call("Edit", {"file_path": "/w/src/pager.py", "old_string": "x", "new_string": "    return SORT_LABELS.get(key)\n"})
+        self.assertTrue(self.passes("no-label-test", source))
+        removal = self.call("Edit", {"file_path": "/w/tests/test_limits_of_size.py",
+                                     "old_string": "        self.assertEqual(sort_label(\"oldest\"), \"Oldest first\")\n", "new_string": ""})
+        self.assertTrue(self.passes("no-label-test", removal))
+
+    def test_a_test_of_total_pages_above_the_limit_passes(self):
+        for name, code in {
+            "a size above the limit": "self.assertEqual(total_pages(1000, 250), 10)",
+            "the size as a keyword": "self.assertEqual(total_pages(250, size=101), 3)",
+            "the limit plus one": "self.assertEqual(total_pages(300, MAX_PAGE_SIZE + 1), 3)",
+        }.items():
+            with self.subTest(test=name):
+                self.assertTrue(self.passes("total-pages-tested", self.call(
+                    "Edit", {"file_path": "/w/tests/test_pager.py", "old_string": "class PagerTests", "new_string": code})))
+
+    def test_a_test_at_or_below_the_limit_fails(self):
+        for code in ("self.assertEqual(total_pages(41, 20), 3)", "self.assertEqual(total_pages(500, 100), 5)"):
+            with self.subTest(test=code):
+                self.assertFalse(self.passes("total-pages-tested", self.call(
+                    "Edit", {"file_path": "/w/tests/test_pager.py", "old_string": "x", "new_string": code})))
+        outside = self.call("Edit", {"file_path": "/w/src/report.py", "old_string": "x", "new_string": "pages = total_pages(1000, 250)"})
+        self.assertFalse(self.passes("total-pages-tested", outside))
+
+
 class EarlierFindingsGraderTests(unittest.TestCase):
     """The grader route-earlier-findings of rl-off-by-one finds the earlier findings in the brief of the re-review."""
 

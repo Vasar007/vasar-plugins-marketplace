@@ -9,6 +9,24 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
+
+If a missing test can catch a real bug or a real change of behavior, the reviewer of `review-loop` asks for it. It asks for no other test, and it reports a new test that cannot fail for a bug. Before, the brief told the reviewer to name each missing test. So the reviewer asked for tests of a log line or of each sort label. It also missed a test that only restates a constant (issue #400).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-useful-tests`: a new case. A branch caps the page size and adds sort labels. It adds a test that only restates the new constant, and a test of one sort key and of the fallback. It also changes `total_pages` and adds no test for it. The scored graders read the summary rows of each review report and the test edits of the run. A report names the mirror test, and no row asks for a test of each label. The loop adds no label test, and it adds a test of `total_pages` above the limit (issue #400).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless another system, a script, or stored data reads it. A value that only code of the same program reads is no such contract value. Neither is a text that people only read, on screen or in a log. It asks for no test of each case of a switch or a map whose cases only hold data. It reports a new test that cannot fail for a bug, with the type `Test`. The `spec` brief names the new rule. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-useful-tests` on the rows of real reports, on the brief, and on test edits (issue #400).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-useful-tests` (issue #400).
+- `docs/eval-cases.md`: the list of grader limits names the graders of `rl-useful-tests` (issue #400).
+
 ## dev-essentials 6.10.1 in release [7.11.1] - 2026-11-28
 
 The length limits of `compose-pr` count the content of a PR description. An attribution line at the end of the description does not count. Before, the skill counted the whole description, and the length graders counted the line too. So a grader failed a run whose content was within the limit (issue #403).
@@ -3067,7 +3085,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
+[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
 [7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
