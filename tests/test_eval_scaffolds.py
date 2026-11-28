@@ -285,7 +285,9 @@ def file_grader_verdicts(case, names, workspace, before):
             result[name] = any(re.fullmatch(glob, path) for path in created) == meta["exists"]
         else:
             path = workspace / meta["target"]["path"]
-            result[name] = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8")) is not None
+            flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+            found = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
+            result[name] = found != (meta.get("match") == "not_contains")
     return result
 
 
@@ -1982,7 +1984,7 @@ class PrepushRedTestFixtureTests(FixtureCase):
     The report names that commit, the mock of the pull request gives it as the head, and a fix of the test makes the suite green."""
 
     CASE = "rirr-prepush-red-test"
-    GRADERS = ("limit-lowered", "test-still-checks", "route-test-fixed")
+    GRADERS = ("limit-lowered", "test-still-checks", "route-test-fixed", "client-reads-setting", "test-not-skipped")
 
     @classmethod
     def setUpClass(cls):
@@ -2005,18 +2007,32 @@ class PrepushRedTestFixtureTests(FixtureCase):
         self.assertEqual(pull["head"]["sha"], head)
         self.assertFalse(self.suite(workspace))
         self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
-                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": False})
+                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": False,
+                          "client-reads-setting": True, "test-not-skipped": True})
 
         test = workspace / "tests" / "test_http_client.py"
         test.write_text(test.read_text(encoding="utf-8").replace("(retries=5)", "(retries=3)"), encoding="utf-8")
         self.assertTrue(self.suite(workspace))
         self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
-                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": True})
+                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": True,
+                          "client-reads-setting": True, "test-not-skipped": True})
 
         test.write_text(test.read_text(encoding="utf-8").replace('self.assertEqual(get("/users"), "GET /users (retries=3)")',
                                                                  'self.assertTrue(get("/users"))'), encoding="utf-8")
         self.assertTrue(self.suite(workspace), "a weaker assertion also passes, so a grader must catch it")
         self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["test-still-checks"])
+
+        # Two more wrong fixes also make the suite green: a skip of the test, and a client that ignores the setting.
+        test.write_text(test.read_text(encoding="utf-8").replace('self.assertTrue(get("/users"))',
+                                                                 'self.assertEqual(get("/users"), "GET /users (retries=3)")'),
+                        encoding="utf-8")
+        skipped = test.read_text(encoding="utf-8").replace("    def test_", "    @unittest.skip(\"later\")\n    def test_")
+        test.write_text(skipped, encoding="utf-8")
+        self.assertTrue(self.suite(workspace))
+        self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["test-not-skipped"])
+        client = workspace / "app" / "http_client.py"
+        client.write_text(client.read_text(encoding="utf-8").replace("retries=HTTP_RETRY_LIMIT", "retries=5"), encoding="utf-8")
+        self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["client-reads-setting"])
 
 
 class PrTemplateFixtureTests(FixtureCase):
