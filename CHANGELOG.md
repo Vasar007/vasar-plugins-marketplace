@@ -9,6 +9,83 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
+## dev-essentials 6.13.0 in release [7.14.0] - 2026-11-28
+
+The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent also uses a stand-in for an outside system that the run can change. The agent never asks the user for a manual run, and never stops for one. The section gives the report line for each part that the agent did not run: `Not tested by the agent: <part>. A manual run is necessary.` Before, a Sonnet agent ran the real program in 0 of 6 base runs. Both READMEs of the new cases gave the command. No base run on either model said that a manual run on a missing device is necessary (issue #401).
+
+### Added in dev-essentials
+
+- `evals/subagent-orchestration/so-smoke-run-self`: a new case. A pricing change in a small Python app with only unit tests. The README names a command that prints the receipt of a sample order. The route grader `route-program-run` reads a run of the CLI or of the receipt code after the last edit. At the base, it passed in 3 of 3 runs with an Opus agent and in 0 of 3 runs with a Sonnet agent. At the head, it passed in 3 of 3 runs on each model (issue #401).
+- `evals/subagent-orchestration/so-smoke-run-printer`: a new case. The same app, but the CLI writes the receipt to a USB printer that the sandbox does not have. `route-program-run` reads a run of the receipt code, and `route-manual-run-stated` reads the statement that a manual run is necessary. At the base, the Opus agent rendered the receipt in 3 of 3 runs, and the Sonnet agent in 0 of 3 runs. No base run stated the manual run. At the head, the Opus agent ran the receipt code with a stand-in and stated the manual run in 3 of 3 runs. The Sonnet agent ran the receipt code in 2 of 3 runs, and stated the manual run in 1 of 3 runs. One more Sonnet run named the untested print in other words (issue #401).
+- Both cases have the scored grader `no-manual-ask`: the final reply asks the user for no run. It passed in each base run and in each head run of the final text (issue #401).
+
+### Changed in dev-essentials
+
+- `skills/subagent-orchestration/SKILL.md`: the section "Proof of a change" starts with the run of the real program. The run comes before the final report. A stand-in replaces a missing device or service, and an outside system that the run can change. The section forbids a request for a manual run and a stop for one. It gives the report line for each part that the agent did not run. The gap line of a missing smoke run, integration test, or end-to-end test stays (issue #401).
+
+### Fixed in dev-essentials
+
+- `evals/subagent-orchestration/so-no-integration-proof`: `route-smoke-run` now also reads a run of the CLI at the start of a new line of a command. Before, a right run with a `cd` line first failed the grader (issue #401).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests of the patterns of `route-program-run`, `no-manual-ask`, and `route-manual-run-stated` on the words of real base and head replies. A new sample tests `route-smoke-run` after a line break. Both new cases are in the list of the shared commit graders (issue #401).
+- `tests/test_eval_scaffolds.py`: both cases are in the lists of commit graders and commit shapes. New tests run the scaffolds: the CLI of `so-smoke-run-self` prints the new total, and the CLI of `so-smoke-run-printer` fails with no printer and works with a stand-in file (issue #401).
+- `docs/eval-cases.md`: the list of grader limits names the new graders (issue #401).
+
+## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
+
+`compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps. At the head, the template case passed in 3 of 3 runs on each model. The bug case passed in 3 of 3 runs with Opus and in 2 of 3 runs with Sonnet. The third Sonnet run returned the text in chat and wrote no file (issue #399).
+
+### Added in dev-essentials
+
+- `evals/composers/cmp-task-bug-draft`: a new case with no shell tool. The prompt describes a bug in plain words, with the steps in one sentence and no version. The draft must give numbered steps, an actual result, and an expected result. It also needs a version line with the commit of the repository or `unknown` (issue #399).
+- `evals/composers/cmp-task-repo-template`: a new case with no shell tool. The repository has a bug template and a feature template, and the prompt names neither. The draft must use the headings of the bug template in their order, with no section of the default form. It must have no comment of the template, and its title must take the form of the template. The final reply must name the label of the template (issue #399).
+
+### Changed in dev-essentials
+
+- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, or with several, the form stays as it was. The steps and the results of a bug can name an error, and Critical Rule 4 still holds for the rest (issue #399).
+- `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
+- `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
+- `evals/composers/cmp-issue-create`: the grader `names-dropped-label` takes a label name in bold after "no". A right run with the words "no **performance** label" failed it before (issue #399).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version line of the head runs (issue #399).
+- `tests/test_eval_scaffolds.py`: the list of branches names the two new cases. A new test makes sure that `cmp-task-repo-template` plants both templates on `main`, and that its prompt gives no graded word (issue #399).
+
+## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
+
+If a missing test can catch a real bug or a real change of behavior, the reviewer of `review-loop` asks for it. It asks for no other test, and it reports a new test that cannot fail for a bug. Before, the brief told the reviewer to name each missing test. So the reviewer asked for tests of a log line or of each sort label. It also missed a test that only restates a constant (issue #400).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-useful-tests`: a new case. A branch caps the page size and adds sort labels. It adds a test that only restates the new constant, and a test of one sort key and of the fallback. It also changes `total_pages` and adds no test for it. The scored graders read the summary rows of each review report and the test edits of the run. A report names the mirror test, and no row asks for a test of each label. The loop adds no label test, and it adds a test of `total_pages` above the limit (issue #400).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless another system, a script, or stored data reads it. A value that only code of the same program reads is no such contract value. Neither is a text that people only read, on screen or in a log. It asks for no test of each case of a switch or a map whose cases only hold data. It reports a new test that cannot fail for a bug, with the type `Test`. The `spec` brief names the new rule. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-useful-tests` on the rows of real reports, on the brief, and on test edits (issue #400).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-useful-tests` (issue #400).
+- `docs/eval-cases.md`: the list of grader limits names the graders of `rl-useful-tests` (issue #400).
+
+## dev-essentials 6.10.1 in release [7.11.1] - 2026-11-28
+
+The length limits of `compose-pr` count the content of a PR description. An attribution line at the end of the description does not count. Before, the skill counted the whole description, and the length graders counted the line too. So a grader failed a run whose content was within the limit (issue #403).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: the writing rule on the limits says that an attribution line at the end does not count (issue #403).
+- `evals/composers/cmp-pr-from-diff`, `evals/composers/cmp-pr-repo-template`, and `evals/composers/cmp-pr-ui-change`: the grader `within-limit` does not count a last line that names Claude Code (issue #403).
+- `evals/feature-pipeline/fp-e2-untracked-file`: the grader `pr-body-length` does not count such a last line in the body of the pull request (issue #403).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the four length graders. Content at the limit passes with and without the attribution line. Content over the limit fails with the line. Another last line and a line in the middle count (issue #403).
+
 ## dev-essentials 6.10.0 in release [7.11.0] - 2026-11-27
 
 `process-pr-comments` now lists a rule candidate in its cycle log. A rule candidate is a review point that two or more threads of trusted people make in one cycle. A reviewer often makes the same point again in the next pull request. Before, the skill fixed each comment, and nothing kept the point. The skill writes no rule into a file or into memory. The user decides on each rule (issue #388).
@@ -3053,7 +3130,11 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.14.0...HEAD
+[7.14.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...v7.14.0
+[7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
+[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
+[7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
 [7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0

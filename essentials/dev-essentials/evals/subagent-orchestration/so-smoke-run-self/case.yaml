@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: so-smoke-run-self
+context:
+  scaffold_script: scaffold.sh

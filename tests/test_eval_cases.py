@@ -1896,6 +1896,7 @@ class SeLintHookProbeGraderTests(ScratchCase):
 
 
 UC_CASES = ("so-rename-small", "so-rename-large", "so-two-fixes", "so-integration-proof", "so-no-integration-proof",
+            "so-smoke-run-self", "so-smoke-run-printer",
             "rl-null-guard", "rl-off-by-one", "rl-unbounded-query", "rl-workflow-request", "rirr-retry-limit")
 # rl-workflow-request adds one branch for a Workflow call to tests-before-commit. WorkflowRequestGraderTests tests it.
 TBC_CASES = (*(name for name in UC_CASES if name != "rl-workflow-request"), "it-no-worktree", "ib-no-worktree")
@@ -2496,6 +2497,21 @@ class PrBodyFormGraderTests(unittest.TestCase):
         self.assertIsNone(re.search(meta["pattern"], self.pr("## What\n" + "a" * 993)))
         comment = self.call("add_issue_comment", {"issue_number": 821, "body": "Opened the PR."})
         self.assertIsNone(re.search(meta["pattern"], self.pr("## What\n" + "a" * 993) + "\n" + comment))
+
+    def test_the_length_grader_does_not_count_an_attribution_line_at_the_end(self):
+        # The limit of compose-pr counts the content, not the attribution line (issue #403).
+        meta = self.graders["pr-body-length"][0]
+        line = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+        runs = {
+            "the line after a body at the limit": ("## What\n" + "a" * 992 + "\n\n" + line, True),
+            "the line and a line end": ("## What\n" + "a" * 992 + "\n\n" + line + "\n", True),
+            "the line after a long body": ("## What\n" + "a" * 993 + "\n\n" + line, False),
+            "another last line": ("## What\n" + "a" * 992 + "\n\nThe last line of the content.", False),
+            "the line in the middle": ("## What\n" + "a" * 992 + "\n\n" + line + "\n\nMore text.", False),
+        }
+        for name, (body, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(meta["pattern"], self.pr(body)) is not None, expected)
 
     def test_the_draft_grader_names_the_draft_file_of_compose_pr(self):
         meta = self.graders["pr-draft-not-saved"][0]
@@ -4165,6 +4181,25 @@ class ComposerGraderTests(unittest.TestCase):
         lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
         return "\n".join(lines) + "\n"
 
+    def test_within_limit_counts_the_content_and_not_an_attribution_line_at_the_end(self):
+        # The limit of compose-pr counts the content, not the attribution line (issue #403).
+        default = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+        model = "Written with Claude Code and Claude Opus 5.5."
+        full = "## What\n\n" + "a" * 991
+        long = full + "a"
+        for case in ("cmp-pr-from-diff", "cmp-pr-repo-template", "cmp-pr-ui-change"):
+            self.check(case, "within-limit", {
+                "content at the limit": (full, True),
+                "content at the limit and the line": (full + "\n" + default + "\n", True),
+                "content at the limit, a blank line, and the line": (full + "\n\n" + default, True),
+                "content over the limit, a blank line, and the line": (long + "\n\n" + default, False),
+                "content at the limit and the model line of a template": (full + "\n" + model, True),
+                "content over the limit": (long, False),
+                "content over the limit and the line": (long + "\n" + default + "\n", False),
+                "another last line over the limit": (full + "\nThe last line of the content.", False),
+                "the line in the middle": (full + "\n" + default + "\nMore text.", False),
+            })
+
     TEMPLATE_CASE = "cmp-pr-repo-template"
     PR_TEMPLATE = ("## Problem\n\nThe invoice header needs the order count of a customer.\n\n"
                    "## Fix\n\n- **Order store**: `orders_count` returns the order count of a customer.\n\n"
@@ -4626,6 +4661,8 @@ class ComposerGraderTests(unittest.TestCase):
             "no such label": ("Not added: **performance** (no such label in example-org/pager).", True),
             "dropped": ("Dropped label: `performance`", True),
             "no label": ("The repository has no `performance` label, so I did not create it.", True),
+            # The words of a head run with an Opus agent: a bold name and "left it off".
+            "no bold label": ("The repo has no **performance** label, so I left it off rather than create a new one.", True),
             "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
             "is not a label": ("`performance` is not a label in this repository.", True),
             "does not have the label": ("The repository does not have a `performance` label, so the issue has only `feature`.", True),
@@ -4705,6 +4742,71 @@ class ComposerGraderTests(unittest.TestCase):
             "long numbered item": (self.TASK.replace(short, "1. " + long_item), False),
             "long indented item": (self.TASK.replace(short, "  - " + long_item), False),
             "long bullet in a later section": (self.TASK + "\n## Notes\n\n- " + long_item + "\n", True),
+        })
+
+    BUG_CASE = "cmp-task-bug-draft"
+    ISSUE_TEMPLATE_CASE = "cmp-task-repo-template"
+    BUG_TASK = ("# Fix the user report for an email with no @ sign\n\n## Current State Analysis\n\n"
+                "The user report stops for an email address with no @ sign.\n\n"
+                "Steps to repeat:\n\n1. Add a user with the email `guest` to the example users.\n2. Build the report.\n\n"
+                "Actual result: the build stops with an IndexError.\n\n"
+                "Expected result: the report shows a line for that user, with an empty domain.\n\n"
+                "Version: unknown\n\n## Changes to Do\n\n- Return an empty domain for such an email\n")
+    # The words of a base run with an Opus agent: the steps in a sentence, and no actual result and no version.
+    BUG_BASE = ("# Fix user report crash on email without @ sign\n\n## Current State Analysis\n\n"
+                "The user report stops with an error when a user has an email address with no `@` sign. To see it, add a "
+                "user with the email `guest` to the example users and build the report. The build stops with an "
+                "`IndexError`.\n\n## Changes to Do\n\n- Return an empty domain for emails without `@`\n")
+    TEMPLATE_TASK = ("# fix(report): the report stops for an email with no @ sign\n\n## What happens\n\n"
+                     "The user report stops with an IndexError.\n\n## Steps to reproduce\n\n"
+                     "1. Add a user with the email `guest`.\n2. Build the report.\n\n"
+                     "## Expected result\n\nThe report shows a line for that user.\n")
+
+    def test_bug_graders_need_steps_both_results_and_a_version_line(self):
+        for grader in ("numbered-steps", "expected-result", "actual-result", "version-line"):
+            self.check(self.BUG_CASE, grader, {"right draft": (self.BUG_TASK, True), "base draft": (self.BUG_BASE, False)})
+        self.check(self.BUG_CASE, "numbered-steps", {
+            "one step only": (self.BUG_TASK.replace("2. Build the report.", "Then build the report."), False),
+            "steps with a parenthesis": (self.BUG_TASK.replace("1. ", "1) ").replace("2. ", "2) "), True),
+            # Markdown renders a list of 1. items as 1, 2, 3.
+            "each step numbered 1": (self.BUG_TASK.replace("2. Build", "1. Build"), True),
+        })
+        self.check(self.BUG_CASE, "actual-result", {"observed": (self.BUG_BASE + "\nObserved: an IndexError.\n", True)})
+        self.check(self.BUG_CASE, "version-line", {
+            "a bold field with a code span": (self.BUG_BASE + "\n- **Version or commit:** `unknown`\n", True),
+            "a commit that is not known": (self.BUG_BASE + "\nThe commit is not known.\n", True),
+            "a guessed version": (self.BUG_BASE + "\nVersion: 1.2.0\n", False),
+            # Two head runs with a Sonnet agent took the commit of the scaffold from the repository.
+            "the commit of the repository": (self.BUG_BASE + "\n**Version or commit:** 666dea3 (HEAD of main).\n", True),
+            "another commit": (self.BUG_BASE + "\nVersion: commit 1a2b3c4.\n", False),
+        })
+
+    def test_no_bug_fields_fails_a_feature_task_with_bug_fields(self):
+        self.check("cmp-task-draft", "no-bug-fields", {
+            "right draft": (self.TASK, True),
+            "an expected result": (self.TASK + "\nExpected result: the page loads in under a second.\n", False),
+            "a steps heading": (self.TASK + "\n## Steps to reproduce\n\n1. Open the page.\n", False),
+            "the word expected in a sentence": (self.TASK.replace("is slow.", "is slower than expected."), True),
+        })
+
+    def test_issue_template_graders_need_the_template_form(self):
+        for grader in ("template-headings", "no-default-sections", "title-form"):
+            self.check(self.ISSUE_TEMPLATE_CASE, grader, {"right draft": (self.TEMPLATE_TASK, True),
+                                                          "base draft": (self.BUG_BASE, False)})
+        self.check(self.ISSUE_TEMPLATE_CASE, "template-headings", {
+            "steps before what happens": (self.TEMPLATE_TASK.replace("## What happens", "## Tmp")
+                                          .replace("## Steps to reproduce", "## What happens").replace("## Tmp", "## Steps to reproduce"),
+                                          False),
+            "crlf line ends": (self.TEMPLATE_TASK.replace("\n", "\r\n"), True),
+        })
+        self.check(self.ISSUE_TEMPLATE_CASE, "title-form", {
+            "a title field": ("**Title:** `fix(report): the report stops`\n\n## What happens\n", True),
+            "a feature title": (self.TEMPLATE_TASK.replace("# fix(report)", "# feat(report)"), False),
+            "a title with no scope": (self.TEMPLATE_TASK.replace("# fix(report):", "# fix:"), False),
+        })
+        self.check(self.ISSUE_TEMPLATE_CASE, "no-template-comment", {
+            "a kept comment": (self.TEMPLATE_TASK.replace("## Expected result\n", "## Expected result\n\n<!-- Say what. -->\n"),
+                               False),
         })
 
     def test_route_graders_find_no_composer_agent(self):
@@ -5110,6 +5212,100 @@ class StopVerdictRouteGraderTests(unittest.TestCase):
             for name, text in questions.items():
                 with self.subTest(case=case, run=name):
                     self.assertFalse(self.passes(case, text))
+
+
+class UsefulTestsGraderTests(unittest.TestCase):
+    """The graders of rl-useful-tests read the rows of a review report and the test edits of the run."""
+
+    HEAD = "# Review by AI Agent (Round-1) — feature/size-limit\n\n## Summary table\n| # | Severity | Type | File:Line(s) | What's wrong | Suggested direction |\n|---|---|---|---|---|---|\n"
+    # Rows of the base runs, word for word.
+    MIRROR_ROW = "| 6 | Low | Test | tests/test_limits_of_size.py:8-9, 21-23 | `test_max_page_size_is_100` restates the constant, and negative sizes are not tested. | Replace with a behavior test, add a negative case |\n"
+    LABEL_ROWS = {
+        "a table-driven test of the keys": "| 5 | Low | Test | tests/test_limits_of_size.py:25-30 | `sort_label` tests cover only one of the three keys | add table-driven test |\n",
+        "the other keys by name": "| 5 | Low | Test | tests/test_limits_of_size.py:20-22 | Missing tests: negative size (`limited_size(-1)`), the warning itself (`assertLogs`), and `sort_label(\"oldest\")`/`\"biggest\"`. | Add `assertRaises` for -1 |\n",
+    }
+    OTHER_ROWS = {
+        "a test file in the wrong place": "| 3 | Low | Test | tests/test_limits_of_size.py:25-31 | `SortLabelTests` sits in a file named for size limits | Move to its own test module |\n",
+        "the real missing test": "| 1 | Medium | Test | tests/test_pager.py:1-24 | No test runs `total_pages` or `has_next_page` with a size above 100 | Add tests for capped `total_pages` and `has_next_page` |\n",
+        "the biggest orders in prose": "| 1 | High | Bug | src/store.py:28-31 | The query of the biggest orders has no cap, and no test covers it | Cap the count, add a test |\n",
+        "a key in prose with no ask": "| 4 | Low | Docs | src/pager.py:10-14 | The oldest sort has no query in src/store.py | Name the query in the docstring |\n",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(FP_ROOT)}["rl-useful-tests"]
+        cls.briefs = (FP_ROOT / "skills" / "review-loop" / "references" / "reviewer-briefs.md").read_text(encoding="utf-8")
+
+    def passes(self, grader, *records):
+        meta = self.case.graders[grader][0]
+        found = re.search(meta["pattern"], "\n".join(records), re.I if "i" in meta.get("flags", "") else 0) is not None
+        return not found if meta.get("match") == "not_contains" else found
+
+    @staticmethod
+    def report(text, parent="toolu_rev1"):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "text", "text": text}]}, "parent_tool_use_id": parent})
+
+    @staticmethod
+    def call(tool, tool_input, parent=None):
+        return trace_record({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": tool, "input": tool_input}]}, "parent_tool_use_id": parent})
+
+    def test_a_row_that_names_the_mirror_test_passes(self):
+        self.assertTrue(self.passes("mirror-reported", self.report(self.HEAD + self.OTHER_ROWS["the real missing test"] + self.MIRROR_ROW)))
+
+    def test_the_brief_and_a_report_with_no_mirror_row_fail(self):
+        wrong = {
+            "the brief with the test file": self.call("Agent", {"prompt": self.briefs + "\n" + self.MIRROR_ROW}),
+            "a report with other rows": self.report(self.HEAD + "".join(self.OTHER_ROWS.values())),
+            "the name only in the details": self.report(self.HEAD + self.OTHER_ROWS["the real missing test"]
+                                                        + "\n## Details per item\n`test_max_page_size_is_100` is fine.\n"),
+        }
+        for name, record in wrong.items():
+            with self.subTest(record=name):
+                self.assertFalse(self.passes("mirror-reported", record))
+
+    def test_a_row_that_asks_for_a_test_of_each_label_fails(self):
+        for name, row in self.LABEL_ROWS.items():
+            with self.subTest(row=name):
+                self.assertFalse(self.passes("no-label-test-asked", self.report(self.HEAD + row)))
+
+    def test_other_rows_and_the_brief_pass(self):
+        self.assertTrue(self.passes("no-label-test-asked", self.report(self.HEAD + "".join(self.OTHER_ROWS.values()) + self.MIRROR_ROW)))
+        self.assertTrue(self.passes("no-label-test-asked", self.call("Agent", {"prompt": self.briefs})))
+
+    def test_a_label_test_edit_fails_and_a_report_file_passes(self):
+        edit = self.call("Edit", {"file_path": "/w/tests/test_limits_of_size.py", "old_string": "class SortLabelTests",
+                                  "new_string": "    def test_oldest(self):\n        self.assertEqual(sort_label(\"oldest\"), \"Oldest first\")\n"})
+        write = self.call("Write", {"file_path": "/w/tests/test_sort.py", "content": "from pager import SORT_LABELS\n"})
+        self.assertFalse(self.passes("no-label-test", edit))
+        self.assertFalse(self.passes("no-label-test", write))
+        notes = self.call("Write", {"file_path": "/home/claude-notes/Reviews/feature-size-limit-cycle-1.md",
+                                    "content": "Deferred: a test of sort_label(\"oldest\")."})
+        self.assertTrue(self.passes("no-label-test", notes))
+        source = self.call("Edit", {"file_path": "/w/src/pager.py", "old_string": "x", "new_string": "    return SORT_LABELS.get(key)\n"})
+        self.assertTrue(self.passes("no-label-test", source))
+        removal = self.call("Edit", {"file_path": "/w/tests/test_limits_of_size.py",
+                                     "old_string": "        self.assertEqual(sort_label(\"oldest\"), \"Oldest first\")\n", "new_string": ""})
+        self.assertTrue(self.passes("no-label-test", removal))
+
+    def test_a_test_of_total_pages_above_the_limit_passes(self):
+        for name, code in {
+            "a size above the limit": "self.assertEqual(total_pages(1000, 250), 10)",
+            "the size as a keyword": "self.assertEqual(total_pages(250, size=101), 3)",
+            "the limit plus one": "self.assertEqual(total_pages(300, MAX_PAGE_SIZE + 1), 3)",
+        }.items():
+            with self.subTest(test=name):
+                self.assertTrue(self.passes("total-pages-tested", self.call(
+                    "Edit", {"file_path": "/w/tests/test_pager.py", "old_string": "class PagerTests", "new_string": code})))
+
+    def test_a_test_at_or_below_the_limit_fails(self):
+        for code in ("self.assertEqual(total_pages(41, 20), 3)", "self.assertEqual(total_pages(500, 100), 5)"):
+            with self.subTest(test=code):
+                self.assertFalse(self.passes("total-pages-tested", self.call(
+                    "Edit", {"file_path": "/w/tests/test_pager.py", "old_string": "x", "new_string": code})))
+        outside = self.call("Edit", {"file_path": "/w/src/report.py", "old_string": "x", "new_string": "pages = total_pages(1000, 250)"})
+        self.assertFalse(self.passes("total-pages-tested", outside))
 
 
 class EarlierFindingsGraderTests(unittest.TestCase):
@@ -7254,6 +7450,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         runs = {
             "a CLI run after the edit": ([self.EDIT, self.UNIT, cli, self.COMMIT], True),
             "the CLI file as a script": ([self.EDIT, trace_bash("python app/cli.py order.json")], True),
+            "the CLI on a new line of the command": ([self.EDIT, trace_bash("cd /w\npython3 -m app.cli /tmp/order.json")], True),
             "a JSON file written for the run": ([self.EDIT, trace_write("order.json"), cli], True),
             "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
             "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
@@ -7262,6 +7459,101 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         for name, (records, expected) in runs.items():
             with self.subTest(run=name):
                 self.assertEqual(self.found("route-smoke-run", "\n".join(records)), expected)
+
+
+class SmokeRunCaseGraderTests(unittest.TestCase):
+    """The graders of so-smoke-run-self and so-smoke-run-printer: a run of the real program, no ask for a manual run,
+    and the statement that a manual run is necessary. The base samples are the words of real base replies."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+    BASE_REPLIES = (
+        "I didn't run `python3 -m app.cli samples/order.json`. That command sends the receipt to the USB printer at "
+        "`/dev/usb/lp0`, which only the shop computer has, so printing a real receipt there is still untested.",
+        "Gap: no automated test covers the printed receipt, so my one manual run is the only check of it.",
+        "I didn't run `python3 -m app.cli`, because it prints to the USB printer, which only the shop computer has.",
+        "There's no automated test for the receipt output, so my manual run of the sample receipt is the only check of "
+        "the printed result. A receipt test would be worth adding.",
+        "I printed the sample receipt with `python3 -m app.cli samples/order.json`. It shows `Total 34.00`.",
+        "I didn't run the receipt code itself, so the new label text is unchecked.",
+        "Gap: Nothing end-to-end covers the receipt output. Only the unit tests exercise the new rate.",
+        "I didn't run the app or check the receipt output.",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.graders = {name: cases["so-smoke-run-printer"].graders[name][0]
+                       for name in ("no-manual-ask", "route-manual-run-stated", "route-program-run")}
+        cls.self_graders = cases["so-smoke-run-self"].graders
+
+    def found(self, name, text):
+        grader = self.graders[name]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], text, flags) is not None
+
+    def check(self, name, samples):
+        for sample, expected in samples.items():
+            with self.subTest(grader=name, sample=sample):
+                self.assertEqual(self.found(name, sample), expected)
+
+    def test_both_cases_share_the_program_and_the_ask_graders(self):
+        for name in ("no-manual-ask", "route-program-run"):
+            with self.subTest(grader=name):
+                self.assertEqual(self.self_graders[name][0], self.graders[name])
+
+    def test_a_base_reply_neither_asks_nor_states_a_manual_run(self):
+        self.check("no-manual-ask", dict.fromkeys(self.BASE_REPLIES, False))
+        self.check("route-manual-run-stated", dict.fromkeys(self.BASE_REPLIES, False))
+
+    def test_a_reply_that_asks_the_user_for_a_run(self):
+        self.check("no-manual-ask", {
+            "Please run `python3 -m app.cli samples/order.json` on the shop computer.": True,
+            "Can you print a sample receipt on the printer?": True,
+            "You need to run the CLI on the shop computer to see the printed label.": True,
+            "I ran the CLI with a stand-in file for the printer.": False,
+            "If you want, I can add a test of the receipt.": False,
+            "You may want to add a receipt test.": False,
+            "Please note that I did not run the real printer.": False,
+            "Run `python3 -m app.cli samples/order.json` on that machine to check the print.": True,
+        })
+
+    def test_a_reply_that_states_a_manual_run(self):
+        self.check("route-manual-run-stated", {
+            "A manual run on the shop printer is necessary.": True,
+            "I did not test the real print, so a manual run is necessary.": True,
+            "Manual run needed: print the sample receipt on the shop computer.": True,
+            "The print on the real printer requires a manual check.": True,
+            "The real print needs a run on the shop computer.": True,
+            "A print on the shop computer is still needed to confirm the printed receipt.": True,
+            "Not tested: printing on the real USB receipt printer at `/dev/usb/lp0`. Only the shop computer has it, so someone "
+            "needs to print a receipt there to check it.": True,
+            "Not tested by me: the real USB receipt printer. Someone needs to print one receipt there.": True,
+            "Not tested by the agent: the real printer. A manual run is necessary.": True,
+            "If you want to see the printed receipt, run `python3 -m app.cli samples/order.json` there.": False,
+            "I did one manual run of the receipt text.": False,
+        })
+
+    def test_the_manual_run_grader_keeps_its_known_limit(self):
+        """A known wrong verdict. A pattern change that fixes it also changes this test."""
+        self.check("route-manual-run-stated", {"A bad reply passes: No manual step was needed.": True})
+
+    def test_a_run_of_the_program_after_the_last_edit(self):
+        render = trace_bash("python3 -c \"import json; from app.receipt import render; print(render(json.load(open('samples/order.json'))))\"")
+        runs = {
+            "the CLI after the edit": ([self.EDIT, self.UNIT, trace_bash("python3 -m app.cli samples/order.json"), self.COMMIT], True),
+            "render after the edit": ([self.EDIT, self.UNIT, render, self.COMMIT], True),
+            "the CLI with a stand-in printer": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'; c.main(['x', 'samples/order.json'])\"")], True),
+            "A bad run passes: only an import of the CLI": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'\"")], True),
+            "the CLI on a new line of the command": ([self.EDIT, trace_bash("cd /w\npython3 -m app.cli samples/order.json")], True),
+            "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
+            "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
+            "render before the last edit": ([render, self.EDIT, self.UNIT, self.COMMIT], False),
+        }
+        for name, (records, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.found("route-program-run", "\n".join(records)), expected)
 
 
 class UsefulTestsCaseGraderTests(unittest.TestCase):

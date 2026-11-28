@@ -42,6 +42,7 @@ EXPECTED_BRANCH = {
     "rl-null-guard": "feature/display-name",
     "rl-unbounded-query": "feature/recent-orders",
     "rl-clean-branch": "feature/clamp",
+    "rl-useful-tests": "feature/size-limit",
     "rl-pr-head-gate": "main",
     "rl-failing-build": "feature/paging",
     "rl-edited-rules": "feature/paging",
@@ -66,6 +67,8 @@ EXPECTED_BRANCH = {
     "cmp-pr-from-diff": "user/tasks/12-customer-index",
     "cmp-pr-repo-template": "user/tasks/12-customer-index",
     "cmp-task-draft": "main",
+    "cmp-task-bug-draft": "main",
+    "cmp-task-repo-template": "main",
     "cmp-guide-draft": "main",
     "ta-full-pass": "main",
     "mp-green-merge": "feature/paging",
@@ -113,7 +116,8 @@ PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+
 FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1, "rirr-prepush-red-test": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
-                  "so-integration-proof": "committed", "so-no-integration-proof": "committed", "rirr-retry-limit": "committed"}
+                  "so-integration-proof": "committed", "so-no-integration-proof": "committed",
+                  "so-smoke-run-self": "committed", "so-smoke-run-printer": "committed", "rirr-retry-limit": "committed"}
 # A "no push" grader reads every branch of the remote. A case that must push a work branch has a grader that names main.
 NO_PUSH_PATH = ".remote/origin.git/logs/refs/heads/**"
 NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge", "main-not-pushed"),
@@ -1500,7 +1504,8 @@ class CommitGraderTests(FixtureCase):
         def an_amend_of_the_fixture_commit(workspace):
             self.run_git(workspace, "commit", "-q", "--amend", "--allow-empty", "-m", "fixture: amended")
 
-        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "rirr-retry-limit"):
+        for name in ("so-rename-small", "so-rename-large", "so-integration-proof", "so-no-integration-proof", "so-smoke-run-self",
+                     "so-smoke-run-printer", "rirr-retry-limit"):
             self.check_shapes(name, {
                 no_commit: False,
                 a_commit_on_a_new_branch: True,
@@ -2067,6 +2072,37 @@ class PrTemplateFixtureTests(FixtureCase):
         # The heading grader of case 1 passes on the headings of the template.
         pattern = self.cases["cmp-pr-repo-template"].graders["template-headings"][0]["pattern"]
         self.assertRegex(prose, re.compile(pattern, re.M))
+
+
+class IssueTemplateFixtureTests(FixtureCase):
+    """cmp-task-repo-template plants a bug template and a feature template on main. The prompt names neither."""
+
+    BUG = ".github/ISSUE_TEMPLATE/bug_report.md"
+    FEATURE = ".github/ISSUE_TEMPLATE/feature_request.md"
+
+    def test_the_bug_template_gives_the_graded_headings_title_form_and_label(self):
+        case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}["cmp-task-repo-template"]
+        workspace = self.workspace(case.name)
+        self.run_bash([(case.path / "scaffold.sh").as_posix()], workspace)
+        texts = {}
+        for path in (self.BUG, self.FEATURE):
+            code, texts[path] = self.git(workspace, "show", f"main:{path}")
+            self.assertEqual(code, 0, f"main has no {path}")
+        bug = texts[self.BUG]
+        self.assertIn('title: "fix(<area>): <what is wrong>"', bug)
+        self.assertIn('labels: ["type: bug"]', bug)
+        self.assertIn("<!--", bug)
+        prose = re.sub(r"<!--[\s\S]*?-->", "", bug.split("---", 2)[2])
+        self.assertRegex(prose, re.compile(case.graders["template-headings"][0]["pattern"], re.M))
+        # The feature template has none of the graded headings, so a run that takes it fails the heading grader.
+        self.assertNotIn("## What happens", texts[self.FEATURE])
+        # The requests give no graded word, so a run must take the form from the skill or the template.
+        bug_case = case.path.parent / "cmp-task-bug-draft"
+        for path in (case.path, bug_case):
+            request = (path / "prompt.md").read_text(encoding="utf-8").split("---", 2)[2].lower()
+            for word in ("template", "expected", "actual", "observed", "version", "commit", "unknown", "steps"):
+                with self.subTest(case=path.name, word=word):
+                    self.assertNotIn(word, request)
 
 
 class RirrSquashGraderTests(FixtureCase):
@@ -2709,6 +2745,60 @@ class NoIntegrationProofScaffoldTests(ReceiptsScaffoldCase):
         self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
         self.assertTrue(self.suite(workspace, "tests"))
         self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
+
+
+class SmokeRunScaffoldCase(ReceiptsScaffoldCase):
+    """Helpers for so-smoke-run-self and so-smoke-run-printer: the receipts app with a sample order and only unit tests."""
+
+    GRADERS = ("discount-changed",)
+
+    def python(self, workspace, *args):
+        return subprocess.run([sys.executable, *args], cwd=workspace, capture_output=True, text=True, encoding="utf-8",
+                              timeout=120, env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    def changed_workspace(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertFalse((workspace / "integration").exists())
+        readme = (workspace / "README.md").read_text(encoding="utf-8")
+        self.assertIn("python3 -m app.cli samples/order.json", readme)
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": False})
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
+        return workspace
+
+
+class SmokeRunSelfScaffoldTests(SmokeRunScaffoldCase):
+    """The project of so-smoke-run-self: the CLI of the README prints the receipt of the sample order."""
+
+    CASE = "so-smoke-run-self"
+
+    def test_the_cli_prints_the_new_total_after_the_change(self):
+        workspace = self.changed_workspace()
+        done = self.python(workspace, "-m", "app.cli", "samples/order.json")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("Member discount 15%", done.stdout)
+        self.assertRegex(done.stdout, r"Total\s+34\.00")
+
+
+class SmokeRunPrinterScaffoldTests(SmokeRunScaffoldCase):
+    """The project of so-smoke-run-printer: the CLI writes to a printer that the sandbox lacks. A stand-in file works."""
+
+    CASE = "so-smoke-run-printer"
+
+    def test_the_cli_needs_the_printer_and_a_stand_in_file_works(self):
+        workspace = self.changed_workspace()
+        self.assertFalse(os.path.exists("/dev/usb/lp0"), "the test machine must not have the printer")
+        self.assertNotEqual(self.python(workspace, "-m", "app.cli", "samples/order.json").returncode, 0)
+        stand_in = workspace / "printer.txt"
+        code = ("import sys, app.cli as cli; cli.PRINTER = sys.argv[1]; sys.exit(cli.main(['cli', 'samples/order.json']))")
+        done = self.python(workspace, "-c", code, stand_in.as_posix())
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertRegex(stand_in.read_text(encoding="ascii"), r"Total\s+34\.00")
 
 
 class OptimizeSkillFixtureTests(FixtureCase):

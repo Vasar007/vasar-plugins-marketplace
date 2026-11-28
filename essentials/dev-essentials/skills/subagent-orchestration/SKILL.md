@@ -208,7 +208,9 @@ A 10-line brief that prevents one wrong dispatch is worth more than three 3-line
 
 ## Proof of a change
 
-This section holds for the final report of each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. If no smoke run, integration test, or end-to-end test covers the change, say so in the final report. Name that missing proof as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so do not stop for it.
+This section holds for each change of behavior, also for work with no subagent. A unit test does not prove that the real program works. So before the final report, run the real program once, for example its CLI on a sample input. If it needs a device or a service that you do not have, run it with a stand-in. An example is a temporary file in place of the device. Also use a stand-in for an outside system that the run can change, such as mail, a payment, or a shared database. Never ask the user for a manual run, and do not stop for one.
+
+If no smoke run, integration test, or end-to-end test covers the change, name that missing proof in the final report as a gap to add. This holds most of all for a change of business logic. Adding such a test is optional, so do not stop for it. Also give each part that you did not run one line in the final report, for example the real device behind a stand-in: `Not tested by the agent: <part>. A manual run is necessary.`
 
 ## Trust but verify
 
