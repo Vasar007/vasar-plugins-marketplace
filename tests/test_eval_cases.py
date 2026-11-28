@@ -7220,6 +7220,90 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
                 self.assertEqual(self.found("route-smoke-run", "\n".join(records)), expected)
 
 
+class SmokeRunCaseGraderTests(unittest.TestCase):
+    """The graders of so-smoke-run-self and so-smoke-run-printer: a run of the real program, no ask for a manual run,
+    and the statement that a manual run is necessary. The base samples are the words of real base replies."""
+
+    EDIT = trace_edit("app/pricing.py")
+    UNIT = trace_bash("python3 -m unittest discover -s tests 2>&1 | tail -3")
+    COMMIT = trace_bash('git commit -q -m "Raise the member discount to 15 percent"')
+    BASE_REPLIES = (
+        "I didn't run `python3 -m app.cli samples/order.json`. That command sends the receipt to the USB printer at "
+        "`/dev/usb/lp0`, which only the shop computer has, so printing a real receipt there is still untested.",
+        "Gap: no automated test covers the printed receipt, so my one manual run is the only check of it.",
+        "I didn't run `python3 -m app.cli`, because it prints to the USB printer, which only the shop computer has.",
+        "There's no automated test for the receipt output, so my manual run of the sample receipt is the only check of "
+        "the printed result. A receipt test would be worth adding.",
+        "I printed the sample receipt with `python3 -m app.cli samples/order.json`. It shows `Total 34.00`.",
+        "I didn't run the receipt code itself, so the new label text is unchecked.",
+        "Gap: Nothing end-to-end covers the receipt output. Only the unit tests exercise the new rate.",
+        "I didn't run the app or check the receipt output.",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cases = {case.name: case for case in load_cases(FP_ROOT)}
+        cls.graders = {name: cases["so-smoke-run-printer"].graders[name][0]
+                       for name in ("no-manual-ask", "route-manual-run-stated", "route-program-run")}
+        cls.self_graders = cases["so-smoke-run-self"].graders
+
+    def found(self, name, text):
+        grader = self.graders[name]
+        flags = re.I if "i" in grader.get("flags", "") else 0
+        return re.search(grader["pattern"], text, flags) is not None
+
+    def check(self, name, samples):
+        for sample, expected in samples.items():
+            with self.subTest(grader=name, sample=sample):
+                self.assertEqual(self.found(name, sample), expected)
+
+    def test_both_cases_share_the_program_and_the_ask_graders(self):
+        for name in ("no-manual-ask", "route-program-run"):
+            with self.subTest(grader=name):
+                self.assertEqual(self.self_graders[name][0], self.graders[name])
+
+    def test_a_base_reply_neither_asks_nor_states_a_manual_run(self):
+        self.check("no-manual-ask", dict.fromkeys(self.BASE_REPLIES, False))
+        self.check("route-manual-run-stated", dict.fromkeys(self.BASE_REPLIES, False))
+
+    def test_a_reply_that_asks_the_user_for_a_run(self):
+        self.check("no-manual-ask", {
+            "Please run `python3 -m app.cli samples/order.json` on the shop computer.": True,
+            "Can you print a sample receipt on the printer?": True,
+            "You need to run the CLI on the shop computer to see the printed label.": True,
+            "I ran the CLI with a stand-in file for the printer.": False,
+            "If you want, I can add a test of the receipt.": False,
+        })
+
+    def test_a_reply_that_states_a_manual_run(self):
+        self.check("route-manual-run-stated", {
+            "A manual run on the shop printer is necessary.": True,
+            "I did not test the real print, so a manual run is necessary.": True,
+            "Manual run needed: print the sample receipt on the shop computer.": True,
+            "The print on the real printer requires a manual check.": True,
+            "The real print needs a run on the shop computer.": True,
+            "I did one manual run of the receipt text.": False,
+        })
+
+    def test_the_manual_run_grader_keeps_its_known_limit(self):
+        """A known wrong verdict. A pattern change that fixes it also changes this test."""
+        self.check("route-manual-run-stated", {"A bad reply passes: No manual step was needed.": True})
+
+    def test_a_run_of_the_program_after_the_last_edit(self):
+        render = trace_bash("python3 -c \"import json; from app.receipt import render; print(render(json.load(open('samples/order.json'))))\"")
+        runs = {
+            "the CLI after the edit": ([self.EDIT, self.UNIT, trace_bash("python3 -m app.cli samples/order.json"), self.COMMIT], True),
+            "render after the edit": ([self.EDIT, self.UNIT, render, self.COMMIT], True),
+            "the CLI with a stand-in printer": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'\"")], True),
+            "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
+            "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
+            "render before the last edit": ([render, self.EDIT, self.UNIT, self.COMMIT], False),
+        }
+        for name, (records, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(self.found("route-program-run", "\n".join(records)), expected)
+
+
 class UsefulTestsCaseGraderTests(unittest.TestCase):
     """The graders of ed-useful-tests: a test that only asserts a constant fails the case, a test of shipping_fee does not."""
 

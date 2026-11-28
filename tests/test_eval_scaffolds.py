@@ -2654,6 +2654,60 @@ class NoIntegrationProofScaffoldTests(ReceiptsScaffoldCase):
         self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
 
 
+class SmokeRunScaffoldCase(ReceiptsScaffoldCase):
+    """Helpers for so-smoke-run-self and so-smoke-run-printer: the receipts app with a sample order and only unit tests."""
+
+    GRADERS = ("discount-changed",)
+
+    def python(self, workspace, *args):
+        return subprocess.run([sys.executable, *args], cwd=workspace, capture_output=True, text=True, encoding="utf-8",
+                              timeout=120, env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"})
+
+    def changed_workspace(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        self.assertFalse((workspace / "integration").exists())
+        readme = (workspace / "README.md").read_text(encoding="utf-8")
+        self.assertIn("python3 -m app.cli samples/order.json", readme)
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": False})
+        self.replace(workspace / "app" / "pricing.py", "MEMBER_DISCOUNT_PERCENT = 10", "MEMBER_DISCOUNT_PERCENT = 15")
+        self.assertFalse(self.suite(workspace, "tests"), "the unit tests must pin the old rate")
+        self.replace(workspace / "tests" / "test_pricing.py", "3600", "3400")
+        self.assertTrue(self.suite(workspace, "tests"))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before), {"discount-changed": True})
+        return workspace
+
+
+class SmokeRunSelfScaffoldTests(SmokeRunScaffoldCase):
+    """The project of so-smoke-run-self: the CLI of the README prints the receipt of the sample order."""
+
+    CASE = "so-smoke-run-self"
+
+    def test_the_cli_prints_the_new_total_after_the_change(self):
+        workspace = self.changed_workspace()
+        done = self.python(workspace, "-m", "app.cli", "samples/order.json")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("Member discount 15%", done.stdout)
+        self.assertRegex(done.stdout, r"Total\s+34\.00")
+
+
+class SmokeRunPrinterScaffoldTests(SmokeRunScaffoldCase):
+    """The project of so-smoke-run-printer: the CLI writes to a printer that the sandbox lacks. A stand-in file works."""
+
+    CASE = "so-smoke-run-printer"
+
+    def test_the_cli_needs_the_printer_and_a_stand_in_file_works(self):
+        workspace = self.changed_workspace()
+        self.assertFalse(os.path.exists("/dev/usb/lp0"), "the test machine must not have the printer")
+        self.assertNotEqual(self.python(workspace, "-m", "app.cli", "samples/order.json").returncode, 0)
+        stand_in = workspace / "printer.txt"
+        code = ("import sys, app.cli as cli; cli.PRINTER = sys.argv[1]; sys.exit(cli.main(['cli', 'samples/order.json']))")
+        done = self.python(workspace, "-c", code, stand_in.as_posix())
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertRegex(stand_in.read_text(encoding="ascii"), r"Total\s+34\.00")
+
+
 class OptimizeSkillFixtureTests(FixtureCase):
     """The fixture of os-review-fixes holds the seeded issues and the lost rule. Its file graders fail on the fixture
     where they must, pass on a right run with two commits, and fail on a lost rule, a third commit, and a push."""
