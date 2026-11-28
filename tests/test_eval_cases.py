@@ -4626,6 +4626,8 @@ class ComposerGraderTests(unittest.TestCase):
             "no such label": ("Not added: **performance** (no such label in example-org/pager).", True),
             "dropped": ("Dropped label: `performance`", True),
             "no label": ("The repository has no `performance` label, so I did not create it.", True),
+            # The words of a head run with an Opus agent: a bold name and "left it off".
+            "no bold label": ("The repo has no **performance** label, so I left it off rather than create a new one.", True),
             "list under a heading": ("Labels not kept:\n- performance (not a label of example-org/pager)", True),
             "is not a label": ("`performance` is not a label in this repository.", True),
             "does not have the label": ("The repository does not have a `performance` label, so the issue has only `feature`.", True),

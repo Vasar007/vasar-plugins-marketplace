@@ -11,7 +11,7 @@ The other numbers in a heading are plugin versions.
 
 ## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
 
-`compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps (issue #399).
+`compose-task` now gives a bug the fields that a fixer needs, and it follows a fitting issue template of the repository. Before, each task had only the sections "Current State Analysis" and "Changes to Do". A bug draft had no numbered steps, no actual result, and no version. A draft in a repository with an issue template ignored its headings, its title form, and its labels. In the base eval runs, each of 3 runs with an Opus agent and 3 runs with a Sonnet agent showed both gaps. At the head, the template case passed in 3 of 3 runs on each model. The bug case passed in 3 of 3 runs with Opus and in 2 of 3 runs with Sonnet. The third Sonnet run returned the text in chat and wrote no file (issue #399).
 
 ### Added in dev-essentials
 
@@ -23,6 +23,7 @@ The other numbers in a heading are plugin versions.
 - `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, or with several, the form stays as it was. The steps and the results of a bug can name an error, and Critical Rule 4 still holds for the rest (issue #399).
 - `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
 - `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
+- `evals/composers/cmp-issue-create`: the grader `names-dropped-label` takes a label name in bold after "no". A right run with the words "no **performance** label" failed it before (issue #399).
 
 ### Changed in the repository
 
