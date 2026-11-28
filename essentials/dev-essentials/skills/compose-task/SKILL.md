@@ -43,7 +43,7 @@ Then these sections:
 - Current system state and why it is a problem
 - Key limitations or technical debt
 - Impact on development / performance / maintainability
-- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. Take it from the input or from the repository. If neither gives it, write `unknown`. Do not guess it.
+- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. Take the version or the commit from the input or from the repository. If neither gives it, write `unknown`. Do not guess it.
 
 ### Changes to Do
 
@@ -59,14 +59,14 @@ Then these sections:
 
 Both modes produce the same Markdown content, in the form of "Task Documentation Structure". Only the destination differs.
 
-First, look for an issue template of the repository: `Glob` the pattern `.github/ISSUE_TEMPLATE/*`. If the input names a template, use it. Else use the one template whose name and `about` text fit the task. If none fits, or several fit, use the form of "Task Documentation Structure", and name the templates in your final reply.
+First, look for an issue template of the repository: `Glob` the pattern `.github/ISSUE_TEMPLATE/*`. If the input names a template, use it. Else use the one template whose `name` and `about` fit the task. For a `.yml` file, read `description` in place of `about`. If none fits, or several fit, use the form of "Task Documentation Structure", and name the templates in your final reply.
 
 If you use a template:
 
-- Use only its headings, in their order. Add no section of the form, also not "Changes to Do". For a form file (`.yml`), use the `label` of each field as a heading.
+- Use only its headings, in their order. Add no section of "Task Documentation Structure", also not "Changes to Do". For a form file (`.yml`), use the `label` of each field as a heading.
 - Read each HTML comment as the instruction for its section. Do what it says, and leave the comment out.
-- Write the H1 title in the form of the `title` of its front matter.
-- Name the `labels` of its front matter in your final reply. `mode: create` passes them as labels.
+- Write the H1 title in the form of its `title` key.
+- Name its `labels` in your final reply. `mode: create` passes them as labels.
 - For a bug, put each bug field above that the template has no heading for into the section that fits best.
 - The length limit and the Critical Rules still apply.
 
