@@ -47,7 +47,7 @@ Every reviewer report must follow these rules. Each brief below ends with "Apply
 
 **Ask, do not guess**: if the material is not enough, do not guess. File an explicit question as a finding, with the type `Docs` or `Spec` and the severity `Low`. If the question blocks the review, use a higher severity.
 
-**Tests**: if a missing test can catch a real bug or a real change of behavior, name it, with the type `Test`. Ask for no other test. Do not ask for a test of a constant, a label, or a message text. Do not ask for one test for each case of a switch or a map. If a new test cannot fail for a bug, report it with the type `Test`. An example is a test that only restates the value of a constant.
+**Tests**: if a missing test can catch a real bug or a real change of behavior, name it, with the type `Test`. Ask for no other test. Do not ask for a test of a constant, a label, or a message text, unless other systems, users, or stored data read it. Examples of such a contract value are a wire format, an error code, and a flag name. Do not ask for one test for each case of a switch or a map whose cases only hold data. If a new test cannot fail for a bug, report it with the type `Test`. An example is a test that only restates the value of a constant.
 
 **Report every finding**: report each problem that you find, at every severity, also one that you are not sure of. Phase 4 of the loop sorts and filters the findings, so a filter here drops real findings. For each finding, show how it fails: the input or the state, and the wrong result. If you cannot show the failure, say so in the finding.
 
@@ -314,7 +314,7 @@ You are reviewing a **specification or design document**, not code. Read it as a
 - `Low`: a small wording issue with a low risk of implementations that differ.
 - `Nit`: grammar, formatting, style.
 
-Apply common rules. The "missing tests" rule does not apply here. Use "missing error paths" (focus area 3) instead.
+Apply common rules. The "Tests" rule does not apply here. Use "missing error paths" (focus area 3) instead.
 
 ---
 

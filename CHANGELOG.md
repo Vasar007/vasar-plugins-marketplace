@@ -15,11 +15,11 @@ If a missing test can catch a real bug or a real change of behavior, the reviewe
 
 ### Added in dev-essentials
 
-- `evals/review-loop/rl-useful-tests`: a new case. A branch caps the page size and adds sort labels. It adds a test that only restates the new constant, and a test of one sort key and of the fallback. It also changes `total_pages` and adds no test for it. The scored graders read the summary rows of each review report and the test edits of the run. A report names the mirror test, and no row asks for a test of each label. The loop adds a test of `total_pages` above the limit (issue #400).
+- `evals/review-loop/rl-useful-tests`: a new case. A branch caps the page size and adds sort labels. It adds a test that only restates the new constant, and a test of one sort key and of the fallback. It also changes `total_pages` and adds no test for it. The scored graders read the summary rows of each review report and the test edits of the run. A report names the mirror test, and no row asks for a test of each label. The loop adds no label test, and it adds a test of `total_pages` above the limit (issue #400).
 
 ### Changed in dev-essentials
 
-- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text. It asks for no test of each case of a switch or a map. It reports a new test that cannot fail for a bug, with the type `Test`. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
+- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless other systems, users, or stored data read it. It asks for no test of each case of a switch or a map whose cases only hold data. The `spec` brief names the new rule. It reports a new test that cannot fail for a bug, with the type `Test`. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
 
 ### Changed in the repository
 
@@ -3071,7 +3071,7 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.12.0
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0

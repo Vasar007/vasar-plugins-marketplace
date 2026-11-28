@@ -5125,6 +5125,8 @@ class UsefulTestsGraderTests(unittest.TestCase):
     OTHER_ROWS = {
         "a test file in the wrong place": "| 3 | Low | Test | tests/test_limits_of_size.py:25-31 | `SortLabelTests` sits in a file named for size limits | Move to its own test module |\n",
         "the real missing test": "| 1 | Medium | Test | tests/test_pager.py:1-24 | No test runs `total_pages` or `has_next_page` with a size above 100 | Add tests for capped `total_pages` and `has_next_page` |\n",
+        "the biggest orders in prose": "| 1 | High | Bug | src/store.py:28-31 | The query of the biggest orders has no cap, and no test covers it | Cap the count, add a test |\n",
+        "a key in prose with no ask": "| 4 | Low | Docs | src/pager.py:10-14 | The oldest sort has no query in src/store.py | Name the query in the docstring |\n",
     }
 
     @classmethod
@@ -5179,6 +5181,11 @@ class UsefulTestsGraderTests(unittest.TestCase):
         notes = self.call("Write", {"file_path": "/home/claude-notes/Reviews/feature-size-limit-cycle-1.md",
                                     "content": "Deferred: a test of sort_label(\"oldest\")."})
         self.assertTrue(self.passes("no-label-test", notes))
+        source = self.call("Edit", {"file_path": "/w/src/pager.py", "old_string": "x", "new_string": "    return SORT_LABELS.get(key)\n"})
+        self.assertTrue(self.passes("no-label-test", source))
+        removal = self.call("Edit", {"file_path": "/w/tests/test_limits_of_size.py",
+                                     "old_string": "        self.assertEqual(sort_label(\"oldest\"), \"Oldest first\")\n", "new_string": ""})
+        self.assertTrue(self.passes("no-label-test", removal))
 
     def test_a_test_of_total_pages_above_the_limit_passes(self):
         for name, code in {
@@ -5195,6 +5202,8 @@ class UsefulTestsGraderTests(unittest.TestCase):
             with self.subTest(test=code):
                 self.assertFalse(self.passes("total-pages-tested", self.call(
                     "Edit", {"file_path": "/w/tests/test_pager.py", "old_string": "x", "new_string": code})))
+        outside = self.call("Edit", {"file_path": "/w/src/report.py", "old_string": "x", "new_string": "pages = total_pages(1000, 250)"})
+        self.assertFalse(self.passes("total-pages-tested", outside))
 
 
 class EarlierFindingsGraderTests(unittest.TestCase):
