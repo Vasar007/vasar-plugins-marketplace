@@ -7282,6 +7282,8 @@ class SmokeRunCaseGraderTests(unittest.TestCase):
             "Manual run needed: print the sample receipt on the shop computer.": True,
             "The print on the real printer requires a manual check.": True,
             "The real print needs a run on the shop computer.": True,
+            "A print on the shop computer is still needed to confirm the printed receipt.": True,
+            "If you want to see the printed receipt, run `python3 -m app.cli samples/order.json` there.": False,
             "I did one manual run of the receipt text.": False,
         })
 
