@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
+## dev-essentials 6.12.0 in release [7.13.0] - 2026-11-28
 
 The section "Proof of a change" of `subagent-orchestration` now asks the agent to prove a change of behavior itself. Before the final report, the agent runs the real program once, for example its CLI on a sample input. For a missing device or service, the agent runs the program with a stand-in, such as a temporary file in place of the device. The agent also uses a stand-in for an outside system that the run can change. The agent never asks the user for a manual run, and never stops for one. The section gives the report line for each part that the agent did not run: `Not tested by the agent: <part>. A manual run is necessary.` Before, a Sonnet agent ran the real program in 0 of 6 base runs. Both READMEs of the new cases gave the command. No base run on either model said that a manual run on a missing device is necessary (issue #401).
 
@@ -32,6 +32,24 @@ The section "Proof of a change" of `subagent-orchestration` now asks the agent t
 - `tests/test_eval_cases.py`: new tests of the patterns of `route-program-run`, `no-manual-ask`, and `route-manual-run-stated` on the words of real base and head replies. A new sample tests `route-smoke-run` after a line break. Both new cases are in the list of the shared commit graders (issue #401).
 - `tests/test_eval_scaffolds.py`: both cases are in the lists of commit graders and commit shapes. New tests run the scaffolds: the CLI of `so-smoke-run-self` prints the new total, and the CLI of `so-smoke-run-printer` fails with no printer and works with a stand-in file (issue #401).
 - `docs/eval-cases.md`: the list of grader limits names the new graders (issue #401).
+
+## dev-essentials 6.11.0 in release [7.12.0] - 2026-11-28
+
+If a missing test can catch a real bug or a real change of behavior, the reviewer of `review-loop` asks for it. It asks for no other test, and it reports a new test that cannot fail for a bug. Before, the brief told the reviewer to name each missing test. So the reviewer asked for tests of a log line or of each sort label. It also missed a test that only restates a constant (issue #400).
+
+### Added in dev-essentials
+
+- `evals/review-loop/rl-useful-tests`: a new case. A branch caps the page size and adds sort labels. It adds a test that only restates the new constant, and a test of one sort key and of the fallback. It also changes `total_pages` and adds no test for it. The scored graders read the summary rows of each review report and the test edits of the run. A report names the mirror test, and no row asks for a test of each label. The loop adds no label test, and it adds a test of `total_pages` above the limit (issue #400).
+
+### Changed in dev-essentials
+
+- `skills/review-loop/references/reviewer-briefs.md`: the "Missing tests" rule of the Common Rules is now a "Tests" rule. If a missing test can catch a real bug or a real change of behavior, the reviewer asks for it. It asks for no test of a constant, a label, or a message text, unless another system, a script, or stored data reads it. A value that only code of the same program reads is no such contract value. Neither is a text that people only read, on screen or in a log. It asks for no test of each case of a switch or a map whose cases only hold data. It reports a new test that cannot fail for a bug, with the type `Test`. The `spec` brief names the new rule. Focus item 7 of the `branch` and `pr` briefs and the `test-coverage` token follow the rule (issue #400).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the graders of `rl-useful-tests` on the rows of real reports, on the brief, and on test edits (issue #400).
+- `tests/test_eval_scaffolds.py`: the list of branches names `rl-useful-tests` (issue #400).
+- `docs/eval-cases.md`: the list of grader limits names the graders of `rl-useful-tests` (issue #400).
 
 ## dev-essentials 6.10.1 in release [7.11.1] - 2026-11-28
 
@@ -3091,7 +3109,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.13.0...HEAD
+[7.13.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...v7.13.0
 [7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
 [7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
