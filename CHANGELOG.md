@@ -30,6 +30,20 @@ The other numbers in a heading are plugin versions.
 - `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version line of the head runs (issue #399).
 - `tests/test_eval_scaffolds.py`: the list of branches names the two new cases. A new test makes sure that `cmp-task-repo-template` plants both templates on `main`, and that its prompt gives no graded word (issue #399).
 
+## dev-essentials 6.10.1 in release [7.11.1] - 2026-11-28
+
+The length limits of `compose-pr` count the content of a PR description. An attribution line at the end of the description does not count. Before, the skill counted the whole description, and the length graders counted the line too. So a grader failed a run whose content was within the limit (issue #403).
+
+### Changed in dev-essentials
+
+- `skills/compose-pr/SKILL.md`: the writing rule on the limits says that an attribution line at the end does not count (issue #403).
+- `evals/composers/cmp-pr-from-diff`, `evals/composers/cmp-pr-repo-template`, and `evals/composers/cmp-pr-ui-change`: the grader `within-limit` does not count a last line that names Claude Code (issue #403).
+- `evals/feature-pipeline/fp-e2-untracked-file`: the grader `pr-body-length` does not count such a last line in the body of the pull request (issue #403).
+
+### Changed in the repository
+
+- `tests/test_eval_cases.py`: new tests for the four length graders. Content at the limit passes with and without the attribution line. Content over the limit fails with the line. Another last line and a line in the middle count (issue #403).
+
 ## dev-essentials 6.10.0 in release [7.11.0] - 2026-11-27
 
 `process-pr-comments` now lists a rule candidate in its cycle log. A rule candidate is a review point that two or more threads of trusted people make in one cycle. A reviewer often makes the same point again in the next pull request. Before, the skill fixed each comment, and nothing kept the point. The skill writes no rule into a file or into memory. The user decides on each rule (issue #388).
@@ -3075,7 +3089,8 @@ This release ported and generalized several skills, commands, and rule additions
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
 [Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
-[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.12.0
+[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...v7.12.0
+[7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
 [7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0
