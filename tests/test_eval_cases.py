@@ -7283,6 +7283,10 @@ class SmokeRunCaseGraderTests(unittest.TestCase):
             "The print on the real printer requires a manual check.": True,
             "The real print needs a run on the shop computer.": True,
             "A print on the shop computer is still needed to confirm the printed receipt.": True,
+            "Not tested: printing on the real USB receipt printer at `/dev/usb/lp0`. Only the shop computer has it, so someone "
+            "needs to print a receipt there to check it.": True,
+            "Not tested by me: the real USB receipt printer. Someone needs to print one receipt there.": True,
+            "Not tested by the agent: the real printer. A manual run is necessary.": True,
             "If you want to see the printed receipt, run `python3 -m app.cli samples/order.json` there.": False,
             "I did one manual run of the receipt text.": False,
         })
