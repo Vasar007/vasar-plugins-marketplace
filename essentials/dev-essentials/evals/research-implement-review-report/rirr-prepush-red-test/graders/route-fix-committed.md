@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '\tcommit: (?!fixture:)'
-target: { source: file, path: .git/logs/HEAD }
+pattern: '"file_path":"(?:[^"\\]|\\.)*?tests/test_http_client\.py"[\s\S]*?"command":"(?:[^"\\]|\\.)*?\bgit\b(?:[^"\\]|\\.)*?\bcommit\b'
+target: trace
 ---
