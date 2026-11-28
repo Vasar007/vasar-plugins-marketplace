@@ -353,6 +353,7 @@ class FinishStepTests(unittest.TestCase):
     def test_the_final_gate_asks_one_question_and_a_failed_step_ends_a_full_run(self):
         for sentence in ("(yes / push and pull request only / no)", "Do no step before the answer.",
                          "A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. "
+                         "For a failure of step 2 that gets a fix round, first do that round. "
                          'For a failed merge gate, first do the section "A failed merge gate". Do no other step again.',
                          'If its gate fails, it does not merge, and the pull request stays open. Then do the section "A failed merge gate".',
                          "In the full mode, do the steps with no question."):
@@ -378,7 +379,8 @@ class FinishStepTests(unittest.TestCase):
             "and resolve each conflict. Never rebase.",
             "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. "
             "After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. "
-            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).",
+            "Then do steps 1 and 2 of the section \"Steps\" again, and run the command of each fixed check again. If one of them fails, report it, and end the run (hard stop 5). "
+            "Here step 2 gets no fix round of its own.",
             'Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". '
             'With "no", end the run.',
             'Push as step 3 of the section "Steps" says, and do step 5 of that section again.',
@@ -390,8 +392,18 @@ class FinishStepTests(unittest.TestCase):
         self.assertNotIn("git -C", section)
         self.assertNotIn("--force", section)
         # An eval run fixed a lint failure at step 2 and pushed it, before any gate read (issue 387).
+        # The full mode fixes only a red build or test of step 2 before the push (issue 402).
         steps = self.text[self.text.index("## Steps"):self.text.index("## A failed merge gate")]
-        self.assertIn('Make no commit before the push. A fix comes only after the gate, in the section "A failed merge gate".', steps)
+        for sentence in ("The full mode gives a fix round before the report to a failure of this run that the change of the branch causes.",
+                         "Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`.",
+                         "A failure of another command, such as a lint script, gets no fix round.",
+                         "Never weaken or skip a test to make it pass.",
+                         "Do at most 2 such rounds. Make no other commit before the push.",
+                         'A failed merge gate gets its fix in the section "A failed merge gate".'):
+            with self.subTest(sentence=sentence):
+                self.assertIn(sentence, steps)
+        failed = self.text[self.text.index("## A failed step in the full mode"):self.text.index("## Resume")]
+        self.assertIn("For a failure of step 2 that gets a fix round, first do that round.", failed)
         report = self.text[self.text.index("## The finish report"):]
         self.assertIn("- Each fix round: the failed items, the fix commits, the verdict of its review, "
                       "and the push or the answer to the push question.", report)

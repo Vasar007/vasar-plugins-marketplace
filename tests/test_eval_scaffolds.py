@@ -88,6 +88,7 @@ EXPECTED_BRANCH = {
     "rirr-gate-fix-partial": "work/retry-behind",
     "rirr-gate-fix-interactive": "work/retry-behind",
     "rirr-gate-fix-no-command": "work/retry-lint",
+    "rirr-prepush-red-test": "work/retry-red",
     "at-seeded-design": "main",
     "gwm-create-blocked": "main",
     "ib-no-worktree": "main",
@@ -112,7 +113,7 @@ PR_REPO = re.compile(r"^- \*\*PR creation:\*\* `[^`]+`[^`\n]*`([^/`\s]+)/([^`\s]
 # Without that part, Step 6 takes owner and repo from the Task Provider.
 PROVIDER_REPO = re.compile(r"^- \*\*Project / organization:\*\* `([^/`]+)/([^`]+)`$", re.MULTILINE)
 # The cases whose Python tests fail on purpose. The value is the number of failing tests.
-FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1}
+FAILING_TESTS = {"so-two-fixes": 2, "so-ladder-start": 1, "rl-edited-rules": 1, "rirr-prepush-red-test": 1}
 # The commit grader of each case that asks for a commit on the users repo.
 COMMIT_GRADERS = {"so-rename-small": "committed", "so-rename-large": "committed", "so-two-fixes": "two-commits",
                   "so-integration-proof": "committed", "so-no-integration-proof": "committed",
@@ -124,7 +125,7 @@ NO_PUSH_EXCEPTIONS = {("fp-e3-autonomous-main", "main-not-pushed"), ("rirr-merge
                       ("ib-merge", "main-not-pushed"), ("rirr-gate-fix-full", "main-not-pushed"),
                       ("rirr-gate-fix-partial", "main-not-pushed"), ("rirr-gate-fix-interactive", "main-not-pushed"),
                       ("rirr-gate-fix-no-command", "main-not-pushed"),
-                      ("rirr-pr-title-form", "main-not-pushed")}
+                      ("rirr-pr-title-form", "main-not-pushed"), ("rirr-prepush-red-test", "main-not-pushed")}
 # A "no commit" grader of a branch fails on each reflog line that the fixture did not write.
 BRANCH_NO_COMMIT_PATTERN = r"\t(?!commit(?: \(initial\))?: fixture:|branch: Created from)"
 # The "no commit" graders of each case. A test runs each one on its scaffold.
@@ -288,7 +289,9 @@ def file_grader_verdicts(case, names, workspace, before):
             result[name] = any(re.fullmatch(glob, path) for path in created) == meta["exists"]
         else:
             path = workspace / meta["target"]["path"]
-            result[name] = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8")) is not None
+            flags = sum(REGEX_FLAGS.get(flag, 0) for flag in meta.get("flags", ""))
+            found = path.is_file() and re.search(meta["pattern"], path.read_text(encoding="utf-8"), flags) is not None
+            result[name] = found != (meta.get("match") == "not_contains")
     return result
 
 
@@ -1979,6 +1982,62 @@ class ResumeReportTests(FixtureCase):
         self.assertEqual(self.git(workspace, "remote", "get-url", "upstream"), (0, "https://github.com/example-org/users-app.git"))
         _code, origin = self.git(workspace, "remote", "get-url", "origin")
         self.assertNotIn("github.com", origin)
+
+
+class PrepushRedTestFixtureTests(FixtureCase):
+    """The scaffold of rirr-prepush-red-test: the commit of the earlier run lowers the limit but leaves the test at 5.
+    The report names that commit, the mock of the pull request gives it as the head, and a fix of the test makes the suite green."""
+
+    CASE = "rirr-prepush-red-test"
+    GRADERS = ("limit-lowered", "test-still-checks", "route-test-fixed", "client-reads-setting", "test-not-skipped")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.case = {case.name: case for case in load_cases(REPO / "essentials" / "dev-essentials")}[cls.CASE]
+
+    def suite(self, workspace):
+        return subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=workspace, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace", timeout=120,
+                              env={**self.environment(), "PYTHONDONTWRITEBYTECODE": "1"}).returncode == 0
+
+    def test_the_head_is_red_and_a_fix_of_the_test_makes_it_green(self):
+        workspace = self.workspace()
+        self.run_bash([(self.case.path / "scaffold.sh").as_posix()], workspace)
+        before = workspace_files(workspace)
+        _code, head = self.git(workspace, "rev-parse", "HEAD")
+        report = (workspace / "notes" / "Results" / "retry-red-report.md").read_text(encoding="utf-8")
+        self.assertIn(f"- **Head commit**: {head}\n", report)
+        self.assertEqual(report.count("Verdict `stop-clean`."), 1)
+        pull = json.loads((self.case.path / "mocks" / "github" / "fixtures" / "pull" / "get.json").read_text(encoding="utf-8"))
+        self.assertEqual(pull["head"]["sha"], head)
+        self.assertFalse(self.suite(workspace))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": False,
+                          "client-reads-setting": True, "test-not-skipped": True})
+
+        test = workspace / "tests" / "test_http_client.py"
+        test.write_text(test.read_text(encoding="utf-8").replace("(retries=5)", "(retries=3)"), encoding="utf-8")
+        self.assertTrue(self.suite(workspace))
+        self.assertEqual(file_grader_verdicts(self.case, self.GRADERS, workspace, before),
+                         {"limit-lowered": True, "test-still-checks": True, "route-test-fixed": True,
+                          "client-reads-setting": True, "test-not-skipped": True})
+
+        test.write_text(test.read_text(encoding="utf-8").replace('self.assertEqual(get("/users"), "GET /users (retries=3)")',
+                                                                 'self.assertTrue(get("/users"))'), encoding="utf-8")
+        self.assertTrue(self.suite(workspace), "a weaker assertion also passes, so a grader must catch it")
+        self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["test-still-checks"])
+
+        # Two more wrong fixes also make the suite green: a skip of the test, and a client that ignores the setting.
+        test.write_text(test.read_text(encoding="utf-8").replace('self.assertTrue(get("/users"))',
+                                                                 'self.assertEqual(get("/users"), "GET /users (retries=3)")'),
+                        encoding="utf-8")
+        skipped = test.read_text(encoding="utf-8").replace("    def test_", "    @unittest.skip(\"later\")\n    def test_")
+        test.write_text(skipped, encoding="utf-8")
+        self.assertTrue(self.suite(workspace))
+        self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["test-not-skipped"])
+        client = workspace / "app" / "http_client.py"
+        client.write_text(client.read_text(encoding="utf-8").replace("retries=HTTP_RETRY_LIMIT", "retries=5"), encoding="utf-8")
+        self.assertFalse(file_grader_verdicts(self.case, self.GRADERS, workspace, before)["client-reads-setting"])
 
 
 class PrTemplateFixtureTests(FixtureCase):

@@ -37,7 +37,7 @@ Where this file says not to look for the repository, skip this section. In the f
    - Each review loop of the run ended `stop-clean`, or `stop-max-rounds` with no open blocking finding.
    - The branch is not the default branch of `origin`, and it is not the base branch of the run.
    - No tracked file has an uncommitted change.
-2. Run the build and the tests one time, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the build or a test fails, do no later step, and report it (hard stop 5). Make no commit before the push. A fix comes only after the gate, in the section "A failed merge gate".
+2. Run the build and the tests one time, as item 1 of the section `Trust but verify` in `dev-essentials:subagent-orchestration` says. If the build or a test fails, do no later step, and report it (hard stop 5). The full mode gives a fix round before the report to a failure of this run that the change of the branch causes. An example is a test that still expects the old behavior of changed code. A missing tool, a network error, or a time-out is not such a failure. A failure of another command, such as a lint script, gets no fix round. Fix the cause in new commits, as the workflow does a task of its plan. Never weaken or skip a test to make it pass. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. Its fix commits are part of the round. Then do steps 1 and 2 again. Do at most 2 such rounds. Make no other commit before the push. A failed merge gate gets its fix in the section "A failed merge gate".
 3. Push with `git -C "<work tree>" push -u origin <branch>`. Never force the push, and never pass `--no-verify`. If the push fails, do not push again with other options. Report the error and the local state, and end the run. A push protection block is hard stop 4.
 4. Open the pull request:
    1. Look for an open pull request of the branch. Call `mcp__plugin_github_github__list_pull_requests` with `owner`, `repo`, `head` set to `<owner>:<branch>`, `state` set to `open`, and `perPage` set to `30`. Follow `dev-essentials:github-mcp-conventions` in each call of this step. If a found pull request has the base branch of the run as its base, use it. Skip the rest of step 4, and say so in the finish report. If each found pull request has another base, do no later step. Outside the full mode, ask the user (hard stop 6). In the full mode, report it, and end the run (hard stop 5).
@@ -64,7 +64,7 @@ If each failed item is fixable, do a fix round:
 
 1. In the interactive mode, report each item with its evidence, and ask "Fix the cause in this run? (yes / no)". With "no", end the run.
 2. Fix the cause in new commits, as the workflow does a task of its plan. For `behind` or `dirty`, run `git fetch origin <base branch>`, merge `origin/<base branch>` into the branch, and resolve each conflict. Never rebase.
-3. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. Then do steps 1 and 2 of the section "Steps" again, and run the command of each fixed check again. If it fails, report it, and end the run (hard stop 5).
+3. Review the new commits with `dev-essentials:review-loop target=diff <head before the round>..HEAD --rounds=1`. After a merge with a conflict, use `target=branch`. A merge with no conflict needs no review. Then do steps 1 and 2 of the section "Steps" again, and run the command of each fixed check again. If one of them fails, report it, and end the run (hard stop 5). Here step 2 gets no fix round of its own.
 4. Outside the full mode, report the fix, and ask "Push the fix, and merge after the gate of merge-pr? (yes / no)". With "no", end the run.
 5. Push as step 3 of the section "Steps" says, and do step 5 of that section again.
 
@@ -72,7 +72,7 @@ Do at most 2 fix rounds. If the gate still fails, report it, and end the run (ha
 
 ## A failed step in the full mode
 
-A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. For a failed merge gate, first do the section "A failed merge gate". Do no other step again.
+A failed step is hard stop 5 of `dev-essentials:work-modes`. Ask no question. Report the state, and end the run. For a failure of step 2 that gets a fix round, first do that round. For a failed merge gate, first do the section "A failed merge gate". Do no other step again.
 
 ## Resume
 
