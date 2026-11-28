@@ -15,12 +15,12 @@ The other numbers in a heading are plugin versions.
 
 ### Added in dev-essentials
 
-- `evals/composers/cmp-task-bug-draft`: a new case with no shell tool. The prompt describes a bug in plain words, with the steps in one sentence and no version. The draft must give numbered steps, an actual result, an expected result, and a version line with the commit of the repository or `unknown` (issue #399).
-- `evals/composers/cmp-task-repo-template`: a new case with no shell tool. The repository has a bug template and a feature template, and the prompt names neither. The draft must use the headings of the bug template in their order, with no section of the default form, no comment of the template, and a title in the form of the template. The final reply must name the label of the template (issue #399).
+- `evals/composers/cmp-task-bug-draft`: a new case with no shell tool. The prompt describes a bug in plain words, with the steps in one sentence and no version. The draft must give numbered steps, an actual result, and an expected result. It also needs a version line with the commit of the repository or `unknown` (issue #399).
+- `evals/composers/cmp-task-repo-template`: a new case with no shell tool. The repository has a bug template and a feature template, and the prompt names neither. The draft must use the headings of the bug template in their order, with no section of the default form. It must have no comment of the template, and its title must take the form of the template. The final reply must name the label of the template (issue #399).
 
 ### Changed in dev-essentials
 
-- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`. With a template that fits, the draft uses only its headings, follows its comments and leaves them out, takes its title form, and names its labels. With no template that fits, the form stays as it was (issue #399).
+- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, the form stays as it was (issue #399).
 - `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
 - `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
 
