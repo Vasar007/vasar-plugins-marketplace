@@ -2498,6 +2498,21 @@ class PrBodyFormGraderTests(unittest.TestCase):
         comment = self.call("add_issue_comment", {"issue_number": 821, "body": "Opened the PR."})
         self.assertIsNone(re.search(meta["pattern"], self.pr("## What\n" + "a" * 993) + "\n" + comment))
 
+    def test_the_length_grader_does_not_count_an_attribution_line_at_the_end(self):
+        # The limit of compose-pr counts the content, not the attribution line (issue #403).
+        meta = self.graders["pr-body-length"][0]
+        line = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+        runs = {
+            "the line after a body at the limit": ("## What\n" + "a" * 992 + "\n\n" + line, True),
+            "the line and a line end": ("## What\n" + "a" * 992 + "\n\n" + line + "\n", True),
+            "the line after a long body": ("## What\n" + "a" * 993 + "\n\n" + line, False),
+            "another last line": ("## What\n" + "a" * 992 + "\n\nThe last line of the content.", False),
+            "the line in the middle": ("## What\n" + "a" * 992 + "\n\n" + line + "\n\nMore text.", False),
+        }
+        for name, (body, expected) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(re.search(meta["pattern"], self.pr(body)) is not None, expected)
+
     def test_the_draft_grader_names_the_draft_file_of_compose_pr(self):
         meta = self.graders["pr-draft-not-saved"][0]
         self.assertEqual((meta["type"], meta["path"], meta["exists"]),
@@ -4165,6 +4180,25 @@ class ComposerGraderTests(unittest.TestCase):
                              "labels": [{"name": "feature"}]}, indent=2)
         lines.append(line("issue_read", {"method": "get", **owner, "issue_number": 77}, answer))
         return "\n".join(lines) + "\n"
+
+    def test_within_limit_counts_the_content_and_not_an_attribution_line_at_the_end(self):
+        # The limit of compose-pr counts the content, not the attribution line (issue #403).
+        default = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+        model = "Written with Claude Code and Claude Opus 5.5."
+        full = "## What\n\n" + "a" * 991
+        long = full + "a"
+        for case in ("cmp-pr-from-diff", "cmp-pr-repo-template", "cmp-pr-ui-change"):
+            self.check(case, "within-limit", {
+                "content at the limit": (full, True),
+                "content at the limit and the line": (full + "\n" + default + "\n", True),
+                "content at the limit, a blank line, and the line": (full + "\n\n" + default, True),
+                "content over the limit, a blank line, and the line": (long + "\n\n" + default, False),
+                "content at the limit and the model line of a template": (full + "\n" + model, True),
+                "content over the limit": (long, False),
+                "content over the limit and the line": (long + "\n" + default + "\n", False),
+                "another last line over the limit": (full + "\nThe last line of the content.", False),
+                "the line in the middle": (full + "\n" + default + "\nMore text.", False),
+            })
 
     TEMPLATE_CASE = "cmp-pr-repo-template"
     PR_TEMPLATE = ("## Problem\n\nThe invoice header needs the order count of a customer.\n\n"
