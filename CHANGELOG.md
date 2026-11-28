@@ -9,7 +9,7 @@ The other numbers in a heading are plugin versions.
 
 ## [Unreleased]
 
-## dev-essentials 6.10.1 in release [7.12.0] - 2026-11-28
+## dev-essentials 6.10.1 in release [7.11.1] - 2026-11-28
 
 The length limits of `compose-pr` count the content of a PR description. An attribution line at the end of the description does not count. Before, the skill counted the whole description, and the length graders counted the line too. So a grader failed a run whose content was within the limit (issue #403).
 
@@ -3067,8 +3067,8 @@ This release ported and generalized several skills, commands, and rule additions
   - `.gitignore`
 - Added the manifest layout. The file `.claude-plugin/marketplace.json` lists the three plugins. Each `plugin.json` declares only metadata (name, version, description, author). It relies on Claude Code to discover components automatically at the documented default locations: `skills/`, `commands/`, and `agents/`.
 
-[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.12.0...HEAD
-[7.12.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.12.0
+[Unreleased]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.1...HEAD
+[7.11.1]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.11.0...v7.11.1
 [7.11.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.10.0...v7.11.0
 [7.10.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.9.0...v7.10.0
 [7.9.0]: https://github.com/Vasar007/vasar-plugins-marketplace/compare/v7.8.0...v7.9.0

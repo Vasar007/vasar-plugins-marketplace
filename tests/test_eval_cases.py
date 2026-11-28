@@ -2502,12 +2502,11 @@ class PrBodyFormGraderTests(unittest.TestCase):
         meta = self.graders["pr-body-length"][0]
         line = "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
         runs = {
-            "the line after a full body": ("## What\n" + "a" * 992 + "\n\n" + line, False),
-            "the line after a body at the limit": ("## What\n" + "a" * 990 + "\n\n" + line, True),
-            "the line and a line end": ("## What\n" + "a" * 990 + "\n\n" + line + "\n", True),
+            "the line after a body at the limit": ("## What\n" + "a" * 992 + "\n\n" + line, True),
+            "the line and a line end": ("## What\n" + "a" * 992 + "\n\n" + line + "\n", True),
             "the line after a long body": ("## What\n" + "a" * 993 + "\n\n" + line, False),
-            "another last line": ("## What\n" + "a" * 990 + "\n\nThe last line of the content.", False),
-            "the line in the middle": ("## What\n" + "a" * 990 + "\n\n" + line + "\n\nMore text.", False),
+            "another last line": ("## What\n" + "a" * 992 + "\n\nThe last line of the content.", False),
+            "the line in the middle": ("## What\n" + "a" * 992 + "\n\n" + line + "\n\nMore text.", False),
         }
         for name, (body, expected) in runs.items():
             with self.subTest(run=name):
@@ -4191,6 +4190,8 @@ class ComposerGraderTests(unittest.TestCase):
             self.check(case, "within-limit", {
                 "content at the limit": (full, True),
                 "content at the limit and the line": (full + "\n" + default + "\n", True),
+                "content at the limit, a blank line, and the line": (full + "\n\n" + default, True),
+                "content over the limit, a blank line, and the line": (long + "\n\n" + default, False),
                 "content at the limit and the model line of a template": (full + "\n" + model, True),
                 "content over the limit": (long, False),
                 "content over the limit and the line": (long + "\n" + default + "\n", False),
