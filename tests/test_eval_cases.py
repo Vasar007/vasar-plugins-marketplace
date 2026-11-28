@@ -4731,6 +4731,8 @@ class ComposerGraderTests(unittest.TestCase):
         self.check(self.BUG_CASE, "numbered-steps", {
             "one step only": (self.BUG_TASK.replace("2. Build the report.", "Then build the report."), False),
             "steps with a parenthesis": (self.BUG_TASK.replace("1. ", "1) ").replace("2. ", "2) "), True),
+            # Markdown renders a list of 1. items as 1, 2, 3.
+            "each step numbered 1": (self.BUG_TASK.replace("2. Build", "1. Build"), True),
         })
         self.check(self.BUG_CASE, "actual-result", {"observed": (self.BUG_BASE + "\nObserved: an IndexError.\n", True)})
         self.check(self.BUG_CASE, "version-line", {

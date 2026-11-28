@@ -20,13 +20,13 @@ The other numbers in a heading are plugin versions.
 
 ### Changed in dev-essentials
 
-- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, the form stays as it was (issue #399).
+- `skills/compose-task/SKILL.md`: the form of a bug asks for numbered steps, the actual result, the expected result, and the version or the commit. The skill takes the version from the input or from the repository, and else writes `unknown`. Before it writes, the skill looks for an issue template in `.github/ISSUE_TEMPLATE/`, in each mode. For an issue form (`.yml`), it reads the `label` of each field and the top-level keys. With a template that fits, the draft uses only its headings, and it follows the comments of the template and leaves them out. The draft also takes the title form of the template and names its labels. With no template that fits, or with several, the form stays as it was. The steps and the results of a bug can name an error, and Critical Rule 4 still holds for the rest (issue #399).
 - `skills/compose-task/references/create-mode.md`: the create call also passes the labels of the issue template that the draft used (issue #399).
 - `evals/composers/cmp-task-draft`: a new grader makes sure that a feature task gets no fields of a bug (issue #399).
 
 ### Changed in the repository
 
-- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version lines of two head runs (issue #399).
+- `tests/test_eval_cases.py`: new tests for the patterns of the new graders on right and wrong texts. The wrong texts include the words of a base run, and the right texts include the version line of the head runs (issue #399).
 - `tests/test_eval_scaffolds.py`: the list of branches names the two new cases. A new test makes sure that `cmp-task-repo-template` plants both templates on `main`, and that its prompt gives no graded word (issue #399).
 
 ## dev-essentials 6.10.0 in release [7.11.0] - 2026-11-27

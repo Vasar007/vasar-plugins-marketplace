@@ -43,7 +43,7 @@ Then these sections:
 - Current system state and why it is a problem
 - Key limitations or technical debt
 - Impact on development / performance / maintainability
-- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. Take the version or the commit from the input or from the repository. If neither gives it, write `unknown`. Do not guess it.
+- For a bug: numbered steps to repeat it, the actual result, the expected result, and the version or the commit. Take the version or the commit from the input or from the repository. If neither gives it, write `unknown`. Do not guess it. The steps and the results can name what the user sees, for example an error name or a message. Critical Rule 4 still holds for the rest of the text.
 
 ### Changes to Do
 
@@ -57,7 +57,7 @@ Then these sections:
 
 ### 1. Creating a Draft or Response (`mode: draft` / `mode: response`)
 
-Both modes produce the same Markdown content, in the form of "Task Documentation Structure". Only the destination differs.
+Both modes produce the same Markdown content, in the form of "Task Documentation Structure", or of an issue template that fits. Only the destination differs.
 
 First, look for an issue template of the repository: `Glob` the pattern `.github/ISSUE_TEMPLATE/*`. If the input names a template, use it. Else use the one template whose `name` and `about` fit the task. For a `.yml` file, read `description` in place of `about`. If none fits, or several fit, use the form of "Task Documentation Structure", and name the templates in your final reply.
 
@@ -82,7 +82,7 @@ An edit request without an explicit `mode: create` changes the local Markdown fi
 
 ### 3. Creating in GitHub (`mode: create`)
 
-Write the title and the body as step 1 says, also with no draft, and look for an issue template first. Before you call a GitHub tool, read [references/create-mode.md](references/create-mode.md). It has the pre-flight conditions, the create call, the read-back, and the report.
+Write the title and the body as section 1 (Creating a Draft or Response) says, also with no draft. Look for an issue template first. Before you call a GitHub tool, read [references/create-mode.md](references/create-mode.md). It has the pre-flight conditions, the create call, the read-back, and the report.
 
 ## Critical Rules
 

@@ -2034,11 +2034,13 @@ class IssueTemplateFixtureTests(FixtureCase):
         self.assertRegex(prose, re.compile(case.graders["template-headings"][0]["pattern"], re.M))
         # The feature template has none of the graded headings, so a run that takes it fails the heading grader.
         self.assertNotIn("## What happens", texts[self.FEATURE])
-        # The request gives no graded word, so a run must take the form from the skill or the template.
-        request = (case.path / "prompt.md").read_text(encoding="utf-8").split("---", 2)[2].lower()
-        for word in ("template", "expected", "actual", "version", "steps"):
-            with self.subTest(word=word):
-                self.assertNotIn(word, request)
+        # The requests give no graded word, so a run must take the form from the skill or the template.
+        bug_case = case.path.parent / "cmp-task-bug-draft"
+        for path in (case.path, bug_case):
+            request = (path / "prompt.md").read_text(encoding="utf-8").split("---", 2)[2].lower()
+            for word in ("template", "expected", "actual", "observed", "version", "commit", "unknown", "steps"):
+                with self.subTest(case=path.name, word=word):
+                    self.assertNotIn(word, request)
 
 
 class RirrSquashGraderTests(FixtureCase):
