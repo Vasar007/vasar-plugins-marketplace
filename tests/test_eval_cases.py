@@ -7210,6 +7210,7 @@ class NoIntegrationProofGraderTests(unittest.TestCase):
         runs = {
             "a CLI run after the edit": ([self.EDIT, self.UNIT, cli, self.COMMIT], True),
             "the CLI file as a script": ([self.EDIT, trace_bash("python app/cli.py order.json")], True),
+            "the CLI on a new line of the command": ([self.EDIT, trace_bash("cd /w\npython3 -m app.cli /tmp/order.json")], True),
             "a JSON file written for the run": ([self.EDIT, trace_write("order.json"), cli], True),
             "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
             "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
@@ -7273,6 +7274,9 @@ class SmokeRunCaseGraderTests(unittest.TestCase):
             "You need to run the CLI on the shop computer to see the printed label.": True,
             "I ran the CLI with a stand-in file for the printer.": False,
             "If you want, I can add a test of the receipt.": False,
+            "You may want to add a receipt test.": False,
+            "Please note that I did not run the real printer.": False,
+            "Run `python3 -m app.cli samples/order.json` on that machine to check the print.": True,
         })
 
     def test_a_reply_that_states_a_manual_run(self):
@@ -7300,7 +7304,9 @@ class SmokeRunCaseGraderTests(unittest.TestCase):
         runs = {
             "the CLI after the edit": ([self.EDIT, self.UNIT, trace_bash("python3 -m app.cli samples/order.json"), self.COMMIT], True),
             "render after the edit": ([self.EDIT, self.UNIT, render, self.COMMIT], True),
-            "the CLI with a stand-in printer": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'\"")], True),
+            "the CLI with a stand-in printer": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'; c.main(['x', 'samples/order.json'])\"")], True),
+            "A bad run passes: only an import of the CLI": ([self.EDIT, trace_bash("python3 -c \"import app.cli as c; c.PRINTER='/tmp/p'\"")], True),
+            "the CLI on a new line of the command": ([self.EDIT, trace_bash("cd /w\npython3 -m app.cli samples/order.json")], True),
             "unit tests only": ([self.EDIT, self.UNIT, self.COMMIT], False),
             "a read of the CLI": ([self.EDIT, trace_bash("cat app/cli.py"), self.COMMIT], False),
             "render before the last edit": ([render, self.EDIT, self.UNIT, self.COMMIT], False),
